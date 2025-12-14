@@ -9,7 +9,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 28
+        minSdk = 33
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,4 +44,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.accompanist.systemuicontroller)
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.3")
 }

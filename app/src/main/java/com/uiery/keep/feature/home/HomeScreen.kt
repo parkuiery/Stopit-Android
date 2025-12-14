@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,10 +47,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
@@ -59,6 +63,9 @@ import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
+import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.util.hasAccessibilityPermission
+import com.uiery.keep.util.requestAccessibilityPermission
 import com.uiery.keep.util.toPx
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -70,7 +77,7 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
-    onNavigateLock: (lockTime: String) -> Unit,
+    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -86,6 +93,7 @@ fun HomeScreen(
         spec = LottieCompositionSpec.RawRes(R.raw.home_prevent)
     )
     val haptic = LocalHapticFeedback.current
+    var openAlertDialog by remember { mutableStateOf(false) }
 
     viewModel.collectSideEffect { effect ->
         when(effect) {
@@ -101,8 +109,29 @@ fun HomeScreen(
                 }
             }
 
-            is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime)
+            is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime,effect.isRoutine)
         }
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.checkRoutines()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.analyticsHomeScreen()
+        if(!hasAccessibilityPermission(context)) {
+            openAlertDialog = true
+        }
+    }
+
+    if(openAlertDialog) {
+        PermissionSettingDialog(
+            onDismissRequest = { openAlertDialog = false},
+            onConfirmation = {
+                openAlertDialog = false
+                requestAccessibilityPermission(context)
+            },
+        )
     }
 
     if (uiState.isShowCategoryBottomSheet) {
@@ -230,7 +259,7 @@ fun HomeScreen(
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val (image, message) = if (uiState.isKeep) R.drawable.app_icon to stringResource(R.string.keep_turned_off) else R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
+                        val (image, message) = if (uiState.isKeep) R.drawable.kepp_icon to stringResource(R.string.keep_turned_off) else R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
                         Image(
                             modifier = Modifier
                                 .sizeIn(
@@ -286,13 +315,16 @@ fun HomeScreen(
                         )
                     }
                 }
-                ContentDescription(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp),
-                    isKeep = uiState.isKeep,
-                    startTime = uiState.startTime,
-                )
+                Column {
+                    ContentDescription(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
+                        isKeep = uiState.isKeep,
+                        startTime = uiState.startTime,
+                    )
+                    KeepBannerAd(adUnitId = "ca-app-pub-1537867411423705/5120253017")
+                }
             }
         }
     }

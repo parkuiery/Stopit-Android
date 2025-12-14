@@ -25,12 +25,14 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.Picker
 import com.uiery.keep.R
 import com.uiery.keep.rememberPickerState
-import java.time.LocalTime
+import com.uiery.keep.util.timeNow
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toJavaLocalTime
 
 @Composable
 fun TimerPicker(
     modifier: Modifier = Modifier,
-    time: LocalTime = LocalTime.now(),
+    time: LocalTime = timeNow,
     onChangeTimerTime: (LocalTime) -> Unit,
 ) {
     val context = LocalContext.current
@@ -44,7 +46,7 @@ fun TimerPicker(
     LaunchedEffect(timerPeriodsPickerState.selectedItem,hourPickerState.selectedItem,minutePickerState.selectedItem) {
         if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
             val hour = if(timerPeriodsPickerState.selectedItem == context.getString(R.string.pm)) hourPickerState.selectedItem.toInt() + 12 else hourPickerState.selectedItem.toInt()
-            onChangeTimerTime(LocalTime.of(hour,minutePickerState.selectedItem.toInt()))
+            onChangeTimerTime(LocalTime(hour,minutePickerState.selectedItem.toInt()))
         }
     }
 
@@ -59,7 +61,7 @@ fun TimerPicker(
                 .height(32.dp)
                 .background(
                     shape = RoundedCornerShape(8.dp),
-                    color =  KeepTheme.colors.tertiary,
+                    color = KeepTheme.colors.tertiary,
                 )
         ) {
 
@@ -72,8 +74,9 @@ fun TimerPicker(
             Picker(
                 state = timerPeriodsPickerState,
                 items = timePeriodsValues,
-                startIndex = if(LocalTime.now().isBefore(LocalTime.NOON)) 0 else 1,
+                startIndex = if(time.toJavaLocalTime().isBefore(java.time.LocalTime.NOON)) 0 else 1,
                 visibleItemsCount = 3,
+                isInfinity = true,
                 color = KeepTheme.colors.onSurfaceVariant,
                 textStyle = TextStyle(
                     fontWeight = FontWeight.SemiBold,

@@ -7,6 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.uiery.keep.feature.devtool.devToolScreen
 import com.uiery.keep.feature.devtool.navigateToDevTool
+import com.uiery.keep.feature.history.historyScreen
+import com.uiery.keep.feature.history.navigateToHistory
 import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
 import com.uiery.keep.feature.lock.lockScreen
@@ -51,9 +53,14 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateDevTool = navController::navigateToDevTool,
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
+            onNavigateHistory = navController::navigateToHistory,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
         devToolScreen(onNavigateBack = navController::navigateUp)
-        routineScreen(onNavigateBack = navController::navigateUp)
+        routineScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateLock = navController::navigateToLock,
+        )
+        historyScreen(onNavigateBack = navController::navigateUp)
     }
 }

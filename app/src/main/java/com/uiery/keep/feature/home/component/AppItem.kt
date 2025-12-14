@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.home.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +27,7 @@ fun AppItem(
     onCheckedChange: ((Boolean) -> Unit),
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().clickable { onCheckedChange(!checked) },
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -51,7 +52,7 @@ fun AppItem(
 private fun AppItemPreview() {
     KeepTheme(darkTheme = true) {
         AppItem(
-            image = ImageBitmap.imageResource(id = R.drawable.app_icon),
+            image = ImageBitmap.imageResource(id = R.drawable.kepp_icon),
             name = "dasdasa",
             checked = false,
             onCheckedChange = { },

@@ -16,7 +16,7 @@ fun NavController.navigateToSplash(
 fun NavGraphBuilder.splashScreen(
     onNavigateHome:() -> Unit,
     onNavigateOnboarding: () -> Unit,
-    onNavigateLock: (lockTime: String) -> Unit,
+    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
 ) {
     composable<SplashRoute> {
         SplashScreen(

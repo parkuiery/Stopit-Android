@@ -4,13 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -22,14 +21,14 @@ fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel(),
     onNavigateHome:() -> Unit,
     onNavigateOnboarding: () -> Unit,
-    onNavigateLock: (lockTime: String) -> Unit,
+    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
 ) {
 
     viewModel.collectSideEffect { effect ->
         when(effect) {
             is SplashSideEffect.MoveToHome -> onNavigateHome()
             is SplashSideEffect.MoveToOnboarding -> onNavigateOnboarding()
-            is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime)
+            is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime,effect.isRoutine)
         }
     }
 
@@ -40,8 +39,8 @@ fun SplashScreen(
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)),
-            painter = painterResource(R.drawable.app_icon),
+            modifier = Modifier.clip(CircleShape),
+            painter = painterResource(R.drawable.kepp_icon),
             contentDescription = null,
         )
     }

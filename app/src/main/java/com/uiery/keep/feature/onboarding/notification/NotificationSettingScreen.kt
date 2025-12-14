@@ -1,7 +1,9 @@
 package com.uiery.keep.feature.onboarding.notification
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,12 +17,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -38,14 +45,19 @@ private fun ManagedActivityResultLauncher<String, Boolean>.requestNotificationPe
 @Composable
 fun NotificationSettingScreen(
     modifier: Modifier = Modifier,
+    viewModel: NotificationSettingViewModel = hiltViewModel(),
     onNavigateSelectApp: () -> Unit,
 ) {
-    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        onNavigateSelectApp()
-    }
+    val requestPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            viewModel.notificationSettingCompleteAnalytics()
+            onNavigateSelectApp()
+        }
     val composition by rememberLottieComposition(
         LottieCompositionSpec.RawRes(R.raw.notification_bell)
     )
+    val context = LocalContext.current
+    var visitSetting by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -83,7 +95,22 @@ fun NotificationSettingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_notification_permission),
                 onClick = {
-                    requestPermissionLauncher.requestNotificationPermission()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        requestPermissionLauncher.requestNotificationPermission()
+                        return@KeepButton
+                    }
+
+                    if (visitSetting) {
+                        viewModel.notificationSettingCompleteAnalytics()
+                        onNavigateSelectApp()
+                    } else {
+                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        }
+                        context.startActivity(intent)
+                    }
+
+                    visitSetting = true
                 },
             )
         }

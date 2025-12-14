@@ -3,7 +3,9 @@ package com.uiery.keep.feature.home.component
 import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,8 +20,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +45,8 @@ import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.model.AppInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun CategoryBottomSheetContent(
@@ -50,10 +56,20 @@ fun CategoryBottomSheetContent(
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
-    val apps = getInstalledApps(packageManager)
+    var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     val selectedAppPackages by remember { mutableStateOf(storeSelectApps.toMutableSet()) }
-    var isSelectAll by remember(storeSelectApps) { mutableStateOf(apps.map { it.packageName }.toSet() == storeSelectApps.toSet()) }
+    var isSelectAll by remember(storeSelectApps, apps) {
+        mutableStateOf(apps.map { it.packageName }.toSet() == storeSelectApps.toSet())
+    }
     var searchContent by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            apps = getInstalledApps(packageManager)
+            isLoading = false
+        }
+    }
 
     Column(
         modifier = modifier
@@ -74,69 +90,90 @@ fun CategoryBottomSheetContent(
             onValueChange = { searchContent = it }
         )
         Spacer(modifier = Modifier.height(12.dp))
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(shape = RoundedCornerShape(12.dp), color = KeepTheme.colors.secondary),
-        ) {
-            if (searchContent.isEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        KeepCheckbox(
-                            checked = isSelectAll,
-                            onCheckedChange = { checked ->
-                                isSelectAll = checked
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = KeepTheme.colors.primary
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        shape = RoundedCornerShape(12.dp),
+                        color = KeepTheme.colors.secondary
+                    ),
+            ) {
+                if (searchContent.isEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                isSelectAll = !isSelectAll
                                 selectedAppPackages.apply {
                                     clear()
-                                    if (checked) addAll(apps.map { it.packageName })
+                                    if (isSelectAll) addAll(apps.map { it.packageName })
                                 }
                             },
-                        )
-                        Image(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            painter = painterResource(R.drawable.app_icon),
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = stringResource(R.string.all_apps),
-                            color = KeepTheme.colors.onSurfaceVariant,
-                        )
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            KeepCheckbox(
+                                checked = isSelectAll,
+                                onCheckedChange = { checked ->
+                                    isSelectAll = checked
+                                    selectedAppPackages.apply {
+                                        clear()
+                                        if (checked) addAll(apps.map { it.packageName })
+                                    }
+                                },
+                            )
+                            Image(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                painter = painterResource(R.drawable.kepp_icon),
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = stringResource(R.string.all_apps),
+                                color = KeepTheme.colors.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
-            }
-            items(
-                items = apps.filter { it.appName.contains(searchContent, ignoreCase = true) },
-                key = { it.packageName }
-            ) { app ->
-                var isCheck by remember(isSelectAll, selectedAppPackages) {
-                    mutableStateOf(
-                        isSelectAll || selectedAppPackages.contains(app.packageName)
+                items(
+                    items = apps.filter { it.appName.contains(searchContent, ignoreCase = true) },
+                    key = { it.packageName }
+                ) { app ->
+                    var isCheck by remember(isSelectAll, selectedAppPackages) {
+                        mutableStateOf(
+                            isSelectAll || selectedAppPackages.contains(app.packageName)
+                        )
+                    }
+                    AppItem(
+                        image = app.appIcon.toBitmap().asImageBitmap(),
+                        name = app.appName,
+                        checked = isCheck,
+                        onCheckedChange = {
+                            selectedAppPackages.apply {
+                                if (contains(app.packageName)) {
+                                    remove(app.packageName)
+                                    isCheck = false
+                                } else {
+                                    add(app.packageName)
+                                    isCheck = true
+                                }
+                            }
+                            isSelectAll =
+                                apps.map { it.packageName }.toSet() == selectedAppPackages.toSet()
+                        }
                     )
                 }
-                AppItem(
-                    image = app.appIcon.toBitmap().asImageBitmap(),
-                    name = app.appName,
-                    checked = isCheck,
-                    onCheckedChange = {
-                        selectedAppPackages.apply {
-                            if (contains(app.packageName)) {
-                                remove(app.packageName)
-                                isCheck = false
-                            } else {
-                                add(app.packageName)
-                                isCheck = true
-                            }
-                        }
-                        isSelectAll = apps.map { it.packageName }.toSet() == selectedAppPackages.toSet()
-                    }
-                )
             }
         }
         Button(

@@ -1,16 +1,24 @@
 package com.uiery.keep.feature.lock
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.model.toModel
+import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.atDate
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toKotlinLocalDateTime
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -21,17 +29,23 @@ import javax.inject.Inject
 @HiltViewModel
 class LockViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val routineDao: RoutineDao,
     @KeepDataSource private val dataStore: DataStore<Preferences>,
 ) : ContainerHost<LockUiState,LockSideEffect>, ViewModel(){
 
     private val route = savedStateHandle.toRoute<LockRoute>()
     override val container: Container<LockUiState, LockSideEffect> = container(LockUiState(
-        lockTime = LocalDateTime.parse(route.lockTime)
+        lockTime = if(route.lockTime == null) LocalDateTime.now() else LocalDateTime.parse(route.lockTime),
+        isRoutine = route.isRoutine
     ))
 
     init {
+        initIntent()
+    }
+
+    private fun initIntent() = intent {
         getSelectedApp()
-        navigateHome()
+        if(route.isRoutine) getRoutines() else navigateHome(state.lockTime)
     }
 
     private fun getSelectedApp() = intent {
@@ -43,9 +57,25 @@ class LockViewModel @Inject constructor(
         }
     }
 
-    private fun navigateHome() = intent {
+    private fun getRoutines() = intent {
+        val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }
+        val activeRoutines = routines?.filter { it.isEnabled }
+            ?.filter { it.repeatDays.toDayOfWeekList().contains(LocalDateTime.now().dayOfWeek) }
+            ?.filter {
+                it.startTime.rangeUntil(it.endTime)
+                    .contains(LocalDateTime.now().toKotlinLocalDateTime().time)
+            }
+        val endTime = activeRoutines?.maxOfOrNull { it.endTime }?.atDate(LocalDateTime.now().toKotlinLocalDateTime().date)?.toJavaLocalDateTime() ?: LocalDateTime.now()
+        Log.d("TEST", "getRoutines: $endTime")
+        Log.d("TEST", "getRoutines1: $activeRoutines")
+        val applications = activeRoutines?.firstOrNull()?.lockApplications ?: emptyList()
+        reduce { state.copy(routines = activeRoutines.orEmpty(), selectedAppPackage = applications.toSet(), lockTime = endTime) }
+        navigateHome(endTime)
+    }
+
+    private fun navigateHome(lockTime: LocalDateTime) = intent {
         val now = LocalDateTime.now()
-        val duration = Duration.between(now, state.lockTime).coerceAtLeast(Duration.ZERO)
+        val duration = Duration.between(now, lockTime).coerceAtLeast(Duration.ZERO)
         delay(duration.toMillis())
         postSideEffect(LockSideEffect.MoveToHome)
     }
@@ -54,6 +84,8 @@ class LockViewModel @Inject constructor(
 data class LockUiState(
     val lockTime: LocalDateTime = LocalDateTime.now(),
     val selectedAppPackage: Set<String> = emptySet(),
+    val isRoutine: Boolean = false,
+    val routines: List<RoutineModel> = emptyList()
 )
 
 sealed class LockSideEffect {

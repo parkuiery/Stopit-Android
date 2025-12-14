@@ -1,56 +1,44 @@
 package com.uiery.keep.feature.routine.component
 
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.uiery.kds.theme.KeepTheme
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.keep.R
 
 @Composable
 fun RoutineNameContent(
     modifier: Modifier = Modifier,
     name: String,
-    isPushEnabled: Boolean,
     setName: (String) -> Unit,
-    setPushEnabled:(Boolean) -> Unit,
 ) {
-    RoutineSettingCard(
+    TextField(
         modifier = modifier.fillMaxWidth(),
-        topContent = {
-            TextField(
-                value = name,
-                onValueChange = setName,
-                placeholder = {
-                    Text(
-                        text = "루틴 이름",
-                        color = KeepTheme.colors.onTertiary,
-                    )
-                },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = KeepTheme.colors.onSurfaceVariant,
-                )
-            )
-        },
-        bottomContent = {
+        value = name,
+        onValueChange = setName,
+        placeholder = {
             Text(
-                text = "루틴 시작 시 푸시 발송",
-                color = KeepTheme.colors.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            KeepSwitch(
-                checked = isPushEnabled,
-                onCheckedChange = setPushEnabled,
+                text = stringResource(R.string.routine_name_placeholder),
+                color = KeepTheme.colors.onTertiary,
             )
         },
+        singleLine = true,
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = KeepTheme.colors.secondary,
+            focusedContainerColor = KeepTheme.colors.secondary,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedTextColor = KeepTheme.colors.onSurfaceVariant,
+            unfocusedTextColor = KeepTheme.colors.onSurfaceVariant,
+            cursorColor = KeepTheme.colors.onSurfaceVariant,
+        ),
+        shape = RoundedCornerShape(20.dp),
     )
 }

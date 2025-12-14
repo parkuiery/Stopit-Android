@@ -18,4 +18,7 @@ object PreferencesKey {
     val START_TIME = longPreferencesKey("start_time")
     val LOCK_TIME = stringPreferencesKey("lock_time")
     val IS_NEW = booleanPreferencesKey("is_new")
+    val TOTAL_BLOCK_TIME = longPreferencesKey("total_block_time")
+    val LONG_BLOCK_TIME = longPreferencesKey("long_block_time")
+    val ROUTINES = stringPreferencesKey("routines")
 }

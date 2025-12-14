@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -24,6 +25,7 @@ import com.uiery.keep.R
 @Composable
 fun IntroScreen(
     modifier: Modifier = Modifier,
+    viewModel: IntroViewModel = hiltViewModel(),
     onNavigatePermissionSetting: () -> Unit,
 ) {
     val composition by rememberLottieComposition(
@@ -48,14 +50,19 @@ fun IntroScreen(
                 color = KeepTheme.colors.onSurfaceVariant,
             )
             LottieAnimation(
-                modifier = Modifier.fillMaxSize().weight(1f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
             )
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.start_button),
-                onClick = onNavigatePermissionSetting,
+                onClick = {
+                    viewModel.onBoardingAnalytics()
+                    onNavigatePermissionSetting()
+                },
             )
         }
     }

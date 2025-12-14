@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keep</string>
-    <string name="accessibility_service_description">Keep Zugänglichkeitsdienst</string>
+    <string name="app_name">StopIt</string>
+    <string name="accessibility_service_description">StopIt Zugänglichkeitsdienst</string>
     <string name="select_apps_prompt">Bitte wählen Sie die Apps aus, die Sie in Versuchung führen</string>
     <string name="app_lock_info">Die ausgewählten Apps werden gesperrt, um die Nutzung zu verhindern. Sie können die App-Sperre jederzeit ein- und ausschalten.</string>
     <string name="select_apps_button">Apps auswählen</string>
@@ -9,8 +9,8 @@
     <string name="accessibility_permission_description">Mit der Bildschirmzeit-Berechtigung können alle verlockenden Apps blockiert werden.</string>
     <string name="permission_usage_note">Berechtigung wird nur zum Blockieren der App-Nutzung verwendet</string>
     <string name="allow_permission">Berechtigung erlauben</string>
-    <string name="notification_permission_request">Bitte erlauben Sie Benachrichtigungen, damit Keep Ihnen hilft, Ihre Versprechen einzuhalten.</string>
-    <string name="notification_habit_message">Keep wird Sie benachrichtigen, um gute Smartphone-Gewohnheiten aufzubauen.</string>
+    <string name="notification_permission_request">Bitte erlauben Sie Benachrichtigungen, damit StopIt Ihnen hilft, Ihre Versprechen einzuhalten.</string>
+    <string name="notification_habit_message">StopIt wird Sie benachrichtigen, um gute Smartphone-Gewohnheiten aufzubauen.</string>
     <string name="allow_notification_permission">Benachrichtigungserlaubnis erlauben</string>
     <string name="intro_text">Schützt Sie vor den Versuchungen Ihres Smartphones</string>
     <string name="start_button">Starten</string>
@@ -21,13 +21,13 @@
     <string name="search">suchen</string>
     <string name="all_apps">Alle Apps</string>
     <string name="selection_complete">Auswahl abgeschlossen</string>
-    <string name="keep_on_message">Ausgewählte Apps können nicht verwendet werden, während Keep aktiv ist</string>
-    <string name="keep_off_message">Aktivieren Sie Keep, um verlockende Apps zu blockieren</string>
-    <string name="keep_on_status">Keep ist eingeschaltet</string>
-    <string name="keep_off_status">Keep ist ausgeschaltet</string>
-    <string name="keep_turned_on">Keep wurde eingeschaltet</string>
-    <string name="keep_turned_off">Keep wurde ausgeschaltet</string>
-    <string name="block_screen_title">Keep blockiert die App-Nutzung</string>
+    <string name="keep_on_message">Ausgewählte Apps können nicht verwendet werden, während StopIt aktiv ist</string>
+    <string name="keep_off_message">Aktivieren Sie StopIt, um verlockende Apps zu blockieren</string>
+    <string name="keep_on_status">StopIt ist eingeschaltet</string>
+    <string name="keep_off_status">StopIt ist ausgeschaltet</string>
+    <string name="keep_turned_on">StopIt wurde eingeschaltet</string>
+    <string name="keep_turned_off">StopIt wurde ausgeschaltet</string>
+    <string name="block_screen_title">StopIt blockiert die App-Nutzung</string>
     <string name="block_screen_message">%1$s kann nicht verwendet werden, da es eingeschränkt ist.</string>
     <string name="block_screen_close">Schließen</string>
     <string name="hour">Stunde</string>
@@ -43,8 +43,30 @@
     <string name="am">Vormittag</string>
     <string name="pm">Nachmittag</string>
     <string name="category_selected">%1$d Apps &amp; Web-Kategorien ausgewählt</string>
-    <string name="permission_dialog_title">Zugänglichkeitsberechtigung erforderlich</string>
-    <string name="permission_dialog_message">Diese Berechtigung hilft, die App-Nutzung zu erkennen, um bestimmte Apps zu blockieren.\nDie gesammelten Informationen werden nicht für andere Zwecke als das Blockieren von Apps verwendet und nicht extern übertragen.</string>
-    <string name="permission_dialog_confirm">Zu den Einstellungen</string>
-    <string name="permission_dialog_cancel">Abbrechen</string>
+    <string name="permission_dialog_title">Für die Nutzung der App-Sperrfunktion ist eine Bedienungshilfen-Berechtigung erforderlich.</string>
+    <string name="permission_dialog_message">StopIt blockiert den Zugriff auf gesperrte Apps, um die App-Sperrfunktion bereitzustellen. Dafür werden Informationen über die aktuelle App-Oberfläche und Interaktionsdaten gesammelt und verarbeitet. Diese Daten werden ausschließlich für die App-Sperrfunktion verwendet und nicht extern weitergegeben. Möchten Sie die Bedienungshilfen-Berechtigung erteilen?</string>
+    <string name="permission_dialog_confirm">Zustimmen und fortfahren</string>
+    <string name="permission_dialog_cancel">Ablehnen</string>
+    <string name="view_keep_usage_history">StopIt-Nutzungsverlauf anzeigen</string>
+    <string name="history_title">Dies ist die Zeit, die du mit StopIt überwunden hast</string>
+    <string name="history_subtitle">Wirst du weiterhin bei uns bleiben?</string>
+    <string name="history_total_time">Zeit mit StopIt</string>
+    <string name="history_longest_time">Längste überwundene Zeit</string>
+    <string name="time_day_hour_min_sec">%1$d Tage %2$d Stunden %3$d Min %4$d Sek</string>
+    <string name="my_routine">Meine Routine</string>
+    <string name="routine_name_placeholder">Routinename</string>
+    <string name="routine_add_button">Routine hinzufügen</string>
+    <string name="routine_edit_button">Routine bearbeiten</string>
+    <string name="select_apps_to_lock">Bitte wählen Sie die zu sperrenden Apps aus.</string>
+    <string name="repeat_days">Wiederholungstage</string>
+    <string name="start_time">Startzeit</string>
+    <string name="routine_no_content_message">Fügen Sie eine Routine hinzu, um die App-Sperre bequemer zu machen!\nStopIt sperrt Ihre Apps automatisch.</string>
+    <string name="routine">Routine</string>
+    <string name="contact_us">Kontakt</string>
+    <string name="feedback_subject">[StopIt Android] Feedback</string>
+    <string name="email_app_not_installed">Keine E-Mail-App installiert.</string>
+    <string name="feature_request_message">🚀 Wir erstellen die Funktionen, die Sie sich wünschen!</string>
+    <string name="accessibility_setup_guide">● Samsung: Einstellungen > Bedienungshilfen > Installierte Apps > StopIt > Bedienungshilfen erlauben\n● Andere: Einstellungen > Bedienungshilfen > StopIt > Bedienungshilfen erlauben</string>
+    <string name="lock_screen_routine_running">%1$s \nRoutine läuft</string>
+    <string name="routine_minimum_duration_message">Routinen müssen für mindestens 15 Minuten eingestellt werden.</string>
 </resources> 

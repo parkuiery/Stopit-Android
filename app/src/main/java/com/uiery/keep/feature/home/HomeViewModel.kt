@@ -1,28 +1,45 @@
 package com.uiery.keep.feature.home
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.logEvent
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.model.toModel
+import com.uiery.keep.util.timeNow
+import com.uiery.keep.util.toDayOfWeekList
+import com.uiery.keep.util.today
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.atDate
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toKotlinLocalDateTime
+import kotlinx.datetime.toKotlinLocalTime
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.LocalDateTime
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
-) : ContainerHost<HomeUiState, HomeSideEffect>, ViewModel() {
+    private val analytics: FirebaseAnalytics,
+    private val routineDao: RoutineDao,
+    ) : ContainerHost<HomeUiState, HomeSideEffect>, ViewModel() {
     override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
 
     init {
@@ -31,11 +48,14 @@ class HomeViewModel @Inject constructor(
     }
 
     internal fun changeIsKeep() = intent {
-        reduce { state.copy(isKeep = !state.isKeep, startTime = System.currentTimeMillis()) }
-        storeIsKeep()
-        if (state.isKeep) {
+        val isKeep = !state.isKeep
+        if (isKeep) {
             storeStartTime()
+        } else {
+            storeBlockTime(System.currentTimeMillis() - state.startTime)
         }
+        reduce { state.copy(isKeep = isKeep, startTime = System.currentTimeMillis()) }
+        storeIsKeep()
     }
 
     internal fun showSnackBar(message: String) = intent {
@@ -68,8 +88,8 @@ class HomeViewModel @Inject constructor(
     }
 
     internal fun moveToLock() = intent {
-        val lockTime = state.blockTime.atDate(LocalDate.now()).toString()
-        postSideEffect(HomeSideEffect.MoveToLock(lockTime))
+        val lockTime = state.blockTime.atDate(today).toString()
+        postSideEffect(HomeSideEffect.MoveToLock(lockTime,false))
     }
 
     private fun getSelectedApp() = intent {
@@ -84,6 +104,24 @@ class HomeViewModel @Inject constructor(
     private fun storeSelectedApp(selectedAppPackage: Set<String>) = intent {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.SELECTED_APP_PACKAGES] = selectedAppPackage
+        }
+    }
+
+    private fun storeBlockTime(lockedMillis: Long) = intent {
+        val longBlockTime = dataStore.data.map { data ->
+            data[PreferencesKey.LONG_BLOCK_TIME] ?: 0L
+        }.firstOrNull() ?: 0L
+
+        val totalBlockTime = dataStore.data.map { data ->
+            data[PreferencesKey.TOTAL_BLOCK_TIME] ?: 0L
+        }.firstOrNull() ?: 0L
+
+        val newLongBlockTime = maxOf(longBlockTime, lockedMillis)
+        val newTotalBlockTime = totalBlockTime + lockedMillis
+
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.LONG_BLOCK_TIME] = newLongBlockTime
+            preferences[PreferencesKey.TOTAL_BLOCK_TIME] = newTotalBlockTime
         }
     }
 
@@ -121,8 +159,17 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    internal fun checkRoutines() = intent {
+        val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }
+        val isRoutine = routines?.filter { it.isEnabled }
+            ?.filter { it.repeatDays.toDayOfWeekList().contains(LocalDateTime.now().dayOfWeek) }
+            ?.filter { it.startTime.rangeUntil(it.endTime).contains(LocalDateTime.now().toKotlinLocalDateTime().time) }?.isNotEmpty() == true
+
+        if(isRoutine) postSideEffect(HomeSideEffect.MoveToLock(null,true))
+    }
+
     internal fun updateCountdownTime(countdownTime: LocalTime) = intent {
-        val blockTime = LocalTime.now().plusHours(countdownTime.hour.toLong()).plusMinutes(countdownTime.minute.toLong())
+        val blockTime = timeNow.toJavaLocalTime().plusHours(countdownTime.hour.toLong()).plusMinutes(countdownTime.minute.toLong()).toKotlinLocalTime()
         reduce { state.copy(countdownTime = countdownTime,blockTime = blockTime) }
     }
 
@@ -132,7 +179,15 @@ class HomeViewModel @Inject constructor(
 
     internal fun lockTime() = intent {
         dataStore.edit { preferences ->
-            preferences[PreferencesKey.LOCK_TIME] = state.blockTime.atDate(LocalDate.now()).toString()
+            preferences[PreferencesKey.LOCK_TIME] = state.blockTime.atDate(today).toString()
+        }
+        val lockedDuration = state.blockTime.atDate(today).toJavaLocalDateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - System.currentTimeMillis()
+        storeBlockTime(lockedDuration)
+    }
+
+    internal fun analyticsHomeScreen() = intent {
+        analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
+            param(FirebaseAnalytics.Param.SCREEN_NAME, "HomeScreen")
         }
     }
 }
@@ -146,12 +201,12 @@ data class HomeUiState(
     val startTime: Long = System.currentTimeMillis(),
     val searchContent: String = "",
     val isSelectAll: Boolean  = true,
-    val blockTime: LocalTime = LocalTime.now(),
-    val countdownTime: LocalTime = LocalTime.now(),
-    val timerTime: LocalTime = LocalTime.now(),
+    val blockTime: LocalTime = timeNow,
+    val countdownTime: LocalTime = timeNow,
+    val timerTime: LocalTime = timeNow,
 )
 
 sealed class HomeSideEffect {
     data class ShowSnackBar(val message: String): HomeSideEffect()
-    data class MoveToLock(val lockTime: String): HomeSideEffect()
+    data class MoveToLock(val lockTime: String?,val isRoutine: Boolean): HomeSideEffect()
 }

@@ -36,12 +36,13 @@ fun Picker(
     state: PickerState = rememberPickerState(),
     startIndex: Int = 0,
     visibleItemsCount: Int = 3,
+    isInfinity: Boolean = true,
     textModifier: Modifier = Modifier,
     textStyle: TextStyle = LocalTextStyle.current,
     color: Color = Color.Unspecified,
 ) {
     val visibleItemsMiddle = visibleItemsCount / 2
-    val listScrollCount = Integer.MAX_VALUE
+    val listScrollCount = if(isInfinity) Integer.MAX_VALUE else items.size
     val listScrollMiddle = listScrollCount / 2
     val listStartIndex =
         listScrollMiddle - listScrollMiddle % items.size - visibleItemsMiddle + startIndex

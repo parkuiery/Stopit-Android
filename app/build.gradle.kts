@@ -1,10 +1,5 @@
 import java.util.Properties
 
-buildscript {
-    dependencies {
-        classpath("com.datadoghq:dd-sdk-android-gradle-plugin:1.16.0")
-    }
-}
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -13,8 +8,8 @@ plugins {
     alias(libs.plugins.dagger.hilt)
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.google.devtools.ksp)
-    id("com.datadoghq.dd-sdk-android-gradle-plugin")
     id("androidx.room")
+    id("com.google.firebase.crashlytics")
 }
 
 val properties = Properties()
@@ -26,10 +21,10 @@ android {
 
     defaultConfig {
         applicationId = "com.uiery.keep"
-        minSdk = 28
-        targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.0"
+        minSdk = 33 // 28
+        targetSdk = 35
+        versionCode = 16
+        versionName = "1.5.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -145,6 +140,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.messaging)
+    implementation("com.google.firebase:firebase-crashlytics-ndk")
 
     implementation(libs.utilcodex)
 
@@ -161,6 +157,10 @@ dependencies {
 
     implementation("androidx.room:room-runtime:2.7.1")
     ksp("androidx.room:room-compiler:2.7.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
 
     implementation(project(":core:kds"))
 }

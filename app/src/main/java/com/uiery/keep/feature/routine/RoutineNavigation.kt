@@ -18,10 +18,12 @@ fun NavController.navigateToRoutine(
 
 fun NavGraphBuilder.routineScreen(
     onNavigateBack: () -> Unit,
+    onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
     composable<RoutineRoute> {
         RoutineScreen(
             onNavigateBack = onNavigateBack,
+            onNavigateLock = onNavigateLock,
         )
     }
 }

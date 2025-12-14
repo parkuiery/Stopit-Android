@@ -26,7 +26,7 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.Picker
 import com.uiery.keep.R
 import com.uiery.keep.rememberPickerState
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 
 @Composable
 fun CountDownPicker(
@@ -40,7 +40,7 @@ fun CountDownPicker(
 
     LaunchedEffect(hourPickerState.selectedItem,minutePickerState.selectedItem) {
         if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
-            onChangeCountdownTime(LocalTime.of(hourPickerState.selectedItem.toInt(),minutePickerState.selectedItem.toInt()))
+            onChangeCountdownTime(LocalTime(hourPickerState.selectedItem.toInt(),minutePickerState.selectedItem.toInt()))
         }
     }
 

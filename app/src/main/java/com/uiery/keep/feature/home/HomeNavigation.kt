@@ -20,7 +20,7 @@ fun NavController.navigateToHome(
 
 fun NavGraphBuilder.homeScreen(
     onNavigateMenu: () -> Unit,
-    onNavigateLock: (lockTime: String) -> Unit,
+    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
 ) {
     composable<HomeRoute> {
         HomeScreen(

@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.uiery.kds.theme.KeepTheme
@@ -40,7 +41,7 @@ internal fun AppSelectButton(
             .padding(horizontal = 24.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val (image, tile) = if(selectApps.isEmpty()) R.drawable.ic_question_face to "잠글 앱을 선택해 주세요." else R.drawable.shield to "${selectApps.size}개의 앱이 선택됨"
+        val (image, tile) = if(selectApps.isEmpty()) R.drawable.ic_question_face to stringResource(R.string.select_apps_to_lock) else R.drawable.shield to stringResource(R.string.category_selected,selectApps.size)
         Image(
             modifier = Modifier.size(16.dp),
             painter = painterResource(image),

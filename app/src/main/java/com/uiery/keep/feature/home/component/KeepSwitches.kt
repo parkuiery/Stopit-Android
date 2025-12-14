@@ -37,9 +37,9 @@ object KeepSwitchDefaults {
         checkedBorderColor: Color = Color.Transparent,
         checkedIconColor: Color = KeepTheme.colors.primary,
         uncheckedThumbColor: Color = Color.White,
-        uncheckedTrackColor: Color = KeepTheme.colors.tertiary,
+        uncheckedTrackColor: Color = KeepTheme.colors.onTertiary,
         uncheckedBorderColor: Color = Color.Transparent,
-        uncheckedIconColor: Color = KeepTheme.colors.tertiary,
+        uncheckedIconColor: Color = KeepTheme.colors.onTertiary,
     ): SwitchColors = SwitchDefaults.colors(
         checkedThumbColor = checkedThumbColor,
         checkedTrackColor = checkedTrackColor,

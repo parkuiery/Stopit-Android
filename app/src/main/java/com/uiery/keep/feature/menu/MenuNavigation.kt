@@ -17,12 +17,14 @@ fun NavGraphBuilder.menuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
+    onNavigateHistory: () -> Unit,
 ) {
     composable<MenuRoute> {
         MenuScreen(
             onNavigateDevTool = onNavigateDevTool,
             onNavigateBack = onNavigateBack,
-            onNavigateRoutine = onNavigateRoutine
+            onNavigateRoutine = onNavigateRoutine,
+            onNavigateHistory = onNavigateHistory,
         )
     }
 }

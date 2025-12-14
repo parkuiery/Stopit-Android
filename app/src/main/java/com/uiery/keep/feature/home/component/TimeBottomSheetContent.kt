@@ -29,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import java.time.LocalTime
+import com.uiery.keep.util.timeNow
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toJavaLocalTime
 
 @Composable
 fun TimeBottomSheetContent(
@@ -62,7 +64,7 @@ fun TimeBottomSheetContent(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                if(LocalTime.now() > blockTime) {
+                if(timeNow > blockTime) {
                     Text(
                         modifier = Modifier.padding(end = 4.dp),
                         text = stringResource(R.string.next_day),
@@ -108,8 +110,8 @@ fun TimeBottomSheetContent(
             text = stringResource(R.string.lock_message),
             color = KeepTheme.colors.surface,
         )
-        val hour = blockTime.minusHours(LocalTime.now().hour.toLong()).hour
-        val minute = blockTime.minusMinutes(LocalTime.now().minute.toLong()).minute
+        val hour = blockTime.toJavaLocalTime().minusHours(timeNow.hour.toLong()).hour
+        val minute = blockTime.toJavaLocalTime().minusMinutes(timeNow.minute.toLong()).minute
         Button(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,7 +140,7 @@ fun TimeBottomSheetContent(
 @Composable
 private fun TimeBottomSheetContentPreview() {
     TimeBottomSheetContent(
-        blockTime = LocalTime.now(),
+        blockTime = timeNow,
         onChangeCountdownTime = {},
         onChangeTimerTIme = {},
         onLockClick = {},

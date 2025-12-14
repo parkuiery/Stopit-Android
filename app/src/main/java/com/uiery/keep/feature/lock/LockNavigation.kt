@@ -8,17 +8,18 @@ import androidx.navigation.navOptions
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class LockRoute(val lockTime: String)
+data class LockRoute(val lockTime: String?,val isRoutine:Boolean)
 
 fun NavController.navigateToLock(
-    lockTime: String,
+    lockTime: String?,
+    isRoutine: Boolean,
     navOptions: NavOptions = navOptions {
         popUpTo(graph.id) {
             inclusive = true
         }
     },
 ) = navigate(
-    route = LockRoute(lockTime = lockTime),
+    route = LockRoute(lockTime = lockTime,isRoutine = isRoutine),
     navOptions = navOptions,
 )
 

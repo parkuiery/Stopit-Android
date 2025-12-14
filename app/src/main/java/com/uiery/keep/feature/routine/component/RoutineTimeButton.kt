@@ -22,7 +22,7 @@ fun RoutineTimeButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = KeepTheme.colors.tertiary,
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         contentPadding = PaddingValues(
             horizontal = 12.dp,
             vertical = 4.dp,
