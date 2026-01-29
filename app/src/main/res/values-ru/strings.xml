@@ -69,4 +69,21 @@
     <string name="accessibility_setup_guide">● Samsung: Настройки > Специальные возможности > Установленные приложения > StopIt > Разрешить специальные возможности\n● Другие: Настройки > Специальные возможности > StopIt > Разрешить специальные возможности</string>
     <string name="lock_screen_routine_running">%1$s \nВыполняется рутина</string>
     <string name="routine_minimum_duration_message">Рутины должны быть установлены минимум на 15 минут.</string>
+    <string name="lock_history_menu_title">Посмотреть историю блокировок</string>
+    <string name="lock_history_title">История блокировок</string>
+    <string name="lock_history_week">Неделя</string>
+    <string name="lock_history_month">Месяц</string>
+    <string name="lock_history_total_duration">Общая продолжительность</string>
+    <string name="lock_history_session_count">Количество сессий</string>
+    <string name="lock_history_session_count_value">%1$d сессий</string>
+    <string name="lock_history_duration_format">%1$dч %2$dм</string>
+    <string name="lock_history_minutes_format">%1$dм</string>
+    <string name="lock_history_routine_session">Рутина</string>
+    <string name="lock_history_manual_session">Вручную</string>
+    <string name="lock_history_no_records">Нет истории блокировок за этот период</string>
+    <string name="lock_history_top_apps_title">Наиболее блокируемые приложения</string>
+    <string name="lock_history_block_count">%1$d раз</string>
+    <string name="lock_history_duration_short_hour">%1$dч%2$dм</string>
+    <string name="lock_history_duration_short_min">%1$dм</string>
+    <string name="blocked_apps_title">Заблокированные приложения</string>
 </resources> 

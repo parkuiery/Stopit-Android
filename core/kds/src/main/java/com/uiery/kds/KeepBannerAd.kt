@@ -24,12 +24,14 @@ fun KeepBannerAd(
     adUnitId: String,
 ) {
     val context = LocalContext.current
-    val adView = remember { AdView(context) }
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, screenWidth)
-
-    adView.adUnitId = adUnitId
-    adView.setAdSize(adSize)
+    val adView = remember {
+        AdView(context).apply {
+            this.adUnitId = adUnitId
+            this.setAdSize(adSize)
+        }
+    }
 
     if (!LocalInspectionMode.current) {
         val adRequest = AdRequest.Builder().build()

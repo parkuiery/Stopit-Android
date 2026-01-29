@@ -9,6 +9,10 @@ import com.uiery.keep.feature.devtool.devToolScreen
 import com.uiery.keep.feature.devtool.navigateToDevTool
 import com.uiery.keep.feature.history.historyScreen
 import com.uiery.keep.feature.history.navigateToHistory
+import com.uiery.keep.feature.lockhistory.blockedapps.blockedAppsScreen
+import com.uiery.keep.feature.lockhistory.blockedapps.navigateToBlockedApps
+import com.uiery.keep.feature.lockhistory.lockHistoryScreen
+import com.uiery.keep.feature.lockhistory.navigateToLockHistory
 import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
 import com.uiery.keep.feature.lock.lockScreen
@@ -54,6 +58,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateHistory = navController::navigateToHistory,
+            onNavigateLockHistory = navController::navigateToLockHistory,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
         devToolScreen(onNavigateBack = navController::navigateUp)
@@ -62,5 +67,10 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateLock = navController::navigateToLock,
         )
         historyScreen(onNavigateBack = navController::navigateUp)
+        lockHistoryScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateBlockedApps = navController::navigateToBlockedApps,
+        )
+        blockedAppsScreen(onNavigateBack = navController::navigateUp)
     }
 }

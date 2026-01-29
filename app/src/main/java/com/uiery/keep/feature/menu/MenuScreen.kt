@@ -46,6 +46,7 @@ fun MenuScreen(
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateHistory: () -> Unit,
+    onNavigateLockHistory: () -> Unit,
 ) {
     val context = LocalContext.current
     Scaffold(
@@ -116,6 +117,11 @@ fun MenuScreen(
                 icon = R.drawable.ic_history,
                 title = stringResource(id = R.string.view_keep_usage_history),
                 onClick = onNavigateHistory,
+            )
+            MenuItem(
+                icon = R.drawable.ic_local_history,
+                title = stringResource(id = R.string.lock_history_menu_title),
+                onClick = onNavigateLockHistory,
             )
             MenuItem(
                 icon = R.drawable.ic_letter,

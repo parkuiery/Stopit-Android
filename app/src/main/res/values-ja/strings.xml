@@ -69,4 +69,21 @@
     <string name="accessibility_setup_guide">● サムスン: 設定 > アクセシビリティ > インストール済みアプリ > StopIt > アクセシビリティを許可\n● その他: 設定 > アクセシビリティ > StopIt > アクセシビリティを許可</string>
     <string name="lock_screen_routine_running">%1$s \nルーティン実行中</string>
     <string name="routine_minimum_duration_message">ルーティンは最低15分以上設定する必要があります。</string>
+    <string name="lock_history_menu_title">ロック履歴を見る</string>
+    <string name="lock_history_title">ロック履歴</string>
+    <string name="lock_history_week">週</string>
+    <string name="lock_history_month">月</string>
+    <string name="lock_history_total_duration">総ロック時間</string>
+    <string name="lock_history_session_count">ロック回数</string>
+    <string name="lock_history_session_count_value">%1$d回</string>
+    <string name="lock_history_duration_format">%1$d時間%2$d分</string>
+    <string name="lock_history_minutes_format">%1$d分</string>
+    <string name="lock_history_routine_session">ルーチン</string>
+    <string name="lock_history_manual_session">手動</string>
+    <string name="lock_history_no_records">この期間のロック履歴はありません</string>
+    <string name="lock_history_top_apps_title">最もブロックされたアプリ</string>
+    <string name="lock_history_block_count">%1$d回</string>
+    <string name="lock_history_duration_short_hour">%1$d時間%2$d分</string>
+    <string name="lock_history_duration_short_min">%1$d分</string>
+    <string name="blocked_apps_title">ブロックされたアプリ</string>
 </resources> 

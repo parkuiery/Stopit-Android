@@ -67,4 +67,21 @@
     <string name="accessibility_setup_guide">● Samsung: Settings > Accessibility > Installed apps > StopIt > Allow accessibility\n● Others: Settings > Accessibility > StopIt > Allow accessibility</string>
     <string name="lock_screen_routine_running">%1$s \nRoutine in progress</string>
     <string name="routine_minimum_duration_message">Routines must be set for at least 15 minutes.</string>
+    <string name="lock_history_menu_title">View Lock History</string>
+    <string name="lock_history_title">Lock History</string>
+    <string name="lock_history_week">Week</string>
+    <string name="lock_history_month">Month</string>
+    <string name="lock_history_total_duration">Total Duration</string>
+    <string name="lock_history_session_count">Number of Sessions</string>
+    <string name="lock_history_session_count_value">%1$d sessions</string>
+    <string name="lock_history_duration_format">%1$dh %2$dm</string>
+    <string name="lock_history_minutes_format">%1$dm</string>
+    <string name="lock_history_routine_session">Routine</string>
+    <string name="lock_history_manual_session">Manual</string>
+    <string name="lock_history_no_records">No lock history for this period</string>
+    <string name="lock_history_top_apps_title">Most Blocked Apps</string>
+    <string name="lock_history_block_count">%1$d times</string>
+    <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
+    <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="blocked_apps_title">Blocked Apps</string>
 </resources>

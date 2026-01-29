@@ -69,4 +69,21 @@
     <string name="accessibility_setup_guide">● 三星：设置 > 辅助功能 > 已安装的应用 > StopIt > 允许辅助功能\n● 其他：设置 > 辅助功能 > StopIt > 允许辅助功能</string>
     <string name="lock_screen_routine_running">%1$s \n例程运行中</string>
     <string name="routine_minimum_duration_message">例程必须至少设置15分钟。</string>
+    <string name="lock_history_menu_title">查看锁定记录</string>
+    <string name="lock_history_title">锁定记录</string>
+    <string name="lock_history_week">周</string>
+    <string name="lock_history_month">月</string>
+    <string name="lock_history_total_duration">总锁定时长</string>
+    <string name="lock_history_session_count">锁定次数</string>
+    <string name="lock_history_session_count_value">%1$d次</string>
+    <string name="lock_history_duration_format">%1$d小时%2$d分钟</string>
+    <string name="lock_history_minutes_format">%1$d分钟</string>
+    <string name="lock_history_routine_session">例程</string>
+    <string name="lock_history_manual_session">手动</string>
+    <string name="lock_history_no_records">此期间没有锁定记录</string>
+    <string name="lock_history_top_apps_title">最常被阻止的应用</string>
+    <string name="lock_history_block_count">%1$d次</string>
+    <string name="lock_history_duration_short_hour">%1$d小时%2$d分</string>
+    <string name="lock_history_duration_short_min">%1$d分</string>
+    <string name="blocked_apps_title">被阻止的应用</string>
 </resources> 

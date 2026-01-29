@@ -8,7 +8,9 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.logEvent
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.toModel
 import com.uiery.keep.util.timeNow
@@ -39,7 +41,8 @@ class HomeViewModel @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
     private val analytics: FirebaseAnalytics,
     private val routineDao: RoutineDao,
-    ) : ContainerHost<HomeUiState, HomeSideEffect>, ViewModel() {
+    private val lockHistoryDao: LockHistoryDao,
+) : ContainerHost<HomeUiState, HomeSideEffect>, ViewModel() {
     override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
 
     init {
@@ -107,7 +110,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun storeBlockTime(lockedMillis: Long) = intent {
+    private fun storeBlockTime(lockedMillis: Long, isRoutine: Boolean = false) = intent {
         val longBlockTime = dataStore.data.map { data ->
             data[PreferencesKey.LONG_BLOCK_TIME] ?: 0L
         }.firstOrNull() ?: 0L
@@ -123,6 +126,17 @@ class HomeViewModel @Inject constructor(
             preferences[PreferencesKey.LONG_BLOCK_TIME] = newLongBlockTime
             preferences[PreferencesKey.TOTAL_BLOCK_TIME] = newTotalBlockTime
         }
+
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - lockedMillis
+        val lockHistoryEntity = LockHistoryEntity(
+            startTimestamp = startTime,
+            endTimestamp = endTime,
+            durationMillis = lockedMillis,
+            lockedApps = state.selectedAppPackage.toList(),
+            isRoutine = isRoutine,
+        )
+        lockHistoryDao.insert(lockHistoryEntity)
     }
 
     internal fun selectCategoryComplete(selectedAppPackage: Set<String>) = intent {

@@ -68,4 +68,21 @@
     <string name="accessibility_setup_guide">● 삼성 : 설정 > 접근성 > 설치된 앱 > 스탑잇 > 접근성 허용\n● 기타 : 설정 > 접근성 > 스탑잇 > 접근성 허용</string>
     <string name="lock_screen_routine_running">%1$s \n루틴 실행 중</string>
     <string name="routine_minimum_duration_message">루틴은 최소 15분 이상 설정할 수 있어요.</string>
+    <string name="lock_history_menu_title">잠금 기록 보기</string>
+    <string name="lock_history_title">잠금 기록</string>
+    <string name="lock_history_week">주</string>
+    <string name="lock_history_month">월</string>
+    <string name="lock_history_total_duration">총 잠금 시간</string>
+    <string name="lock_history_session_count">잠금 횟수</string>
+    <string name="lock_history_session_count_value">%1$d회</string>
+    <string name="lock_history_duration_format">%1$d시간 %2$d분</string>
+    <string name="lock_history_minutes_format">%1$d분</string>
+    <string name="lock_history_routine_session">루틴</string>
+    <string name="lock_history_manual_session">수동</string>
+    <string name="lock_history_no_records">이 기간에 잠금 기록이 없어요</string>
+    <string name="lock_history_top_apps_title">가장 많이 차단된 앱</string>
+    <string name="lock_history_block_count">%1$d회</string>
+    <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
+    <string name="lock_history_duration_short_min">%1$d분</string>
+    <string name="blocked_apps_title">차단된 앱</string>
 </resources>

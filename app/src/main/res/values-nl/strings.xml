@@ -69,4 +69,21 @@
     <string name="accessibility_setup_guide">● Samsung: Instellingen > Toegankelijkheid > Geïnstalleerde apps > StopIt > Toegankelijkheid toestaan\n● Anderen: Instellingen > Toegankelijkheid > StopIt > Toegankelijkheid toestaan</string>
     <string name="lock_screen_routine_running">%1$s \nroutine wordt uitgevoerd</string>
     <string name="routine_minimum_duration_message">Routines moeten minimaal 15 minuten worden ingesteld.</string>
+    <string name="lock_history_menu_title">Vergrendelgeschiedenis bekijken</string>
+    <string name="lock_history_title">Vergrendelgeschiedenis</string>
+    <string name="lock_history_week">Week</string>
+    <string name="lock_history_month">Maand</string>
+    <string name="lock_history_total_duration">Totale duur</string>
+    <string name="lock_history_session_count">Aantal sessies</string>
+    <string name="lock_history_session_count_value">%1$d sessies</string>
+    <string name="lock_history_duration_format">%1$du %2$dm</string>
+    <string name="lock_history_minutes_format">%1$dm</string>
+    <string name="lock_history_routine_session">Routine</string>
+    <string name="lock_history_manual_session">Handmatig</string>
+    <string name="lock_history_no_records">Geen vergrendelgeschiedenis voor deze periode</string>
+    <string name="lock_history_top_apps_title">Meest geblokkeerde apps</string>
+    <string name="lock_history_block_count">%1$d keer</string>
+    <string name="lock_history_duration_short_hour">%1$du%2$dm</string>
+    <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="blocked_apps_title">Geblokkeerde apps</string>
 </resources> 

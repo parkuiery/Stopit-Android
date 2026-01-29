@@ -18,6 +18,7 @@ fun NavGraphBuilder.menuScreen(
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateHistory: () -> Unit,
+    onNavigateLockHistory: () -> Unit,
 ) {
     composable<MenuRoute> {
         MenuScreen(
@@ -25,6 +26,7 @@ fun NavGraphBuilder.menuScreen(
             onNavigateBack = onNavigateBack,
             onNavigateRoutine = onNavigateRoutine,
             onNavigateHistory = onNavigateHistory,
+            onNavigateLockHistory = onNavigateLockHistory,
         )
     }
 }

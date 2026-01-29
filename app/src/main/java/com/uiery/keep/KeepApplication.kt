@@ -26,6 +26,5 @@ class KeepApplication: Application() {
 
     override fun onCreate() {
         super.onCreate()
-        MobileAds.initialize(this)
     }
 }

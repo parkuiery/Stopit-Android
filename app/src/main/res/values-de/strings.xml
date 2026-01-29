@@ -69,4 +69,21 @@
     <string name="accessibility_setup_guide">● Samsung: Einstellungen > Bedienungshilfen > Installierte Apps > StopIt > Bedienungshilfen erlauben\n● Andere: Einstellungen > Bedienungshilfen > StopIt > Bedienungshilfen erlauben</string>
     <string name="lock_screen_routine_running">%1$s \nRoutine läuft</string>
     <string name="routine_minimum_duration_message">Routinen müssen für mindestens 15 Minuten eingestellt werden.</string>
+    <string name="lock_history_menu_title">Sperrverlauf anzeigen</string>
+    <string name="lock_history_title">Sperrverlauf</string>
+    <string name="lock_history_week">Woche</string>
+    <string name="lock_history_month">Monat</string>
+    <string name="lock_history_total_duration">Gesamte Sperrdauer</string>
+    <string name="lock_history_session_count">Anzahl der Sperren</string>
+    <string name="lock_history_session_count_value">%1$d Sitzungen</string>
+    <string name="lock_history_duration_format">%1$d Std. %2$d Min.</string>
+    <string name="lock_history_minutes_format">%1$d Min.</string>
+    <string name="lock_history_routine_session">Routine</string>
+    <string name="lock_history_manual_session">Manuell</string>
+    <string name="lock_history_no_records">Kein Sperrverlauf für diesen Zeitraum</string>
+    <string name="lock_history_top_apps_title">Am häufigsten blockierte Apps</string>
+    <string name="lock_history_block_count">%1$d Mal</string>
+    <string name="lock_history_duration_short_hour">%1$d Std.%2$d Min.</string>
+    <string name="lock_history_duration_short_min">%1$d Min.</string>
+    <string name="blocked_apps_title">Blockierte Apps</string>
 </resources> 

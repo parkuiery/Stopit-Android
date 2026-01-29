@@ -3,11 +3,14 @@ package com.uiery.keep.feature.lock
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
@@ -30,6 +33,7 @@ import javax.inject.Inject
 class LockViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val routineDao: RoutineDao,
+    private val lockHistoryDao: LockHistoryDao,
     @KeepDataSource private val dataStore: DataStore<Preferences>,
 ) : ContainerHost<LockUiState,LockSideEffect>, ViewModel(){
 
@@ -58,6 +62,7 @@ class LockViewModel @Inject constructor(
     }
 
     private fun getRoutines() = intent {
+        val routineStartTime = System.currentTimeMillis()
         val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }
         val activeRoutines = routines?.filter { it.isEnabled }
             ?.filter { it.repeatDays.toDayOfWeekList().contains(LocalDateTime.now().dayOfWeek) }
@@ -69,7 +74,7 @@ class LockViewModel @Inject constructor(
         Log.d("TEST", "getRoutines: $endTime")
         Log.d("TEST", "getRoutines1: $activeRoutines")
         val applications = activeRoutines?.firstOrNull()?.lockApplications ?: emptyList()
-        reduce { state.copy(routines = activeRoutines.orEmpty(), selectedAppPackage = applications.toSet(), lockTime = endTime) }
+        reduce { state.copy(routines = activeRoutines.orEmpty(), selectedAppPackage = applications.toSet(), lockTime = endTime, routineStartTime = routineStartTime) }
         navigateHome(endTime)
     }
 
@@ -77,7 +82,34 @@ class LockViewModel @Inject constructor(
         val now = LocalDateTime.now()
         val duration = Duration.between(now, lockTime).coerceAtLeast(Duration.ZERO)
         delay(duration.toMillis())
+        if (state.isRoutine) {
+            saveRoutineLockHistory()
+        }
         postSideEffect(LockSideEffect.MoveToHome)
+    }
+
+    private fun saveRoutineLockHistory() = intent {
+        val endTime = System.currentTimeMillis()
+        val startTime = state.routineStartTime
+        val durationMillis = endTime - startTime
+
+        val longBlockTime = dataStore.data.map { it[PreferencesKey.LONG_BLOCK_TIME] ?: 0L }.firstOrNull() ?: 0L
+        val totalBlockTime = dataStore.data.map { it[PreferencesKey.TOTAL_BLOCK_TIME] ?: 0L }.firstOrNull() ?: 0L
+
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.LONG_BLOCK_TIME] = maxOf(longBlockTime, durationMillis)
+            preferences[PreferencesKey.TOTAL_BLOCK_TIME] = totalBlockTime + durationMillis
+        }
+
+        lockHistoryDao.insert(
+            LockHistoryEntity(
+                startTimestamp = startTime,
+                endTimestamp = endTime,
+                durationMillis = durationMillis,
+                lockedApps = state.selectedAppPackage.toList(),
+                isRoutine = true,
+            )
+        )
     }
 }
 
@@ -85,7 +117,8 @@ data class LockUiState(
     val lockTime: LocalDateTime = LocalDateTime.now(),
     val selectedAppPackage: Set<String> = emptySet(),
     val isRoutine: Boolean = false,
-    val routines: List<RoutineModel> = emptyList()
+    val routines: List<RoutineModel> = emptyList(),
+    val routineStartTime: Long = 0L,
 )
 
 sealed class LockSideEffect {
