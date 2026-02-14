@@ -9,6 +9,7 @@ import com.uiery.keep.network.Retrofit
 import com.uiery.keep.network.routine.CreateRoutineRequest
 import com.uiery.keep.network.routine.GetDetailRoutineResponse
 import com.uiery.keep.network.routine.UpdateRoutineRequest
+import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.deviceId
 import com.uiery.keep.util.now
 import com.uiery.keep.util.timeNow
@@ -26,7 +27,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RoutineBottomSheetViewModel @Inject constructor(
-    private val routineDao: RoutineDao
+    private val routineDao: RoutineDao,
+    private val routineScheduler: RoutineScheduler,
 ) : ContainerHost<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect>, ViewModel() {
 
     override val container: Container<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect> =
@@ -85,23 +87,41 @@ class RoutineBottomSheetViewModel @Inject constructor(
 
     private fun setButtonEnabled() = intent {
         val isNameValid = state.name.isNotEmpty()
-        val isTimeValid = state.startTime.toJavaLocalTime().isBefore(state.endTime.toJavaLocalTime()) &&
-                java.time.Duration.between(state.startTime.toJavaLocalTime(), state.endTime.toJavaLocalTime()).toMinutes() >= 15
+        val isTimeValid =
+            state.startTime.toJavaLocalTime().isBefore(state.endTime.toJavaLocalTime()) &&
+                    java.time.Duration.between(
+                        state.startTime.toJavaLocalTime(),
+                        state.endTime.toJavaLocalTime()
+                    ).toMinutes() >= 15
         val isDaySelected = state.selectDays.isNotEmpty()
         val isEnabled = isNameValid && isTimeValid && isDaySelected && state.selectApps.isNotEmpty()
         reduce { state.copy(isButtonEnable = isEnabled) }
     }
 
     internal fun addRoutine() = intent {
-        routineDao.insert(routineEntity = RoutineEntity(
+        val routineModel = RoutineModel(
+            id = 0,
             name = state.name,
             startTime = state.startTime,
             endTime = state.endTime,
-            repeatDays = state.selectDays,
+            repeatDays = state.selectDays.toRepeatDaysBinary(),
             lockApplications = state.selectApps.toList(),
             isEnabled = state.isEnabled,
         )
+        val insertedId = routineDao.insert(
+            routineEntity = RoutineEntity(
+                name = state.name,
+                startTime = state.startTime,
+                endTime = state.endTime,
+                repeatDays = state.selectDays,
+                lockApplications = state.selectApps.toList(),
+                isEnabled = state.isEnabled,
+            )
         )
+        val routineWithId = routineModel.copy(id = insertedId)
+        if (routineModel.isEnabled) {
+            routineScheduler.scheduleRoutine(routineWithId)
+        }
 //        postSideEffect(
 //            RoutineBottomSheetSideEffect.AddRoutineSuccess(
 //                RoutineModel(
@@ -136,6 +156,15 @@ class RoutineBottomSheetViewModel @Inject constructor(
     internal fun editRoutine(id: Long?) = intent {
         id?.let {
             runCatching {
+                val routineModel = RoutineModel(
+                    id = it,
+                    name = state.name,
+                    startTime = state.startTime,
+                    endTime = state.endTime,
+                    repeatDays = state.selectDays.toRepeatDaysBinary(),
+                    lockApplications = state.selectApps.toList(),
+                    isEnabled = state.isEnabled,
+                )
                 routineDao.update(
                     RoutineEntity(
                         id = it,
@@ -147,6 +176,11 @@ class RoutineBottomSheetViewModel @Inject constructor(
                         isEnabled = state.isEnabled,
                     )
                 )
+                routineScheduler.cancelRoutine(id)
+                if (state.isEnabled) {
+                    routineScheduler.scheduleRoutine(routineModel)
+                }
+
 //                routineService.updateRoutine(
 //                    id = it,
 //                    updateRoutineRequest = UpdateRoutineRequest(
@@ -186,5 +220,5 @@ data class RoutineBottomSheetUiState(
 
 sealed class RoutineBottomSheetSideEffect {
     data class AddRoutineSuccess(val routineModel: RoutineModel) : RoutineBottomSheetSideEffect()
-    data class UpdateRoutineSuccess(val routineModel: RoutineModel): RoutineBottomSheetSideEffect()
+    data class UpdateRoutineSuccess(val routineModel: RoutineModel) : RoutineBottomSheetSideEffect()
 }

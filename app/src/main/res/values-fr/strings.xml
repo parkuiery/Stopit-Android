@@ -86,4 +86,9 @@
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
     <string name="blocked_apps_title">Applications bloquées</string>
+    <string name="routine_alarm_permission_title">Nous vous préviendrons pour ne pas manquer le début de votre routine.</string>
+    <string name="routine_alarm_permission_description">Nous enverrons une notification à l\'heure définie pour vous aider à commencer votre routine naturellement.</string>
+    <string name="routine_alarm_permission_button">Configurer les notifications</string>
+    <string name="notification_routine_start_title">La routine %1$s a commencé</string>
+    <string name="notification_routine_start_message">L\'utilisation des applications a été bloquée pour vous aider à vous concentrer.</string>
 </resources> 

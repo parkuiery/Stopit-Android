@@ -21,4 +21,5 @@ object PreferencesKey {
     val TOTAL_BLOCK_TIME = longPreferencesKey("total_block_time")
     val LONG_BLOCK_TIME = longPreferencesKey("long_block_time")
     val ROUTINES = stringPreferencesKey("routines")
+    val HAS_SHOWN_ALARM_PERMISSION = booleanPreferencesKey("has_shown_alarm_permission")
 }

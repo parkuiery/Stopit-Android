@@ -61,6 +61,9 @@
     <string name="start_time">시작 시간</string>
     <string name="routine_no_content_message">루틴을 추가하여 앱 잠금을 더 편리하게!\n스탑잇이 알아서 앱을 잠궈줘요.</string>
     <string name="routine">루틴</string>
+    <string name="routine_alarm_permission_title">루틴 시작을 놓치지 않도록 알려드릴게요</string>
+    <string name="routine_alarm_permission_description">설정한 시간에 알림으로 보내 루틴을 자연스럽게 시작할 수 있도록 도와드려요.</string>
+    <string name="routine_alarm_permission_button">알림 설정하기</string>
     <string name="contact_us">문의하기</string>
     <string name="feedback_subject">[스탑잇 안드로이드] 피드백</string>
     <string name="email_app_not_installed">이메일 앱이 설치되어 있지 않습니다.</string>
@@ -85,4 +88,6 @@
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
     <string name="lock_history_duration_short_min">%1$d분</string>
     <string name="blocked_apps_title">차단된 앱</string>
+    <string name="notification_routine_start_title">%1$s 루틴이 시작됐어요</string>
+    <string name="notification_routine_start_message">집중을 위해 앱 사용이 잠겼어요.</string>
 </resources>

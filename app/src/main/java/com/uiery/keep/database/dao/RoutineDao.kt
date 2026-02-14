@@ -18,7 +18,7 @@ interface RoutineDao {
     fun fetch(id: Long): RoutineEntity
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(routineEntity: RoutineEntity)
+    fun insert(routineEntity: RoutineEntity): Long
 
     @Query("DELETE FROM routine WHERE id = :id")
     fun deleteById(id: Long)

@@ -86,4 +86,9 @@
     <string name="lock_history_duration_short_hour">%1$du%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
     <string name="blocked_apps_title">Geblokkeerde apps</string>
+    <string name="routine_alarm_permission_title">We laten het je weten zodat je het begin van je routine niet mist.</string>
+    <string name="routine_alarm_permission_description">We sturen op het ingestelde tijdstip een melding om je te helpen je routine op een natuurlijke manier te starten.</string>
+    <string name="routine_alarm_permission_button">Meldingen instellen</string>
+    <string name="notification_routine_start_title">De routine %1$s is gestart</string>
+    <string name="notification_routine_start_message">Het gebruik van apps is vergrendeld om je te helpen focussen.</string>
 </resources> 

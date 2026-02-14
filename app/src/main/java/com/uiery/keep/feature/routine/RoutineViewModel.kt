@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.routine
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -12,8 +13,10 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
 import com.uiery.keep.model.toModel
+import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.datetime.toKotlinLocalDateTime
 import kotlinx.serialization.json.Json
 import org.orbitmvi.orbit.Container
@@ -27,7 +30,8 @@ class RoutineViewModel @Inject constructor(
     private val routineDao: RoutineDao,
     @KeepDataSource private val dataStore: DataStore<Preferences>,
     private val analytics: FirebaseAnalytics,
-    ): ContainerHost<RoutineUiState,RoutineSideEffect>, ViewModel(){
+    private val routineScheduler: RoutineScheduler,
+): ContainerHost<RoutineUiState,RoutineSideEffect>, ViewModel(){
     override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
 
     //val routineService = Retrofit.routineService
@@ -102,15 +106,32 @@ class RoutineViewModel @Inject constructor(
     }
 
     internal fun addRoutine(routineModel: RoutineModel) = intent {
-        routineDao.insert(routineModel.toEntity())
+        val insertedId = routineDao.insert(routineModel.toEntity())
+        val routineWithId = routineModel.copy(id = insertedId)
+        if (routineModel.isEnabled) {
+            routineScheduler.scheduleRoutine(routineWithId)
+        }
         analyticsAddRoutine()
+
+        // Show the newly created routine in edit bottom sheet
+        reduce {
+            state.copy(
+                isShowEditRoutineBottomSheet = true,
+                selectedRoutine = routineWithId
+            )
+        }
     }
 
     internal fun updateRoutine(routineModel: RoutineModel) = intent {
         routineDao.update(routineModel.toEntity())
+        routineScheduler.cancelRoutine(routineModel.id)
+        if (routineModel.isEnabled) {
+            routineScheduler.scheduleRoutine(routineModel)
+        }
     }
 
     internal fun deleteRoutine(id: Long) = intent {
+        routineScheduler.cancelRoutine(id)
         routineDao.deleteById(id)
 //        runCatching {
 //            routineService.deleteRoutine(id)
@@ -124,6 +145,14 @@ class RoutineViewModel @Inject constructor(
 
     internal fun changeEnabled(id: Long,isEnabled: Boolean) = intent {
         routineDao.updateIsEnabledById(id,isEnabled)
+        val routine = state.routines.find { it.id == id }
+        routine?.let {
+            if (isEnabled) {
+                routineScheduler.scheduleRoutine(it)
+            } else {
+                routineScheduler.cancelRoutine(id)
+            }
+        }
 //        val previousRoutines = state.routines
 //        val updatedRoutines = state.routines.map {
 //            if (it.id == id) it.copy(isEnabled = isEnabled) else it
@@ -154,6 +183,20 @@ class RoutineViewModel @Inject constructor(
     private fun analyticsAddRoutine() = intent {
         analytics.logEvent("add_routine") { }
     }
+
+    internal fun checkAlarmPermissionNeeded() = intent {
+        val preferences = dataStore.data.first()
+        val hasShown = preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
+        if (!hasShown && state.routines.isNotEmpty()) {
+            postSideEffect(RoutineSideEffect.ShowAlarmPermission)
+        }
+    }
+
+    internal fun markAlarmPermissionShown() = intent {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
+        }
+    }
 }
 
 data class RoutineUiState(
@@ -165,4 +208,5 @@ data class RoutineUiState(
 
 sealed class RoutineSideEffect {
     data class MoveToLock(val lockTime: String?, val isRoutine: Boolean) : RoutineSideEffect()
+    data object ShowAlarmPermission : RoutineSideEffect()
 }

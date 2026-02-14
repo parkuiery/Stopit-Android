@@ -86,4 +86,9 @@
     <string name="lock_history_duration_short_hour">%1$d時間%2$d分</string>
     <string name="lock_history_duration_short_min">%1$d分</string>
     <string name="blocked_apps_title">ブロックされたアプリ</string>
+    <string name="routine_alarm_permission_title">ルーティンの開始を逃さないようにお知らせします。</string>
+    <string name="routine_alarm_permission_description">設定した時間に通知を送り、自然にルーティンを始められるようお手伝いします。</string>
+    <string name="routine_alarm_permission_button">通知を設定する</string>
+    <string name="notification_routine_start_title">%1$sのルーティンが始まりました</string>
+    <string name="notification_routine_start_message">集中のためにアプリの使用がロックされました。</string>
 </resources> 

@@ -86,4 +86,9 @@
     <string name="lock_history_duration_short_hour">%1$d小时%2$d分</string>
     <string name="lock_history_duration_short_min">%1$d分</string>
     <string name="blocked_apps_title">被阻止的应用</string>
+    <string name="routine_alarm_permission_title">我们会提醒你，不要错过例行的开始。</string>
+    <string name="routine_alarm_permission_description">我们会在设定的时间发送通知，帮助你自然地开始例行。</string>
+    <string name="routine_alarm_permission_button">设置通知</string>
+    <string name="notification_routine_start_title">%1$s例行已开始</string>
+    <string name="notification_routine_start_message">为了专注，已锁定应用使用。</string>
 </resources> 

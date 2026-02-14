@@ -43,8 +43,8 @@ fun RoutineBottomSheetContent(
     viewModel: RoutineBottomSheetViewModel = hiltViewModel(),
     isEdit: Boolean,
     routine: RoutineModel? = null,
-    addRoutine: (RoutineModel) -> Unit = { },
-    updateRoutine: (RoutineModel) -> Unit = { },
+    addRoutine: () -> Unit = { },
+    //updateRoutine: (RoutineModel) -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
     val state by viewModel.collectAsState()
@@ -108,6 +108,7 @@ fun RoutineBottomSheetContent(
                 onAddRoutine = {
                     onCloseBottomSheet()
                     viewModel.addRoutine()
+                    addRoutine()
                 },
                 onEditRoutine = {
                     onCloseBottomSheet()

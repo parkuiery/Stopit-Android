@@ -71,8 +71,6 @@ class LockViewModel @Inject constructor(
                     .contains(LocalDateTime.now().toKotlinLocalDateTime().time)
             }
         val endTime = activeRoutines?.maxOfOrNull { it.endTime }?.atDate(LocalDateTime.now().toKotlinLocalDateTime().date)?.toJavaLocalDateTime() ?: LocalDateTime.now()
-        Log.d("TEST", "getRoutines: $endTime")
-        Log.d("TEST", "getRoutines1: $activeRoutines")
         val applications = activeRoutines?.firstOrNull()?.lockApplications ?: emptyList()
         reduce { state.copy(routines = activeRoutines.orEmpty(), selectedAppPackage = applications.toSet(), lockTime = endTime, routineStartTime = routineStartTime) }
         navigateHome(endTime)

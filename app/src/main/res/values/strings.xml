@@ -51,7 +51,8 @@
     <string name="history_subtitle">Will you continue to stay with us?</string>
     <string name="history_total_time">Time spent with StopIt</string>
     <string name="history_longest_time">Longest time overcome</string>
-    <string name="time_day_hour_min_sec">%1$d days %2$d hours %3$d min %4$d sec</string>    <string name="my_routine">My Routine</string>
+    <string name="time_day_hour_min_sec">%1$d days %2$d hours %3$d min %4$d sec</string>
+    <string name="my_routine">My Routine</string>
     <string name="routine_name_placeholder">Routine Name</string>
     <string name="routine_add_button">Add Routine</string>
     <string name="routine_edit_button">Edit Routine</string>
@@ -60,6 +61,9 @@
     <string name="start_time">Start time</string>
     <string name="routine_no_content_message">Add a routine to make app lock more convenient!\nStopIt will automatically lock your apps.</string>
     <string name="routine">Routine</string>
+    <string name="routine_alarm_permission_title">We will notify you so you don\'t miss the start of your routine.</string>
+    <string name="routine_alarm_permission_description">We will send a notification at the set time to help you start your routine naturally.</string>
+    <string name="routine_alarm_permission_button">Set up notifications</string>
     <string name="contact_us">Contact Us</string>
     <string name="feedback_subject">[StopIt Android] Feedback</string>
     <string name="email_app_not_installed">No email app is installed.</string>
@@ -84,4 +88,9 @@
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
     <string name="blocked_apps_title">Blocked Apps</string>
+    <!-- Routine Notifications -->
+    <string name="notification_channel_routine_name">루틴 알림</string>
+    <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>
+    <string name="notification_routine_start_title">%1$s routine has started</string>
+    <string name="notification_routine_start_message">App usage has been locked to help you focus.</string>
 </resources>
