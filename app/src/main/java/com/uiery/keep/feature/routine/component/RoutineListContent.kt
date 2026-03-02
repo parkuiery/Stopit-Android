@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.home.component.KeepSwitch
@@ -36,22 +37,32 @@ internal fun RoutineListContent(
     onEnabledChange: (Long,Boolean) -> Unit,
     onDetailClick: (Long) -> Unit,
 ) {
-    LazyColumn(
+    Column(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            horizontal = 12.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(routines) { routine ->
-            RoutineItem(
-                name = routine.name,
-                startTime = routine.startTime,
-                isEnabled = routine.isEnabled,
-                onEnabledChange = { onEnabledChange(routine.id, it) },
-                onClick = { onDetailClick(routine.id) }
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f),
+            contentPadding = PaddingValues(
+                horizontal = 12.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(routines) { routine ->
+                RoutineItem(
+                    name = routine.name,
+                    startTime = routine.startTime,
+                    isEnabled = routine.isEnabled,
+                    onEnabledChange = { onEnabledChange(routine.id, it) },
+                    onClick = { onDetailClick(routine.id) }
+                )
+            }
         }
+        KeepBannerAd(
+            modifier = Modifier.fillMaxWidth(),
+            adUnitId = "ca-app-pub-1537867411423705/7750072748",
+        )
     }
 }
 

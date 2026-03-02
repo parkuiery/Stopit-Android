@@ -35,6 +35,7 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.menu.component.MenuItem
 import androidx.core.net.toUri
+import com.uiery.kds.KeepBannerAd
 import com.uiery.keep.BuildConfig
 import java.util.Locale
 
@@ -127,6 +128,11 @@ fun MenuScreen(
                 icon = R.drawable.ic_letter,
                 title = stringResource(id = R.string.contact_us),
                 onClick = { sendCustomerEmail(context) }
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            KeepBannerAd(
+                modifier = Modifier.fillMaxWidth(),
+                adUnitId = "ca-app-pub-1537867411423705/3270829732"
             )
         }
     }

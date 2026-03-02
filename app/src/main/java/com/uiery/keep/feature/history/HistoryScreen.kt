@@ -3,7 +3,9 @@ package com.uiery.keep.feature.history
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.history.component.HistoryItem
@@ -63,11 +66,11 @@ internal fun HistoryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
+                .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(36.dp),
         ) {
             Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
@@ -84,6 +87,7 @@ internal fun HistoryScreen(
                 )
             }
             Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 HistoryItem(
@@ -97,6 +101,11 @@ internal fun HistoryScreen(
                     time = formatMillisToMinSec(context,uiState.longBlockTime)
                 )
             }
+            Spacer(modifier = Modifier.weight(1f))
+            KeepBannerAd(
+                modifier = Modifier.fillMaxWidth(),
+                adUnitId = "ca-app-pub-1537867411423705/5324044368"
+            )
         }
     }
 }
