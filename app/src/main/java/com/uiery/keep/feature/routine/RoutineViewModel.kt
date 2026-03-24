@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.routine
 
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -14,75 +13,86 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.RoutineScheduler
+import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.toKotlinLocalDateTime
 import kotlinx.serialization.json.Json
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
-import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
-class RoutineViewModel @Inject constructor(
-    private val routineDao: RoutineDao,
-    @KeepDataSource private val dataStore: DataStore<Preferences>,
-    private val analytics: FirebaseAnalytics,
-    private val routineScheduler: RoutineScheduler,
-): ContainerHost<RoutineUiState,RoutineSideEffect>, ViewModel(){
-    override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
+class RoutineViewModel
+    @Inject
+    constructor(
+        private val routineDao: RoutineDao,
+        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val analytics: FirebaseAnalytics,
+        private val routineScheduler: RoutineScheduler,
+    ) : ViewModel(),
+        ContainerHost<RoutineUiState, RoutineSideEffect> {
+        override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
 
-    //val routineService = Retrofit.routineService
+        // val routineService = Retrofit.routineService
 
-    init {
-        getRoutines()
-    }
-
-    internal fun showRoutineBottomSheet() = intent {
-        reduce { state.copy(isShowRoutineBottomSheet = true) }
-    }
-
-    internal fun hideRoutineBottomSheet() = intent {
-        reduce { state.copy(isShowRoutineBottomSheet = false) }
-    }
-
-    private fun showEditRoutineBottomSheet(routine: RoutineModel) = intent {
-        reduce {
-            state.copy(
-                isShowEditRoutineBottomSheet = true,
-                selectedRoutine = routine
-            )
+        init {
+            getRoutines()
         }
-    }
 
-    internal fun hideEditRoutineBottomSheet() = intent {
-        reduce {
-            state.copy(
-                isShowEditRoutineBottomSheet = false,
-                selectedRoutine = null
-            )
-        }
-    }
+        internal fun showRoutineBottomSheet() =
+            intent {
+                reduce { state.copy(isShowRoutineBottomSheet = true) }
+            }
 
-    internal fun getRoutineDetail(id: Long) = intent {
-        runCatching {
-            //routineService.getDetailRoutine(id)
-            routineDao.fetch(id)
-        }.onSuccess {
-            showEditRoutineBottomSheet(it.toModel())
-        }
-    }
+        internal fun hideRoutineBottomSheet() =
+            intent {
+                reduce { state.copy(isShowRoutineBottomSheet = false) }
+            }
 
-    private fun getRoutines() = intent {
-        routineDao.fetchAll().collect{ routines ->
-            val routinesModel = routines.map { it.toModel() }
-            reduce { state.copy(routines = routinesModel) }
-            checkRoutine(routinesModel)
-            storeRoutine(routines.map { it.toModel() })
-            analytics.setUserProperty("routines_count", routines.size.toString())
-        }
+        private fun showEditRoutineBottomSheet(routine: RoutineModel) =
+            intent {
+                reduce {
+                    state.copy(
+                        isShowEditRoutineBottomSheet = true,
+                        selectedRoutine = routine,
+                    )
+                }
+            }
+
+        internal fun hideEditRoutineBottomSheet() =
+            intent {
+                reduce {
+                    state.copy(
+                        isShowEditRoutineBottomSheet = false,
+                        selectedRoutine = null,
+                    )
+                }
+            }
+
+        internal fun getRoutineDetail(id: Long) =
+            intent {
+                runCatching {
+                    // routineService.getDetailRoutine(id)
+                    routineDao.fetch(id)
+                }.onSuccess {
+                    val routine = it.toModel()
+                    if (routine.isRunningNow()) {
+                        return@onSuccess
+                    }
+                    showEditRoutineBottomSheet(routine)
+                }
+            }
+
+        private fun getRoutines() =
+            intent {
+                routineDao.fetchAll().collect { routines ->
+                    val routinesModel = routines.map { it.toModel() }
+                    reduce { state.copy(routines = routinesModel) }
+                    storeRoutine(routines.map { it.toModel() })
+                    analytics.setUserProperty("routines_count", routines.size.toString())
+                }
 //        runCatching {
 //            routineService.getAllRoutines(
 //                deviceId = deviceId(),
@@ -92,47 +102,41 @@ class RoutineViewModel @Inject constructor(
 //        }.onFailure {
 //            Log.d("RoutineViewMode",it.toString())
 //        }
-    }
-
-    private fun checkRoutine(routines: List<RoutineModel>) = intent {
-        val isRoutine = routines.filter { it.isEnabled }
-            .filter { it.repeatDays.toDayOfWeekList().contains(LocalDateTime.now().dayOfWeek) }
-            .any {
-                it.startTime.rangeUntil(it.endTime)
-                    .contains(LocalDateTime.now().toKotlinLocalDateTime().time)
             }
 
-        if(isRoutine) postSideEffect(RoutineSideEffect.MoveToLock(null,true))
-    }
+        internal fun addRoutine(routineModel: RoutineModel) =
+            intent {
+                val insertedId = routineDao.insert(routineModel.toEntity())
+                val routineWithId = routineModel.copy(id = insertedId)
+                if (routineModel.isEnabled) {
+                    routineScheduler.scheduleRoutine(routineWithId)
+                }
+                analyticsAddRoutine()
 
-    internal fun addRoutine(routineModel: RoutineModel) = intent {
-        val insertedId = routineDao.insert(routineModel.toEntity())
-        val routineWithId = routineModel.copy(id = insertedId)
-        if (routineModel.isEnabled) {
-            routineScheduler.scheduleRoutine(routineWithId)
-        }
-        analyticsAddRoutine()
+                // Show the newly created routine in edit bottom sheet
+                if (!routineWithId.isRunningNow()) {
+                    reduce {
+                        state.copy(
+                            isShowEditRoutineBottomSheet = true,
+                            selectedRoutine = routineWithId,
+                        )
+                    }
+                }
+            }
 
-        // Show the newly created routine in edit bottom sheet
-        reduce {
-            state.copy(
-                isShowEditRoutineBottomSheet = true,
-                selectedRoutine = routineWithId
-            )
-        }
-    }
+        internal fun updateRoutine(routineModel: RoutineModel) =
+            intent {
+                routineDao.update(routineModel.toEntity())
+                routineScheduler.cancelRoutine(routineModel.id)
+                if (routineModel.isEnabled) {
+                    routineScheduler.scheduleRoutine(routineModel)
+                }
+            }
 
-    internal fun updateRoutine(routineModel: RoutineModel) = intent {
-        routineDao.update(routineModel.toEntity())
-        routineScheduler.cancelRoutine(routineModel.id)
-        if (routineModel.isEnabled) {
-            routineScheduler.scheduleRoutine(routineModel)
-        }
-    }
-
-    internal fun deleteRoutine(id: Long) = intent {
-        routineScheduler.cancelRoutine(id)
-        routineDao.deleteById(id)
+        internal fun deleteRoutine(id: Long) =
+            intent {
+                routineScheduler.cancelRoutine(id)
+                routineDao.deleteById(id)
 //        runCatching {
 //            routineService.deleteRoutine(id)
 //        }.onSuccess {
@@ -141,18 +145,27 @@ class RoutineViewModel @Inject constructor(
 //                reduce { state.copy(routines = state.routines.minus(it)) }
 //            }
 //        }
-    }
-
-    internal fun changeEnabled(id: Long,isEnabled: Boolean) = intent {
-        routineDao.updateIsEnabledById(id,isEnabled)
-        val routine = state.routines.find { it.id == id }
-        routine?.let {
-            if (isEnabled) {
-                routineScheduler.scheduleRoutine(it)
-            } else {
-                routineScheduler.cancelRoutine(id)
             }
-        }
+
+        internal fun changeEnabled(
+            id: Long,
+            isEnabled: Boolean,
+        ) = intent {
+            val routine = state.routines.find { it.id == id }
+            val isRunningRoutine = routine?.isRunningNow() == true
+
+            if (!isEnabled && isRunningRoutine) {
+                return@intent
+            }
+
+            routineDao.updateIsEnabledById(id, isEnabled)
+            routine?.let {
+                if (isEnabled) {
+                    routineScheduler.scheduleRoutine(it.copy(isEnabled = true))
+                } else {
+                    routineScheduler.cancelRoutine(id)
+                }
+            }
 //        val previousRoutines = state.routines
 //        val updatedRoutines = state.routines.map {
 //            if (it.id == id) it.copy(isEnabled = isEnabled) else it
@@ -166,38 +179,55 @@ class RoutineViewModel @Inject constructor(
 //         }.onFailure {
 //             reduce { state.copy(routines = previousRoutines) }
 //         }
-    }
+        }
 
-    private fun storeRoutine(routines: List<RoutineModel>) = intent {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
+        private fun storeRoutine(routines: List<RoutineModel>) =
+            intent {
+                dataStore.edit { preferences ->
+                    preferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
+                }
+            }
+
+        fun analyticsRoutineScreen() =
+            intent {
+                analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
+                    param(FirebaseAnalytics.Param.SCREEN_NAME, "RoutineScreen")
+                }
+            }
+
+        private fun analyticsAddRoutine() =
+            intent {
+                analytics.logEvent("add_routine") { }
+            }
+
+        internal fun checkAlarmPermissionNeeded() =
+            intent {
+                val preferences = dataStore.data.first()
+                val hasShown = preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
+                if (!hasShown && state.routines.isNotEmpty()) {
+                    postSideEffect(RoutineSideEffect.ShowAlarmPermission)
+                }
+            }
+
+        internal fun markAlarmPermissionShown() =
+            intent {
+                dataStore.edit { preferences ->
+                    preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
+                }
+            }
+
+        private fun RoutineModel.isRunningNow(): Boolean {
+            if (!isEnabled) {
+                return false
+            }
+
+            return isRoutineActiveNow(
+                startTime = startTime,
+                endTime = endTime,
+                repeatDays = repeatDays.toDayOfWeekList(),
+            )
         }
     }
-
-    fun analyticsRoutineScreen() = intent {
-        analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
-            param(FirebaseAnalytics.Param.SCREEN_NAME, "RoutineScreen")
-        }
-    }
-
-    private fun analyticsAddRoutine() = intent {
-        analytics.logEvent("add_routine") { }
-    }
-
-    internal fun checkAlarmPermissionNeeded() = intent {
-        val preferences = dataStore.data.first()
-        val hasShown = preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
-        if (!hasShown && state.routines.isNotEmpty()) {
-            postSideEffect(RoutineSideEffect.ShowAlarmPermission)
-        }
-    }
-
-    internal fun markAlarmPermissionShown() = intent {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
-        }
-    }
-}
 
 data class RoutineUiState(
     val isShowRoutineBottomSheet: Boolean = false,
@@ -207,6 +237,10 @@ data class RoutineUiState(
 )
 
 sealed class RoutineSideEffect {
-    data class MoveToLock(val lockTime: String?, val isRoutine: Boolean) : RoutineSideEffect()
+    data class MoveToLock(
+        val lockTime: String?,
+        val isRoutine: Boolean,
+    ) : RoutineSideEffect()
+
     data object ShowAlarmPermission : RoutineSideEffect()
 }

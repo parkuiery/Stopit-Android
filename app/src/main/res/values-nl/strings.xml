@@ -91,4 +91,5 @@
     <string name="routine_alarm_permission_button">Meldingen instellen</string>
     <string name="notification_routine_start_title">De routine %1$s is gestart</string>
     <string name="notification_routine_start_message">Het gebruik van apps is vergrendeld om je te helpen focussen.</string>
-</resources> 
+    <string name="routine_running_tag">Actief</string>
+</resources>

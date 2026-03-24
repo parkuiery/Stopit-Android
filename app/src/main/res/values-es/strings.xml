@@ -90,4 +90,5 @@
     <string name="routine_alarm_permission_button">Configurar notificaciones</string>
     <string name="notification_routine_start_title">La rutina %1$s ha comenzado</string>
     <string name="notification_routine_start_message">Se bloqueó el uso de apps para ayudarte a concentrarte.</string>
+    <string name="routine_running_tag">En curso</string>
 </resources>

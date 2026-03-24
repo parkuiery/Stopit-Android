@@ -64,6 +64,7 @@
     <string name="routine_alarm_permission_title">We will notify you so you don\'t miss the start of your routine.</string>
     <string name="routine_alarm_permission_description">We will send a notification at the set time to help you start your routine naturally.</string>
     <string name="routine_alarm_permission_button">Set up notifications</string>
+    <string name="routine_running_tag">Running</string>
     <string name="contact_us">Contact Us</string>
     <string name="feedback_subject">[StopIt Android] Feedback</string>
     <string name="email_app_not_installed">No email app is installed.</string>

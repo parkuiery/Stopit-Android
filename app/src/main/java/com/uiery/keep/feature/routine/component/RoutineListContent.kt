@@ -27,35 +27,40 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.network.routine.GetDetailRoutineResponse
+import com.uiery.keep.util.isRoutineActiveNow
+import com.uiery.keep.util.toDayOfWeekList
 import kotlinx.datetime.LocalTime
 
 @Composable
 internal fun RoutineListContent(
     modifier: Modifier = Modifier,
     routines: List<RoutineModel>,
-    onEnabledChange: (Long,Boolean) -> Unit,
+    onEnabledChange: (Long, Boolean) -> Unit,
     onDetailClick: (Long) -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f),
-            contentPadding = PaddingValues(
-                horizontal = 12.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+            contentPadding =
+                PaddingValues(
+                    horizontal = 12.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(routines) { routine ->
+                val isRunning = routine.isRunningNow()
                 RoutineItem(
                     name = routine.name,
                     startTime = routine.startTime,
                     isEnabled = routine.isEnabled,
+                    isRunning = isRunning,
                     onEnabledChange = { onEnabledChange(routine.id, it) },
-                    onClick = { onDetailClick(routine.id) }
+                    onClick = { if (!isRunning) onDetailClick(routine.id) },
                 )
             }
         }
@@ -72,25 +77,26 @@ private fun RoutineItem(
     name: String,
     startTime: LocalTime,
     isEnabled: Boolean,
+    isRunning: Boolean,
     onEnabledChange: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .background(
-                color = KeepTheme.colors.tertiary,
-                shape = RoundedCornerShape(12.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 18.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(enabled = !isRunning) { onClick() }
+                .background(
+                    color = KeepTheme.colors.tertiary,
+                    shape = RoundedCornerShape(12.dp),
+                ).padding(horizontal = 12.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val amPmText = if(startTime.hour < 12) R.string.am else R.string.pm
+        val amPmText = if (startTime.hour < 12) R.string.am else R.string.pm
         val displayHour = if (startTime.hour % 12 == 0) 12 else startTime.hour % 12
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -101,11 +107,24 @@ private fun RoutineItem(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Text(
-                    text = "${displayHour}:${startTime.minute}",
+                    text = "$displayHour:${startTime.minute}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
+                if (isRunning) {
+                    Text(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(KeepTheme.colors.primary)
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        text = stringResource(R.string.routine_running_tag),
+                        color = KeepTheme.colors.onPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
             Text(
                 text = name,
@@ -118,4 +137,16 @@ private fun RoutineItem(
             onCheckedChange = onEnabledChange,
         )
     }
+}
+
+private fun RoutineModel.isRunningNow(): Boolean {
+    if (!isEnabled) {
+        return false
+    }
+
+    return isRoutineActiveNow(
+        startTime = startTime,
+        endTime = endTime,
+        repeatDays = repeatDays.toDayOfWeekList(),
+    )
 }

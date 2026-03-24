@@ -47,8 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -77,56 +75,55 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
-    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
+    onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val categoryBottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-    )
-    val timeBottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-    )
+    val categoryBottomSheetState =
+        rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+        )
+    val timeBottomSheetState =
+        rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+        )
     val context = LocalContext.current
     val composition by rememberLottieComposition(
-        spec = LottieCompositionSpec.RawRes(R.raw.home_prevent)
+        spec = LottieCompositionSpec.RawRes(R.raw.home_prevent),
     )
     val haptic = LocalHapticFeedback.current
     var openAlertDialog by remember { mutableStateOf(false) }
 
     viewModel.collectSideEffect { effect ->
-        when(effect) {
+        when (effect) {
             is HomeSideEffect.ShowSnackBar -> {
                 coroutineScope.launch {
-                    val job = launch {
-                        snackBarHostState.showSnackbar(
-                            message = effect.message
-                        )
-                    }
+                    val job =
+                        launch {
+                            snackBarHostState.showSnackbar(
+                                message = effect.message,
+                            )
+                        }
                     delay(2000L)
                     job.cancel()
                 }
             }
 
-            is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime,effect.isRoutine)
+            is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
         }
-    }
-
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        viewModel.checkRoutines()
     }
 
     LaunchedEffect(Unit) {
         viewModel.analyticsHomeScreen()
-        if(!hasAccessibilityPermission(context)) {
+        if (!hasAccessibilityPermission(context)) {
             openAlertDialog = true
         }
     }
 
-    if(openAlertDialog) {
+    if (openAlertDialog) {
         PermissionSettingDialog(
-            onDismissRequest = { openAlertDialog = false},
+            onDismissRequest = { openAlertDialog = false },
             onConfirmation = {
                 openAlertDialog = false
                 requestAccessibilityPermission(context)
@@ -143,22 +140,23 @@ fun HomeScreen(
                 storeSelectApps = uiState.selectedAppPackage,
                 onComplete = { selectPackages ->
                     viewModel.selectCategoryComplete(selectPackages)
-                    coroutineScope.launch {
-                        categoryBottomSheetState.hide()
-                    }.invokeOnCompletion {
-                        if (!categoryBottomSheetState.isVisible) {
-                            viewModel.hideCategoryBottomSheet()
+                    coroutineScope
+                        .launch {
+                            categoryBottomSheetState.hide()
+                        }.invokeOnCompletion {
+                            if (!categoryBottomSheetState.isVisible) {
+                                viewModel.hideCategoryBottomSheet()
+                            }
                         }
-                    }
                 },
             )
         }
     }
 
-    if(uiState.isShowTimeBottomSheet) {
+    if (uiState.isShowTimeBottomSheet) {
         KeepModalBottomSheet(
             sheetState = timeBottomSheetState,
-            onDismissRequest = viewModel::hideTimeBottomSheet
+            onDismissRequest = viewModel::hideTimeBottomSheet,
         ) {
             TimeBottomSheetContent(
                 blockTime = uiState.blockTime,
@@ -166,16 +164,16 @@ fun HomeScreen(
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
                     viewModel.lockTime()
-                    coroutineScope.launch {
-                        timeBottomSheetState.hide()
-                    }.invokeOnCompletion {
-                        if (!timeBottomSheetState.isVisible) {
-                            viewModel.hideTimeBottomSheet()
-                            viewModel.moveToLock()
+                    coroutineScope
+                        .launch {
+                            timeBottomSheetState.hide()
+                        }.invokeOnCompletion {
+                            if (!timeBottomSheetState.isVisible) {
+                                viewModel.hideTimeBottomSheet()
+                                viewModel.moveToLock()
+                            }
                         }
-                    }
-                }
-
+                },
             )
         }
     }
@@ -194,28 +192,30 @@ fun HomeScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KeepTheme.colors.background,
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = KeepTheme.colors.background,
+                    ),
             )
         },
         snackbarHost = {
             Box(modifier = Modifier.fillMaxSize()) {
                 SnackbarHost(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding(),
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding(),
                     hostState = snackBarHostState,
                     snackbar = {
                         KeepSnackBar(snackbarData = it)
-                    }
+                    },
                 )
             }
         },
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
         Column(
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
         ) {
             val configuration = LocalConfiguration.current
             var lottieOffset by remember { mutableStateOf(IntOffset.Zero) }
@@ -226,16 +226,18 @@ fun HomeScreen(
                     val positionInRoot = it.localPositionOf(coordinates, Offset.Zero)
                     val lottieWidthCenter = (configuration.screenWidthDp.dp / 2).toPx(context)
                     val lottieHeightCenter = (positionInRoot.y.dp / 2).toPx(context)
-                    lottieOffset = IntOffset(
-                        x = (positionInRoot.x + boundsInParent.width / 2 - lottieWidthCenter).toInt(),
-                        y = (positionInRoot.y + boundsInParent.height / 2 - lottieHeightCenter).toInt()
-                    )
+                    lottieOffset =
+                        IntOffset(
+                            x = (positionInRoot.x + boundsInParent.width / 2 - lottieWidthCenter).toInt(),
+                            y = (positionInRoot.y + boundsInParent.height / 2 - lottieHeightCenter).toInt(),
+                        )
                 }
             }
             CategoryButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                 onClick = viewModel::showCategoryBottomSheet,
                 enabled = !uiState.isKeep,
                 categorySize = uiState.selectedAppPackage.size,
@@ -245,34 +247,43 @@ fun HomeScreen(
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onGloballyPositioned { parentCoordinates = it },
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .onGloballyPositioned { parentCoordinates = it },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(
-                            space = 20.dp,
-                            alignment = Alignment.CenterVertically
-                        ),
+                        modifier =
+                            Modifier
+                                .fillMaxSize(),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                space = 20.dp,
+                                alignment = Alignment.CenterVertically,
+                            ),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val (image, message) = if (uiState.isKeep) R.drawable.kepp_icon to stringResource(R.string.keep_turned_off) else R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
+                        val (image, message) =
+                            if (uiState.isKeep) {
+                                R.drawable.kepp_icon to stringResource(R.string.keep_turned_off)
+                            } else {
+                                R.drawable.disable_logo to
+                                    stringResource(R.string.keep_turned_on)
+                            }
                         Image(
-                            modifier = Modifier
-                                .sizeIn(
-                                    minHeight = 100.dp,
-                                    minWidth = 100.dp,
-                                )
-                                .onGloballyPositioned(calculateLottieOffset)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.showSnackBar(message)
-                                    viewModel.changeIsKeep()
-                                },
+                            modifier =
+                                Modifier
+                                    .sizeIn(
+                                        minHeight = 100.dp,
+                                        minWidth = 100.dp,
+                                    ).onGloballyPositioned(calculateLottieOffset)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.showSnackBar(message)
+                                        viewModel.changeIsKeep()
+                                    },
                             painter = painterResource(id = image),
                             contentDescription = null,
                         )
@@ -285,31 +296,31 @@ fun HomeScreen(
                                 onCheckedChange = {
                                     viewModel.showSnackBar(message)
                                     viewModel.changeIsKeep()
-                                }
+                                },
                             )
                             Image(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = KeepTheme.colors.onSecondary,
-                                    )
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable(
-                                        onClick = viewModel::showTimeBottomSheet,
-                                        enabled = !uiState.isKeep,
-                                    )
-                                    .padding(4.dp),
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = KeepTheme.colors.onSecondary,
+                                        ).clip(RoundedCornerShape(8.dp))
+                                        .clickable(
+                                            onClick = viewModel::showTimeBottomSheet,
+                                            enabled = !uiState.isKeep,
+                                        ).padding(4.dp),
                                 painter = painterResource(id = R.drawable.timer_outline),
-                                contentDescription = null
+                                contentDescription = null,
                             )
                         }
                     }
-                    if(uiState.isKeep) {
+                    if (uiState.isKeep) {
                         LottieAnimation(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .absoluteOffset { lottieOffset },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .absoluteOffset { lottieOffset },
                             composition = composition,
                             iterations = LottieConstants.IterateForever,
                         )
@@ -317,9 +328,10 @@ fun HomeScreen(
                 }
                 Column {
                     ContentDescription(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 20.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 20.dp),
                         isKeep = uiState.isKeep,
                         startTime = uiState.startTime,
                     )

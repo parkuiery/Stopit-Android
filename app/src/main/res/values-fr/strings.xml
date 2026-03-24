@@ -91,4 +91,5 @@
     <string name="routine_alarm_permission_button">Configurer les notifications</string>
     <string name="notification_routine_start_title">La routine %1$s a commencé</string>
     <string name="notification_routine_start_message">L\'utilisation des applications a été bloquée pour vous aider à vous concentrer.</string>
-</resources> 
+    <string name="routine_running_tag">En cours</string>
+</resources>

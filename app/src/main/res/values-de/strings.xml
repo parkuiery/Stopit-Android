@@ -91,4 +91,5 @@
     <string name="routine_alarm_permission_button">Benachrichtigungen einrichten</string>
     <string name="notification_routine_start_title">%1$s-Routine hat begonnen</string>
     <string name="notification_routine_start_message">Zur besseren Konzentration wurde die App-Nutzung gesperrt.</string>
-</resources> 
+    <string name="routine_running_tag">Läuft</string>
+</resources>
