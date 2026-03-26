@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-**Keep** is a screen time management and app blocking Android app. Package: `com.uiery.keep`
+**Keep (StopIt)** is a screen time management and app blocking Android app. Package: `com.uiery.keep`
 
 ### Module Structure
 - `app/` - Main application module
@@ -46,7 +46,7 @@ Features live under `app/src/main/java/com/uiery/keep/feature/`:
 - `onboarding/` - Multi-step onboarding (intro, notification, select, permission)
 - `home/` - Main screen with timer and category selection
 - `routine/` - Recurring schedule management
-- `lock/` - Lock screen overlay
+- `lock/` - Lock screen overlay + emergency unlock
 - `history/` - Usage history
 - `menu/` - Navigation menu
 
@@ -59,8 +59,8 @@ Each feature typically contains:
 ### Data Layer
 
 **Room Database** (`database/`):
-- `KeepDatabase.kt` - Main database class
-- `entity/` - Room entities (e.g., `RoutineEntity`)
+- `KeepDatabase.kt` - Main database class (version 4)
+- `entity/` - Room entities (RoutineEntity, LockHistoryEntity, EmergencyUnlockEntity)
 - `dao/` - Data access objects
 - `converter/` - Type converters for LocalTime, DayOfWeek, List<String>
 
@@ -77,6 +77,8 @@ Each feature typically contains:
 
 - `KeepAccessibilityService` - Monitors window changes to trigger app blocking
 - `KeepMessagingService` - FCM push notification handling
+- `EmergencyUnlockNotificationHelper` - Countdown notifications for emergency unlock
+- `EmergencyUnlockState` - In-memory singleton for instant AccessibilityService sync
 
 ### Tech Stack
 
@@ -96,3 +98,8 @@ Flavor dimension: `server`
 - `prod` - Production server (BASE_URL from local.properties)
 
 Environment variables configured in `local.properties` and injected via `buildConfigField`.
+
+## Additional Documentation
+
+- [Git Workflow](docs/GIT_WORKFLOW.md) - 브랜치 전략, 커밋 컨벤션, 릴리즈 플로우
+- [KDS Design System](core/kds/README.md) - 디자인 시스템 컴포넌트 및 테마
