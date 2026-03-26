@@ -1,6 +1,7 @@
 package com.uiery.kds.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -54,8 +55,10 @@ fun KeepTheme(
         LightColorScheme
     }
 
-    CompositionLocalProvider(LocalColors provides colorScheme) {
-        content()
+    MaterialTheme(typography = Typography) {
+        CompositionLocalProvider(LocalColors provides colorScheme) {
+            content()
+        }
     }
 
 }

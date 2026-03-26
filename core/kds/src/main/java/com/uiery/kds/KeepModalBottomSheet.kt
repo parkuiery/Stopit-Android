@@ -1,7 +1,6 @@
 package com.uiery.kds
 
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -33,7 +32,6 @@ fun KeepModalBottomSheet(
     tonalElevation: Dp = BottomSheetDefaults.Elevation,
     scrimColor: Color = BottomSheetDefaults.ScrimColor,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle(color = KeepTheme.colors.tertiaryContainer) },
-    windowInsets: WindowInsets = BottomSheetDefaults.windowInsets,
     properties: ModalBottomSheetProperties = ModalBottomSheetDefaults.properties(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -64,7 +62,6 @@ fun KeepModalBottomSheet(
         tonalElevation = tonalElevation,
         scrimColor = scrimColor,
         dragHandle = dragHandle,
-        windowInsets = windowInsets,
         properties = properties,
         content = content,
     )
