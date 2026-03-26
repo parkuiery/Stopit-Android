@@ -13,8 +13,8 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.RoutineScheduler
-import com.uiery.keep.util.isRoutineActiveNow
-import com.uiery.keep.util.toDayOfWeekList
+import com.uiery.keep.util.isChangeLocked
+import com.uiery.keep.util.isRunningNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -78,7 +78,7 @@ class RoutineViewModel
                     routineDao.fetch(id)
                 }.onSuccess {
                     val routine = it.toModel()
-                    if (routine.isRunningNow()) {
+                    if (routine.isRunningNow() || routine.isChangeLocked()) {
                         return@onSuccess
                     }
                     showEditRoutineBottomSheet(routine)
@@ -135,6 +135,10 @@ class RoutineViewModel
 
         internal fun deleteRoutine(id: Long) =
             intent {
+                val routine = state.routines.find { it.id == id }
+                if (routine?.isRunningNow() == true || routine?.isChangeLocked() == true) {
+                    return@intent
+                }
                 routineScheduler.cancelRoutine(id)
                 routineDao.deleteById(id)
 //        runCatching {
@@ -155,6 +159,10 @@ class RoutineViewModel
             val isRunningRoutine = routine?.isRunningNow() == true
 
             if (!isEnabled && isRunningRoutine) {
+                return@intent
+            }
+
+            if (routine?.isChangeLocked() == true) {
                 return@intent
             }
 
@@ -215,18 +223,6 @@ class RoutineViewModel
                     preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
                 }
             }
-
-        private fun RoutineModel.isRunningNow(): Boolean {
-            if (!isEnabled) {
-                return false
-            }
-
-            return isRoutineActiveNow(
-                startTime = startTime,
-                endTime = endTime,
-                repeatDays = repeatDays.toDayOfWeekList(),
-            )
-        }
     }
 
 data class RoutineUiState(

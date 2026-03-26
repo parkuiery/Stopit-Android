@@ -160,7 +160,9 @@ fun HomeScreen(
         ) {
             TimeBottomSheetContent(
                 blockTime = uiState.blockTime,
-                onChangeCountdownTime = viewModel::updateCountdownTime,
+                countdownDays = uiState.countdownDays,
+                countdownTime = uiState.countdownTime,
+                onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
                     viewModel.lockTime()

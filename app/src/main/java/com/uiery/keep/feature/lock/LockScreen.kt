@@ -199,9 +199,34 @@ fun LockScreen(
                 modifier = modifier
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 val lockTime = uiState.lockTime
+                val isMultiDay = lockTime.toLocalDate() != java.time.LocalDate.now()
+                val formattedTime = if (isMultiDay) {
+                    String.format(
+                        "%d/%d %02d:%02d",
+                        lockTime.monthValue,
+                        lockTime.dayOfMonth,
+                        lockTime.hour,
+                        lockTime.minute,
+                    )
+                } else {
+                    String.format("%02d:%02d", lockTime.hour, lockTime.minute)
+                }
+                Text(
+                    text = stringResource(id = R.string.keep_on_status),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+                Text(
+                    text = if (isMultiDay) {
+                        stringResource(R.string.lock_screen_unavailable_message_with_date, formattedTime)
+                    } else {
+                        stringResource(R.string.lock_screen_unavailable_message, formattedTime)
+                    },
+                    color = KeepTheme.colors.surfaceVariant,
+                )
                 if (!uiState.isEmergencyUnlockActive) {
                     TextButton(
                         onClick = viewModel::showEmergencyUnlockSheet,
@@ -211,51 +236,22 @@ fun LockScreen(
                             text = if (uiState.dailyLimitReached) {
                                 stringResource(R.string.emergency_unlock_daily_limit_reached)
                             } else {
-                                stringResource(R.string.emergency_unlock)
+                                stringResource(
+                                    R.string.emergency_unlock_with_count,
+                                    uiState.dailyUnlockRemaining,
+                                )
                             },
                             color = if (uiState.dailyLimitReached) {
                                 KeepTheme.colors.surfaceVariant
                             } else {
                                 KeepTheme.colors.primary
                             },
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    if (!uiState.dailyLimitReached) {
-                        Text(
-                            text = stringResource(R.string.emergency_unlock_remaining_count, uiState.dailyUnlockRemaining),
-                            fontSize = 12.sp,
-                            color = KeepTheme.colors.surfaceVariant,
+                            fontSize = 13.sp,
                         )
                     }
                 }
-                Text(
-                    text = stringResource(id = R.string.keep_on_status),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = KeepTheme.colors.onSurfaceVariant,
-                )
-                val isMultiDay = lockTime.toLocalDate() != java.time.LocalDate.now()
-                Text(
-                    text = if (isMultiDay) {
-                        stringResource(
-                            id = R.string.lock_screen_unavailable_message_with_date,
-                            lockTime.monthValue,
-                            lockTime.dayOfMonth,
-                            lockTime.hour,
-                            lockTime.minute,
-                        )
-                    } else {
-                        stringResource(
-                            id = R.string.lock_screen_unavailable_message,
-                            lockTime.hour,
-                            lockTime.minute,
-                        )
-                    },
-                    color = KeepTheme.colors.surfaceVariant,
-                )
                 KeepBannerAd(
-                    modifier = Modifier.padding(top = 20.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     adUnitId = "ca-app-pub-1537867411423705/7892727021"
                 )
             }

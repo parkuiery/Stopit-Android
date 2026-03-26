@@ -49,15 +49,15 @@ fun CountDownContent(
         }
     }
 
+    val days = remember(seconds) { seconds / 86400 }
     val formattedTime = remember(seconds) {
-        val hours = seconds / 3600
-        val minutes = (seconds % 3600) / 60
-        val secs = seconds % 60
+        val h = (seconds % 86400) / 3600
+        val m = (seconds % 3600) / 60
+        val s = seconds % 60
 
-        if (hours > 0) {
-            String.format("%02d:%02d:%02d", hours, minutes, secs)
-        } else {
-            String.format("%02d:%02d", minutes, secs)
+        when {
+            days > 0 || h > 0 -> String.format("%02d:%02d:%02d", h, m, s)
+            else -> String.format("%02d:%02d", m, s)
         }
     }
 
@@ -65,6 +65,22 @@ fun CountDownContent(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (days > 0) {
+            AnimatedContent(
+                targetState = days,
+                transitionSpec = {
+                    slideInVertically { -it } + fadeIn() with slideOutVertically { it } + fadeOut()
+                },
+                label = "days"
+            ) { d ->
+                Text(
+                    text = "${d}일 ",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+            }
+        }
         formattedTime.forEach { c: Char ->
             AnimatedContent(
                 targetState = c,

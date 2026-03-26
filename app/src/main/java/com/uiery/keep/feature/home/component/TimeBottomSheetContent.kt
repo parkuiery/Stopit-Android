@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.home.CountdownDuration
 import com.uiery.keep.util.timeNow
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalTime
@@ -37,7 +38,9 @@ import kotlinx.datetime.toJavaLocalTime
 fun TimeBottomSheetContent(
     modifier: Modifier = Modifier,
     blockTime: LocalTime,
-    onChangeCountdownTime: (LocalTime) -> Unit,
+    countdownDays: Int = 0,
+    countdownTime: LocalTime = LocalTime(0, 0),
+    onChangeCountdownDuration: (CountdownDuration) -> Unit,
     onChangeTimerTIme: (LocalTime) -> Unit,
     onLockClick: () -> Unit,
 ) {
@@ -64,19 +67,31 @@ fun TimeBottomSheetContent(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                if(timeNow > blockTime) {
+                if (countdownDays > 0) {
+                    val targetDate = java.time.LocalDate.now().plusDays(
+                        countdownDays.toLong() + if (timeNow > blockTime) 1L else 0L
+                    )
                     Text(
                         modifier = Modifier.padding(end = 4.dp),
-                        text = stringResource(R.string.next_day),
+                        text = stringResource(R.string.lock_time_with_date, targetDate.monthValue, targetDate.dayOfMonth, blockTime.hour, blockTime.minute),
+                        color = KeepTheme.colors.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else {
+                    if (timeNow > blockTime) {
+                        Text(
+                            modifier = Modifier.padding(end = 4.dp),
+                            text = stringResource(R.string.next_day),
+                            color = KeepTheme.colors.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.lock_time, blockTime.hour, blockTime.minute),
                         color = KeepTheme.colors.primary,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                Text(
-                    text = stringResource(R.string.lock_time,blockTime.hour,blockTime.minute),
-                    color = KeepTheme.colors.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
             }
             HorizontalDivider(
                 modifier = Modifier
@@ -100,7 +115,7 @@ fun TimeBottomSheetContent(
                 targetState = selectedIndex
             ) {
                 when(it) {
-                    0 -> CountDownPicker(onChangeCountdownTime = onChangeCountdownTime)
+                    0 -> CountDownPicker(onChangeCountdownDuration = onChangeCountdownDuration)
                     1 -> TimerPicker(onChangeTimerTime = onChangeTimerTIme)
                 }
             }
@@ -110,15 +125,23 @@ fun TimeBottomSheetContent(
             text = stringResource(R.string.lock_message),
             color = KeepTheme.colors.surface,
         )
-        val hour = blockTime.toJavaLocalTime().minusHours(timeNow.hour.toLong()).hour
-        val minute = blockTime.toJavaLocalTime().minusMinutes(timeNow.minute.toLong()).minute
+        val hour = if (selectedIndex == 0) {
+            countdownTime.hour
+        } else {
+            blockTime.toJavaLocalTime().minusHours(timeNow.hour.toLong()).hour
+        }
+        val minute = if (selectedIndex == 0) {
+            countdownTime.minute
+        } else {
+            blockTime.toJavaLocalTime().minusMinutes(timeNow.minute.toLong()).minute
+        }
         Button(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp, bottom = 24.dp),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(vertical = 12.dp),
-            enabled = hour != 0 || minute != 0,
+            enabled = countdownDays > 0 || hour != 0 || minute != 0,
             colors = ButtonColors(
                 containerColor = KeepTheme.colors.primary,
                 contentColor = Color.White,
@@ -128,7 +151,11 @@ fun TimeBottomSheetContent(
             onClick = onLockClick,
         ) {
             Text(
-                text = stringResource(R.string.lock_duration,hour,minute),
+                text = if (countdownDays > 0) {
+                    stringResource(R.string.lock_duration_with_day, countdownDays, hour, minute)
+                } else {
+                    stringResource(R.string.lock_duration, hour, minute)
+                },
                 fontWeight = FontWeight.Medium,
                 fontSize = 18.sp,
             )
@@ -141,7 +168,9 @@ fun TimeBottomSheetContent(
 private fun TimeBottomSheetContentPreview() {
     TimeBottomSheetContent(
         blockTime = timeNow,
-        onChangeCountdownTime = {},
+        countdownDays = 0,
+        countdownTime = LocalTime(0, 0),
+        onChangeCountdownDuration = {},
         onChangeTimerTIme = {},
         onLockClick = {},
     )

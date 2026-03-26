@@ -143,20 +143,25 @@ fun BlockScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (!uiState.dailyLimitReached) {
-                    TextButton(
-                        onClick = viewModel::showEmergencyUnlockSheet,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.emergency_unlock),
-                            color = KeepTheme.colors.primary,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
+                TextButton(
+                    onClick = viewModel::showEmergencyUnlockSheet,
+                    enabled = !uiState.dailyLimitReached,
+                ) {
                     Text(
-                        text = stringResource(R.string.emergency_unlock_remaining_count, uiState.dailyUnlockRemaining),
-                        fontSize = 12.sp,
-                        color = KeepTheme.colors.surfaceVariant,
+                        text = if (uiState.dailyLimitReached) {
+                            stringResource(R.string.emergency_unlock_daily_limit_reached)
+                        } else {
+                            stringResource(
+                                R.string.emergency_unlock_with_count,
+                                uiState.dailyUnlockRemaining,
+                            )
+                        },
+                        color = if (uiState.dailyLimitReached) {
+                            KeepTheme.colors.surfaceVariant
+                        } else {
+                            KeepTheme.colors.primary
+                        },
+                        fontSize = 13.sp,
                     )
                 }
                 KeepButton(

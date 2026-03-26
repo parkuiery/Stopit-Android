@@ -15,6 +15,7 @@ data class RoutineModel(
     val repeatDays: String,
     val lockApplications: List<String>?,
     val isEnabled: Boolean,
+    val changeLockHours: Int? = null,
 )
 
 fun RoutineEntity.toModel() = RoutineModel(
@@ -24,7 +25,8 @@ fun RoutineEntity.toModel() = RoutineModel(
     endTime = endTime,
     repeatDays = repeatDays.toRepeatDaysBinary(),
     lockApplications = lockApplications,
-    isEnabled = isEnabled
+    isEnabled = isEnabled,
+    changeLockHours = changeLockHours,
 )
 
 fun RoutineModel.toEntity() = RoutineEntity(
@@ -34,5 +36,6 @@ fun RoutineModel.toEntity() = RoutineEntity(
     endTime = endTime,
     repeatDays = repeatDays.toDayOfWeekList(),
     lockApplications = lockApplications ?: emptyList(),
-    isEnabled = isEnabled
+    isEnabled = isEnabled,
+    changeLockHours = changeLockHours,
 )

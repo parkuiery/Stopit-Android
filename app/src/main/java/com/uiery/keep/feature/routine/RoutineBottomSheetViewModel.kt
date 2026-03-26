@@ -49,8 +49,14 @@ class RoutineBottomSheetViewModel
                         endTime = routineModel.endTime,
                         selectDays = routineModel.repeatDays.toDayOfWeekList(),
                         selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
+                        changeLockHours = routineModel.changeLockHours,
                     )
                 }
+            }
+
+        internal fun setChangeLockHours(hours: Int?) =
+            intent {
+                reduce { state.copy(changeLockHours = hours) }
             }
 
         internal fun setName(name: String) =
@@ -110,6 +116,7 @@ class RoutineBottomSheetViewModel
                         repeatDays = state.selectDays.toRepeatDaysBinary(),
                         lockApplications = state.selectApps.toList(),
                         isEnabled = state.isEnabled,
+                        changeLockHours = state.changeLockHours,
                     )
                 val insertedId =
                     routineDao.insert(
@@ -121,6 +128,7 @@ class RoutineBottomSheetViewModel
                                 repeatDays = state.selectDays,
                                 lockApplications = state.selectApps.toList(),
                                 isEnabled = state.isEnabled,
+                                changeLockHours = state.changeLockHours,
                             ),
                     )
                 val routineWithId = routineModel.copy(id = insertedId)
@@ -171,6 +179,7 @@ class RoutineBottomSheetViewModel
                                 repeatDays = state.selectDays.toRepeatDaysBinary(),
                                 lockApplications = state.selectApps.toList(),
                                 isEnabled = state.isEnabled,
+                                changeLockHours = state.changeLockHours,
                             )
                         routineDao.update(
                             RoutineEntity(
@@ -181,6 +190,7 @@ class RoutineBottomSheetViewModel
                                 repeatDays = state.selectDays,
                                 lockApplications = state.selectApps.toList(),
                                 isEnabled = state.isEnabled,
+                                changeLockHours = state.changeLockHours,
                             ),
                         )
                         routineScheduler.cancelRoutine(id)
@@ -223,6 +233,7 @@ data class RoutineBottomSheetUiState(
     val isButtonEnable: Boolean = false,
     val selectApps: Set<String> = emptySet(),
     val isEnabled: Boolean = true,
+    val changeLockHours: Int? = null,
 )
 
 sealed class RoutineBottomSheetSideEffect {

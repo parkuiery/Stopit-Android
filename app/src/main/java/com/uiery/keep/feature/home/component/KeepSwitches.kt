@@ -40,6 +40,14 @@ object KeepSwitchDefaults {
         uncheckedTrackColor: Color = KeepTheme.colors.onTertiary,
         uncheckedBorderColor: Color = Color.Transparent,
         uncheckedIconColor: Color = KeepTheme.colors.onTertiary,
+        disabledCheckedThumbColor: Color = Color.White,
+        disabledCheckedTrackColor: Color = KeepTheme.colors.primary.copy(alpha = 0.38f),
+        disabledCheckedBorderColor: Color = Color.Transparent,
+        disabledCheckedIconColor: Color = KeepTheme.colors.primary.copy(alpha = 0.38f),
+        disabledUncheckedThumbColor: Color = Color.White,
+        disabledUncheckedTrackColor: Color = KeepTheme.colors.onTertiary.copy(alpha = 0.38f),
+        disabledUncheckedBorderColor: Color = Color.Transparent,
+        disabledUncheckedIconColor: Color = KeepTheme.colors.onTertiary.copy(alpha = 0.38f),
     ): SwitchColors = SwitchDefaults.colors(
         checkedThumbColor = checkedThumbColor,
         checkedTrackColor = checkedTrackColor,
@@ -49,5 +57,13 @@ object KeepSwitchDefaults {
         uncheckedTrackColor = uncheckedTrackColor,
         uncheckedBorderColor = uncheckedBorderColor,
         uncheckedIconColor = uncheckedIconColor,
+        disabledCheckedThumbColor = disabledCheckedThumbColor,
+        disabledCheckedTrackColor = disabledCheckedTrackColor,
+        disabledCheckedBorderColor = disabledCheckedBorderColor,
+        disabledCheckedIconColor = disabledCheckedIconColor,
+        disabledUncheckedThumbColor = disabledUncheckedThumbColor,
+        disabledUncheckedTrackColor = disabledUncheckedTrackColor,
+        disabledUncheckedBorderColor = disabledUncheckedBorderColor,
+        disabledUncheckedIconColor = disabledUncheckedIconColor,
     )
 }

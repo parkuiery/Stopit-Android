@@ -14,7 +14,7 @@
     <string name="intro_text">Protecting you from the temptations of your smartphone</string>
     <string name="start_button">Start</string>
     <string name="lock_screen_off_message">The lock screen is off</string>
-    <string name="lock_screen_unavailable_message">Selected apps are unavailable until %1$d:%2$d</string>
+    <string name="lock_screen_unavailable_message">Selected apps are unavailable until %1$s</string>
     <string name="remaining_time">left</string>
     <string name="activity_selection">Activity Selection</string>
     <string name="search">search</string>
@@ -90,8 +90,8 @@
     <string name="lock_history_duration_short_min">%1$dm</string>
     <string name="blocked_apps_title">Blocked Apps</string>
     <!-- Routine Notifications -->
-    <string name="notification_channel_routine_name">루틴 알림</string>
-    <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>
+    <string name="notification_channel_routine_name">Routine Notifications</string>
+    <string name="notification_channel_routine_description">Receive notifications when routines start</string>
     <string name="notification_routine_start_title">%1$s routine has started</string>
     <string name="notification_routine_start_message">App usage has been locked to help you focus.</string>
     <string name="prevent_uninstall">Uninstall Protection</string>
@@ -104,9 +104,10 @@
     <string name="day_unit">Day</string>
     <string name="lock_duration_with_day">Locked for %1$d days %2$d hours %3$d minutes</string>
     <string name="lock_time_with_date">Until %1$d/%2$d %3$d:%4$02d</string>
-    <string name="lock_screen_unavailable_message_with_date">Selected apps are unavailable until %1$d/%2$d %3$d:%4$d</string>
+    <string name="lock_screen_unavailable_message_with_date">Selected apps are unavailable until %1$s</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Emergency Unlock</string>
+    <string name="emergency_unlock_with_count">Emergency Unlock (%1$d/3)</string>
     <string name="emergency_unlock_reason_title">Why do you need to unlock?</string>
     <string name="emergency_unlock_reason_work">I need it for work or study</string>
     <string name="emergency_unlock_reason_contact">I have an urgent message to check</string>

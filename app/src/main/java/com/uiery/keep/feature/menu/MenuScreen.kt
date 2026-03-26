@@ -30,10 +30,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.menu.component.MenuItem
+import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
 import com.uiery.kds.KeepBannerAd
 import com.uiery.keep.BuildConfig
@@ -43,6 +48,7 @@ import java.util.Locale
 @Composable
 fun MenuScreen(
     modifier: Modifier = Modifier,
+    menuViewModel: MenuViewModel = hiltViewModel(),
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
@@ -50,6 +56,8 @@ fun MenuScreen(
     onNavigateLockHistory: () -> Unit,
 ) {
     val context = LocalContext.current
+    val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
+    val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -128,6 +136,28 @@ fun MenuScreen(
                 icon = R.drawable.ic_letter,
                 title = stringResource(id = R.string.contact_us),
                 onClick = { sendCustomerEmail(context) }
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                thickness = 1.dp,
+                color = KeepTheme.colors.onTertiaryContainer,
+            )
+            MenuToggleItem(
+                icon = R.drawable.ic_shield,
+                title = stringResource(id = R.string.prevent_uninstall),
+                subtitle = stringResource(id = R.string.prevent_uninstall_subtitle),
+                checked = preventUninstall,
+                enabled = !isBlocking,
+                onCheckedChange = { enabled ->
+                    menuViewModel.setPreventUninstall(enabled)
+                    if (enabled) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.prevent_uninstall_enabled),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
             )
             Spacer(modifier = Modifier.weight(1f))
             KeepBannerAd(

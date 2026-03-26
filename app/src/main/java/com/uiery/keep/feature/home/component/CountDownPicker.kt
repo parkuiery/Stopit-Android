@@ -26,21 +26,29 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.Picker
 import com.uiery.keep.R
 import com.uiery.keep.rememberPickerState
-import kotlinx.datetime.LocalTime
+import com.uiery.keep.feature.home.CountdownDuration
 
 @Composable
 fun CountDownPicker(
     modifier: Modifier = Modifier,
-    onChangeCountdownTime: (LocalTime) -> Unit,
+    onChangeCountdownDuration: (CountdownDuration) -> Unit,
 ) {
+    val dayValues = remember { (0..7).map { it.toString() } }
     val hourValues = remember { (0..23).map { it.toString() } }
     val minuteValues = remember { (0..59).map { it.toString() } }
+    val dayPickerState = rememberPickerState()
     val hourPickerState = rememberPickerState()
     val minutePickerState = rememberPickerState()
 
-    LaunchedEffect(hourPickerState.selectedItem,minutePickerState.selectedItem) {
-        if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
-            onChangeCountdownTime(LocalTime(hourPickerState.selectedItem.toInt(),minutePickerState.selectedItem.toInt()))
+    LaunchedEffect(dayPickerState.selectedItem, hourPickerState.selectedItem, minutePickerState.selectedItem) {
+        if (dayPickerState.selectedItem.isNotEmpty() && hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
+            onChangeCountdownDuration(
+                CountdownDuration(
+                    day = dayPickerState.selectedItem.toInt(),
+                    hour = hourPickerState.selectedItem.toInt(),
+                    minute = minutePickerState.selectedItem.toInt(),
+                )
+            )
         }
     }
 
@@ -65,6 +73,24 @@ fun CountDownPicker(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
+            Picker(
+                modifier = Modifier.widthIn(min = 28.dp),
+                state = dayPickerState,
+                items = dayValues,
+                visibleItemsCount = 7,
+                color = KeepTheme.colors.onSurfaceVariant,
+                textStyle = TextStyle(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                ),
+                textModifier = Modifier.padding(vertical = 4.dp),
+            )
+            Text(
+                text = stringResource(R.string.day_unit),
+                fontWeight = FontWeight.Bold,
+                color = KeepTheme.colors.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Picker(
                 modifier = Modifier.widthIn(min = 28.dp),
                 state = hourPickerState,

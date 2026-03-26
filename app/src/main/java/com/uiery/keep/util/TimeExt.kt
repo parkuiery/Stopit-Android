@@ -2,6 +2,7 @@ package com.uiery.keep.util
 
 import android.content.Context
 import com.uiery.keep.R
+import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -106,3 +107,52 @@ fun currentRoutineWindowEndDateTime(
 }
 
 private fun DayOfWeek.previousDay(): DayOfWeek = if (this == DayOfWeek.MONDAY) DayOfWeek.SUNDAY else DayOfWeek.of(this.value - 1)
+
+fun isRoutineChangeLocked(
+    startTime: kotlinx.datetime.LocalTime,
+    repeatDays: List<java.time.DayOfWeek>,
+    changeLockHours: Int,
+    isEnabled: Boolean,
+    now: java.time.LocalDateTime = java.time.LocalDateTime.now(),
+): Boolean {
+    if (!isEnabled) return false
+    for (i in 0..6) {
+        val candidateDate = now.toLocalDate().plusDays(i.toLong())
+        if (candidateDate.dayOfWeek in repeatDays) {
+            val candidateStart = candidateDate.atTime(
+                startTime.hour, startTime.minute, startTime.second
+            )
+            val lockWindowStart = candidateStart.minusHours(changeLockHours.toLong())
+            if (!now.isBefore(lockWindowStart) && now.isBefore(candidateStart)) {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+fun RoutineModel.isChangeLocked(
+    now: java.time.LocalDateTime = java.time.LocalDateTime.now(),
+): Boolean {
+    val lockHours = changeLockHours ?: return false
+    if (lockHours <= 0) return false
+    return isRoutineChangeLocked(
+        startTime = startTime,
+        repeatDays = repeatDays.toDayOfWeekList(),
+        changeLockHours = lockHours,
+        isEnabled = isEnabled,
+        now = now,
+    )
+}
+
+fun RoutineModel.isRunningNow(
+    nowDateTime: java.time.LocalDateTime = java.time.LocalDateTime.now(),
+): Boolean {
+    if (!isEnabled) return false
+    return isRoutineActiveNow(
+        startTime = startTime,
+        endTime = endTime,
+        repeatDays = repeatDays.toDayOfWeekList(),
+        nowDateTime = nowDateTime,
+    )
+}

@@ -91,7 +91,12 @@ class HomeViewModel
 
         internal fun moveToLock() =
             intent {
-                postSideEffect(HomeSideEffect.MoveToLock(calculateTargetLockDateTime(state.blockTime).toString(), false))
+                val targetDateTime = if (state.countdownDays > 0) {
+                    calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
+                } else {
+                    calculateTargetLockDateTime(state.blockTime)
+                }
+                postSideEffect(HomeSideEffect.MoveToLock(targetDateTime.toString(), false))
             }
 
         private fun getSelectedApp() =
@@ -193,26 +198,35 @@ class HomeViewModel
                 }
             }
 
-        internal fun updateCountdownTime(countdownTime: LocalTime) =
+        internal fun updateCountdownDuration(duration: CountdownDuration) =
             intent {
                 val blockTime =
                     timeNow
                         .toJavaLocalTime()
-                        .plusHours(
-                            countdownTime.hour.toLong(),
-                        ).plusMinutes(countdownTime.minute.toLong())
+                        .plusHours(duration.hour.toLong())
+                        .plusMinutes(duration.minute.toLong())
                         .toKotlinLocalTime()
-                reduce { state.copy(countdownTime = countdownTime, blockTime = blockTime) }
+                reduce {
+                    state.copy(
+                        countdownTime = LocalTime(duration.hour, duration.minute),
+                        countdownDays = duration.day,
+                        blockTime = blockTime,
+                    )
+                }
             }
 
         internal fun updateTimerTime(timerTime: LocalTime) =
             intent {
-                reduce { state.copy(timerTime = timerTime, blockTime = timerTime) }
+                reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
             }
 
         internal fun lockTime() =
             intent {
-                val targetLockDateTime = calculateTargetLockDateTime(state.blockTime)
+                val targetLockDateTime = if (state.countdownDays > 0) {
+                    calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
+                } else {
+                    calculateTargetLockDateTime(state.blockTime)
+                }
                 dataStore.edit { preferences ->
                     preferences[PreferencesKey.LOCK_TIME] = targetLockDateTime.toString()
                 }
@@ -236,6 +250,12 @@ class HomeViewModel
             return if (target.isBefore(nowDateTime)) target.plusDays(1) else target
         }
 
+        private fun calculateCountdownTargetDateTime(days: Int, countdownTime: LocalTime): LocalDateTime =
+            LocalDateTime.now()
+                .plusDays(days.toLong())
+                .plusHours(countdownTime.hour.toLong())
+                .plusMinutes(countdownTime.minute.toLong())
+
         internal fun analyticsHomeScreen() =
             intent {
                 analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
@@ -256,7 +276,10 @@ data class HomeUiState(
     val blockTime: LocalTime = timeNow,
     val countdownTime: LocalTime = timeNow,
     val timerTime: LocalTime = timeNow,
+    val countdownDays: Int = 0,
 )
+
+data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
 
 sealed class HomeSideEffect {
     data class ShowSnackBar(

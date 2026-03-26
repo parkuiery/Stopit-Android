@@ -15,4 +15,5 @@ data class RoutineEntity(
     @ColumnInfo(name = "repeatDays") val repeatDays: List<DayOfWeek>,
     @ColumnInfo(name = "lockApplications") val lockApplications: List<String>,
     @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
+    @ColumnInfo(name = "change_lock_hours") val changeLockHours: Int? = null,
 )

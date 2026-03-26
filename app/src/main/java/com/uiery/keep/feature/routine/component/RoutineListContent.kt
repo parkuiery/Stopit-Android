@@ -3,6 +3,9 @@ package com.uiery.keep.feature.routine.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +30,8 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.util.isRoutineActiveNow
-import com.uiery.keep.util.toDayOfWeekList
+import com.uiery.keep.util.isChangeLocked
+import com.uiery.keep.util.isRunningNow
 import kotlinx.datetime.LocalTime
 
 @Composable
@@ -54,13 +57,17 @@ internal fun RoutineListContent(
         ) {
             items(routines) { routine ->
                 val isRunning = routine.isRunningNow()
+                val isLocked = routine.isChangeLocked()
+                val isBlocked = isRunning || isLocked
                 RoutineItem(
                     name = routine.name,
                     startTime = routine.startTime,
                     isEnabled = routine.isEnabled,
                     isRunning = isRunning,
-                    onEnabledChange = { onEnabledChange(routine.id, it) },
-                    onClick = { if (!isRunning) onDetailClick(routine.id) },
+                    isLocked = isLocked,
+                    changeLockHours = routine.changeLockHours,
+                    onEnabledChange = { if (!isBlocked) onEnabledChange(routine.id, it) },
+                    onClick = { if (!isBlocked) onDetailClick(routine.id) },
                 )
             }
         }
@@ -78,15 +85,18 @@ private fun RoutineItem(
     startTime: LocalTime,
     isEnabled: Boolean,
     isRunning: Boolean,
+    isLocked: Boolean,
+    changeLockHours: Int?,
     onEnabledChange: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
+    val isBlocked = isRunning || isLocked
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(enabled = !isRunning) { onClick() }
+                .clickable(enabled = !isBlocked) { onClick() }
                 .background(
                     color = KeepTheme.colors.tertiary,
                     shape = RoundedCornerShape(12.dp),
@@ -107,7 +117,7 @@ private fun RoutineItem(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Text(
-                    text = "$displayHour:${startTime.minute}",
+                    text = "%02d:%02d".format(displayHour, startTime.minute),
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
                     color = KeepTheme.colors.onSurfaceVariant,
@@ -125,6 +135,30 @@ private fun RoutineItem(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+                if (isLocked && changeLockHours != null) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(KeepTheme.colors.onSurfaceVariant)
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_shield),
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = KeepTheme.colors.tertiary,
+                        )
+                        Text(
+                            text = stringResource(R.string.change_lock_hours, changeLockHours),
+                            color = KeepTheme.colors.tertiary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
             Text(
                 text = name,
@@ -134,19 +168,9 @@ private fun RoutineItem(
         Spacer(modifier = Modifier.weight(1f))
         KeepSwitch(
             checked = isEnabled,
+            enabled = !isBlocked,
             onCheckedChange = onEnabledChange,
         )
     }
 }
 
-private fun RoutineModel.isRunningNow(): Boolean {
-    if (!isEnabled) {
-        return false
-    }
-
-    return isRoutineActiveNow(
-        startTime = startTime,
-        endTime = endTime,
-        repeatDays = repeatDays.toDayOfWeekList(),
-    )
-}
