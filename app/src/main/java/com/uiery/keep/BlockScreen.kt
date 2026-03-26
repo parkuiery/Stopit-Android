@@ -153,6 +153,11 @@ fun BlockScreen(
                             fontWeight = FontWeight.Medium,
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.emergency_unlock_remaining_count, uiState.dailyUnlockRemaining),
+                        fontSize = 12.sp,
+                        color = KeepTheme.colors.surfaceVariant,
+                    )
                 }
                 KeepButton(
                     modifier = Modifier

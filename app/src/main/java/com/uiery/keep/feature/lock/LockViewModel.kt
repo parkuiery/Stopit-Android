@@ -154,7 +154,7 @@ class LockViewModel
             }
             val todayStart = calendar.timeInMillis
             val count = emergencyUnlockDao.countToday(todayStart)
-            reduce { state.copy(dailyLimitReached = count >= 3) }
+            reduce { state.copy(dailyLimitReached = count >= 3, dailyUnlockRemaining = (3 - count).coerceAtLeast(0)) }
         }
 
         internal fun showEmergencyUnlockSheet() = intent {
@@ -241,6 +241,7 @@ data class LockUiState(
     val routineStartTime: Long = 0L,
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
+    val dailyUnlockRemaining: Int = 3,
     val isEmergencyUnlockActive: Boolean = false,
     val emergencyUnlockRemainingSeconds: Int = 0,
     val emergencyUnlockedApps: Set<String> = emptySet(),

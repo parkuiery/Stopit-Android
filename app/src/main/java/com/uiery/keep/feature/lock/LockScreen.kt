@@ -211,6 +211,13 @@ fun LockScreen(
                             fontWeight = FontWeight.Medium,
                         )
                     }
+                    if (!uiState.dailyLimitReached) {
+                        Text(
+                            text = stringResource(R.string.emergency_unlock_remaining_count, uiState.dailyUnlockRemaining),
+                            fontSize = 12.sp,
+                            color = KeepTheme.colors.surfaceVariant,
+                        )
+                    }
                 }
                 Text(
                     text = stringResource(id = R.string.keep_on_status),

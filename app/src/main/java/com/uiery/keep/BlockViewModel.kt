@@ -39,7 +39,7 @@ class BlockViewModel
                 set(Calendar.MILLISECOND, 0)
             }
             val count = emergencyUnlockDao.countToday(calendar.timeInMillis)
-            reduce { state.copy(dailyLimitReached = count >= 3) }
+            reduce { state.copy(dailyLimitReached = count >= 3, dailyUnlockRemaining = (3 - count).coerceAtLeast(0)) }
         }
 
         internal fun showEmergencyUnlockSheet() = intent {
@@ -87,6 +87,7 @@ class BlockViewModel
 data class BlockUiState(
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
+    val dailyUnlockRemaining: Int = 3,
 )
 
 sealed class BlockSideEffect {

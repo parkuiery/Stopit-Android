@@ -130,4 +130,5 @@
     <string name="emergency_unlock_expired">Emergency unlock has ended</string>
     <string name="emergency_unlock_notification_channel">Emergency Unlock</string>
     <string name="emergency_unlock_notification_channel_description">Shows countdown during emergency unlock</string>
+    <string name="emergency_unlock_remaining_count">%1$d/3 remaining</string>
 </resources>
