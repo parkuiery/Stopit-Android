@@ -128,4 +128,5 @@
     <string name="emergency_unlock_notification_channel">긴급 해제</string>
     <string name="emergency_unlock_notification_channel_description">긴급 해제 중 카운트다운을 표시합니다</string>
     <string name="emergency_unlock_remaining_count">%1$d/3 남음</string>
+    <string name="emergency_unlock_waiting_seconds_label">초</string>
 </resources>

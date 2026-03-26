@@ -1,8 +1,15 @@
 package com.uiery.keep.feature.lock.component
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +25,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,12 +44,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -62,6 +75,8 @@ private val REASONS = listOf(
 
 private val DURATION_OPTIONS = listOf(3, 5, 10)
 
+private val STEPS = UnlockStep.entries.toList()
+
 @Composable
 fun EmergencyUnlockBottomSheetContent(
     blockedApps: Set<String>,
@@ -81,9 +96,26 @@ fun EmergencyUnlockBottomSheetContent(
             .padding(horizontal = 20.dp)
             .padding(bottom = 20.dp),
     ) {
+        // Step indicator
+        if (step != UnlockStep.COUNTDOWN) {
+            StepIndicator(
+                currentStep = STEPS.indexOf(step),
+                totalSteps = 3,
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
         AnimatedContent(
             targetState = step,
             label = "unlock_step",
+            transitionSpec = {
+                val forward = STEPS.indexOf(targetState) > STEPS.indexOf(initialState)
+                if (forward) {
+                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                } else {
+                    slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                }
+            },
         ) { currentStep ->
             when (currentStep) {
                 UnlockStep.REASON -> ReasonStep(
@@ -123,6 +155,37 @@ fun EmergencyUnlockBottomSheetContent(
 }
 
 @Composable
+private fun StepIndicator(
+    currentStep: Int,
+    totalSteps: Int,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(totalSteps) { index ->
+            val isActive = index <= currentStep
+            val width by animateFloatAsState(
+                targetValue = if (index == currentStep) 24f else 8f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "step_width",
+            )
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 3.dp)
+                    .size(width = width.dp, height = 8.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isActive) KeepTheme.colors.primary
+                        else KeepTheme.colors.primary.copy(alpha = 0.2f)
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
 private fun ReasonStep(
     selectedReason: String?,
     customReason: String,
@@ -133,31 +196,39 @@ private fun ReasonStep(
     Column(modifier = Modifier.selectableGroup()) {
         Text(
             text = stringResource(R.string.emergency_unlock_reason_title),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
             color = KeepTheme.colors.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         REASONS.forEach { reason ->
+            val isSelected = selectedReason == reason.key
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
+                        else KeepTheme.colors.onSecondary.copy(alpha = 0.5f)
+                    )
                     .selectable(
-                        selected = selectedReason == reason.key,
+                        selected = isSelected,
                         onClick = { onReasonSelected(reason.key) },
                         role = Role.RadioButton,
                     )
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(
-                    selected = selectedReason == reason.key,
+                    selected = isSelected,
                     onClick = null,
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = stringResource(reason.stringRes),
                     color = KeepTheme.colors.onSurfaceVariant,
+                    fontSize = 15.sp,
                 )
             }
         }
@@ -172,9 +243,10 @@ private fun ReasonStep(
                     Text(text = stringResource(R.string.emergency_unlock_reason_other_hint))
                 },
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
@@ -193,18 +265,20 @@ private fun AppSelectionStep(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
+    val density = context.resources.displayMetrics.density
+    val iconSizePx = (40 * density).toInt()
 
     Column {
         Text(
             text = stringResource(R.string.emergency_unlock_select_apps),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
             color = KeepTheme.colors.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         LazyColumn(
             modifier = Modifier.weight(1f, fill = false),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(blockedApps.toList()) { packageName ->
                 val appInfo = remember(packageName) {
@@ -216,42 +290,49 @@ private fun AppSelectionStep(
                 val appIcon = remember(appInfo) {
                     appInfo?.let { pm.getApplicationIcon(it) }
                 }
+                val isSelected = selectedApps.contains(packageName)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
+                            else KeepTheme.colors.onSecondary.copy(alpha = 0.5f)
+                        )
                         .clickable {
                             onSelectionChanged(
-                                if (selectedApps.contains(packageName)) {
-                                    selectedApps - packageName
-                                } else {
-                                    selectedApps + packageName
-                                }
+                                if (isSelected) selectedApps - packageName
+                                else selectedApps + packageName
                             )
                         }
-                        .padding(vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
-                        checked = selectedApps.contains(packageName),
+                        checked = isSelected,
                         onCheckedChange = null,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     appIcon?.let {
                         Image(
-                            bitmap = it.toBitmap(36, 36).asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
+                            bitmap = it.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
+                            contentDescription = appName,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp)),
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                     }
                     Text(
                         text = appName,
                         color = KeepTheme.colors.onSurfaceVariant,
+                        fontSize = 15.sp,
+                        fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                     )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
@@ -267,14 +348,17 @@ private fun DurationStep(
     onDurationSelected: (Int) -> Unit,
     onRequest: () -> Unit,
 ) {
-    Column {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             text = stringResource(R.string.emergency_unlock_select_duration),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
             color = KeepTheme.colors.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -284,13 +368,25 @@ private fun DurationStep(
                     selected = selectedDuration == minutes,
                     onClick = { onDurationSelected(minutes) },
                     label = {
-                        Text(text = stringResource(R.string.emergency_unlock_duration_minutes, minutes))
+                        Text(
+                            text = stringResource(R.string.emergency_unlock_duration_minutes, minutes),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            fontWeight = if (selectedDuration == minutes) FontWeight.SemiBold else FontWeight.Normal,
+                        )
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = KeepTheme.colors.primary.copy(alpha = 0.12f),
+                        selectedLabelColor = KeepTheme.colors.primary,
+                    ),
                 )
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_request),
@@ -318,40 +414,55 @@ private fun CountdownStep(
 
     val progress by animateFloatAsState(
         targetValue = seconds / 30f,
+        animationSpec = tween(durationMillis = 900),
         label = "countdown_progress",
     )
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = stringResource(R.string.emergency_unlock_waiting),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = KeepTheme.colors.onSurfaceVariant,
+            fontSize = 16.sp,
+            color = KeepTheme.colors.surfaceVariant,
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator(
                 progress = { progress },
-                modifier = Modifier.size(120.dp),
-                strokeWidth = 8.dp,
+                modifier = Modifier.size(140.dp),
+                strokeWidth = 10.dp,
                 strokeCap = StrokeCap.Round,
-                trackColor = KeepTheme.colors.onSecondary,
+                color = KeepTheme.colors.primary,
+                trackColor = KeepTheme.colors.primary.copy(alpha = 0.1f),
             )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "$seconds",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.emergency_unlock_waiting_seconds_label),
+                    fontSize = 13.sp,
+                    color = KeepTheme.colors.surfaceVariant,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+        TextButton(
+            onClick = onCancel,
+        ) {
             Text(
-                text = stringResource(R.string.emergency_unlock_waiting_seconds, seconds),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = KeepTheme.colors.onSurfaceVariant,
+                text = stringResource(R.string.emergency_unlock_cancel),
+                color = KeepTheme.colors.surfaceVariant,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
             )
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(R.string.emergency_unlock_cancel),
-            onClick = onCancel,
-        )
     }
 }

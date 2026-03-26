@@ -1,5 +1,10 @@
 package com.uiery.keep.feature.lock
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -112,7 +117,11 @@ fun LockScreen(
                 enabled = false,
                 categorySize = uiState.selectedAppPackage.size,
             )
-            if (uiState.isEmergencyUnlockActive) {
+            AnimatedVisibility(
+                visible = uiState.isEmergencyUnlockActive,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
                 val minutes = uiState.emergencyUnlockRemainingSeconds / 60
                 val seconds = uiState.emergencyUnlockRemainingSeconds % 60
                 val timeText = String.format("%d:%02d", minutes, seconds)
@@ -124,7 +133,7 @@ fun LockScreen(
                             color = KeepTheme.colors.primary.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp),
                         )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
@@ -141,6 +150,7 @@ fun LockScreen(
                         ),
                         color = KeepTheme.colors.primary,
                         fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
                     )
                 }
             }
