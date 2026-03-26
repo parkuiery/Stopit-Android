@@ -11,8 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,21 +26,67 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import kotlinx.coroutines.launch
+import org.orbitmvi.orbit.compose.collectAsState
+import org.orbitmvi.orbit.compose.collectSideEffect
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlockScreen(
     modifier: Modifier = Modifier,
     packageName: String,
+    viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
+    val uiState by viewModel.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    viewModel.collectSideEffect { effect ->
+        when (effect) {
+            is BlockSideEffect.UnlockCompleted -> onClose()
+        }
+    }
+
+    if (uiState.isShowEmergencyUnlockSheet) {
+        KeepModalBottomSheet(
+            sheetState = emergencyUnlockSheetState,
+            onDismissRequest = viewModel::hideEmergencyUnlockSheet,
+        ) {
+            EmergencyUnlockBottomSheetContent(
+                blockedApps = setOf(packageName),
+                onUnlock = { reason, customReason, apps, duration ->
+                    viewModel.emergencyUnlock(reason, customReason, apps, duration)
+                    coroutineScope.launch {
+                        emergencyUnlockSheetState.hide()
+                    }.invokeOnCompletion {
+                        if (!emergencyUnlockSheetState.isVisible) {
+                            viewModel.hideEmergencyUnlockSheet()
+                        }
+                    }
+                },
+                onDismiss = {
+                    coroutineScope.launch {
+                        emergencyUnlockSheetState.hide()
+                    }.invokeOnCompletion {
+                        if (!emergencyUnlockSheetState.isVisible) {
+                            viewModel.hideEmergencyUnlockSheet()
+                        }
+                    }
+                },
+            )
+        }
+    }
 
     Box(
         modifier = modifier
@@ -89,22 +140,27 @@ fun BlockScreen(
                     color = KeepTheme.colors.surfaceVariant,
                 )
             }
-            KeepButton(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(horizontal = 20.dp),
-                text = stringResource(id = R.string.block_screen_close),
-                onClick = onClose,
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (!uiState.dailyLimitReached) {
+                    TextButton(
+                        onClick = viewModel::showEmergencyUnlockSheet,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.emergency_unlock),
+                            color = KeepTheme.colors.primary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+                KeepButton(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp),
+                    text = stringResource(id = R.string.block_screen_close),
+                    onClick = onClose,
+                )
+            }
         }
     }
-}
-
-@Preview
-@Composable
-private fun BlockScreenPreview() {
-    BlockScreen(
-        packageName = "",
-        onClose = { },
-    )
 }
