@@ -7,12 +7,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
+import com.uiery.keep.service.EmergencyUnlockData
+import com.uiery.keep.service.EmergencyUnlockNotificationHelper
+import com.uiery.keep.service.EmergencyUnlockState
 import com.uiery.keep.util.currentRoutineWindowEndDateTime
 import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -25,6 +30,7 @@ import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.Duration
 import java.time.LocalDateTime
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,6 +41,8 @@ class LockViewModel
         private val routineDao: RoutineDao,
         private val lockHistoryDao: LockHistoryDao,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val emergencyUnlockDao: EmergencyUnlockDao,
+        private val notificationHelper: EmergencyUnlockNotificationHelper,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = savedStateHandle.toRoute<LockRoute>()
@@ -46,6 +54,8 @@ class LockViewModel
                 ),
             )
 
+        private var navigateHomeJob: kotlinx.coroutines.Job? = null
+
         init {
             initIntent()
         }
@@ -53,6 +63,7 @@ class LockViewModel
         private fun initIntent() =
             intent {
                 getSelectedApp()
+                checkDailyLimit()
                 if (route.isRoutine) getRoutines() else navigateHome(state.lockTime)
             }
 
@@ -97,8 +108,8 @@ class LockViewModel
                 navigateHome(endTime)
             }
 
-        private fun navigateHome(lockTime: LocalDateTime) =
-            intent {
+        private fun navigateHome(lockTime: LocalDateTime) {
+            navigateHomeJob = intent {
                 val now = LocalDateTime.now()
                 val duration = Duration.between(now, lockTime).coerceAtLeast(Duration.ZERO)
                 delay(duration.toMillis())
@@ -107,6 +118,7 @@ class LockViewModel
                 }
                 postSideEffect(LockSideEffect.MoveToHome)
             }
+        }
 
         private fun saveRoutineLockHistory() =
             intent {
@@ -132,6 +144,93 @@ class LockViewModel
                     ),
                 )
             }
+
+        private fun checkDailyLimit() = intent {
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val todayStart = calendar.timeInMillis
+            val count = emergencyUnlockDao.countToday(todayStart)
+            reduce { state.copy(dailyLimitReached = count >= 3) }
+        }
+
+        internal fun showEmergencyUnlockSheet() = intent {
+            reduce { state.copy(isShowEmergencyUnlockSheet = true) }
+        }
+
+        internal fun hideEmergencyUnlockSheet() = intent {
+            reduce { state.copy(isShowEmergencyUnlockSheet = false) }
+        }
+
+        internal fun emergencyUnlock(
+            reason: String,
+            customReason: String?,
+            apps: Set<String>,
+            durationMinutes: Int,
+        ) = intent {
+            val now = System.currentTimeMillis()
+            val expireTime = now + durationMinutes * 60_000L
+
+            // 1. Update in-memory singleton atomically
+            EmergencyUnlockState.current = EmergencyUnlockData(
+                unlockedApps = apps,
+                expireTimeMillis = expireTime,
+            )
+
+            // 2. Persist to DataStore
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = apps
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] = expireTime
+            }
+
+            // 3. Save history to Room
+            emergencyUnlockDao.insert(
+                EmergencyUnlockEntity(
+                    timestamp = now,
+                    reason = reason,
+                    customReason = customReason,
+                    unlockedApps = apps.toList(),
+                    durationMinutes = durationMinutes,
+                )
+            )
+
+            // 4. Refresh daily limit count
+            checkDailyLimit()
+
+            // 5. Stay on LockScreen, start countdown
+            val totalSeconds = durationMinutes * 60
+            reduce {
+                state.copy(
+                    isEmergencyUnlockActive = true,
+                    emergencyUnlockRemainingSeconds = totalSeconds,
+                    emergencyUnlockedApps = apps,
+                )
+            }
+            startEmergencyUnlockCountdown(totalSeconds)
+        }
+
+        private fun startEmergencyUnlockCountdown(totalSeconds: Int) = intent {
+            var remaining = totalSeconds
+            notificationHelper.showCountdown(remaining, totalSeconds)
+            while (remaining > 0) {
+                delay(1000)
+                remaining--
+                reduce { state.copy(emergencyUnlockRemainingSeconds = remaining) }
+                notificationHelper.showCountdown(remaining, totalSeconds)
+            }
+            // Expired
+            notificationHelper.showExpired()
+            reduce {
+                state.copy(
+                    isEmergencyUnlockActive = false,
+                    emergencyUnlockRemainingSeconds = 0,
+                    emergencyUnlockedApps = emptySet(),
+                )
+            }
+        }
     }
 
 data class LockUiState(
@@ -140,6 +239,11 @@ data class LockUiState(
     val isRoutine: Boolean = false,
     val routines: List<RoutineModel> = emptyList(),
     val routineStartTime: Long = 0L,
+    val isShowEmergencyUnlockSheet: Boolean = false,
+    val dailyLimitReached: Boolean = false,
+    val isEmergencyUnlockActive: Boolean = false,
+    val emergencyUnlockRemainingSeconds: Int = 0,
+    val emergencyUnlockedApps: Set<String> = emptySet(),
 )
 
 sealed class LockSideEffect {

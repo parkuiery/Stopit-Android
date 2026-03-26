@@ -22,4 +22,7 @@ object PreferencesKey {
     val LONG_BLOCK_TIME = longPreferencesKey("long_block_time")
     val ROUTINES = stringPreferencesKey("routines")
     val HAS_SHOWN_ALARM_PERMISSION = booleanPreferencesKey("has_shown_alarm_permission")
+    val PREVENT_UNINSTALL = booleanPreferencesKey("prevent_uninstall")
+    val EMERGENCY_UNLOCK_APPS = stringSetPreferencesKey("emergency_unlock_apps")
+    val EMERGENCY_UNLOCK_EXPIRE_TIME = longPreferencesKey("emergency_unlock_expire_time")
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.google.gson.Gson
 import com.uiery.keep.database.KeepDatabase
+import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import dagger.Module
@@ -32,7 +33,7 @@ internal object DatabaseModule {
         klass = KeepDatabase::class.java,
         name = "keep-database"
     )
-        .addMigrations(KeepDatabase.MIGRATION_1_2)
+        .addMigrations(KeepDatabase.MIGRATION_1_2, KeepDatabase.MIGRATION_2_3, KeepDatabase.MIGRATION_3_4)
         .build()
 
     @Provides
@@ -42,5 +43,9 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideLockHistoryDao(db: KeepDatabase): LockHistoryDao = db.lockHistoryDao()
+
+    @Provides
+    @Singleton
+    fun provideEmergencyUnlockDao(db: KeepDatabase): EmergencyUnlockDao = db.emergencyUnlockDao()
 
 }
