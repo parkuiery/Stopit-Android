@@ -45,10 +45,56 @@ interface KeepAnalytics {
         source: String,
         unlockCountRemaining: Int? = null,
     )
+
+    fun trackAppSelectionCompleted(
+        selectedAppCount: Int,
+        isOnboarding: Boolean,
+    ) = Unit
+
+    fun trackKeepModeToggled(isEnabled: Boolean) = Unit
+
+    fun trackLockScheduled(
+        scheduleType: String,
+        scheduledDurationMinutes: Long,
+    ) = Unit
+
+    fun trackAppBlockIntercepted(
+        blockSource: String,
+        blockedAppPackage: String,
+    ) = Unit
+
+    fun trackEmergencyUnlockCompleted(
+        reason: String,
+        durationMinutes: Int,
+        remainingUnlocks: Int,
+    ) = Unit
+
+    fun trackFirstCoreActionCompleted(
+        elapsedSinceFirstOpenSeconds: Long,
+        blockingMode: String,
+        blockedAppPackage: String,
+        routineId: String? = null,
+    ) = Unit
+
+    fun trackCoreActionCompleted(
+        elapsedSinceFirstOpenSeconds: Long,
+        blockingMode: String,
+        blockedAppPackage: String,
+        routineId: String? = null,
+    ) = Unit
+
+    fun trackFcmTokenCaptured() = Unit
+
+    fun trackDeviceRegistrationAttempted() = Unit
+
+    fun trackDeviceRegistrationSucceeded() = Unit
+
+    fun trackDeviceRegistrationFailed(reason: String) = Unit
+
+    fun trackDeviceRegistrationSkipped(reason: String) = Unit
 }
 
 object KeepAnalyticsEvent {
-    const val FIRST_OPEN = "first_open"
     const val ONBOARDING_STEP_VIEW = "onboarding_step_view"
     const val ONBOARDING_STEP_COMPLETE = "onboarding_step_complete"
     const val PERMISSION_OUTCOME = "permission_outcome"
@@ -56,6 +102,18 @@ object KeepAnalyticsEvent {
     const val LOCK_SESSION_START = "lock_session_start"
     const val LOCK_SESSION_END = "lock_session_end"
     const val EMERGENCY_UNLOCK_USED = "emergency_unlock_used"
+    const val APP_SELECTION_COMPLETED = "app_selection_completed"
+    const val KEEP_MODE_TOGGLED = "keep_mode_toggled"
+    const val LOCK_SCHEDULED = "lock_scheduled"
+    const val APP_BLOCK_INTERCEPTED = "app_block_intercepted"
+    const val EMERGENCY_UNLOCK_COMPLETED = "emergency_unlock_completed"
+    const val FIRST_CORE_ACTION_COMPLETED = "first_core_action_completed"
+    const val CORE_ACTION_COMPLETED = "core_action_completed"
+    const val FCM_TOKEN_CAPTURED = "fcm_token_captured"
+    const val DEVICE_REGISTRATION_ATTEMPTED = "device_registration_attempted"
+    const val DEVICE_REGISTRATION_SUCCEEDED = "device_registration_succeeded"
+    const val DEVICE_REGISTRATION_FAILED = "device_registration_failed"
+    const val DEVICE_REGISTRATION_SKIPPED = "device_registration_skipped"
 }
 
 object KeepAnalyticsParam {
@@ -67,6 +125,18 @@ object KeepAnalyticsParam {
     const val END_REASON = "end_reason"
     const val UNLOCK_COUNT_REMAINING = "unlock_count_remaining"
     const val SELECTED_APP_COUNT = "selected_app_count"
+    const val IS_ONBOARDING = "is_onboarding"
+    const val IS_ENABLED = "is_enabled"
+    const val SCHEDULE_TYPE = "schedule_type"
+    const val SCHEDULED_DURATION_MINUTES = "scheduled_duration_minutes"
+    const val BLOCK_SOURCE = "block_source"
+    const val BLOCKED_APP_PACKAGE = "blocked_app_package"
+    const val REASON = "reason"
+    const val DURATION_MINUTES = "duration_minutes"
+    const val REMAINING_UNLOCKS = "remaining_unlocks"
+    const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
+    const val BLOCKING_MODE = "blocking_mode"
+    const val ROUTINE_ID = "routine_id"
 }
 
 object OnboardingStepName {
@@ -101,4 +171,21 @@ object AnalyticsOutcome {
 object AnalyticsEndReason {
     const val TIMER_ELAPSED = "timer_elapsed"
     const val USER_TOGGLE_OFF = "user_toggle_off"
+}
+
+object AnalyticsScheduleType {
+    const val TIMER = "timer"
+    const val COUNTDOWN = "countdown"
+    const val ROUTINE = "routine"
+}
+
+object AnalyticsBlockSource {
+    const val MANUAL_KEEP = "manual_keep"
+    const val TIMED_LOCK = "timed_lock"
+    const val ROUTINE = "routine"
+}
+
+object AnalyticsDeviceRegistrationSkipReason {
+    const val BACKEND_REMOVED = "backend_removed"
+    const val MISSING_FCM_TOKEN = "missing_fcm_token"
 }

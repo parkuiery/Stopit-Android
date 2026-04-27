@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
+import com.uiery.keep.analytics.AnalyticsBlockSource
 
 class PipBlockerOverlay(
     private val context: Context,
@@ -27,7 +28,11 @@ class PipBlockerOverlay(
 
         composeView = ComposeView(context).apply {
             setContent {
-                BlockScreen(packageName = packageName) {
+                BlockScreen(
+                    packageName = packageName,
+                    blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+                    routineId = null,
+                ) {
 
                 }
             }

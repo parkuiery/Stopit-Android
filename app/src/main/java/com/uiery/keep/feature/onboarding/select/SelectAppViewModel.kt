@@ -38,6 +38,10 @@ class SelectAppViewModel @Inject constructor(
     }
 
     internal fun selectCategoryComplete(selectedAppPackage: Set<String>) = intent {
+        analytics.trackAppSelectionCompleted(
+            selectedAppCount = selectedAppPackage.size,
+            isOnboarding = true,
+        )
         analytics.trackOnboardingStepComplete(OnboardingStepName.SELECT_APP)
         trackFirstLockConfiguredIfNeeded(selectedAppPackage = selectedAppPackage)
         storeSelectedApp(selectedAppPackage)

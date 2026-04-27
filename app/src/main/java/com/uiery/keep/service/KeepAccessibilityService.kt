@@ -4,11 +4,13 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.model.RoutineModel
@@ -44,8 +46,12 @@ class KeepAccessibilityService :
 
     private val handler = Handler(Looper.getMainLooper())
     private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
+    private var lastBlockKey: String? = null
+    private var lastBlockElapsedRealtime: Long = 0L
 
     companion object {
+        private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
+
         private val UNINSTALL_PACKAGES = setOf(
             "com.android.packageinstaller",
             "com.google.android.packageinstaller",
@@ -95,8 +101,16 @@ class KeepAccessibilityService :
 
         if (isBlocking) {
             if (prefs.selectedAppPackages.contains(packageName) || isShouldRoutineBlock) {
+                val blockSource = when {
+                    isShouldRoutineBlock -> AnalyticsBlockSource.ROUTINE
+                    isLockTime -> AnalyticsBlockSource.TIMED_LOCK
+                    else -> AnalyticsBlockSource.MANUAL_KEEP
+                }
+                if (isDuplicateBlock(packageName = packageName, blockSource = blockSource)) return
+
                 val intent = Intent(this, BlockActivity::class.java)
                 intent.putExtra("package_name", packageName)
+                intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockSource)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
             }
@@ -199,5 +213,21 @@ class KeepAccessibilityService :
                 repeatDays = routine.repeatDays.toDayOfWeekList(),
             )
         }
+    }
+
+    private fun isDuplicateBlock(
+        packageName: String,
+        blockSource: String,
+    ): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        val blockKey = "$packageName:$blockSource"
+        val isDuplicate =
+            blockKey == lastBlockKey &&
+                now - lastBlockElapsedRealtime < SAME_BLOCK_DEDUPE_WINDOW_MS
+        if (!isDuplicate) {
+            lastBlockKey = blockKey
+            lastBlockElapsedRealtime = now
+        }
+        return isDuplicate
     }
 }

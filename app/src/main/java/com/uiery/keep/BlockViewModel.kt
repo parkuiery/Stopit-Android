@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.EmergencyUnlockDao
@@ -15,10 +16,13 @@ import com.uiery.keep.service.EmergencyUnlockState
 import com.uiery.keep.service.emergencyUnlockDailyRemaining
 import com.uiery.keep.service.isEmergencyUnlockDailyLimitReached
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,6 +38,52 @@ class BlockViewModel
 
         init {
             checkDailyLimit()
+        }
+
+        internal fun trackBlockShown(
+            packageName: String,
+            blockSource: String,
+            routineId: String?,
+        ) = intent {
+            val firstOpenTimestamp =
+                dataStore.data
+                    .map { preferences -> preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] }
+                    .firstOrNull()
+                    ?: System.currentTimeMillis()
+            val elapsedSeconds =
+                TimeUnit.MILLISECONDS
+                    .toSeconds(System.currentTimeMillis() - firstOpenTimestamp)
+                    .coerceAtLeast(0L)
+            val hasTrackedFirstCoreAction =
+                dataStore.data
+                    .map { preferences -> preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] == true }
+                    .firstOrNull() == true
+
+            analytics.trackAppBlockIntercepted(
+                blockSource = blockSource,
+                blockedAppPackage = packageName,
+            )
+            if (hasTrackedFirstCoreAction) {
+                analytics.trackCoreActionCompleted(
+                    elapsedSinceFirstOpenSeconds = elapsedSeconds,
+                    blockingMode = blockSource,
+                    blockedAppPackage = packageName,
+                    routineId = routineId,
+                )
+            } else {
+                analytics.trackFirstCoreActionCompleted(
+                    elapsedSinceFirstOpenSeconds = elapsedSeconds,
+                    blockingMode = blockSource,
+                    blockedAppPackage = packageName,
+                    routineId = routineId,
+                )
+                dataStore.edit { preferences ->
+                    preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] = true
+                    if (preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] == null) {
+                        preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] = firstOpenTimestamp
+                    }
+                }
+            }
         }
 
         private fun checkDailyLimit() = intent {
@@ -94,6 +144,11 @@ class BlockViewModel
                 source = AnalyticsSource.BLOCK_SCREEN,
                 unlockCountRemaining = unlockCountRemaining,
             )
+            analytics.trackEmergencyUnlockCompleted(
+                reason = reason,
+                durationMinutes = durationMinutes,
+                remainingUnlocks = unlockCountRemaining,
+            )
 
             checkDailyLimit()
             postSideEffect(BlockSideEffect.UnlockCompleted)
@@ -109,3 +164,11 @@ data class BlockUiState(
 sealed class BlockSideEffect {
     data object UnlockCompleted : BlockSideEffect()
 }
+
+internal fun String?.orDefaultBlockSource(): String =
+    when (this) {
+        AnalyticsBlockSource.MANUAL_KEEP,
+        AnalyticsBlockSource.TIMED_LOCK,
+        AnalyticsBlockSource.ROUTINE -> this
+        else -> AnalyticsBlockSource.MANUAL_KEEP
+    }

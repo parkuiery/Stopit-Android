@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.routine
 
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsScheduleType
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
@@ -25,6 +27,7 @@ class RoutineBottomSheetViewModel
     constructor(
         private val routineDao: RoutineDao,
         private val routineScheduler: RoutineScheduler,
+        private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect> {
         override val container: Container<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect> =
@@ -107,6 +110,10 @@ class RoutineBottomSheetViewModel
                 val insertedId = routineDao.insert(routineEntity = routineModel.toEntity())
                 val routineWithId = routineModel.copy(id = insertedId)
                 if (routineModel.isEnabled) {
+                    analytics.trackLockScheduled(
+                        scheduleType = AnalyticsScheduleType.ROUTINE,
+                        scheduledDurationMinutes = routineDurationMinutes(routineModel.startTime, routineModel.endTime),
+                    )
                     routineScheduler.scheduleRoutine(routineWithId)
                 }
             }
@@ -119,6 +126,13 @@ class RoutineBottomSheetViewModel
                         routineDao.update(routineModel.toEntity())
                         routineScheduler.cancelRoutine(id)
                         if (state.isEnabled) {
+                            analytics.trackLockScheduled(
+                                scheduleType = AnalyticsScheduleType.ROUTINE,
+                                scheduledDurationMinutes = routineDurationMinutes(
+                                    routineModel.startTime,
+                                    routineModel.endTime,
+                                ),
+                            )
                             routineScheduler.scheduleRoutine(routineModel)
                         }
                     }

@@ -72,6 +72,7 @@ class SplashViewModel
             analytics.trackFirstOpen()
             dataStore.edit { preferences ->
                 preferences[PreferencesKey.HAS_TRACKED_FIRST_OPEN] = true
+                preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] = System.currentTimeMillis()
             }
         }
 

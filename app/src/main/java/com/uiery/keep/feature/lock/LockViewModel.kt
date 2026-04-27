@@ -219,6 +219,11 @@ class LockViewModel
                 source = AnalyticsSource.LOCK_SCREEN,
                 unlockCountRemaining = unlockCountRemaining,
             )
+            analytics.trackEmergencyUnlockCompleted(
+                reason = reason,
+                durationMinutes = durationMinutes,
+                remainingUnlocks = unlockCountRemaining,
+            )
 
             // 4. Refresh daily limit count
             checkDailyLimit()

@@ -1,5 +1,6 @@
 package com.uiery.keep
 
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.LocalDeviceDataStore
 import dagger.Module
 import dagger.Provides
@@ -12,7 +13,10 @@ import javax.inject.Singleton
 object TokenManagerModule {
     @Provides
     @Singleton
-    fun provideTokenManager(localDeviceDataStore: LocalDeviceDataStore): DeviceTokenManager {
-        return DeviceTokenManager(localDeviceDataStore)
+    fun provideTokenManager(
+        localDeviceDataStore: LocalDeviceDataStore,
+        analytics: KeepAnalytics,
+    ): DeviceTokenManager {
+        return DeviceTokenManager(localDeviceDataStore, analytics)
     }
 }

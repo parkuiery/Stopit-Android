@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -46,6 +47,8 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun BlockScreen(
     modifier: Modifier = Modifier,
     packageName: String,
+    blockSource: String,
+    routineId: String?,
     viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
 ) {
@@ -54,6 +57,10 @@ fun BlockScreen(
     val uiState by viewModel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(packageName, blockSource, routineId) {
+        viewModel.trackBlockShown(packageName, blockSource, routineId)
+    }
 
     viewModel.collectSideEffect { effect ->
         when (effect) {

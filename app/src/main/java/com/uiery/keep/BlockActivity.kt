@@ -19,6 +19,9 @@ class BlockActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val packageName = intent.getStringExtra("package_name") ?: ""
+        val blockSource =
+            intent.getStringExtra(EXTRA_BLOCK_SOURCE).orDefaultBlockSource()
+        val routineId = intent.getStringExtra(EXTRA_ROUTINE_ID)
 
 //        pipBlocker = PipBlockerOverlay(this,packageName, onClose = {
 //                                        val homeIntent = Intent(Intent.ACTION_MAIN)
@@ -44,6 +47,8 @@ class BlockActivity: ComponentActivity() {
                     BlockScreen(
                         modifier = Modifier.padding(innerPadding),
                         packageName = packageName,
+                        blockSource = blockSource,
+                        routineId = routineId,
                         onClose = {
                             val homeIntent = Intent(Intent.ACTION_MAIN)
                             homeIntent.addCategory(Intent.CATEGORY_HOME)
@@ -55,5 +60,10 @@ class BlockActivity: ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_BLOCK_SOURCE = "block_source"
+        const val EXTRA_ROUTINE_ID = "routine_id"
     }
 }

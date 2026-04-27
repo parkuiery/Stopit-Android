@@ -28,11 +28,8 @@ class FirebaseKeepAnalyticsTest {
             backend.loggedEvents[1],
         )
         assertEquals(
-            LoggedEvent(
-                name = KeepAnalyticsEvent.FIRST_OPEN,
-                params = emptyMap(),
-            ),
-            backend.loggedEvents[2],
+            2,
+            backend.loggedEvents.size,
         )
     }
 
@@ -117,6 +114,139 @@ class FirebaseKeepAnalyticsTest {
                 ),
             ),
             backend.loggedEvents[3],
+        )
+    }
+
+    @Test
+    fun dpcBaselineEventsUseRequiredNamesAndParams() {
+        analytics.trackAppSelectionCompleted(
+            selectedAppCount = 2,
+            isOnboarding = true,
+        )
+        analytics.trackKeepModeToggled(isEnabled = true)
+        analytics.trackLockScheduled(
+            scheduleType = AnalyticsScheduleType.TIMER,
+            scheduledDurationMinutes = 45,
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            blockedAppPackage = "com.example.blocked",
+        )
+        analytics.trackEmergencyUnlockCompleted(
+            reason = "work",
+            durationMinutes = 15,
+            remainingUnlocks = 1,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.APP_SELECTION_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.SELECTED_APP_COUNT to 2,
+                    KeepAnalyticsParam.IS_ONBOARDING to true,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.KEEP_MODE_TOGGLED,
+                params = mapOf(KeepAnalyticsParam.IS_ENABLED to true),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.LOCK_SCHEDULED,
+                params = mapOf(
+                    KeepAnalyticsParam.SCHEDULE_TYPE to AnalyticsScheduleType.TIMER,
+                    KeepAnalyticsParam.SCHEDULED_DURATION_MINUTES to 45L,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                ),
+            ),
+            backend.loggedEvents[3],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.REASON to "work",
+                    KeepAnalyticsParam.DURATION_MINUTES to 15,
+                    KeepAnalyticsParam.REMAINING_UNLOCKS to 1,
+                ),
+            ),
+            backend.loggedEvents[4],
+        )
+    }
+
+    @Test
+    fun coreActionAndDeviceRegistrationEventsUseRequiredContract() {
+        analytics.trackFirstCoreActionCompleted(
+            elapsedSinceFirstOpenSeconds = 120,
+            blockingMode = AnalyticsBlockSource.MANUAL_KEEP,
+            blockedAppPackage = "com.example.blocked",
+            routineId = null,
+        )
+        analytics.trackCoreActionCompleted(
+            elapsedSinceFirstOpenSeconds = 180,
+            blockingMode = AnalyticsBlockSource.ROUTINE,
+            blockedAppPackage = "com.example.routine",
+            routineId = "routine-1",
+        )
+        analytics.trackFcmTokenCaptured()
+        analytics.trackDeviceRegistrationAttempted()
+        analytics.trackDeviceRegistrationSucceeded()
+        analytics.trackDeviceRegistrationFailed("network_error")
+        analytics.trackDeviceRegistrationSkipped("backend_removed")
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 120L,
+                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.MANUAL_KEEP,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 180L,
+                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.ROUTINE,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.ROUTINE_ID to "routine-1",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
+        assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
+        assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_SUCCEEDED, emptyMap()), backend.loggedEvents[4])
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_FAILED,
+                mapOf(KeepAnalyticsParam.REASON to "network_error"),
+            ),
+            backend.loggedEvents[5],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
+                mapOf(KeepAnalyticsParam.REASON to "backend_removed"),
+            ),
+            backend.loggedEvents[6],
         )
     }
 }

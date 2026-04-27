@@ -28,7 +28,7 @@ class FirebaseKeepAnalytics
         }
 
         override fun trackFirstOpen() {
-            backend.logEvent(KeepAnalyticsEvent.FIRST_OPEN)
+            // Firebase Analytics emits first_open automatically; do not log the reserved name.
         }
 
         override fun trackOnboardingStepView(stepName: String) {
@@ -112,5 +112,138 @@ class FirebaseKeepAnalytics
                     unlockCountRemaining?.let { put(KeepAnalyticsParam.UNLOCK_COUNT_REMAINING, it) }
                 },
             )
+        }
+
+        override fun trackAppSelectionCompleted(
+            selectedAppCount: Int,
+            isOnboarding: Boolean,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.APP_SELECTION_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.SELECTED_APP_COUNT to selectedAppCount,
+                    KeepAnalyticsParam.IS_ONBOARDING to isOnboarding,
+                ),
+            )
+        }
+
+        override fun trackKeepModeToggled(isEnabled: Boolean) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.KEEP_MODE_TOGGLED,
+                params = mapOf(KeepAnalyticsParam.IS_ENABLED to isEnabled),
+            )
+        }
+
+        override fun trackLockScheduled(
+            scheduleType: String,
+            scheduledDurationMinutes: Long,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_SCHEDULED,
+                params = mapOf(
+                    KeepAnalyticsParam.SCHEDULE_TYPE to scheduleType,
+                    KeepAnalyticsParam.SCHEDULED_DURATION_MINUTES to scheduledDurationMinutes,
+                ),
+            )
+        }
+
+        override fun trackAppBlockIntercepted(
+            blockSource: String,
+            blockedAppPackage: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to blockSource,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to blockedAppPackage,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockCompleted(
+            reason: String,
+            durationMinutes: Int,
+            remainingUnlocks: Int,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.REASON to reason,
+                    KeepAnalyticsParam.DURATION_MINUTES to durationMinutes,
+                    KeepAnalyticsParam.REMAINING_UNLOCKS to remainingUnlocks,
+                ),
+            )
+        }
+
+        override fun trackFirstCoreActionCompleted(
+            elapsedSinceFirstOpenSeconds: Long,
+            blockingMode: String,
+            blockedAppPackage: String,
+            routineId: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
+                params = coreActionParams(
+                    elapsedSinceFirstOpenSeconds = elapsedSinceFirstOpenSeconds,
+                    blockingMode = blockingMode,
+                    blockedAppPackage = blockedAppPackage,
+                    routineId = routineId,
+                ),
+            )
+        }
+
+        override fun trackCoreActionCompleted(
+            elapsedSinceFirstOpenSeconds: Long,
+            blockingMode: String,
+            blockedAppPackage: String,
+            routineId: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
+                params = coreActionParams(
+                    elapsedSinceFirstOpenSeconds = elapsedSinceFirstOpenSeconds,
+                    blockingMode = blockingMode,
+                    blockedAppPackage = blockedAppPackage,
+                    routineId = routineId,
+                ),
+            )
+        }
+
+        override fun trackFcmTokenCaptured() {
+            backend.logEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
+        }
+
+        override fun trackDeviceRegistrationAttempted() {
+            backend.logEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED)
+        }
+
+        override fun trackDeviceRegistrationSucceeded() {
+            backend.logEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_SUCCEEDED)
+        }
+
+        override fun trackDeviceRegistrationFailed(reason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.DEVICE_REGISTRATION_FAILED,
+                params = mapOf(KeepAnalyticsParam.REASON to reason),
+            )
+        }
+
+        override fun trackDeviceRegistrationSkipped(reason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
+                params = mapOf(KeepAnalyticsParam.REASON to reason),
+            )
+        }
+
+        private fun coreActionParams(
+            elapsedSinceFirstOpenSeconds: Long,
+            blockingMode: String,
+            blockedAppPackage: String,
+            routineId: String?,
+        ): Map<String, Any?> = buildMap {
+            put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
+            put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
+            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+            routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
         }
     }

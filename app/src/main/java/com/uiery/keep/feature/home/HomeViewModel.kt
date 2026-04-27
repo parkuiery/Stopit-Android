@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
+import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
@@ -47,6 +48,7 @@ class HomeViewModel
         internal fun changeIsKeep() =
             intent {
                 val isKeep = !state.isKeep
+                analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
@@ -167,6 +169,10 @@ class HomeViewModel
 
         internal fun selectCategoryComplete(selectedAppPackage: Set<String>) =
             intent {
+                analytics.trackAppSelectionCompleted(
+                    selectedAppCount = selectedAppPackage.size,
+                    isOnboarding = false,
+                )
                 storeSelectedApp(selectedAppPackage)
                 reduce { state.copy(selectedAppPackage = selectedAppPackage) }
             }
@@ -240,15 +246,23 @@ class HomeViewModel
                 dataStore.edit { preferences ->
                     preferences[PreferencesKey.LOCK_TIME] = targetLockDateTime.toString()
                 }
-                analytics.trackLockSessionStart(
-                    source = AnalyticsSource.HOME_TIMER,
-                    isRoutine = false,
-                )
                 val lockedDuration =
                     Duration
                         .between(LocalDateTime.now(), targetLockDateTime)
                         .toMillis()
                         .coerceAtLeast(0L)
+                analytics.trackLockScheduled(
+                    scheduleType = if (state.countdownDays > 0) {
+                        AnalyticsScheduleType.COUNTDOWN
+                    } else {
+                        AnalyticsScheduleType.TIMER
+                    },
+                    scheduledDurationMinutes = lockedDuration / 60_000L,
+                )
+                analytics.trackLockSessionStart(
+                    source = AnalyticsSource.HOME_TIMER,
+                    isRoutine = false,
+                )
                 storeBlockTime(lockedDuration)
             }
 
