@@ -68,10 +68,10 @@ Each feature typically contains:
 - Preferences storage for session data (IS_KEEP, LOCK_TIME, FCM_TOKEN, etc.)
 - Keys defined in `PreferencesKey.kt`
 
-**Network** (`network/`):
-- Retrofit configuration in `Retrofit.kt`
-- API services: `RoutineService`, `DeviceService`
-- Base URL configured per flavor (dev/prod)
+**Network**:
+- First-party Retrofit/OkHttp API layer has been removed.
+- Firebase/FCM/Analytics/Crashlytics remain in use.
+- No `BASE_URL` is required for current app builds.
 
 ### Key Services
 
@@ -86,18 +86,16 @@ Each feature typically contains:
 - Jetpack Compose with Material 3
 - Orbit MVI 9.0.0
 - Room 2.7.1, DataStore 1.1.2
-- Retrofit 3.0.0, OkHttp 4.12.0
 - Hilt 2.56.1
 - Firebase (Analytics, Crashlytics, Messaging)
-- Datadog for session replay
 
 ### Build Variants
 
 Flavor dimension: `server`
-- `dev` - Development server (BASE_URL from local.properties)
-- `prod` - Production server (BASE_URL from local.properties)
+- `dev` - Development flavor
+- `prod` - Production flavor
 
-Environment variables configured in `local.properties` and injected via `buildConfigField`.
+`local.properties` is only for local Android/Gradle environment values; no backend URL or third-party monitoring values are required for current app builds.
 
 ## Additional Documentation
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -110,7 +111,8 @@ fun LockScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CategoryButton(
                 modifier = Modifier.padding(top = 60.dp),
@@ -157,10 +159,13 @@ fun LockScreen(
             }
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
+                RotatingCircleGradient(
+                    size = configuration.screenWidthDp.dp - 80.dp,
+                )
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(30.dp),
@@ -192,13 +197,12 @@ fun LockScreen(
                         )
                     }
                 }
-                RotatingCircleGradient(
-                    size = configuration.screenWidthDp.dp - 80.dp,
-                )
             }
             Column(
-                modifier = modifier
-                    .fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val lockTime = uiState.lockTime
@@ -216,9 +220,11 @@ fun LockScreen(
                 }
                 Text(
                     text = stringResource(id = R.string.keep_on_status),
+                    modifier = Modifier.fillMaxWidth(),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KeepTheme.colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
                 Text(
                     text = if (isMultiDay) {
@@ -226,7 +232,9 @@ fun LockScreen(
                     } else {
                         stringResource(R.string.lock_screen_unavailable_message, formattedTime)
                     },
+                    modifier = Modifier.fillMaxWidth(),
                     color = KeepTheme.colors.surfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
                 if (!uiState.isEmergencyUnlockActive) {
                     TextButton(

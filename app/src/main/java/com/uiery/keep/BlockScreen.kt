@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -104,7 +106,10 @@ fun BlockScreen(
                 adUnitId = "ca-app-pub-1537867411423705/5467753282",
             ),
         )
-        Column {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             val appName = runCatching {
                 val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
                 packageManager.getApplicationLabel(applicationInfo).toString()
@@ -112,7 +117,7 @@ fun BlockScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.Center,
@@ -147,6 +152,10 @@ fun BlockScreen(
                 )
             }
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 TextButton(
@@ -171,8 +180,7 @@ fun BlockScreen(
                     )
                 }
                 KeepButton(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     text = stringResource(id = R.string.block_screen_close),
                     onClick = onClose,
                 )

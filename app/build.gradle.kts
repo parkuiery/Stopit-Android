@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -11,9 +9,6 @@ plugins {
     id("androidx.room")
     id("com.google.firebase.crashlytics")
 }
-
-val properties = Properties()
-properties.load(rootProject.file("./local.properties").inputStream())
 
 android {
     namespace = "com.uiery.keep"
@@ -30,17 +25,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        buildConfigField(
-            type = "String",
-            name = "DATA_DOG_CLIENT_TOKEN",
-            value = properties.getProperty("DATA_DOG_CLIENT_TOKEN")
-        )
-        buildConfigField(
-            type = "String",
-            name = "DATA_DOG_APPLICATION_ID",
-            value = properties.getProperty("DATA_DOG_APPLICATION_ID")
-        )
     }
     flavorDimensions += "server"
     productFlavors {
@@ -136,11 +120,6 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics-ndk")
 
     implementation(libs.utilcodex)
-
-    implementation(libs.dd.sdk.android.rum)
-    implementation("com.datadoghq:dd-sdk-android-session-replay:2.19.2")
-    implementation("com.datadoghq:dd-sdk-android-session-replay-material:2.19.2")
-    implementation("com.datadoghq:dd-sdk-android-session-replay-compose:2.19.2")
 
     implementation("androidx.room:room-runtime:2.7.1")
     ksp("androidx.room:room-compiler:2.7.1")

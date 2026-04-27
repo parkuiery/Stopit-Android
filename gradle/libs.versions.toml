@@ -2,7 +2,6 @@
 accompanistSystemuicontroller = "0.32.0"
 agp = "8.6.0"
 datastorePreferences = "1.1.2"
-ddSdkAndroidRum = "2.19.2"
 firebaseBom = "34.2.0"
 firebaseMessaging = "24.1.1"
 hiltNavigationCompose = "1.2.0"
@@ -24,7 +23,6 @@ orbit = "9.0.0"
 hilt = "2.56.1"
 ksp = "2.1.10-1.0.31"
 gmsGoogleServices = "4.4.2"
-ddSdk = "1.15.0"
 utilcodex = "1.31.1"
 
 [libraries]
@@ -33,7 +31,6 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
-dd-sdk-android-rum = { module = "com.datadoghq:dd-sdk-android-rum", version.ref = "ddSdkAndroidRum" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
@@ -71,4 +68,3 @@ dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 gms-google-services = { id = "com.google.gms.google-services", version.ref = "gmsGoogleServices" }
-dd-sdk = { id = "com.datadoghq.dd-sdk-android-gradle-plugin", version.ref = "ddSdk" }

@@ -9,7 +9,6 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.gms.google.services) apply false
     alias(libs.plugins.google.devtools.ksp) apply false
-    alias(libs.plugins.dd.sdk) apply false
     id("androidx.room") version "2.7.1" apply false
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
 }
