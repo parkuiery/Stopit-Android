@@ -46,14 +46,11 @@ import com.uiery.keep.R
 import com.uiery.keep.util.toTimeString
 import kotlinx.datetime.toJavaLocalTime
 import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
-import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.network.routine.GetDetailRoutineResponse
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.orbitmvi.orbit.compose.collectAsState
-import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.DayOfWeek
 
 @Composable
@@ -63,7 +60,6 @@ fun RoutineBottomSheetContent(
     isEdit: Boolean,
     routine: RoutineModel? = null,
     addRoutine: () -> Unit = { },
-    //updateRoutine: (RoutineModel) -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
     val state by viewModel.collectAsState()
@@ -97,13 +93,6 @@ fun RoutineBottomSheetContent(
             viewModel.resetState()
         }
     }
-
-//    viewModel.collectSideEffect { effect ->
-//        when (effect) {
-//            is RoutineBottomSheetSideEffect.AddRoutineSuccess -> addRoutine(effect.getDetailRoutineResponse)
-//            is RoutineBottomSheetSideEffect.UpdateRoutineSuccess -> updateRoutine(effect.getDetailRoutineResponse)
-//        }
-//    }
 
     HorizontalPager(
         modifier = modifier.fillMaxSize(),

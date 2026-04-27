@@ -4,13 +4,17 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsSource
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.service.DAILY_EMERGENCY_UNLOCK_LIMIT
 import com.uiery.keep.service.EmergencyUnlockData
 import com.uiery.keep.service.EmergencyUnlockState
+import com.uiery.keep.service.emergencyUnlockDailyRemaining
+import com.uiery.keep.service.isEmergencyUnlockDailyLimitReached
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -23,6 +27,7 @@ class BlockViewModel
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val emergencyUnlockDao: EmergencyUnlockDao,
+        private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -39,7 +44,12 @@ class BlockViewModel
                 set(Calendar.MILLISECOND, 0)
             }
             val count = emergencyUnlockDao.countToday(calendar.timeInMillis)
-            reduce { state.copy(dailyLimitReached = count >= 3, dailyUnlockRemaining = (3 - count).coerceAtLeast(0)) }
+            reduce {
+                state.copy(
+                    dailyLimitReached = isEmergencyUnlockDailyLimitReached(count),
+                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(count),
+                )
+            }
         }
 
         internal fun showEmergencyUnlockSheet() = intent {
@@ -58,6 +68,7 @@ class BlockViewModel
         ) = intent {
             val now = System.currentTimeMillis()
             val expireTime = now + durationMinutes * 60_000L
+            val unlockCountRemaining = (state.dailyUnlockRemaining - 1).coerceAtLeast(0)
 
             EmergencyUnlockState.current = EmergencyUnlockData(
                 unlockedApps = apps,
@@ -79,6 +90,11 @@ class BlockViewModel
                 )
             )
 
+            analytics.trackEmergencyUnlockUsed(
+                source = AnalyticsSource.BLOCK_SCREEN,
+                unlockCountRemaining = unlockCountRemaining,
+            )
+
             checkDailyLimit()
             postSideEffect(BlockSideEffect.UnlockCompleted)
         }
@@ -87,7 +103,7 @@ class BlockViewModel
 data class BlockUiState(
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
-    val dailyUnlockRemaining: Int = 3,
+    val dailyUnlockRemaining: Int = DAILY_EMERGENCY_UNLOCK_LIMIT,
 )
 
 sealed class BlockSideEffect {

@@ -13,6 +13,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,11 +43,16 @@ fun PermissionSettingScreen(
     val context = LocalContext.current
     var openAlertDialog by remember { mutableStateOf(false) }
 
-    if(openAlertDialog) {
+    LaunchedEffect(Unit) {
+        viewModel.onStepViewed()
+    }
+
+    if (openAlertDialog) {
         PermissionSettingDialog(
-            onDismissRequest = { openAlertDialog = false},
+            onDismissRequest = { openAlertDialog = false },
             onConfirmation = {
                 openAlertDialog = false
+                viewModel.onPermissionSettingsOpened()
                 requestAccessibilityPermission(context)
             },
         )
@@ -98,9 +104,8 @@ fun PermissionSettingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_permission),
                 onClick = {
-                    viewModel.allowPermissionClick()
-                    if(hasAccessibilityPermission(context)) {
-                        viewModel.notificationSettingComplete()
+                    if (hasAccessibilityPermission(context)) {
+                        viewModel.onPermissionGranted()
                         onNavigateNotificationSetting()
                     } else {
                         openAlertDialog = true

@@ -37,3 +37,14 @@ google-services.json
 *.aab
 
 .omc/
+.omx/
+.claude/
+.gradle-local/
+
+# Local agent-generated planning artifacts
+docs/superpowers/
+
+# Firebase Functions generated artifacts
+functions/lib/
+functions/node_modules/
+functions/.firebase/

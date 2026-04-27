@@ -4,9 +4,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.logEvent
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.AnalyticsEndReason
+import com.uiery.keep.analytics.AnalyticsSource
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
@@ -32,7 +33,7 @@ class HomeViewModel
     @Inject
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
-        private val analytics: FirebaseAnalytics,
+        private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
@@ -47,8 +48,17 @@ class HomeViewModel
             intent {
                 val isKeep = !state.isKeep
                 if (isKeep) {
+                    analytics.trackLockSessionStart(
+                        source = AnalyticsSource.HOME_KEEP_SWITCH,
+                        isRoutine = false,
+                    )
                     storeStartTime()
                 } else {
+                    analytics.trackLockSessionEnd(
+                        source = AnalyticsSource.HOME_KEEP_SWITCH,
+                        endReason = AnalyticsEndReason.USER_TOGGLE_OFF,
+                        isRoutine = false,
+                    )
                     storeBlockTime(System.currentTimeMillis() - state.startTime)
                 }
                 reduce { state.copy(isKeep = isKeep, startTime = System.currentTimeMillis()) }
@@ -230,6 +240,10 @@ class HomeViewModel
                 dataStore.edit { preferences ->
                     preferences[PreferencesKey.LOCK_TIME] = targetLockDateTime.toString()
                 }
+                analytics.trackLockSessionStart(
+                    source = AnalyticsSource.HOME_TIMER,
+                    isRoutine = false,
+                )
                 val lockedDuration =
                     Duration
                         .between(LocalDateTime.now(), targetLockDateTime)
@@ -258,9 +272,7 @@ class HomeViewModel
 
         internal fun analyticsHomeScreen() =
             intent {
-                analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
-                    param(FirebaseAnalytics.Param.SCREEN_NAME, "HomeScreen")
-                }
+                analytics.logScreenView("HomeScreen")
             }
     }
 

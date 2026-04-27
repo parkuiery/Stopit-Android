@@ -7,6 +7,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.AnalyticsEndReason
+import com.uiery.keep.analytics.AnalyticsSource
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -15,9 +18,12 @@ import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
+import com.uiery.keep.service.DAILY_EMERGENCY_UNLOCK_LIMIT
 import com.uiery.keep.service.EmergencyUnlockData
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockState
+import com.uiery.keep.service.emergencyUnlockDailyRemaining
+import com.uiery.keep.service.isEmergencyUnlockDailyLimitReached
 import com.uiery.keep.util.currentRoutineWindowEndDateTime
 import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -43,6 +49,7 @@ class LockViewModel
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val emergencyUnlockDao: EmergencyUnlockDao,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
+        private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = savedStateHandle.toRoute<LockRoute>()
@@ -113,6 +120,11 @@ class LockViewModel
                 val now = LocalDateTime.now()
                 val duration = Duration.between(now, lockTime).coerceAtLeast(Duration.ZERO)
                 delay(duration.toMillis())
+                analytics.trackLockSessionEnd(
+                    source = if (state.isRoutine) AnalyticsSource.ROUTINE else AnalyticsSource.HOME_TIMER,
+                    endReason = AnalyticsEndReason.TIMER_ELAPSED,
+                    isRoutine = state.isRoutine,
+                )
                 if (state.isRoutine) {
                     saveRoutineLockHistory()
                 }
@@ -154,7 +166,12 @@ class LockViewModel
             }
             val todayStart = calendar.timeInMillis
             val count = emergencyUnlockDao.countToday(todayStart)
-            reduce { state.copy(dailyLimitReached = count >= 3, dailyUnlockRemaining = (3 - count).coerceAtLeast(0)) }
+            reduce {
+                state.copy(
+                    dailyLimitReached = isEmergencyUnlockDailyLimitReached(count),
+                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(count),
+                )
+            }
         }
 
         internal fun showEmergencyUnlockSheet() = intent {
@@ -173,6 +190,7 @@ class LockViewModel
         ) = intent {
             val now = System.currentTimeMillis()
             val expireTime = now + durationMinutes * 60_000L
+            val unlockCountRemaining = (state.dailyUnlockRemaining - 1).coerceAtLeast(0)
 
             // 1. Update in-memory singleton atomically
             EmergencyUnlockState.current = EmergencyUnlockData(
@@ -195,6 +213,11 @@ class LockViewModel
                     unlockedApps = apps.toList(),
                     durationMinutes = durationMinutes,
                 )
+            )
+
+            analytics.trackEmergencyUnlockUsed(
+                source = AnalyticsSource.LOCK_SCREEN,
+                unlockCountRemaining = unlockCountRemaining,
             )
 
             // 4. Refresh daily limit count
@@ -241,7 +264,7 @@ data class LockUiState(
     val routineStartTime: Long = 0L,
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
-    val dailyUnlockRemaining: Int = 3,
+    val dailyUnlockRemaining: Int = DAILY_EMERGENCY_UNLOCK_LIMIT,
     val isEmergencyUnlockActive: Boolean = false,
     val emergencyUnlockRemainingSeconds: Int = 0,
     val emergencyUnlockedApps: Set<String> = emptySet(),

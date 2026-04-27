@@ -40,11 +40,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.RotatingCircleGradient
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.lock.component.CountDownContent
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
@@ -250,9 +251,14 @@ fun LockScreen(
                         )
                     }
                 }
-                KeepBannerAd(
+                TrackedBannerAd(
                     modifier = Modifier.padding(top = 16.dp),
-                    adUnitId = "ca-app-pub-1537867411423705/7892727021"
+                    metadata = AdPlacementMetadata(
+                        screenName = "LockScreen",
+                        screenContext = if (uiState.isRoutine) "routine" else "manual",
+                        placement = "lock_bottom",
+                        adUnitId = "ca-app-pub-1537867411423705/7892727021",
+                    ),
                 )
             }
         }

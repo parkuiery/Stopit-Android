@@ -17,10 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 
 @Composable
 fun RoutineNoContent(
@@ -50,11 +51,16 @@ fun RoutineNoContent(
                 onClick = onAddRoutine,
             )
         }
-        KeepBannerAd(
+        TrackedBannerAd(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(alignment = Alignment.BottomCenter),
-            adUnitId = "ca-app-pub-1537867411423705/9271028233"
+            metadata = AdPlacementMetadata(
+                screenName = "RoutineScreen",
+                screenContext = "empty_state",
+                placement = "routine_empty_bottom",
+                adUnitId = "ca-app-pub-1537867411423705/9271028233",
+            ),
         )
     }
 }

@@ -40,8 +40,9 @@ import com.uiery.keep.R
 import com.uiery.keep.feature.menu.component.MenuItem
 import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
-import com.uiery.kds.KeepBannerAd
 import com.uiery.keep.BuildConfig
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -160,9 +161,14 @@ fun MenuScreen(
                 },
             )
             Spacer(modifier = Modifier.weight(1f))
-            KeepBannerAd(
+            TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
-                adUnitId = "ca-app-pub-1537867411423705/3270829732"
+                metadata = AdPlacementMetadata(
+                    screenName = "MenuScreen",
+                    screenContext = "settings",
+                    placement = "menu_bottom",
+                    adUnitId = "ca-app-pub-1537867411423705/3270829732",
+                ),
             )
         }
     }

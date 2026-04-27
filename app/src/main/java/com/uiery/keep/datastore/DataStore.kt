@@ -25,4 +25,6 @@ object PreferencesKey {
     val PREVENT_UNINSTALL = booleanPreferencesKey("prevent_uninstall")
     val EMERGENCY_UNLOCK_APPS = stringSetPreferencesKey("emergency_unlock_apps")
     val EMERGENCY_UNLOCK_EXPIRE_TIME = longPreferencesKey("emergency_unlock_expire_time")
+    val HAS_TRACKED_FIRST_OPEN = booleanPreferencesKey("has_tracked_first_open")
+    val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
 }

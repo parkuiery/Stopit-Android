@@ -2,7 +2,6 @@ package com.uiery.keep.database.di
 
 import android.content.Context
 import androidx.room.Room
-import com.google.gson.Gson
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
@@ -17,12 +16,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 internal object DatabaseModule {
-
-    @Singleton
-    @Provides
-    fun provideGson(): Gson {
-        return Gson()
-    }
 
     @Provides
     @Singleton

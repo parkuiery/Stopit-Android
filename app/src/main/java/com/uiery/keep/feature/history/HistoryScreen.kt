@@ -24,9 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.history.component.HistoryItem
 import org.orbitmvi.orbit.compose.collectAsState
 
@@ -102,9 +103,14 @@ internal fun HistoryScreen(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
-            KeepBannerAd(
+            TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
-                adUnitId = "ca-app-pub-1537867411423705/5324044368"
+                metadata = AdPlacementMetadata(
+                    screenName = "HistoryScreen",
+                    screenContext = "summary",
+                    placement = "history_bottom",
+                    adUnitId = "ca-app-pub-1537867411423705/5324044368",
+                ),
             )
         }
     }

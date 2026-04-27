@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +51,7 @@ fun NotificationSettingScreen(
 ) {
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            viewModel.notificationSettingCompleteAnalytics()
+            viewModel.onPermissionResult(isGranted = it)
             onNavigateSelectApp()
         }
     val composition by rememberLottieComposition(
@@ -58,6 +59,10 @@ fun NotificationSettingScreen(
     )
     val context = LocalContext.current
     var visitSetting by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.onStepViewed()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -101,7 +106,7 @@ fun NotificationSettingScreen(
                     }
 
                     if (visitSetting) {
-                        viewModel.notificationSettingCompleteAnalytics()
+                        viewModel.onPermissionResult(isGranted = true)
                         onNavigateSelectApp()
                     } else {
                         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {

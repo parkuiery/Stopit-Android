@@ -29,10 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
@@ -94,9 +95,14 @@ fun BlockScreen(
             .background(KeepTheme.colors.background),
         contentAlignment = Alignment.Center,
     ) {
-        KeepBannerAd(
+        TrackedBannerAd(
             modifier = Modifier.align(Alignment.TopCenter),
-            adUnitId = "ca-app-pub-1537867411423705/5467753282"
+            metadata = AdPlacementMetadata(
+                screenName = "BlockScreen",
+                screenContext = "blocked_app",
+                placement = "block_top",
+                adUnitId = "ca-app-pub-1537867411423705/5467753282",
+            ),
         )
         Column {
             val appName = runCatching {

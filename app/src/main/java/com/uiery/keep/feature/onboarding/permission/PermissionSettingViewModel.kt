@@ -1,19 +1,35 @@
 package com.uiery.keep.feature.onboarding.permission
 
 import androidx.lifecycle.ViewModel
-import com.google.firebase.analytics.FirebaseAnalytics
+import com.uiery.keep.analytics.AnalyticsOutcome
+import com.uiery.keep.analytics.AnalyticsPermissionName
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.OnboardingStepName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class PermissionSettingViewModel @Inject constructor(
-    private val analytics: FirebaseAnalytics,
+    private val analytics: KeepAnalytics,
 ) : ViewModel() {
-    fun allowPermissionClick() {
-        analytics.logEvent("allow_permission_click", null)
+    fun onStepViewed() {
+        analytics.trackOnboardingStepView(OnboardingStepName.PERMISSION)
     }
 
-    fun notificationSettingComplete() {
-        analytics.logEvent("notification_setting_complete", null)
+    fun onPermissionGranted() {
+        analytics.trackPermissionOutcome(
+            permissionName = AnalyticsPermissionName.ACCESSIBILITY,
+            outcome = AnalyticsOutcome.GRANTED,
+            stepName = OnboardingStepName.PERMISSION,
+        )
+        analytics.trackOnboardingStepComplete(OnboardingStepName.PERMISSION)
+    }
+
+    fun onPermissionSettingsOpened() {
+        analytics.trackPermissionOutcome(
+            permissionName = AnalyticsPermissionName.ACCESSIBILITY,
+            outcome = AnalyticsOutcome.SETTINGS_OPENED,
+            stepName = OnboardingStepName.PERMISSION,
+        )
     }
 }

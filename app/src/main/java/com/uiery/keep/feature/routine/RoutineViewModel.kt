@@ -4,9 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.logEvent
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
@@ -29,13 +28,11 @@ class RoutineViewModel
     constructor(
         private val routineDao: RoutineDao,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
-        private val analytics: FirebaseAnalytics,
+        private val analytics: KeepAnalytics,
         private val routineScheduler: RoutineScheduler,
     ) : ViewModel(),
         ContainerHost<RoutineUiState, RoutineSideEffect> {
         override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
-
-        // val routineService = Retrofit.routineService
 
         init {
             getRoutines()
@@ -74,7 +71,6 @@ class RoutineViewModel
         internal fun getRoutineDetail(id: Long) =
             intent {
                 runCatching {
-                    // routineService.getDetailRoutine(id)
                     routineDao.fetch(id)
                 }.onSuccess {
                     val routine = it.toModel()
@@ -93,15 +89,6 @@ class RoutineViewModel
                     storeRoutine(routines.map { it.toModel() })
                     analytics.setUserProperty("routines_count", routines.size.toString())
                 }
-//        runCatching {
-//            routineService.getAllRoutines(
-//                deviceId = deviceId(),
-//            )
-//        }.onSuccess {
-//            reduce { state.copy(routines = it) }
-//        }.onFailure {
-//            Log.d("RoutineViewMode",it.toString())
-//        }
             }
 
         internal fun addRoutine(routineModel: RoutineModel) =
@@ -141,14 +128,6 @@ class RoutineViewModel
                 }
                 routineScheduler.cancelRoutine(id)
                 routineDao.deleteById(id)
-//        runCatching {
-//            routineService.deleteRoutine(id)
-//        }.onSuccess {
-//            val routine = state.routines.find { it.id == id }
-//            routine?.let {
-//                reduce { state.copy(routines = state.routines.minus(it)) }
-//            }
-//        }
             }
 
         internal fun changeEnabled(
@@ -174,19 +153,6 @@ class RoutineViewModel
                     routineScheduler.cancelRoutine(id)
                 }
             }
-//        val previousRoutines = state.routines
-//        val updatedRoutines = state.routines.map {
-//            if (it.id == id) it.copy(isEnabled = isEnabled) else it
-//        }
-//        reduce { state.copy(routines = updatedRoutines) }
-//         runCatching {
-//             routineService.turnRoutine(
-//                 id = id,
-//                 turnRoutineRequest = TurnRoutineRequest(isEnabled)
-//             )
-//         }.onFailure {
-//             reduce { state.copy(routines = previousRoutines) }
-//         }
         }
 
         private fun storeRoutine(routines: List<RoutineModel>) =
@@ -198,14 +164,12 @@ class RoutineViewModel
 
         fun analyticsRoutineScreen() =
             intent {
-                analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
-                    param(FirebaseAnalytics.Param.SCREEN_NAME, "RoutineScreen")
-                }
+                analytics.logScreenView("RoutineScreen")
             }
 
         private fun analyticsAddRoutine() =
             intent {
-                analytics.logEvent("add_routine") { }
+                analytics.logEvent("add_routine")
             }
 
         internal fun checkAlarmPermissionNeeded() =
@@ -229,7 +193,7 @@ data class RoutineUiState(
     val isShowRoutineBottomSheet: Boolean = false,
     val isShowEditRoutineBottomSheet: Boolean = false,
     val routines: List<RoutineModel> = emptyList(),
-    val selectedRoutine: RoutineModel? = null, // 추가
+    val selectedRoutine: RoutineModel? = null,
 )
 
 sealed class RoutineSideEffect {

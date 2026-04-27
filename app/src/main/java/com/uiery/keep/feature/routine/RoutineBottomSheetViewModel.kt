@@ -2,9 +2,8 @@ package com.uiery.keep.feature.routine
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.network.Retrofit
+import com.uiery.keep.model.toEntity
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
@@ -32,9 +31,6 @@ class RoutineBottomSheetViewModel
             container(
                 RoutineBottomSheetUiState(),
             )
-
-        val routineService = Retrofit.routineService
-
         internal fun resetState() =
             intent {
                 reduce { RoutineBottomSheetUiState() }
@@ -107,119 +103,24 @@ class RoutineBottomSheetViewModel
 
         internal fun addRoutine() =
             intent {
-                val routineModel =
-                    RoutineModel(
-                        id = 0,
-                        name = state.name,
-                        startTime = state.startTime,
-                        endTime = state.endTime,
-                        repeatDays = state.selectDays.toRepeatDaysBinary(),
-                        lockApplications = state.selectApps.toList(),
-                        isEnabled = state.isEnabled,
-                        changeLockHours = state.changeLockHours,
-                    )
-                val insertedId =
-                    routineDao.insert(
-                        routineEntity =
-                            RoutineEntity(
-                                name = state.name,
-                                startTime = state.startTime,
-                                endTime = state.endTime,
-                                repeatDays = state.selectDays,
-                                lockApplications = state.selectApps.toList(),
-                                isEnabled = state.isEnabled,
-                                changeLockHours = state.changeLockHours,
-                            ),
-                    )
+                val routineModel = state.toRoutineModel()
+                val insertedId = routineDao.insert(routineEntity = routineModel.toEntity())
                 val routineWithId = routineModel.copy(id = insertedId)
                 if (routineModel.isEnabled) {
                     routineScheduler.scheduleRoutine(routineWithId)
                 }
-//        postSideEffect(
-//            RoutineBottomSheetSideEffect.AddRoutineSuccess(
-//                RoutineModel(
-//                    id = it.id,
-//                    localRoutineId = null,
-//                    name = state.name,
-//                    startTime = state.startTime.toString(),
-//                    endTime = state.endTime.toString(),
-//                    repeatDays = state.selectDays.toRepeatDaysBinary(),
-//                    lockApplications = state.selectApps.toList(),
-//                    isEnabled = true,
-//                )
-//            )
-//        )
-//        runCatching {
-//            routineService.createRoutine(
-//                createRoutineRequest = CreateRoutineRequest(
-//                    localRoutineId = null,
-//                    name = state.name,
-//                    startTime = state.startTime.toString(),
-//                    endTime = state.endTime.toString(),
-//                    repeatDays = state.selectDays.toRepeatDaysBinary(),
-//                    lockApplications = state.selectApps.toList(),
-//                    deviceId = deviceId(),
-//                )
-//            )
-//        }.onSuccess {
-//
-//        }
             }
 
         internal fun editRoutine(id: Long?) =
             intent {
                 id?.let {
                     runCatching {
-                        val routineModel =
-                            RoutineModel(
-                                id = it,
-                                name = state.name,
-                                startTime = state.startTime,
-                                endTime = state.endTime,
-                                repeatDays = state.selectDays.toRepeatDaysBinary(),
-                                lockApplications = state.selectApps.toList(),
-                                isEnabled = state.isEnabled,
-                                changeLockHours = state.changeLockHours,
-                            )
-                        routineDao.update(
-                            RoutineEntity(
-                                id = it,
-                                name = state.name,
-                                startTime = state.startTime,
-                                endTime = state.endTime,
-                                repeatDays = state.selectDays,
-                                lockApplications = state.selectApps.toList(),
-                                isEnabled = state.isEnabled,
-                                changeLockHours = state.changeLockHours,
-                            ),
-                        )
+                        val routineModel = state.toRoutineModel(id = it)
+                        routineDao.update(routineModel.toEntity())
                         routineScheduler.cancelRoutine(id)
                         if (state.isEnabled) {
                             routineScheduler.scheduleRoutine(routineModel)
                         }
-
-//                routineService.updateRoutine(
-//                    id = it,
-//                    updateRoutineRequest = UpdateRoutineRequest(
-//                        name = state.name,
-//                        startTime = state.startTime.toString(),
-//                        endTime = state.endTime.toString(),
-//                        repeatDays = state.selectDays.toRepeatDaysBinary(),
-//                        lockApplications = state.selectApps.toList(),
-//                    )
-//                )
-                    }.onSuccess {
-//                postSideEffect(RoutineBottomSheetSideEffect.UpdateRoutineSuccess(
-//                    RoutineModel(
-//                        id = id,
-//                        name = state.name,
-//                        startTime = state.startTime,
-//                        endTime = state.endTime,
-//                        repeatDays = state.selectDays.toRepeatDaysBinary(),
-//                        lockApplications = state.selectApps.toSet(),
-//                        isEnabled = it.isEnabled,
-//                    )
-//                ))
                     }
                 }
             }
@@ -236,12 +137,16 @@ data class RoutineBottomSheetUiState(
     val changeLockHours: Int? = null,
 )
 
-sealed class RoutineBottomSheetSideEffect {
-    data class AddRoutineSuccess(
-        val routineModel: RoutineModel,
-    ) : RoutineBottomSheetSideEffect()
+private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
+    RoutineModel(
+        id = id,
+        name = name,
+        startTime = startTime,
+        endTime = endTime,
+        repeatDays = selectDays.toRepeatDaysBinary(),
+        lockApplications = selectApps.toList(),
+        isEnabled = isEnabled,
+        changeLockHours = changeLockHours,
+    )
 
-    data class UpdateRoutineSuccess(
-        val routineModel: RoutineModel,
-    ) : RoutineBottomSheetSideEffect()
-}
+sealed interface RoutineBottomSheetSideEffect

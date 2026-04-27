@@ -51,11 +51,12 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
@@ -337,7 +338,14 @@ fun HomeScreen(
                         isKeep = uiState.isKeep,
                         startTime = uiState.startTime,
                     )
-                    KeepBannerAd(adUnitId = "ca-app-pub-1537867411423705/5120253017")
+                    TrackedBannerAd(
+                        metadata = AdPlacementMetadata(
+                            screenName = "HomeScreen",
+                            screenContext = "main",
+                            placement = "home_bottom",
+                            adUnitId = "ca-app-pub-1537867411423705/5120253017",
+                        ),
+                    )
                 }
             }
         }

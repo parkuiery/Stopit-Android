@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -31,6 +32,10 @@ fun IntroScreen(
     val composition by rememberLottieComposition(
         LottieCompositionSpec.RawRes(R.raw.intro_lottie)
     )
+
+    LaunchedEffect(Unit) {
+        viewModel.onStepViewed()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -60,7 +65,7 @@ fun IntroScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.start_button),
                 onClick = {
-                    viewModel.onBoardingAnalytics()
+                    viewModel.onContinue()
                     onNavigatePermissionSetting()
                 },
             )

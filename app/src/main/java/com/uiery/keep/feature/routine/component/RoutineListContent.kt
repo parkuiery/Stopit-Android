@@ -25,9 +25,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.uiery.kds.KeepBannerAd
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isChangeLocked
@@ -71,9 +72,14 @@ internal fun RoutineListContent(
                 )
             }
         }
-        KeepBannerAd(
+        TrackedBannerAd(
             modifier = Modifier.fillMaxWidth(),
-            adUnitId = "ca-app-pub-1537867411423705/7750072748",
+            metadata = AdPlacementMetadata(
+                screenName = "RoutineScreen",
+                screenContext = "list",
+                placement = "routine_list_bottom",
+                adUnitId = "ca-app-pub-1537867411423705/7750072748",
+            ),
         )
     }
 }
@@ -173,4 +179,3 @@ private fun RoutineItem(
         )
     }
 }
-

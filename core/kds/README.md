@@ -22,7 +22,7 @@ KeepTheme {
 | `primary` | `#FFA927` | `#FFA927` | 주요 액션, 강조 |
 | `error` | `#F04452` | `#F04452` | 에러, 경고 |
 | `background` | `#FFFFFF` | `#17171C` | 화면 배경 |
-| `onBackground` | `#17171C` | `#80000000` | 딤 배경 |
+| `onBackground` | `#17171C` | `#8E000000` | 딤 배경 |
 | `secondary` | gray50 | gray50 | 보조 배경 (밝음) |
 | `onSecondary` | gray100 | gray100 | 카드/시트 배경 |
 | `tertiary` | gray200 | gray200 | 구분선 (밝음) |
@@ -51,11 +51,27 @@ KeepTheme {
 
 ### 타이포그래피
 
-현재 `bodyLarge`만 정의되어 있습니다.
+KDS는 Pretendard 폰트 패밀리 기반의 Material Typography scale을 정의합니다.
 
 | 스타일 | 크기 | 두께 | 행간 | 자간 |
 |--------|------|------|------|------|
+| displayLarge | 57sp | Bold | 64sp | -0.25sp |
+| displayMedium | 45sp | Bold | 52sp | 0sp |
+| displaySmall | 36sp | Bold | 44sp | 0sp |
+| headlineLarge | 32sp | Bold | 40sp | 0sp |
+| headlineMedium | 28sp | SemiBold | 36sp | 0sp |
+| headlineSmall | 24sp | SemiBold | 32sp | 0sp |
+| titleLarge | 22sp | SemiBold | 28sp | 0sp |
+| titleMedium | 16sp | Medium | 24sp | 0.15sp |
+| titleSmall | 14sp | Medium | 20sp | 0.1sp |
 | bodyLarge | 16sp | Normal | 24sp | 0.5sp |
+| bodyMedium | 14sp | Normal | 20sp | 0.25sp |
+| bodySmall | 12sp | Normal | 16sp | 0.4sp |
+| labelLarge | 14sp | Medium | 20sp | 0.1sp |
+| labelMedium | 12sp | Medium | 16sp | 0.5sp |
+| labelSmall | 11sp | Medium | 16sp | 0.5sp |
+
+화면 작업의 상세 사용 규칙은 루트 `DESIGN.md`를 기준으로 합니다.
 
 ## 컴포넌트
 

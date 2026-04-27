@@ -1,16 +1,20 @@
 package com.uiery.keep.feature.onboarding.intro
 
 import androidx.lifecycle.ViewModel
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.logEvent
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.OnboardingStepName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class IntroViewModel @Inject constructor(
-    private val analyticsService: FirebaseAnalytics
+    private val analytics: KeepAnalytics,
 ) : ViewModel() {
-    fun onBoardingAnalytics() {
-        analyticsService.logEvent(name = "onboarding_intro_started") {}
+    fun onStepViewed() {
+        analytics.trackOnboardingStepView(OnboardingStepName.INTRO)
+    }
+
+    fun onContinue() {
+        analytics.trackOnboardingStepComplete(OnboardingStepName.INTRO)
     }
 }

@@ -19,16 +19,15 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun SplashScreen(
     modifier: Modifier = Modifier,
     viewModel: SplashViewModel = hiltViewModel(),
-    onNavigateHome:() -> Unit,
+    onNavigateHome: () -> Unit,
     onNavigateOnboarding: () -> Unit,
-    onNavigateLock: (lockTime: String?,Boolean) -> Unit,
+    onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
-
     viewModel.collectSideEffect { effect ->
-        when(effect) {
+        when (effect) {
             is SplashSideEffect.MoveToHome -> onNavigateHome()
             is SplashSideEffect.MoveToOnboarding -> onNavigateOnboarding()
-            is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime,effect.isRoutine)
+            is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
         }
     }
 
