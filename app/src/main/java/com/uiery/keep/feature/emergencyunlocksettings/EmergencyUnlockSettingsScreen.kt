@@ -120,11 +120,13 @@ fun EmergencyUnlockSettingsScreen(
 
                 GroupDivider()
 
+                val durationValueLabel = uiState.durationOptions
+                    .sorted()
+                    .map { stringResource(R.string.emergency_unlock_duration_minutes, it) }
+                    .joinToString(separator = " · ")
                 SectionHeader(
                     title = stringResource(R.string.emergency_unlock_settings_durations),
-                    valueLabel = uiState.durationOptions
-                        .sorted()
-                        .joinToString(separator = " · ") { "${it}m" },
+                    valueLabel = durationValueLabel,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 DurationSelector(
