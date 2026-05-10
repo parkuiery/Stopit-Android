@@ -18,12 +18,17 @@ import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
-import com.uiery.keep.service.DAILY_EMERGENCY_UNLOCK_LIMIT
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockData
+import com.uiery.keep.service.EmergencyUnlockSettings
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockState
+import com.uiery.keep.service.canCompleteEmergencyUnlockRequest
 import com.uiery.keep.service.emergencyUnlockDailyRemaining
-import com.uiery.keep.service.isEmergencyUnlockDailyLimitReached
+import com.uiery.keep.service.isEmergencyUnlockAvailable
+import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
+import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
 import com.uiery.keep.util.currentRoutineWindowEndDateTime
 import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -157,19 +162,48 @@ class LockViewModel
                 )
             }
 
-        private fun checkDailyLimit() = intent {
+        private suspend fun readEmergencyUnlockSettings(): EmergencyUnlockSettings {
+            val preferences = dataStore.data.firstOrNull()
+            return EmergencyUnlockSettings(
+                enabled = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_ENABLED) ?: true,
+                dailyLimit = sanitizeEmergencyUnlockDailyLimit(
+                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT),
+                ),
+                durationOptions = sanitizeEmergencyUnlockDurationOptions(
+                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS),
+                ),
+                reasonRequired = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED) ?: true,
+            )
+        }
+
+        private fun todayStartMillis(): Long {
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
-            val todayStart = calendar.timeInMillis
-            val count = emergencyUnlockDao.countToday(todayStart)
+            return calendar.timeInMillis
+        }
+
+        private fun checkDailyLimit() = intent {
+            val settings = readEmergencyUnlockSettings()
+            val count = emergencyUnlockDao.countToday(todayStartMillis())
             reduce {
                 state.copy(
-                    dailyLimitReached = isEmergencyUnlockDailyLimitReached(count),
-                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(count),
+                    emergencyUnlockEnabled = settings.enabled,
+                    emergencyUnlockDailyLimit = settings.dailyLimit,
+                    emergencyUnlockDurationOptions = settings.durationOptions,
+                    emergencyUnlockReasonRequired = settings.reasonRequired,
+                    dailyLimitReached = !isEmergencyUnlockAvailable(
+                        enabled = settings.enabled,
+                        dailyLimit = settings.dailyLimit,
+                        todayUnlockCount = count,
+                    ),
+                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(
+                        dailyLimit = settings.dailyLimit,
+                        todayUnlockCount = count,
+                    ),
                 )
             }
         }
@@ -189,8 +223,23 @@ class LockViewModel
             durationMinutes: Int,
         ) = intent {
             val now = System.currentTimeMillis()
+            val settings = readEmergencyUnlockSettings()
+            val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
+            if (!canCompleteEmergencyUnlockRequest(
+                    settings = settings,
+                    todayUnlockCount = todayCount,
+                    durationMinutes = durationMinutes,
+                    reason = reason,
+                )
+            ) {
+                checkDailyLimit()
+                return@intent
+            }
             val expireTime = now + durationMinutes * 60_000L
-            val unlockCountRemaining = (state.dailyUnlockRemaining - 1).coerceAtLeast(0)
+            val unlockCountRemaining = emergencyUnlockDailyRemaining(
+                dailyLimit = settings.dailyLimit,
+                todayUnlockCount = todayCount + 1,
+            )
 
             // 1. Update in-memory singleton atomically
             EmergencyUnlockState.current = EmergencyUnlockData(
@@ -269,7 +318,11 @@ data class LockUiState(
     val routineStartTime: Long = 0L,
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
-    val dailyUnlockRemaining: Int = DAILY_EMERGENCY_UNLOCK_LIMIT,
+    val dailyUnlockRemaining: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
+    val emergencyUnlockEnabled: Boolean = true,
+    val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
+    val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
+    val emergencyUnlockReasonRequired: Boolean = true,
     val isEmergencyUnlockActive: Boolean = false,
     val emergencyUnlockRemainingSeconds: Int = 0,
     val emergencyUnlockedApps: Set<String> = emptySet(),

@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">Получать уведомления при запуске рутин</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Экстренная разблокировка</string>
-    <string name="emergency_unlock_with_count">Экстренная разблокировка (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Экстренная разблокировка (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Настройки экстренной разблокировки</string>
+    <string name="emergency_unlock_settings_enabled">Использовать экстренную разблокировку</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Разрешить временную разблокировку с экранов блокировки</string>
+    <string name="emergency_unlock_settings_daily_limit">Дневной лимит разблокировок</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Доступная длительность разблокировки</string>
+    <string name="emergency_unlock_settings_reason_required">Запрашивать причину разблокировки</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Показывать выбор причины перед выбором приложений</string>
     <string name="emergency_unlock_reason_title">Почему вам нужно разблокировать?</string>
     <string name="emergency_unlock_reason_work">Нужно для работы или учёбы</string>
     <string name="emergency_unlock_reason_contact">Нужно проверить срочное сообщение</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Экстренная разблокировка завершена</string>
     <string name="emergency_unlock_notification_channel">Экстренная разблокировка</string>
     <string name="emergency_unlock_notification_channel_description">Показывает обратный отсчёт во время экстренной разблокировки</string>
-    <string name="emergency_unlock_remaining_count">Осталось %1$d/3</string>
+    <string name="emergency_unlock_remaining_count">Осталось %1$d/%2$d</string>
     <string name="emergency_unlock_waiting_seconds_label">секунд</string>
 </resources>

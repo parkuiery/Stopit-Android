@@ -55,6 +55,7 @@ fun MenuScreen(
     onNavigateRoutine: () -> Unit,
     onNavigateHistory: () -> Unit,
     onNavigateLockHistory: () -> Unit,
+    onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
@@ -132,6 +133,11 @@ fun MenuScreen(
                 icon = R.drawable.ic_local_history,
                 title = stringResource(id = R.string.lock_history_menu_title),
                 onClick = onNavigateLockHistory,
+            )
+            MenuItem(
+                icon = R.drawable.ic_shield,
+                title = stringResource(id = R.string.emergency_unlock_settings_title),
+                onClick = onNavigateEmergencyUnlockSettings,
             )
             MenuItem(
                 icon = R.drawable.ic_letter,

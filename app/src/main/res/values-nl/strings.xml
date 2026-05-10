@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">Ontvang meldingen wanneer routines starten</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Noodontgrendeling</string>
-    <string name="emergency_unlock_with_count">Noodontgrendeling (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Noodontgrendeling (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Instellingen voor noodontgrendeling</string>
+    <string name="emergency_unlock_settings_enabled">Noodontgrendeling gebruiken</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Tijdelijke ontgrendelingen vanaf geblokkeerde schermen toestaan</string>
+    <string name="emergency_unlock_settings_daily_limit">Dagelijkse ontgrendelingslimiet</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Beschikbare ontgrendelingsduur</string>
+    <string name="emergency_unlock_settings_reason_required">Ontgrendelingsreden vragen</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Toon de redenstap voordat apps worden gekozen</string>
     <string name="emergency_unlock_reason_title">Waarom moet je ontgrendelen?</string>
     <string name="emergency_unlock_reason_work">Ik heb het nodig voor werk of studie</string>
     <string name="emergency_unlock_reason_contact">Ik heb een dringend bericht te controleren</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Noodontgrendeling is beëindigd</string>
     <string name="emergency_unlock_notification_channel">Noodontgrendeling</string>
     <string name="emergency_unlock_notification_channel_description">Toont aftelling tijdens noodontgrendeling</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 over</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d over</string>
     <string name="emergency_unlock_waiting_seconds_label">seconden</string>
 </resources>

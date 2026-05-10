@@ -1,0 +1,97 @@
+package com.uiery.keep.feature.emergencyunlocksettings
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.uiery.keep.KeepDataSource
+import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.MAX_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.MIN_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
+import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class EmergencyUnlockSettingsViewModel
+    @Inject
+    constructor(
+        @KeepDataSource private val dataStore: DataStore<Preferences>,
+    ) : ViewModel() {
+        val uiState: StateFlow<EmergencyUnlockSettingsUiState> =
+            dataStore.data
+                .map { preferences ->
+                    EmergencyUnlockSettingsUiState(
+                        enabled = preferences[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] ?: true,
+                        dailyLimit = sanitizeEmergencyUnlockDailyLimit(
+                            preferences[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT],
+                        ),
+                        durationOptions = sanitizeEmergencyUnlockDurationOptions(
+                            preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
+                        ).toSet(),
+                        reasonRequired = preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] ?: true,
+                    )
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = EmergencyUnlockSettingsUiState(),
+                )
+
+        fun setEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                dataStore.edit { it[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = enabled }
+            }
+        }
+
+        fun setDailyLimit(limit: Int) {
+            viewModelScope.launch {
+                dataStore.edit {
+                    it[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = sanitizeEmergencyUnlockDailyLimit(limit)
+                }
+            }
+        }
+
+        fun toggleDuration(minutes: Int) {
+            if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
+            viewModelScope.launch {
+                dataStore.edit { preferences ->
+                    val current = sanitizeEmergencyUnlockDurationOptions(
+                        preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
+                    ).toSet()
+                    val next =
+                        if (minutes in current) {
+                            if (current.size == 1) current else current - minutes
+                        } else {
+                            current + minutes
+                        }
+                    preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = next.map { it.toString() }.toSet()
+                }
+            }
+        }
+
+        fun setReasonRequired(required: Boolean) {
+            viewModelScope.launch {
+                dataStore.edit { it[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = required }
+            }
+        }
+    }
+
+data class EmergencyUnlockSettingsUiState(
+    val enabled: Boolean = true,
+    val dailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
+    val durationOptions: Set<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS.toSet(),
+    val reasonRequired: Boolean = true,
+    val allowedDailyLimits: IntRange = MIN_EMERGENCY_UNLOCK_DAILY_LIMIT..MAX_EMERGENCY_UNLOCK_DAILY_LIMIT,
+    val allowedDurations: List<Int> = ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS,
+)

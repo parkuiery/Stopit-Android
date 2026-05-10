@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">Recevoir des notifications au démarrage des routines</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Déverrouillage d\'urgence</string>
-    <string name="emergency_unlock_with_count">Déverrouillage d\'urgence (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Déverrouillage d\'urgence (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Paramètres de déverrouillage d\'urgence</string>
+    <string name="emergency_unlock_settings_enabled">Utiliser le déverrouillage d\'urgence</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Autoriser les déverrouillages temporaires depuis les écrans bloqués</string>
+    <string name="emergency_unlock_settings_daily_limit">Limite quotidienne de déverrouillages</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Durées de déverrouillage disponibles</string>
+    <string name="emergency_unlock_settings_reason_required">Demander le motif du déverrouillage</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Afficher l\'étape du motif avant de choisir les apps</string>
     <string name="emergency_unlock_reason_title">Pourquoi avez-vous besoin de déverrouiller ?</string>
     <string name="emergency_unlock_reason_work">J\'en ai besoin pour le travail ou les études</string>
     <string name="emergency_unlock_reason_contact">J\'ai un message urgent à vérifier</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Le déverrouillage d\'urgence est terminé</string>
     <string name="emergency_unlock_notification_channel">Déverrouillage d\'urgence</string>
     <string name="emergency_unlock_notification_channel_description">Affiche le compte à rebours pendant le déverrouillage d\'urgence</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 restants</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d restants</string>
     <string name="emergency_unlock_waiting_seconds_label">secondes</string>
 </resources>

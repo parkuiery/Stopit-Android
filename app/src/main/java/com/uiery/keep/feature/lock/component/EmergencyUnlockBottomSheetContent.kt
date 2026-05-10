@@ -58,6 +58,8 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
 import kotlinx.coroutines.delay
 
 private enum class UnlockStep { REASON, APPS, DURATION, COUNTDOWN }
@@ -73,21 +75,33 @@ private val REASONS = listOf(
     UnlockReason(R.string.emergency_unlock_reason_other, "other"),
 )
 
-private val DURATION_OPTIONS = listOf(3, 5, 10)
-
 private val STEPS = UnlockStep.entries.toList()
 
 @Composable
 fun EmergencyUnlockBottomSheetContent(
     blockedApps: Set<String>,
+    durationOptions: List<Int>,
+    reasonStepEnabled: Boolean,
     onUnlock: (reason: String, customReason: String?, apps: Set<String>, durationMinutes: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var step by remember { mutableStateOf(UnlockStep.REASON) }
+    val safeDurationOptions = remember(durationOptions) {
+        durationOptions.ifEmpty { DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS }
+    }
+    val visibleSteps = remember(reasonStepEnabled) {
+        if (reasonStepEnabled) {
+            listOf(UnlockStep.REASON, UnlockStep.APPS, UnlockStep.DURATION)
+        } else {
+            listOf(UnlockStep.APPS, UnlockStep.DURATION)
+        }
+    }
+    var step by remember(reasonStepEnabled) {
+        mutableStateOf(if (reasonStepEnabled) UnlockStep.REASON else UnlockStep.APPS)
+    }
     var selectedReason by remember { mutableStateOf<String?>(null) }
     var customReason by remember { mutableStateOf("") }
     var selectedApps by remember { mutableStateOf(emptySet<String>()) }
-    var selectedDuration by remember { mutableIntStateOf(5) }
+    var selectedDuration by remember(safeDurationOptions) { mutableIntStateOf(safeDurationOptions.first()) }
     var countdownSeconds by remember { mutableIntStateOf(30) }
 
     Column(
@@ -99,8 +113,8 @@ fun EmergencyUnlockBottomSheetContent(
         // Step indicator
         if (step != UnlockStep.COUNTDOWN) {
             StepIndicator(
-                currentStep = STEPS.indexOf(step),
-                totalSteps = 3,
+                currentStep = visibleSteps.indexOf(step).coerceAtLeast(0),
+                totalSteps = visibleSteps.size,
             )
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -132,6 +146,7 @@ fun EmergencyUnlockBottomSheetContent(
                     onNext = { step = UnlockStep.DURATION },
                 )
                 UnlockStep.DURATION -> DurationStep(
+                    durationOptions = safeDurationOptions,
                     selectedDuration = selectedDuration,
                     onDurationSelected = { selectedDuration = it },
                     onRequest = { step = UnlockStep.COUNTDOWN },
@@ -140,9 +155,15 @@ fun EmergencyUnlockBottomSheetContent(
                     seconds = countdownSeconds,
                     onTick = { countdownSeconds = it },
                     onComplete = {
+                        val reason = if (reasonStepEnabled) {
+                            selectedReason.orEmpty()
+                        } else {
+                            EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
+                        }
+                        val custom = if (reasonStepEnabled && selectedReason == "other") customReason else null
                         onUnlock(
-                            selectedReason ?: "",
-                            if (selectedReason == "other") customReason else null,
+                            reason,
+                            custom,
                             selectedApps,
                             selectedDuration,
                         )
@@ -344,6 +365,7 @@ private fun AppSelectionStep(
 
 @Composable
 private fun DurationStep(
+    durationOptions: List<Int>,
     selectedDuration: Int,
     onDurationSelected: (Int) -> Unit,
     onRequest: () -> Unit,
@@ -363,7 +385,7 @@ private fun DurationStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DURATION_OPTIONS.forEach { minutes ->
+            durationOptions.forEach { minutes ->
                 FilterChip(
                     selected = selectedDuration == minutes,
                     onClick = { onDurationSelected(minutes) },

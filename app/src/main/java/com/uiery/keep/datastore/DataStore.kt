@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -25,6 +26,10 @@ object PreferencesKey {
     val PREVENT_UNINSTALL = booleanPreferencesKey("prevent_uninstall")
     val EMERGENCY_UNLOCK_APPS = stringSetPreferencesKey("emergency_unlock_apps")
     val EMERGENCY_UNLOCK_EXPIRE_TIME = longPreferencesKey("emergency_unlock_expire_time")
+    val EMERGENCY_UNLOCK_ENABLED = booleanPreferencesKey("emergency_unlock_enabled")
+    val EMERGENCY_UNLOCK_DAILY_LIMIT = intPreferencesKey("emergency_unlock_daily_limit")
+    val EMERGENCY_UNLOCK_DURATION_OPTIONS = stringSetPreferencesKey("emergency_unlock_duration_options")
+    val EMERGENCY_UNLOCK_REASON_REQUIRED = booleanPreferencesKey("emergency_unlock_reason_required")
     val HAS_TRACKED_FIRST_OPEN = booleanPreferencesKey("has_tracked_first_open")
     val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
     val FIRST_OPEN_TIMESTAMP = longPreferencesKey("first_open_timestamp")

@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">例程开始时接收通知</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">紧急解锁</string>
-    <string name="emergency_unlock_with_count">紧急解锁 (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">紧急解锁 (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">紧急解锁设置</string>
+    <string name="emergency_unlock_settings_enabled">使用紧急解锁</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">允许在拦截页面临时解锁</string>
+    <string name="emergency_unlock_settings_daily_limit">每日解锁次数限制</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">可用解锁时长</string>
+    <string name="emergency_unlock_settings_reason_required">询问解锁原因</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">选择应用前显示原因步骤</string>
     <string name="emergency_unlock_reason_title">为什么需要解锁？</string>
     <string name="emergency_unlock_reason_work">工作或学习需要</string>
     <string name="emergency_unlock_reason_contact">有紧急消息需要查看</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">紧急解锁已结束</string>
     <string name="emergency_unlock_notification_channel">紧急解锁</string>
     <string name="emergency_unlock_notification_channel_description">紧急解锁期间显示倒计时</string>
-    <string name="emergency_unlock_remaining_count">剩余%1$d/3</string>
+    <string name="emergency_unlock_remaining_count">剩余%1$d/%2$d</string>
     <string name="emergency_unlock_waiting_seconds_label">秒</string>
 </resources>

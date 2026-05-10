@@ -80,6 +80,8 @@ fun LockScreen(
         ) {
             EmergencyUnlockBottomSheetContent(
                 blockedApps = uiState.selectedAppPackage,
+                durationOptions = uiState.emergencyUnlockDurationOptions,
+                reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
                 onUnlock = { reason, customReason, apps, duration ->
                     viewModel.emergencyUnlock(reason, customReason, apps, duration)
                     coroutineScope.launch {
@@ -248,6 +250,7 @@ fun LockScreen(
                                 stringResource(
                                     R.string.emergency_unlock_with_count,
                                     uiState.dailyUnlockRemaining,
+                                    uiState.emergencyUnlockDailyLimit,
                                 )
                             },
                             color = if (uiState.dailyLimitReached) {

@@ -106,7 +106,15 @@
     <string name="notification_channel_routine_description">Recibir notificaciones cuando las rutinas comiencen</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Desbloqueo de emergencia</string>
-    <string name="emergency_unlock_with_count">Desbloqueo de emergencia (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Desbloqueo de emergencia (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Ajustes de desbloqueo de emergencia</string>
+    <string name="emergency_unlock_settings_enabled">Usar desbloqueo de emergencia</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Permitir desbloqueos temporales desde pantallas bloqueadas</string>
+    <string name="emergency_unlock_settings_daily_limit">Límite diario de desbloqueos</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Duraciones de desbloqueo disponibles</string>
+    <string name="emergency_unlock_settings_reason_required">Pedir motivo del desbloqueo</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Mostrar el paso de motivo antes de elegir apps</string>
     <string name="emergency_unlock_reason_title">¿Por qué necesitas desbloquear?</string>
     <string name="emergency_unlock_reason_work">Lo necesito para trabajo o estudio</string>
     <string name="emergency_unlock_reason_contact">Tengo un mensaje urgente que revisar</string>
@@ -130,6 +138,6 @@
     <string name="emergency_unlock_expired">El desbloqueo de emergencia ha finalizado</string>
     <string name="emergency_unlock_notification_channel">Desbloqueo de emergencia</string>
     <string name="emergency_unlock_notification_channel_description">Muestra la cuenta regresiva durante el desbloqueo de emergencia</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 restantes</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d restantes</string>
     <string name="emergency_unlock_waiting_seconds_label">segundos</string>
 </resources>

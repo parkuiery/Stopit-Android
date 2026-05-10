@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">Ricevi notifiche all\'avvio delle routine</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Sblocco di emergenza</string>
-    <string name="emergency_unlock_with_count">Sblocco di emergenza (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Sblocco di emergenza (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Impostazioni sblocco di emergenza</string>
+    <string name="emergency_unlock_settings_enabled">Usa sblocco di emergenza</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Consenti sblocchi temporanei dalle schermate bloccate</string>
+    <string name="emergency_unlock_settings_daily_limit">Limite giornaliero di sblocchi</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Durate di sblocco disponibili</string>
+    <string name="emergency_unlock_settings_reason_required">Chiedi motivo dello sblocco</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Mostra il motivo prima di scegliere le app</string>
     <string name="emergency_unlock_reason_title">Perché hai bisogno di sbloccare?</string>
     <string name="emergency_unlock_reason_work">Mi serve per lavoro o studio</string>
     <string name="emergency_unlock_reason_contact">Ho un messaggio urgente da controllare</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Lo sblocco di emergenza è terminato</string>
     <string name="emergency_unlock_notification_channel">Sblocco di emergenza</string>
     <string name="emergency_unlock_notification_channel_description">Mostra il conto alla rovescia durante lo sblocco di emergenza</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 rimanenti</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d rimanenti</string>
     <string name="emergency_unlock_waiting_seconds_label">secondi</string>
 </resources>

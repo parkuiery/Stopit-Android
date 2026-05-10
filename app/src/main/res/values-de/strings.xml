@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">Benachrichtigungen bei Routinenstart erhalten</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Notfall-Entsperrung</string>
-    <string name="emergency_unlock_with_count">Notfall-Entsperrung (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Notfall-Entsperrung (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Notfall-Entsperrung einstellen</string>
+    <string name="emergency_unlock_settings_enabled">Notfall-Entsperrung verwenden</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Temporäre Entsperrungen auf Blockierungsbildschirmen erlauben</string>
+    <string name="emergency_unlock_settings_daily_limit">Tägliches Entsperrlimit</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Verfügbare Entsperrdauer</string>
+    <string name="emergency_unlock_settings_reason_required">Entsperrgrund abfragen</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Vor der App-Auswahl den Grund abfragen</string>
     <string name="emergency_unlock_reason_title">Warum müssen Sie entsperren?</string>
     <string name="emergency_unlock_reason_work">Ich brauche es für Arbeit oder Studium</string>
     <string name="emergency_unlock_reason_contact">Ich muss eine dringende Nachricht überprüfen</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Notfall-Entsperrung ist beendet</string>
     <string name="emergency_unlock_notification_channel">Notfall-Entsperrung</string>
     <string name="emergency_unlock_notification_channel_description">Zeigt Countdown während der Notfall-Entsperrung</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 verbleibend</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d verbleibend</string>
     <string name="emergency_unlock_waiting_seconds_label">Sekunden</string>
 </resources>

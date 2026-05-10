@@ -107,7 +107,15 @@
     <string name="notification_channel_routine_description">ルーチン開始時に通知を受け取ります</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">緊急解除</string>
-    <string name="emergency_unlock_with_count">緊急解除 (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">緊急解除 (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">緊急解除設定</string>
+    <string name="emergency_unlock_settings_enabled">緊急解除を使用</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">ブロック画面から一時解除を許可します</string>
+    <string name="emergency_unlock_settings_daily_limit">1日の解除回数</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">選択できる解除時間</string>
+    <string name="emergency_unlock_settings_reason_required">解除理由を尋ねる</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">アプリ選択前に理由選択を表示します</string>
     <string name="emergency_unlock_reason_title">解除が必要な理由を選択してください</string>
     <string name="emergency_unlock_reason_work">仕事や勉強のために必要です</string>
     <string name="emergency_unlock_reason_contact">急ぎの連絡を確認する必要があります</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">緊急解除が終了しました</string>
     <string name="emergency_unlock_notification_channel">緊急解除</string>
     <string name="emergency_unlock_notification_channel_description">緊急解除中のカウントダウンを表示します</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 残り</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d 残り</string>
     <string name="emergency_unlock_waiting_seconds_label">秒</string>
 </resources>

@@ -107,7 +107,15 @@
     <string name="lock_screen_unavailable_message_with_date">Selected apps are unavailable until %1$s</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">Emergency Unlock</string>
-    <string name="emergency_unlock_with_count">Emergency Unlock (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">Emergency Unlock (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">Emergency unlock settings</string>
+    <string name="emergency_unlock_settings_enabled">Use emergency unlock</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">Allow temporary unlocks from blocked screens</string>
+    <string name="emergency_unlock_settings_daily_limit">Daily unlock limit</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">Available unlock durations</string>
+    <string name="emergency_unlock_settings_reason_required">Ask unlock reason</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">Show the reason step before selecting apps</string>
     <string name="emergency_unlock_reason_title">Why do you need to unlock?</string>
     <string name="emergency_unlock_reason_work">I need it for work or study</string>
     <string name="emergency_unlock_reason_contact">I have an urgent message to check</string>
@@ -131,6 +139,6 @@
     <string name="emergency_unlock_expired">Emergency unlock has ended</string>
     <string name="emergency_unlock_notification_channel">Emergency Unlock</string>
     <string name="emergency_unlock_notification_channel_description">Shows countdown during emergency unlock</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 remaining</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d remaining</string>
     <string name="emergency_unlock_waiting_seconds_label">seconds</string>
 </resources>

@@ -106,7 +106,15 @@
     <string name="lock_screen_unavailable_message_with_date">%1$s까지 선택한 앱은 사용할 수 없어요</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">긴급 해제</string>
-    <string name="emergency_unlock_with_count">긴급 해제 (%1$d/3)</string>
+    <string name="emergency_unlock_with_count">긴급 해제 (%1$d/%2$d)</string>
+    <string name="emergency_unlock_settings_title">긴급 해제 설정</string>
+    <string name="emergency_unlock_settings_enabled">긴급 해제 사용</string>
+    <string name="emergency_unlock_settings_enabled_subtitle">차단 화면에서 임시 해제를 요청할 수 있어요</string>
+    <string name="emergency_unlock_settings_daily_limit">하루 허용 횟수</string>
+    <string name="emergency_unlock_settings_limit_count">%d</string>
+    <string name="emergency_unlock_settings_durations">허용할 해제 시간</string>
+    <string name="emergency_unlock_settings_reason_required">해제 이유 묻기</string>
+    <string name="emergency_unlock_settings_reason_required_subtitle">앱 선택 전에 이유 선택 단계를 보여줘요</string>
     <string name="emergency_unlock_reason_title">해제가 필요한 이유를 선택해주세요</string>
     <string name="emergency_unlock_reason_work">업무나 공부 때문에 필요해요</string>
     <string name="emergency_unlock_reason_contact">급하게 확인해야 할 연락이 있어요</string>
@@ -130,6 +138,6 @@
     <string name="emergency_unlock_expired">긴급 해제가 종료되었어요</string>
     <string name="emergency_unlock_notification_channel">긴급 해제</string>
     <string name="emergency_unlock_notification_channel_description">긴급 해제 중 카운트다운을 표시합니다</string>
-    <string name="emergency_unlock_remaining_count">%1$d/3 남음</string>
+    <string name="emergency_unlock_remaining_count">%1$d/%2$d 남음</string>
     <string name="emergency_unlock_waiting_seconds_label">초</string>
 </resources>

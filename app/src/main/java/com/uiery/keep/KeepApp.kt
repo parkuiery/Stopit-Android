@@ -7,6 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.uiery.keep.feature.devtool.devToolScreen
 import com.uiery.keep.feature.devtool.navigateToDevTool
+import com.uiery.keep.feature.emergencyunlocksettings.emergencyUnlockSettingsScreen
+import com.uiery.keep.feature.emergencyunlocksettings.navigateToEmergencyUnlockSettings
 import com.uiery.keep.feature.history.historyScreen
 import com.uiery.keep.feature.history.navigateToHistory
 import com.uiery.keep.feature.lockhistory.blockedapps.blockedAppsScreen
@@ -59,6 +61,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateHistory = navController::navigateToHistory,
             onNavigateLockHistory = navController::navigateToLockHistory,
+            onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
         devToolScreen(onNavigateBack = navController::navigateUp)
@@ -72,5 +75,6 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateBlockedApps = navController::navigateToBlockedApps,
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
+        emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
     }
 }
