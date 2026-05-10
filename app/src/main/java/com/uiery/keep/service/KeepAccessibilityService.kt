@@ -48,6 +48,8 @@ class KeepAccessibilityService :
     private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
     private var lastBlockKey: String? = null
     private var lastBlockElapsedRealtime: Long = 0L
+    private var scheduledEmergencyUnlockExpireTime: Long = 0L
+    private var emergencyUnlockExpiryRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -73,6 +75,7 @@ class KeepAccessibilityService :
                     emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] ?: emptySet(),
                     emergencyUnlockExpireTime = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
                 )
+                scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
             }
         }
     }
@@ -86,6 +89,27 @@ class KeepAccessibilityService :
         cleanupExpiredEmergencyUnlock()
         if (isEmergencyUnlocked(packageName)) return
 
+        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
+            dismissUninstallScreen()
+            return
+        }
+
+        blockIfNeeded(packageName = packageName, prefs = prefs)
+    }
+
+    override fun onInterrupt() {
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacksAndMessages(null)
+        job.cancel()
+    }
+
+    private fun blockIfNeeded(
+        packageName: String,
+        prefs: CachedPreferences,
+    ) {
         val isLockTime = prefs.lockTime?.let {
             runCatching {
                 LocalDateTime.now().isBefore(LocalDateTime.parse(it))
@@ -93,11 +117,6 @@ class KeepAccessibilityService :
         } ?: false
         val isShouldRoutineBlock = shouldRoutineBlock(packageName, prefs.routines)
         val isBlocking = prefs.isKeep || isLockTime || isShouldRoutineBlock
-
-        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
-            dismissUninstallScreen()
-            return
-        }
 
         if (isBlocking) {
             if (prefs.selectedAppPackages.contains(packageName) || isShouldRoutineBlock) {
@@ -115,15 +134,6 @@ class KeepAccessibilityService :
                 startActivity(intent)
             }
         }
-    }
-
-    override fun onInterrupt() {
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacksAndMessages(null)
-        job.cancel()
     }
 
     private fun isUninstallAttempt(eventPackageName: String): Boolean {
@@ -166,14 +176,23 @@ class KeepAccessibilityService :
     }
 
     private fun isEmergencyUnlocked(packageName: String): Boolean {
+        val now = System.currentTimeMillis()
         val snapshot = EmergencyUnlockState.current
-        if (snapshot.unlockedApps.contains(packageName) &&
-            System.currentTimeMillis() < snapshot.expireTimeMillis) {
+        if (isEmergencyUnlockActiveForPackage(
+                packageName = packageName,
+                unlockedApps = snapshot.unlockedApps,
+                expireTimeMillis = snapshot.expireTimeMillis,
+                nowMillis = now,
+            )) {
             return true
         }
         val prefs = cachedPrefs
-        if (prefs.emergencyUnlockApps.contains(packageName) &&
-            System.currentTimeMillis() < prefs.emergencyUnlockExpireTime) {
+        if (isEmergencyUnlockActiveForPackage(
+                packageName = packageName,
+                unlockedApps = prefs.emergencyUnlockApps,
+                expireTimeMillis = prefs.emergencyUnlockExpireTime,
+                nowMillis = now,
+            )) {
             return true
         }
         return false
@@ -192,6 +211,63 @@ class KeepAccessibilityService :
                 }
                 isCleaningUp.set(false)
             }
+        }
+    }
+
+    private fun scheduleEmergencyUnlockExpiryCheck(expireTimeMillis: Long) {
+        handler.post {
+            if (scheduledEmergencyUnlockExpireTime == expireTimeMillis) return@post
+
+            cancelEmergencyUnlockExpiryCheck()
+            val delayMillis = emergencyUnlockExpiryDelayMillis(expireTimeMillis) ?: return@post
+            val expectedExpireTime = expireTimeMillis
+            val expiryRunnable = Runnable {
+                handleEmergencyUnlockExpired(expectedExpireTime)
+            }
+
+            scheduledEmergencyUnlockExpireTime = expectedExpireTime
+            emergencyUnlockExpiryRunnable = expiryRunnable
+            handler.postDelayed(expiryRunnable, delayMillis)
+        }
+    }
+
+    private fun cancelEmergencyUnlockExpiryCheck() {
+        emergencyUnlockExpiryRunnable?.let(handler::removeCallbacks)
+        emergencyUnlockExpiryRunnable = null
+        scheduledEmergencyUnlockExpireTime = 0L
+    }
+
+    private fun handleEmergencyUnlockExpired(expectedExpireTimeMillis: Long) {
+        emergencyUnlockExpiryRunnable = null
+        if (scheduledEmergencyUnlockExpireTime == expectedExpireTimeMillis) {
+            scheduledEmergencyUnlockExpireTime = 0L
+        }
+
+        val prefs = cachedPrefs
+        if (!shouldHandleEmergencyUnlockExpiry(
+                expectedExpireTimeMillis = expectedExpireTimeMillis,
+                currentExpireTimeMillis = prefs.emergencyUnlockExpireTime,
+            )) {
+            return
+        }
+
+        val expiredUnlockedApps = prefs.emergencyUnlockApps
+        cleanupExpiredEmergencyUnlock()
+
+        val foregroundPackage = currentForegroundPackage() ?: return
+        if (foregroundPackage == BuildConfig.APPLICATION_ID) return
+        if (foregroundPackage !in expiredUnlockedApps) return
+        if (isEmergencyUnlocked(foregroundPackage)) return
+
+        blockIfNeeded(packageName = foregroundPackage, prefs = cachedPrefs)
+    }
+
+    private fun currentForegroundPackage(): String? {
+        val root = rootInActiveWindow ?: return null
+        return try {
+            root.packageName?.toString()
+        } finally {
+            root.recycle()
         }
     }
 
