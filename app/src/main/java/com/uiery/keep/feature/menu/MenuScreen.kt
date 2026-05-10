@@ -135,7 +135,7 @@ fun MenuScreen(
                 onClick = onNavigateLockHistory,
             )
             MenuItem(
-                icon = R.drawable.ic_shield,
+                icon = R.drawable.ic_emergency,
                 title = stringResource(id = R.string.emergency_unlock_settings_title),
                 onClick = onNavigateEmergencyUnlockSettings,
             )
