@@ -16,4 +16,7 @@ interface EmergencyUnlockDao {
 
     @Query("SELECT COUNT(*) FROM emergency_unlock WHERE timestamp >= :todayStart")
     suspend fun countToday(todayStart: Long): Int
+
+    @Query("SELECT COUNT(*) FROM emergency_unlock WHERE timestamp >= :timestampMillis")
+    suspend fun countSince(timestampMillis: Long): Int
 }

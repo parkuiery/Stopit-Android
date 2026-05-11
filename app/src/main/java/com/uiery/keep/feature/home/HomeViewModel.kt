@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.home
 
+import android.app.Activity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -12,6 +13,10 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.review.InAppReviewManager
+import com.uiery.keep.feature.review.ReviewEligibilityDecision
+import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.SkipReason
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +41,8 @@ class HomeViewModel
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
+        private val reviewEligibility: ReviewEligibilityEvaluator,
+        private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
         override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
@@ -80,6 +87,7 @@ class HomeViewModel
                 reduce {
                     state.copy(
                         isShowCategoryBottomSheet = true,
+                        sheetVisible = true,
                     )
                 }
             }
@@ -87,18 +95,49 @@ class HomeViewModel
         internal fun showTimeBottomSheet() =
             intent {
                 reduce {
-                    state.copy(isShowTimeBottomSheet = true)
+                    state.copy(
+                        isShowTimeBottomSheet = true,
+                        sheetVisible = true,
+                    )
                 }
             }
 
         internal fun hideCategoryBottomSheet() =
             intent {
-                reduce { state.copy(isShowCategoryBottomSheet = false) }
+                reduce {
+                    state.copy(
+                        isShowCategoryBottomSheet = false,
+                        sheetVisible = state.isShowTimeBottomSheet,
+                    )
+                }
             }
 
         internal fun hideTimeBottomSheet() =
             intent {
-                reduce { state.copy(isShowTimeBottomSheet = false) }
+                reduce {
+                    state.copy(
+                        isShowTimeBottomSheet = false,
+                        sheetVisible = state.isShowCategoryBottomSheet,
+                    )
+                }
+            }
+
+        internal fun maybeDrainReviewFlag(activity: Activity?) =
+            intent {
+                val prefs = dataStore.data.firstOrNull()
+                val pending = prefs?.get(PreferencesKey.REVIEW_PENDING) ?: false
+                if (!pending) return@intent
+                if (state.sheetVisible) {
+                    analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
+                    return@intent
+                }
+                val live = reviewEligibility.evaluateLive()
+                if (live is ReviewEligibilityDecision.Ineligible) {
+                    analytics.reviewPromptSkipped(live.reason.name)
+                    return@intent
+                }
+                dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
+                inAppReviewManager.launchIfReady(activity)
             }
 
         internal fun moveToLock() =
@@ -303,6 +342,7 @@ data class HomeUiState(
     val countdownTime: LocalTime = timeNow,
     val timerTime: LocalTime = timeNow,
     val countdownDays: Int = 0,
+    val sheetVisible: Boolean = false,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)

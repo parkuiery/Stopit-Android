@@ -235,6 +235,28 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun reviewPromptEligible() {
+            backend.logEvent(KeepAnalyticsEvent.REVIEW_PROMPT_ELIGIBLE)
+        }
+
+        override fun reviewPromptShown() {
+            backend.logEvent(KeepAnalyticsEvent.REVIEW_PROMPT_SHOWN)
+        }
+
+        override fun reviewPromptSkipped(reason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REVIEW_PROMPT_SKIPPED,
+                params = mapOf(KeepAnalyticsParam.REASON to reason),
+            )
+        }
+
+        override fun reviewPromptFailed(error: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REVIEW_PROMPT_FAILED,
+                params = mapOf(KeepAnalyticsParam.ERROR to error),
+            )
+        }
+
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,

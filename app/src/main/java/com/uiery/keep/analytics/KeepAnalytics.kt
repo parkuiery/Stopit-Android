@@ -92,6 +92,14 @@ interface KeepAnalytics {
     fun trackDeviceRegistrationFailed(reason: String) = Unit
 
     fun trackDeviceRegistrationSkipped(reason: String) = Unit
+
+    fun reviewPromptEligible() = Unit
+
+    fun reviewPromptShown() = Unit
+
+    fun reviewPromptSkipped(reason: String) = Unit
+
+    fun reviewPromptFailed(error: String) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -114,6 +122,10 @@ object KeepAnalyticsEvent {
     const val DEVICE_REGISTRATION_SUCCEEDED = "device_registration_succeeded"
     const val DEVICE_REGISTRATION_FAILED = "device_registration_failed"
     const val DEVICE_REGISTRATION_SKIPPED = "device_registration_skipped"
+    const val REVIEW_PROMPT_ELIGIBLE = "review_prompt_eligible"
+    const val REVIEW_PROMPT_SHOWN = "review_prompt_shown"
+    const val REVIEW_PROMPT_SKIPPED = "review_prompt_skipped"
+    const val REVIEW_PROMPT_FAILED = "review_prompt_failed"
 }
 
 object KeepAnalyticsParam {
@@ -137,6 +149,7 @@ object KeepAnalyticsParam {
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
     const val BLOCKING_MODE = "blocking_mode"
     const val ROUTINE_ID = "routine_id"
+    const val ERROR = "error"
 }
 
 object OnboardingStepName {

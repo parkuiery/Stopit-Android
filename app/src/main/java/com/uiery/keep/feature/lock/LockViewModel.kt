@@ -16,6 +16,8 @@ import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.review.ReviewEligibilityDecision
+import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
@@ -55,6 +57,7 @@ class LockViewModel
         private val emergencyUnlockDao: EmergencyUnlockDao,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
+        private val reviewEligibility: ReviewEligibilityEvaluator,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = savedStateHandle.toRoute<LockRoute>()
@@ -63,6 +66,7 @@ class LockViewModel
                 LockUiState(
                     lockTime = if (route.lockTime == null) LocalDateTime.now() else LocalDateTime.parse(route.lockTime),
                     isRoutine = route.isRoutine,
+                    timerStartTime = System.currentTimeMillis(),
                 ),
             )
 
@@ -122,8 +126,8 @@ class LockViewModel
 
         private fun navigateHome(lockTime: LocalDateTime) {
             navigateHomeJob = intent {
-                val now = LocalDateTime.now()
-                val duration = Duration.between(now, lockTime).coerceAtLeast(Duration.ZERO)
+                val nowDateTime = LocalDateTime.now()
+                val duration = Duration.between(nowDateTime, lockTime).coerceAtLeast(Duration.ZERO)
                 delay(duration.toMillis())
                 analytics.trackLockSessionEnd(
                     source = if (state.isRoutine) AnalyticsSource.ROUTINE else AnalyticsSource.HOME_TIMER,
@@ -133,7 +137,43 @@ class LockViewModel
                 if (state.isRoutine) {
                     saveRoutineLockHistory()
                 }
+                maybeArmReviewPrompt(
+                    isRoutine = state.isRoutine,
+                    routineStartTime = state.routineStartTime,
+                    timerStartTime = state.timerStartTime,
+                )
                 postSideEffect(LockSideEffect.MoveToHome)
+            }
+        }
+
+        private suspend fun maybeArmReviewPrompt(
+            isRoutine: Boolean,
+            routineStartTime: Long,
+            timerStartTime: Long,
+        ) {
+            val now = System.currentTimeMillis()
+            val durationMillis = if (isRoutine) {
+                now - routineStartTime
+            } else {
+                now - timerStartTime
+            }
+            dataStore.edit { prefs ->
+                val current = prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] ?: 0
+                prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] = current + 1
+            }
+            val decision = reviewEligibility.evaluate(
+                nowMs = now,
+                durationMillis = durationMillis,
+                isRoutine = isRoutine,
+            )
+            when (decision) {
+                is ReviewEligibilityDecision.Eligible -> {
+                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = true }
+                    analytics.reviewPromptEligible()
+                }
+                is ReviewEligibilityDecision.Ineligible -> {
+                    analytics.reviewPromptSkipped(decision.reason.name)
+                }
             }
         }
 
@@ -316,6 +356,7 @@ data class LockUiState(
     val isRoutine: Boolean = false,
     val routines: List<RoutineModel> = emptyList(),
     val routineStartTime: Long = 0L,
+    val timerStartTime: Long = 0L,
     val isShowEmergencyUnlockSheet: Boolean = false,
     val dailyLimitReached: Boolean = false,
     val dailyUnlockRemaining: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,

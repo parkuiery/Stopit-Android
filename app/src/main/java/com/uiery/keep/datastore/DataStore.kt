@@ -34,4 +34,8 @@ object PreferencesKey {
     val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
     val FIRST_OPEN_TIMESTAMP = longPreferencesKey("first_open_timestamp")
     val HAS_TRACKED_FIRST_CORE_ACTION = booleanPreferencesKey("has_tracked_first_core_action")
+    val REVIEW_PENDING = booleanPreferencesKey("review_pending")
+    val LAST_REVIEW_PROMPT_AT_MS = longPreferencesKey("last_review_prompt_at_ms")
+    val SUCCESSFUL_SESSION_COUNT = intPreferencesKey("successful_session_count")
+    val LAST_BACKGROUNDED_AT_MS = longPreferencesKey("last_backgrounded_at_ms")
 }

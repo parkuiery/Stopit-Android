@@ -17,4 +17,10 @@ interface LockHistoryDao {
 
     @Query("SELECT * FROM lock_history ORDER BY start_timestamp DESC")
     fun fetchAll(): Flow<List<LockHistoryEntity>>
+
+    @Query("SELECT COUNT(*) FROM lock_history")
+    suspend fun countSuccessfulSessions(): Int
+
+    @Query("SELECT COUNT(*) FROM lock_history WHERE start_timestamp >= :timestampMillis")
+    suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int
 }
