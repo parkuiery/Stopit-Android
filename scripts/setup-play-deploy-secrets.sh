@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/setup-play-deploy-secrets.sh --keystore <upload-key.jks> --service-account <play-service-account.json> --alias <key-alias>
+  scripts/setup-play-deploy-secrets.sh --keystore <upload-key.jks> --service-account <play-service-account.json> --alias <key-alias> [--google-services app/src/prod/google-services.json]
 
 Required environment variables or prompts:
   ANDROID_KEYSTORE_PASSWORD
@@ -16,6 +16,7 @@ This script stores required deployment credentials as GitHub Actions secrets for
   ANDROID_KEY_ALIAS
   ANDROID_KEY_PASSWORD
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+  GOOGLE_SERVICES_JSON
 
 It does not commit any secret files.
 USAGE
@@ -23,6 +24,7 @@ USAGE
 
 KEYSTORE=""
 SERVICE_ACCOUNT=""
+GOOGLE_SERVICES="app/src/prod/google-services.json"
 KEY_ALIAS=""
 
 while [[ $# -gt 0 ]]; do
@@ -33,6 +35,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --service-account)
       SERVICE_ACCOUNT="${2:-}"
+      shift 2
+      ;;
+    --google-services)
+      GOOGLE_SERVICES="${2:-}"
       shift 2
       ;;
     --alias)
@@ -66,6 +72,11 @@ if [[ ! -f "$SERVICE_ACCOUNT" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$GOOGLE_SERVICES" ]]; then
+  echo "google-services.json file not found: $GOOGLE_SERVICES" >&2
+  exit 1
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required." >&2
   exit 1
@@ -92,5 +103,6 @@ printf '%s' "$ANDROID_KEYSTORE_PASSWORD" | gh secret set ANDROID_KEYSTORE_PASSWO
 printf '%s' "$KEY_ALIAS" | gh secret set ANDROID_KEY_ALIAS
 printf '%s' "$ANDROID_KEY_PASSWORD" | gh secret set ANDROID_KEY_PASSWORD
 gh secret set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON < "$SERVICE_ACCOUNT"
+gh secret set GOOGLE_SERVICES_JSON < "$GOOGLE_SERVICES"
 
 echo "Deployment secrets configured for $(gh repo view --json nameWithOwner -q .nameWithOwner)."

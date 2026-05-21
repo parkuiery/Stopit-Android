@@ -26,6 +26,7 @@ Set these in GitHub repository settings or run `scripts/setup-play-deploy-secret
 | `ANDROID_KEY_ALIAS` | Upload key alias. |
 | `ANDROID_KEY_PASSWORD` | Upload key password. |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Google Play Android Publisher service account JSON. |
+| `GOOGLE_SERVICES_JSON` | Production Firebase `google-services.json` content for `app/src/prod`. |
 
 The service account must have access in Play Console:
 
@@ -44,7 +45,8 @@ ANDROID_KEY_PASSWORD='...' \
 scripts/setup-play-deploy-secrets.sh \
   --keystore /path/to/upload-key.jks \
   --service-account /path/to/play-service-account.json \
-  --alias upload
+  --alias upload \
+  --google-services app/src/prod/google-services.json
 ```
 
 If the password environment variables are omitted, the script prompts for them.

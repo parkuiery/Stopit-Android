@@ -75,6 +75,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo 'ANDROID_KEYSTORE_BASE64 secret is missing'; exit 1; }
@@ -82,16 +83,20 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS" || { echo 'ANDROID_KEY_ALIAS secret is missing'; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo 'ANDROID_KEY_PASSWORD secret is missing'; exit 1; }
           test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
+          test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
 
-      - name: Decode signing and Play credentials
+      - name: Decode signing, Firebase, and Play credentials
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
           printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
-          chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+          mkdir -p app/src/prod
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
+          chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH" app/src/prod/google-services.json
 
       - name: Run release unit tests
         run: ./gradlew testProdReleaseUnitTest
