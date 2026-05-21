@@ -79,4 +79,9 @@ Conventional Commits 스타일, 한국어/영어 혼용:
 5. `main`에 태그 생성: `git tag v{version}`
 6. 태그 푸시: `git push origin v{version}`
 7. `main` → `develop` 역머지
-8. Play Store에 수동 업로드
+8. GitHub Actions가 태그 push를 감지해 Play Store internal track에 자동 업로드
+9. 필요 시 Play Console에서 승격하거나, GitHub Actions `Deploy Android to Google Play` 워크플로를 수동 실행해 `production` track 배포
+
+## Automated Play Deployment
+
+자동 배포 설정과 필요한 GitHub Secrets는 [`PLAY_DEPLOYMENT.md`](PLAY_DEPLOYMENT.md)를 기준으로 관리한다.
