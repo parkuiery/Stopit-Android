@@ -1,0 +1,69 @@
+name: Android CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Restore Firebase prod google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
+          mkdir -p app/src/prod
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build prod debug APK
+        run: ./gradlew assembleProdDebug
+
+      - name: Build prod release bundle smoke test
+        run: ./gradlew bundleProdRelease
+
+      - name: Upload prod debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: stopit-prod-debug-apk
+          path: app/build/outputs/apk/prod/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload prod release bundle smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stopit-prod-release-aab-smoke
+          path: app/build/outputs/bundle/prodRelease/*.aab
+          if-no-files-found: error
