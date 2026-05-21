@@ -50,8 +50,8 @@ jobs:
       DEPLOY_TRACK: ${{ github.event.inputs.track || 'internal' }}
       RELEASE_STATUS: ${{ github.event.inputs.release_status || 'completed' }}
       ROLLOUT_FRACTION: ${{ github.event.inputs.rollout_fraction || '' }}
-      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/stopit-upload-key.jks
-      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: ${{ runner.temp }}/google-play-service-account.json
+      ANDROID_KEYSTORE_PATH: /tmp/stopit-upload-key.jks
+      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /tmp/google-play-service-account.json
 
     steps:
       - name: Checkout
