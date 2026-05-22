@@ -239,3 +239,7 @@
 - #15 Play Store ASO 개선
 - #16 AdMob 성과 및 수익화 실험
 - #17 리뷰 프롬프트 생애주기 개선
+
+## 관련 실행 문서
+
+- `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안
