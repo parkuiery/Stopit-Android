@@ -20,10 +20,18 @@
 
 ## Validation
 
+For normal development PRs:
 - [ ] `./gradlew testDebugUnitTest`
 - [ ] `./gradlew assembleProdDebug`
+- [ ] Android CI passes
+
+For release/hotfix PRs:
 - [ ] `./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run`
-- [ ] Manual app smoke test if UI/behavior changed
+- [ ] Version Guard passes
+- [ ] Android Release Build passes and produces signed AAB artifact
+
+For UI/behavior changes:
+- [ ] Manual app smoke test
 
 ## Release impact
 

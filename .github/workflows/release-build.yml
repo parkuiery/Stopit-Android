@@ -1,57 +1,28 @@
-name: Android Play Deploy
+name: Android Release Build
 
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      track:
-        description: Google Play track to upload to
-        type: choice
-        required: true
-        default: internal
-        options:
-          - internal
-          - alpha
-          - beta
-          - production
-      release_status:
-        description: Google Play release status
-        type: choice
-        required: true
-        default: completed
-        options:
-          - draft
-          - completed
-          - inProgress
-          - halted
-      rollout_fraction:
-        description: Required only when release_status is inProgress. Example 0.05
-        required: false
-        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-play-deploy-${{ github.ref }}
-  cancel-in-progress: false
+  group: android-release-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Upload signed AAB to Google Play
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+  release-build:
+    name: Build signed release AAB artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
 
     env:
-      PACKAGE_NAME: com.uiery.keep
-      DEPLOY_TRACK: ${{ github.event.inputs.track || 'internal' }}
-      RELEASE_STATUS: ${{ github.event.inputs.release_status || 'completed' }}
-      ROLLOUT_FRACTION: ${{ github.event.inputs.rollout_fraction || '' }}
       ANDROID_KEYSTORE_PATH: /tmp/stopit-upload-key.jks
-      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: /tmp/google-play-service-account.json
 
     steps:
       - name: Checkout
@@ -69,13 +40,12 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Validate deployment secrets
+      - name: Validate release build secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
@@ -83,21 +53,18 @@ jobs:
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo 'ANDROID_KEYSTORE_PASSWORD secret is missing'; exit 1; }
           test -n "$ANDROID_KEY_ALIAS" || { echo 'ANDROID_KEY_ALIAS secret is missing'; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo 'ANDROID_KEY_PASSWORD secret is missing'; exit 1; }
-          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
 
-      - name: Decode signing, Firebase, and Play credentials
+      - name: Decode signing and Firebase config
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
-          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
           mkdir -p app/src/prod
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
-          chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH" app/src/prod/google-services.json
+          chmod 600 "$ANDROID_KEYSTORE_PATH" app/src/prod/google-services.json
 
       - name: Run release unit tests
         run: ./gradlew testProdReleaseUnitTest
@@ -116,13 +83,3 @@ jobs:
           path: app/build/outputs/bundle/prodRelease/*.aab
           if-no-files-found: error
           retention-days: 30
-
-      - name: Upload to Google Play
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJson: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH }}
-          packageName: ${{ env.PACKAGE_NAME }}
-          releaseFiles: app/build/outputs/bundle/prodRelease/*.aab
-          track: ${{ env.DEPLOY_TRACK }}
-          status: ${{ env.RELEASE_STATUS }}
-          userFraction: ${{ env.ROLLOUT_FRACTION }}

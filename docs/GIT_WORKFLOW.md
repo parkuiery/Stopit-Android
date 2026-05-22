@@ -18,6 +18,17 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
         └── ci/*        # CI/CD 변경
 ```
 
+## CI / Release Build / CD Split
+
+| Layer | Workflow | Trigger | Responsibility |
+| --- | --- | --- | --- |
+| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast correctness check: unit tests + prod debug APK artifact. No signed release, no Play upload. |
+| Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
+| Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
+
+This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
+
 ## Branch Naming
 
 | 목적 | 브랜치 형식 | 예시 |
@@ -124,7 +135,7 @@ scripts/release-tag.sh 1.7.2
 - 현재 브랜치가 `main`인지 확인
 - `versionName`과 태그 버전 일치 확인
 - `v1.7.2` 태그 생성 및 push
-- GitHub Actions가 Google Play internal track 업로드 실행
+- GitHub Actions CD가 Google Play internal track 업로드 실행
 
 ### 릴리즈 준비 상태 점검
 
@@ -153,7 +164,7 @@ git commit -m "feat: add my feature"
 git push -u origin HEAD
 gh pr create --base develop --fill
 
-# 4. CI 통과 후 squash merge
+# 4. Android CI 통과 후 squash merge
 ```
 
 ## Standard Release Flow
@@ -166,14 +177,16 @@ scripts/release-start.sh 1.7.2
 git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 
-# 3. PR CI 통과 후 main에 squash merge
+# 3. PR에서 branch-hygiene, version-guard, Android CI, Android Release Build 통과 확인
 
-# 4. main 최신화 후 태그 배포
+# 4. main에 squash merge
+
+# 5. main 최신화 후 태그 배포. 이때만 CD가 Google Play에 업로드한다.
 git checkout main
 git pull origin main
 scripts/release-tag.sh 1.7.2
 
-# 5. main -> develop 역머지
+# 6. main -> develop 역머지
 git checkout develop
 git pull origin develop
 git merge origin/main
@@ -201,6 +214,9 @@ gh pr create --base main --fill
 
 ## Safety Defaults
 
+- 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
+- Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다.
+- CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
 - secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
