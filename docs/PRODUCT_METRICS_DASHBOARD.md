@@ -203,9 +203,10 @@
 
 - `review_prompt_eligible`
 - `review_prompt_shown`
-- `review_prompt_accepted`
-- `review_prompt_dismissed`
 - `review_prompt_skipped` with reason
+- `review_prompt_failed`
+
+주의: Play In-App Review API는 사용자가 실제로 리뷰를 남겼는지, dismiss 했는지를 앱에 직접 알려주지 않는다. 그래서 현재 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed`까지다.
 
 ## 운영 주기
 

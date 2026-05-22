@@ -69,6 +69,7 @@
 ## 관련 문서
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
+- `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, 검증 명령.
 
 ## 빠른 분석 명령
 
