@@ -126,4 +126,3 @@ jobs:
           track: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
-          changesNotSentForReview: true
