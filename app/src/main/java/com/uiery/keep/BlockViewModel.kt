@@ -42,6 +42,7 @@ class BlockViewModel
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
 
         init {
+            analytics.logScreenView("BlockScreen")
             checkDailyLimit()
         }
 
