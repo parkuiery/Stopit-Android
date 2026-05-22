@@ -1,12 +1,17 @@
 package com.uiery.keep.feature.onboarding
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
+import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -23,6 +28,7 @@ class OnboardingAnalyticsViewModelTest {
 
         assertEquals(
             listOf(
+                AnalyticsCall.ScreenViewed(KeepAnalyticsScreen.ONBOARDING_INTRO),
                 AnalyticsCall.StepViewed(OnboardingStepName.INTRO),
                 AnalyticsCall.StepCompleted(OnboardingStepName.INTRO),
             ),
@@ -39,6 +45,7 @@ class OnboardingAnalyticsViewModelTest {
 
         assertEquals(
             listOf(
+                AnalyticsCall.ScreenViewed(KeepAnalyticsScreen.ONBOARDING_NOTIFICATION),
                 AnalyticsCall.StepViewed(OnboardingStepName.NOTIFICATION),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
@@ -61,6 +68,7 @@ class OnboardingAnalyticsViewModelTest {
 
         assertEquals(
             listOf(
+                AnalyticsCall.ScreenViewed(KeepAnalyticsScreen.ONBOARDING_PERMISSION),
                 AnalyticsCall.StepViewed(OnboardingStepName.PERMISSION),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.ACCESSIBILITY,
@@ -73,6 +81,24 @@ class OnboardingAnalyticsViewModelTest {
                     stepName = OnboardingStepName.PERMISSION,
                 ),
                 AnalyticsCall.StepCompleted(OnboardingStepName.PERMISSION),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
+    fun selectAppTracksScreenViewAndStepView() {
+        val viewModel = SelectAppViewModel(
+            dataStore = UnusedPreferencesDataStore,
+            analytics = analytics,
+        )
+
+        viewModel.onStepViewed()
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.ScreenViewed(KeepAnalyticsScreen.ONBOARDING_SELECT_APP),
+                AnalyticsCall.StepViewed(OnboardingStepName.SELECT_APP),
             ),
             analytics.calls,
         )
@@ -195,5 +221,13 @@ private class RecordingKeepAnalytics : KeepAnalytics {
             source = source,
             unlockCountRemaining = unlockCountRemaining,
         )
+    }
+}
+
+private object UnusedPreferencesDataStore : DataStore<Preferences> {
+    override val data = emptyFlow<Preferences>()
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+        error("Unused in onboarding analytics tests")
     }
 }

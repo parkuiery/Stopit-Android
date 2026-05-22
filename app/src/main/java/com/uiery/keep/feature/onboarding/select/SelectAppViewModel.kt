@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.PreferencesKey
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ class SelectAppViewModel @Inject constructor(
         container(SelectAppUiState())
 
     fun onStepViewed() {
+        analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_SELECT_APP)
         analytics.trackOnboardingStepView(OnboardingStepName.SELECT_APP)
     }
 
