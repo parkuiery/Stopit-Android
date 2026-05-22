@@ -55,17 +55,24 @@ The script uses `gh secret set` and does not commit secret files.
 
 ## Release flow
 
-1. Update `versionCode` and `versionName` in `app/build.gradle.kts`.
-2. Merge the release commit into `main`.
-3. Tag the release:
+Use the release harness scripts documented in `docs/GIT_WORKFLOW.md`:
 
 ```bash
-git tag v1.7.1
-git push origin v1.7.1
+scripts/release-start.sh 1.7.2
+git push -u origin HEAD
+gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 ```
 
-4. GitHub Actions uploads the signed bundle to the Play `internal` track.
-5. Promote from internal to production in Play Console, or manually run the deploy workflow with `track=production` when ready.
+After the release PR is merged into `main`:
+
+```bash
+git checkout main
+git pull origin main
+scripts/release-tag.sh 1.7.2
+```
+
+The tag push triggers GitHub Actions and uploads the signed bundle to the Play `internal` track.
+Promote from internal to production in Play Console, or manually run the deploy workflow with `track=production` when ready.
 
 ## Local release build check
 

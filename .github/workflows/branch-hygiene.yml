@@ -1,0 +1,39 @@
+name: Branch Hygiene
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate branch name and target
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR routing
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          echo "head=$HEAD_REF base=$BASE_REF"
+
+          if [[ "$HEAD_REF" =~ ^(feature|fix|refactor|docs|test|ci|chore)/[a-z0-9][a-z0-9-]*$ ]]; then
+            expected_base="develop"
+          elif [[ "$HEAD_REF" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            expected_base="main"
+          elif [[ "$HEAD_REF" =~ ^hotfix/[a-z0-9][a-z0-9-]*$ ]]; then
+            expected_base="main"
+          else
+            echo "Invalid branch name: $HEAD_REF"
+            echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, release/x.y.z, hotfix/*"
+            exit 1
+          fi
+
+          if [[ "$BASE_REF" != "$expected_base" ]]; then
+            echo "Invalid PR target: $HEAD_REF must target $expected_base, not $BASE_REF"
+            exit 1
+          fi

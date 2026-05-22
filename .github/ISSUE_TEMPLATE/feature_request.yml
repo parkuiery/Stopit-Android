@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a Stopit Android feature or improvement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / user need
+      description: What user pain or business outcome does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks / edge cases
+  - type: dropdown
+    id: release-impact
+    attributes:
+      label: Release impact
+      options:
+        - No release coordination needed
+        - Needs normal release
+        - Needs hotfix / urgent release

@@ -1,87 +1,207 @@
-# Git Workflow
+# Stopit Git Workflow
+
+Stopit은 `develop`을 일상 개발 기본 브랜치로, `main`을 릴리즈/프로덕션 브랜치로 사용한다.
 
 ## Branch Strategy
 
-```
-main              ← 프로덕션 릴리즈 (태그 붙음)
-  └── release/*   ← 릴리즈 준비 (버전 bump, 최종 수정)
-       └── develop      ← 개발 통합 브랜치
-            └── feature/* ← 기능 개발
+```text
+main                    # Play Store 릴리즈 기준선. 태그는 여기에서만 생성.
+└── hotfix/*            # 운영 긴급 수정. main에서 분기 후 main + develop에 반영.
+└── release/x.y.z       # 릴리즈 후보. develop에서 분기, 버전 bump와 최종 검증만 수행.
+    └── develop         # 개발 통합 브랜치. 기본 PR 대상.
+        └── feature/*   # 기능 개발
+        └── fix/*       # 버그 수정
+        └── chore/*     # 설정/빌드/운영성 작업
+        └── docs/*      # 문서 작업
+        └── refactor/*  # 리팩터링
+        └── test/*      # 테스트 보강
+        └── ci/*        # CI/CD 변경
 ```
 
 ## Branch Naming
 
-| 브랜치 | 네이밍 | 예시 |
-|--------|--------|------|
-| 기능 개발 | `feature/<기능명-kebab-case>` | `feature/emergency-unlock` |
-| 버그 수정 | `fix/<버그명>` | `fix/countdown-crash` |
-| 릴리즈 준비 | `release/<버전>` | `release/1.6.0` |
-| 긴급 수정 | `hotfix/<설명>` | `hotfix/block-screen-crash` |
+| 목적 | 브랜치 형식 | 예시 |
+| --- | --- | --- |
+| 기능 개발 | `feature/<short-kebab-case>` | `feature/emergency-unlock-settings` |
+| 버그 수정 | `fix/<short-kebab-case>` | `fix/countdown-crash` |
+| 리팩터링 | `refactor/<short-kebab-case>` | `refactor/usage-stats-store` |
+| 문서 | `docs/<short-kebab-case>` | `docs/release-checklist` |
+| CI/운영 | `ci/<short-kebab-case>` | `ci/play-deploy` |
+| 잡무 | `chore/<short-kebab-case>` | `chore/bump-deps` |
+| 테스트 | `test/<short-kebab-case>` | `test/routine-viewmodel` |
+| 릴리즈 | `release/<version>` | `release/1.7.1` |
+| 핫픽스 | `hotfix/<short-kebab-case>` | `hotfix/block-screen-crash` |
 
-## Development Flow
+자동 검증: `.github/workflows/branch-hygiene.yml`가 PR 브랜치 이름과 PR 대상 브랜치를 검사한다.
 
-```
-1. develop에서 feature/* 브랜치 생성
-2. feature 브랜치에서 개발
-3. 완료 시 develop으로 PR 생성
-4. PR 리뷰 후 머지
-5. 릴리즈 시 develop에서 release/* 생성
-6. release 브랜치에서 버전 bump + 최종 수정
-7. release → main 직접 머지 + 태그
-8. main → develop 역머지 (동기화)
-```
+## PR Routing Rules
 
-### feature → develop (PR)
+| Head branch | Base branch | 이유 |
+| --- | --- | --- |
+| `feature/*`, `fix/*`, `refactor/*`, `docs/*`, `test/*`, `ci/*`, `chore/*` | `develop` | 일반 개발 통합 |
+| `release/*` | `main` | 릴리즈 후보를 프로덕션 기준선으로 승격 |
+| `hotfix/*` | `main` | 긴급 수정 우선 배포 |
 
-- feature 브랜치 작업 완료 후 develop으로 PR 생성
-- PR에 변경 사항 요약 포함
-- 코드 리뷰 후 머지
-
-### release → main (직접 머지)
-
-- release 브랜치에서 최종 확인 후 main으로 직접 머지
-- main에 semver 태그 생성 (예: `v1.6.0`)
-- Play Store 수동 배포
-
-## Versioning (Semantic Versioning)
-
-`MAJOR.MINOR.PATCH` 형식:
-
-| 자리 | 올릴 때 | 예시 |
-|------|---------|------|
-| **MAJOR** | 대규모 변경, 기존 기능 깨짐 | 1.x.x → 2.0.0 |
-| **MINOR** | 새 기능 추가, 기존 기능 유지 | 1.5.x → 1.6.0 |
-| **PATCH** | 버그 수정, 작은 개선 | 1.5.8 → 1.5.9 |
-
-- 태그 형식: `v{MAJOR}.{MINOR}.{PATCH}` (예: `v1.6.0`)
-- 변경 파일: `app/build.gradle.kts`의 `versionName`, `versionCode`
+릴리즈/핫픽스가 `main`에 들어간 뒤에는 반드시 `main -> develop` 역머지를 해서 두 브랜치를 동기화한다.
 
 ## Commit Convention
 
-Conventional Commits 스타일, 한국어/영어 혼용:
+Conventional Commits 스타일을 사용한다. 본문은 한국어/영어 모두 가능하다.
 
 | 접두사 | 용도 | 예시 |
-|--------|------|------|
-| `feat:` | 새 기능 | `feat: add emergency unlock feature` |
-| `fix:` | 버그 수정 | `fix: countdown timer 오류 수정` |
-| `style:` | UI/스타일 변경 | `style: improve emergency unlock UI` |
-| `refactor:` | 코드 리팩토링 | `refactor: extract notification helper` |
-| `docs:` | 문서 변경 | `docs: update CLAUDE.md` |
-| `chore:` | 빌드/설정 변경 | `chore: bump version to 1.6.0` |
-| `test:` | 테스트 | `test: add ViewModel unit tests` |
+| --- | --- | --- |
+| `feat:` | 새 기능 | `feat: add emergency unlock settings` |
+| `fix:` | 버그 수정 | `fix: prevent countdown crash` |
+| `style:` | UI/스타일 | `style: polish routine menu` |
+| `refactor:` | 구조 변경 | `refactor: extract usage stats repository` |
+| `docs:` | 문서 | `docs: update release checklist` |
+| `chore:` | 설정/잡무 | `chore: bump version to 1.7.1` |
+| `test:` | 테스트 | `test: add routine viewmodel tests` |
+| `ci:` | CI/CD | `ci: validate branch hygiene` |
 
-## Release Checklist
+## Version Management
 
-1. `develop`에서 `release/{version}` 브랜치 생성
-2. `versionName`, `versionCode` 업데이트
-3. 빌드 확인: `./gradlew bundleProd`
-4. `release/{version}` → `main` 머지
-5. `main`에 태그 생성: `git tag v{version}`
-6. 태그 푸시: `git push origin v{version}`
-7. `main` → `develop` 역머지
-8. GitHub Actions가 태그 push를 감지해 Play Store internal track에 자동 업로드
-9. 필요 시 Play Console에서 승격하거나, GitHub Actions `Deploy Android to Google Play` 워크플로를 수동 실행해 `production` track 배포
+Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 
-## Automated Play Deployment
+- `versionName`: 사용자에게 보이는 SemVer. 예: `1.7.1`
+- `versionCode`: Google Play가 요구하는 단조 증가 정수. 이미 업로드된 값은 재사용 불가.
 
-자동 배포 설정과 필요한 GitHub Secrets는 [`PLAY_DEPLOYMENT.md`](PLAY_DEPLOYMENT.md)를 기준으로 관리한다.
+규칙:
+
+1. `versionName`은 `MAJOR.MINOR.PATCH` 형식만 사용한다.
+2. `versionCode`는 모든 Play 업로드마다 반드시 증가한다.
+3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 커야 한다.
+4. 태그 형식은 `v{versionName}`이다. 예: `v1.7.1`
+
+자동 검증: `.github/workflows/version-guard.yml`가 `main` 대상 PR에서 `versionCode` 증가와 태그/버전 형식을 검사한다.
+
+## Harness Scripts
+
+모든 스크립트는 repo root에서 실행한다.
+
+### 새 작업 브랜치 시작
+
+```bash
+scripts/branch-start.sh feature emergency-unlock-settings
+scripts/branch-start.sh fix countdown-crash
+```
+
+동작:
+- `develop` 기준 최신화
+- `feature/<name>` 또는 `fix/<name>` 브랜치 생성
+
+### 버전 bump
+
+```bash
+scripts/bump-version.sh 1.7.2
+scripts/bump-version.sh 1.7.2 --code 24
+```
+
+동작:
+- `app/build.gradle.kts`의 `versionName` 변경
+- `versionCode` 자동 +1 또는 지정 값으로 변경
+- Gradle release task dry-run으로 task 존재 확인
+
+### 릴리즈 브랜치 준비
+
+```bash
+scripts/release-start.sh 1.7.2
+```
+
+동작:
+- `develop`에서 `release/1.7.2` 생성
+- 버전 bump
+- release dry-run 검증
+- `chore: bump version to 1.7.2` 커밋 생성
+
+### 릴리즈 태그 배포
+
+```bash
+scripts/release-tag.sh 1.7.2
+```
+
+동작:
+- 현재 브랜치가 `main`인지 확인
+- `versionName`과 태그 버전 일치 확인
+- `v1.7.2` 태그 생성 및 push
+- GitHub Actions가 Google Play internal track 업로드 실행
+
+### 릴리즈 준비 상태 점검
+
+```bash
+scripts/check-release-readiness.sh
+```
+
+동작:
+- git working tree clean 여부 확인
+- 버전 형식 확인
+- `actionlint`가 있으면 workflow 문법 확인
+- `testProdReleaseUnitTest bundleProdRelease --dry-run` 실행
+
+## Standard Development Flow
+
+```bash
+# 1. 작업 브랜치 생성
+scripts/branch-start.sh feature my-feature
+
+# 2. 개발 + 로컬 검증
+./gradlew testDebugUnitTest
+
+# 3. 커밋/푸시/PR
+git add <files>
+git commit -m "feat: add my feature"
+git push -u origin HEAD
+gh pr create --base develop --fill
+
+# 4. CI 통과 후 squash merge
+```
+
+## Standard Release Flow
+
+```bash
+# 1. develop에서 릴리즈 브랜치 생성 + version bump
+scripts/release-start.sh 1.7.2
+
+# 2. 릴리즈 브랜치 push + main 대상 PR
+git push -u origin HEAD
+gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
+
+# 3. PR CI 통과 후 main에 squash merge
+
+# 4. main 최신화 후 태그 배포
+git checkout main
+git pull origin main
+scripts/release-tag.sh 1.7.2
+
+# 5. main -> develop 역머지
+git checkout develop
+git pull origin develop
+git merge origin/main
+git push origin develop
+```
+
+## Hotfix Flow
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b hotfix/block-screen-crash
+
+# 수정 + 버전 patch bump
+scripts/bump-version.sh 1.7.3
+./gradlew testProdReleaseUnitTest bundleProdRelease
+
+git add <files>
+git commit -m "fix: prevent block screen crash"
+git push -u origin HEAD
+gh pr create --base main --fill
+```
+
+핫픽스가 main에 merge되고 태그 배포된 뒤에는 `main -> develop` 역머지를 한다.
+
+## Safety Defaults
+
+- 자동 태그 배포는 Google Play `internal` track으로만 간다.
+- `production` 배포는 수동 workflow dispatch로만 실행한다.
+- secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
+- `versionCode`는 절대 재사용하지 않는다.
