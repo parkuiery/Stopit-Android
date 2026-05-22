@@ -55,16 +55,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -110,7 +110,7 @@ jobs:
         run: ./gradlew bundleProdRelease
 
       - name: Upload signed AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stopit-prod-release-signed-aab
           path: app/build/outputs/bundle/prodRelease/*.aab
@@ -123,6 +123,6 @@ jobs:
           serviceAccountJson: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH }}
           packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: app/build/outputs/bundle/prodRelease/*.aab
-          track: ${{ env.DEPLOY_TRACK }}
+          tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
