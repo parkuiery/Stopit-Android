@@ -21,7 +21,8 @@ No direct source files; this directory organizes subdirectories listed below.
 - Prefer focused tests around pure logic or migration behavior rather than broad brittle UI assertions.
 
 ### Testing Requirements
-- ./gradlew testDebugUnitTest or ./gradlew test for local JVM tests.
+- ./gradlew :app:testDevDebugUnitTest for the default local JVM tests.
+- ./gradlew test only when intentionally running the repository-wide JVM suite.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.

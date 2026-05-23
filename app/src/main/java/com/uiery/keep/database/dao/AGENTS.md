@@ -23,8 +23,8 @@ No documented child directories.
 - Prefer explicit DAO queries and suspend/Flow APIs consistent with existing Room usage.
 
 ### Testing Requirements
-- ./gradlew connectedAndroidTest for Room migrations or Android framework integration.
-- ./gradlew test for pure logic touched by the same change.
+- ./gradlew :app:connectedDevDebugAndroidTest for Room migrations or Android framework integration.
+- ./gradlew :app:testDevDebugUnitTest for pure logic touched by the same change.
 
 ### Common Patterns
 - Room entities live in `entity/`, DAO interfaces in `dao/`, converters in `converter/`, and providers in `di/`.
