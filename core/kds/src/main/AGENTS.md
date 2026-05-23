@@ -12,7 +12,7 @@ No direct source files; this directory organizes subdirectories listed below.
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `java/` | Kotlin package root for the KDS library. (see `java/AGENTS.md`) |
+| `java/` | Kotlin package root for the KDS library. KDS package guidance starts at `java/com/uiery/kds/AGENTS.md`. |
 | `res/` | KDS Android resources. Do not place `AGENTS.md` inside Android `res/`; Gradle packages files there as resources. |
 
 ## For AI Agents

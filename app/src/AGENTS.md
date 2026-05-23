@@ -12,11 +12,11 @@ No direct source files; this directory organizes subdirectories listed below.
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `androidTest/` | Instrumented Android test source set for tests that need an Android runtime, Room migration helpers, or device/emulator APIs. (see `androidTest/AGENTS.md`) |
+| `androidTest/` | Instrumented Android test source set for tests that need an Android runtime, Room migration helpers, or device/emulator APIs. |
 | `dev/` | Development flavor source set. (see `dev/AGENTS.md`) |
 | `main/` | Primary Android source set containing the manifest, Kotlin application code, resources, launcher artwork, services, receivers, and Compose UI. (see `main/AGENTS.md`) |
 | `prod/` | Production flavor source set. (see `prod/AGENTS.md`) |
-| `test/` | Local JVM unit-test source set for model mapping, analytics wrappers, onboarding view-model analytics, emergency-unlock policy, and utilities. (see `test/AGENTS.md`) |
+| `test/` | Local JVM unit-test source set for model mapping, analytics wrappers, onboarding view-model analytics, emergency-unlock policy, and utilities. |
 
 ## For AI Agents
 

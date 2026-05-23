@@ -25,7 +25,7 @@ Keep (StopIt) is a Kotlin Android screen-time management app that blocks selecte
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/` | Claude-specific local guidance and settings for agents working in this repository. (see `.claude/AGENTS.md`) |
+| `.claude/` | Claude-specific local guidance and settings for agents working in this repository. |
 | `app/` | Main Android application module for package `com.uiery.keep`. (see `app/AGENTS.md`) |
 | `core/` | Container for shared Gradle modules used by the application. (see `core/AGENTS.md`) |
 | `docs/` | Project documentation for workflow, plans, and historical design/spec artifacts. (see `docs/AGENTS.md`) |

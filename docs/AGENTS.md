@@ -18,7 +18,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | Directory | Purpose |
 |-----------|---------|
 | `ops/stopit/` | Stopit 운영 cron과 전문 subagent가 공유하는 제품/지표/엔지니어링/릴리즈 컨텍스트 팩. |
-| `superpowers/` | Superpowers-generated implementation planning and specification artifacts. (see `superpowers/AGENTS.md`) |
+| `superpowers/` | Superpowers-generated implementation planning and specification artifacts. |
 
 ## For AI Agents
 
