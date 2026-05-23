@@ -249,6 +249,37 @@ class FirebaseKeepAnalyticsTest {
             backend.loggedEvents[6],
         )
     }
+
+    @Test
+    fun reviewPromptEventsUseCanonicalSchema() {
+        analytics.reviewPromptEligible()
+        analytics.reviewPromptShown()
+        analytics.reviewPromptSkipped("WithinCooldown")
+        analytics.reviewPromptFailed("no_play_services")
+
+        assertEquals(LoggedEvent(KeepAnalyticsEvent.REVIEW_PROMPT_ELIGIBLE, emptyMap()), backend.loggedEvents[0])
+        assertEquals(LoggedEvent(KeepAnalyticsEvent.REVIEW_PROMPT_SHOWN, emptyMap()), backend.loggedEvents[1])
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.REVIEW_PROMPT_SKIPPED,
+                mapOf(KeepAnalyticsParam.REASON to "WithinCooldown"),
+            ),
+            backend.loggedEvents[2],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.REVIEW_PROMPT_FAILED,
+                mapOf(KeepAnalyticsParam.ERROR to "no_play_services"),
+            ),
+            backend.loggedEvents[3],
+        )
+    }
+
+    @Test
+    fun analyticsConstantValuesStayQueryableInGa4() {
+        assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
+        assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
+    }
 }
 
 private data class LoggedEvent(
