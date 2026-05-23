@@ -95,7 +95,7 @@ class HomeViewModelReviewTest {
         viewModel.maybeDrainReviewFlag(activity = null)
         delay(50)
 
-        assertEquals(emptyList<AnalyticsEventRecord>(), analytics.events)
+        assertEquals(listOf(AnalyticsEventRecord.Skipped("NoActivity")), analytics.events)
         assertEquals(0, launcher.launchCount)
         assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
     }
