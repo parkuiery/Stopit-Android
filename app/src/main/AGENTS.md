@@ -15,7 +15,7 @@ Primary Android source set containing the manifest, Kotlin application code, res
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `java/` | Kotlin package root for the Android application code. (see `java/AGENTS.md`) |
+| `java/` | Kotlin package root for the Android application code. App package guidance starts at `java/com/uiery/keep/AGENTS.md`. |
 | `res/` | Android resource tree for drawables, launcher icons, Lottie/raw animations, localized strings, themes, colors, and service/backup XML. Do not place `AGENTS.md` inside Android `res/`; Gradle packages files there as resources. |
 
 ## For AI Agents
