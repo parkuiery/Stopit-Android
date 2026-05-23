@@ -71,6 +71,7 @@
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안.
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
