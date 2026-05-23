@@ -58,6 +58,7 @@ class HomeViewModel
                 val isKeep = !state.isKeep
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
+                    trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
                         isRoutine = false,
@@ -294,6 +295,7 @@ class HomeViewModel
                         .between(LocalDateTime.now(), targetLockDateTime)
                         .toMillis()
                         .coerceAtLeast(0L)
+                trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)
                 analytics.trackLockScheduled(
                     scheduleType = if (state.countdownDays > 0) {
                         AnalyticsScheduleType.COUNTDOWN
@@ -308,6 +310,27 @@ class HomeViewModel
                 )
                 storeBlockTime(lockedDuration)
             }
+
+        private suspend fun trackFirstLockConfiguredIfNeeded(source: String) {
+            val preferences = dataStore.data.firstOrNull()
+            val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+
+            if (hasTracked) return
+
+            val selectedAppCount =
+                preferences
+                    ?.get(PreferencesKey.SELECTED_APP_PACKAGES)
+                    ?.size ?: 0
+
+            analytics.trackFirstLockConfigured(
+                source = source,
+                selectedAppCount = selectedAppCount,
+            )
+
+            dataStore.edit { mutablePreferences ->
+                mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
+            }
+        }
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()
