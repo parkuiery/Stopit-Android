@@ -121,6 +121,7 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 
 - root `AGENTS.md`
 - `app/AGENTS.md`
+- `docs/DEPENDENCY_LINT_MAINTENANCE.md`
 - `docs/GIT_WORKFLOW.md`
 - `docs/PLAY_DEPLOYMENT.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`

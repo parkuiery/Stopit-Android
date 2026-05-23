@@ -183,6 +183,8 @@ gh pr create --base develop --fill
 
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
+의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, version catalog와 `app/build.gradle.kts`의 direct dependency version을 함께 확인합니다.
+
 ## Standard Release Flow
 
 ```bash
