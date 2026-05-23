@@ -8,7 +8,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -16,7 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -48,14 +46,12 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
                     try {
                         val preferences = dataStore.data.first()
                         val routinesJson = preferences[PreferencesKey.ROUTINES]
-                        if (!routinesJson.isNullOrEmpty()) {
-                            val routines = Json.decodeFromString<List<RoutineModel>>(routinesJson)
-                            val routine = routines.find { it.id == routineId }
-                            routine?.let {
-                                if (it.isEnabled) {
-                                    routineScheduler.scheduleRoutine(it)
-                                }
-                            }
+                        val routines = RoutineReceiverPolicy.decodeStoredRoutines(routinesJson)
+                        RoutineReceiverPolicy.findEnabledRoutineToReschedule(
+                            routines = routines,
+                            routineId = routineId,
+                        )?.let {
+                            routineScheduler.scheduleRoutine(it)
                         }
                     } finally {
                         pendingResult.finish()
