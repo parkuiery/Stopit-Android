@@ -1,17 +1,16 @@
 [versions]
 accompanistSystemuicontroller = "0.32.0"
 agp = "8.6.0"
-datastorePreferences = "1.1.2"
-firebaseBom = "34.2.0"
-firebaseMessaging = "24.1.1"
+coreKtx = "1.15.0"
+datastorePreferences = "1.2.1"
+firebaseBom = "34.13.0"
 hiltNavigationCompose = "1.2.0"
 kotlin = "2.1.0"
-coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 uiAutomator = "2.3.0"
-kotlinxSerializationJson = "1.8.0"
+kotlinxSerializationJson = "1.8.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.01.01"
@@ -23,7 +22,7 @@ navigationCompose = "2.8.9"
 orbit = "9.0.0"
 hilt = "2.56.1"
 ksp = "2.1.10-1.0.31"
-gmsGoogleServices = "4.4.2"
+gmsGoogleServices = "4.4.4"
 utilcodex = "1.31.1"
 mockitoCore = "5.14.2"
 playReview = "2.0.2"
@@ -36,7 +35,7 @@ androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-com
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
