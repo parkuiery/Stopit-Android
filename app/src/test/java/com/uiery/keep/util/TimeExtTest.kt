@@ -7,8 +7,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalDateTime
+import java.util.Locale
 
 class TimeExtTest {
+
+    @Test
+    fun formatAmPmTimeUsesAsciiDigitsEvenWhenDefaultLocaleUsesLocalizedDigits() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+        try {
+            assertEquals("오전 09:05", formatAmPmTime(amPm = "오전", hour24 = 9, minute = 5))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun formatAmPmTimeConvertsMidnightAndAfternoonToTwelveHourClock() {
+        assertEquals("AM 12:00", formatAmPmTime(amPm = "AM", hour24 = 0, minute = 0))
+        assertEquals("PM 01:07", formatAmPmTime(amPm = "PM", hour24 = 13, minute = 7))
+    }
 
     @Test
     fun routineDurationMinutesHandlesSameDayAndCrossMidnight() {
