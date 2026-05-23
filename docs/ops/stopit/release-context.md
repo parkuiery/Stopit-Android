@@ -1,0 +1,105 @@
+# Stopit Release Context
+
+## 브랜치 전략
+
+Stopit은 `develop`을 일상 개발 기본 브랜치로, `main`을 릴리즈/프로덕션 기준선으로 사용한다.
+
+기본 PR 대상:
+- 일반 기능/버그/문서/리팩터링/테스트/CI: `develop`
+- release branch: `main`
+- hotfix branch: `main`
+
+브랜치 예시:
+- `feature/<short-kebab-case>`
+- `fix/<short-kebab-case>`
+- `refactor/<short-kebab-case>`
+- `docs/<short-kebab-case>`
+- `test/<short-kebab-case>`
+- `ci/<short-kebab-case>`
+- `chore/<short-kebab-case>`
+- `release/<version>`
+- `hotfix/<short-kebab-case>`
+
+## 실행 cron의 기본 PR 규칙
+
+- 작업 전 `git status --short --branch`로 clean 여부를 확인한다.
+- dirty tree이면 위험한 stacking을 하지 말고 blocker로 보고한다.
+- 한 번에 하나의 작고 안전한 이슈/slice만 처리한다.
+- PR base는 일반적으로 `develop`이다.
+- PR body는 temp file에 작성하고 `gh pr create --body-file`을 사용한다.
+- PR 생성 후 `gh pr view --json body`로 markdown이 깨지지 않았는지 확인한다.
+- PR body에는 다음을 포함한다.
+  - Summary
+  - Verification commands and result
+  - Deployment impact
+  - `Refs #<issue>` 또는 완전히 충족하면 `Closes #<issue>`
+
+## CI / Release Build / CD 분리
+
+- CI: `.github/workflows/android-ci.yml`
+  - PR/push to `develop` or `main`
+  - unit tests and prod debug APK artifact
+  - signed release or Play upload 없음
+
+- Release Build: `.github/workflows/release-build.yml`
+  - PR/push to `main`
+  - signed `prodRelease` AAB artifact
+  - Play upload 없음
+
+- CD: `.github/workflows/play-deploy.yml`
+  - `v*.*.*` tag 또는 manual dispatch
+  - signed AAB build and Google Play upload
+  - 기본 track은 `internal`
+
+## Play 배포 guardrail
+
+- production 업로드는 자동으로 단정하지 않는다.
+- tag-triggered CD는 기본적으로 internal track이다.
+- production track은 명시적 판단/수동 workflow dispatch가 필요하다.
+- 실제 배포를 수행하지 않았으면 “배포 완료”라고 말하지 않는다.
+- release/hotfix가 main에 들어간 뒤에는 `main -> develop` 역머지를 고려한다.
+
+## 버전 규칙
+
+- `versionName`: SemVer, 예: `1.7.2`
+- `versionCode`: Google Play 단조 증가 정수. 이미 업로드된 값은 재사용 불가.
+- `main` 대상 release/hotfix PR은 `versionCode`가 기존 `main`보다 커야 한다.
+- tag 형식은 `v{versionName}`이다.
+
+## 검증 명령 원칙
+
+개발 PR:
+- focused JVM test: `./gradlew :app:testDevDebugUnitTest --tests '...'`
+- 필요 시 broader variant task
+- flavorless task는 신중히 사용한다.
+
+릴리즈 준비:
+- `scripts/check-release-readiness.sh`
+- `./gradlew :app:testProdReleaseUnitTest`
+- `./gradlew bundleProdRelease` 또는 dry-run where appropriate
+
+CI 확인:
+```bash
+gh pr checks <PR_NUMBER>
+gh pr checks <PR_NUMBER> --watch
+```
+
+merge 후 확인:
+```bash
+gh pr view <PR_NUMBER> --json state,mergedAt,url,mergeCommit
+```
+
+## Secret 안전
+
+절대 출력/커밋하지 않는다:
+- keystore
+- service account JSON private key
+- GitHub secrets contents
+- Play/Firebase credentials
+- generated signed artifacts
+
+## 관련 문서
+
+- `docs/GIT_WORKFLOW.md`
+- `docs/PLAY_DEPLOYMENT.md`
+- `.github/workflows/`

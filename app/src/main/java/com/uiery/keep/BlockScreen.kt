@@ -37,6 +37,7 @@ import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
@@ -109,7 +110,7 @@ fun BlockScreen(
         TrackedBannerAd(
             modifier = Modifier.align(Alignment.TopCenter),
             metadata = AdPlacementMetadata(
-                screenName = "BlockScreen",
+                screenName = KeepAnalyticsScreen.BLOCK,
                 screenContext = "blocked_app",
                 placement = "block_top",
                 adUnitId = "ca-app-pub-1537867411423705/5467753282",

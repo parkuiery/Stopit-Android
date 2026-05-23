@@ -28,9 +28,11 @@ import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.util.formatTwelveHourTime
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
 import kotlinx.datetime.LocalTime
@@ -75,7 +77,7 @@ internal fun RoutineListContent(
         TrackedBannerAd(
             modifier = Modifier.fillMaxWidth(),
             metadata = AdPlacementMetadata(
-                screenName = "RoutineScreen",
+                screenName = KeepAnalyticsScreen.ROUTINE,
                 screenContext = "list",
                 placement = "routine_list_bottom",
                 adUnitId = "ca-app-pub-1537867411423705/7750072748",
@@ -110,7 +112,6 @@ private fun RoutineItem(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val amPmText = if (startTime.hour < 12) R.string.am else R.string.pm
-        val displayHour = if (startTime.hour % 12 == 0) 12 else startTime.hour % 12
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -123,7 +124,10 @@ private fun RoutineItem(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Text(
-                    text = "%02d:%02d".format(displayHour, startTime.minute),
+                    text = formatTwelveHourTime(
+                        hour24 = startTime.hour,
+                        minute = startTime.minute,
+                    ),
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
                     color = KeepTheme.colors.onSurfaceVariant,

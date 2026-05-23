@@ -4,6 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.PreferencesKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
@@ -16,11 +18,13 @@ import javax.inject.Inject
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val analytics: KeepAnalytics,
 ) : ContainerHost<HistoryUiState, HistorySideEffect>, ViewModel() {
     override val container: Container<HistoryUiState, HistorySideEffect> =
         container(HistoryUiState())
 
     init {
+        analytics.logScreenView(KeepAnalyticsScreen.HISTORY)
         getBlockTime()
     }
 

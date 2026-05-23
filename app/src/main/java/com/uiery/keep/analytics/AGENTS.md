@@ -26,9 +26,9 @@ No documented child directories.
 - Keep changes scoped to this directory’s responsibility and follow the neighboring file naming/style conventions.
 
 ### Testing Requirements
-- ./gradlew testDebugUnitTest
-- ./gradlew assembleDebug
-- ./gradlew connectedAndroidTest when Android services/receivers/permissions/resources require device validation.
+- ./gradlew :app:testDevDebugUnitTest
+- ./gradlew :app:assembleProdDebug
+- ./gradlew :app:connectedDevDebugAndroidTest when Android services/receivers/permissions/resources require device validation.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.

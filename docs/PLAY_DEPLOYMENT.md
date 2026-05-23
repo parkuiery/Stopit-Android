@@ -13,11 +13,11 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 ## What is automated
 
 - Pull requests and pushes to `main`/`develop` run Android CI:
-  - `./gradlew testDebugUnitTest`
-  - `./gradlew assembleProdDebug`
+  - `./gradlew :app:testDevDebugUnitTest`
+  - `./gradlew :app:assembleProdDebug`
   - upload prod debug APK artifact
 - Release candidates targeting `main` run Android Release Build:
-  - `./gradlew testProdReleaseUnitTest`
+  - `./gradlew :app:testProdReleaseUnitTest`
   - signed `prodRelease` AAB build
   - upload signed AAB artifact to GitHub Actions
 - Pushing a semver tag like `v1.7.1` runs Play deployment:
@@ -80,6 +80,10 @@ The release PR should pass:
 - Version Guard
 - Android CI
 - Android Release Build
+- Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
+- Backup/restore sign-off from `docs/BACKUP_RESTORE_POLICY.md` when backup XML or persisted-state contracts changed
+
+If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example `./gradlew :app:connectedDevDebugAndroidTest`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
 
 After the release PR is merged into `main`:
 
@@ -97,7 +101,7 @@ Promote from internal to production in Play Console, or manually run the deploy 
 Without signing environment variables, local release builds fall back to debug signing so normal build checks remain easy:
 
 ```bash
-./gradlew bundleProdRelease
+./gradlew :app:bundleProdRelease
 ```
 
 With real signing credentials:
@@ -107,8 +111,10 @@ export ANDROID_KEYSTORE_PATH=/path/to/upload-key.jks
 export ANDROID_KEYSTORE_PASSWORD='***'
 export ANDROID_KEY_ALIAS='upload'
 export ANDROID_KEY_PASSWORD='***'
-./gradlew bundleProdRelease
+./gradlew :app:bundleProdRelease
 ```
+
+Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
 
 ## Safety notes
 

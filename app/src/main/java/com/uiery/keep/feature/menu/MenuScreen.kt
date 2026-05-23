@@ -43,6 +43,7 @@ import androidx.core.net.toUri
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,7 +171,7 @@ fun MenuScreen(
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
                 metadata = AdPlacementMetadata(
-                    screenName = "MenuScreen",
+                    screenName = KeepAnalyticsScreen.MENU,
                     screenContext = "settings",
                     placement = "menu_bottom",
                     adUnitId = "ca-app-pub-1537867411423705/3270829732",

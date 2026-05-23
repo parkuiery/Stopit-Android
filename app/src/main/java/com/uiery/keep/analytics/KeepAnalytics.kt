@@ -159,6 +159,19 @@ object OnboardingStepName {
     const val SELECT_APP = "select_app"
 }
 
+object KeepAnalyticsScreen {
+    const val ONBOARDING_INTRO = "OnboardingIntroScreen"
+    const val ONBOARDING_PERMISSION = "OnboardingPermissionScreen"
+    const val ONBOARDING_NOTIFICATION = "OnboardingNotificationScreen"
+    const val ONBOARDING_SELECT_APP = "OnboardingSelectAppScreen"
+    const val HOME = "HomeScreen"
+    const val MENU = "MenuScreen"
+    const val HISTORY = "HistoryScreen"
+    const val ROUTINE = "RoutineScreen"
+    const val BLOCK = "BlockScreen"
+    const val LOCK = "LockScreen"
+}
+
 object AnalyticsSource {
     const val ONBOARDING = "onboarding"
     const val HOME = "home"

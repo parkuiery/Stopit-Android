@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isRoutineActiveNow
@@ -23,7 +25,12 @@ import javax.inject.Inject
 @HiltViewModel
 class MenuViewModel @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val analytics: KeepAnalytics,
 ) : ViewModel() {
+
+    init {
+        analytics.logScreenView(KeepAnalyticsScreen.MENU)
+    }
 
     val preventUninstall: StateFlow<Boolean> = dataStore.data
         .map { it[PreferencesKey.PREVENT_UNINSTALL] ?: true }

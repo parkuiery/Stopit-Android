@@ -27,9 +27,9 @@ Preferences DataStore layer for local device/session state, selected routines, t
 - Expose typed operations through the DataStore abstraction rather than scattering raw key access across features.
 
 ### Testing Requirements
-- ./gradlew testDebugUnitTest
-- ./gradlew assembleDebug
-- ./gradlew connectedAndroidTest when Android services/receivers/permissions/resources require device validation.
+- ./gradlew :app:testDevDebugUnitTest
+- ./gradlew :app:assembleProdDebug
+- ./gradlew :app:connectedDevDebugAndroidTest when Android services/receivers/permissions/resources require device validation.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.

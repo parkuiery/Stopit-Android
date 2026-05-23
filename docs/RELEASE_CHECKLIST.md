@@ -21,6 +21,9 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android CI passes on the PR.
 - [ ] Android Release Build passes and produces a signed AAB artifact.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
+- [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md`.
+- [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
+- [ ] If `:app:connectedDevDebugAndroidTest` did not run, the blocker and manual evidence are recorded in the PR body.
 - [ ] User-facing changes are summarized below.
 
 ## Change summary

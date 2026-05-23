@@ -15,7 +15,7 @@ Keep Design System Android library module. It provides reusable Compose componen
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `src/` | KDS source-set container. (see `src/AGENTS.md`) |
+| `src/` | KDS source-set container. Main source-set guidance starts at `src/main/AGENTS.md`. |
 
 ## For AI Agents
 

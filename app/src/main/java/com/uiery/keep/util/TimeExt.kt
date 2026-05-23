@@ -13,6 +13,9 @@ import kotlinx.datetime.toKotlinLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.LocalTime as JavaLocalTime
+import java.time.format.TextStyle
+import java.util.Locale
 
 val today: LocalDate
     inline get() =
@@ -31,19 +34,73 @@ val timeNow: kotlinx.datetime.LocalTime
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .time
 
-fun LocalTime.toTimeString(context: Context): String {
-    val hour = this.hour
-    val minute = this.minute
-    val isAm = hour < 12
+fun formatTwelveHourTime(
+    hour24: Int,
+    minute: Int,
+): String {
     val displayHour =
         when {
-            hour == 0 -> 12
-            hour > 12 -> hour - 12
-            else -> hour
+            hour24 == 0 -> 12
+            hour24 > 12 -> hour24 - 12
+            else -> hour24
         }
-    val amPm = if (isAm) context.getString(R.string.am) else context.getString(R.string.pm)
-    return "$amPm %02d:%02d".format(displayHour, minute)
+    return listOf(displayHour, minute).joinToString(":") { it.toString().padStart(2, '0') }
 }
+
+fun formatAmPmTime(
+    amPm: String,
+    hour24: Int,
+    minute: Int,
+): String = "$amPm ${formatTwelveHourTime(hour24 = hour24, minute = minute)}"
+
+fun formatTwentyFourHourTime(time: JavaLocalTime): String =
+    "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"
+
+fun formatMonthDay(date: java.time.LocalDate): String = "${date.monthValue}.${date.dayOfMonth}"
+
+fun formatYearMonth(date: java.time.LocalDate): String = "${date.year}.${date.monthValue}"
+
+fun formatLockHistoryDateHeader(
+    date: java.time.LocalDate,
+    locale: Locale,
+): String = "${date.monthValue}/${date.dayOfMonth} (${date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)})"
+
+fun LocalTime.toTimeString(context: Context): String {
+    val amPm = if (hour < 12) context.getString(R.string.am) else context.getString(R.string.pm)
+    return formatAmPmTime(
+        amPm = amPm,
+        hour24 = hour,
+        minute = minute,
+    )
+}
+
+fun formatMinuteSecondCountdown(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "$minutes:${seconds.toString().padStart(2, '0')}"
+}
+
+fun formatHourAwareCountdown(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        listOf(hours, minutes, seconds).joinToString(":") { it.toString().padStart(2, '0') }
+    } else {
+        listOf(minutes, seconds).joinToString(":") { it.toString().padStart(2, '0') }
+    }
+}
+
+fun formatLockEndTime(
+    lockTime: java.time.LocalDateTime,
+    currentDate: java.time.LocalDate = java.time.LocalDate.now(),
+): String =
+    if (lockTime.toLocalDate() != currentDate) {
+        "${lockTime.monthValue}/${lockTime.dayOfMonth} ${lockTime.hour.toString().padStart(2, '0')}:${lockTime.minute.toString().padStart(2, '0')}"
+    } else {
+        "${lockTime.hour.toString().padStart(2, '0')}:${lockTime.minute.toString().padStart(2, '0')}"
+    }
 
 fun String.toDayOfWeekList(): List<DayOfWeek> =
     this

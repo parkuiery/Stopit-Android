@@ -21,12 +21,12 @@
 ## Validation
 
 For normal development PRs:
-- [ ] `./gradlew testDebugUnitTest`
-- [ ] `./gradlew assembleProdDebug`
+- [ ] `./gradlew :app:testDevDebugUnitTest`
+- [ ] `./gradlew :app:assembleProdDebug`
 - [ ] Android CI passes
 
 For release/hotfix PRs:
-- [ ] `./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run`
+- [ ] `./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run`
 - [ ] Version Guard passes
 - [ ] Android Release Build passes and produces signed AAB artifact
 

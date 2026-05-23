@@ -10,6 +10,7 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
@@ -57,6 +58,7 @@ class HomeViewModel
                 val isKeep = !state.isKeep
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
+                    trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
                         isRoutine = false,
@@ -129,11 +131,17 @@ class HomeViewModel
                 if (!pending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
+                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                     return@intent
                 }
                 val live = reviewEligibility.evaluateLive()
                 if (live is ReviewEligibilityDecision.Ineligible) {
                     analytics.reviewPromptSkipped(live.reason.name)
+                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
+                    return@intent
+                }
+                if (activity == null) {
+                    analytics.reviewPromptSkipped(SkipReason.NoActivity.name)
                     return@intent
                 }
                 dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
@@ -290,6 +298,7 @@ class HomeViewModel
                         .between(LocalDateTime.now(), targetLockDateTime)
                         .toMillis()
                         .coerceAtLeast(0L)
+                trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)
                 analytics.trackLockScheduled(
                     scheduleType = if (state.countdownDays > 0) {
                         AnalyticsScheduleType.COUNTDOWN
@@ -304,6 +313,27 @@ class HomeViewModel
                 )
                 storeBlockTime(lockedDuration)
             }
+
+        private suspend fun trackFirstLockConfiguredIfNeeded(source: String) {
+            val preferences = dataStore.data.firstOrNull()
+            val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+
+            if (hasTracked) return
+
+            val selectedAppCount =
+                preferences
+                    ?.get(PreferencesKey.SELECTED_APP_PACKAGES)
+                    ?.size ?: 0
+
+            analytics.trackFirstLockConfigured(
+                source = source,
+                selectedAppCount = selectedAppCount,
+            )
+
+            dataStore.edit { mutablePreferences ->
+                mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
+            }
+        }
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()
@@ -325,7 +355,7 @@ class HomeViewModel
 
         internal fun analyticsHomeScreen() =
             intent {
-                analytics.logScreenView("HomeScreen")
+                analytics.logScreenView(KeepAnalyticsScreen.HOME)
             }
     }
 

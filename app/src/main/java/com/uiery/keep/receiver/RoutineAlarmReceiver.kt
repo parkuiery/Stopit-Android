@@ -3,12 +3,13 @@ package com.uiery.keep.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -29,39 +31,69 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var routineScheduler: RoutineScheduler
 
     @Inject
+    lateinit var routineDao: RoutineDao
+
+    @Inject
     @KeepDataSource
     lateinit var dataStore: DataStore<Preferences>
 
     override fun onReceive(context: Context, intent: Intent) {
-        //super.onReceive(context, intent)
-        Log.d("TEST", "onReceive: ")
-        if (intent.action == ACTION_ROUTINE_ALARM) {
-            val routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME) ?: return
-            val routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L)
+        RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+            action = intent.action,
+            routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
+            routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
+        ) ?: return
 
-            if (routineId != -1L) {
-                notificationHelper.showRoutineStartNotification(routineName, routineId)
-
-                // Reschedule for next week
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val preferences = dataStore.data.first()
-                        val routinesJson = preferences[PreferencesKey.ROUTINES]
-                        if (!routinesJson.isNullOrEmpty()) {
-                            val routines = Json.decodeFromString<List<RoutineModel>>(routinesJson)
-                            val routine = routines.find { it.id == routineId }
-                            routine?.let {
-                                if (it.isEnabled) {
-                                    routineScheduler.scheduleRoutine(it)
-                                }
-                            }
-                        }
-                    } finally {
-                        pendingResult.finish()
-                    }
-                }
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                handleRoutineAlarm(
+                    action = intent.action,
+                    routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
+                    routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
+                )
+            } finally {
+                pendingResult.finish()
             }
+        }
+    }
+
+    suspend fun handleRoutineAlarm(
+        action: String?,
+        routineName: String?,
+        routineId: Long,
+    ) {
+        val trigger = RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+            action = action,
+            routineName = routineName,
+            routineId = routineId,
+        ) ?: return
+
+        notificationHelper.showRoutineStartNotification(trigger.routineName, trigger.routineId)
+
+        val preferences = dataStore.data.first()
+        val storedRoutines = RoutineReceiverPolicy.decodeStoredRoutines(preferences[PreferencesKey.ROUTINES])
+        val databaseRoutines = if (storedRoutines.isEmpty()) {
+            routineDao.fetchAllOnce().map { it.toModel() }
+        } else {
+            emptyList()
+        }
+        val routines = RoutineReceiverPolicy.resolveRoutines(
+            storedRoutines = storedRoutines,
+            databaseRoutines = databaseRoutines,
+        )
+
+        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
+            dataStore.edit { mutablePreferences ->
+                mutablePreferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
+            }
+        }
+
+        RoutineReceiverPolicy.findEnabledRoutineToReschedule(
+            routines = routines,
+            routineId = trigger.routineId,
+        )?.let {
+            routineScheduler.scheduleRoutine(it)
         }
     }
 

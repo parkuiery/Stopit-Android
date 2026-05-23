@@ -25,7 +25,7 @@ Keep (StopIt) is a Kotlin Android screen-time management app that blocks selecte
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/` | Claude-specific local guidance and settings for agents working in this repository. (see `.claude/AGENTS.md`) |
+| `.claude/` | Claude-specific local guidance and settings for agents working in this repository. |
 | `app/` | Main Android application module for package `com.uiery.keep`. (see `app/AGENTS.md`) |
 | `core/` | Container for shared Gradle modules used by the application. (see `core/AGENTS.md`) |
 | `docs/` | Project documentation for workflow, plans, and historical design/spec artifacts. (see `docs/AGENTS.md`) |
@@ -40,9 +40,10 @@ Keep (StopIt) is a Kotlin Android screen-time management app that blocks selecte
 - Keep generated/build output (`build/`, release artifacts, compiled Firebase output, caches) out of documentation and source changes.
 
 ### Testing Requirements
-- ./gradlew test
-- ./gradlew assembleDebug
-- ./gradlew connectedAndroidTest when Android framework behavior, Room migrations, services, or receivers are affected.
+- ./gradlew :app:testDevDebugUnitTest for the default local JVM check.
+- ./gradlew :app:assembleProdDebug for a prod-like debug artifact.
+- ./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease for release-path validation when needed.
+- ./gradlew :app:connectedDevDebugAndroidTest when Android framework behavior, Room migrations, services, or receivers are affected.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.
@@ -71,18 +72,20 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ```bash
 # Build variants
-./gradlew assembleDebug              # Debug APK
-./gradlew assembleDev                # Dev flavor
-./gradlew assembleProd               # Prod flavor
-./gradlew bundleProd                 # Production App Bundle
+./gradlew :app:assembleDevDebug      # Local dev debug APK
+./gradlew :app:assembleProdDebug     # Prod flavor debug APK / CI smoke artifact
+./gradlew :app:bundleProdRelease     # Production App Bundle
 
 # Run tests
-./gradlew test                       # Unit tests
-./gradlew connectedAndroidTest       # Instrumented tests
+./gradlew :app:testDevDebugUnitTest  # Default local JVM tests
+./gradlew :app:testProdReleaseUnitTest # Release-path JVM tests
+./gradlew :app:connectedDevDebugAndroidTest # Instrumented tests
 
 # Clean build
-./gradlew clean build
+./gradlew clean :app:testDevDebugUnitTest :app:assembleProdDebug
 ```
+
+Flavor note: this repo defines `dev` and `prod` flavors, so flavor-less commands such as `testDebugUnitTest`, `lintDebug`, and `assembleDebug` are ambiguous and should not be used as the default guidance.
 
 ## Architecture Overview
 

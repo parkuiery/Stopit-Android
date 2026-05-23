@@ -14,7 +14,7 @@ Gradle version catalog and wrapper support files shared by all modules.
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `wrapper/` | Gradle Wrapper binary/properties. (see `wrapper/AGENTS.md`) |
+| `wrapper/` | Gradle Wrapper binary/properties. |
 
 ## For AI Agents
 
