@@ -28,7 +28,7 @@ Main Android application module for package `com.uiery.keep`. It contains flavor
 - ./gradlew :app:testDevDebugUnitTest
 - ./gradlew :app:assembleProdDebug
 - ./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease when validating the release path.
-- ./gradlew connectedAndroidTest when Android services/receivers/permissions/resources require device validation.
+- ./gradlew :app:connectedDevDebugAndroidTest when Android services/receivers/permissions/resources require device validation.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.
