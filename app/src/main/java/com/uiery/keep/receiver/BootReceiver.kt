@@ -7,14 +7,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,8 +35,8 @@ class BootReceiver : BroadcastReceiver() {
                     val preferences = dataStore.data.first()
                     val routinesJson = preferences[PreferencesKey.ROUTINES]
 
-                    if (!routinesJson.isNullOrEmpty()) {
-                        val routines = Json.decodeFromString<List<RoutineModel>>(routinesJson)
+                    val routines = RoutineReceiverPolicy.decodeStoredRoutines(routinesJson)
+                    if (routines.isNotEmpty()) {
                         routineScheduler.scheduleAllRoutines(routines)
                     }
                 } finally {
