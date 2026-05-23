@@ -71,6 +71,7 @@
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안.
+- `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
 
@@ -336,14 +337,15 @@ PY
 확인 지표:
 
 - Play Store 평점과 리뷰 수
-- `review_prompt_skipped`
-- 리뷰 프롬프트 eligible/shown/accepted/dismissed 이벤트 유무
+- `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`
+- `review_prompt_skipped` reason 분포
 - 성공적 사용 이벤트: `app_block_intercepted`, `lock_session_start`, `core_action_completed`
 
 판단 기준:
 
 - 사용 신호가 있는데 리뷰 수가 적으면 긍정 사용 순간 기반 리뷰 프롬프트를 만든다.
 - Play in-app review 정책을 지키고 반복 요청을 제한한다.
+- `shown`은 리뷰 작성 완료가 아니라 sheet launch 성공으로 해석하고, 실제 성과는 Play Console 평점/리뷰 수의 14일·30일 후행 비교로 본다.
 
 ## 이슈 작성 템플릿
 
