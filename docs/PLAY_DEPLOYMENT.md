@@ -80,6 +80,9 @@ The release PR should pass:
 - Version Guard
 - Android CI
 - Android Release Build
+- Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
+
+If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example `./gradlew :app:connectedDevDebugAndroidTest`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
 
 After the release PR is merged into `main`:
 
