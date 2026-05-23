@@ -26,8 +26,7 @@ class BootReceiver : BroadcastReceiver() {
     lateinit var dataStore: DataStore<Preferences>
 
     override fun onReceive(context: Context, intent: Intent) {
-        //super.onReceive(context, intent)
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+        if (RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(intent.action)) {
             val pendingResult = goAsync()
 
             CoroutineScope(Dispatchers.IO).launch {

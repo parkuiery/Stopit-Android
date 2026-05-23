@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.content.Intent
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
@@ -9,6 +10,58 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class RoutineReceiverPolicyTest {
+
+    @Test
+    fun shouldRestoreRoutinesOnBootReturnsTrueOnlyForBootCompletedAction() {
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
+        assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
+    }
+
+    @Test
+    fun parseRoutineAlarmTriggerReturnsPayloadForValidAlarmActionAndExtras() {
+        assertEquals(
+            RoutineAlarmTrigger(routineName = "Morning focus", routineId = 42L),
+            RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+                action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+                routineName = "Morning focus",
+                routineId = 42L,
+            ),
+        )
+    }
+
+    @Test
+    fun parseRoutineAlarmTriggerReturnsNullWhenActionDoesNotMatch() {
+        assertNull(
+            RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+                action = Intent.ACTION_BOOT_COMPLETED,
+                routineName = "Morning focus",
+                routineId = 42L,
+            ),
+        )
+    }
+
+    @Test
+    fun parseRoutineAlarmTriggerReturnsNullWhenRoutineNameMissing() {
+        assertNull(
+            RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+                action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+                routineName = null,
+                routineId = 42L,
+            ),
+        )
+    }
+
+    @Test
+    fun parseRoutineAlarmTriggerReturnsNullWhenRoutineIdMissing() {
+        assertNull(
+            RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+                action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+                routineName = "Morning focus",
+                routineId = -1L,
+            ),
+        )
+    }
 
     @Test
     fun decodeStoredRoutinesReturnsEmptyListWhenJsonIsNull() {
