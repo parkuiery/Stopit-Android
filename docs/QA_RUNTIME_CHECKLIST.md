@@ -49,6 +49,25 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### Android 공식 testing skill 기반 UI smoke baseline
+
+Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
+
+- `/Users/uiel/.agents/skills/testing-setup/SKILL.md`
+- `/Users/uiel/.agents/skills/android-cli/SKILL.md`
+- 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
+
+release/hotfix PR은 아래 focused UI smoke를 `Release instrumentation QA`에서 먼저 실행한 뒤 전체 Android runtime test를 실행한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+./gradlew :app:connectedDevDebugAndroidTest
+```
+
+현재 smoke test는 Compose semantics tag `stopit_app_nav_host`와 UIAutomator package visibility를 함께 확인한다. 이는 테스트 코드만의 형식 검사가 아니라 앱이 실제 emulator에서 MainActivity와 Compose navigation host까지 올라오는지 확인하는 release candidate baseline이다.
+
 ### receiver/service instrumentation baseline
 
 issue #27 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.

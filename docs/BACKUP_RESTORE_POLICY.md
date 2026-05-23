@@ -62,7 +62,7 @@
 이번 PR 기준 정책은 다음과 같다.
 
 - `database/keep-database`만 cloud backup / device transfer 대상으로 포함
-- `file/datastore/keep-datastore.preferences_pb`는 명시적으로 제외
+- DataStore 파일은 포함하지 않는다. Android lint의 `FullBackupContent` 규칙상 `database/keep-database`만 include하면 `file/datastore/keep-datastore.preferences_pb` exclude는 중복이므로 XML에는 두지 않는다.
 
 즉, **Room DB는 복원되고 DataStore는 복원되지 않는다.** 다만 루틴 런타임이 완전히 비어 버리지 않도록, boot/routine alarm 경로에서는 Room에 복원된 routine 목록으로 `PreferencesKey.ROUTINES` 캐시를 다시 채우는 것을 전제로 한다.
 
