@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.model.LockHistoryModel
-import java.time.format.DateTimeFormatter
+import com.uiery.keep.util.formatTwentyFourHourTime
 
 @Composable
 internal fun LockHistorySessionItem(
@@ -29,7 +29,6 @@ internal fun LockHistorySessionItem(
     session: LockHistoryModel,
 ) {
     val context = LocalContext.current
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     Row(
         modifier = modifier
@@ -44,7 +43,7 @@ internal fun LockHistorySessionItem(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "${session.startDateTime.format(timeFormatter)} - ${session.endDateTime.format(timeFormatter)}",
+                text = "${formatTwentyFourHourTime(session.startDateTime.toLocalTime())} - ${formatTwentyFourHourTime(session.endDateTime.toLocalTime())}",
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,

@@ -13,6 +13,9 @@ import kotlinx.datetime.toKotlinLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.LocalTime as JavaLocalTime
+import java.time.format.TextStyle
+import java.util.Locale
 
 val today: LocalDate
     inline get() =
@@ -49,6 +52,18 @@ fun formatAmPmTime(
     hour24: Int,
     minute: Int,
 ): String = "$amPm ${formatTwelveHourTime(hour24 = hour24, minute = minute)}"
+
+fun formatTwentyFourHourTime(time: JavaLocalTime): String =
+    "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"
+
+fun formatMonthDay(date: java.time.LocalDate): String = "${date.monthValue}.${date.dayOfMonth}"
+
+fun formatYearMonth(date: java.time.LocalDate): String = "${date.year}.${date.monthValue}"
+
+fun formatLockHistoryDateHeader(
+    date: java.time.LocalDate,
+    locale: Locale,
+): String = "${date.monthValue}/${date.dayOfMonth} (${date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)})"
 
 fun LocalTime.toTimeString(context: Context): String {
     val amPm = if (hour < 12) context.getString(R.string.am) else context.getString(R.string.pm)

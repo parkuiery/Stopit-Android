@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,9 +36,11 @@ import com.uiery.keep.feature.lockhistory.component.LockHistoryTab
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTopApps
 import com.uiery.keep.feature.lockhistory.component.LockHistoryWeekCalendar
 import com.uiery.keep.model.LockHistoryModel
+import com.uiery.keep.util.formatLockHistoryDateHeader
+import com.uiery.keep.util.formatMonthDay
+import com.uiery.keep.util.formatYearMonth
 import org.orbitmvi.orbit.compose.collectAsState
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,11 +191,6 @@ private fun PeriodSelector(
     onPreviousPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
 ) {
-    val dateFormatter = when (periodType) {
-        PeriodType.WEEK -> DateTimeFormatter.ofPattern("M.d")
-        PeriodType.MONTH -> DateTimeFormatter.ofPattern("yyyy.M")
-    }
-
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,8 +205,8 @@ private fun PeriodSelector(
         }
         Text(
             text = when (periodType) {
-                PeriodType.WEEK -> "${startDate.format(dateFormatter)} - ${endDate.format(dateFormatter)}"
-                PeriodType.MONTH -> startDate.format(dateFormatter)
+                PeriodType.WEEK -> "${formatMonthDay(startDate)} - ${formatMonthDay(endDate)}"
+                PeriodType.MONTH -> formatYearMonth(startDate)
             },
             color = KeepTheme.colors.onSurfaceVariant,
             fontSize = 16.sp,
@@ -229,10 +227,10 @@ private fun DateHeader(
     modifier: Modifier = Modifier,
     date: LocalDate,
 ) {
-    val formatter = DateTimeFormatter.ofPattern("M/d (E)")
+    val locale = LocalContext.current.resources.configuration.locales[0] ?: java.util.Locale.getDefault()
     Text(
         modifier = modifier.padding(vertical = 4.dp),
-        text = date.format(formatter),
+        text = formatLockHistoryDateHeader(date = date, locale = locale),
         color = KeepTheme.colors.onTertiaryContainer,
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
