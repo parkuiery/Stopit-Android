@@ -3,6 +3,7 @@ package com.uiery.keep
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.uiery.keep.feature.devtool.devToolScreen
@@ -36,7 +37,9 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
 
     NavHost(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("stopit_app_nav_host"),
         navController = navController,
         startDestination = SplashRoute,
     ) {

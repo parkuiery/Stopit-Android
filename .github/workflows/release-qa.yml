@@ -99,7 +99,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run connected Android runtime QA
+      - name: Run Android testing skill UI smoke and runtime QA
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -107,4 +107,8 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: ./gradlew :app:connectedDevDebugAndroidTest
+          script: |
+            set -euo pipefail
+            ./gradlew :app:connectedDevDebugAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+            ./gradlew :app:connectedDevDebugAndroidTest
