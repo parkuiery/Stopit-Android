@@ -1,6 +1,6 @@
 # Stopit Android Skills Testing QA
 
-Stopit QA는 설치된 Android 공식 skills를 기준으로 운영한다.
+Stopit QA는 설치된 Android 공식 skills와 `skydoves/android-testing-skills` 커뮤니티 테스트 skills를 함께 기준으로 운영한다.
 
 ## 사용 skill
 
@@ -8,8 +8,15 @@ Stopit QA는 설치된 Android 공식 skills를 기준으로 운영한다.
 
 - `/Users/uiel/.agents/skills/testing-setup/SKILL.md`
 - `/Users/uiel/.agents/skills/android-cli/SKILL.md`
+- `/Users/uiel/.agents/skills/structuring-a-compose-test/SKILL.md`
+- `/Users/uiel/.agents/skills/finding-nodes-by-tag-text-content/SKILL.md`
+- `/Users/uiel/.agents/skills/cross-app-tests-with-uiautomator/SKILL.md`
+- `/Users/uiel/.agents/skills/running-instrumented-tests-via-adb/SKILL.md`
+- `/Users/uiel/.agents/skills/capturing-screenshots-and-screenrecord/SKILL.md`
 
-작업자가 테스트 전략, UI 테스트, screenshot/evidence, end-to-end/runtime QA를 다룰 때는 먼저 위 두 파일을 읽고 현재 앱 구조에 맞춰 적용한다.
+작업자가 테스트 전략, UI 테스트, screenshot/evidence, end-to-end/runtime QA를 다룰 때는 먼저 관련 skill 파일을 읽고 현재 앱 구조에 맞춰 적용한다.
+
+`skydoves/android-testing-skills`는 전체 54개 skill 카탈로그이므로 새 QA 작업을 만들 때는 증상/목표별로 필요한 skill만 추가로 읽는다. 원본/업데이트 위치는 `/Users/uiel/.agents/skills-sources/android-testing-skills`이다.
 
 ## 현재 Stopit 테스트 전략
 
@@ -67,8 +74,10 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 ## 새 QA 작업 추가 기준
 
-- Compose UI behavior test는 semantics matcher를 우선 사용한다.
-- matcher가 복잡해지면 production UI에 명시적 `testTag`를 작게 추가한다.
-- platform/system UI, notification, settings, accessibility permission이 필요한 journey는 UIAutomator를 사용한다.
-- end-to-end test는 적은 수의 핵심 사용자 journey만 유지한다.
-- screenshot test는 behavior 검증을 대체하지 않는다. 화면 회귀/evidence 용도로 분리한다.
+- [ ] Compose UI behavior test는 semantics matcher를 우선 사용한다. `structuring-a-compose-test`와 `finding-nodes-by-tag-text-content`를 읽고 테스트 구조와 finder를 정한다.
+- [ ] matcher가 복잡해지면 production UI에 명시적 `testTag`를 작게 추가한다.
+- [ ] platform/system UI, notification, settings, accessibility permission이 필요한 journey는 `cross-app-tests-with-uiautomator` 기준으로 UIAutomator를 사용한다.
+- [ ] adb 직접 실행, sharding, runner argument가 필요한 경우 `running-instrumented-tests-via-adb`를 기준으로 명령을 만든다.
+- [ ] 실패 evidence가 필요한 release/runtime QA는 `capturing-screenshots-and-screenrecord` 기준으로 screenshot/logcat artifact를 남긴다.
+- [ ] end-to-end test는 적은 수의 핵심 사용자 journey만 유지한다.
+- [ ] screenshot test는 behavior 검증을 대체하지 않는다. 화면 회귀/evidence 용도로 분리한다.
