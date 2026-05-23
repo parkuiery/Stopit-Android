@@ -6,7 +6,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime as JavaLocalTime
 import java.util.Locale
 
 class TimeExtTest {
@@ -27,6 +29,60 @@ class TimeExtTest {
     fun formatAmPmTimeConvertsMidnightAndAfternoonToTwelveHourClock() {
         assertEquals("AM 12:00", formatAmPmTime(amPm = "AM", hour24 = 0, minute = 0))
         assertEquals("PM 01:07", formatAmPmTime(amPm = "PM", hour24 = 13, minute = 7))
+    }
+
+    @Test
+    fun formatTwentyFourHourTimeUsesAsciiDigitsEvenWhenDefaultLocaleUsesLocalizedDigits() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+        try {
+            assertEquals("08:05", formatTwentyFourHourTime(JavaLocalTime.of(8, 5)))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun formatMonthDayUsesAsciiDigitsEvenWhenDefaultLocaleUsesLocalizedDigits() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+        try {
+            assertEquals("5.2", formatMonthDay(LocalDate.of(2026, 5, 2)))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun formatYearMonthUsesAsciiDigitsEvenWhenDefaultLocaleUsesLocalizedDigits() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+        try {
+            assertEquals("2026.5", formatYearMonth(LocalDate.of(2026, 5, 2)))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun formatLockHistoryDateHeaderUsesLocalizedWeekdayWithAsciiDigits() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+        try {
+            assertEquals(
+                "5/2 (토)",
+                formatLockHistoryDateHeader(
+                    date = LocalDate.of(2026, 5, 2),
+                    locale = Locale.KOREAN,
+                ),
+            )
+        } finally {
+            Locale.setDefault(original)
+        }
     }
 
     @Test
