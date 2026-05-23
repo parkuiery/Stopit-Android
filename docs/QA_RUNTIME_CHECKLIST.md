@@ -9,6 +9,8 @@
 - 긴급해제 만료/차단 복귀
 - release 전 device/emulator 검증 순서
 
+백업/복원 정책 자체는 `docs/BACKUP_RESTORE_POLICY.md`를 source of truth로 본다. 이 문서는 복원 이후에도 receiver/service/runtime 상태가 안전하게 동작하는지 확인하는 실행 체크리스트다.
+
 비범위:
 - Room migration 세부 검증
 - Play Console 수동 프로모션 절차
