@@ -34,36 +34,45 @@ class BootReceiver : BroadcastReceiver() {
     lateinit var dataStore: DataStore<Preferences>
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(intent.action)) {
-            val pendingResult = goAsync()
+        if (!RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(intent.action)) {
+            return
+        }
 
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val preferences = dataStore.data.first()
-                    val storedRoutines = RoutineReceiverPolicy.decodeStoredRoutines(preferences[PreferencesKey.ROUTINES])
-                    val databaseRoutines = if (storedRoutines.isEmpty()) {
-                        routineDao.fetchAllOnce().map { it.toModel() }
-                    } else {
-                        emptyList()
-                    }
-                    val routines = RoutineReceiverPolicy.resolveRoutines(
-                        storedRoutines = storedRoutines,
-                        databaseRoutines = databaseRoutines,
-                    )
-
-                    if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-                        dataStore.edit { mutablePreferences ->
-                            mutablePreferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
-                        }
-                    }
-
-                    if (routines.isNotEmpty()) {
-                        routineScheduler.scheduleAllRoutines(routines)
-                    }
-                } finally {
-                    pendingResult.finish()
-                }
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                restoreRoutinesForBoot(intent.action)
+            } finally {
+                pendingResult.finish()
             }
+        }
+    }
+
+    suspend fun restoreRoutinesForBoot(action: String?) {
+        if (!RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(action)) {
+            return
+        }
+
+        val preferences = dataStore.data.first()
+        val storedRoutines = RoutineReceiverPolicy.decodeStoredRoutines(preferences[PreferencesKey.ROUTINES])
+        val databaseRoutines = if (storedRoutines.isEmpty()) {
+            routineDao.fetchAllOnce().map { it.toModel() }
+        } else {
+            emptyList()
+        }
+        val routines = RoutineReceiverPolicy.resolveRoutines(
+            storedRoutines = storedRoutines,
+            databaseRoutines = databaseRoutines,
+        )
+
+        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
+            dataStore.edit { mutablePreferences ->
+                mutablePreferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
+            }
+        }
+
+        if (routines.isNotEmpty()) {
+            routineScheduler.scheduleAllRoutines(routines)
         }
     }
 }
