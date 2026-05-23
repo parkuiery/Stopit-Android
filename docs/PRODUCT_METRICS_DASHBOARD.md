@@ -237,9 +237,10 @@
 - #13 GA4 계측 품질 개선
 - #14 첫 잠금 활성화 퍼널 개선
 - #15 Play Store ASO 개선
-- #16 AdMob 성과 및 수익화 실험
+- #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
 - #17 리뷰 프롬프트 생애주기 개선
 
 ## 관련 실행 문서
 
 - `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
