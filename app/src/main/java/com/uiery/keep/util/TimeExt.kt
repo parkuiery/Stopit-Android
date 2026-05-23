@@ -45,6 +45,34 @@ fun LocalTime.toTimeString(context: Context): String {
     return "$amPm %02d:%02d".format(displayHour, minute)
 }
 
+fun formatMinuteSecondCountdown(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "$minutes:${seconds.toString().padStart(2, '0')}"
+}
+
+fun formatHourAwareCountdown(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        listOf(hours, minutes, seconds).joinToString(":") { it.toString().padStart(2, '0') }
+    } else {
+        listOf(minutes, seconds).joinToString(":") { it.toString().padStart(2, '0') }
+    }
+}
+
+fun formatLockEndTime(
+    lockTime: java.time.LocalDateTime,
+    currentDate: java.time.LocalDate = java.time.LocalDate.now(),
+): String =
+    if (lockTime.toLocalDate() != currentDate) {
+        "${lockTime.monthValue}/${lockTime.dayOfMonth} ${lockTime.hour.toString().padStart(2, '0')}:${lockTime.minute.toString().padStart(2, '0')}"
+    } else {
+        "${lockTime.hour.toString().padStart(2, '0')}:${lockTime.minute.toString().padStart(2, '0')}"
+    }
+
 fun String.toDayOfWeekList(): List<DayOfWeek> =
     this
         .padStart(7, '0')
