@@ -100,6 +100,45 @@
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 
+## GA4 custom dimension / metric 등록 계약
+
+`screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다.
+
+### 우선 등록할 이벤트 차원
+
+| 분류 | GA4 등록 이름 예시 | 코드 파라미터 | 주 사용 이벤트 | 왜 필요한가 |
+| --- | --- | --- | --- | --- |
+| Required | `step_name` | `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome` | 온보딩 단계별 이탈/완료 분석 |
+| Required | `permission_name` | `permission_name` | `permission_outcome` | 접근성/알림 권한 병목 분리 |
+| Required | `outcome` | `outcome` | `permission_outcome` | granted / denied / settings_opened 비교 |
+| Required | `source` | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 온보딩/홈/루틴 출처별 행동 비교 |
+| Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine 차단 성공 비교 |
+| Required | `blocked_app_package` | `blocked_app_package` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 실제 차단 가치가 어느 앱에서 발생하는지 확인 |
+| Required | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 앱 선택량과 활성화 상관관계 확인 |
+| Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
+| Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
+| Required | `end_reason` | `end_reason` | `lock_session_end` | 세션 종료 사유 비교 |
+| Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_failed`, `device_registration_skipped`, `review_prompt_skipped` | 실패/스킵/긴급해제 이유 분석 |
+| Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
+| Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
+| Recommended | `routine_id` | `routine_id` | `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
+
+### 필요 시 등록할 이벤트 지표
+
+| 분류 | GA4 등록 이름 예시 | 코드 파라미터 | 주 사용 이벤트 | 왜 필요한가 |
+| --- | --- | --- | --- | --- |
+| Recommended | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 선택 앱 수 분포/평균 분석 |
+| Recommended | `scheduled_duration_minutes` | `scheduled_duration_minutes` | `lock_scheduled` | 루틴/타이머 예약 길이 분석 |
+| Recommended | `duration_minutes` | `duration_minutes` | `emergency_unlock_completed` | 긴급해제 사용 길이 분포 분석 |
+| Recommended | `remaining_unlocks` | `remaining_unlocks` | `emergency_unlock_completed` | 잔여 긴급해제 수와 재사용 패턴 분석 |
+| Recommended | `elapsed_since_first_open_seconds` | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 첫 가치 도달 시간 분석 |
+
+운영 원칙:
+
+- `Required` 항목이 빠진 상태에서는 해당 퍼널/문제에 대한 결론 confidence를 낮춘다.
+- `Recommended` 항목은 분석 목적이 생기면 등록하되, 등록 전에는 문서/이슈에서 “GA4에서 직접 조회 불가”를 명시한다.
+- 새 이벤트를 추가할 때는 코드 PR과 함께 이 표를 갱신한다.
+
 ## 퍼널 기준
 
 ### 첫 잠금 활성화 퍼널
@@ -124,21 +163,57 @@
 ### 로컬 단위 테스트
 
 ```bash
-cd /Users/uiel/Desktop/git/Keep-Android
+cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest --tests com.uiery.keep.analytics.FirebaseKeepAnalyticsTest
 ./gradlew :app:testDevDebugUnitTest --tests com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest
 ```
 
-### GA4 screen name 확인
+### GA4 metadata로 등록 상태 확인
 
 ```bash
-cd /Users/uiel/Desktop/git/Keep-Android
+cd <repo-root>
 python3 - <<'PY'
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
 
 PROPERTY_ID = '502544175'
-CREDENTIAL_PATH='/Users/.../stopit-ga4-service-account.json'
+CREDENTIAL_PATH = '/path/to/ga4-service-account.json'
+
+creds = service_account.Credentials.from_service_account_file(
+    CREDENTIAL_PATH,
+    scopes=['https://www.googleapis.com/auth/analytics.readonly'],
+)
+session = AuthorizedSession(creds)
+response = session.get(
+    f'https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}/metadata'
+)
+print(response.status_code)
+metadata = response.json()
+
+print('\nCustom dimensions')
+for dimension in metadata.get('dimensions', []):
+    api_name = dimension.get('apiName', '')
+    if api_name.startswith('customEvent:') or api_name.startswith('customUser:'):
+        print(api_name, '|', dimension.get('uiName'))
+
+print('\nCustom metrics')
+for metric in metadata.get('metrics', []):
+    api_name = metric.get('apiName', '')
+    if api_name.startswith('customEvent:'):
+        print(api_name, '|', metric.get('uiName'))
+PY
+```
+
+### GA4 screen name 확인
+
+```bash
+cd <repo-root>
+python3 - <<'PY'
+from google.oauth2 import service_account
+from google.auth.transport.requests import AuthorizedSession
+
+PROPERTY_ID = '502544175'
+CREDENTIAL_PATH = '/path/to/ga4-service-account.json'
 
 creds = service_account.Credentials.from_service_account_file(
     CREDENTIAL_PATH,
@@ -159,6 +234,23 @@ print(response.status_code)
 print(response.text)
 PY
 ```
+
+## 운영 런북
+
+### 신규 이벤트/파라미터를 추가했을 때
+
+1. `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / 관련 테스트를 먼저 확인한다.
+2. 이 문서의 이벤트 딕셔너리와 등록 계약 표를 같이 갱신한다.
+3. 필요한 차원/지표가 `Required`면 GA4 Admin에 등록하기 전까지 대시보드 결론을 보류한다.
+4. 배포 후 14일 창으로 `(not set)` 비율과 새 파라미터 조회 가능 여부를 재측정한다.
+
+### `(not set)` 또는 조회 불가가 보일 때 triage 순서
+
+1. `screen_view` 누락인지 확인한다.
+2. 코드 파라미터 이름과 문서 이름이 일치하는지 확인한다.
+3. GA4 metadata에서 해당 `customEvent:*` 차원/지표가 실제 등록됐는지 확인한다.
+4. 이벤트가 최근 버전에서만 추가된 경우 `appVersion` 세그먼트로 다시 본다.
+5. 그래도 불명확하면 제품 결론보다 계측 개선 이슈를 먼저 연다.
 
 ## 운영 메모
 

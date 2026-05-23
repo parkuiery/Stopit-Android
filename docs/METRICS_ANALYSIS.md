@@ -64,12 +64,12 @@
 지표 분석 결과는 실행 단위로 GitHub Issue에 등록한다.
 
 - 저장소: `parkuiery/Stopit-Android`
-- 로컬 경로: `/Users/uiel/Desktop/git/Keep-Android`
+- 로컬 경로: `<repo-root>`
 
 ## 관련 문서
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
-- `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, 검증 명령.
+- `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안.
 
 ## 빠른 분석 명령
@@ -77,7 +77,7 @@
 아래 명령은 로컬에서 GA4 주요 지표를 뽑는 최소 예시다.
 
 ```bash
-cd /Users/uiel/Desktop/git/Keep-Android
+cd <repo-root>
 
 python3 - <<'PY'
 from google.oauth2 import service_account
@@ -212,6 +212,7 @@ filter_payload = {
 ### 계측 메타데이터 확인
 
 GA4에서 등록된 커스텀 차원/지표를 확인한다.
+등록 필요 목록은 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 `GA4 custom dimension / metric 등록 계약` 표를 source of truth로 삼는다.
 
 ```bash
 python3 - <<'PY'
