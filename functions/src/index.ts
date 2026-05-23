@@ -1,6 +1,13 @@
+import { onRequest } from "firebase-functions/v2/https";
 import { onNewFatalIssuePublished, onNewNonfatalIssuePublished, onNewAnrIssuePublished, onRegressionAlertPublished, onVelocityAlertPublished } from "firebase-functions/v2/alerts/crashlytics";
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
+import nacl from "tweetnacl";
+
+const githubOwner = "parkuiery";
+const githubRepo = "Stopit-Android";
+const playDeployWorkflow = "play-deploy.yml";
+const productionPromotionCustomIdPrefix = "stopit_promote_production";
 
 type CrashlyticsIssue = {
   id?: string;
@@ -10,7 +17,27 @@ type CrashlyticsIssue = {
   issueType?: string;
 };
 
+type DiscordInteraction = {
+  type?: number;
+  id?: string;
+  token?: string;
+  channel_id?: string;
+  member?: {
+    user?: { id?: string; username?: string };
+    roles?: string[];
+  };
+  user?: { id?: string; username?: string };
+  data?: {
+    custom_id?: string;
+  };
+};
+
 const discordWebhookUrl = defineSecret("DISCORD_WEBHOOK_URL");
+const discordPublicKey = defineSecret("DISCORD_PUBLIC_KEY");
+const discordDeployChannelId = defineSecret("DISCORD_DEPLOY_CHANNEL_ID");
+const discordDeployAllowedRoleIds = defineSecret("DISCORD_DEPLOY_ALLOWED_ROLE_IDS");
+const discordDeployAllowedUserIds = defineSecret("DISCORD_DEPLOY_ALLOWED_USER_IDS");
+const githubActionsDispatchToken = defineSecret("GITHUB_ACTIONS_DISPATCH_TOKEN");
 
 function issueSummary(event: any): CrashlyticsIssue {
   return event?.data?.payload?.issue ?? {};
@@ -55,6 +82,187 @@ async function sendCrashlyticsAlert(kind: string, emoji: string, event: any) {
   logger.info("Sending Crashlytics alert to Discord", { kind, appId, issueId: issue.id });
   await postToDiscord("Stopit Crashlytics", content);
 }
+
+function hexToBytes(hex: string): Uint8Array {
+  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string");
+  }
+
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = Number.parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+function csvSecretValues(raw: string): Set<string> {
+  return new Set(
+    raw
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+}
+
+function verifyDiscordRequest(signature: string | undefined, timestamp: string | undefined, rawBody: Buffer): boolean {
+  if (!signature || !timestamp) return false;
+
+  const publicKey = hexToBytes(discordPublicKey.value());
+  const signatureBytes = hexToBytes(signature);
+  const timestampBytes = Buffer.from(timestamp, "utf8");
+  const message = Buffer.concat([timestampBytes, rawBody]);
+
+  return nacl.sign.detached.verify(new Uint8Array(message), signatureBytes, publicKey);
+}
+
+function promotionTagFromCustomId(customId: string | undefined): string | null {
+  if (!customId) return null;
+
+  const [prefix, tag] = customId.split(":");
+  if (prefix !== productionPromotionCustomIdPrefix) return null;
+  if (!/^v\d+\.\d+\.\d+$/.test(tag ?? "")) return null;
+  return tag;
+}
+
+function userCanPromote(interaction: DiscordInteraction): boolean {
+  const configuredChannelId = discordDeployChannelId.value().trim();
+  if (configuredChannelId && interaction.channel_id !== configuredChannelId) {
+    return false;
+  }
+
+  const userId = interaction.member?.user?.id ?? interaction.user?.id ?? "";
+  const userIds = csvSecretValues(discordDeployAllowedUserIds.value());
+  if (userId && userIds.has(userId)) {
+    return true;
+  }
+
+  const roleIds = csvSecretValues(discordDeployAllowedRoleIds.value());
+  const memberRoles = interaction.member?.roles ?? [];
+  if (memberRoles.some((roleId) => roleIds.has(roleId))) {
+    return true;
+  }
+
+  return false;
+}
+
+async function dispatchProductionPromotion(tag: string) {
+  const response = await fetch(
+    `https://api.github.com/repos/${githubOwner}/${githubRepo}/actions/workflows/${playDeployWorkflow}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        "Accept": "application/vnd.github+json",
+        "Authorization": `Bearer ${githubActionsDispatchToken.value()}`,
+        "Content-Type": "application/json",
+        "User-Agent": "stopit-discord-deploy-bot",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        ref: tag,
+        inputs: {
+          track: "production",
+          release_status: "completed",
+          rollout_fraction: "",
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`GitHub workflow dispatch failed: ${response.status} ${body}`);
+  }
+}
+
+function interactionResponse(content: string, status = 200) {
+  return {
+    status,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: 4,
+      data: {
+        content,
+        flags: 64,
+      },
+    }),
+  };
+}
+
+export const promoteProductionFromDiscord = onRequest(
+  {
+    region: "asia-northeast3",
+    secrets: [
+      discordPublicKey,
+      discordDeployChannelId,
+      discordDeployAllowedRoleIds,
+      discordDeployAllowedUserIds,
+      githubActionsDispatchToken,
+    ],
+  },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    const rawBody = (request as any).rawBody as Buffer | undefined;
+    if (!rawBody) {
+      response.status(400).send("Missing raw body");
+      return;
+    }
+
+    const signature = request.get("x-signature-ed25519");
+    const timestamp = request.get("x-signature-timestamp");
+    if (!verifyDiscordRequest(signature, timestamp, rawBody)) {
+      logger.warn("Rejected Discord interaction with invalid signature");
+      response.status(401).send("invalid request signature");
+      return;
+    }
+
+    const interaction = JSON.parse(rawBody.toString("utf8")) as DiscordInteraction;
+
+    if (interaction.type === 1) {
+      response.status(200).json({ type: 1 });
+      return;
+    }
+
+    if (interaction.type !== 3) {
+      response.status(200).json({ type: 4, data: { content: "지원하지 않는 Discord interaction입니다.", flags: 64 } });
+      return;
+    }
+
+    const tag = promotionTagFromCustomId(interaction.data?.custom_id);
+    if (!tag) {
+      response.status(200).json({ type: 4, data: { content: "알 수 없는 배포 버튼입니다.", flags: 64 } });
+      return;
+    }
+
+    if (!userCanPromote(interaction)) {
+      logger.warn("Rejected unauthorized production promotion", {
+        tag,
+        channelId: interaction.channel_id,
+        userId: interaction.member?.user?.id ?? interaction.user?.id,
+      });
+      response.status(200).json({ type: 4, data: { content: "프로덕션 배포 권한이 없습니다.", flags: 64 } });
+      return;
+    }
+
+    try {
+      await dispatchProductionPromotion(tag);
+      logger.info("Dispatched production promotion", {
+        tag,
+        channelId: interaction.channel_id,
+        userId: interaction.member?.user?.id ?? interaction.user?.id,
+      });
+      const result = interactionResponse(`🚀 \`${tag}\` 프로덕션 배포 workflow를 시작했습니다. GitHub Actions에서 완료 상태를 확인해 주세요.`);
+      response.status(result.status).set(result.headers).send(result.body);
+    } catch (error) {
+      logger.error("Failed to dispatch production promotion", { tag, error });
+      const result = interactionResponse(`프로덕션 배포 시작에 실패했습니다: ${(error as Error).message}`);
+      response.status(result.status).set(result.headers).send(result.body);
+    }
+  },
+);
 
 export const postNewFatalIssueToDiscord = onNewFatalIssuePublished(
   { secrets: [discordWebhookUrl], region: "asia-northeast3" },

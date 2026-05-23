@@ -48,3 +48,4 @@ docs/superpowers/
 functions/lib/
 functions/node_modules/
 functions/.firebase/
+__pycache__/
