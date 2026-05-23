@@ -127,6 +127,51 @@ class RoutineReceiverPolicyTest {
         assertNull(routine)
     }
 
+    @Test
+    fun resolveRoutinesPrefersStoredRoutinesWhenPresent() {
+        val stored = listOf(routine(id = 1L, name = "Stored", isEnabled = true))
+        val database = listOf(routine(id = 2L, name = "Database", isEnabled = true))
+
+        assertEquals(stored, RoutineReceiverPolicy.resolveRoutines(storedRoutines = stored, databaseRoutines = database))
+    }
+
+    @Test
+    fun resolveRoutinesFallsBackToDatabaseRoutinesWhenStoredRoutinesEmpty() {
+        val database = listOf(routine(id = 2L, name = "Database", isEnabled = true))
+
+        assertEquals(
+            database,
+            RoutineReceiverPolicy.resolveRoutines(storedRoutines = emptyList(), databaseRoutines = database),
+        )
+    }
+
+    @Test
+    fun shouldRehydrateStoredRoutinesReturnsTrueWhenDatabaseFallbackUsed() {
+        val database = listOf(routine(id = 3L, name = "Database", isEnabled = true))
+
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(
+                storedRoutines = emptyList(),
+                databaseRoutines = database,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRehydrateStoredRoutinesReturnsFalseWhenStoredRoutinesAlreadyExist() {
+        val stored = listOf(routine(id = 4L, name = "Stored", isEnabled = true))
+        val database = listOf(routine(id = 5L, name = "Database", isEnabled = true))
+
+        assertEquals(
+            false,
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(
+                storedRoutines = stored,
+                databaseRoutines = database,
+            ),
+        )
+    }
+
     private fun routine(
         id: Long,
         name: String,

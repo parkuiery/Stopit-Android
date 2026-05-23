@@ -14,6 +14,9 @@ interface RoutineDao {
     @Query("SELECT * FROM routine")
     fun fetchAll() : Flow<List<RoutineEntity>>
 
+    @Query("SELECT * FROM routine")
+    fun fetchAllOnce(): List<RoutineEntity>
+
     @Query("SELECT * FROM routine WHERE id = :id")
     fun fetch(id: Long): RoutineEntity
 
