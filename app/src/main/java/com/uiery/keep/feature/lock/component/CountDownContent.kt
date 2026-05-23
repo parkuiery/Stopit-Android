@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.formatHourAwareCountdown
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -51,14 +52,7 @@ fun CountDownContent(
 
     val days = remember(seconds) { seconds / 86400 }
     val formattedTime = remember(seconds) {
-        val h = (seconds % 86400) / 3600
-        val m = (seconds % 3600) / 60
-        val s = seconds % 60
-
-        when {
-            days > 0 || h > 0 -> String.format("%02d:%02d:%02d", h, m, s)
-            else -> String.format("%02d:%02d", m, s)
-        }
+        formatHourAwareCountdown(seconds % 86400)
     }
 
     Row(

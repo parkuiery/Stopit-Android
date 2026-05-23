@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.uiery.keep.R
+import com.uiery.keep.util.formatMinuteSecondCountdown
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,9 +39,7 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
     }
 
     fun showCountdown(remainingSeconds: Int, totalSeconds: Int) {
-        val minutes = remainingSeconds / 60
-        val seconds = remainingSeconds % 60
-        val timeText = String.format("%d:%02d", minutes, seconds)
+        val timeText = formatMinuteSecondCountdown(remainingSeconds)
         val progress = if (totalSeconds > 0) (remainingSeconds * 100) / totalSeconds else 0
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

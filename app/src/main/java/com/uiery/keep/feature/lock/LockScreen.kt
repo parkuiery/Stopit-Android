@@ -50,6 +50,8 @@ import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.lock.component.CountDownContent
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.util.formatLockEndTime
+import com.uiery.keep.util.formatMinuteSecondCountdown
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
@@ -127,9 +129,7 @@ fun LockScreen(
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
             ) {
-                val minutes = uiState.emergencyUnlockRemainingSeconds / 60
-                val seconds = uiState.emergencyUnlockRemainingSeconds % 60
-                val timeText = String.format("%d:%02d", minutes, seconds)
+                val timeText = formatMinuteSecondCountdown(uiState.emergencyUnlockRemainingSeconds)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -209,17 +209,7 @@ fun LockScreen(
             ) {
                 val lockTime = uiState.lockTime
                 val isMultiDay = lockTime.toLocalDate() != java.time.LocalDate.now()
-                val formattedTime = if (isMultiDay) {
-                    String.format(
-                        "%d/%d %02d:%02d",
-                        lockTime.monthValue,
-                        lockTime.dayOfMonth,
-                        lockTime.hour,
-                        lockTime.minute,
-                    )
-                } else {
-                    String.format("%02d:%02d", lockTime.hour, lockTime.minute)
-                }
+                val formattedTime = formatLockEndTime(lockTime)
                 Text(
                     text = stringResource(id = R.string.keep_on_status),
                     modifier = Modifier.fillMaxWidth(),
