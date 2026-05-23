@@ -279,6 +279,12 @@ class FirebaseKeepAnalyticsTest {
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
+        assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
+        assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
+        assertEquals("HistoryScreen", KeepAnalyticsScreen.HISTORY)
+        assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
+        assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
+        assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
     }
 }
 

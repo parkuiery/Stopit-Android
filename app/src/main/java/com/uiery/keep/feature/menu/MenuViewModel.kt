@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isRoutineActiveNow
@@ -28,7 +29,7 @@ class MenuViewModel @Inject constructor(
 ) : ViewModel() {
 
     init {
-        analytics.logScreenView("MenuScreen")
+        analytics.logScreenView(KeepAnalyticsScreen.MENU)
     }
 
     val preventUninstall: StateFlow<Boolean> = dataStore.data

@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.menu
 
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.review.FakeDataStore
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,7 +16,7 @@ class MenuViewModelTest {
             analytics = analytics,
         )
 
-        assertEquals(listOf("MenuScreen"), analytics.screenViews)
+        assertEquals(listOf(KeepAnalyticsScreen.MENU), analytics.screenViews)
     }
 }
 

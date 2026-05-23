@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.PreferencesKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
@@ -23,7 +24,7 @@ class HistoryViewModel @Inject constructor(
         container(HistoryUiState())
 
     init {
-        analytics.logScreenView("HistoryScreen")
+        analytics.logScreenView(KeepAnalyticsScreen.HISTORY)
         getBlockTime()
     }
 

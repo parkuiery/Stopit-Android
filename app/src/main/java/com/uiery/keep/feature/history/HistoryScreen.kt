@@ -28,6 +28,7 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.history.component.HistoryItem
 import org.orbitmvi.orbit.compose.collectAsState
 
@@ -106,7 +107,7 @@ internal fun HistoryScreen(
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
                 metadata = AdPlacementMetadata(
-                    screenName = "HistoryScreen",
+                    screenName = KeepAnalyticsScreen.HISTORY,
                     screenContext = "summary",
                     placement = "history_bottom",
                     adUnitId = "ca-app-pub-1537867411423705/5324044368",

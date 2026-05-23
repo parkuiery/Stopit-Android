@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.PreferencesKey
@@ -42,7 +43,7 @@ class BlockViewModel
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
 
         init {
-            analytics.logScreenView("BlockScreen")
+            analytics.logScreenView(KeepAnalyticsScreen.BLOCK)
             checkDailyLimit()
         }
 
