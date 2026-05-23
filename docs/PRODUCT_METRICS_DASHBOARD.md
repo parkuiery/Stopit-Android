@@ -165,7 +165,7 @@
 - 행동: 부드러운 만족도 확인 후 Play Review 요청.
 - 유입 경로: 리뷰 증가 → Organic Search 전환 개선.
 - 리스크: 과도한 프롬프트는 반감 유발.
-- 지표: prompt eligible/shown/accepted/skipped, rating count, Organic Search 신규 사용자.
+- 지표: prompt eligible/shown/skipped/failed, rating count, Organic Search 신규 사용자.
 
 ## 수익화 실험 후보
 

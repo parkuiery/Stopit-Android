@@ -12,8 +12,10 @@
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
 - Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
+- 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
-- 온보딩 screen view 테스트: `app/src/test/java/com/uiery/keep/feature/onboarding/OnboardingAnalyticsViewModelTest.kt`
+- 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
 
@@ -76,10 +78,12 @@
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
-| `review_prompt_eligible` | 없음 | 리뷰 요청 가능 상태 |
-| `review_prompt_shown` | 없음 | 리뷰 프롬프트 노출 |
-| `review_prompt_skipped` | `reason` | 앱 차원의 스킵 |
-| `review_prompt_failed` | `error` | API/플로우 실패 |
+| `review_prompt_eligible` | 없음 | 리뷰 요청이 arm 되어 다음 홈 루트에서 노출 시도를 할 수 있는 상태 |
+| `review_prompt_shown` | 없음 | Play review sheet launch 성공 |
+| `review_prompt_skipped` | `reason` | eligibility 실패 또는 홈 drain 단계의 노출 보류/중단 |
+| `review_prompt_failed` | `error` | API/launcher 실패 |
+
+세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
 
 ## 주요 파라미터 사전
 
@@ -157,6 +161,11 @@
 2. `review_prompt_shown`
 3. `review_prompt_skipped` 또는 `review_prompt_failed`
 4. Play Console rating count / 평균 평점 후속 비교
+
+주의:
+
+- Play In-App Review는 `accepted` / `dismissed` 같은 사용자 결과를 앱에 돌려주지 않는다.
+- 따라서 앱 이벤트는 노출/스킵/실패까지만 source of truth로 보고, 실제 리뷰 결과는 Play Console에서 후행 확인한다.
 
 ## 검증 명령
 
