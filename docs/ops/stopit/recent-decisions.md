@@ -1,0 +1,29 @@
+# Stopit Recent Decisions
+
+이 파일은 전문 에이전트가 반복해서 알아야 하는 장기 운영 결정만 짧게 보관한다.
+
+넣지 않는다:
+- 특정 PR/Issue 진행상황
+- 오늘의 지표 수치
+- 완료 로그
+- 오래 지나면 틀릴 상태
+
+## 운영 결정
+
+- 스탑잇 운영은 GitHub Issue 중심으로 관리한다.
+- GitHub Issue는 한국어로 작성한다.
+- 지표 개선뿐 아니라 버그, 리팩터링, 기술부채, QA, 성능, 유지보수, 문서 이슈도 자동 발굴 대상이다.
+- 기능/실험 아이디어는 먼저 Discord 아이데이션 채널로 보내고, 실행 단위가 명확할 때만 GitHub Issue로 전환한다.
+- 지표 기반 이슈는 하루 최대 3개, 저장소 건강도 이슈는 하루 최대 5개, 아이디어의 Issue 전환은 하루 최대 2개로 제한한다.
+- 외부 side effect는 메인 오케스트레이터가 최종 검토 후 수행한다. 분석 subagent는 직접 이슈 생성, Discord 발송, 파일 수정, PR 생성을 하지 않는다.
+- Claude 계열 런타임/에이전트는 사용하지 않는다.
+- 일반 개발 PR base branch는 `develop`이다.
+- Stopit Android는 `dev`/`prod` flavor가 있으므로 flavorless Gradle task를 피하고 variant-specific task를 우선한다.
+- PR body나 Issue comment가 markdown/backtick/괄호/멀티라인을 포함하면 temp file과 `--body-file`을 사용한다.
+- 안전/잠금/긴급해제/권한/백업/복구 플로우는 신뢰 리스크가 커서 QA 기준을 높게 본다.
+- 실제 Play 배포를 수행하지 않았으면 배포 완료라고 말하지 않는다. tag-triggered CD는 기본적으로 internal track이다.
+
+## 업데이트 규칙
+
+새로운 장기 결정이 생기면 이 파일에 한 줄로 추가한다.
+임시 상태는 GitHub Issue/PR, cron output, metrics snapshot에 둔다.
