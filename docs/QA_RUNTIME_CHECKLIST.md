@@ -49,6 +49,34 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### receiver/service QA용 권장 focused JVM baseline
+
+issue #27 계열처럼 receiver/service runtime 리스크를 다루지만 `connectedDevDebugAndroidTest`까지 즉시 돌리기 어려운 PR이라면, 최소한 아래 focused JVM baseline은 함께 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.receiver.RoutineReceiverPolicyTest" \
+  --tests "com.uiery.keep.service.EmergencyUnlockPolicyTest"
+```
+
+- `RoutineReceiverPolicyTest`: 저장된 루틴 JSON decode, enabled routine 재예약 선택 로직의 회귀를 빠르게 잡는다.
+- `EmergencyUnlockPolicyTest`: 긴급해제 만료/허용 판단의 순수 로직 회귀를 빠르게 잡는다.
+- 이 baseline은 Android runtime 자체를 대체하지 않는다. 아래 시나리오 evidence 또는 `:app:connectedDevDebugAndroidTest`와 함께 해석한다.
+
+### 공통 evidence 수집 팁
+
+가능하면 각 시나리오 전후로 아래를 같이 남긴다.
+
+```bash
+adb shell dumpsys alarm | grep com.uiery.keep
+adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityService|EmergencyUnlock"
+```
+
+- `dumpsys alarm`: receiver 이후 다음 알람/루틴 재예약 여부를 남길 때 유용하다.
+- `logcat`: 런타임 크래시/경고를 함께 남길 때 유용하다.
+- 로그 태그나 출력은 빌드에 따라 충분하지 않을 수 있으므로, 스크린샷/시각/루틴 이름 같은 사용자 관찰 evidence를 같이 보관한다.
+
 ## 2. BootReceiver 검증
 
 관련 코드:
@@ -63,8 +91,10 @@ cd <repo-root>
 
 1. 루틴이 1개 이상 활성화된 상태를 만든다.
 2. 앱을 완전히 종료한다.
-3. 기기를 재부팅하거나, 에뮬레이터에서 boot completed 시나리오를 재현한다.
+3. 기기를 재부팅하거나, 에뮬레이터를 cold boot한다.
 4. 부팅 후 앱을 열지 않은 상태에서도 다음 루틴 알림/스케줄이 유지되는지 확인한다.
+
+> `BOOT_COMPLETED`는 protected broadcast라서 `adb shell am broadcast ...`만으로 안정적으로 재현되지 않을 수 있다. BootReceiver 검증은 실제 reboot/cold boot를 기준으로 남긴다.
 
 ### 확인 포인트
 
@@ -77,6 +107,7 @@ cd <repo-root>
 
 - 기기/에뮬레이터 정보
 - 재부팅 전후 루틴 이름/시간
+- 재부팅 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 차이
 - logcat 핵심 라인
 - 실제 누락된 알림 또는 스케줄 증상
 
@@ -96,6 +127,14 @@ cd <repo-root>
 3. 알림 시각까지 대기하거나 테스트 시간을 앞당겨 수신을 유도한다.
 4. 알림 수신 직후 루틴이 다음 주차 기준으로 다시 예약되는지 확인한다.
 
+권장 준비:
+
+```bash
+adb shell dumpsys alarm | grep com.uiery.keep
+```
+
+수신 전후의 예약 상태를 비교해 다음 회차가 실제로 다시 등록되었는지 남긴다.
+
 ### 확인 포인트
 
 - [ ] 루틴 시작 알림이 정확한 루틴 이름으로 노출된다.
@@ -108,6 +147,7 @@ cd <repo-root>
 - 루틴 ID/이름
 - enabled 여부
 - 기대한 알림 시각 vs 실제 시각
+- 수신 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 출력 차이
 - 재예약 여부 스크린샷 또는 로그
 
 ## 4. KeepAccessibilityService 차단 검증
@@ -198,6 +238,7 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - Build variant:
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest`
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.receiver.RoutineReceiverPolicyTest" --tests "com.uiery.keep.service.EmergencyUnlockPolicyTest"`
   - `./gradlew :app:connectedDevDebugAndroidTest` (or blocked: reason)
 - Manual scenarios:
   - BootReceiver: pass/fail
