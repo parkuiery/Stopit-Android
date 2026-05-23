@@ -21,6 +21,7 @@
 | `product-context.md` | 제품 목표, 타깃 사용자, 핵심 가치, 제품 판단 원칙 | 지표, 아이디어, Product/Growth, Trust/Safety |
 | `metrics-context.md` | GA4/Play/수익 지표 정의, 퍼널, 해석 주의사항 | 지표, Metrics, Monetization/Review |
 | `engineering-context.md` | Android 구조, flavor, 테스트/Gradle, 코드 변경 주의사항 | 건강도, 실행, Bug Scout, Tech Debt, Executor |
+| `automation-ops.md` | 현재 Stopit cron topology, live source of truth, issue #18 acceptance mapping | 실행 lane, merge/release controller, 운영 점검 |
 | `issue-policy.md` | GitHub Issue 라벨, 제목/본문 형식, 생성 제한, 중복 기준 | 모든 cron/agent |
 | `release-context.md` | 브랜치/PR/CI/Play 배포 guardrail | 실행, Build/Release Maintenance, PR/CI Verifier |
 | `agent-roles.md` | 전문 subagent 역할, 입력, 출력, 금지사항 | 모든 cron 오케스트레이터 |
@@ -70,9 +71,10 @@
 - recent GitHub Actions runs
 - targeted file/static searches
 
-### `stopit-issue-executor-and-release-followthrough`
+### `stopit-executor-docs-lane` / `stopit-executor-qa-lane` / `stopit-executor-code-lane`
 
 필수:
+- `automation-ops.md`
 - `engineering-context.md`
 - `release-context.md`
 - `issue-policy.md`
@@ -85,6 +87,37 @@
 - open PRs
 - CI/check status
 - latest outputs from metrics/health/ideation crons when available
+
+### `stopit-merge-controller`
+
+필수:
+- `automation-ops.md`
+- `engineering-context.md`
+- `release-context.md`
+- `issue-policy.md`
+- `agent-roles.md`
+- `recent-decisions.md`
+
+동적 상태:
+- open PRs
+- `gh pr checks` 결과
+- worktree/branch overlap 상태
+
+### `stopit-release-orchestrator-internal`
+
+필수:
+- `automation-ops.md`
+- `engineering-context.md`
+- `release-context.md`
+- `issue-policy.md`
+- `agent-roles.md`
+- `recent-decisions.md`
+
+동적 상태:
+- open release PRs
+- release/build/deploy workflow 상태
+- current `versionName` / `versionCode`
+- active lane PR 존재 여부
 
 ## 무엇을 여기에 넣지 말아야 하는가
 
