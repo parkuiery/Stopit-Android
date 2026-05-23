@@ -147,7 +147,7 @@ scripts/check-release-readiness.sh
 - git working tree clean 여부 확인
 - 버전 형식 확인
 - `actionlint`가 있으면 workflow 문법 확인
-- `testProdReleaseUnitTest bundleProdRelease --dry-run` 실행
+- `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
 
 ## Standard Development Flow
 
@@ -156,7 +156,8 @@ scripts/check-release-readiness.sh
 scripts/branch-start.sh feature my-feature
 
 # 2. 개발 + 로컬 검증
-./gradlew testDebugUnitTest
+./gradlew :app:testDevDebugUnitTest
+./gradlew :app:assembleProdDebug
 
 # 3. 커밋/푸시/PR
 git add <files>
@@ -166,6 +167,21 @@ gh pr create --base develop --fill
 
 # 4. Android CI 통과 후 squash merge
 ```
+
+## Flavor-aware Gradle Verification Matrix
+
+`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다.
+
+| 상황 | 권장 명령 | 비고 |
+| --- | --- | --- |
+| 로컬 기본 JVM 검증 | `./gradlew :app:testDevDebugUnitTest` | 가장 빠른 기본 단위 테스트 |
+| 로컬 lint 검증 | `./gradlew :app:lintDevDebug` | 개발 중 UI/리소스/lint 확인 |
+| CI 스모크 빌드 | `./gradlew :app:assembleProdDebug` | prod flavor debug APK 생성 |
+| 릴리즈 경로 JVM 검증 | `./gradlew :app:testProdReleaseUnitTest` | release variant 기준 테스트 |
+| 릴리즈 번들 검증 | `./gradlew :app:bundleProdRelease` | 실제 Play 업로드 경로와 맞는 AAB |
+| Android 프레임워크 검증 | `./gradlew connectedAndroidTest` | 서비스/리시버/권한/Room migration 등 |
+
+루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
 ## Standard Release Flow
 
@@ -202,7 +218,7 @@ git checkout -b hotfix/block-screen-crash
 
 # 수정 + 버전 patch bump
 scripts/bump-version.sh 1.7.3
-./gradlew testProdReleaseUnitTest bundleProdRelease
+./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease
 
 git add <files>
 git commit -m "fix: prevent block screen crash"
