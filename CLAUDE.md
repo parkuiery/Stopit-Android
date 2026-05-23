@@ -6,18 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Build variants
-./gradlew assembleDebug              # Debug APK
-./gradlew assembleDev                # Dev flavor
-./gradlew assembleProd               # Prod flavor
-./gradlew bundleProd                 # Production App Bundle
+./gradlew :app:assembleDevDebug      # Local dev debug APK
+./gradlew :app:assembleProdDebug     # Prod flavor debug APK / CI smoke artifact
+./gradlew :app:bundleProdRelease     # Production App Bundle
 
 # Run tests
-./gradlew test                       # Unit tests
+./gradlew :app:testDevDebugUnitTest  # Default local JVM tests
+./gradlew :app:testProdReleaseUnitTest # Release-path JVM tests
 ./gradlew connectedAndroidTest       # Instrumented tests
 
 # Clean build
-./gradlew clean build
+./gradlew clean :app:testDevDebugUnitTest :app:assembleProdDebug
 ```
+
+Because the app module defines `dev` and `prod` flavors, flavor-less commands like `testDebugUnitTest`, `lintDebug`, and `assembleDebug` are ambiguous and should not be used as the default examples.
 
 ## Architecture Overview
 
