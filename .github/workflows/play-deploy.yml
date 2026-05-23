@@ -126,3 +126,10 @@ jobs:
           tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
+
+      - name: Notify Discord deploy channel
+        if: success() && (env.DEPLOY_TRACK == 'internal' || env.DEPLOY_TRACK == 'production')
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_DEPLOY_CHANNEL_ID: ${{ secrets.DISCORD_DEPLOY_CHANNEL_ID }}
+        run: python3 scripts/notify-discord-deploy.py

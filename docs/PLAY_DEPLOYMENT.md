@@ -39,6 +39,8 @@ Set these in GitHub repository settings or run `scripts/setup-play-deploy-secret
 | `ANDROID_KEY_PASSWORD` | Release Build, CD | Upload key password. |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | CD | Google Play Android Publisher service account JSON. |
 | `GOOGLE_SERVICES_JSON` | CI, Release Build, CD | Production Firebase `google-services.json` content for `app/src/prod`. |
+| `DISCORD_BOT_TOKEN` | CD | Discord bot token used to post deploy approval cards to the deploy channel. |
+| `DISCORD_DEPLOY_CHANNEL_ID` | CD | Discord channel ID for deploy approval/status messages. |
 
 The service account must have access in Play Console:
 
@@ -94,7 +96,37 @@ scripts/release-tag.sh 1.7.2
 ```
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track.
-Promote from internal to production in Play Console, or manually run the deploy workflow with `track=production` when ready.
+After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
+
+The Discord button is handled by the Firebase Function `promoteProductionFromDiscord`, which verifies the Discord interaction signature, channel, and allowed user/role before dispatching GitHub Actions. Do not promote an internal release to production until internal QA passes.
+
+## Discord production promotion setup
+
+1. Create or reuse a Discord application/bot and invite it to the server with permission to send messages in the deploy channel.
+2. Set GitHub Actions secrets:
+
+```bash
+gh secret set DISCORD_BOT_TOKEN
+gh secret set DISCORD_DEPLOY_CHANNEL_ID
+```
+
+3. Deploy Firebase Functions secrets for the interaction endpoint:
+
+```bash
+firebase functions:secrets:set DISCORD_PUBLIC_KEY
+firebase functions:secrets:set DISCORD_DEPLOY_CHANNEL_ID
+firebase functions:secrets:set DISCORD_DEPLOY_ALLOWED_ROLE_IDS
+firebase functions:secrets:set DISCORD_DEPLOY_ALLOWED_USER_IDS
+firebase functions:secrets:set GITHUB_ACTIONS_DISPATCH_TOKEN
+firebase deploy --only functions:promoteProductionFromDiscord
+```
+
+- `DISCORD_PUBLIC_KEY`: Discord application public key.
+- `DISCORD_DEPLOY_ALLOWED_ROLE_IDS`: comma-separated role IDs allowed to promote production.
+- `DISCORD_DEPLOY_ALLOWED_USER_IDS`: comma-separated user IDs allowed to promote production.
+- `GITHUB_ACTIONS_DISPATCH_TOKEN`: fine-grained GitHub token with Actions workflow dispatch permission for this repository.
+
+4. In Discord Developer Portal, set the application's Interactions Endpoint URL to the deployed `promoteProductionFromDiscord` HTTPS URL.
 
 ## Local release build check
 

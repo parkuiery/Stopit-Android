@@ -38,6 +38,8 @@ For UI/behavior changes:
 - [ ] No version bump required
 - [ ] Version bumped in `app/build.gradle.kts`
 - [ ] Google Play/internal release expected after tag
+- [ ] Discord deploy-channel approval card expected after internal deploy
+- [ ] Production promotion requires Discord deploy-channel button approval by an allowed role/user
 
 ## Notes / screenshots
 
