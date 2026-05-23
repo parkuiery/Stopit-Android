@@ -14,6 +14,7 @@ enum class SkipReason {
     NotificationOff,
     NoRecentSuccess,
     NotHomeRoot,
+    NoActivity,
     QuietHours,
     NoBackgroundingObserved,
 }

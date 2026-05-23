@@ -140,7 +140,10 @@ class HomeViewModel
                     dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                     return@intent
                 }
-                if (activity == null) return@intent
+                if (activity == null) {
+                    analytics.reviewPromptSkipped(SkipReason.NoActivity.name)
+                    return@intent
+                }
                 dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                 inAppReviewManager.launchIfReady(activity)
             }

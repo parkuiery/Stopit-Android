@@ -62,7 +62,7 @@
    - analytics: `review_prompt_skipped(reason=<SkipReason.name>)`
    - `REVIEW_PENDING = false`
 4. `activity == null`이면:
-   - 아무 analytics도 남기지 않는다.
+   - analytics: `review_prompt_skipped(reason=NoActivity)`
    - `REVIEW_PENDING`을 유지한다.
    - 다음 홈 루트 진입에서 다시 시도한다.
 5. 위 조건을 모두 통과하면:
@@ -156,6 +156,7 @@
 - `RecentEmergencyUnlock`
 - `NoRecentSuccess`
 - `NotHomeRoot`
+- `NoActivity`
 
 주의:
 
@@ -198,7 +199,7 @@ Play Console에서 다음을 후행 지표로 본다.
 ### 나쁜 신호
 
 - `eligible`는 있는데 `shown`이 거의 없다.
-- `skipped`가 대부분이고 reason이 `AccessibilityOff`, `QuietHours`, `NotHomeRoot`에 몰린다.
+- `skipped`가 대부분이고 reason이 `AccessibilityOff`, `QuietHours`, `NotHomeRoot`, `NoActivity`에 몰린다.
 - `failed`가 특정 error로 반복된다.
 
 ### 대표적인 해석 실수

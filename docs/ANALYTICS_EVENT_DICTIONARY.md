@@ -84,6 +84,7 @@
 | `review_prompt_failed` | `error` | API/launcher 실패 |
 
 세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
+현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다.
 
 ## 주요 파라미터 사전
 
