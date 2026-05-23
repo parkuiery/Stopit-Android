@@ -43,7 +43,7 @@ Keep (StopIt) is a Kotlin Android screen-time management app that blocks selecte
 - ./gradlew :app:testDevDebugUnitTest for the default local JVM check.
 - ./gradlew :app:assembleProdDebug for a prod-like debug artifact.
 - ./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease for release-path validation when needed.
-- ./gradlew connectedAndroidTest when Android framework behavior, Room migrations, services, or receivers are affected.
+- ./gradlew :app:connectedDevDebugAndroidTest when Android framework behavior, Room migrations, services, or receivers are affected.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.
@@ -79,7 +79,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 # Run tests
 ./gradlew :app:testDevDebugUnitTest  # Default local JVM tests
 ./gradlew :app:testProdReleaseUnitTest # Release-path JVM tests
-./gradlew connectedAndroidTest       # Instrumented tests
+./gradlew :app:connectedDevDebugAndroidTest # Instrumented tests
 
 # Clean build
 ./gradlew clean :app:testDevDebugUnitTest :app:assembleProdDebug

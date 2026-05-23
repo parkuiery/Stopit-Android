@@ -179,7 +179,7 @@ gh pr create --base develop --fill
 | CI 스모크 빌드 | `./gradlew :app:assembleProdDebug` | prod flavor debug APK 생성 |
 | 릴리즈 경로 JVM 검증 | `./gradlew :app:testProdReleaseUnitTest` | release variant 기준 테스트 |
 | 릴리즈 번들 검증 | `./gradlew :app:bundleProdRelease` | 실제 Play 업로드 경로와 맞는 AAB |
-| Android 프레임워크 검증 | `./gradlew connectedAndroidTest` | 서비스/리시버/권한/Room migration 등 |
+| Android 프레임워크 검증 | `./gradlew :app:connectedDevDebugAndroidTest` | 서비스/리시버/권한/Room migration 등 |
 
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 

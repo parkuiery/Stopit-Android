@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Run tests
 ./gradlew :app:testDevDebugUnitTest  # Default local JVM tests
 ./gradlew :app:testProdReleaseUnitTest # Release-path JVM tests
-./gradlew connectedAndroidTest       # Instrumented tests
+./gradlew :app:connectedDevDebugAndroidTest # Instrumented tests
 
 # Clean build
 ./gradlew clean :app:testDevDebugUnitTest :app:assembleProdDebug
