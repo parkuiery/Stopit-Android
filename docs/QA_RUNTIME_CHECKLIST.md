@@ -9,7 +9,7 @@
 - 긴급해제 만료/차단 복귀
 - release 전 device/emulator 검증 순서
 
-백업/복원 정책 자체는 `docs/BACKUP_RESTORE_POLICY.md`를 source of truth로 본다. 이 문서는 복원 이후에도 receiver/service/runtime 상태가 안전하게 동작하는지 확인하는 실행 체크리스트다.
+백업/복원 정책 자체는 `docs/BACKUP_RESTORE_POLICY.md`를 source of truth로 본다. 현재 정책은 `keep-database`만 복원하고 `keep-datastore`는 통째로 제외하는 보수적 계약이다. 이 문서는 복원 이후에도 receiver/service/runtime 상태가 안전하게 동작하는지 확인하는 실행 체크리스트다.
 
 비범위:
 - Room migration 세부 검증
@@ -214,7 +214,34 @@ adb shell dumpsys alarm | grep com.uiery.keep
 - [ ] 만료 후 데이터가 남아 차단이 계속 우회되지 않는다.
 - [ ] 긴급해제와 무관한 다른 대상 앱은 계속 차단된다.
 
-## 6. Release 전 최소 QA 게이트
+## 6. Backup / restore 후 런타임 상태 검증
+
+관련 문서:
+- `docs/BACKUP_RESTORE_POLICY.md`
+
+### 목적
+
+기기 이전/클라우드 복원 뒤에도 이전 기기의 DataStore 기반 잠금/긴급해제/리뷰/토큰 상태가 그대로 살아나지 않아야 한다.
+
+### 시나리오
+
+1. 기존 기기에서 아래를 모두 만든다.
+   - 차단 앱 선택
+   - 수동 잠금 또는 timed lock 활성화
+   - 긴급해제 설정 변경
+   - 가능하면 긴급해제 1회 실행
+2. 백업/기기 이전 수행
+3. 새 기기에서 앱 실행 직후 대상 앱과 루틴 화면을 확인한다.
+
+### 확인 포인트
+
+- [ ] 루틴은 필요 시 복원되지만, DataStore 기반 현재 잠금 상태는 그대로 살아나지 않는다.
+- [ ] boot 또는 routine alarm 재진입 후 복원된 Room routine이 `PreferencesKey.ROUTINES` 캐시로 다시 채워져 후속 스케줄링/차단 판단이 깨지지 않는다.
+- [ ] 이전 기기의 긴급해제 진행 상태가 복원되어 차단이 계속 우회되지 않는다.
+- [ ] 선택 앱 목록/긴급해제 설정은 새 기기 기준으로 다시 설정해야 하는 상태다.
+- [ ] 리뷰 프롬프트/토큰/세션성 플래그가 복원 직후 부자연스럽게 이어지지 않는다.
+
+## 7. Release 전 최소 QA 게이트
 
 release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 
@@ -224,13 +251,15 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - [ ] `Android Release Build`
 - [ ] `:app:testDevDebugUnitTest` 또는 해당 PR의 focused JVM test 결과
 - [ ] 가능하면 `:app:connectedDevDebugAndroidTest`, 불가하면 사유 기록
+- [ ] backup/restore 정책을 건드린 PR이면 `docs/BACKUP_RESTORE_POLICY.md` 기준으로 restore/reset evidence 기록
 - [ ] 아래 수동 runtime 시나리오 evidence
   - [ ] BootReceiver
   - [ ] RoutineAlarmReceiver
   - [ ] Accessibility 차단
   - [ ] 긴급해제 만료
+  - [ ] Backup / restore 후 runtime reset
 
-## 7. PR에 남길 검증 기록 템플릿
+## 8. PR에 남길 검증 기록 템플릿
 
 ```md
 ## Runtime QA evidence
@@ -245,10 +274,11 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
   - RoutineAlarmReceiver: pass/fail
   - Accessibility blocking: pass/fail
   - Emergency unlock expiry: pass/fail
+  - Backup / restore runtime reset: pass/fail
 - Notes:
 ```
 
-## 8. 현재 한계
+## 9. 현재 한계
 
 - 이 문서는 수동/반수동 기준선이다.
 - `BootReceiver`와 `RoutineAlarmReceiver`의 완전한 자동화는 별도 Android 통합 테스트 또는 Robolectric 전략이 추가되어야 한다.

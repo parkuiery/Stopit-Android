@@ -43,6 +43,16 @@ object RoutineReceiverPolicy {
         }.getOrDefault(emptyList())
     }
 
+    fun resolveRoutines(
+        storedRoutines: List<RoutineModel>,
+        databaseRoutines: List<RoutineModel>,
+    ): List<RoutineModel> = if (storedRoutines.isNotEmpty()) storedRoutines else databaseRoutines
+
+    fun shouldRehydrateStoredRoutines(
+        storedRoutines: List<RoutineModel>,
+        databaseRoutines: List<RoutineModel>,
+    ): Boolean = storedRoutines.isEmpty() && databaseRoutines.isNotEmpty()
+
     fun findEnabledRoutineToReschedule(
         routines: List<RoutineModel>,
         routineId: Long,
