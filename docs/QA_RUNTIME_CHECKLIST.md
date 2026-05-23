@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 제한적이다. 이 체크리스트는 `connectedAndroidTest`를 대체하는 것이 아니라, 자동화 공백이 남아 있는 동안 release 전에 반드시 반복해야 하는 최소 기준을 정의한다.
+> 현재 저장소의 `androidTest` 자동화는 제한적이지만, `ReceiverRuntimeIntegrationTest`가 BootReceiver/RoutineAlarmReceiver의 Room → DataStore 재수화와 알람/알림 후속 동작을 실제 device/emulator에서 검증한다. 이 체크리스트는 그 자동화가 아직 덮지 못하는 Accessibility/긴급해제/실제 cold boot 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -48,6 +48,21 @@ cd <repo-root>
 - `:app:testDevDebugUnitTest`: 빠른 JVM 회귀 확인
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
+
+### receiver/service instrumentation baseline
+
+issue #27 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest
+```
+
+- `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+- `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
+
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot, AccessibilityService 차단, 긴급해제 만료는 아래 수동 시나리오 evidence가 여전히 필요하다.
 
 ### receiver/service QA용 권장 focused JVM baseline
 
@@ -281,5 +296,6 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 ## 9. 현재 한계
 
 - 이 문서는 수동/반수동 기준선이다.
-- `BootReceiver`와 `RoutineAlarmReceiver`의 완전한 자동화는 별도 Android 통합 테스트 또는 Robolectric 전략이 추가되어야 한다.
-- issue #27이 완전히 닫히려면 수동 QA 기준뿐 아니라 자동화 가능한 영역의 테스트 확대가 뒤따라야 한다.
+- `BootReceiver`와 `RoutineAlarmReceiver`는 `app/src/androidTest/java/com/uiery/keep/receiver/ReceiverRuntimeIntegrationTest.kt`로 최소 재수화/재예약 contract가 자동 검증된다.
+- 여전히 실제 cold boot, AccessibilityService 차단, 긴급해제 만료는 수동 또는 추가 automation 전략이 필요하다.
+- issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.
