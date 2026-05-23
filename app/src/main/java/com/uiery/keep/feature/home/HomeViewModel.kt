@@ -138,6 +138,7 @@ class HomeViewModel
                     dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                     return@intent
                 }
+                if (activity == null) return@intent
                 dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                 inAppReviewManager.launchIfReady(activity)
             }
