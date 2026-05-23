@@ -60,4 +60,43 @@ class HomeViewModelReviewTest {
         assertEquals(listOf(AnalyticsEventRecord.Skipped("AccessibilityOff")), analytics.events)
         assertEquals(false, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
     }
+
+    @Test
+    fun maybeDrainReviewFlagKeepsPendingWhenEligibleButActivityIsNull() = runBlocking {
+        val analytics = RecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.REVIEW_PENDING to true,
+            ),
+        )
+        val launcher = FakeReviewLauncher()
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            dataStore = dataStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
+        )
+        val viewModel = HomeViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = FakeLockHistoryDao(),
+            reviewEligibility = reviewEligibility,
+            inAppReviewManager = InAppReviewManager(
+                launcher = launcher,
+                analytics = analytics,
+                dataStore = dataStore,
+                clock = clock,
+            ),
+        )
+
+        viewModel.maybeDrainReviewFlag(activity = null)
+        delay(50)
+
+        assertEquals(emptyList<AnalyticsEventRecord>(), analytics.events)
+        assertEquals(0, launcher.launchCount)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
+    }
 }
