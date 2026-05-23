@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
@@ -164,7 +165,7 @@ class RoutineViewModel
 
         fun analyticsRoutineScreen() =
             intent {
-                analytics.logScreenView("RoutineScreen")
+                analytics.logScreenView(KeepAnalyticsScreen.ROUTINE)
             }
 
         private fun analyticsAddRoutine() =

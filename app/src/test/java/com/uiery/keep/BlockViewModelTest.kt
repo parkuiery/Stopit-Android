@@ -1,6 +1,7 @@
 package com.uiery.keep
 
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import org.junit.Assert.assertEquals
@@ -17,7 +18,7 @@ class BlockViewModelTest {
             analytics = analytics,
         )
 
-        assertEquals(listOf("BlockScreen"), analytics.screenViews)
+        assertEquals(listOf(KeepAnalyticsScreen.BLOCK), analytics.screenViews)
     }
 }
 

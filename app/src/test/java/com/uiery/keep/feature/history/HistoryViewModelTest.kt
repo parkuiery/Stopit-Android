@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.history
 
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -16,7 +17,7 @@ class HistoryViewModelTest {
             analytics = analytics,
         )
 
-        assertEquals(listOf("HistoryScreen"), analytics.screenViews)
+        assertEquals(listOf(KeepAnalyticsScreen.HISTORY), analytics.screenViews)
     }
 }
 

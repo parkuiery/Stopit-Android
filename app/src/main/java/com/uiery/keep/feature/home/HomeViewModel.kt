@@ -10,6 +10,7 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
@@ -328,7 +329,7 @@ class HomeViewModel
 
         internal fun analyticsHomeScreen() =
             intent {
-                analytics.logScreenView("HomeScreen")
+                analytics.logScreenView(KeepAnalyticsScreen.HOME)
             }
     }
 

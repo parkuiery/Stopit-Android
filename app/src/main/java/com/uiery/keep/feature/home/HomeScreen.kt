@@ -61,6 +61,7 @@ import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.CategoryButton
@@ -357,7 +358,7 @@ fun HomeScreen(
                     )
                     TrackedBannerAd(
                         metadata = AdPlacementMetadata(
-                            screenName = "HomeScreen",
+                            screenName = KeepAnalyticsScreen.HOME,
                             screenContext = "main",
                             placement = "home_bottom",
                             adUnitId = "ca-app-pub-1537867411423705/5120253017",
