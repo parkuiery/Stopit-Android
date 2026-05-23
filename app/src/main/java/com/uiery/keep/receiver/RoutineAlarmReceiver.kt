@@ -3,7 +3,6 @@ package com.uiery.keep.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
@@ -31,32 +30,28 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var dataStore: DataStore<Preferences>
 
     override fun onReceive(context: Context, intent: Intent) {
-        //super.onReceive(context, intent)
-        Log.d("TEST", "onReceive: ")
-        if (intent.action == ACTION_ROUTINE_ALARM) {
-            val routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME) ?: return
-            val routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L)
+        val trigger = RoutineReceiverPolicy.parseRoutineAlarmTrigger(
+            action = intent.action,
+            routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
+            routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
+        ) ?: return
 
-            if (routineId != -1L) {
-                notificationHelper.showRoutineStartNotification(routineName, routineId)
+        notificationHelper.showRoutineStartNotification(trigger.routineName, trigger.routineId)
 
-                // Reschedule for next week
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val preferences = dataStore.data.first()
-                        val routinesJson = preferences[PreferencesKey.ROUTINES]
-                        val routines = RoutineReceiverPolicy.decodeStoredRoutines(routinesJson)
-                        RoutineReceiverPolicy.findEnabledRoutineToReschedule(
-                            routines = routines,
-                            routineId = routineId,
-                        )?.let {
-                            routineScheduler.scheduleRoutine(it)
-                        }
-                    } finally {
-                        pendingResult.finish()
-                    }
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val preferences = dataStore.data.first()
+                val routinesJson = preferences[PreferencesKey.ROUTINES]
+                val routines = RoutineReceiverPolicy.decodeStoredRoutines(routinesJson)
+                RoutineReceiverPolicy.findEnabledRoutineToReschedule(
+                    routines = routines,
+                    routineId = trigger.routineId,
+                )?.let {
+                    routineScheduler.scheduleRoutine(it)
                 }
+            } finally {
+                pendingResult.finish()
             }
         }
     }
