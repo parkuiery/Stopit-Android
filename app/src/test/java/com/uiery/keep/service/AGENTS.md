@@ -21,7 +21,8 @@ No documented child directories.
 - Keep service/receiver logic thin when possible and move pure decisions into testable policy/helpers.
 
 ### Testing Requirements
-- ./gradlew testDebugUnitTest or ./gradlew test for local JVM tests.
+- ./gradlew :app:testDevDebugUnitTest for the default local JVM tests.
+- ./gradlew test only when intentionally running the repository-wide JVM suite.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.

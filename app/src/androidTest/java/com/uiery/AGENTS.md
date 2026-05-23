@@ -21,8 +21,8 @@ No direct source files; this directory organizes subdirectories listed below.
 - Prefer focused tests around pure logic or migration behavior rather than broad brittle UI assertions.
 
 ### Testing Requirements
-- ./gradlew connectedAndroidTest for Room migrations or Android framework integration.
-- ./gradlew test for pure logic touched by the same change.
+- ./gradlew :app:connectedDevDebugAndroidTest for Room migrations or Android framework integration.
+- ./gradlew :app:testDevDebugUnitTest for pure logic touched by the same change.
 
 ### Common Patterns
 - Kotlin files use package paths that match directory structure.
