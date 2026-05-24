@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 제한적이지만, `ReceiverRuntimeIntegrationTest`가 BootReceiver/RoutineAlarmReceiver의 Room → DataStore 재수화와 알람/알림 후속 동작을 실제 device/emulator에서 검증한다. 이 체크리스트는 그 자동화가 아직 덮지 못하는 Accessibility/긴급해제/실제 cold boot 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 제한적이지만, `ReceiverRuntimeIntegrationTest`가 BootReceiver/RoutineAlarmReceiver의 Room → DataStore 재수화와 알람/알림 후속 동작을, `EmergencyUnlockExpiryIntegrationTest`가 긴급해제 만료 후 state 정리와 재차단 대상을 실제 device/emulator에서 scriptable하게 검증한다. 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입과 cold boot 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -49,6 +49,25 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### Android 공식 testing skill 기반 UI smoke baseline
+
+Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
+
+- `/Users/uiel/.agents/skills/testing-setup/SKILL.md`
+- `/Users/uiel/.agents/skills/android-cli/SKILL.md`
+- 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
+
+release/hotfix PR은 아래 focused UI smoke를 `Release instrumentation QA`에서 먼저 실행한 뒤 전체 Android runtime test를 실행한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+./gradlew :app:connectedDevDebugAndroidTest
+```
+
+현재 smoke test는 Compose semantics tag `stopit_app_nav_host`와 UIAutomator package visibility를 함께 확인한다. 이는 테스트 코드만의 형식 검사가 아니라 앱이 실제 emulator에서 MainActivity와 Compose navigation host까지 올라오는지 확인하는 release candidate baseline이다.
+
 ### receiver/service instrumentation baseline
 
 issue #27 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
@@ -62,7 +81,51 @@ cd <repo-root>
 - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
 - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot, AccessibilityService 차단, 긴급해제 만료는 아래 수동 시나리오 evidence가 여전히 필요하다.
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+
+### FCM token 재생성 baseline
+
+issue #68 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest
+```
+
+- `persistNewTokenForContext_overwritesExistingStoredTokenViaEntryPoint`
+- 검증 범위: `KeepMessagingService -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
+- 이 baseline은 실제 FCM 서버 콜백을 대체하지 않지만, 새 기기/복원 후 토큰 재생성 시 앱 내부 저장 경로가 끊기지 않았는지 release 전에 반복 검증할 수 있게 한다.
+
+### FCM token 재생성 수동 evidence 템플릿
+
+새 기기/복원 시나리오에서 자동화 외 evidence가 필요하면 아래 형식으로 남긴다.
+
+```md
+## FCM token regeneration evidence
+- Device/Emulator:
+- Variant:
+- Previous stored token:
+- Trigger: fresh install / device transfer / restore after backup
+- Commands:
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+- Result token after regeneration:
+- Notes:
+```
+
+### 긴급해제 만료 scriptable baseline
+
+issue #67 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest
+```
+
+- `handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`
+- 검증 범위: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리는지
+- 이 baseline은 실제 cross-app Accessibility 진입 전체를 대체하지는 않지만, 가장 위험한 만료 후 우회 지속 회귀를 device/emulator에서 반복 가능하게 고정한다.
 
 ### receiver/service QA용 권장 focused JVM baseline
 
@@ -222,6 +285,17 @@ adb shell dumpsys alarm | grep com.uiery.keep
 2. 긴급해제 유효 시간 동안 대상 앱을 사용한다.
 3. 만료 시각이 지난 뒤 같은 앱을 다시 전면으로 가져온다.
 
+자동/scriptable baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest
+```
+
+- 위 baseline은 DataStore + `EmergencyUnlockState` + 재차단 대상 판정 contract를 실제 device/emulator에서 검증한다.
+- 실제 blocked third-party app foreground 전환까지 포함한 end-to-end Accessibility 진입은 아래 수동 evidence로 따로 남긴다.
+
 ### 확인 포인트
 
 - [ ] 긴급해제 유효 시간 동안 대상 앱이 차단되지 않는다.
@@ -266,12 +340,16 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - [ ] `Android Release Build`
 - [ ] `:app:testDevDebugUnitTest` 또는 해당 PR의 focused JVM test 결과
 - [ ] 가능하면 `:app:connectedDevDebugAndroidTest`, 불가하면 사유 기록
+- [ ] 최소 focused automation evidence
+  - [ ] `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - [ ] `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - [ ] `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
 - [ ] backup/restore 정책을 건드린 PR이면 `docs/BACKUP_RESTORE_POLICY.md` 기준으로 restore/reset evidence 기록
 - [ ] 아래 수동 runtime 시나리오 evidence
   - [ ] BootReceiver
   - [ ] RoutineAlarmReceiver
   - [ ] Accessibility 차단
-  - [ ] 긴급해제 만료
+  - [ ] 긴급해제 만료 end-to-end foreground 복귀
   - [ ] Backup / restore 후 runtime reset
 
 ## 8. PR에 남길 검증 기록 템플릿
@@ -297,5 +375,6 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 
 - 이 문서는 수동/반수동 기준선이다.
 - `BootReceiver`와 `RoutineAlarmReceiver`는 `app/src/androidTest/java/com/uiery/keep/receiver/ReceiverRuntimeIntegrationTest.kt`로 최소 재수화/재예약 contract가 자동 검증된다.
-- 여전히 실제 cold boot, AccessibilityService 차단, 긴급해제 만료는 수동 또는 추가 automation 전략이 필요하다.
+- 여전히 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 수동 또는 추가 automation 전략이 필요하다.
+- 긴급해제 만료는 `app/src/androidTest/java/com/uiery/keep/service/EmergencyUnlockExpiryIntegrationTest.kt`로 state 정리와 재차단 대상 판정을 scriptable하게 검증하지만, 실제 third-party app foreground 전환까지 포함한 end-to-end evidence는 수동 시나리오를 함께 남기는 것이 안전하다.
 - issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.

@@ -19,11 +19,19 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Branch Hygiene passes on the PR.
 - [ ] Version Guard passes on the PR.
 - [ ] Android CI passes on the PR.
+- [ ] Android Release QA passes on the PR:
+  - `Full release QA` runs `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, and `:app:assembleProdDebug`.
+  - `Release instrumentation QA` first runs the Android `testing-setup` skill based focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`, then runs full `:app:connectedDevDebugAndroidTest` on a GitHub-hosted Android emulator.
 - [ ] Android Release Build passes and produces a signed AAB artifact.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
-- [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md`.
+- [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; the automated `Release instrumentation QA` check is the default evidence for release PRs.
+- [ ] Automated runtime evidence is explicit in the PR body:
+  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+- [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
-- [ ] If `:app:connectedDevDebugAndroidTest` did not run, the blocker and manual evidence are recorded in the PR body.
+- [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
 - [ ] User-facing changes are summarized below.
 
 ## Change summary

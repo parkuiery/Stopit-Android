@@ -104,6 +104,28 @@
 - 필요하면 `docs/QA_RUNTIME_CHECKLIST.md`까지 같이 참조한다.
 - 수익화/런타임 신뢰와 연결되면 별도 follow-up 이슈로 나눈다.
 
+## 2026-05 issue #66 maintenance batch 메모
+
+현재 저장소에서 issue #66의 첫 실제 maintenance batch로 반영한 내용:
+
+- `androidx.hilt:hilt-navigation-compose`: `1.2.0 -> 1.3.0`
+- `androidx.appcompat:appcompat`: `1.7.0 -> 1.7.1`
+- `androidx.test.ext:junit`: `1.2.1 -> 1.3.0`
+- `androidx.test.espresso:espresso-core`: `3.6.1 -> 3.7.0`
+- `Room`, `kotlinx-datetime`, `play-services-ads` 의존성 선언을 `app/build.gradle.kts`의 direct version 문자열에서 `gradle/libs.versions.toml`로 이동
+
+이 배치의 의도:
+
+- **직접 버전 문자열 정리**로 `UseTomlInstead` 경고를 제거한다.
+- 런타임 영향이 비교적 작은 patch(`appcompat`, `hilt-navigation-compose`)만 먼저 올린다.
+- Room / Ads / Kotlin / AGP / Compose 같은 더 큰 드리프트는 한 번에 밀어 넣지 않고 후속 배치로 남긴다.
+
+이번 배치 후에도 남겨둔 defer 항목:
+
+- `Room 2.7.1 -> 2.8.4`: KSP/annotation processing 회귀 확인이 필요하므로 별도 좁은 배치 권장
+- `play-services-ads 23.0.0 -> 25.3.0`: 수익화/런타임 QA 범위가 커서 별도 검토 권장
+- `AGP`, `Kotlin`, `Compose`, `Lifecycle`, `Activity`, `Material`, `Navigation` 등 coordinated stack 계열
+
 ## 권장 업그레이드 순서
 
 기본 순서:
