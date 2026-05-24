@@ -34,6 +34,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+scripts/check-latest-production-deployed.sh
+
 git fetch origin main --tags
 git pull --ff-only origin main
 

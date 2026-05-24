@@ -33,6 +33,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+scripts/check-latest-production-deployed.sh
+
 git fetch origin develop
 git checkout develop
 git pull --ff-only origin develop

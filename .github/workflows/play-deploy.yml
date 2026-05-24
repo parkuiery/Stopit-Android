@@ -32,7 +32,8 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write
+  deployments: write
 
 concurrency:
   group: android-play-deploy-${{ github.ref }}
@@ -126,6 +127,86 @@ jobs:
           tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
+
+      - name: Mark production deployment complete
+        if: success() && env.DEPLOY_TRACK == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Production completion marker requires a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          completed_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          marker="<!-- stopit-production-deployed: $GITHUB_REF_NAME -->"
+
+          deployment_payload="$(mktemp)"
+          python3 - "$GITHUB_REF_NAME" <<'PY' > "$deployment_payload"
+          import json
+          import sys
+
+          tag = sys.argv[1]
+          json.dump(
+              {
+                  "ref": tag,
+                  "environment": "production",
+                  "auto_merge": False,
+                  "required_contexts": [],
+                  "description": f"Stopit Google Play production deployment for {tag}",
+              },
+              sys.stdout,
+          )
+          PY
+          deployment_id="$(gh api --method POST "repos/$GITHUB_REPOSITORY/deployments" --input "$deployment_payload" --jq '.id')"
+
+          status_payload="$(mktemp)"
+          python3 - "$run_url" <<'PY' > "$status_payload"
+          import json
+          import sys
+
+          run_url = sys.argv[1]
+          json.dump(
+              {
+                  "state": "success",
+                  "environment": "production",
+                  "log_url": run_url,
+                  "description": "Google Play production upload completed",
+                  "auto_inactive": False,
+              },
+              sys.stdout,
+          )
+          PY
+          gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses" --input "$status_payload" >/dev/null
+
+          production_notes="$(mktemp)"
+          cat > "$production_notes" <<EOF
+          ## Production deployment
+
+          - Google Play track: production
+          - GitHub Actions: $run_url
+          - Completed at: $completed_at
+
+          $marker
+          EOF
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            existing_notes="$(mktemp)"
+            gh release view "$GITHUB_REF_NAME" --json body --jq '.body // ""' > "$existing_notes"
+            if grep -Fq "$marker" "$existing_notes"; then
+              echo "GitHub Release already contains production marker for $GITHUB_REF_NAME"
+            else
+              release_notes="$(mktemp)"
+              cat "$existing_notes" > "$release_notes"
+              printf '\n\n' >> "$release_notes"
+              cat "$production_notes" >> "$release_notes"
+              gh release edit "$GITHUB_REF_NAME" --notes-file "$release_notes"
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$production_notes"
+          fi
 
       - name: Notify Discord deploy channel
         if: success() && (env.DEPLOY_TRACK == 'internal' || env.DEPLOY_TRACK == 'production')

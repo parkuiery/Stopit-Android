@@ -12,6 +12,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 
 ## Required checks
 
+- [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than any version already uploaded to Google Play.
 - [ ] `./gradlew testProdReleaseUnitTest` passes locally or in Android Release Build.
