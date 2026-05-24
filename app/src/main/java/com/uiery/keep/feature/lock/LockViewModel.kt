@@ -165,6 +165,7 @@ class LockViewModel
                 nowMs = now,
                 durationMillis = durationMillis,
                 isRoutine = isRoutine,
+                includeCurrentSuccessfulSession = true,
             )
             when (decision) {
                 is ReviewEligibilityDecision.Eligible -> {

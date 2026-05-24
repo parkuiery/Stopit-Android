@@ -104,6 +104,8 @@
 | 10 | 최근 7일 긴급해제 2회 이상 | `RecentEmergencyUnlock` |
 | 11 | 최근 24시간 성공 세션 1회 미만 | `NoRecentSuccess` |
 
+`NoRecentSuccess` 판단은 홈 복귀 직전에 arm 평가를 트리거한 **방금 끝난 성공 세션도 포함**한다. 즉, 아직 `lock_history`에 current session insert가 반영되기 전이라도 현재 성공 세션 자체 때문에 최근 성공 조건을 만족할 수 있다.
+
 모든 조건을 통과하면 `Eligible`이다.
 
 ### evaluateLive()와의 차이

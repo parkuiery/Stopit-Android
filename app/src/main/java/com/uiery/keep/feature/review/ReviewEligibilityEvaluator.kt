@@ -36,6 +36,7 @@ class ReviewEligibilityEvaluator @Inject constructor(
         nowMs: Long,
         durationMillis: Long,
         isRoutine: Boolean,
+        includeCurrentSuccessfulSession: Boolean = false,
     ): ReviewEligibilityDecision {
         if (!remoteConfig.isEnabled()) return ineligible(SkipReason.KillSwitch)
         if (buildConfig.isDebug) return ineligible(SkipReason.Debug)
@@ -61,7 +62,9 @@ class ReviewEligibilityEvaluator @Inject constructor(
         val emergencyCount = emergencyUnlockDao.countSince(nowMs - EMERGENCY_UNLOCK_WINDOW_MILLIS)
         if (emergencyCount >= EMERGENCY_UNLOCK_MAX_COUNT) return ineligible(SkipReason.RecentEmergencyUnlock)
 
-        val recentSuccess = lockHistoryDao.countSuccessfulSessionsSince(nowMs - RECENT_SUCCESS_WINDOW_MILLIS)
+        val recentSuccess =
+            lockHistoryDao.countSuccessfulSessionsSince(nowMs - RECENT_SUCCESS_WINDOW_MILLIS) +
+                if (includeCurrentSuccessfulSession) 1 else 0
         if (recentSuccess < 1) return ineligible(SkipReason.NoRecentSuccess)
 
         return ReviewEligibilityDecision.Eligible
