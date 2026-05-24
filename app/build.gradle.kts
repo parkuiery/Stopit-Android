@@ -149,13 +149,13 @@ dependencies {
 
     implementation(libs.utilcodex)
 
-    implementation("androidx.room:room-runtime:2.7.1")
-    ksp("androidx.room:room-compiler:2.7.1")
-    androidTestImplementation("androidx.room:room-testing:2.7.1")
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    androidTestImplementation(libs.androidx.room.testing)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    implementation(libs.kotlinx.datetime)
 
-    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    implementation(libs.google.play.services.ads)
 
     implementation(project(":core:kds"))
 }
