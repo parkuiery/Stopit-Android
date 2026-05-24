@@ -5,11 +5,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -60,7 +60,10 @@ class LockViewModel
         private val reviewEligibility: ReviewEligibilityEvaluator,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
-        private val route = savedStateHandle.toRoute<LockRoute>()
+        private val route = LockRoute(
+            lockTime = savedStateHandle.get<String>("lockTime"),
+            isRoutine = savedStateHandle.get<Boolean>("isRoutine") ?: false,
+        )
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
@@ -73,6 +76,7 @@ class LockViewModel
         private var navigateHomeJob: kotlinx.coroutines.Job? = null
 
         init {
+            analytics.logScreenView(KeepAnalyticsScreen.LOCK)
             initIntent()
         }
 
