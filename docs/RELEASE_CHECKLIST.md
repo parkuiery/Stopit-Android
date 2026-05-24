@@ -25,8 +25,13 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android Release Build passes and produces a signed AAB artifact.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
 - [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; the automated `Release instrumentation QA` check is the default evidence for release PRs.
+- [ ] Automated runtime evidence is explicit in the PR body:
+  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+- [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
-- [ ] If `:app:connectedDevDebugAndroidTest` did not run, the blocker and manual evidence are recorded in the PR body before merge.
+- [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
 - [ ] User-facing changes are summarized below.
 
 ## Change summary
