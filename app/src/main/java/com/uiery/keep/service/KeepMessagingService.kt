@@ -1,5 +1,6 @@
 package com.uiery.keep.service
 
+import android.content.Context
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.uiery.keep.DeviceTokenManager
@@ -19,22 +20,24 @@ class KeepMessagingService : FirebaseMessagingService() {
         fun deviceTokenManager(): DeviceTokenManager
     }
 
-    private fun getDeviceTokenManager(): DeviceTokenManager {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            applicationContext,
-            DeviceTokenManagerEntryPoint::class.java
-        )
-        return entryPoint.deviceTokenManager()
-    }
-
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         CoroutineScope(Dispatchers.IO).launch {
-            getDeviceTokenManager().saveDeviceToken(token)
+            persistNewTokenForContext(applicationContext, token)
         }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+    }
+
+    companion object {
+        suspend fun persistNewTokenForContext(context: Context, token: String) {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                DeviceTokenManagerEntryPoint::class.java
+            )
+            entryPoint.deviceTokenManager().saveDeviceToken(token)
+        }
     }
 }

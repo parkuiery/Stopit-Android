@@ -83,6 +83,36 @@ cd <repo-root>
 
 이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot, AccessibilityService 차단, 긴급해제 만료는 아래 수동 시나리오 evidence가 여전히 필요하다.
 
+### FCM token 재생성 baseline
+
+issue #68 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest
+```
+
+- `persistNewTokenForContext_overwritesExistingStoredTokenViaEntryPoint`
+- 검증 범위: `KeepMessagingService -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
+- 이 baseline은 실제 FCM 서버 콜백을 대체하지 않지만, 새 기기/복원 후 토큰 재생성 시 앱 내부 저장 경로가 끊기지 않았는지 release 전에 반복 검증할 수 있게 한다.
+
+### FCM token 재생성 수동 evidence 템플릿
+
+새 기기/복원 시나리오에서 자동화 외 evidence가 필요하면 아래 형식으로 남긴다.
+
+```md
+## FCM token regeneration evidence
+- Device/Emulator:
+- Variant:
+- Previous stored token:
+- Trigger: fresh install / device transfer / restore after backup
+- Commands:
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+- Result token after regeneration:
+- Notes:
+```
+
 ### receiver/service QA용 권장 focused JVM baseline
 
 issue #27 계열처럼 receiver/service runtime 리스크를 다루지만 `connectedDevDebugAndroidTest`까지 즉시 돌리기 어려운 PR이라면, 최소한 아래 focused JVM baseline은 함께 남긴다.
