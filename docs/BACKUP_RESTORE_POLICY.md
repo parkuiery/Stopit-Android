@@ -161,6 +161,8 @@
 
 확인:
 - [ ] 새 기기에서 FCM token이 정상 재생성된다.
+  - 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - 수동 evidence 형식은 `docs/QA_RUNTIME_CHECKLIST.md`의 `FCM token regeneration evidence` 템플릿을 따른다.
 - [ ] 리뷰 프롬프트가 복원 직후 부자연스럽게 즉시 뜨지 않는다.
 - [ ] 분석용 최초 실행/세션 플래그가 새 기기 흐름을 그대로 오염시키지 않는다.
 
