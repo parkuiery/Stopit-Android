@@ -109,6 +109,5 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            ./gradlew :app:connectedDevDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
             ./gradlew :app:connectedDevDebugAndroidTest
