@@ -108,7 +108,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             ./gradlew :app:connectedDevDebugAndroidTest \
               -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
             ./gradlew :app:connectedDevDebugAndroidTest
