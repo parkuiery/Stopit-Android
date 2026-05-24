@@ -120,10 +120,23 @@ scripts/release-start.sh 1.7.2
 ```
 
 동작:
+- 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 먼저 확인
 - `develop`에서 `release/1.7.2` 생성
 - 버전 bump
 - release dry-run 검증
 - `chore: bump version to 1.7.2` 커밋 생성
+
+### 릴리즈 production 완료 게이트
+
+```bash
+scripts/check-latest-production-deployed.sh
+```
+
+동작:
+- 최신 기존 SemVer 태그(`vX.Y.Z`)를 찾는다.
+- 해당 태그에 GitHub Deployment `environment=production` + `success` 상태가 있거나, GitHub Release 본문에 `<!-- stopit-production-deployed: vX.Y.Z -->` marker가 있으면 통과한다.
+- marker가 없으면 새 릴리즈 시작/태그 생성을 중단한다.
+- 긴급 상황에서만 명시 승인 후 `STOPIT_RELEASE_GATE_BYPASS=1`로 우회한다.
 
 ### 릴리즈 태그 배포
 
@@ -133,6 +146,7 @@ scripts/release-tag.sh 1.7.2
 
 동작:
 - 현재 브랜치가 `main`인지 확인
+- 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
 - `v1.7.2` 태그 생성 및 push
 - GitHub Actions CD가 Google Play internal track 업로드 실행
