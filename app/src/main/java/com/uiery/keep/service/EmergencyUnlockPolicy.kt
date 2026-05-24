@@ -109,3 +109,36 @@ internal fun shouldHandleEmergencyUnlockExpiry(
     currentExpireTimeMillis > 0L &&
         currentExpireTimeMillis == expectedExpireTimeMillis &&
         nowMillis >= currentExpireTimeMillis
+
+internal data class EmergencyUnlockExpiryResolution(
+    val shouldClearState: Boolean,
+    val packageToReblock: String? = null,
+)
+
+internal fun resolveEmergencyUnlockExpiry(
+    expectedExpireTimeMillis: Long,
+    currentExpireTimeMillis: Long,
+    expiredUnlockedApps: Set<String>,
+    foregroundPackage: String?,
+    applicationId: String,
+    isForegroundStillEmergencyUnlocked: Boolean,
+    nowMillis: Long = System.currentTimeMillis(),
+): EmergencyUnlockExpiryResolution {
+    if (!shouldHandleEmergencyUnlockExpiry(
+            expectedExpireTimeMillis = expectedExpireTimeMillis,
+            currentExpireTimeMillis = currentExpireTimeMillis,
+            nowMillis = nowMillis,
+        )) {
+        return EmergencyUnlockExpiryResolution(shouldClearState = false)
+    }
+
+    val packageToReblock = foregroundPackage
+        ?.takeUnless { it == applicationId }
+        ?.takeIf { it in expiredUnlockedApps }
+        ?.takeUnless { isForegroundStillEmergencyUnlocked }
+
+    return EmergencyUnlockExpiryResolution(
+        shouldClearState = true,
+        packageToReblock = packageToReblock,
+    )
+}

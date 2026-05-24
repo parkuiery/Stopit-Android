@@ -208,4 +208,23 @@ class EmergencyUnlockPolicyTest {
             )
         )
     }
+
+    @Test
+    fun emergencyUnlockExpiryResolutionReblocksExpiredForegroundPackage() {
+        assertEquals(
+            EmergencyUnlockExpiryResolution(
+                shouldClearState = true,
+                packageToReblock = "com.example.blocked",
+            ),
+            resolveEmergencyUnlockExpiry(
+                expectedExpireTimeMillis = 1_000L,
+                currentExpireTimeMillis = 1_000L,
+                expiredUnlockedApps = setOf("com.example.blocked"),
+                foregroundPackage = "com.example.blocked",
+                applicationId = "com.uiery.keep",
+                isForegroundStillEmergencyUnlocked = false,
+                nowMillis = 1_000L,
+            )
+        )
+    }
 }

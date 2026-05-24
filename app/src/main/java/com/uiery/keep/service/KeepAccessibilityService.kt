@@ -1,6 +1,7 @@
 package com.uiery.keep.service
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
@@ -244,22 +245,24 @@ class KeepAccessibilityService :
         }
 
         val prefs = cachedPrefs
-        if (!shouldHandleEmergencyUnlockExpiry(
+        val foregroundPackage = currentForegroundPackage()
+        val isForegroundStillEmergencyUnlocked = foregroundPackage?.let(::isEmergencyUnlocked) ?: false
+
+        launch {
+            val resolution = handleExpiredEmergencyUnlockForContext(
+                context = this@KeepAccessibilityService,
                 expectedExpireTimeMillis = expectedExpireTimeMillis,
                 currentExpireTimeMillis = prefs.emergencyUnlockExpireTime,
-            )) {
-            return
+                expiredUnlockedApps = prefs.emergencyUnlockApps,
+                foregroundPackage = foregroundPackage,
+                applicationId = BuildConfig.APPLICATION_ID,
+                isForegroundStillEmergencyUnlocked = isForegroundStillEmergencyUnlocked,
+            )
+
+            resolution.packageToReblock?.let { packageName ->
+                blockIfNeeded(packageName = packageName, prefs = cachedPrefs)
+            }
         }
-
-        val expiredUnlockedApps = prefs.emergencyUnlockApps
-        cleanupExpiredEmergencyUnlock()
-
-        val foregroundPackage = currentForegroundPackage() ?: return
-        if (foregroundPackage == BuildConfig.APPLICATION_ID) return
-        if (foregroundPackage !in expiredUnlockedApps) return
-        if (isEmergencyUnlocked(foregroundPackage)) return
-
-        blockIfNeeded(packageName = foregroundPackage, prefs = cachedPrefs)
     }
 
     private fun currentForegroundPackage(): String? {
@@ -306,4 +309,35 @@ class KeepAccessibilityService :
         }
         return isDuplicate
     }
+}
+
+internal suspend fun handleExpiredEmergencyUnlockForContext(
+    context: Context,
+    expectedExpireTimeMillis: Long,
+    currentExpireTimeMillis: Long,
+    expiredUnlockedApps: Set<String>,
+    foregroundPackage: String?,
+    applicationId: String,
+    isForegroundStillEmergencyUnlocked: Boolean,
+    nowMillis: Long = System.currentTimeMillis(),
+): EmergencyUnlockExpiryResolution {
+    val resolution = resolveEmergencyUnlockExpiry(
+        expectedExpireTimeMillis = expectedExpireTimeMillis,
+        currentExpireTimeMillis = currentExpireTimeMillis,
+        expiredUnlockedApps = expiredUnlockedApps,
+        foregroundPackage = foregroundPackage,
+        applicationId = applicationId,
+        isForegroundStillEmergencyUnlocked = isForegroundStillEmergencyUnlocked,
+        nowMillis = nowMillis,
+    )
+
+    if (resolution.shouldClearState) {
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+    }
+
+    return resolution
 }

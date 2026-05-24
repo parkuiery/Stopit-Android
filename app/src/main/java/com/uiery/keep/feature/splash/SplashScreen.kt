@@ -13,6 +13,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.orbitmvi.orbit.compose.collectSideEffect
 
 @Composable
@@ -24,10 +26,12 @@ fun SplashScreen(
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
     viewModel.collectSideEffect { effect ->
-        when (effect) {
-            is SplashSideEffect.MoveToHome -> onNavigateHome()
-            is SplashSideEffect.MoveToOnboarding -> onNavigateOnboarding()
-            is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
+        withContext(Dispatchers.Main.immediate) {
+            when (effect) {
+                is SplashSideEffect.MoveToHome -> onNavigateHome()
+                is SplashSideEffect.MoveToOnboarding -> onNavigateOnboarding()
+                is SplashSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
+            }
         }
     }
 

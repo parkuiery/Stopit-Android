@@ -8,9 +8,6 @@ import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.PreferencesKey
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -37,13 +34,8 @@ class SplashViewModel
 
         private fun navigateScreen() =
             intent {
-                coroutineScope {
-                    val delayDeferred = async { delay(0.7.seconds) }
-                    val sideEffectDeferred = async { handleNavigate() }
-
-                    awaitAll(delayDeferred, sideEffectDeferred)
-                    postSideEffect(sideEffectDeferred.await())
-                }
+                delay(0.7.seconds)
+                postSideEffect(handleNavigate())
             }
 
         private suspend fun handleNavigate(): SplashSideEffect {
