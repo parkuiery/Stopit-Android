@@ -71,6 +71,7 @@
     <string name="feature_request_message">🚀 원하시는 기능을 만들어드립니다!</string>
     <string name="accessibility_setup_guide">● 삼성 : 설정 > 접근성 > 설치된 앱 > 스탑잇 > 접근성 허용\n● 기타 : 설정 > 접근성 > 스탑잇 > 접근성 허용</string>
     <string name="lock_screen_routine_running">%1$s \n루틴 실행 중</string>
+    <string name="lock_screen_routines_running">%1$d개의 루틴 실행 중</string>
     <string name="routine_minimum_duration_message">루틴은 최소 15분 이상 설정할 수 있어요.</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>
     <string name="lock_history_title">잠금 기록</string>

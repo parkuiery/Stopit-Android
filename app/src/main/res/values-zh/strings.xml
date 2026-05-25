@@ -68,6 +68,7 @@
     <string name="feature_request_message">🚀 我们会为您创建想要的功能！</string>
     <string name="accessibility_setup_guide">● 三星：设置 > 辅助功能 > 已安装的应用 > StopIt > 允许辅助功能\n● 其他：设置 > 辅助功能 > StopIt > 允许辅助功能</string>
     <string name="lock_screen_routine_running">%1$s \n例程运行中</string>
+    <string name="lock_screen_routines_running">%1$d个例程运行中</string>
     <string name="routine_minimum_duration_message">例程必须至少设置15分钟。</string>
     <string name="lock_history_menu_title">查看锁定记录</string>
     <string name="lock_history_title">锁定记录</string>
