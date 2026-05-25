@@ -68,6 +68,7 @@
     <string name="feature_request_message">🚀 We maken de functies die je wilt!</string>
     <string name="accessibility_setup_guide">● Samsung: Instellingen > Toegankelijkheid > Geïnstalleerde apps > StopIt > Toegankelijkheid toestaan\n● Anderen: Instellingen > Toegankelijkheid > StopIt > Toegankelijkheid toestaan</string>
     <string name="lock_screen_routine_running">%1$s \nroutine wordt uitgevoerd</string>
+    <string name="lock_screen_routines_running">%1$d routines actief</string>
     <string name="routine_minimum_duration_message">Routines moeten minimaal 15 minuten worden ingesteld.</string>
     <string name="lock_history_menu_title">Vergrendelgeschiedenis bekijken</string>
     <string name="lock_history_title">Vergrendelgeschiedenis</string>

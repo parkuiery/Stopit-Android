@@ -68,6 +68,7 @@
     <string name="feature_request_message">🚀 ご希望の機能を作成いたします！</string>
     <string name="accessibility_setup_guide">● サムスン: 設定 > アクセシビリティ > インストール済みアプリ > StopIt > アクセシビリティを許可\n● その他: 設定 > アクセシビリティ > StopIt > アクセシビリティを許可</string>
     <string name="lock_screen_routine_running">%1$s \nルーティン実行中</string>
+    <string name="lock_screen_routines_running">%1$d件のルーティン実行中</string>
     <string name="routine_minimum_duration_message">ルーティンは最低15分以上設定する必要があります。</string>
     <string name="lock_history_menu_title">ロック履歴を見る</string>
     <string name="lock_history_title">ロック履歴</string>
