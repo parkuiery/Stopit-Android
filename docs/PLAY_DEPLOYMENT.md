@@ -6,7 +6,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 
 | Layer | Workflow | Trigger | Does |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Unit tests and prod debug APK artifact. No signed release. No Play upload. |
+| CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
 | Release Build | `.github/workflows/release-build.yml` | PR/push to `main`, manual | Signed `prodRelease` AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build and Google Play upload. |
 
@@ -14,8 +14,12 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 
 - Pull requests and pushes to `main`/`develop` run Android CI:
   - `./gradlew :app:testDevDebugUnitTest`
+  - `./gradlew :app:lintDevDebug`
   - `./gradlew :app:assembleProdDebug`
   - upload prod debug APK artifact
+- Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - release/hotfix 전용 exact alarm deny/allow 시나리오와 전체 connected suite는 계속 `Android Release QA`가 담당
 - Release candidates targeting `main` run Android Release Build:
   - `./gradlew :app:testProdReleaseUnitTest`
   - signed `prodRelease` AAB build
