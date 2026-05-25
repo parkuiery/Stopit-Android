@@ -168,9 +168,9 @@ fun RoutineScreen(
                         }
                     }
                 },
-                addRoutine = {
-                    //viewModel.addRoutine(routine)
+                onRequireAlarmPermission = {
                     checkAndShowAlarmPermission()
+                    viewModel.markAlarmPermissionShown()
                 },
             )
         }
@@ -225,7 +225,10 @@ fun RoutineScreen(
                         }
                     }
                 },
-                //updateRoutine = viewModel::updateRoutine,
+                onRequireAlarmPermission = {
+                    checkAndShowAlarmPermission()
+                    viewModel.markAlarmPermissionShown()
+                },
             )
         }
     }

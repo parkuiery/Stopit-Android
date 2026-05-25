@@ -46,11 +46,13 @@ import com.uiery.keep.R
 import com.uiery.keep.util.toTimeString
 import kotlinx.datetime.toJavaLocalTime
 import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
+import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.orbitmvi.orbit.compose.collectAsState
+import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.DayOfWeek
 
 @Composable
@@ -59,7 +61,7 @@ fun RoutineBottomSheetContent(
     viewModel: RoutineBottomSheetViewModel = hiltViewModel(),
     isEdit: Boolean,
     routine: RoutineModel? = null,
-    addRoutine: () -> Unit = { },
+    onRequireAlarmPermission: () -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
     val state by viewModel.collectAsState()
@@ -94,6 +96,12 @@ fun RoutineBottomSheetContent(
         }
     }
 
+    viewModel.collectSideEffect { sideEffect ->
+        when (sideEffect) {
+            RoutineBottomSheetSideEffect.ShowAlarmPermission -> onRequireAlarmPermission()
+        }
+    }
+
     HorizontalPager(
         modifier = modifier.fillMaxSize(),
         state = pagerState,
@@ -118,7 +126,6 @@ fun RoutineBottomSheetContent(
                 onAddRoutine = {
                     onCloseBottomSheet()
                     viewModel.addRoutine()
-                    addRoutine()
                 },
                 onEditRoutine = {
                     onCloseBottomSheet()
