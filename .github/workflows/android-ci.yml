@@ -36,13 +36,14 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Restore Firebase prod google-services.json
+      - name: Restore Firebase google-services.json for CI variants
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
-          mkdir -p app/src/prod
+          mkdir -p app/src/dev app/src/prod
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Run app unit tests
