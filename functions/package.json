@@ -2,18 +2,19 @@
   "name": "stopit-firebase-functions",
   "private": true,
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "clean": "rimraf lib",
     "deploy": "npm run build && firebase deploy --only functions",
-    "lint": "tsc --noEmit --pretty false"
+    "lint": "tsc --noEmit --pretty false",
+    "test": "npm run build && node --test lib/*.test.js"
   },
   "dependencies": {
-    "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.1.0",
+    "firebase-admin": "^13.10.0",
+    "firebase-functions": "^7.2.5",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
