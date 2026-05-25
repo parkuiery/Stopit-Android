@@ -45,11 +45,11 @@ jobs:
           mkdir -p app/src/prod
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+      - name: Run app unit tests
+        run: ./gradlew --console=plain :app:testDevDebugUnitTest
 
       - name: Build prod debug APK
-        run: ./gradlew assembleProdDebug
+        run: ./gradlew --console=plain :app:assembleProdDebug
 
       - name: Upload prod debug APK
         uses: actions/upload-artifact@v7
