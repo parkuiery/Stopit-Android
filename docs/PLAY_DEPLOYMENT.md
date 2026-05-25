@@ -74,7 +74,9 @@ The script uses `gh secret set` and does not commit secret files.
 Use the release harness scripts documented in `docs/GIT_WORKFLOW.md`. A new release can start only after the latest existing SemVer tag has reached Google Play `production` and the CD workflow has written its production marker.
 
 ```bash
-scripts/release-start.sh 1.7.2
+scripts/release-start.sh 1.7.2 --service-account-json /path/to/play-service-account.json
+# 또는
+scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 ```
@@ -82,7 +84,7 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes)
+- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes, and must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
 - Android CI
 - Android Release Build
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
@@ -100,6 +102,15 @@ scripts/release-tag.sh 1.7.2
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
+
+## VersionCode guardrail before Play upload
+
+- `scripts/play_version_code_guard.py fetch-play-max` creates a read-only Google Play edit, lists active tracks, and derives the highest visible `versionCode` from every release in those tracks.
+- `.github/workflows/version-guard.yml` uses the same script with `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` so `main`-target release/hotfix PRs fail before merge if the candidate `versionCode` is not strictly greater than both `origin/main` and Google Play's visible maximum.
+- `scripts/check-release-readiness.sh` and `scripts/bump-version.sh` use the same guard locally. Provide one of:
+  - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=/path/to/play-service-account.json`
+  - `STOPIT_PLAY_MAX_VERSION_CODE=<known_max>` when live Play API access is unavailable
+- The fallback is intentional but should be treated as an operator override. Prefer the live Play API path whenever credentials are available.
 
 The Discord button is handled by the Firebase Function `promoteProductionFromDiscord`, which verifies the Discord interaction signature, channel, and allowed user/role before dispatching GitHub Actions. Do not promote an internal release to production until internal QA passes.
 

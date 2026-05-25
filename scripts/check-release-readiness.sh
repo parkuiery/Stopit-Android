@@ -15,9 +15,18 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', name.group(1)):
 print(f"versionName={name.group(1)} versionCode={code.group(1)}")
 PY
 )"
+main_version_code="$(python3 - <<'PY'
+import subprocess
+from scripts.play_version_code_guard import parse_build_version_info
+
+text = subprocess.check_output(['git', 'show', 'origin/main:app/build.gradle.kts'], text=True)
+print(parse_build_version_info(text).version_code)
+PY
+)"
 
 echo "Branch: $current_branch"
 echo "$version_info"
+echo "origin/main versionCode=$main_version_code"
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree is not clean:" >&2
@@ -25,11 +34,17 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+git fetch origin main >/dev/null
+
 if command -v actionlint >/dev/null 2>&1; then
   actionlint
 else
   echo "actionlint not installed; skipping workflow lint"
 fi
+
+python3 scripts/play_version_code_guard.py validate-build \
+  --build-file app/build.gradle.kts \
+  --minimum-main-version-code "$main_version_code"
 
 ./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run
 
