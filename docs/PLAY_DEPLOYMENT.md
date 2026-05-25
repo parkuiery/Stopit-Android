@@ -82,7 +82,7 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard
+- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes)
 - Android CI
 - Android Release Build
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`

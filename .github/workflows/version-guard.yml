@@ -3,9 +3,6 @@ name: Version Guard
 on:
   pull_request:
     branches: [main]
-    paths:
-      - app/build.gradle.kts
-      - .github/workflows/version-guard.yml
 
 permissions:
   contents: read
@@ -34,7 +31,10 @@ jobs:
 
           head_ref = os.environ["HEAD_REF"]
           if not (head_ref.startswith("release/") or head_ref.startswith("hotfix/")):
-              raise SystemExit(f"main PRs must come from release/* or hotfix/*, got {head_ref}")
+              raise SystemExit(
+                  "main-target PRs must come from release/* or hotfix/* so Version Guard always appears as a governance gate; "
+                  f"got {head_ref}"
+              )
 
           def parse(text: str) -> tuple[int, str]:
               code = re.search(r"versionCode\s*=\s*(\d+)", text)
