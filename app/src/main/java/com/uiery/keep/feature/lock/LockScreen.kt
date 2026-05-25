@@ -184,12 +184,20 @@ fun LockScreen(
                         contentDescription = null,
                     )
                     if (uiState.isRoutine) {
-                        val name = uiState.routines.firstOrNull()?.name.orEmpty()
+                        val routineText =
+                            if (uiState.routines.size == 1) {
+                                stringResource(
+                                    id = R.string.lock_screen_routine_running,
+                                    uiState.routines.first().name,
+                                )
+                            } else {
+                                stringResource(
+                                    id = R.string.lock_screen_routines_running,
+                                    uiState.routines.size,
+                                )
+                            }
                         Text(
-                            text = stringResource(
-                                id = R.string.lock_screen_routine_running,
-                                name,
-                            ),
+                            text = routineText,
                             fontWeight = FontWeight.Medium,
                             color = KeepTheme.colors.surfaceVariant,
                             textAlign = TextAlign.Center,

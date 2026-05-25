@@ -269,6 +269,31 @@ adb shell dumpsys alarm | grep com.uiery.keep
 - [ ] 루틴 활성 구간에서만 차단된다.
 - [ ] 루틴 비활성 구간에서는 차단되지 않는다.
 
+### 시나리오 D — 다중 활성 루틴 겹침
+
+1. 현재 시점에 동시에 활성화되도록 루틴 2개 이상을 만든다.
+   - 예시:
+     - 루틴 A: `com.instagram`, `com.youtube`
+     - 루틴 B: `com.youtube`, `com.discord`
+2. 접근성 차단이 켜진 상태에서 각 대상 앱을 순서대로 연다.
+3. Lock 화면의 루틴 안내 문구와 긴급해제 바텀시트의 대상 앱 목록을 확인한다.
+4. 루틴 종료 또는 긴급해제 후 잠금 기록을 확인한다.
+
+확인:
+- [ ] Lock 화면이 첫 번째 루틴 이름 하나만 잘못 보여주지 않고, 단일 활성 루틴이면 이름을, 다중 활성 루틴이면 개수 기반 문구를 보여준다.
+- [ ] 실제 차단 대상 앱 집합이 활성 루틴들의 합집합(`com.instagram`, `com.youtube`, `com.discord`)과 일치한다.
+- [ ] 긴급해제 대상 앱 목록이 첫 번째 루틴 기준으로 잘리지 않고 실제 차단 대상과 동일하다.
+- [ ] 루틴 종료 후 `lock_history`의 `lockedApps`가 실제 차단 대상 합집합과 일치한다.
+- [ ] 공통 앱(`com.youtube`)은 중복 없이 한 번만 취급된다.
+
+권장 evidence:
+
+```bash
+adb logcat -d | grep -E "KeepAccessibilityService|LockViewModel|EmergencyUnlock"
+```
+
+- 가능하면 Lock 화면 스크린샷, 긴급해제 바텀시트 스크린샷, 종료 후 잠금 기록 스크린샷을 한 세트로 남긴다.
+
 ## 5. 긴급해제 만료 검증
 
 관련 코드:
