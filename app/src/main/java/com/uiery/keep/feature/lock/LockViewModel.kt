@@ -22,15 +22,9 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
-import com.uiery.keep.service.EmergencyUnlockData
-import com.uiery.keep.service.EmergencyUnlockSettings
+import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
-import com.uiery.keep.service.EmergencyUnlockState
-import com.uiery.keep.service.canCompleteEmergencyUnlockRequest
-import com.uiery.keep.service.emergencyUnlockDailyRemaining
-import com.uiery.keep.service.isEmergencyUnlockAvailable
-import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
-import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
+import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -40,7 +34,6 @@ import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
@@ -51,7 +44,7 @@ class LockViewModel
         private val routineDao: RoutineDao,
         private val lockHistoryDao: LockHistoryDao,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
-        private val emergencyUnlockDao: EmergencyUnlockDao,
+        private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -191,48 +184,16 @@ class LockViewModel
                 )
             }
 
-        private suspend fun readEmergencyUnlockSettings(): EmergencyUnlockSettings {
-            val preferences = dataStore.data.firstOrNull()
-            return EmergencyUnlockSettings(
-                enabled = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_ENABLED) ?: true,
-                dailyLimit = sanitizeEmergencyUnlockDailyLimit(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT),
-                ),
-                durationOptions = sanitizeEmergencyUnlockDurationOptions(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS),
-                ),
-                reasonRequired = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED) ?: true,
-            )
-        }
-
-        private fun todayStartMillis(): Long {
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            return calendar.timeInMillis
-        }
-
         private fun checkDailyLimit() = intent {
-            val settings = readEmergencyUnlockSettings()
-            val count = emergencyUnlockDao.countToday(todayStartMillis())
+            val availability = emergencyUnlockCoordinator.readAvailability()
             reduce {
                 state.copy(
-                    emergencyUnlockEnabled = settings.enabled,
-                    emergencyUnlockDailyLimit = settings.dailyLimit,
-                    emergencyUnlockDurationOptions = settings.durationOptions,
-                    emergencyUnlockReasonRequired = settings.reasonRequired,
-                    dailyLimitReached = !isEmergencyUnlockAvailable(
-                        enabled = settings.enabled,
-                        dailyLimit = settings.dailyLimit,
-                        todayUnlockCount = count,
-                    ),
-                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(
-                        dailyLimit = settings.dailyLimit,
-                        todayUnlockCount = count,
-                    ),
+                    emergencyUnlockEnabled = availability.enabled,
+                    emergencyUnlockDailyLimit = availability.dailyLimit,
+                    emergencyUnlockDurationOptions = availability.durationOptions,
+                    emergencyUnlockReasonRequired = availability.reasonRequired,
+                    dailyLimitReached = availability.dailyLimitReached,
+                    dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
             }
         }
@@ -251,71 +212,34 @@ class LockViewModel
             apps: Set<String>,
             durationMinutes: Int,
         ) = intent {
-            val now = System.currentTimeMillis()
-            val settings = readEmergencyUnlockSettings()
-            val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
-            if (!canCompleteEmergencyUnlockRequest(
-                    settings = settings,
-                    todayUnlockCount = todayCount,
-                    durationMinutes = durationMinutes,
-                    reason = reason,
-                )
-            ) {
-                checkDailyLimit()
-                return@intent
-            }
-            val expireTime = now + durationMinutes * 60_000L
-            val unlockCountRemaining = emergencyUnlockDailyRemaining(
-                dailyLimit = settings.dailyLimit,
-                todayUnlockCount = todayCount + 1,
-            )
-
-            // 1. Update in-memory singleton atomically
-            EmergencyUnlockState.current = EmergencyUnlockData(
-                unlockedApps = apps,
-                expireTimeMillis = expireTime,
-            )
-
-            // 2. Persist to DataStore
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = apps
-                preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] = expireTime
-            }
-
-            // 3. Save history to Room
-            emergencyUnlockDao.insert(
-                EmergencyUnlockEntity(
-                    timestamp = now,
+            when (
+                emergencyUnlockCoordinator.completeUnlock(
+                    source = AnalyticsSource.LOCK_SCREEN,
                     reason = reason,
                     customReason = customReason,
-                    unlockedApps = apps.toList(),
+                    apps = apps,
                     durationMinutes = durationMinutes,
                 )
-            )
+            ) {
+                is EmergencyUnlockRequestResult.Rejected -> {
+                    checkDailyLimit()
+                    return@intent
+                }
 
-            analytics.trackEmergencyUnlockUsed(
-                source = AnalyticsSource.LOCK_SCREEN,
-                unlockCountRemaining = unlockCountRemaining,
-            )
-            analytics.trackEmergencyUnlockCompleted(
-                reason = reason,
-                durationMinutes = durationMinutes,
-                remainingUnlocks = unlockCountRemaining,
-            )
+                is EmergencyUnlockRequestResult.Completed -> {
+                    checkDailyLimit()
 
-            // 4. Refresh daily limit count
-            checkDailyLimit()
-
-            // 5. Stay on LockScreen, start countdown
-            val totalSeconds = durationMinutes * 60
-            reduce {
-                state.copy(
-                    isEmergencyUnlockActive = true,
-                    emergencyUnlockRemainingSeconds = totalSeconds,
-                    emergencyUnlockedApps = apps,
-                )
+                    val totalSeconds = durationMinutes * 60
+                    reduce {
+                        state.copy(
+                            isEmergencyUnlockActive = true,
+                            emergencyUnlockRemainingSeconds = totalSeconds,
+                            emergencyUnlockedApps = apps,
+                        )
+                    }
+                    startEmergencyUnlockCountdown(totalSeconds)
+                }
             }
-            startEmergencyUnlockCountdown(totalSeconds)
         }
 
         private fun startEmergencyUnlockCountdown(totalSeconds: Int) = intent {
