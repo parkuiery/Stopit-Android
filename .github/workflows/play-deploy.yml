@@ -57,6 +57,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -213,4 +215,5 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_DEPLOY_CHANNEL_ID: ${{ secrets.DISCORD_DEPLOY_CHANNEL_ID }}
+          GH_TOKEN: ${{ github.token }}
         run: python3 scripts/notify-discord-deploy.py
