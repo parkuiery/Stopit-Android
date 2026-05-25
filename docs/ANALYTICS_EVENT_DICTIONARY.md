@@ -15,6 +15,7 @@
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/history/HistoryViewModelTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -26,7 +27,7 @@
 | 히스토리 | `HistoryScreen` | `HistoryViewModel` |
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
-| 잠금 화면 광고/배너 문맥 | `LockScreen` | `LockScreen`, `TrackedBannerAd` |
+| 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
 | 온보딩 소개 | `OnboardingIntroScreen` | `IntroViewModel.onStepViewed()` |
 | 온보딩 접근성 권한 | `OnboardingPermissionScreen` | `PermissionSettingViewModel.onStepViewed()` |
 | 온보딩 알림 권한 | `OnboardingNotificationScreen` | `NotificationSettingViewModel.onStepViewed()` |
@@ -176,6 +177,7 @@
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest --tests com.uiery.keep.analytics.FirebaseKeepAnalyticsTest
 ./gradlew :app:testDevDebugUnitTest --tests com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest
+./gradlew :app:testDevDebugUnitTest --tests com.uiery.keep.feature.lock.LockViewModelTest
 ```
 
 ### GA4 metadata로 등록 상태 확인

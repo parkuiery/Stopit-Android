@@ -21,21 +21,30 @@ import java.time.DayOfWeek
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class RoutineScheduleResult {
+    Scheduled,
+    NotEnabled,
+    MissingExactAlarmPermission,
+}
+
 @Singleton
 class RoutineScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun scheduleRoutine(routine: RoutineModel) {
+    fun canScheduleExactAlarms(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
+    fun scheduleRoutine(routine: RoutineModel): RoutineScheduleResult {
         Log.d("TEST", "scheduleRoutine: $routine")
         if (!routine.isEnabled) {
             cancelRoutine(routine.id)
-            return
-    }
+            return RoutineScheduleResult.NotEnabled
+        }
 
         val repeatDays = routine.repeatDays.toDayOfWeekList()
-        if (repeatDays.isEmpty()) return
+        if (repeatDays.isEmpty()) return RoutineScheduleResult.NotEnabled
 
         repeatDays.forEach { dayOfWeek ->
             val nextAlarmTime = calculateNextAlarmTime(routine.startTime, dayOfWeek)
@@ -54,24 +63,24 @@ class RoutineScheduler @Inject constructor(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        nextAlarmTime,
-                        pendingIntent
-                    )
-                } else {
-                    // 알림 메니저 권한 없음
-                }
-            } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canScheduleExactAlarms()) {
+                cancelRoutine(routine.id)
+                return RoutineScheduleResult.MissingExactAlarmPermission
+            }
+
+            try {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     nextAlarmTime,
                     pendingIntent
                 )
+            } catch (securityException: SecurityException) {
+                cancelRoutine(routine.id)
+                return RoutineScheduleResult.MissingExactAlarmPermission
             }
         }
+
+        return RoutineScheduleResult.Scheduled
     }
 
     fun cancelRoutine(routineId: Long) {

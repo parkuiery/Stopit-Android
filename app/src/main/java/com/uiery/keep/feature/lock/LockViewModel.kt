@@ -5,11 +5,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.navigation.toRoute
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -31,9 +31,6 @@ import com.uiery.keep.service.emergencyUnlockDailyRemaining
 import com.uiery.keep.service.isEmergencyUnlockAvailable
 import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
 import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
-import com.uiery.keep.util.currentRoutineWindowEndDateTime
-import com.uiery.keep.util.isRoutineActiveNow
-import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -60,7 +57,10 @@ class LockViewModel
         private val reviewEligibility: ReviewEligibilityEvaluator,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
-        private val route = savedStateHandle.toRoute<LockRoute>()
+        private val route = LockRoute(
+            lockTime = savedStateHandle.get<String>("lockTime"),
+            isRoutine = savedStateHandle.get<Boolean>("isRoutine") ?: false,
+        )
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
@@ -73,6 +73,7 @@ class LockViewModel
         private var navigateHomeJob: kotlinx.coroutines.Job? = null
 
         init {
+            analytics.logScreenView(KeepAnalyticsScreen.LOCK)
             initIntent()
         }
 
@@ -98,30 +99,17 @@ class LockViewModel
         private fun getRoutines() =
             intent {
                 val routineStartTime = System.currentTimeMillis()
-                val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }
-                val activeRoutines =
-                    routines?.filter { routine ->
-                        routine.isEnabled &&
-                            isRoutineActiveNow(
-                                startTime = routine.startTime,
-                                endTime = routine.endTime,
-                                repeatDays = routine.repeatDays.toDayOfWeekList(),
-                            )
-                    }
-                val endTime =
-                    activeRoutines
-                        ?.maxOfOrNull { currentRoutineWindowEndDateTime(it.startTime, it.endTime) }
-                        ?: LocalDateTime.now()
-                val applications = activeRoutines?.firstOrNull()?.lockApplications ?: emptyList()
+                val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }.orEmpty()
+                val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines)
                 reduce {
                     state.copy(
-                        routines = activeRoutines.orEmpty(),
-                        selectedAppPackage = applications.toSet(),
-                        lockTime = endTime,
+                        routines = activeRoutineLockState.routines,
+                        selectedAppPackage = activeRoutineLockState.blockedApps,
+                        lockTime = activeRoutineLockState.endTime,
                         routineStartTime = routineStartTime,
                     )
                 }
-                navigateHome(endTime)
+                navigateHome(activeRoutineLockState.endTime)
             }
 
         private fun navigateHome(lockTime: LocalDateTime) {
@@ -165,6 +153,7 @@ class LockViewModel
                 nowMs = now,
                 durationMillis = durationMillis,
                 isRoutine = isRoutine,
+                includeCurrentSuccessfulSession = true,
             )
             when (decision) {
                 is ReviewEligibilityDecision.Eligible -> {

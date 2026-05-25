@@ -25,6 +25,9 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - signed `prodRelease` AAB build
   - artifact upload to GitHub Actions
   - upload to Google Play `internal` track by default
+- A successful `production` CD run writes two completion markers for the tag:
+  - GitHub Deployment: environment `production`, status `success`
+  - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
 - Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`.
 
 ## Required GitHub secrets
@@ -68,7 +71,7 @@ The script uses `gh secret set` and does not commit secret files.
 
 ## Release flow
 
-Use the release harness scripts documented in `docs/GIT_WORKFLOW.md`:
+Use the release harness scripts documented in `docs/GIT_WORKFLOW.md`. A new release can start only after the latest existing SemVer tag has reached Google Play `production` and the CD workflow has written its production marker.
 
 ```bash
 scripts/release-start.sh 1.7.2
@@ -79,7 +82,7 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard
+- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes)
 - Android CI
 - Android Release Build
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
@@ -155,3 +158,4 @@ Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and loc
 - Release Build creates signed artifacts only; it does not upload externally.
 - Tag-triggered CD targets `internal` by default, not production.
 - Production upload is intentionally manual through workflow dispatch.
+- `scripts/release-start.sh` and `scripts/release-tag.sh` block if the latest existing SemVer tag does not have a production completion marker. Use `STOPIT_RELEASE_GATE_BYPASS=1` only for an explicitly approved emergency override.

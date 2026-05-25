@@ -68,6 +68,7 @@
     <string name="feature_request_message">🚀 Wir erstellen die Funktionen, die Sie sich wünschen!</string>
     <string name="accessibility_setup_guide">● Samsung: Einstellungen > Bedienungshilfen > Installierte Apps > StopIt > Bedienungshilfen erlauben\n● Andere: Einstellungen > Bedienungshilfen > StopIt > Bedienungshilfen erlauben</string>
     <string name="lock_screen_routine_running">%1$s \nRoutine läuft</string>
+    <string name="lock_screen_routines_running">%1$d Routinen laufen</string>
     <string name="routine_minimum_duration_message">Routinen müssen für mindestens 15 Minuten eingestellt werden.</string>
     <string name="lock_history_menu_title">Sperrverlauf anzeigen</string>
     <string name="lock_history_title">Sperrverlauf</string>

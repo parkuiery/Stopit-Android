@@ -67,6 +67,7 @@
     <string name="feature_request_message">🚀 ¡Crearemos las funciones que desees!</string>
     <string name="accessibility_setup_guide">● Samsung: Configuración > Accesibilidad > Aplicaciones instaladas > StopIt > Permitir accesibilidad\n● Otros: Configuración > Accesibilidad > StopIt > Permitir accesibilidad</string>
     <string name="lock_screen_routine_running">%1$s \nRutina en ejecución</string>
+    <string name="lock_screen_routines_running">%1$d rutinas en ejecución</string>
     <string name="routine_minimum_duration_message">Las rutinas deben establecerse durante al menos 15 minutos.</string>
     <string name="lock_history_menu_title">Ver historial de bloqueo</string>
     <string name="lock_history_title">Historial de bloqueo</string>

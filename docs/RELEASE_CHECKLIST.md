@@ -12,12 +12,13 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 
 ## Required checks
 
+- [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than any version already uploaded to Google Play.
 - [ ] `./gradlew testProdReleaseUnitTest` passes locally or in Android Release Build.
 - [ ] `./gradlew bundleProdRelease` passes locally or in Android Release Build.
 - [ ] Branch Hygiene passes on the PR.
-- [ ] Version Guard passes on the PR.
+- [ ] Version Guard runs and passes on the PR (it should appear on every `main`-target PR, not only when `app/build.gradle.kts` changed).
 - [ ] Android CI passes on the PR.
 - [ ] Android Release QA passes on the PR:
   - `Full release QA` runs `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, and `:app:assembleProdDebug`.

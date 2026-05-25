@@ -68,6 +68,7 @@
     <string name="feature_request_message">🚀 Мы создадим функции, которые вы хотите!</string>
     <string name="accessibility_setup_guide">● Samsung: Настройки > Специальные возможности > Установленные приложения > StopIt > Разрешить специальные возможности\n● Другие: Настройки > Специальные возможности > StopIt > Разрешить специальные возможности</string>
     <string name="lock_screen_routine_running">%1$s \nВыполняется рутина</string>
+    <string name="lock_screen_routines_running">Выполняется %1$d рутин</string>
     <string name="routine_minimum_duration_message">Рутины должны быть установлены минимум на 15 минут.</string>
     <string name="lock_history_menu_title">Посмотреть историю блокировок</string>
     <string name="lock_history_title">История блокировок</string>

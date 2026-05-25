@@ -13,6 +13,9 @@ jobs:
     name: Validate branch name and target
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Validate PR routing
         env:
           HEAD_REF: ${{ github.head_ref }}
@@ -35,5 +38,14 @@ jobs:
 
           if [[ "$BASE_REF" != "$expected_base" ]]; then
             echo "Invalid PR target: $HEAD_REF must target $expected_base, not $BASE_REF"
+            exit 1
+          fi
+
+      - name: Reject flavorless app Gradle tasks in workflows
+        run: |
+          set -euo pipefail
+          if find .github/workflows -name '*.yml' ! -name 'branch-hygiene.yml' -print0 \
+            | xargs -0 grep -nE '\b(testDebugUnitTest|assembleDebug|lintDebug)\b'; then
+            echo 'Flavorless app Gradle task found in workflow. Use variant-specific app tasks instead.'
             exit 1
           fi

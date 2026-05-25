@@ -166,6 +166,25 @@ class ReviewEligibilityEvaluatorTest {
     }
 
     @Test
+    fun currentSuccessfulSessionCountsAsRecentSuccessDuringArmEvaluation() {
+        val prefs = baselinePrefs().apply {
+            set(PreferencesKey.SUCCESSFUL_SESSION_COUNT, 3)
+        }
+        assertEquals(
+            ReviewEligibilityDecision.Eligible,
+            runBlocking {
+                newEvaluator(prefs = prefs, recentSuccess = 0)
+                    .evaluate(
+                        nowMs = baselineNowMs,
+                        durationMillis = 60_000L,
+                        isRoutine = false,
+                        includeCurrentSuccessfulSession = true,
+                    )
+            },
+        )
+    }
+
+    @Test
     fun evaluateLiveReturnsEligibleByDefault() {
         assertEquals(ReviewEligibilityDecision.Eligible, newEvaluator().evaluateLive())
     }
