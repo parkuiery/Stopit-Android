@@ -22,7 +22,9 @@
 
 For normal development PRs:
 - [ ] `./gradlew :app:testDevDebugUnitTest`
+- [ ] `./gradlew :app:lintDevDebug`
 - [ ] `./gradlew :app:assembleProdDebug`
+- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `ReceiverRuntimeIntegrationTest`, `EmergencyUnlockExpiryIntegrationTest`) is covered by Android CI or equivalent evidence is linked
 - [ ] Android CI passes
 
 For release/hotfix PRs:

@@ -49,6 +49,20 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### develop/main 기본 CI gate
+
+`Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.
+
+- `./gradlew :app:testDevDebugUnitTest`
+- `./gradlew :app:lintDevDebug`
+- `./gradlew :app:assembleProdDebug`
+- focused runtime smoke:
+  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+
+이 gate는 develop/main PR 단계에서 lint·핵심 receiver/service/runtime 계약을 먼저 막는 역할이다. exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
