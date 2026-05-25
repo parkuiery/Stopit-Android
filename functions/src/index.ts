@@ -3,12 +3,11 @@ import { onNewFatalIssuePublished, onNewNonfatalIssuePublished, onNewAnrIssuePub
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import nacl from "tweetnacl";
+import { csvSecretValues, hexToBytes, issueUrl, promotionTagFromCustomId } from "./runtime-helpers.js";
 
 const githubOwner = "parkuiery";
 const githubRepo = "Stopit-Android";
 const playDeployWorkflow = "play-deploy.yml";
-const productionPromotionCustomIdPrefix = "stopit_promote_production";
-
 type CrashlyticsIssue = {
   id?: string;
   title?: string;
@@ -42,11 +41,6 @@ const githubActionsDispatchToken = defineSecret("GITHUB_ACTIONS_DISPATCH_TOKEN")
 
 function issueSummary(event: any): CrashlyticsIssue {
   return event?.data?.payload?.issue ?? {};
-}
-
-function issueUrl(appId: string, issueId?: string) {
-  if (!issueId) return null;
-  return `https://console.firebase.google.com/project/stopit-be785/crashlytics/app/${encodeURIComponent(appId)}/issues/${encodeURIComponent(issueId)}`;
 }
 
 async function postToDiscord(username: string, content: string) {
@@ -84,27 +78,6 @@ async function sendCrashlyticsAlert(kind: string, emoji: string, event: any) {
   await postToDiscord("Stopit Crashlytics", content);
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) {
-    throw new Error("Invalid hex string");
-  }
-
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(hex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-
-function csvSecretValues(raw: string): Set<string> {
-  return new Set(
-    raw
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
-}
-
 function verifyDiscordRequest(signature: string | undefined, timestamp: string | undefined, rawBody: Buffer): boolean {
   if (!signature || !timestamp) return false;
 
@@ -114,15 +87,6 @@ function verifyDiscordRequest(signature: string | undefined, timestamp: string |
   const message = Buffer.concat([timestampBytes, rawBody]);
 
   return nacl.sign.detached.verify(new Uint8Array(message), signatureBytes, publicKey);
-}
-
-function promotionTagFromCustomId(customId: string | undefined): string | null {
-  if (!customId) return null;
-
-  const [prefix, tag] = customId.split(":");
-  if (prefix !== productionPromotionCustomIdPrefix) return null;
-  if (!/^v\d+\.\d+\.\d+$/.test(tag ?? "")) return null;
-  return tag;
 }
 
 function userCanPromote(interaction: DiscordInteraction): boolean {

@@ -112,7 +112,7 @@ After a successful internal upload, the CD workflow posts an approval card to th
   - `STOPIT_PLAY_MAX_VERSION_CODE=<known_max>` when live Play API access is unavailable
 - The fallback is intentional but should be treated as an operator override. Prefer the live Play API path whenever credentials are available.
 
-The Discord button is handled by the Firebase Function `promoteProductionFromDiscord`, which verifies the Discord interaction signature, channel, and allowed user/role before dispatching GitHub Actions. Do not promote an internal release to production until internal QA passes.
+The Discord button is handled by the Firebase Function `promoteProductionFromDiscord`, which verifies the Discord interaction signature, channel, and allowed user/role before dispatching GitHub Actions. Keep the Firebase Functions package on the supported Node.js 22 runtime so deploys do not inherit the deprecated Node.js 20 warning. Do not promote an internal release to production until internal QA passes.
 
 ## Discord production promotion setup
 

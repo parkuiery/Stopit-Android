@@ -4,6 +4,8 @@ Crashlytics alerts are forwarded to Discord through Firebase Functions. The same
 
 ## Setup
 
+This Functions package targets the Firebase Node.js 22 runtime.
+
 ```bash
 cd functions
 npm install
@@ -14,6 +16,14 @@ firebase functions:secrets:set DISCORD_DEPLOY_ALLOWED_ROLE_IDS
 firebase functions:secrets:set DISCORD_DEPLOY_ALLOWED_USER_IDS
 firebase functions:secrets:set GITHUB_ACTIONS_DISPATCH_TOKEN
 firebase deploy --only functions
+```
+
+## Local verification
+
+```bash
+cd functions
+npm test
+npm run build
 ```
 
 ## Triggered alerts
