@@ -106,6 +106,7 @@ jobs:
         run: ./gradlew testProdReleaseUnitTest
 
       - name: Build signed prod release bundle
+        if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -113,6 +114,7 @@ jobs:
         run: ./gradlew bundleProdRelease
 
       - name: Upload signed AAB artifact
+        if: env.DEPLOY_TRACK != 'production'
         uses: actions/upload-artifact@v7
         with:
           name: stopit-prod-release-signed-aab
@@ -121,6 +123,7 @@ jobs:
           retention-days: 30
 
       - name: Upload to Google Play
+        if: env.DEPLOY_TRACK != 'production'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH }}
@@ -129,6 +132,12 @@ jobs:
           tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
+
+      - name: Promote internal release to production
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          SOURCE_TRACK: internal
+        run: node scripts/promote-google-play-track.js
 
       - name: Mark production deployment complete
         if: success() && env.DEPLOY_TRACK == 'production'
