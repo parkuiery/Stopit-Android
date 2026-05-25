@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/release-start.sh <versionName> [--code <versionCode>]
+Usage: scripts/release-start.sh <versionName> [--code <versionCode>] [--service-account-json <path>] [--fallback-play-max-version-code <n>]
 
 Creates release/<versionName> from develop, bumps Android version, verifies release tasks,
 and commits the version bump.
@@ -11,6 +11,7 @@ and commits the version bump.
 Example:
   scripts/release-start.sh 1.7.2
   scripts/release-start.sh 1.7.2 --code 24
+  scripts/release-start.sh 1.7.2 --service-account-json /path/to/play-service-account.json
 USAGE
 }
 
@@ -35,7 +36,7 @@ fi
 
 scripts/check-latest-production-deployed.sh
 
-git fetch origin develop
+git fetch origin main develop
 git checkout develop
 git pull --ff-only origin develop
 

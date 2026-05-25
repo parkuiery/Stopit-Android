@@ -14,7 +14,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 
 - [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
-- [ ] `versionCode` is greater than the version currently on `main` and greater than any version already uploaded to Google Play.
+- [ ] `versionCode` is greater than the version currently on `main` and greater than the highest versionCode currently visible through Google Play tracks; `Version Guard` and `scripts/play_version_code_guard.py` are the source of truth for this check.
 - [ ] `./gradlew testProdReleaseUnitTest` passes locally or in Android Release Build.
 - [ ] `./gradlew bundleProdRelease` passes locally or in Android Release Build.
 - [ ] Branch Hygiene passes on the PR.
@@ -42,7 +42,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 ## Risk / rollback notes
 
 - Rollback path: keep the prior production release active in Play Console; do not promote this internal release if smoke testing fails.
-- If a Play upload fails with `version code ... has already been used`, bump `versionCode` and retry.
+- If `Version Guard` or `scripts/check-release-readiness.sh` reports `versionCode must exceed Google Play used max`, bump `versionCode` before merge/tag instead of waiting for a Play upload failure.
 
 ## Post-merge steps
 

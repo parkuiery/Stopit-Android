@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PACKAGE_NAME: com.uiery.keep
+
 jobs:
   version-guard:
     name: Validate Android release version
@@ -17,17 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate versionName and versionCode
+      - name: Validate branch routing
         env:
-          BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from pathlib import Path
           import os
-          import re
-          import subprocess
 
           head_ref = os.environ["HEAD_REF"]
           if not (head_ref.startswith("release/") or head_ref.startswith("hotfix/")):
@@ -35,27 +34,46 @@ jobs:
                   "main-target PRs must come from release/* or hotfix/* so Version Guard always appears as a governance gate; "
                   f"got {head_ref}"
               )
+          PY
 
-          def parse(text: str) -> tuple[int, str]:
-              code = re.search(r"versionCode\s*=\s*(\d+)", text)
-              name = re.search(r'versionName\s*=\s*"([^"]+)"', text)
-              if not code or not name:
-                  raise SystemExit("versionCode/versionName not found")
-              version_name = name.group(1)
-              if not re.fullmatch(r"\d+\.\d+\.\d+", version_name):
-                  raise SystemExit(f"versionName must be MAJOR.MINOR.PATCH, got {version_name}")
-              return int(code.group(1)), version_name
+      - name: Restore Google Play service account for guardrail
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
+          service_account_path="$RUNNER_TEMP/google-play-service-account.json"
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$service_account_path"
+          chmod 600 "$service_account_path"
+          echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=$service_account_path" >> "$GITHUB_ENV"
 
-          current_code, current_name = parse(Path("app/build.gradle.kts").read_text())
-          base_file = subprocess.check_output(
-              ["git", "show", f"origin/{os.environ['BASE_REF']}:app/build.gradle.kts"],
+      - name: Resolve base and Google Play versionCode maxima
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          base_version_code="$(python3 - <<'PY'
+          import os
+          import subprocess
+          from scripts.play_version_code_guard import parse_build_version_info
+
+          text = subprocess.check_output(
+              ['git', 'show', f"origin/{os.environ['BASE_REF']}:app/build.gradle.kts"],
               text=True,
           )
-          base_code, base_name = parse(base_file)
-
-          print(f"base: versionName={base_name} versionCode={base_code}")
-          print(f"pr:   versionName={current_name} versionCode={current_code}")
-
-          if current_code <= base_code:
-              raise SystemExit(f"versionCode must increase for Play upload: base={base_code}, pr={current_code}")
+          print(parse_build_version_info(text).version_code)
           PY
+          )"
+          play_max_version_code="$(python3 scripts/play_version_code_guard.py fetch-play-max --package-name "$PACKAGE_NAME" --service-account-json "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH")"
+          echo "BASE_VERSION_CODE=$base_version_code" >> "$GITHUB_ENV"
+          echo "PLAY_MAX_VERSION_CODE=$play_max_version_code" >> "$GITHUB_ENV"
+          echo "base: versionCode=$base_version_code"
+          echo "play: maxUsedVersionCode=$play_max_version_code"
+
+      - name: Validate versionName and versionCode
+        run: |
+          set -euo pipefail
+          python3 scripts/play_version_code_guard.py validate-build \
+            --build-file app/build.gradle.kts \
+            --minimum-main-version-code "$BASE_VERSION_CODE" \
+            --fallback-play-max-version-code "$PLAY_MAX_VERSION_CODE"
