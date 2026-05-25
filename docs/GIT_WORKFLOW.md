@@ -84,7 +84,7 @@ Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 커야 한다.
 4. 태그 형식은 `v{versionName}`이다. 예: `v1.7.1`
 
-자동 검증: `.github/workflows/version-guard.yml`가 `main` 대상 PR에서 `versionCode` 증가와 태그/버전 형식을 검사한다.
+자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode` 증가와 `versionName` SemVer 형식을 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다.
 
 ## Harness Scripts
 
