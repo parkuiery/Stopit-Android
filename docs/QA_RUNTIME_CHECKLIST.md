@@ -83,6 +83,54 @@ cd <repo-root>
 
 이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
 
+### exact alarm permission baseline
+
+issue #77 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:installDevDebug
+
+# 거절 상태: 활성 루틴이 조용히 성공 상태로 남지 않아야 한다.
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
+
+# 허용 상태: 동일 경로에서 실제 PendingIntent 예약이 생겨야 한다.
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm
+```
+
+- 거절 경로 검증 범위:
+  - `RoutineBottomSheetViewModel` 저장 시 side effect로 권한 안내를 띄우는지
+  - DB에 저장된 루틴이 `enabled=false`로 안전하게 내려가는지
+  - 동일 루틴 ID의 `PendingIntent`가 남지 않는지
+- 허용 경로 검증 범위:
+  - `RoutineViewModel.changeEnabled(...)`가 루틴을 다시 `enabled=true`로 올리는지
+  - exact alarm `PendingIntent`가 실제로 예약되는지
+
+### exact alarm permission 수동 evidence 템플릿
+
+Android 12+ 실기기/에뮬레이터에서 추가 스크린샷 evidence가 필요하면 아래 형식으로 남긴다.
+
+```md
+## Exact alarm permission evidence
+- Device/Emulator:
+- Android version:
+- Variant:
+- Routine name / id:
+- Permission state before save: allow / deny
+- Commands:
+  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny|allow`
+  - `adb shell dumpsys alarm | grep com.uiery.keep`
+- Observed UI:
+  - 권한 안내 바텀시트 노출 여부
+  - 루틴 enabled/disabled 상태
+- PendingIntent evidence:
+- Notes:
+```
+
 ### FCM token 재생성 baseline
 
 issue #68 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
@@ -227,6 +275,21 @@ adb shell dumpsys alarm | grep com.uiery.keep
 - 기대한 알림 시각 vs 실제 시각
 - 수신 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 출력 차이
 - 재예약 여부 스크린샷 또는 로그
+
+### exact alarm permission 확인 포인트 (Android 12+)
+
+1. exact alarm 권한을 `deny`로 둔 상태에서 활성 루틴 저장 또는 enable 시도를 한다.
+2. 권한 안내 UI가 즉시 노출되는지 확인한다.
+3. 루틴이 화면/DB 기준 `enabled=false`로 남고, `dumpsys alarm`에도 새 예약이 생기지 않는지 확인한다.
+4. exact alarm 권한을 `allow`로 변경한다.
+5. 같은 루틴을 다시 enable 하거나 새 활성 루틴을 저장한다.
+6. 이번에는 `enabled=true` 상태와 실제 예약이 함께 생기는지 확인한다.
+
+체크리스트:
+
+- [ ] 권한 거절 상태에서 활성 루틴이 "성공처럼 보이지만 실제 미예약" 상태로 남지 않는다.
+- [ ] 권한 거절 상태에서 사용자가 원인을 UI로 인지할 수 있다.
+- [ ] 권한 허용 후에는 동일 루틴이 정상적으로 다시 예약된다.
 
 ## 4. KeepAccessibilityService 차단 검증
 

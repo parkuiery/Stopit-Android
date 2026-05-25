@@ -146,12 +146,27 @@ class RoutineViewModel
                 return@intent
             }
 
-            routineDao.updateIsEnabledById(id, isEnabled)
             routine?.let {
-                if (isEnabled) {
-                    routineScheduler.scheduleRoutine(it.copy(isEnabled = true))
+                val resolvedRoutine = resolveRoutineExactAlarmPermission(
+                    routine = it.copy(isEnabled = isEnabled),
+                    canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
+                )
+                routineDao.updateIsEnabledById(id, resolvedRoutine.routine.isEnabled)
+                var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
+                if (resolvedRoutine.routine.isEnabled) {
+                    when (routineScheduler.scheduleRoutine(resolvedRoutine.routine)) {
+                        com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> Unit
+                        com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
+                            routineDao.updateIsEnabledById(id, false)
+                            shouldShowPermissionPrompt = true
+                        }
+                        com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
+                    }
                 } else {
                     routineScheduler.cancelRoutine(id)
+                }
+                if (shouldShowPermissionPrompt) {
+                    postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                 }
             }
         }
