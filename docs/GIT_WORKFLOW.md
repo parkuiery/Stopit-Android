@@ -163,7 +163,8 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 ```
 
 동작:
-- git working tree clean 여부 확인
+- `origin/main` 기준 검증 전에 먼저 `git fetch origin main`으로 remote ref를 최신화하고, fetch 실패 시 즉시 중단
+- 현재 브랜치의 git working tree clean 여부 확인
 - 버전 형식 확인
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - `actionlint`가 있으면 workflow 문법 확인

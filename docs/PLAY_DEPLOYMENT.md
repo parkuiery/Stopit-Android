@@ -107,7 +107,7 @@ After a successful internal upload, the CD workflow posts an approval card to th
 
 - `scripts/play_version_code_guard.py fetch-play-max` creates a read-only Google Play edit, lists active tracks, and derives the highest visible `versionCode` from every release in those tracks.
 - `.github/workflows/version-guard.yml` uses the same script with `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` so `main`-target release/hotfix PRs fail before merge if the candidate `versionCode` is not strictly greater than both `origin/main` and Google Play's visible maximum.
-- `scripts/check-release-readiness.sh` and `scripts/bump-version.sh` use the same guard locally. Provide one of:
+- `scripts/check-release-readiness.sh` and `scripts/bump-version.sh` use the same guard locally. Both commands fetch `origin/main` before reading its `versionCode`; if the fetch fails they stop immediately instead of validating against a stale ref. Provide one of:
   - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=/path/to/play-service-account.json`
   - `STOPIT_PLAY_MAX_VERSION_CODE=<known_max>` when live Play API access is unavailable
 - The fallback is intentional but should be treated as an operator override. Prefer the live Play API path whenever credentials are available.

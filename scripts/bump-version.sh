@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+fetch_origin_main_or_die() {
+  if ! git fetch origin main >/dev/null; then
+    echo "Failed to fetch origin/main before Android version bump." >&2
+    echo "Check network/remote access and retry." >&2
+    exit 1
+  fi
+}
+
 usage() {
   cat <<'USAGE'
 Usage: scripts/bump-version.sh <versionName> [--code <versionCode>] [--no-dry-run] [--service-account-json <path>] [--fallback-play-max-version-code <n>]
@@ -71,7 +79,7 @@ else
   exit 2
 fi
 
-git fetch origin main >/dev/null
+fetch_origin_main_or_die
 
 version_state="$(python3 - "$version_code" <<'PY'
 from pathlib import Path
