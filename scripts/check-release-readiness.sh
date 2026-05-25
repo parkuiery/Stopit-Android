@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+fetch_origin_main_or_die() {
+  if ! git fetch origin main >/dev/null; then
+    echo "Failed to fetch origin/main before release readiness validation." >&2
+    echo "Check network/remote access and retry." >&2
+    exit 1
+  fi
+}
+
 current_branch="$(git branch --show-current)"
 version_info="$(python3 - <<'PY'
 from pathlib import Path
@@ -15,6 +23,9 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', name.group(1)):
 print(f"versionName={name.group(1)} versionCode={code.group(1)}")
 PY
 )"
+
+fetch_origin_main_or_die
+
 main_version_code="$(python3 - <<'PY'
 import subprocess
 from scripts.play_version_code_guard import parse_build_version_info
@@ -33,8 +44,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git status --short >&2
   exit 1
 fi
-
-git fetch origin main >/dev/null
 
 if command -v actionlint >/dev/null 2>&1; then
   actionlint
