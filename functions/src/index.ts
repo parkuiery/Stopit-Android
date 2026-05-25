@@ -21,6 +21,7 @@ type DiscordInteraction = {
   type?: number;
   id?: string;
   token?: string;
+  application_id?: string;
   channel_id?: string;
   member?: {
     user?: { id?: string; username?: string };
@@ -174,6 +175,33 @@ async function dispatchProductionPromotion(tag: string) {
   }
 }
 
+async function updateDiscordInteractionResponse(interaction: DiscordInteraction, content: string) {
+  if (!interaction.application_id || !interaction.token) {
+    logger.warn("Cannot update Discord interaction response without application_id/token", {
+      interactionId: interaction.id,
+    });
+    return;
+  }
+
+  const response = await fetch(
+    `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    logger.warn("Failed to update Discord interaction response", {
+      status: response.status,
+      body,
+      interactionId: interaction.id,
+    });
+  }
+}
+
 function interactionResponse(content: string, status = 200) {
   return {
     status,
@@ -248,18 +276,31 @@ export const promoteProductionFromDiscord = onRequest(
     }
 
     try {
+      const deferredResponse = {
+        type: 5,
+        data: {
+          content: `🚀 \`${tag}\` 프로덕션 배포 workflow를 시작하는 중입니다...`,
+          flags: 64,
+        },
+      };
+      response.status(200).json(deferredResponse);
+
       await dispatchProductionPromotion(tag);
       logger.info("Dispatched production promotion", {
         tag,
         channelId: interaction.channel_id,
         userId: interaction.member?.user?.id ?? interaction.user?.id,
       });
-      const result = interactionResponse(`🚀 \`${tag}\` 프로덕션 배포 workflow를 시작했습니다. GitHub Actions에서 완료 상태를 확인해 주세요.`);
-      response.status(result.status).set(result.headers).send(result.body);
+      await updateDiscordInteractionResponse(
+        interaction,
+        `🚀 \`${tag}\` 프로덕션 배포 workflow를 시작했습니다. GitHub Actions에서 완료 상태를 확인해 주세요.`,
+      );
     } catch (error) {
       logger.error("Failed to dispatch production promotion", { tag, error });
-      const result = interactionResponse(`프로덕션 배포 시작에 실패했습니다: ${(error as Error).message}`);
-      response.status(result.status).set(result.headers).send(result.body);
+      await updateDiscordInteractionResponse(
+        interaction,
+        `프로덕션 배포 시작에 실패했습니다: ${(error as Error).message}`,
+      );
     }
   },
 );
