@@ -72,6 +72,7 @@
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
@@ -408,6 +409,20 @@ PY
 - 노출은 늘었는데 CTR/eCPM/수익이 감소한다.
 - `(not set)` 광고 단위가 많다.
 - UX 비용 대비 수익이 낮은 광고 위치가 있다.
+
+### 사용정보 기반 개인화
+
+예시 문제:
+
+- 사용 패턴 기반 차단 제안이 없어 신규/반복 사용자 모두 설정을 감에 의존한다.
+- Usage Access 권한을 왜 요청하는지 설명/가드레일 없이 구현하면 허용률과 신뢰가 동시에 무너질 수 있다.
+- 개인화 기능이 가치 있는지 판단할 MVP 범위와 측정 기준이 아직 없다.
+
+운영 원칙:
+
+- 먼저 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` 기준으로 권한 UX, fallback, MVP 범위, 규칙 기반 추천, 개인정보 가드레일을 닫는다.
+- Usage Access는 리포트/추천용 선택형 확장으로 다루고, 핵심 차단 기능의 필수 권한으로 만들지 않는다.
+- 외부 전송보다 로컬 집계/설명 가능한 추천을 우선한다.
 
 ### 리뷰 / 신뢰
 
