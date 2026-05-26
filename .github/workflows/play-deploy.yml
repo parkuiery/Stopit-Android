@@ -105,6 +105,30 @@ jobs:
       - name: Run release unit tests
         run: ./gradlew testProdReleaseUnitTest
 
+      - name: Resolve production promotion versionCode from selected tag
+        if: env.DEPLOY_TRACK == 'production'
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Production promotion requires a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          version_code="$(python3 - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path('app/build.gradle.kts').read_text(encoding='utf-8')
+          match = re.search(r'versionCode\s*=\s*(\d+)', text)
+          if not match:
+              raise SystemExit('Unable to resolve versionCode from app/build.gradle.kts')
+          print(match.group(1))
+          PY
+          )"
+
+          echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "Resolved production promotion tag $GITHUB_REF_NAME to versionCode=$version_code"
+
       - name: Build signed prod release bundle
         if: env.DEPLOY_TRACK != 'production'
         env:

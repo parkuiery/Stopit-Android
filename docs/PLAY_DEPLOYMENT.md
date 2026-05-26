@@ -33,6 +33,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
 - Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`.
+- `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 
 ## Required GitHub secrets
 
@@ -106,6 +107,12 @@ scripts/release-tag.sh 1.7.2
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
+
+Production promotion safety contract:
+- `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.
+- The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.
+- `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
+- The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.
 
 ## VersionCode guardrail before Play upload
 
