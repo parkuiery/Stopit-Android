@@ -103,9 +103,11 @@ cd <repo-root>
 ```
 
 - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+- `manifestRegistersBootReceiverForMyPackageReplaced`
+- `packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
 - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`까지 포함해 앱 업데이트 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
 
 ### exact alarm permission baseline
 
@@ -235,9 +237,9 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 ### 목적
 
-부팅 후 저장된 루틴이 다시 스케줄링되어야 한다.
+부팅 후 저장된 루틴이 다시 스케줄링되어야 한다. 동일한 복구 계약은 앱 업데이트로 패키지가 교체된 뒤(`MY_PACKAGE_REPLACED`)에도 유지되어야 한다.
 
-### 시나리오
+### 시나리오 A — cold boot / reboot
 
 1. 루틴이 1개 이상 활성화된 상태를 만든다.
 2. 앱을 완전히 종료한다.
@@ -246,18 +248,26 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 > `BOOT_COMPLETED`는 protected broadcast라서 `adb shell am broadcast ...`만으로 안정적으로 재현되지 않을 수 있다. BootReceiver 검증은 실제 reboot/cold boot를 기준으로 남긴다.
 
+### 시나리오 B — 앱 업데이트 후 복구
+
+1. 활성 루틴 1개 이상을 만든다.
+2. 업데이트 전 `adb shell dumpsys alarm | grep com.uiery.keep`로 예약 상태를 남긴다.
+3. 같은 variant를 `adb install -r <apk>`로 덮어쓴다.
+4. 업데이트 직후 앱을 열지 않은 상태에서 다음 루틴 예약이 유지되거나 즉시 재복구되는지 확인한다.
+5. 필요하면 앱 실행 후 홈/루틴 화면에서 상태가 초기화되지 않았는지 확인한다.
+
 ### 확인 포인트
 
 - [ ] `BOOT_COMPLETED` 이후 앱 크래시가 없다.
-- [ ] 저장된 루틴이 사라지지 않는다.
+- [ ] `MY_PACKAGE_REPLACED` 이후에도 활성 루틴이 사라지지 않는다.
 - [ ] 다음 루틴 시각에 맞는 알림/동작이 다시 예약된다.
-- [ ] 재부팅 직후 열어본 홈/루틴 화면에서 루틴 상태가 비정상으로 초기화되지 않는다.
+- [ ] 재부팅/업데이트 직후 열어본 홈/루틴 화면에서 루틴 상태가 비정상으로 초기화되지 않는다.
 
 ### 실패 시 남길 evidence
 
 - 기기/에뮬레이터 정보
-- 재부팅 전후 루틴 이름/시간
-- 재부팅 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 차이
+- 재부팅 또는 업데이트 전후 루틴 이름/시간
+- 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 차이
 - logcat 핵심 라인
 - 실제 누락된 알림 또는 스케줄 증상
 
