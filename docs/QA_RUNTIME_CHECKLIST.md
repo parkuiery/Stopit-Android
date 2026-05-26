@@ -346,6 +346,19 @@ adb shell dumpsys alarm | grep com.uiery.keep
 
 접근성 서비스가 저장된 잠금 상태와 루틴 상태를 반영해 실제 차단을 수행해야 한다.
 
+### 현재 Android 15 emulator instrumentation 메모
+
+`KeepAccessibilityServiceIntegrationTest`를 Android 15 emulator에서 돌릴 때는 "토글은 켜졌지만 서비스 bind가 실제로 일어났는지"를 설정 값만 보고 추정하지 말고 아래 4가지를 같이 남긴다.
+
+```bash
+adb shell settings get secure accessibility_enabled
+adb shell settings get secure enabled_accessibility_services
+adb shell dumpsys accessibility | grep -n 'Bound services\|Enabled services\|Binding services\|Crashed services' -A1 -B1
+adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|frozen process'
+```
+
+최근 qa-lane에서는 `enabled_accessibility_services`에 `com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService`가 기록된 뒤에도 `Bound services:{}` 상태가 유지되고 `IPCThreadState: Sending oneway calls to frozen process.`가 반복되면서 cross-app 차단 테스트가 bind 전에 실패했다. 이 경우 PR/이슈 보고에는 **토글 반영과 실제 service bind를 분리해서** 적고, instrumentation assertion/message에도 동일 진단 정보가 남도록 유지한다.
+
 ### 시나리오 A — 수동 잠금
 
 1. 접근성 권한을 켠다.
