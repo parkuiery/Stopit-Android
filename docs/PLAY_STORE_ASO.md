@@ -6,17 +6,19 @@
 
 ## 현재 상태 요약
 
-- 상태: 실제 Play Console 반영 전
-- 저장소 기준 최종 목표:
-  - KR/EN listing copy 확정
-  - 스크린샷 6장 구성/캡션 확정
-  - 반영 직전 baseline 기록
+- 상태: 대표님 수동 작업으로 실제 Play Console ASO copy/스크린샷 반영 완료
+- 저장소 기준 남은 작업:
   - Play Console 반영 일시/범위 기록
+  - 반영 직전/직후 baseline 보강
   - 14일/30일 성과 검증 루프 기록
-- 외부 수동 작업:
+- 완료된 외부 수동 작업:
   - Play Console listing copy 반영
   - Play Console 스크린샷 업로드
-  - listing 전환율 / 평점 / 리뷰 수 수동 기록
+- 후속 수동 기록 작업:
+  - listing 전환율 / 평점 / 리뷰 수 기록
+  - 반영 당시 실제 노출값과 저장소 문서 일치 여부 재확인
+
+> 운영 메모: 이 이슈의 실제 Play Console 반영은 저장소 CI가 아니라 대표님 수동 배포로 처리될 수 있다. 따라서 repo/CI 자동화 흔적이 없다는 이유만으로 미반영으로 판단하지 않는다.
 
 ## 지표/근거
 
@@ -165,7 +167,7 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 
 ## 반영 전 baseline 기록
 
-실제 Play Console 반영 직전에 아래 표를 채운다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
+원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
 
 | 항목 | 값 | 기록 방법 |
 | --- | --- | --- |
@@ -204,19 +206,20 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 
 ### 3. 반영 직후 기록
 
-- [ ] 반영 일시 기록
-- [ ] 반영자 기록
-- [ ] 적용 범위 기록 (copy only / screenshots only / both)
+- [x] 반영 사실 기록
+- [x] 반영자 기록
+- [x] 적용 범위 기록 (copy only / screenshots only / both)
+- [ ] 정확한 반영 시각 / 당시 Play Console 노출값 보강
 - [ ] 반영 후 저장소 문서와 Play Console 값이 일치하는지 재확인
 
 ## 실행 로그
 
 | 단계 | 상태 | 일시 | 담당 | 메모 |
 | --- | --- | --- | --- | --- |
-| baseline 기록 | 예정 | `TODO` | `TODO` | |
-| KR listing 반영 | 예정 | `TODO` | `TODO` | |
-| EN listing 반영 | 예정 | `TODO` | `TODO` | |
-| 스크린샷 반영 | 예정 | `TODO` | `TODO` | |
+| baseline 기록 | 보강 필요 | `TODO` | `TODO` | 반영 전 수치/노출값을 사후 복원해야 함 |
+| KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | 대표님 수동 배포 완료 사실 확인 |
+| EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | 대표님 수동 배포 완료 사실 확인 |
+| 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | Play Console 실제 반영 완료 |
 | 14일 점검 | 예정 | `TODO` | `TODO` | |
 | 30일 점검 | 예정 | `TODO` | `TODO` | |
 
