@@ -24,7 +24,7 @@
 
 - 첫 잠금 설정률 = `first_lock_configured` users / `first_open` users
 - 첫 핵심 행동 완료율 = `first_core_action_completed` users / `first_open` users
-- 앱 선택 완료율 = `select_app_complete` 또는 `app_selection_completed` users / `first_open` users
+- 앱 선택 완료율 = `app_selection_completed` users / `first_open` users
 - 루틴 생성 사용자 비율 = 루틴 1개 이상 사용자 / active users
 - 차단 빈도 = `app_block_intercepted` count / active blocked users
 
@@ -56,9 +56,9 @@
 
 활성화 퍼널:
 1. `first_open`
-2. `onboarding_intro_started`
+2. `onboarding_step_view`
 3. `permission_outcome`
-4. `select_app_complete` 또는 `app_selection_completed`
+4. `app_selection_completed`
 5. `first_lock_configured`
 6. `first_core_action_completed`
 7. `app_block_intercepted`
@@ -104,3 +104,4 @@
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`

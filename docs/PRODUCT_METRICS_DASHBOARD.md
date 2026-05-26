@@ -54,7 +54,7 @@
 | North Star | 주간 활성 차단 사용자 | 7일 내 `app_block_intercepted` 1회 이상 사용자 | GA4/Firebase | 핵심 가치 전달 규모 |
 | Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목 |
 | Input | 첫 핵심 행동 완료율 | `first_core_action_completed` users / `first_open` users | GA4 | 첫 가치 경험률 |
-| Input | 앱 선택 완료율 | `select_app_complete` 또는 `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
+| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
@@ -94,9 +94,9 @@
 ### 활성화 퍼널
 
 1. `first_open`
-2. `onboarding_intro_started`
+2. `onboarding_step_view`
 3. `permission_outcome`
-4. `select_app_complete` 또는 `app_selection_completed`
+4. `app_selection_completed`
 5. `first_lock_configured`
 6. `first_core_action_completed`
 7. `app_block_intercepted`

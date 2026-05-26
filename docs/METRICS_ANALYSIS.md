@@ -57,7 +57,8 @@
 - `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
 - `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
 - `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`
-- 관련 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
+- 관련 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 
 ### GitHub Issues
 
@@ -201,6 +202,11 @@ filter_payload = {
 
 ### 광고 단위별 수익
 
+전제 확인:
+
+- `TrackedBannerAd.kt`와 `TrackedBannerAdTest.kt` 기준으로 `ad_impression`, `ad_click`, `ad_revenue` 이벤트와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다.
+- 운영 가드레일과 해석 순서는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 같이 본다.
+
 사용할 차원과 지표:
 
 - dimensions: `adUnitName`, `adFormat`
@@ -259,11 +265,13 @@ PY
 - 빈 화면명 비중
 - 등록된 커스텀 차원/지표 목록
 - 이벤트명과 코드의 일치 여부
+- 광고 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)와 `TrackedBannerAd` 파라미터 계약 일치 여부
 
 판단 기준:
 
 - 화면 조회 대부분이 `(not set)`이면 제품 퍼널 결론보다 계측 개선을 먼저 한다.
 - 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 이벤트 딕셔너리와 커스텀 차원 등록 작업을 먼저 만든다.
+- 광고 분석 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 guardrail을 같이 확인한다.
 
 ### 2. 획득 / 신규 유입
 
@@ -284,9 +292,9 @@ PY
 권장 퍼널:
 
 1. `first_open`
-2. `onboarding_intro_started`
+2. `onboarding_step_view`
 3. `permission_outcome`
-4. `select_app_complete` 또는 `app_selection_completed`
+4. `app_selection_completed`
 5. `first_lock_configured`
 6. `first_core_action_completed`
 7. `app_block_intercepted`
@@ -468,3 +476,9 @@ PY
 - `app_block_intercepted` users: 121
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
+
+2026-05-27 live 확인 메모:
+
+- 최근 14일 `screen_view` 총량: `11,567`
+- `(not set)` `8,780` + 빈 `unifiedScreenName` `807` = `9,587 / 11,567 = 82.9%`
+- GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.

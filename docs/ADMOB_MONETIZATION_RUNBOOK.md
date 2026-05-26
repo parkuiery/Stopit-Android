@@ -44,8 +44,9 @@ issue #16에 기록된 최근 30일 기준선:
 
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
+- `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/ops/stopit/metrics-context.md`
-- 광고 화면/노출 문맥을 담는 analytics 및 UI 코드
+- 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
 - GA4 Analytics Data API / AdMob 보고서
 
 운영 원칙:
@@ -60,9 +61,10 @@ issue #16에 기록된 최근 30일 기준선:
 
 1. 어떤 광고 단위가 실제로 노출되고 있는가?
 2. `(not set)` 또는 이름 없는 광고 단위가 있는가?
-3. 어떤 위치가 노출은 많은데 CTR/eCPM이 낮은가?
-4. 그 위치가 정말 유지할 가치가 있는가?
-5. 광고 최적화보다 먼저, 더 안전한 수익화 가설이 있는가?
+3. `ad_impression` / `ad_click` / `ad_revenue`와 `screen_context` / `ad_placement` / `ad_unit_id` 계약이 코드·문서·GA4 조회 가정에서 일치하는가?
+4. 어떤 위치가 노출은 많은데 CTR/eCPM이 낮은가?
+5. 그 위치가 정말 유지할 가치가 있는가?
+6. 광고 최적화보다 먼저, 더 안전한 수익화 가설이 있는가?
 
 ## 광고 단위 감사 기본 표
 
@@ -75,6 +77,7 @@ issue #16에 기록된 최근 30일 기준선:
 판단 규칙:
 
 - `adUnitName`이 `(not set)`이면 **계측 보정 우선**이다.
+- `adUnitName`은 보이는데 `ad_placement` / `screen_context` / `ad_unit_id` 계약이 문서·코드와 어긋나면 placement 결론을 보류한다.
 - impressions는 큰데 CTR/eCPM이 모두 낮으면 **UX 비용 대비 가치가 낮은 위치** 후보로 본다.
 - revenue는 작아도 사용자 신뢰를 거의 해치지 않는 위치면 유지 후보가 될 수 있다.
 - 차단/긴급해제/권한/루틴 설정의 핵심 흐름에서 광고가 방해되면 revenue와 무관하게 위험 신호다.
@@ -98,6 +101,11 @@ issue #16에 기록된 최근 30일 기준선:
 - 30일 ARPU = `totalAdRevenue / activeUsers`
 
 ### 2. 광고 단위별 분해
+
+사전 계약 확인:
+
+- `TrackedBannerAd.kt` / `TrackedBannerAdTest.kt` 기준으로 현재 앱은 `ad_impression`, `ad_click`, `ad_revenue`를 기록한다.
+- placement 분석 전 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros`가 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 동일한지 먼저 본다.
 
 기본 차원/지표:
 
@@ -252,6 +260,7 @@ issue #16에 기록된 최근 30일 기준선:
 
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
+- `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/PLAY_STORE_ASO.md`
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`
 - `docs/ops/stopit/metrics-context.md`
