@@ -148,6 +148,18 @@ class HomeViewModel
                 inAppReviewManager.launchIfReady(activity)
             }
 
+        internal fun maybeDrainRoutineStartNotice() =
+            intent {
+                val prefs = dataStore.data.firstOrNull()
+                val pendingMessage = prefs?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+                if (pendingMessage.isNullOrBlank()) return@intent
+                if (state.sheetVisible) return@intent
+
+                dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
+                postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                reduce { state.copy(snackbarMessage = pendingMessage) }
+            }
+
         internal fun moveToLock() =
             intent {
                 val targetDateTime = if (state.countdownDays > 0) {

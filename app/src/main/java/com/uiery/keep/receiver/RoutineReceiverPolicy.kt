@@ -1,12 +1,17 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.serialization.json.Json
 
 data class RoutineAlarmTrigger(
     val routineName: String,
     val routineId: Long,
+)
+
+data class PendingRoutineStartNotice(
+    val message: String,
 )
 
 object RoutineReceiverPolicy {
@@ -60,4 +65,13 @@ object RoutineReceiverPolicy {
         routines: List<RoutineModel>,
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
+
+    fun buildPendingRoutineStartNotice(
+        notificationResult: RoutineStartNotificationResult,
+        fallbackMessage: String,
+    ): PendingRoutineStartNotice? = when {
+        notificationResult != RoutineStartNotificationResult.PermissionDenied -> null
+        fallbackMessage.isBlank() -> null
+        else -> PendingRoutineStartNotice(message = fallbackMessage)
+    }
 }

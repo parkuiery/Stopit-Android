@@ -38,4 +38,5 @@ object PreferencesKey {
     val LAST_REVIEW_PROMPT_AT_MS = longPreferencesKey("last_review_prompt_at_ms")
     val SUCCESSFUL_SESSION_COUNT = intPreferencesKey("successful_session_count")
     val LAST_BACKGROUNDED_AT_MS = longPreferencesKey("last_backgrounded_at_ms")
+    val PENDING_ROUTINE_START_NOTICE_MESSAGE = stringPreferencesKey("pending_routine_start_notice_message")
 }
