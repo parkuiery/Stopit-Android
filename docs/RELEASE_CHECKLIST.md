@@ -19,6 +19,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] `./gradlew bundleProdRelease` passes locally or in Android Release Build.
 - [ ] Branch Hygiene passes on the PR.
 - [ ] Version Guard runs and passes on the PR (it should appear on every `main`-target PR, not only when `app/build.gradle.kts` changed).
+- [ ] `version-guard.yml` uses the same current `actions/checkout` major version as the repository's other governance/release workflows.
 - [ ] Android CI passes on the PR.
 - [ ] Android Release QA passes on the PR:
   - `Full release QA` runs `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, and `:app:assembleProdDebug`.
