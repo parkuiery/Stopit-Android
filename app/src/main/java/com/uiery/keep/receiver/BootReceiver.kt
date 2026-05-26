@@ -55,11 +55,7 @@ class BootReceiver : BroadcastReceiver() {
 
         val preferences = dataStore.data.first()
         val storedRoutines = RoutineReceiverPolicy.decodeStoredRoutines(preferences[PreferencesKey.ROUTINES])
-        val databaseRoutines = if (storedRoutines.isEmpty()) {
-            routineDao.fetchAllOnce().map { it.toModel() }
-        } else {
-            emptyList()
-        }
+        val databaseRoutines = routineDao.fetchAllOnce().map { it.toModel() }
         val routines = RoutineReceiverPolicy.resolveRoutines(
             storedRoutines = storedRoutines,
             databaseRoutines = databaseRoutines,

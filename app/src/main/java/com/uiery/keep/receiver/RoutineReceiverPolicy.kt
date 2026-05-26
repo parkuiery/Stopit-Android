@@ -10,6 +10,9 @@ data class RoutineAlarmTrigger(
 )
 
 object RoutineReceiverPolicy {
+    // Room is the authoritative routine source of truth.
+    // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
+    // from Room after boot/restore/alarm entry, never the primary read path.
     fun shouldRestoreRoutinesOnBoot(action: String?): Boolean =
         action == Intent.ACTION_BOOT_COMPLETED
 
@@ -46,12 +49,12 @@ object RoutineReceiverPolicy {
     fun resolveRoutines(
         storedRoutines: List<RoutineModel>,
         databaseRoutines: List<RoutineModel>,
-    ): List<RoutineModel> = if (storedRoutines.isNotEmpty()) storedRoutines else databaseRoutines
+    ): List<RoutineModel> = databaseRoutines
 
     fun shouldRehydrateStoredRoutines(
         storedRoutines: List<RoutineModel>,
         databaseRoutines: List<RoutineModel>,
-    ): Boolean = storedRoutines.isEmpty() && databaseRoutines.isNotEmpty()
+    ): Boolean = storedRoutines != databaseRoutines
 
     fun findEnabledRoutineToReschedule(
         routines: List<RoutineModel>,

@@ -427,7 +427,7 @@ cd <repo-root>
 ### 확인 포인트
 
 - [ ] 루틴은 필요 시 복원되지만, DataStore 기반 현재 잠금 상태는 그대로 살아나지 않는다.
-- [ ] boot 또는 routine alarm 재진입 후 복원된 Room routine이 `PreferencesKey.ROUTINES` 캐시로 다시 채워져 후속 스케줄링/차단 판단이 깨지지 않는다.
+- [ ] boot 또는 routine alarm 재진입 후 복원된 Room routine이 필요 시 비권위 `PreferencesKey.ROUTINES` 캐시로 다시 채워지더라도, 후속 스케줄링/차단 판단의 source of truth는 계속 Room이다.
 - [ ] 이전 기기의 긴급해제 진행 상태가 복원되어 차단이 계속 우회되지 않는다.
 - [ ] 선택 앱 목록/긴급해제 설정은 새 기기 기준으로 다시 설정해야 하는 상태다.
 - [ ] 리뷰 프롬프트/토큰/세션성 플래그가 복원 직후 부자연스럽게 이어지지 않는다.
