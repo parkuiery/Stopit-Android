@@ -432,6 +432,16 @@ cd <repo-root>
 - [ ] 선택 앱 목록/긴급해제 설정은 새 기기 기준으로 다시 설정해야 하는 상태다.
 - [ ] 리뷰 프롬프트/토큰/세션성 플래그가 복원 직후 부자연스럽게 이어지지 않는다.
 
+### 자동 baseline 명령
+
+- `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+
+자동 baseline이 확인하는 것:
+- `BackupRestoreRuntimeResetIntegrationTest`: restored-device shape(복원된 Room + 비어 있는 DataStore)에서 Boot/Routine alarm 진입 후 `PreferencesKey.ROUTINES` 재수화 + reset-only DataStore key 부재
+- `ReceiverRuntimeIntegrationTest`: alarm/notification/reschedule contract
+- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
+- `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite
+
 ## 7. Release 전 최소 QA 게이트
 
 release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
@@ -444,8 +454,10 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - [ ] 가능하면 `:app:connectedDevDebugAndroidTest`, 불가하면 사유 기록
 - [ ] 최소 focused automation evidence
   - [ ] `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - [ ] `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - [ ] `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
   - [ ] `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - [ ] `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 - [ ] backup/restore 정책을 건드린 PR이면 `docs/BACKUP_RESTORE_POLICY.md` 기준으로 restore/reset evidence 기록
 - [ ] 아래 수동 runtime 시나리오 evidence
   - [ ] BootReceiver
@@ -477,6 +489,7 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 
 - 이 문서는 수동/반수동 기준선이다.
 - `BootReceiver`와 `RoutineAlarmReceiver`는 `app/src/androidTest/java/com/uiery/keep/receiver/ReceiverRuntimeIntegrationTest.kt`로 최소 재수화/재예약 contract가 자동 검증된다.
+- `app/src/androidTest/java/com/uiery/keep/qa/BackupRestoreRuntimeResetIntegrationTest.kt`는 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는 baseline을 고정한다.
 - 여전히 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 수동 또는 추가 automation 전략이 필요하다.
 - 긴급해제 만료는 `app/src/androidTest/java/com/uiery/keep/service/EmergencyUnlockExpiryIntegrationTest.kt`로 state 정리와 재차단 대상 판정을 scriptable하게 검증하지만, 실제 third-party app foreground 전환까지 포함한 end-to-end evidence는 수동 시나리오를 함께 남기는 것이 안전하다.
 - issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.
