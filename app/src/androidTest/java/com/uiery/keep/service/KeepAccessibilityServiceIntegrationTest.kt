@@ -1,10 +1,12 @@
 package com.uiery.keep.service
 
 import android.content.Intent
+import android.app.UiAutomation
 import android.provider.Settings
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiScrollable
@@ -21,24 +23,28 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.FileInputStream
 
 @RunWith(AndroidJUnit4::class)
 class KeepAccessibilityServiceIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
-    private val device = UiDevice.getInstance(instrumentation)
+    private val device by lazy { UiDevice.getInstance(instrumentation) }
 
     private var accessibilityServiceInitiallyEnabled = false
+    private var originalUiAutomationFlags = 0
 
     @Before
     fun setUp() {
         runBlocking {
+            originalUiAutomationFlags = Configurator.getInstance().uiAutomationFlags
+            Configurator.getInstance().setUiAutomationFlags(
+                UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES,
+            )
             clearAccessibilityBlockState()
-            KeepAccessibilityServiceDebugState.reset(context)
             primeAppProcess()
             device.pressHome()
             accessibilityServiceInitiallyEnabled = isAccessibilityServiceEnabled()
+            resetDebugStateRetainingConnectionFlag()
             enableAccessibilityServiceIfNeeded()
             waitUntil("KeepAccessibilityService should be enabled for the runtime test") {
                 isAccessibilityServiceEnabled()
@@ -54,6 +60,7 @@ class KeepAccessibilityServiceIntegrationTest {
         runBlocking {
             clearAccessibilityBlockState()
             device.pressHome()
+            Configurator.getInstance().setUiAutomationFlags(originalUiAutomationFlags)
         }
     }
 
@@ -173,6 +180,10 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun openAccessibilityServiceDetails() {
+        if (openAccessibilityServiceDetailsViaIntent()) {
+            return
+        }
+
         shell("am force-stop $SETTINGS_PACKAGE")
         shell("am start -W -a android.settings.ACCESSIBILITY_SETTINGS")
         device.waitForIdle()
@@ -190,6 +201,24 @@ class KeepAccessibilityServiceIntegrationTest {
         waitUntil("StopIt Accessibility detail screen should open") {
             device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
         }
+    }
+
+    private fun openAccessibilityServiceDetailsViaIntent(): Boolean {
+        shell("am force-stop $SETTINGS_PACKAGE")
+        shell(
+            "am start -W -a android.settings.ACCESSIBILITY_DETAILS_SETTINGS " +
+                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $SERVICE_COMPONENT",
+        )
+        device.waitForIdle()
+
+        repeat(20) {
+            if (device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))) {
+                return true
+            }
+            Thread.sleep(250)
+        }
+
+        return false
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean =
@@ -231,8 +260,19 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun shell(command: String): String {
-        instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
-            return FileInputStream(descriptor.fileDescriptor).bufferedReader().readText()
+        return device.executeShellCommand(command)
+    }
+
+    private fun resetDebugStateRetainingConnectionFlag() {
+        val existingSnapshot = KeepAccessibilityServiceDebugState.read(context)
+        KeepAccessibilityServiceDebugState.update(context) {
+            it.copy(
+                isServiceConnected = existingSnapshot.isServiceConnected,
+                observedIsKeep = false,
+                observedSelectedAppPackages = emptySet(),
+                observedEmergencyUnlockApps = emptySet(),
+                lastWindowStateChangedPackage = null,
+            )
         }
     }
 
