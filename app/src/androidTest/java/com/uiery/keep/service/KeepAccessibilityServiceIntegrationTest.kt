@@ -180,6 +180,10 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun openAccessibilityServiceDetails() {
+        if (openAccessibilityServiceDetailsViaIntent()) {
+            return
+        }
+
         shell("am force-stop $SETTINGS_PACKAGE")
         shell("am start -W -a android.settings.ACCESSIBILITY_SETTINGS")
         device.waitForIdle()
@@ -197,6 +201,24 @@ class KeepAccessibilityServiceIntegrationTest {
         waitUntil("StopIt Accessibility detail screen should open") {
             device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
         }
+    }
+
+    private fun openAccessibilityServiceDetailsViaIntent(): Boolean {
+        shell("am force-stop $SETTINGS_PACKAGE")
+        shell(
+            "am start -W -a android.settings.ACCESSIBILITY_DETAILS_SETTINGS " +
+                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $SERVICE_COMPONENT",
+        )
+        device.waitForIdle()
+
+        repeat(20) {
+            if (device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))) {
+                return true
+            }
+            Thread.sleep(250)
+        }
+
+        return false
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean =
