@@ -9,6 +9,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
 import com.uiery.keep.model.toModel
@@ -17,7 +18,6 @@ import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.json.Json
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -173,9 +173,7 @@ class RoutineViewModel
 
         private fun storeRoutine(routines: List<RoutineModel>) =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
-                }
+                RoutineStore(dataStore).writeCachedRoutines(routines)
             }
 
         fun analyticsRoutineScreen() =

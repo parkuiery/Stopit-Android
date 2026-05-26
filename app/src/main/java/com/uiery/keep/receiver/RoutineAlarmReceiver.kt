@@ -8,17 +8,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -71,8 +68,8 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
 
         notificationHelper.showRoutineStartNotification(trigger.routineName, trigger.routineId)
 
-        val preferences = dataStore.data.first()
-        val storedRoutines = RoutineReceiverPolicy.decodeStoredRoutines(preferences[PreferencesKey.ROUTINES])
+        val routineStore = RoutineStore(dataStore)
+        val storedRoutines = routineStore.readCachedRoutines()
         val databaseRoutines = routineDao.fetchAllOnce().map { it.toModel() }
         val routines = RoutineReceiverPolicy.resolveRoutines(
             storedRoutines = storedRoutines,
@@ -80,9 +77,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         )
 
         if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-            dataStore.edit { mutablePreferences ->
-                mutablePreferences[PreferencesKey.ROUTINES] = Json.encodeToString(routines)
-            }
+            routineStore.writeCachedRoutines(routines)
         }
 
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
