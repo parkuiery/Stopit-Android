@@ -12,12 +12,12 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
+import com.uiery.keep.service.recordLockHistorySession
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -181,37 +181,16 @@ class HomeViewModel
             lockedMillis: Long,
             isRoutine: Boolean = false,
         ) = intent {
-            val longBlockTime =
-                dataStore.data
-                    .map { data ->
-                        data[PreferencesKey.LONG_BLOCK_TIME] ?: 0L
-                    }.firstOrNull() ?: 0L
-
-            val totalBlockTime =
-                dataStore.data
-                    .map { data ->
-                        data[PreferencesKey.TOTAL_BLOCK_TIME] ?: 0L
-                    }.firstOrNull() ?: 0L
-
-            val newLongBlockTime = maxOf(longBlockTime, lockedMillis)
-            val newTotalBlockTime = totalBlockTime + lockedMillis
-
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.LONG_BLOCK_TIME] = newLongBlockTime
-                preferences[PreferencesKey.TOTAL_BLOCK_TIME] = newTotalBlockTime
-            }
-
             val endTime = System.currentTimeMillis()
             val startTime = endTime - lockedMillis
-            val lockHistoryEntity =
-                LockHistoryEntity(
-                    startTimestamp = startTime,
-                    endTimestamp = endTime,
-                    durationMillis = lockedMillis,
-                    lockedApps = state.selectedAppPackage.toList(),
-                    isRoutine = isRoutine,
-                )
-            lockHistoryDao.insert(lockHistoryEntity)
+            recordLockHistorySession(
+                dataStore = dataStore,
+                lockHistoryDao = lockHistoryDao,
+                startTimestamp = startTime,
+                endTimestamp = endTime,
+                lockedApps = state.selectedAppPackage,
+                isRoutine = isRoutine,
+            )
         }
 
         internal fun selectCategoryComplete(selectedAppPackage: Set<String>) =

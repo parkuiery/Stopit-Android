@@ -14,7 +14,6 @@ import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
-import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -25,6 +24,7 @@ import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRequestResult
+import com.uiery.keep.service.recordLockHistorySession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -162,25 +162,13 @@ class LockViewModel
         private fun saveRoutineLockHistory() =
             intent {
                 val endTime = System.currentTimeMillis()
-                val startTime = state.routineStartTime
-                val durationMillis = endTime - startTime
-
-                val longBlockTime = dataStore.data.map { it[PreferencesKey.LONG_BLOCK_TIME] ?: 0L }.firstOrNull() ?: 0L
-                val totalBlockTime = dataStore.data.map { it[PreferencesKey.TOTAL_BLOCK_TIME] ?: 0L }.firstOrNull() ?: 0L
-
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.LONG_BLOCK_TIME] = maxOf(longBlockTime, durationMillis)
-                    preferences[PreferencesKey.TOTAL_BLOCK_TIME] = totalBlockTime + durationMillis
-                }
-
-                lockHistoryDao.insert(
-                    LockHistoryEntity(
-                        startTimestamp = startTime,
-                        endTimestamp = endTime,
-                        durationMillis = durationMillis,
-                        lockedApps = state.selectedAppPackage.toList(),
-                        isRoutine = true,
-                    ),
+                recordLockHistorySession(
+                    dataStore = dataStore,
+                    lockHistoryDao = lockHistoryDao,
+                    startTimestamp = state.routineStartTime,
+                    endTimestamp = endTime,
+                    lockedApps = state.selectedAppPackage,
+                    isRoutine = true,
                 )
             }
 
