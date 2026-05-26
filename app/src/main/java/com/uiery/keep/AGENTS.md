@@ -9,7 +9,7 @@ Application package root. It hosts app entry points, top-level Compose app wirin
 ## Key Files
 | File | Description |
 |------|-------------|
-| `BlockActivity.kt` | Activity used for blocking overlay/screen presentation. |
+| `BlockActivity.kt` | Activity used for the in-app blocking screen presentation. |
 | `BlockScreen.kt` | Compose UI for app-blocking screen. |
 | `BlockViewModel.kt` | State holder for block-screen behavior. |
 | `DeviceTokenManager.kt` | Coordinates device/FCM token persistence or registration. |
@@ -17,7 +17,6 @@ Application package root. It hosts app entry points, top-level Compose app wirin
 | `KeepApplication.kt` | Application class for global initialization and dependency setup. |
 | `MainActivity.kt` | Main Compose activity hosting the app UI/navigation. |
 | `Picker.kt` | Shared picker UI/helper used by time or selection flows. |
-| `PipBlockerOverlay.kt` | Picture-in-picture/blocking overlay support. |
 | `Qualifier.kt` | Hilt qualifier annotations used by dependency bindings. |
 | `TokenManagerModule.kt` | Hilt module for token-management dependencies. |
 
