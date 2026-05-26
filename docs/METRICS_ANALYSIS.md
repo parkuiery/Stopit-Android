@@ -70,7 +70,7 @@
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
-- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함.
+- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
@@ -401,6 +401,12 @@ PY
 - 신규 유입이 감소했는데 engagement rate는 유지된다.
 - Organic Search 의존도가 높다.
 - 스토어 문구/스크린샷이 현재 Android 앱 가치와 맞지 않는다.
+
+현재 Stopit 운영 메모:
+
+- issue #65의 저장소 문서화 범위는 이미 완료되었고, 대표님 수동 반영 기준으로 실제 Play Console copy/스크린샷도 반영 완료 상태다.
+- 남은 일은 "문안 만들기"가 아니라 **반영 시각/노출값 사후 복원**과 **14일·30일 전후 비교 기록**이다.
+- 따라서 이후 metrics/docs run에서 #65를 다시 보면 "ASO 초안 부재"로 해석하지 말고, 외부 수동 증적/시간 경과를 기다리는 follow-up 이슈로 다룬다.
 
 ### 광고 수익화
 

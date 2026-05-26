@@ -6,17 +6,29 @@
 
 ## 현재 상태 요약
 
-- 상태: 실제 Play Console 반영 전
-- 저장소 기준 최종 목표:
-  - KR/EN listing copy 확정
-  - 스크린샷 6장 구성/캡션 확정
-  - 반영 직전 baseline 기록
+- 상태: 대표님 수동 작업으로 실제 Play Console ASO copy/스크린샷 반영 완료
+- 저장소 기준 남은 작업:
   - Play Console 반영 일시/범위 기록
+  - 반영 직전/직후 baseline 보강
   - 14일/30일 성과 검증 루프 기록
-- 외부 수동 작업:
+- 완료된 외부 수동 작업:
   - Play Console listing copy 반영
   - Play Console 스크린샷 업로드
-  - listing 전환율 / 평점 / 리뷰 수 수동 기록
+- 후속 수동 기록 작업:
+  - listing 전환율 / 평점 / 리뷰 수 기록
+  - 반영 당시 실제 노출값과 저장소 문서 일치 여부 재확인
+
+> 운영 메모: 이 이슈의 실제 Play Console 반영은 저장소 CI가 아니라 대표님 수동 배포로 처리될 수 있다. 따라서 repo/CI 자동화 흔적이 없다는 이유만으로 미반영으로 판단하지 않는다.
+
+## 현재 외부 경계
+
+이번 run 기준으로 저장소 안에서 더 밀 수 있는 문서 계약은 정리했다. 남은 항목은 모두 **Play Console 수동 확인 또는 시간 경과 후 측정**이 필요한 외부 경계다.
+
+- Play Console 현재 노출값을 열어 정확한 반영 시각/범위/스크린샷 버전명을 기록해야 함
+- listing 전환율 / 평점 / 리뷰 수 / 최근 리뷰 톤은 저장소에서 자동 조회할 수 없어 수동 확인이 필요함
+- 14일·30일 성과 비교는 실제 시간이 지나야 채울 수 있음
+
+따라서 이 문서는 이제 "반영 여부 의심" 문서가 아니라, **이미 반영된 수동 작업의 사후 복원 기록 + 후속 측정 런북**으로 해석한다.
 
 ## 지표/근거
 
@@ -163,9 +175,25 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 | 5 | 긴급 해제 | [ ] | [ ] | [ ] | [ ] |
 | 6 | 잠금 기록 | [ ] | [ ] | [ ] | [ ] |
 
-## 반영 전 baseline 기록
+## baseline / 사후 복원 기록
 
-실제 Play Console 반영 직전에 아래 표를 채운다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
+원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
+
+### 수동 복원 우선순위
+
+1. **반영 사실 고정**: KR/EN copy, 스크린샷 반영 여부, 반영자, 대략적인 반영 시점
+2. **현재 노출값 복원**: 현재 Play Console에 보이는 KR/EN 제목·짧은 설명·스크린샷 버전 메모
+3. **비교 baseline 복원**: listing 전환율, 평점, 리뷰 수, 최근 리뷰 톤
+4. **사후 측정 루프**: +14일 / +30일 같은 분자·분모 기준 비교
+
+### 수동 복원 입력 체크리스트
+
+- [ ] Play Console `Main store listing` 현재 KR 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
+- [ ] Play Console `Main store listing` 현재 EN 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
+- [ ] 스크린샷 6장 순서와 실제 노출 자산이 이 문서 구성안과 일치하는지 확인
+- [ ] `Store listing performance`에서 listing 전환율을 기록
+- [ ] 현재 평점/리뷰 수와 최근 리뷰 5~10개 톤 요약을 기록
+- [ ] 가능하면 대표님 메모/히스토리 기준으로 정확한 반영 날짜·시각을 보강
 
 | 항목 | 값 | 기록 방법 |
 | --- | --- | --- |
@@ -190,33 +218,34 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 
 ### 1. 반영 직전 준비
 
-- [ ] baseline 표를 채운다.
-- [ ] KR/EN 제목·짧은 설명·긴 설명 최종안을 이 문서 기준으로 확정한다.
-- [ ] 스크린샷 6장 최종본 파일명을 정리한다.
-- [ ] 반영 담당자와 반영 시간을 기록한다.
+- [ ] baseline 표를 사후 복원 포함 기준으로 최대한 채운다.
+- [x] KR/EN 제목·짧은 설명·긴 설명 최종안을 이 문서 기준으로 정리했다.
+- [ ] 스크린샷 6장 최종본 파일명/원본 경로를 정리한다.
+- [ ] 반영 담당자와 정확한 반영 시간을 보강한다.
 
 ### 2. 실제 반영
 
-- [ ] KR listing copy 반영
-- [ ] EN listing copy 반영
-- [ ] 스크린샷 6장 업로드/정렬 반영
+- [x] KR listing copy 반영
+- [x] EN listing copy 반영
+- [x] 스크린샷 6장 업로드/정렬 반영
 - [ ] 저장 후 실제 노출값 재확인
 
 ### 3. 반영 직후 기록
 
-- [ ] 반영 일시 기록
-- [ ] 반영자 기록
-- [ ] 적용 범위 기록 (copy only / screenshots only / both)
+- [x] 반영 사실 기록
+- [x] 반영자 기록
+- [x] 적용 범위 기록 (copy only / screenshots only / both)
+- [ ] 정확한 반영 시각 / 당시 Play Console 노출값 보강
 - [ ] 반영 후 저장소 문서와 Play Console 값이 일치하는지 재확인
 
 ## 실행 로그
 
 | 단계 | 상태 | 일시 | 담당 | 메모 |
 | --- | --- | --- | --- | --- |
-| baseline 기록 | 예정 | `TODO` | `TODO` | |
-| KR listing 반영 | 예정 | `TODO` | `TODO` | |
-| EN listing 반영 | 예정 | `TODO` | `TODO` | |
-| 스크린샷 반영 | 예정 | `TODO` | `TODO` | |
+| baseline 기록 | 보강 필요 | `TODO` | `TODO` | 반영 전 수치/노출값을 사후 복원해야 함 |
+| KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
+| EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
+| 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 Play Console 실제 반영 완료 확인 |
 | 14일 점검 | 예정 | `TODO` | `TODO` | |
 | 30일 점검 | 예정 | `TODO` | `TODO` | |
 
@@ -251,7 +280,7 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 - 사용자 노출 앱명은 `StopIt / 스탑잇`
 - 일부 영문 문자열에 `Keep` 표현이 남아 있음
 
-ASO 반영 전 체크:
+ASO 반영 후 후속 체크:
 
 - Play listing copy는 전부 `StopIt` 기준으로 통일
 - 인앱 사용자 노출 문자열의 `Keep` 잔재는 별도 UI 카피 정리 이슈로 분리 검토
@@ -283,7 +312,7 @@ ASO 반영 전 체크:
 
 이 이슈 자체(#65)가 닫히려면 추가로 필요한 조건:
 
-- [ ] Play Console에 실제 copy/스크린샷이 반영된다.
+- [x] Play Console에 실제 copy/스크린샷이 반영되었다.
 - [ ] 반영 일시와 범위가 실행 로그에 기록된다.
 - [ ] 14일 또는 30일 후 전후 비교 결과가 남는다.
 
