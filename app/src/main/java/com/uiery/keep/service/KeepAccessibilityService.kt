@@ -7,21 +7,27 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.util.isRoutineActiveNow
-import com.uiery.keep.util.toDayOfWeekList
+import com.uiery.keep.model.toModel
+import com.uiery.keep.util.RoutineRuntimePolicy
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import kotlin.coroutines.CoroutineContext
 
@@ -36,14 +42,25 @@ class KeepAccessibilityService :
         val isKeep: Boolean = false,
         val lockTime: String? = null,
         val selectedAppPackages: Set<String> = emptySet(),
-        val routines: String = "",
         val preventUninstall: Boolean = true,
         val emergencyUnlockApps: Set<String> = emptySet(),
         val emergencyUnlockExpireTime: Long = 0L,
     )
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface RoutineRuntimeEntryPoint {
+        fun routineDao(): RoutineDao
+
+        @com.uiery.keep.KeepDataSource
+        fun dataStore(): DataStore<Preferences>
+    }
+
     @Volatile
     private var cachedPrefs = CachedPreferences()
+
+    @Volatile
+    private var cachedRoutines: List<RoutineModel> = emptyList()
 
     private val handler = Handler(Looper.getMainLooper())
     private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -65,18 +82,26 @@ class KeepAccessibilityService :
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            RoutineRuntimeEntryPoint::class.java,
+        )
         launch {
-            dataStore.data.collect { preferences ->
+            entryPoint.dataStore().data.collect { preferences ->
                 cachedPrefs = CachedPreferences(
                     isKeep = preferences[PreferencesKey.IS_KEEP] ?: false,
                     lockTime = preferences[PreferencesKey.LOCK_TIME],
                     selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES] ?: emptySet(),
-                    routines = preferences[PreferencesKey.ROUTINES] ?: "",
                     preventUninstall = preferences[PreferencesKey.PREVENT_UNINSTALL] ?: true,
                     emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] ?: emptySet(),
                     emergencyUnlockExpireTime = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
                 )
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
+            }
+        }
+        launch {
+            entryPoint.routineDao().fetchAll().collect { routineEntities ->
+                cachedRoutines = routineEntities.map { it.toModel() }
             }
         }
     }
@@ -116,7 +141,7 @@ class KeepAccessibilityService :
                 LocalDateTime.now().isBefore(LocalDateTime.parse(it))
             }.getOrDefault(false)
         } ?: false
-        val isShouldRoutineBlock = shouldRoutineBlock(packageName, prefs.routines)
+        val isShouldRoutineBlock = RoutineRuntimePolicy.shouldBlockPackage(packageName, cachedRoutines)
         val isBlocking = prefs.isKeep || isLockTime || isShouldRoutineBlock
 
         if (isBlocking) {
@@ -273,27 +298,6 @@ class KeepAccessibilityService :
             root.recycle()
         }
     }
-
-    private fun shouldRoutineBlock(packageName: String, routinesJson: String): Boolean {
-        val routines = try {
-            Json.decodeFromString<List<RoutineModel>>(routinesJson)
-        } catch (e: Exception) {
-            emptyList()
-        }
-
-        return routines.any { routine ->
-            if (!routine.isEnabled || routine.lockApplications?.contains(packageName) != true) {
-                return@any false
-            }
-
-            isRoutineActiveNow(
-                startTime = routine.startTime,
-                endTime = routine.endTime,
-                repeatDays = routine.repeatDays.toDayOfWeekList(),
-            )
-        }
-    }
-
     private fun isDuplicateBlock(
         packageName: String,
         blockSource: String,

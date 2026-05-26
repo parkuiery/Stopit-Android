@@ -64,7 +64,7 @@
 - `database/keep-database`만 cloud backup / device transfer 대상으로 포함
 - DataStore 파일은 포함하지 않는다. Android lint의 `FullBackupContent` 규칙상 `database/keep-database`만 include하면 `file/datastore/keep-datastore.preferences_pb` exclude는 중복이므로 XML에는 두지 않는다.
 
-즉, **Room DB는 복원되고 DataStore는 복원되지 않는다.** 다만 루틴 런타임이 완전히 비어 버리지 않도록, boot/routine alarm 경로에서는 Room에 복원된 routine 목록으로 `PreferencesKey.ROUTINES` 캐시를 다시 채우는 것을 전제로 한다.
+즉, **Room DB는 복원되고 DataStore는 복원되지 않는다.** 루틴의 authoritative source of truth는 Room이며, `PreferencesKey.ROUTINES`는 boot/routine alarm/accessibility 호환성을 위한 비권위(runtime compatibility) 캐시로만 취급한다. 따라서 boot/routine alarm 경로에서는 필요 시 Room에 복원된 routine 목록으로 `PreferencesKey.ROUTINES` 캐시를 다시 채우되, 후속 스케줄링/차단 판단은 항상 Room 기준과 일치해야 한다.
 
 ## 4. 저장 상태별 해석
 
@@ -88,7 +88,7 @@
 | `emergency_unlock_apps` | 현재 긴급해제 중인 앱 | 복원 안 함 |
 | `emergency_unlock_expire_time` | 긴급해제 만료 시각 | 복원 안 함 |
 | `emergency_unlock_enabled` | 긴급해제 진행 여부 | 복원 안 함 |
-| `routines` | receiver/service 보조용 루틴 JSON 캐시 | 복원 안 함 |
+| `routines` | receiver/service 호환성용 루틴 JSON 캐시(비권위) | 복원 안 함 |
 | `fcm_token` | FCM 등록 토큰 | 복원 안 함 |
 | `has_tracked_first_open` | 분석 플래그 | 복원 안 함 |
 | `has_tracked_first_lock_configured` | 분석 플래그 | 복원 안 함 |
