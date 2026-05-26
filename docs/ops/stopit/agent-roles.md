@@ -44,7 +44,7 @@
 - open Issues
 
 봐야 할 것:
-- `first_open -> permission -> app selection -> first_lock_configured -> app_block_intercepted`
+- `first_open -> onboarding_step_view/onboarding_step_complete -> permission_outcome -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted`
 - screen name `(not set)` 비율
 - appVersion별 이벤트 의미 변화
 - crash-free users and app_exception
