@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke 5개 테스트가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `ReceiverRuntimeIntegrationTest`(Room → DataStore 재수화 + 재예약), `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite). 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입, cold boot, third-party foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), 네 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite). 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입, cold boot, third-party foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -56,22 +56,29 @@ cd <repo-root>
 - `./gradlew :app:testDevDebugUnitTest`
 - `./gradlew :app:lintDevDebug`
 - `./gradlew :app:assembleProdDebug`
-- focused runtime smoke:
+- focused runtime smoke class/method set:
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+- separate host-side appops run:
+  - `./gradlew :app:installDevDebug`
+  - `adb shell appops set com.uiery.keep POST_NOTIFICATION ignore`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
 이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다.
 
 - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
-- `ReceiverRuntimeIntegrationTest`: Boot/Routine receiver 재수화·재예약 contract
+- focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced 재수화, 루틴 시작 재예약, notification-denied fallback notice contract
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
 
-exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
 ### Android 공식 testing skill 기반 UI smoke baseline
 
@@ -81,16 +88,24 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 - `/Users/uiel/.agents/skills/android-cli/SKILL.md`
 - 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
 
-release/hotfix PR은 아래 focused UI smoke를 `Release instrumentation QA`에서 먼저 실행한 뒤 전체 Android runtime test를 실행한다.
+release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
-./gradlew :app:connectedDevDebugAndroidTest
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest
 ```
 
-현재 smoke test는 Compose semantics tag `stopit_app_nav_host`와 UIAutomator package visibility를 함께 확인한다. 이는 테스트 코드만의 형식 검사가 아니라 앱이 실제 emulator에서 MainActivity와 Compose navigation host까지 올라오는지 확인하는 release candidate baseline이다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm deny -> exact alarm allow -> remaining connected suite` 순서다. exact alarm appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 ### receiver/service instrumentation baseline
 

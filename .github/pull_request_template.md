@@ -30,6 +30,12 @@ For normal development PRs:
 For release/hotfix PRs:
 - [ ] `./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run`
 - [ ] Version Guard passes
+- [ ] Android Release QA passes
+- [ ] Release instrumentation evidence distinguishes:
+  - focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - exact alarm deny gate
+  - exact alarm allow gate
+  - remaining connected Android suite (`notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`)
 - [ ] Android Release Build passes and produces signed AAB artifact
 
 For UI/behavior changes:
