@@ -13,13 +13,11 @@ import androidx.datastore.preferences.core.edit
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
-import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
-import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -27,8 +25,8 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 import kotlin.coroutines.CoroutineContext
 
 class KeepAccessibilityService :
@@ -136,30 +134,25 @@ class KeepAccessibilityService :
         packageName: String,
         prefs: CachedPreferences,
     ) {
-        val isLockTime = prefs.lockTime?.let {
-            runCatching {
-                LocalDateTime.now().isBefore(LocalDateTime.parse(it))
-            }.getOrDefault(false)
-        } ?: false
-        val isShouldRoutineBlock = RoutineRuntimePolicy.shouldBlockPackage(packageName, cachedRoutines)
-        val isBlocking = prefs.isKeep || isLockTime || isShouldRoutineBlock
+        val blockRequest = resolveForegroundBlockRequest(
+            packageName = packageName,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = prefs.isKeep,
+                lockTime = prefs.lockTime,
+                selectedAppPackages = prefs.selectedAppPackages,
+            ),
+            cachedRoutines = cachedRoutines,
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        ) ?: return
 
-        if (isBlocking) {
-            if (prefs.selectedAppPackages.contains(packageName) || isShouldRoutineBlock) {
-                val blockSource = when {
-                    isShouldRoutineBlock -> AnalyticsBlockSource.ROUTINE
-                    isLockTime -> AnalyticsBlockSource.TIMED_LOCK
-                    else -> AnalyticsBlockSource.MANUAL_KEEP
-                }
-                if (isDuplicateBlock(packageName = packageName, blockSource = blockSource)) return
+        if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
 
-                val intent = Intent(this, BlockActivity::class.java)
-                intent.putExtra("package_name", packageName)
-                intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockSource)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
-            }
-        }
+        val intent = Intent(this, BlockActivity::class.java)
+        intent.putExtra("package_name", packageName)
+        intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     private fun isUninstallAttempt(eventPackageName: String): Boolean {
