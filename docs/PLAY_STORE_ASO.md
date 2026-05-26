@@ -66,7 +66,7 @@
 ### 앱 제목
 
 - KR: **스탑잇 - 집중 앱 차단, 루틴 잠금**
-- EN: **StopIt - App Blocker for Focus Routines**
+- EN: **StopIt - App Blocker for Focus**
 
 대체 후보:
 1. 스탑잇 - 앱 차단 타이머 & 집중 루틴
@@ -75,7 +75,7 @@
 ### 짧은 설명
 
 - KR: **유혹 앱을 선택하고, 타이머·루틴으로 잠그고, 필요할 때만 긴급 해제하세요.**
-- EN: **Block distracting apps with timers and routines, with emergency unlock only when needed.**
+- EN: **Block distracting apps with timers, routines, and limited emergency unlock.**
 
 ### 긴 설명
 
