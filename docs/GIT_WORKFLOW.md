@@ -86,6 +86,8 @@ Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 
 자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다.
 
+워크플로 유지보수 기준: `version-guard.yml`의 `actions/checkout` major version은 저장소의 다른 governance/release workflow와 같은 현재 표준(v6)으로 맞춘다. 그래야 릴리즈 안전장치만 오래된 checkout runtime에 머무르는 drift를 막을 수 있다.
+
 ## Harness Scripts
 
 모든 스크립트는 repo root에서 실행한다.
