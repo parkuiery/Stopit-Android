@@ -95,6 +95,7 @@
     <string name="notification_channel_routine_description">Receive notifications when routines start</string>
     <string name="notification_routine_start_title">%1$s routine has started</string>
     <string name="notification_routine_start_message">App usage has been locked to help you focus.</string>
+    <string name="routine_notification_permission_fallback_message">%1$s started, but notification permission is off so StopIt will remind you in the app instead.</string>
     <string name="prevent_uninstall">Uninstall Protection</string>
     <string name="prevent_uninstall_subtitle">Protects StopIt from being uninstalled</string>
     <string name="prevent_uninstall_enabled">Uninstall protection is now active</string>

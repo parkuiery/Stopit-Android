@@ -15,6 +15,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+sealed interface RoutineStartNotificationResult {
+    data object Posted : RoutineStartNotificationResult
+    data object PermissionDenied : RoutineStartNotificationResult
+}
+
 @Singleton
 class NotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context
@@ -41,12 +46,16 @@ class NotificationHelper @Inject constructor(
         }
     }
 
-    fun showRoutineStartNotification(routineName: String, routineId: Long) {
+    fun showRoutineStartNotification(routineName: String, routineId: Long): RoutineStartNotificationResult {
+        if (!notificationManager.areNotificationsEnabled()) {
+            return RoutineStartNotificationResult.PermissionDenied
+        }
+
         // Check notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
-                return
+                return RoutineStartNotificationResult.PermissionDenied
             }
         }
 
@@ -62,6 +71,7 @@ class NotificationHelper @Inject constructor(
             .build()
 
         notificationManager.notify(routineId.toInt(), notification)
+        return RoutineStartNotificationResult.Posted
     }
 
     companion object {

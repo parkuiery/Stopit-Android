@@ -1,6 +1,7 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
@@ -181,6 +182,37 @@ class RoutineReceiverPolicyTest {
             RoutineReceiverPolicy.shouldRehydrateStoredRoutines(
                 storedRoutines = database,
                 databaseRoutines = database,
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenNotificationPermissionDenied() {
+        assertEquals(
+            PendingRoutineStartNotice(message = "Routine started without notification permission"),
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                fallbackMessage = "Routine started without notification permission",
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsNullWhenNotificationPosted() {
+        assertNull(
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.Posted,
+                fallbackMessage = "Should not be used",
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsNullWhenFallbackMessageBlank() {
+        assertNull(
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                fallbackMessage = "  ",
             ),
         )
     }

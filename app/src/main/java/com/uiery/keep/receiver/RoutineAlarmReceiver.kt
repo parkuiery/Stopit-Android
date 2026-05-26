@@ -7,12 +7,15 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.R
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,6 +36,10 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     @Inject
     @KeepDataSource
     lateinit var dataStore: DataStore<Preferences>
+
+    @Inject
+    @ApplicationContext
+    lateinit var appContext: Context
 
     override fun onReceive(context: Context, intent: Intent) {
         RoutineReceiverPolicy.parseRoutineAlarmTrigger(
@@ -66,7 +73,18 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             routineId = routineId,
         ) ?: return
 
-        notificationHelper.showRoutineStartNotification(trigger.routineName, trigger.routineId)
+        val notificationResult = notificationHelper.showRoutineStartNotification(
+            trigger.routineName,
+            trigger.routineId,
+        )
+        RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+            notificationResult = notificationResult,
+            fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
+        )?.let { pendingNotice ->
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = pendingNotice.message
+            }
+        }
 
         val routineStore = RoutineStore(dataStore)
         val storedRoutines = routineStore.readCachedRoutines()
@@ -87,6 +105,9 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             routineScheduler.scheduleRoutine(it)
         }
     }
+
+    private fun dataStoreFallbackMessage(routineName: String): String =
+        appContext.getString(R.string.routine_notification_permission_fallback_message, routineName)
 
     companion object {
         const val EXTRA_ROUTINE_NAME = "extra_routine_name"
