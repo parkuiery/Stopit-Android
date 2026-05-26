@@ -2,6 +2,8 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+
 ## 목적
 
 스탑잇의 지표 관리는 “많이 쓰는가?”보다 “사용자가 실제로 앱 차단/집중 가치를 얻었는가?”를 중심으로 본다.
@@ -94,7 +96,7 @@
 ### 활성화 퍼널
 
 1. `first_open`
-2. `onboarding_step_view`
+2. `onboarding_step_view` / `onboarding_step_complete`
 3. `permission_outcome`
 4. `app_selection_completed`
 5. `first_lock_configured`
