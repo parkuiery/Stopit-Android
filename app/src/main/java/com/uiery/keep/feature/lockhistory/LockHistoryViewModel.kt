@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.model.toModel
+import com.uiery.keep.service.summarizeLockHistoryLedger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
 import org.orbitmvi.orbit.Container
@@ -69,32 +70,17 @@ class LockHistoryViewModel @Inject constructor(
             ?.map { it.toModel() }
             ?: emptyList()
 
-        val groupedSessions = sessions.groupBy { it.date }
-        val totalDuration = sessions.sumOf { it.durationMillis }
-        val sessionCount = sessions.size
-
-        val topApps = sessions
-            .flatMap { it.lockedApps }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .sortedByDescending { it.value }
-            .take(3)
-            .map { it.key }
-
-        val durationByDate = groupedSessions.mapValues { (_, dailySessions) ->
-            dailySessions.sumOf { it.durationMillis }
-        }
+        val summary = summarizeLockHistoryLedger(sessions)
 
         reduce {
             state.copy(
                 startDate = startDate,
                 endDate = endDate,
-                groupedSessions = groupedSessions,
-                totalDuration = totalDuration,
-                sessionCount = sessionCount,
-                topApps = topApps,
-                durationByDate = durationByDate,
+                groupedSessions = summary.groupedSessions,
+                totalDuration = summary.totalDurationMillis,
+                sessionCount = summary.sessionCount,
+                topApps = summary.topApps,
+                durationByDate = summary.durationByDate,
                 selectedDate = null,
             )
         }

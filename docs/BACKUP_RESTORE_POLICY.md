@@ -112,7 +112,7 @@
 | 테이블/엔티티 | 의미 | 이번 정책 | 메모 |
 | --- | --- | --- | --- |
 | `routine` / `RoutineEntity` | 반복 차단 루틴 정의 | 복원 | 장기 사용자 의도 |
-| `lock_history` / `LockHistoryEntity` | 잠금 세션 이력 | 복원 | DB 분리 전까지 routine과 같은 DB에 묶여 복원됨 |
+| `lock_history` / `LockHistoryEntity` | 잠금 세션 이력 | 복원 | 히스토리 요약/상세 화면의 source of truth. `LONG_BLOCK_TIME`/`TOTAL_BLOCK_TIME`는 legacy compatibility cache로만 유지 |
 | `emergency_unlock` / `EmergencyUnlockEntity` | 긴급해제 이력 | 복원 | DB 분리 전까지 routine과 같은 DB에 묶여 복원됨 |
 
 > 주의: 장기적으로는 `routine`과 이력성 테이블을 분리하는 것이 더 깔끔할 수 있다. 하지만 이번 이슈의 목표는 **잠금/긴급해제의 active runtime state 복원 통제**이며, 그 위험은 DataStore 제외만으로 즉시 줄일 수 있다.
