@@ -167,6 +167,27 @@
 - 리스크: 과도한 프롬프트는 반감 유발.
 - 지표: prompt eligible/shown/skipped/failed, rating count, Organic Search 신규 사용자.
 
+## 개인화 리포트 / 추천 후보
+
+### Usage Access 기반 개인화 리포트
+
+- 문제: 사용자는 어떤 앱/시간대 때문에 반복적으로 무너지는지 감에 의존해 차단을 설정한다.
+- 기회: Usage Access를 선택적으로 활용하면 상위 방해 앱, 위험 시간대, 전주 대비 변화, 추천 루틴을 제안할 수 있다.
+- 기본 원칙:
+  - 핵심 차단 기능의 필수 권한으로 만들지 않는다.
+  - 메시지/콘텐츠는 다루지 않고, 앱 사용 시간/빈도/시간대 집계만 사용한다.
+  - 외부 전송보다 로컬 집계와 설명 가능한 규칙 기반 추천을 우선한다.
+- 첫 MVP 범위:
+  - 지난 7일 상위 방해 앱 Top 5
+  - 위험 시간대
+  - 전주 대비 변화
+  - 추천 차단 시작점
+- guardrail:
+  - 권한 미허용 시 기존 차단/타이머/루틴 가치가 훼손되지 않아야 한다.
+  - 민감한 앱 이름 노출과 감시 느낌을 피해야 한다.
+  - 허용률/추천 클릭률뿐 아니라 `first_lock_configured`, `app_block_intercepted`, review/rating 악화 여부를 같이 본다.
+- 상세 계약: `docs/USAGE_STATS_PERSONALIZATION_MVP.md`, issue #82
+
 ## 수익화 실험 후보
 
 ### 1. 광고 제거 일회성 구매
@@ -236,11 +257,13 @@
 
 - #13 GA4 계측 품질 개선
 - #14 첫 잠금 활성화 퍼널 개선
-- #15 Play Store ASO 개선
+- #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
 - #17 리뷰 프롬프트 생애주기 개선
+- #82 사용정보 기반 개인화 솔루션과 사용 리포트 제공 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조)
 
 ## 관련 실행 문서
 
-- `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안
+- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일

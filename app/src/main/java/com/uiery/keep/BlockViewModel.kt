@@ -13,21 +13,14 @@ import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
-import com.uiery.keep.service.EmergencyUnlockData
-import com.uiery.keep.service.EmergencyUnlockSettings
-import com.uiery.keep.service.EmergencyUnlockState
-import com.uiery.keep.service.canCompleteEmergencyUnlockRequest
-import com.uiery.keep.service.emergencyUnlockDailyRemaining
-import com.uiery.keep.service.isEmergencyUnlockAvailable
-import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
-import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
+import com.uiery.keep.service.EmergencyUnlockCoordinator
+import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
-import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -36,8 +29,8 @@ class BlockViewModel
     @Inject
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
-        private val emergencyUnlockDao: EmergencyUnlockDao,
         private val analytics: KeepAnalytics,
+        private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -93,48 +86,16 @@ class BlockViewModel
             }
         }
 
-        private suspend fun readEmergencyUnlockSettings(): EmergencyUnlockSettings {
-            val preferences = dataStore.data.firstOrNull()
-            return EmergencyUnlockSettings(
-                enabled = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_ENABLED) ?: true,
-                dailyLimit = sanitizeEmergencyUnlockDailyLimit(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT),
-                ),
-                durationOptions = sanitizeEmergencyUnlockDurationOptions(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS),
-                ),
-                reasonRequired = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED) ?: true,
-            )
-        }
-
-        private fun todayStartMillis(): Long {
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            return calendar.timeInMillis
-        }
-
         private fun checkDailyLimit() = intent {
-            val settings = readEmergencyUnlockSettings()
-            val count = emergencyUnlockDao.countToday(todayStartMillis())
+            val availability = emergencyUnlockCoordinator.readAvailability()
             reduce {
                 state.copy(
-                    emergencyUnlockEnabled = settings.enabled,
-                    emergencyUnlockDailyLimit = settings.dailyLimit,
-                    emergencyUnlockDurationOptions = settings.durationOptions,
-                    emergencyUnlockReasonRequired = settings.reasonRequired,
-                    dailyLimitReached = !isEmergencyUnlockAvailable(
-                        enabled = settings.enabled,
-                        dailyLimit = settings.dailyLimit,
-                        todayUnlockCount = count,
-                    ),
-                    dailyUnlockRemaining = emergencyUnlockDailyRemaining(
-                        dailyLimit = settings.dailyLimit,
-                        todayUnlockCount = count,
-                    ),
+                    emergencyUnlockEnabled = availability.enabled,
+                    emergencyUnlockDailyLimit = availability.dailyLimit,
+                    emergencyUnlockDurationOptions = availability.durationOptions,
+                    emergencyUnlockReasonRequired = availability.reasonRequired,
+                    dailyLimitReached = availability.dailyLimitReached,
+                    dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
             }
         }
@@ -153,57 +114,25 @@ class BlockViewModel
             apps: Set<String>,
             durationMinutes: Int,
         ) = intent {
-            val now = System.currentTimeMillis()
-            val settings = readEmergencyUnlockSettings()
-            val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
-            if (!canCompleteEmergencyUnlockRequest(
-                    settings = settings,
-                    todayUnlockCount = todayCount,
-                    durationMinutes = durationMinutes,
-                    reason = reason,
-                )
-            ) {
-                checkDailyLimit()
-                return@intent
-            }
-            val expireTime = now + durationMinutes * 60_000L
-            val unlockCountRemaining = emergencyUnlockDailyRemaining(
-                dailyLimit = settings.dailyLimit,
-                todayUnlockCount = todayCount + 1,
-            )
-
-            EmergencyUnlockState.current = EmergencyUnlockData(
-                unlockedApps = apps,
-                expireTimeMillis = expireTime,
-            )
-
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = apps
-                preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] = expireTime
-            }
-
-            emergencyUnlockDao.insert(
-                EmergencyUnlockEntity(
-                    timestamp = now,
+            when (
+                emergencyUnlockCoordinator.completeUnlock(
+                    source = AnalyticsSource.BLOCK_SCREEN,
                     reason = reason,
                     customReason = customReason,
-                    unlockedApps = apps.toList(),
+                    apps = apps,
                     durationMinutes = durationMinutes,
                 )
-            )
+            ) {
+                is EmergencyUnlockRequestResult.Rejected -> {
+                    checkDailyLimit()
+                    return@intent
+                }
 
-            analytics.trackEmergencyUnlockUsed(
-                source = AnalyticsSource.BLOCK_SCREEN,
-                unlockCountRemaining = unlockCountRemaining,
-            )
-            analytics.trackEmergencyUnlockCompleted(
-                reason = reason,
-                durationMinutes = durationMinutes,
-                remainingUnlocks = unlockCountRemaining,
-            )
-
-            checkDailyLimit()
-            postSideEffect(BlockSideEffect.UnlockCompleted)
+                is EmergencyUnlockRequestResult.Completed -> {
+                    checkDailyLimit()
+                    postSideEffect(BlockSideEffect.UnlockCompleted)
+                }
+            }
         }
     }
 

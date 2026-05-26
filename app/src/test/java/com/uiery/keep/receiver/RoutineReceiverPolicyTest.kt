@@ -128,11 +128,11 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
-    fun resolveRoutinesPrefersStoredRoutinesWhenPresent() {
+    fun resolveRoutinesPrefersDatabaseRoutinesWhenPresentEvenIfStoredRoutinesExist() {
         val stored = listOf(routine(id = 1L, name = "Stored", isEnabled = true))
         val database = listOf(routine(id = 2L, name = "Database", isEnabled = true))
 
-        assertEquals(stored, RoutineReceiverPolicy.resolveRoutines(storedRoutines = stored, databaseRoutines = database))
+        assertEquals(database, RoutineReceiverPolicy.resolveRoutines(storedRoutines = stored, databaseRoutines = database))
     }
 
     @Test
@@ -146,7 +146,7 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
-    fun shouldRehydrateStoredRoutinesReturnsTrueWhenDatabaseFallbackUsed() {
+    fun shouldRehydrateStoredRoutinesReturnsTrueWhenDatabaseRoutinesReplaceMissingStoredRoutines() {
         val database = listOf(routine(id = 3L, name = "Database", isEnabled = true))
 
         assertEquals(
@@ -159,14 +159,27 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
-    fun shouldRehydrateStoredRoutinesReturnsFalseWhenStoredRoutinesAlreadyExist() {
+    fun shouldRehydrateStoredRoutinesReturnsTrueWhenDatabaseRoutinesReplaceStaleStoredRoutines() {
         val stored = listOf(routine(id = 4L, name = "Stored", isEnabled = true))
         val database = listOf(routine(id = 5L, name = "Database", isEnabled = true))
 
         assertEquals(
-            false,
+            true,
             RoutineReceiverPolicy.shouldRehydrateStoredRoutines(
                 storedRoutines = stored,
+                databaseRoutines = database,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRehydrateStoredRoutinesReturnsFalseWhenStoredRoutinesAlreadyMatchDatabase() {
+        val database = listOf(routine(id = 6L, name = "Database", isEnabled = true))
+
+        assertEquals(
+            false,
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(
+                storedRoutines = database,
                 databaseRoutines = database,
             ),
         )

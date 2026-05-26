@@ -49,6 +49,20 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### develop/main 기본 CI gate
+
+`Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.
+
+- `./gradlew :app:testDevDebugUnitTest`
+- `./gradlew :app:lintDevDebug`
+- `./gradlew :app:assembleProdDebug`
+- focused runtime smoke:
+  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+
+이 gate는 develop/main PR 단계에서 lint·핵심 receiver/service/runtime 계약을 먼저 막는 역할이다. exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
@@ -413,10 +427,20 @@ cd <repo-root>
 ### 확인 포인트
 
 - [ ] 루틴은 필요 시 복원되지만, DataStore 기반 현재 잠금 상태는 그대로 살아나지 않는다.
-- [ ] boot 또는 routine alarm 재진입 후 복원된 Room routine이 `PreferencesKey.ROUTINES` 캐시로 다시 채워져 후속 스케줄링/차단 판단이 깨지지 않는다.
+- [ ] boot 또는 routine alarm 재진입 후 복원된 Room routine이 필요 시 비권위 `PreferencesKey.ROUTINES` 캐시로 다시 채워지더라도, 후속 스케줄링/차단 판단의 source of truth는 계속 Room이다.
 - [ ] 이전 기기의 긴급해제 진행 상태가 복원되어 차단이 계속 우회되지 않는다.
 - [ ] 선택 앱 목록/긴급해제 설정은 새 기기 기준으로 다시 설정해야 하는 상태다.
 - [ ] 리뷰 프롬프트/토큰/세션성 플래그가 복원 직후 부자연스럽게 이어지지 않는다.
+
+### 자동 baseline 명령
+
+- `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+
+자동 baseline이 확인하는 것:
+- `BackupRestoreRuntimeResetIntegrationTest`: restored-device shape(복원된 Room + 비어 있는 DataStore)에서 Boot/Routine alarm 진입 후 `PreferencesKey.ROUTINES` 재수화 + reset-only DataStore key 부재
+- `ReceiverRuntimeIntegrationTest`: alarm/notification/reschedule contract
+- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
+- `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite
 
 ## 7. Release 전 최소 QA 게이트
 
@@ -430,8 +454,10 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - [ ] 가능하면 `:app:connectedDevDebugAndroidTest`, 불가하면 사유 기록
 - [ ] 최소 focused automation evidence
   - [ ] `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - [ ] `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - [ ] `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
   - [ ] `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - [ ] `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 - [ ] backup/restore 정책을 건드린 PR이면 `docs/BACKUP_RESTORE_POLICY.md` 기준으로 restore/reset evidence 기록
 - [ ] 아래 수동 runtime 시나리오 evidence
   - [ ] BootReceiver
@@ -463,6 +489,7 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 
 - 이 문서는 수동/반수동 기준선이다.
 - `BootReceiver`와 `RoutineAlarmReceiver`는 `app/src/androidTest/java/com/uiery/keep/receiver/ReceiverRuntimeIntegrationTest.kt`로 최소 재수화/재예약 contract가 자동 검증된다.
+- `app/src/androidTest/java/com/uiery/keep/qa/BackupRestoreRuntimeResetIntegrationTest.kt`는 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는 baseline을 고정한다.
 - 여전히 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 수동 또는 추가 automation 전략이 필요하다.
 - 긴급해제 만료는 `app/src/androidTest/java/com/uiery/keep/service/EmergencyUnlockExpiryIntegrationTest.kt`로 state 정리와 재차단 대상 판정을 scriptable하게 검증하지만, 실제 third-party app foreground 전환까지 포함한 end-to-end evidence는 수동 시나리오를 함께 남기는 것이 안전하다.
 - issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.

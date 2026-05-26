@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+fetch_origin_main_or_die() {
+  if ! git fetch origin main >/dev/null; then
+    echo "Failed to fetch origin/main before release readiness validation." >&2
+    echo "Check network/remote access and retry." >&2
+    exit 1
+  fi
+}
+
 current_branch="$(git branch --show-current)"
 version_info="$(python3 - <<'PY'
 from pathlib import Path
@@ -16,8 +24,20 @@ print(f"versionName={name.group(1)} versionCode={code.group(1)}")
 PY
 )"
 
+fetch_origin_main_or_die
+
+main_version_code="$(python3 - <<'PY'
+import subprocess
+from scripts.play_version_code_guard import parse_build_version_info
+
+text = subprocess.check_output(['git', 'show', 'origin/main:app/build.gradle.kts'], text=True)
+print(parse_build_version_info(text).version_code)
+PY
+)"
+
 echo "Branch: $current_branch"
 echo "$version_info"
+echo "origin/main versionCode=$main_version_code"
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree is not clean:" >&2
@@ -30,6 +50,10 @@ if command -v actionlint >/dev/null 2>&1; then
 else
   echo "actionlint not installed; skipping workflow lint"
 fi
+
+python3 scripts/play_version_code_guard.py validate-build \
+  --build-file app/build.gradle.kts \
+  --minimum-main-version-code "$main_version_code"
 
 ./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run
 

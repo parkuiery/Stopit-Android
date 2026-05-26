@@ -81,10 +81,12 @@ Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 
 1. `versionName`은 `MAJOR.MINOR.PATCH` 형식만 사용한다.
 2. `versionCode`는 모든 Play 업로드마다 반드시 증가한다.
-3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 커야 한다.
+3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 크고, Google Play tracks에서 보이는 최고 사용 `versionCode`보다도 커야 한다.
 4. 태그 형식은 `v{versionName}`이다. 예: `v1.7.1`
 
-자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode` 증가와 `versionName` SemVer 형식을 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다.
+자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다.
+
+워크플로 유지보수 기준: `version-guard.yml`의 `actions/checkout` major version은 저장소의 다른 governance/release workflow와 같은 현재 표준(v6)으로 맞춘다. 그래야 릴리즈 안전장치만 오래된 checkout runtime에 머무르는 drift를 막을 수 있다.
 
 ## Harness Scripts
 
@@ -104,19 +106,22 @@ scripts/branch-start.sh fix countdown-crash
 ### 버전 bump
 
 ```bash
-scripts/bump-version.sh 1.7.2
-scripts/bump-version.sh 1.7.2 --code 24
+scripts/bump-version.sh 1.7.2 --service-account-json /path/to/play-service-account.json
+scripts/bump-version.sh 1.7.2 --code 24 --fallback-play-max-version-code 23
 ```
 
 동작:
 - `app/build.gradle.kts`의 `versionName` 변경
 - `versionCode` 자동 +1 또는 지정 값으로 변경
+- Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - Gradle release task dry-run으로 task 존재 확인
 
 ### 릴리즈 브랜치 준비
 
 ```bash
-scripts/release-start.sh 1.7.2
+scripts/release-start.sh 1.7.2 --service-account-json /path/to/play-service-account.json
+# 또는 live Play API 접근이 불가능하면 명시적 override
+scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 ```
 
 동작:
@@ -154,12 +159,16 @@ scripts/release-tag.sh 1.7.2
 ### 릴리즈 준비 상태 점검
 
 ```bash
-scripts/check-release-readiness.sh
+GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=/path/to/play-service-account.json scripts/check-release-readiness.sh
+# 또는
+STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 ```
 
 동작:
-- git working tree clean 여부 확인
+- `origin/main` 기준 검증 전에 먼저 `git fetch origin main`으로 remote ref를 최신화하고, fetch 실패 시 즉시 중단
+- 현재 브랜치의 git working tree clean 여부 확인
 - 버전 형식 확인
+- Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - `actionlint`가 있으면 workflow 문법 확인
 - `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
 
@@ -203,7 +212,9 @@ gh pr create --base develop --fill
 
 ```bash
 # 1. develop에서 릴리즈 브랜치 생성 + version bump
-scripts/release-start.sh 1.7.2
+scripts/release-start.sh 1.7.2 --service-account-json /path/to/play-service-account.json
+# 또는
+scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 
 # 2. 릴리즈 브랜치 push + main 대상 PR
 git push -u origin HEAD
@@ -233,7 +244,9 @@ git pull origin main
 git checkout -b hotfix/block-screen-crash
 
 # 수정 + 버전 patch bump
-scripts/bump-version.sh 1.7.3
+scripts/bump-version.sh 1.7.3 --service-account-json /path/to/play-service-account.json
+# 또는
+scripts/bump-version.sh 1.7.3 --fallback-play-max-version-code 23
 ./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease
 
 git add <files>

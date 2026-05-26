@@ -4,6 +4,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
+import com.uiery.keep.service.EmergencyUnlockCoordinator
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -11,11 +12,17 @@ class BlockViewModelTest {
     @Test
     fun initLogsBlockScreenView() {
         val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore()
+        val emergencyUnlockDao = FakeEmergencyUnlockDao()
 
         BlockViewModel(
-            dataStore = FakeDataStore(),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            dataStore = dataStore,
             analytics = analytics,
+            emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
+                dataStore = dataStore,
+                emergencyUnlockDao = emergencyUnlockDao,
+                analytics = analytics,
+            ),
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.BLOCK), analytics.screenViews)

@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
@@ -57,7 +57,7 @@ fun TimerContent(
             AnimatedContent(
                 targetState = c,
                 transitionSpec = {
-                    slideInVertically { it } + fadeIn() with slideOutVertically { -it } + fadeOut()
+                    slideInVertically { it } + fadeIn() togetherWith slideOutVertically { -it } + fadeOut()
                 },
                 label = "timer"
             ) { time ->

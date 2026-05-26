@@ -12,6 +12,7 @@ import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import java.time.Clock
 import java.time.Instant
@@ -28,11 +29,13 @@ class LockViewModelTest {
     @Test
     fun initLogsLockScreenView() {
         val analytics = LockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore()
+        val emergencyUnlockDao = FakeEmergencyUnlockDao()
         val reviewEligibility = ReviewEligibilityEvaluator(
-            dataStore = FakeDataStore(),
+            dataStore = dataStore,
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            emergencyUnlockDao = emergencyUnlockDao,
             lockHistoryDao = FakeLockHistoryDao(),
             clock = clock,
             buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
@@ -42,8 +45,12 @@ class LockViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineDao = FakeRoutineDao(),
             lockHistoryDao = FakeLockHistoryDao(),
-            dataStore = FakeDataStore(),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            dataStore = dataStore,
+            emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
+                dataStore = dataStore,
+                emergencyUnlockDao = emergencyUnlockDao,
+                analytics = analytics,
+            ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
             reviewEligibility = reviewEligibility,
