@@ -361,6 +361,22 @@ adb shell dumpsys alarm | grep com.uiery.keep
 
 접근성 서비스가 저장된 잠금 상태와 루틴 상태를 반영해 실제 차단을 수행해야 한다.
 
+### 현재 자동화 baseline
+
+이 영역은 현재 두 층으로 evidence를 쌓는다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
+```
+
+- `KeepAccessibilityServiceBlockDecisionTest`: manual keep / timed lock / routine / duplicate / emergency unlock 우회 판단을 순수 JVM 회귀로 빠르게 고정한다.
+- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환에서 차단 Activity 진입 여부를 검증하려는 focused runtime harness다.
+- 현재 Android 15 emulator에서는 아래 bind blocker 때문에 runtime harness가 실패할 수 있으므로, 두 명령 결과를 함께 기록해 **순수 판정 회귀**와 **실서비스 bind 경계**를 분리해서 해석한다.
+
 ### 현재 Android 15 emulator instrumentation 메모
 
 `KeepAccessibilityServiceIntegrationTest`를 Android 15 emulator에서 돌릴 때는 "토글은 켜졌지만 서비스 bind가 실제로 일어났는지"를 설정 값만 보고 추정하지 말고 아래 4가지를 같이 남긴다.
