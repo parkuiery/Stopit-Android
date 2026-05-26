@@ -29,8 +29,11 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; the automated `Release instrumentation QA` check is the default evidence for release PRs.
 - [ ] Automated runtime evidence is explicit in the PR body:
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+- [ ] The PR body separates what the 5-test focused runtime smoke already proved (launch smoke / backup-restore runtime reset / receiver rehydration / emergency-unlock expiry / FCM token regeneration wiring) from any manual-only evidence still required.
 - [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
 - [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
