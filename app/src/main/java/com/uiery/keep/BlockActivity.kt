@@ -14,29 +14,12 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class BlockActivity: ComponentActivity() {
-    lateinit var pipBlocker: PipBlockerOverlay
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val packageName = intent.getStringExtra("package_name") ?: ""
         val blockSource =
             intent.getStringExtra(EXTRA_BLOCK_SOURCE).orDefaultBlockSource()
         val routineId = intent.getStringExtra(EXTRA_ROUTINE_ID)
-
-//        pipBlocker = PipBlockerOverlay(this,packageName, onClose = {
-//                                        val homeIntent = Intent(Intent.ACTION_MAIN)
-//                            homeIntent.addCategory(Intent.CATEGORY_HOME)
-//                            homeIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-//                            startActivity(homeIntent)
-//                            finishAffinity()
-//        })
-//        // 권한 확인 및 PIP 화면 차단
-//        if (pipBlocker.hasOverlayPermission()) {
-//            pipBlocker.blockPipScreen()
-//        } else {
-//            // 권한 요청
-//            pipBlocker.requestOverlayPermission()
-//        }
         enableEdgeToEdge()
         setContent {
             KeepTheme {
