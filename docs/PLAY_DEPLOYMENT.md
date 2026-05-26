@@ -18,7 +18,13 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:assembleProdDebug`
   - upload prod debug APK artifact
 - Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - 자동 검증 범위:
+    - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
+    - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는지
+    - `ReceiverRuntimeIntegrationTest`: receiver 재수화·알람/알림·재예약 contract
+    - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
+    - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
   - release/hotfix 전용 exact alarm deny/allow 시나리오와 전체 connected suite는 계속 `Android Release QA`가 담당
 - Release candidates targeting `main` run Android Release Build:
   - `./gradlew :app:testProdReleaseUnitTest`

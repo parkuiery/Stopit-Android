@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 제한적이지만, `ReceiverRuntimeIntegrationTest`가 BootReceiver/RoutineAlarmReceiver의 Room → DataStore 재수화와 알람/알림 후속 동작을, `EmergencyUnlockExpiryIntegrationTest`가 긴급해제 만료 후 state 정리와 재차단 대상을 실제 device/emulator에서 scriptable하게 검증한다. 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입과 cold boot 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke 5개 테스트가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `ReceiverRuntimeIntegrationTest`(Room → DataStore 재수화 + 재예약), `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite). 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입, cold boot, third-party foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -58,10 +58,20 @@ cd <repo-root>
 - `./gradlew :app:assembleProdDebug`
 - focused runtime smoke:
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 
-이 gate는 develop/main PR 단계에서 lint·핵심 receiver/service/runtime 계약을 먼저 막는 역할이다. exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다.
+
+- `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
+- `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
+- `ReceiverRuntimeIntegrationTest`: Boot/Routine receiver 재수화·재예약 contract
+- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정
+- `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
+
+exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
 ### Android 공식 testing skill 기반 UI smoke baseline
 
