@@ -257,13 +257,13 @@
 
 - #13 GA4 계측 품질 개선
 - #14 첫 잠금 활성화 퍼널 개선
-- #15 Play Store ASO 개선
+- #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
 - #17 리뷰 프롬프트 생애주기 개선
 - #82 사용정보 기반 개인화 솔루션과 사용 리포트 제공 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조)
 
 ## 관련 실행 문서
 
-- `docs/PLAY_STORE_ASO.md`: #15용 Play Store 제목/설명/스크린샷/측정 계획 초안
+- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일
