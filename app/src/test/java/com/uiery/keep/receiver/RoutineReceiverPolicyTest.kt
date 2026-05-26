@@ -12,9 +12,9 @@ import org.junit.Test
 class RoutineReceiverPolicyTest {
 
     @Test
-    fun shouldRestoreRoutinesOnBootReturnsTrueOnlyForBootCompletedAction() {
+    fun shouldRestoreRoutinesOnBootReturnsTrueForBootCompletedAndMyPackageReplacedActions() {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
-        assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
     }
 

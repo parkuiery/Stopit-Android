@@ -4,6 +4,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -86,6 +88,35 @@ class ReceiverRuntimeIntegrationTest {
         }
 
         assertEquals(listOf("Boot restore"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun manifestRegistersBootReceiverForMyPackageReplaced() {
+        assertTrue(
+            matchingReceiverClassNames(Intent.ACTION_MY_PACKAGE_REPLACED).contains(BootReceiver::class.java.name),
+        )
+    }
+
+    @Test
+    fun packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced restore"))
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("BootReceiver should persist routines into DataStore after package replace") {
+            storedRoutineNames() == listOf("Package replaced restore")
+        }
+        waitUntil("BootReceiver should schedule the restored routine after package replace") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(listOf("Package replaced restore"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
@@ -174,6 +205,21 @@ class ReceiverRuntimeIntegrationTest {
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.cancel(routineId.toInt())
+    }
+
+    private fun matchingReceiverClassNames(action: String): Set<String> {
+        val intent = Intent(action).setPackage(context.packageName)
+        val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.queryBroadcastReceivers(
+                intent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.queryBroadcastReceivers(intent, PackageManager.MATCH_ALL)
+        }
+
+        return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
 
     private fun enabledRoutineEntity(id: Long, name: String): RoutineEntity {
