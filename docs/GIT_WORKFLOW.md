@@ -22,7 +22,8 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast correctness check: unit tests + prod debug APK artifact. No signed release, no Play upload. |
+| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus PR/manual focused runtime smoke. No signed release, no Play upload. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate + focused UI smoke + exact alarm deny/allow gate + remaining connected Android suite. |
 | Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
@@ -220,7 +221,7 @@ scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 
-# 3. PR에서 branch-hygiene, version-guard, Android CI, Android Release Build 통과 확인
+# 3. PR에서 Branch Hygiene, Version Guard, Android CI, Android Release QA, Android Release Build 통과 확인
 
 # 4. main에 squash merge
 
