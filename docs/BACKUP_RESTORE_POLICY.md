@@ -142,6 +142,7 @@
 확인:
 - [ ] 루틴 목록이 유지된다.
 - [ ] 루틴 활성 여부가 비정상적으로 초기화되지 않는다.
+- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
 
 ### 시나리오 B — DataStore 상태 미복원
 1. 기존 기기에서 차단 앱 선택, 수동 잠금 또는 timed lock 활성화
@@ -154,6 +155,7 @@
 - [ ] 복원 직후 stale lock state 때문에 예상치 못한 즉시 차단이 발생하지 않는다.
 - [ ] 이전 기기의 긴급해제 상태가 복원되어 차단이 계속 우회되지 않는다.
 - [ ] 긴급해제 설정값도 새 기기 기준으로 다시 잡아야 하는 상태다.
+- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
 
 ### 시나리오 C — 리뷰/토큰/분석 재초기화
 1. 복원 후 앱 실행
@@ -165,6 +167,21 @@
   - 수동 evidence 형식은 `docs/QA_RUNTIME_CHECKLIST.md`의 `FCM token regeneration evidence` 템플릿을 따른다.
 - [ ] 리뷰 프롬프트가 복원 직후 부자연스럽게 즉시 뜨지 않는다.
 - [ ] 분석용 최초 실행/세션 플래그가 새 기기 흐름을 그대로 오염시키지 않는다.
+- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+
+### 저장소 자동 baseline 범위
+
+- `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+  - 복원된 Room routine을 Boot/Routine alarm 진입에서 `PreferencesKey.ROUTINES`로 재수화하는지 확인
+  - DataStore가 비어 있는 restored-device shape에서 선택 앱/lock/emergency/review/analytics session/FCM token 키를 되살리지 않는지 확인
+- `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - Boot/Routine alarm의 notification + 재예약 contract 확인
+- `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - 만료된 긴급해제 state 정리와 재차단 대상 판정 확인
+- `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - 복원 직후 새 FCM token 저장 경로가 stale token을 덮어쓰는지 확인
+
+위 자동 baseline은 **정책상 DataStore 전체 제외 + Room DB 복원** shape를 에뮬레이터에서 재현한다. 실제 기기 이전/cold boot/Accessibility cross-app 증적은 release candidate에서 수동 또는 반자동 evidence를 계속 남긴다.
 
 ## 7. PR / release 기록 템플릿
 
@@ -174,6 +191,7 @@
 - Variant:
 - Commands:
   - `./gradlew :app:assembleDevDebug`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 - Room restore (routines): pass/fail
 - DataStore reset (selected apps / lock / emergency / review / token): pass/fail
 - Notes:
