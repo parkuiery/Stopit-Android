@@ -165,7 +165,7 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 | 5 | 긴급 해제 | [ ] | [ ] | [ ] | [ ] |
 | 6 | 잠금 기록 | [ ] | [ ] | [ ] | [ ] |
 
-## 반영 전 baseline 기록
+## baseline / 사후 복원 기록
 
 원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
 
@@ -192,16 +192,16 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 
 ### 1. 반영 직전 준비
 
-- [ ] baseline 표를 채운다.
-- [ ] KR/EN 제목·짧은 설명·긴 설명 최종안을 이 문서 기준으로 확정한다.
-- [ ] 스크린샷 6장 최종본 파일명을 정리한다.
-- [ ] 반영 담당자와 반영 시간을 기록한다.
+- [ ] baseline 표를 사후 복원 포함 기준으로 최대한 채운다.
+- [x] KR/EN 제목·짧은 설명·긴 설명 최종안을 이 문서 기준으로 정리했다.
+- [ ] 스크린샷 6장 최종본 파일명/원본 경로를 정리한다.
+- [ ] 반영 담당자와 정확한 반영 시간을 보강한다.
 
 ### 2. 실제 반영
 
-- [ ] KR listing copy 반영
-- [ ] EN listing copy 반영
-- [ ] 스크린샷 6장 업로드/정렬 반영
+- [x] KR listing copy 반영
+- [x] EN listing copy 반영
+- [x] 스크린샷 6장 업로드/정렬 반영
 - [ ] 저장 후 실제 노출값 재확인
 
 ### 3. 반영 직후 기록
@@ -217,9 +217,9 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 | 단계 | 상태 | 일시 | 담당 | 메모 |
 | --- | --- | --- | --- | --- |
 | baseline 기록 | 보강 필요 | `TODO` | `TODO` | 반영 전 수치/노출값을 사후 복원해야 함 |
-| KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | 대표님 수동 배포 완료 사실 확인 |
-| EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | 대표님 수동 배포 완료 사실 확인 |
-| 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | Play Console 실제 반영 완료 |
+| KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
+| EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
+| 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 Play Console 실제 반영 완료 확인 |
 | 14일 점검 | 예정 | `TODO` | `TODO` | |
 | 30일 점검 | 예정 | `TODO` | `TODO` | |
 
@@ -254,7 +254,7 @@ StopIt is designed for practical focus: real blocking, routine support, and a sa
 - 사용자 노출 앱명은 `StopIt / 스탑잇`
 - 일부 영문 문자열에 `Keep` 표현이 남아 있음
 
-ASO 반영 전 체크:
+ASO 반영 후 후속 체크:
 
 - Play listing copy는 전부 `StopIt` 기준으로 통일
 - 인앱 사용자 노출 문자열의 `Keep` 잔재는 별도 UI 카피 정리 이슈로 분리 검토
@@ -286,7 +286,7 @@ ASO 반영 전 체크:
 
 이 이슈 자체(#65)가 닫히려면 추가로 필요한 조건:
 
-- [ ] Play Console에 실제 copy/스크린샷이 반영된다.
+- [x] Play Console에 실제 copy/스크린샷이 반영되었다.
 - [ ] 반영 일시와 범위가 실행 로그에 기록된다.
 - [ ] 14일 또는 30일 후 전후 비교 결과가 남는다.
 
