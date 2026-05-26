@@ -82,6 +82,7 @@ class KeepAccessibilityService :
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        KeepAccessibilityServiceDebugState.update(applicationContext) { it.copy(isServiceConnected = true) }
         val entryPoint = EntryPointAccessors.fromApplication(
             applicationContext,
             RoutineRuntimeEntryPoint::class.java,
@@ -96,6 +97,13 @@ class KeepAccessibilityService :
                     emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] ?: emptySet(),
                     emergencyUnlockExpireTime = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
                 )
+                KeepAccessibilityServiceDebugState.update(applicationContext) {
+                    it.copy(
+                        observedIsKeep = cachedPrefs.isKeep,
+                        observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
+                        observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
+                    )
+                }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
             }
         }
@@ -111,6 +119,10 @@ class KeepAccessibilityService :
         val prefs = cachedPrefs
 
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(lastWindowStateChangedPackage = packageName)
+        }
 
         cleanupExpiredEmergencyUnlock()
         if (isEmergencyUnlocked(packageName)) return
@@ -129,6 +141,7 @@ class KeepAccessibilityService :
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        KeepAccessibilityServiceDebugState.reset(applicationContext)
         job.cancel()
     }
 
