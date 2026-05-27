@@ -4,7 +4,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.MainActivity
 import org.junit.Assert.assertTrue
@@ -38,12 +37,15 @@ class StopitReleaseSmokeTest {
     }
 
     private fun isTargetPackageForeground(device: UiDevice): Boolean {
-        if (device.hasObject(By.pkg(TARGET_PACKAGE))) {
+        if (device.executeShellCommand(
+                "dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'",
+            ).contains("$TARGET_PACKAGE/")) {
             return true
         }
 
-        return device.executeShellCommand("dumpsys activity activities")
-            .contains("$TARGET_PACKAGE/")
+        return device.executeShellCommand(
+            "dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'",
+        ).contains(TARGET_PACKAGE)
     }
 
     private fun waitUntil(message: String, timeoutMs: Long = LAUNCH_TIMEOUT_MS, condition: () -> Boolean) {

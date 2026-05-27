@@ -283,11 +283,13 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun isPackageForeground(packageName: String): Boolean {
-        if (device.hasObject(By.pkg(packageName))) {
+        if (shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'")
+                .contains("$packageName/")) {
             return true
         }
 
-        return shell("dumpsys activity activities").contains("$packageName/")
+        return shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'")
+            .contains(packageName)
     }
 
     private fun shell(command: String): String {
