@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), 네 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, uninstall 방지, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), 일곱 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약의 single-day/multi-day repeat-day coverage), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, uninstall 방지, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -60,9 +60,12 @@ cd <repo-root>
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine`
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
   - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
@@ -75,7 +78,7 @@ cd <repo-root>
 
 - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
-- focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced 재수화, 루틴 시작 재예약, notification-denied fallback notice contract
+- focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced 재수화, 루틴 시작 재예약, notification-denied fallback notice contract + multi-day repeat-day pending-intent coverage
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
 - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환에서 `BlockActivity` 진입과 emergency unlock 우회 safety 계약
@@ -120,12 +123,15 @@ cd <repo-root>
 ```
 
 - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+- `bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm`
 - `manifestRegistersBootReceiverForMyPackageReplaced`
 - `packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
+- `packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm`
 - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
+- `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine`
 - `routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`까지 포함해 앱 업데이트 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인한다. 또한 Android 13+에서 `POST_NOTIFICATION`이 꺼진 상태에서도 루틴 시작이 조용히 사라지지 않고 앱 내 fallback notice로 이어지는지 확인한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`까지 포함해 앱 업데이트 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인하고, multi-day repeat-day 루틴에서 요일별 requestCode가 전부 재생성되는지도 함께 고정한다. 또한 Android 13+에서 `POST_NOTIFICATION`이 꺼진 상태에서도 루틴 시작이 조용히 사라지지 않고 앱 내 fallback notice로 이어지는지 확인한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
 
 `POST_NOTIFICATION` deny focused test는 exact alarm appops와 비슷하게 **호스트 ADB/appops에서 먼저 상태를 바꾸고 그 다음 focused instrumentation을 실행**해야 한다. 테스트 메서드 안에서 notification appops를 바꾸면 target process가 죽어 flaky/crash가 날 수 있다.
 
