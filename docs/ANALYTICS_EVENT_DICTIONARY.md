@@ -305,12 +305,13 @@ PY
 4. 이벤트가 최근 버전에서만 추가된 경우 `appVersion` 세그먼트로 다시 본다.
 5. 그래도 불명확하면 제품 결론보다 계측 개선 이슈를 먼저 연다.
 
-### 2026-05-27 live 점검 메모
+### 2026-05-28 live 점검 메모
 
 - GA4 metadata 기준 현재 조회 가능한 custom dimension은 `customUser:routines_count`만 확인됐다.
 - `customEvent:*` 차원/지표는 아직 보이지 않아 activation/review/ad parameter 조회 결론 confidence를 낮게 둬야 한다.
-- 최근 14일 `screen_view`는 총 `11,567`건이고, `(not set)` `8,780`건 + 빈 `unifiedScreenName` `807`건으로 합계 `9,587 / 11,567 = 82.9%`다.
-- 온보딩 화면명은 보이기 시작했지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
+- 최근 14일 `screen_view`는 총 `11,988`건이고, `(not set)` `9,390`건 + 빈 `unifiedScreenName` `342`건으로 합계 `9,732 / 11,988 = 81.2%`다.
+- 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
+- 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
 ## 운영 메모
 

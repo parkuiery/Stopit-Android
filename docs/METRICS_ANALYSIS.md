@@ -481,8 +481,9 @@ PY
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
 
-2026-05-27 live 확인 메모:
+2026-05-28 live 확인 메모:
 
-- 최근 14일 `screen_view` 총량: `11,567`
-- `(not set)` `8,780` + 빈 `unifiedScreenName` `807` = `9,587 / 11,567 = 82.9%`
+- 최근 14일 `screen_view` 총량: `11,988`
+- `(not set)` `9,390` + 빈 `unifiedScreenName` `342` = `9,732 / 11,988 = 81.2%`
 - GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
+- 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.
