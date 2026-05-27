@@ -52,6 +52,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`

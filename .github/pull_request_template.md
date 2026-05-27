@@ -24,7 +24,7 @@ For normal development PRs:
 - [ ] `./gradlew :app:testDevDebugUnitTest`
 - [ ] `./gradlew :app:lintDevDebug`
 - [ ] `./gradlew :app:assembleProdDebug`
-- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, `ReceiverRuntimeIntegrationTest`, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
+- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` 7종 + separate `POST_NOTIFICATION ignore` receiver gate, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
 - [ ] Android CI passes
 
 For release/hotfix PRs:
@@ -35,7 +35,8 @@ For release/hotfix PRs:
   - focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - exact alarm deny gate
   - exact alarm allow gate
-  - remaining connected Android suite (`notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`)
+  - remaining connected Android suite (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` 7종, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`)
+  - separate `POST_NOTIFICATION ignore` receiver fallback notice gate
 - [ ] Android Release Build passes and produces signed AAB artifact
 
 For UI/behavior changes:
