@@ -1,7 +1,6 @@
 package com.uiery.keep.analytics
 
 import com.google.firebase.Firebase
-import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
 import dagger.Module
 import dagger.Provides
@@ -15,5 +14,8 @@ object FirebaseModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseAnalytics(): FirebaseAnalytics = Firebase.analytics
+    fun provideAnalyticsBackend(): AnalyticsBackend =
+        AnalyticsBackendFactory.create {
+            FirebaseAnalyticsBackend(Firebase.analytics)
+        }
 }
