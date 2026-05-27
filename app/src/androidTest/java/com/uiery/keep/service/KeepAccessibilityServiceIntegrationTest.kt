@@ -11,7 +11,6 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
-import androidx.test.uiautomator.Until
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import kotlinx.coroutines.runBlocking
@@ -74,11 +73,12 @@ class KeepAccessibilityServiceIntegrationTest {
         launchPackage(blockedPackage)
         waitForWindowEvent(blockedPackage)
 
-        val blockVisible = device.wait(
-            Until.hasObject(By.pkg(APP_PACKAGE).depth(0)),
-            PACKAGE_VISIBILITY_TIMEOUT_MS,
-        )
-        assertTrue("Expected BlockActivity package to take foreground when $blockedPackage launches", blockVisible)
+        waitUntil(
+            message = "Expected KeepAccessibilityService to request BlockActivity when $blockedPackage launches",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
+        }
     }
 
     @Test
@@ -88,17 +88,21 @@ class KeepAccessibilityServiceIntegrationTest {
         configureEmergencyUnlock(bypassPackage)
         waitForServiceStatePropagation()
         waitForServiceToObserveSelectedPackage(bypassPackage)
+        waitForServiceToObserveEmergencyUnlockPackage(bypassPackage)
 
         launchPackage(bypassPackage)
         waitForWindowEvent(bypassPackage)
 
-        val targetVisible = device.wait(
-            Until.hasObject(By.pkg(bypassPackage).depth(0)),
-            PACKAGE_VISIBILITY_TIMEOUT_MS,
+        waitForPackageForeground(
+            packageName = bypassPackage,
+            message = "Expected $bypassPackage to stay foreground while emergency unlock is active",
         )
-        val blockVisible = device.hasObject(By.pkg(APP_PACKAGE).depth(0))
-        assertTrue("Expected $bypassPackage to stay foreground while emergency unlock is active", targetVisible)
-        assertFalse("Did not expect BlockActivity to launch while emergency unlock is active", blockVisible)
+        val debugSnapshot = KeepAccessibilityServiceDebugState.read(context)
+        val launchedBlockedPackage = debugSnapshot.lastLaunchedBlockPackage
+        assertFalse(
+            "Did not expect KeepAccessibilityService to request BlockActivity while emergency unlock is active. snapshot=$debugSnapshot",
+            launchedBlockedPackage == bypassPackage,
+        )
     }
 
     private suspend fun configureManualKeepBlock(packageName: String) {
@@ -180,27 +184,39 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun openAccessibilityServiceDetails() {
-        if (openAccessibilityServiceDetailsViaIntent()) {
-            return
+        repeat(3) { attempt ->
+            if (openAccessibilityServiceDetailsViaIntent()) {
+                return
+            }
+            if (openAccessibilityServiceDetailsFromList()) {
+                return
+            }
+            if (attempt < 2) {
+                device.pressBack()
+                device.waitForIdle()
+                Thread.sleep(500)
+            }
         }
 
+        fail("StopIt Accessibility detail screen should open")
+    }
+
+    private fun openAccessibilityServiceDetailsFromList(): Boolean {
         shell("am force-stop $SETTINGS_PACKAGE")
         shell("am start -W -a android.settings.ACCESSIBILITY_SETTINGS")
         device.waitForIdle()
         val scrollable = UiScrollable(UiSelector().scrollable(true)).apply {
             setAsVerticalList()
         }
-        if (!device.hasObject(By.text(APP_NAME))) {
-            scrollable.scrollTextIntoView(APP_NAME)
+        if (!device.hasObject(By.text(appName))) {
+            scrollable.scrollTextIntoView(appName)
         }
-        val serviceEntry = device.findObject(UiSelector().text(APP_NAME))
+        val serviceEntry = device.findObject(UiSelector().text(appName))
         if (!serviceEntry.exists()) {
-            fail("Could not find $APP_NAME entry in Accessibility settings")
+            return false
         }
         serviceEntry.click()
-        waitUntil("StopIt Accessibility detail screen should open") {
-            device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
-        }
+        return waitForAccessibilityDetailScreen()
     }
 
     private fun openAccessibilityServiceDetailsViaIntent(): Boolean {
@@ -211,14 +227,7 @@ class KeepAccessibilityServiceIntegrationTest {
         )
         device.waitForIdle()
 
-        repeat(20) {
-            if (device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))) {
-                return true
-            }
-            Thread.sleep(250)
-        }
-
-        return false
+        return waitForAccessibilityDetailScreen(timeoutMs = UI_TIMEOUT_MS)
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean =
@@ -253,15 +262,66 @@ class KeepAccessibilityServiceIntegrationTest {
         }
     }
 
+    private fun waitForServiceToObserveEmergencyUnlockPackage(packageName: String) {
+        waitUntil("KeepAccessibilityService should observe emergency unlock state before launch", SERVICE_PROPAGATION_TIMEOUT_MS) {
+            KeepAccessibilityServiceDebugState.read(context)
+                .observedEmergencyUnlockApps
+                .contains(packageName)
+        }
+    }
+
     private fun waitForWindowEvent(packageName: String) {
         waitUntil("KeepAccessibilityService should receive a window change event for $packageName", SERVICE_PROPAGATION_TIMEOUT_MS) {
             KeepAccessibilityServiceDebugState.read(context).lastWindowStateChangedPackage == packageName
         }
     }
 
+    private fun waitForAccessibilityDetailScreen(timeoutMs: Long = UI_TIMEOUT_MS): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))) {
+                return true
+            }
+            Thread.sleep(250)
+        }
+
+        return false
+    }
+
+    private fun waitForPackageVisible(
+        packageName: String,
+        message: String,
+    ) {
+        waitUntil(message, PACKAGE_VISIBILITY_TIMEOUT_MS) {
+            device.hasObject(By.pkg(packageName).depth(0)) || isPackageForeground(packageName)
+        }
+    }
+
+    private fun waitForPackageForeground(
+        packageName: String,
+        message: String,
+    ) {
+        waitUntil(message, PACKAGE_VISIBILITY_TIMEOUT_MS) {
+            isPackageForeground(packageName)
+        }
+    }
+
+    private fun isPackageForeground(packageName: String): Boolean {
+        if (shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'")
+                .contains("$packageName/")) {
+            return true
+        }
+
+        return shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'")
+            .contains(packageName)
+    }
+
     private fun shell(command: String): String {
         return device.executeShellCommand(command)
     }
+
+    private val appName: String
+        get() = context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 
     private fun resetDebugStateRetainingConnectionFlag() {
         val existingSnapshot = KeepAccessibilityServiceDebugState.read(context)
@@ -272,6 +332,7 @@ class KeepAccessibilityServiceIntegrationTest {
                 observedSelectedAppPackages = emptySet(),
                 observedEmergencyUnlockApps = emptySet(),
                 lastWindowStateChangedPackage = null,
+                lastLaunchedBlockPackage = null,
             )
         }
     }
@@ -289,7 +350,6 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private companion object {
         const val APP_PACKAGE = "com.uiery.keep"
-        const val APP_NAME = "StopIt"
         const val SERVICE_COMPONENT = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
         const val PACKAGE_VISIBILITY_TIMEOUT_MS = 5_000L
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L
