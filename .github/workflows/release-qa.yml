@@ -113,7 +113,7 @@ jobs:
             ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
             ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent

@@ -153,7 +153,7 @@ cd <repo-root>
 # 거절 상태: 활성 루틴이 조용히 성공 상태로 남지 않아야 한다.
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
 
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
