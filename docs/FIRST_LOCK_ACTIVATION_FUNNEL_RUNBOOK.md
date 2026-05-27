@@ -15,6 +15,7 @@
 ## 관련 문서
 
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ops/stopit/product-context.md`
@@ -31,6 +32,22 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 - 과거 메모/코멘트에는 `select_app_complete` 같은 구식 명칭이 섞여 있어, 현재 코드의 canonical 이벤트명과 바로 대응되지 않는다.
 
 따라서 먼저 **이벤트 계약과 퍼널 해석 규칙**을 고정하고, 그 다음에 CTA/UI/측정 개선을 진행해야 한다.
+
+### 현재 #13 queryability 경계
+
+2026-05-28 live 확인 기준으로 활성화 퍼널 해석에 직접 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+
+- `permission_outcome` by `customEvent:permission_name`, `customEvent:outcome` → `400 INVALID_ARGUMENT`
+- `first_lock_configured` by `customEvent:source` → `400 INVALID_ARGUMENT`
+- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_package` → 아직 registration gap 우선 정리 단계
+
+따라서 현재는 `first_open`, `app_selection_completed`, `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 **상위 이벤트 count/users 비율**은 읽을 수 있어도, 어떤 권한/출처/차단 앱에서 병목이 생기는지 세부 분해 해석은 낮은 confidence로 둬야 한다.
+
+운영 원칙:
+
+- 퍼널 숫자가 이상해 보여도 곧바로 CTA/UI 결론으로 점프하지 않는다.
+- 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 `permission_name`, `outcome`, `source`, `block_source`, `blocked_app_package` 등록/metadata 확인이 끝났는지 본다.
+- 그 전까지 issue #14 후속 문서/PR은 "퍼널 해석 계약 정리"와 "manual/live registration 대기"를 분리해서 기록한다.
 
 ## canonical 퍼널 정의
 
@@ -216,5 +233,6 @@ cd <repo-root>
 - 첫 차단/첫 가치 경험 UI 피드백 구현 또는 정교화
 - 배포 후 14일 기준 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
+- `permission_name` / `source` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인
 
 따라서 docs lane 산출물은 기본적으로 `Refs #14`가 맞고, `Closes #14`는 code/product/manual measurement까지 충족될 때만 사용한다.

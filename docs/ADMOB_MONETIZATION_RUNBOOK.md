@@ -45,6 +45,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
@@ -55,6 +56,23 @@ issue #16에 기록된 최근 30일 기준선:
 - 과거 문서의 수치는 참고값일 뿐이고, 실제 판단은 **이번 분석에서 다시 조회한 수치**를 source of truth로 둔다.
 - 계측 누락이 있으면 제품/수익화 결론 confidence를 낮춘다.
 - 활성화/신뢰를 해치는 실험은 revenue가 좋아 보여도 기본안으로 채택하지 않는다.
+
+## 현재 #13 queryability 경계
+
+2026-05-28 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 등록되지 않았다.
+
+- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
+- monetization smoke (`ad_impression` / `ad_click` / `ad_revenue` by `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_unit_id`):
+  - `400 INVALID_ARGUMENT`
+  - `Field customEvent:ad_placement is not a valid dimension.`
+
+즉, 현재 `adUnitName` / `adFormat` 같은 AdMob 쪽 집계는 볼 수 있어도, Stopit 제품 문맥에서 중요한 `ad_placement`, `screen_context`, `ad_unit_id` 기준 해석은 아직 **미등록 queryability gap** 때문에 낮은 confidence 상태다.
+
+운영 원칙:
+
+- placement별 CTR/eCPM 결론을 강하게 내리기 전에 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 광고 파라미터 등록 상태를 먼저 확인한다.
+- `adUnitName = (not set)` 문제와 `customEvent:*` 미등록 문제를 섞지 않는다. 전자는 AdMob 보고 축 문제일 수 있고, 후자는 GA4 Admin 등록 문제다.
+- issue #16 follow-through에서는 revenue 표를 만들더라도, `ad_placement` / `screen_context`가 아직 미등록이면 "제품 문맥까지 포함한 위치 최적화 결론"은 보류라고 명시한다.
 
 ## 먼저 답해야 할 질문
 
@@ -249,6 +267,7 @@ issue #16에 기록된 최근 30일 기준선:
 - 전면 광고 배치 변경
 - 결제 구현
 - Play Console 또는 원격 설정 실험 실제 실행
+- GA4 Admin에서 `ad_placement` / `screen_context` / `ad_unit_id`를 직접 등록하는 수동 작업
 
 ## 흔한 실수
 

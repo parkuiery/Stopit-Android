@@ -29,6 +29,12 @@
 - `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 - `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 
+운영/조회성 기준 문서:
+
+- `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- `docs/METRICS_ANALYSIS.md`
+
 ## 전체 흐름
 
 ### 1. 성공 세션 종료 시 arm 판단
@@ -163,8 +169,25 @@
 주의:
 
 - `SkipReason` enum에는 `NoGooglePlay`, `AlreadyToday`, `NotificationOff`도 정의돼 있다.
-- 하지만 현재 `ReviewEligibilityEvaluator` / `HomeViewModel` / `InAppReviewManager` 경로만 보면 이 값들이 실제로 emitted 되는 코드는 확인되지 않는다.
+- `ReviewEligibilityEvaluator` / `HomeViewModel` / `InAppReviewManager` 경로만 보면 이 값들이 실제로 emitted 되는 코드는 확인되지 않는다.
 - 따라서 대시보드나 분석 쿼리에서 이 값들을 기대값으로 고정하지 말고, "정의됨"과 "현재 실제 사용 중"을 구분해서 본다.
+
+### 현재 #13 queryability 경계
+
+2026-05-28 live 확인 기준으로 review 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+
+- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
+- review smoke (`review_prompt_skipped` by `customEvent:reason`):
+  - `400 INVALID_ARGUMENT`
+  - `Field customEvent:reason is not a valid dimension.`
+
+따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count 자체는 볼 수 있어도, skip/failure 사유 분포를 GA4에서 안정적으로 분해하는 작업은 아직 낮은 confidence 상태다.
+
+운영 원칙:
+
+- 리뷰 지표를 해석할 때 `reason` / `error` 축이 실제로 등록됐는지 먼저 확인한다.
+- 등록 전에는 "특정 reason이 많다"는 결론을 대시보드 전제로 단정하지 않는다.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review 등록 순서와 metadata 확인 절차를 선행한 뒤 세부 reason 분석을 한다.
 
 ## 무엇을 측정할 수 있고 없는가
 
