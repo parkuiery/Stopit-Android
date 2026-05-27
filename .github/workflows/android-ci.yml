@@ -3,8 +3,16 @@ name: Android CI
 on:
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'tools/aso-screenshots/**'
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'tools/aso-screenshots/**'
   workflow_dispatch:
 
 permissions:
@@ -15,8 +23,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify-changes:
+    name: Classify Android CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      android_ci: ${{ steps.filter.outputs.android_ci }}
+      runtime_smoke: ${{ steps.filter.outputs.runtime_smoke }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Classify changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            android_ci:
+              - 'app/**'
+              - 'core/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle.properties'
+              - 'gradle/**'
+              - '.github/workflows/android-ci.yml'
+            runtime_smoke:
+              - 'app/src/main/**'
+              - 'app/src/androidTest/**'
+              - 'app/src/dev/**'
+              - 'app/src/prod/**'
+              - 'app/build.gradle.kts'
+              - 'gradle/**'
+              - '.github/workflows/android-ci.yml'
+
   verify:
     name: Fast verification
+    needs: classify-changes
+    if: github.event_name == 'workflow_dispatch' || needs.classify-changes.outputs.android_ci == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -64,7 +107,8 @@ jobs:
 
   runtime-smoke:
     name: Runtime smoke gate
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: classify-changes
+    if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (github.event_name == 'workflow_dispatch' || needs.classify-changes.outputs.runtime_smoke == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
