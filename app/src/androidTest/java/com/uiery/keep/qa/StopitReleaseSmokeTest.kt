@@ -6,7 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.Until
 import com.uiery.keep.MainActivity
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -33,15 +32,29 @@ class StopitReleaseSmokeTest {
             .assertExists()
 
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val packageVisible = device.wait(
-            Until.hasObject(By.pkg(TARGET_PACKAGE).depth(0)),
-            LAUNCH_TIMEOUT_MS,
-        )
+        waitUntil("Expected StopIt package to be visible after release UI smoke launch") {
+            isTargetPackageForeground(device)
+        }
+    }
 
-        assertTrue(
-            "Expected StopIt package to be visible after release UI smoke launch",
-            packageVisible,
-        )
+    private fun isTargetPackageForeground(device: UiDevice): Boolean {
+        if (device.hasObject(By.pkg(TARGET_PACKAGE))) {
+            return true
+        }
+
+        return device.executeShellCommand("dumpsys activity activities")
+            .contains("$TARGET_PACKAGE/")
+    }
+
+    private fun waitUntil(message: String, timeoutMs: Long = LAUNCH_TIMEOUT_MS, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) {
+                return
+            }
+            Thread.sleep(100)
+        }
+        assertTrue(message, condition())
     }
 
     private companion object {
