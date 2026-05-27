@@ -9,6 +9,12 @@
 - 퍼널/리뷰/수익화 분석 시 어떤 이벤트를 봐야 하는지 빠르게 확인한다.
 - 첫 잠금 활성화 퍼널의 단계 의미와 운영 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`와 함께 본다.
 
+## 관련 문서
+
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
+
 ## 소스 오브 트루스
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
@@ -135,7 +141,7 @@
 
 ## GA4 custom dimension / metric 등록 계약
 
-`screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다.
+`screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다. 실제 GA4 Admin 등록 절차, registration ledger, metadata 증적 포맷은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
 ### 우선 등록할 이벤트 차원
 
@@ -288,7 +294,7 @@ PY
 
 1. `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / 관련 테스트를 먼저 확인한다.
 2. 이 문서의 이벤트 딕셔너리와 등록 계약 표를 같이 갱신한다.
-3. 필요한 차원/지표가 `Required`면 GA4 Admin에 등록하기 전까지 대시보드 결론을 보류한다.
+3. 필요한 차원/지표가 `Required`면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 ledger/절차에 따라 GA4 Admin 등록과 metadata 확인을 끝내기 전까지 대시보드 결론을 보류한다.
 4. 배포 후 14일 창으로 `(not set)` 비율과 새 파라미터 조회 가능 여부를 재측정한다.
 
 ### `(not set)` 또는 조회 불가가 보일 때 triage 순서
