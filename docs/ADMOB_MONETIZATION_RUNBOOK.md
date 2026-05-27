@@ -45,6 +45,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
 - GA4 Analytics Data API / AdMob 보고서
@@ -152,6 +153,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `first_lock_configured / first_open` 전환율 악화 금지
 - `first_core_action_completed / first_open` 전환율 악화 금지
 - `app_block_intercepted` 사용자 수 급락 금지
+- 위 guardrail의 단계 의미와 분자/분모 기준은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 따른다.
 - 긴급해제/차단 핵심 흐름에서 추가 이탈 증가 금지
 - review/rating 관련 부정 신호 증가 금지
 
@@ -261,6 +263,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/PLAY_STORE_ASO.md`
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`
 - `docs/ops/stopit/metrics-context.md`

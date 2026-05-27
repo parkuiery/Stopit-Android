@@ -16,6 +16,7 @@
 - Stopit의 핵심 가치는 “실제 앱 차단/집중 가치”다.
 - 사용정보 리포트는 활성화/리텐션/프리미엄 확장 가능성이 있지만, 민감한 사용 패턴을 다루므로 신뢰/정책 리스크가 크다.
 - 따라서 바로 구현 이슈로 밀지 말고, **권한/데이터/가드레일 계약**부터 명확히 해야 한다.
+- 활성화 guardrail과 권한 요청 타이밍 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`의 퍼널 계약을 함께 따른다.
 
 ## 문제/기회 요약
 
@@ -89,6 +90,10 @@ MVP 범위에서 **하지 않는 것**:
 1. 사용자가 리포트 탭/카드를 처음 열 때
 2. “내 사용 패턴 기반 추천 받기” CTA를 탭했을 때
 3. 첫 차단 성공 후, 리포트 가치가 이해되는 시점
+
+운영 메모:
+- `first_lock_configured` 직전의 핵심 활성화 CTA를 Usage Access 요청이 가로막지 않도록 한다.
+- `first_core_action_completed` 이전에는 선택형 설명/후순위 진입점 위주로 두고, canonical 퍼널 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 따른다.
 
 비추천 타이밍:
 - 온보딩 초반 일괄 권한 요청
@@ -264,5 +269,6 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/PLAY_STORE_ASO.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/product-context.md`
 - `docs/ops/stopit/metrics-context.md`

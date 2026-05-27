@@ -54,9 +54,11 @@
 
 ## 핵심 퍼널
 
+첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+
 활성화 퍼널:
 1. `first_open`
-2. `onboarding_step_view`
+2. `onboarding_step_view` / `onboarding_step_complete`
 3. `permission_outcome`
 4. `app_selection_completed`
 5. `first_lock_configured`
