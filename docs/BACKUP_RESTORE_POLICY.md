@@ -155,7 +155,7 @@
 - [ ] 복원 직후 stale lock state 때문에 예상치 못한 즉시 차단이 발생하지 않는다.
 - [ ] 이전 기기의 긴급해제 상태가 복원되어 차단이 계속 우회되지 않는다.
 - [ ] 긴급해제 설정값도 새 기기 기준으로 다시 잡아야 하는 상태다.
-- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
 
 ### 시나리오 C — 리뷰/토큰/분석 재초기화
 1. 복원 후 앱 실행
@@ -175,7 +175,10 @@
   - 복원된 Room routine을 Boot/Routine alarm 진입에서 `PreferencesKey.ROUTINES`로 재수화하는지 확인
   - DataStore가 비어 있는 restored-device shape에서 선택 앱/lock/emergency/review/analytics session/FCM token 키를 되살리지 않는지 확인
 - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
-  - Boot/Routine alarm의 notification + 재예약 contract 확인
+  - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`: 복원된 Room routine 기준 boot 재수화 + schedule contract 확인
+  - `manifestRegistersBootReceiverForMyPackageReplaced`: package replaced 복구 경로가 manifest에 고정되어 있는지 확인
+  - `packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`: 앱 업데이트 후 Room 기반 routine restore + schedule contract 확인
+  - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`: routine alarm 재진입 시 notification + DataStore 재수화 + reschedule contract 확인
 - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - 만료된 긴급해제 state 정리와 재차단 대상 판정 확인
 - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
@@ -191,7 +194,7 @@
 - Variant:
 - Commands:
   - `./gradlew :app:assembleDevDebug`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 - Room restore (routines): pass/fail
 - DataStore reset (selected apps / lock / emergency / review / token): pass/fail
 - Notes:
