@@ -1,6 +1,7 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.serialization.json.Json
@@ -12,6 +13,11 @@ data class RoutineAlarmTrigger(
 
 data class PendingRoutineStartNotice(
     val message: String,
+)
+
+data class RoutineScheduleApplication(
+    val routines: List<RoutineModel>,
+    val disabledRoutineIds: Set<Long>,
 )
 
 object RoutineReceiverPolicy {
@@ -65,6 +71,38 @@ object RoutineReceiverPolicy {
         routines: List<RoutineModel>,
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
+
+    fun applyScheduleResult(
+        routines: List<RoutineModel>,
+        routineId: Long,
+        scheduleResult: RoutineScheduleResult,
+    ): RoutineScheduleApplication {
+        if (scheduleResult != RoutineScheduleResult.MissingExactAlarmPermission) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+            )
+        }
+
+        val disabledRoutineIds = routines
+            .filter { it.id == routineId && it.isEnabled }
+            .map { it.id }
+            .toSet()
+
+        if (disabledRoutineIds.isEmpty()) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+            )
+        }
+
+        return RoutineScheduleApplication(
+            routines = routines.map { routine ->
+                if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
+            },
+            disabledRoutineIds = disabledRoutineIds,
+        )
+    }
 
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,

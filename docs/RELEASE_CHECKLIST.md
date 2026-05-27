@@ -45,6 +45,9 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+  - `ReceiverRuntimeIntegrationTest#bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent`
+  - `ReceiverRuntimeIntegrationTest#packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent`
+  - `ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule`
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow`
   - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
   - `:app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`

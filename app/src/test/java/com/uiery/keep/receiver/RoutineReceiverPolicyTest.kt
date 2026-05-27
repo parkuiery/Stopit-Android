@@ -1,6 +1,7 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
@@ -184,6 +185,43 @@ class RoutineReceiverPolicyTest {
                 databaseRoutines = database,
             ),
         )
+    }
+
+    @Test
+    fun applyScheduleResultDisablesMatchingRoutineWhenExactAlarmPermissionMissing() {
+        val routines = listOf(
+            routine(id = 10L, name = "Morning", isEnabled = true),
+            routine(id = 11L, name = "Evening", isEnabled = true),
+        )
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = routines,
+            routineId = 10L,
+            scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+        )
+
+        assertEquals(setOf(10L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                routine(id = 10L, name = "Morning", isEnabled = false),
+                routine(id = 11L, name = "Evening", isEnabled = true),
+            ),
+            result.routines,
+        )
+    }
+
+    @Test
+    fun applyScheduleResultLeavesRoutinesUntouchedWhenSchedulingSucceeds() {
+        val routines = listOf(routine(id = 12L, name = "Morning", isEnabled = true))
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = routines,
+            routineId = 12L,
+            scheduleResult = RoutineScheduleResult.Scheduled,
+        )
+
+        assertEquals(emptySet<Long>(), result.disabledRoutineIds)
+        assertEquals(routines, result.routines)
     }
 
     @Test

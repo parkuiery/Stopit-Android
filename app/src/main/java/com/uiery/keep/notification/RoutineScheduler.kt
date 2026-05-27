@@ -1,6 +1,7 @@
 package com.uiery.keep.notification
 
 import android.app.AlarmManager
+import android.app.AppOpsManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -32,9 +33,27 @@ class RoutineScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
 
-    fun canScheduleExactAlarms(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+    fun canScheduleExactAlarms(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return true
+        }
+
+        val appOpsAllowed = appOpsManager.unsafeCheckOpNoThrow(
+            EXACT_ALARM_APP_OP,
+            context.applicationInfo.uid,
+            context.packageName,
+        ) == AppOpsManager.MODE_ALLOWED
+        val alarmManagerAllowed = alarmManager.canScheduleExactAlarms()
+        val canSchedule = appOpsAllowed && alarmManagerAllowed
+        Log.d(
+            "RoutineScheduler",
+            "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsAllowed=$appOpsAllowed alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
+        )
+
+        return canSchedule
+    }
 
     fun scheduleRoutine(routine: RoutineModel): RoutineScheduleResult {
         Log.d("TEST", "scheduleRoutine: $routine")
@@ -45,6 +64,16 @@ class RoutineScheduler @Inject constructor(
 
         val repeatDays = routine.repeatDays.toDayOfWeekList()
         if (repeatDays.isEmpty()) return RoutineScheduleResult.NotEnabled
+
+        val hasExactAlarmPermission = canScheduleExactAlarms()
+        Log.d(
+            "RoutineScheduler",
+            "scheduleRoutine exact-alarm precheck routineId=${routine.id} result=$hasExactAlarmPermission",
+        )
+        if (!hasExactAlarmPermission) {
+            cancelRoutine(routine.id)
+            return RoutineScheduleResult.MissingExactAlarmPermission
+        }
 
         repeatDays.forEach { dayOfWeek ->
             val nextAlarmTime = calculateNextAlarmTime(routine.startTime, dayOfWeek)
@@ -62,11 +91,6 @@ class RoutineScheduler @Inject constructor(
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canScheduleExactAlarms()) {
-                cancelRoutine(routine.id)
-                return RoutineScheduleResult.MissingExactAlarmPermission
-            }
 
             try {
                 alarmManager.setExactAndAllowWhileIdle(
@@ -131,5 +155,9 @@ class RoutineScheduler @Inject constructor(
         val targetDate = currentDate.plus(daysToAdd, DateTimeUnit.DAY)
         val targetDateTime = LocalDateTime(targetDate, startTime)
         return targetDateTime.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+    }
+
+    private companion object {
+        private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
     }
 }

@@ -138,7 +138,7 @@ adb shell appops set com.uiery.keep POST_NOTIFICATION allow
 
 ### exact alarm permission baseline
 
-issue #77 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
+issue #77 / #137 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
 
 ```bash
 cd <repo-root>
@@ -147,7 +147,7 @@ cd <repo-root>
 # 거절 상태: 활성 루틴이 조용히 성공 상태로 남지 않아야 한다.
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule
 
 # 허용 상태: 동일 경로에서 실제 PendingIntent 예약이 생겨야 한다.
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
@@ -157,8 +157,10 @@ adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
 
 - 거절 경로 검증 범위:
   - `RoutineBottomSheetViewModel` 저장 시 side effect로 권한 안내를 띄우는지
-  - DB에 저장된 루틴이 `enabled=false`로 안전하게 내려가는지
-  - 동일 루틴 ID의 `PendingIntent`가 남지 않는지
+  - `BootReceiver`가 `BOOT_COMPLETED` 재수화 중 exact alarm 권한 회수 상태를 조용한 성공으로 남기지 않는지
+  - `BootReceiver`가 `MY_PACKAGE_REPLACED` 재진입에서도 동일하게 enabled 루틴을 `disabled` 상태로 정리하는지
+  - `RoutineAlarmReceiver` 재예약 경로가 다음 알람을 만들지 못할 때 enabled 루틴을 그대로 두지 않는지
+  - deny 상태에서 관련 `PendingIntent`가 남지 않는지
 - 허용 경로 검증 범위:
   - `RoutineViewModel.changeEnabled(...)`가 루틴을 다시 `enabled=true`로 올리는지
   - exact alarm `PendingIntent`가 실제로 예약되는지

@@ -94,15 +94,31 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             databaseRoutines = databaseRoutines,
         )
 
-        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-            routineStore.writeCachedRoutines(routines)
-        }
+        var updatedRoutines = routines
+        val disabledRoutineIds = linkedSetOf<Long>()
 
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
             routines = routines,
             routineId = trigger.routineId,
-        )?.let {
-            routineScheduler.scheduleRoutine(it)
+        )?.let { routine ->
+            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+                routines = updatedRoutines,
+                routineId = routine.id,
+                scheduleResult = routineScheduler.scheduleRoutine(routine),
+            )
+            updatedRoutines = scheduleApplication.routines
+            disabledRoutineIds += scheduleApplication.disabledRoutineIds
+        }
+
+        disabledRoutineIds.forEach { routineId ->
+            routineDao.updateIsEnabledById(routineId, false)
+        }
+
+        if (
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
+            disabledRoutineIds.isNotEmpty()
+        ) {
+            routineStore.writeCachedRoutines(updatedRoutines)
         }
     }
 

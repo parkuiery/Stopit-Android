@@ -58,12 +58,27 @@ class BootReceiver : BroadcastReceiver() {
             databaseRoutines = databaseRoutines,
         )
 
-        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-            routineStore.writeCachedRoutines(routines)
+        var updatedRoutines = routines
+        val disabledRoutineIds = linkedSetOf<Long>()
+        routines.filter { it.isEnabled }.forEach { routine ->
+            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+                routines = updatedRoutines,
+                routineId = routine.id,
+                scheduleResult = routineScheduler.scheduleRoutine(routine),
+            )
+            updatedRoutines = scheduleApplication.routines
+            disabledRoutineIds += scheduleApplication.disabledRoutineIds
         }
 
-        if (routines.isNotEmpty()) {
-            routineScheduler.scheduleAllRoutines(routines)
+        disabledRoutineIds.forEach { routineId ->
+            routineDao.updateIsEnabledById(routineId, false)
+        }
+
+        if (
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
+            disabledRoutineIds.isNotEmpty()
+        ) {
+            routineStore.writeCachedRoutines(updatedRoutines)
         }
     }
 }
