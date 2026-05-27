@@ -2,6 +2,8 @@
 
 이 문서는 스탑잇(Stopit / Keep Android)의 제품 지표를 분석하고, 개선 작업을 GitHub Issue로 전환하는 표준 절차를 정리한다.
 
+첫 잠금 활성화 퍼널의 canonical 계약과 CTA/guardrail은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+
 ## 목적
 
 지표 분석의 목적은 단순 리포트가 아니라 다음 실행을 정하는 것이다.
@@ -292,7 +294,7 @@ PY
 권장 퍼널:
 
 1. `first_open`
-2. `onboarding_step_view`
+2. `onboarding_step_view` / `onboarding_step_complete`
 3. `permission_outcome`
 4. `app_selection_completed`
 5. `first_lock_configured`

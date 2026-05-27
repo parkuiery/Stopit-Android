@@ -95,6 +95,8 @@
 
 스탑잇은 공부, 업무, 수면 전처럼 집중이 필요한 시간에 유혹 앱 사용을 바로 막아주는 Android 앱입니다.
 
+스탑잇은 사용자가 직접 선택한 앱이 실행될 때 이를 감지하고, 수동 잠금·타이머 잠금·루틴 잠금이 활성화된 동안 즉시 차단 화면을 표시하기 위해 접근성 권한을 사용합니다. 또한 잠금 상태 우회를 줄이기 위해 잠금 중 앱 삭제 시도를 감지할 수 있습니다. 이 권한은 앱 차단 및 잠금 유지라는 핵심 기능에만 사용되며, 광고, 프로파일링, 판매 또는 제3자 공유 목적으로 사용되지 않습니다.
+
 원하는 앱을 선택한 뒤 직접 켜서 잠글 수도 있고, 타이머나 반복 루틴으로 자동 잠금을 설정할 수도 있습니다. 실제로 앱을 열었을 때 차단 화면이 동작해 "설정만 해두고 안 막히는" 앱이 아니라, 집중이 깨지는 순간을 바로 끊어주는 데 초점을 맞췄습니다.
 
 ### 이런 분에게 맞아요
@@ -128,6 +130,8 @@
 
 StopIt helps you block distracting apps when you need to focus.
 
+StopIt uses the Accessibility API to detect when user-selected distracting apps are opened and to immediately show a blocking screen while a manual lock, timer lock, or routine lock is active. It may also detect uninstall attempts during an active lock to reduce lock bypass. This access is used only for core app-blocking and lock-maintenance features, and is not used for advertising, profiling, selling data, or sharing data with third parties.
+
 Select the apps that break your concentration, then lock them instantly, by timer, or on recurring routines. Instead of only reminding you, StopIt is built to block access when you actually open the app.
 
 ### Best for
@@ -144,6 +148,26 @@ Select the apps that break your concentration, then lock them instantly, by time
 - protect routines and prevent easy backtracking
 
 StopIt is designed for practical focus: real blocking, routine support, and a safer fallback than all-or-nothing locking.
+
+## Accessibility 정책 대응 제출 문안
+
+### Play Console Accessibility declaration
+
+#### Why does your app need Accessibility API?
+
+StopIt is a self-control and app-blocking app. Users explicitly choose distracting apps they want to restrict. The app uses the Accessibility API to detect when one of those selected apps is opened and to immediately show a blocking screen while a manual lock, timer lock, or routine lock is active. It may also detect uninstall attempts during an active lock to reduce lock bypass. This is a core feature described in the store listing.
+
+#### What data is accessed?
+
+Foreground app/package context and active window content only as needed to determine whether a selected app or uninstall flow is currently open.
+
+#### How is the data used?
+
+The data is used only to trigger the blocking flow, enforce active locks, and reduce bypass during uninstall attempts. It is not used for advertising, profiling, sale of data, or sharing data with third parties.
+
+### 심사 메모 권장 문안
+
+This update does not introduce a new Accessibility permission scope. StopIt continues to use Accessibility only for its core app-blocking feature described in the store listing: detecting user-selected distracting apps, showing a blocking screen during active lock sessions, and reducing bypass through uninstall attempts during an active lock.
 
 ## 스크린샷 구성안
 

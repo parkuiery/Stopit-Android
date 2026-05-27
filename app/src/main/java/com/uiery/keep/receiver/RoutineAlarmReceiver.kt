@@ -13,6 +13,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -96,6 +97,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
 
         var updatedRoutines = routines
         val disabledRoutineIds = linkedSetOf<Long>()
+        var shouldResetAlarmPermissionPrompt = false
 
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
             routines = routines,
@@ -108,6 +110,8 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             )
             updatedRoutines = scheduleApplication.routines
             disabledRoutineIds += scheduleApplication.disabledRoutineIds
+            shouldResetAlarmPermissionPrompt =
+                shouldResetAlarmPermissionPrompt || scheduleApplication.shouldResetAlarmPermissionPrompt
         }
 
         disabledRoutineIds.forEach { routineId ->
@@ -119,6 +123,12 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             disabledRoutineIds.isNotEmpty()
         ) {
             routineStore.writeCachedRoutines(updatedRoutines)
+        }
+
+        if (shouldResetAlarmPermissionPrompt) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
+            }
         }
     }
 

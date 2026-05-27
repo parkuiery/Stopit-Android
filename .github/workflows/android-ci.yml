@@ -3,20 +3,64 @@ name: Android CI
 on:
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'tools/aso-screenshots/**'
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'tools/aso-screenshots/**'
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: android-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  classify-changes:
+    name: Classify Android CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      android_ci: ${{ steps.filter.outputs.android_ci }}
+      runtime_smoke: ${{ steps.filter.outputs.runtime_smoke }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Classify changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            android_ci:
+              - 'app/**'
+              - 'core/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle.properties'
+              - 'gradle/**'
+              - '.github/workflows/android-ci.yml'
+            runtime_smoke:
+              - 'app/src/main/**'
+              - 'app/src/androidTest/**'
+              - 'app/src/dev/**'
+              - 'app/src/prod/**'
+              - 'app/build.gradle.kts'
+              - 'gradle/**'
+              - '.github/workflows/android-ci.yml'
+
   verify:
     name: Fast verification
+    needs: classify-changes
+    if: github.event_name == 'workflow_dispatch' || needs.classify-changes.outputs.android_ci == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -64,7 +108,8 @@ jobs:
 
   runtime-smoke:
     name: Runtime smoke gate
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: classify-changes
+    if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (github.event_name == 'workflow_dispatch' || needs.classify-changes.outputs.runtime_smoke == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -110,7 +155,7 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest
+            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
             ./gradlew --console=plain :app:installDevDebug
             adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
             ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine

@@ -44,7 +44,9 @@
 - open Issues
 
 봐야 할 것:
-- `first_open -> permission -> app selection -> first_lock_configured -> app_block_intercepted`
+- `first_open -> onboarding_step_view/onboarding_step_complete -> permission_outcome -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted`
+- 퍼널 단계 의미/legacy 이름 drift/source-of-truth는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` 기준으로 해석한다.
+- `first_lock_configured`는 준비 완료, `first_core_action_completed`는 첫 가치 경험, `app_block_intercepted`는 실차단 증거로 구분한다.
 - screen name `(not set)` 비율
 - appVersion별 이벤트 의미 변화
 - crash-free users and app_exception

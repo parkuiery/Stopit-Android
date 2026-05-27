@@ -1,9 +1,9 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
-import com.uiery.keep.model.RoutineModel
 import kotlinx.serialization.json.Json
 
 data class RoutineAlarmTrigger(
@@ -18,6 +18,7 @@ data class PendingRoutineStartNotice(
 data class RoutineScheduleApplication(
     val routines: List<RoutineModel>,
     val disabledRoutineIds: Set<Long>,
+    val shouldResetAlarmPermissionPrompt: Boolean,
 )
 
 object RoutineReceiverPolicy {
@@ -81,6 +82,7 @@ object RoutineReceiverPolicy {
             return RoutineScheduleApplication(
                 routines = routines,
                 disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
             )
         }
 
@@ -93,6 +95,7 @@ object RoutineReceiverPolicy {
             return RoutineScheduleApplication(
                 routines = routines,
                 disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
             )
         }
 
@@ -101,8 +104,18 @@ object RoutineReceiverPolicy {
                 if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
             },
             disabledRoutineIds = disabledRoutineIds,
+            shouldResetAlarmPermissionPrompt = true,
         )
     }
+
+    fun applyMissingExactAlarmPermission(
+        routines: List<RoutineModel>,
+        routineId: Long,
+    ): RoutineScheduleApplication = applyScheduleResult(
+        routines = routines,
+        routineId = routineId,
+        scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+    )
 
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,

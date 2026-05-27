@@ -8,8 +8,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -53,13 +55,14 @@ class BootReceiver : BroadcastReceiver() {
         val routineStore = RoutineStore(dataStore)
         val storedRoutines = routineStore.readCachedRoutines()
         val databaseRoutines = routineDao.fetchAllOnce().map { it.toModel() }
-        val routines = RoutineReceiverPolicy.resolveRoutines(
+        var routines = RoutineReceiverPolicy.resolveRoutines(
             storedRoutines = storedRoutines,
             databaseRoutines = databaseRoutines,
         )
 
         var updatedRoutines = routines
         val disabledRoutineIds = linkedSetOf<Long>()
+        var shouldResetAlarmPermissionPrompt = false
         routines.filter { it.isEnabled }.forEach { routine ->
             val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
                 routines = updatedRoutines,
@@ -68,6 +71,8 @@ class BootReceiver : BroadcastReceiver() {
             )
             updatedRoutines = scheduleApplication.routines
             disabledRoutineIds += scheduleApplication.disabledRoutineIds
+            shouldResetAlarmPermissionPrompt =
+                shouldResetAlarmPermissionPrompt || scheduleApplication.shouldResetAlarmPermissionPrompt
         }
 
         disabledRoutineIds.forEach { routineId ->
@@ -79,6 +84,12 @@ class BootReceiver : BroadcastReceiver() {
             disabledRoutineIds.isNotEmpty()
         ) {
             routineStore.writeCachedRoutines(updatedRoutines)
+        }
+
+        if (shouldResetAlarmPermissionPrompt) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
+            }
         }
     }
 }

@@ -161,6 +161,9 @@ class KeepAccessibilityService :
 
         if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
 
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(lastLaunchedBlockPackage = packageName)
+        }
         val intent = Intent(this, BlockActivity::class.java)
         intent.putExtra("package_name", packageName)
         intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
