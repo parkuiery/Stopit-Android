@@ -31,9 +31,13 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Release candidates targeting `main` also run Android Release QA before merge:
   - `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny` 후 `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny` 후 아래 focused exact alarm deny 경로를 순서대로 실행
+    - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow` 후 `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest`
 - Release candidates targeting `main` run Android Release Build:
   - `./gradlew :app:testProdReleaseUnitTest`
   - signed `prodRelease` AAB build

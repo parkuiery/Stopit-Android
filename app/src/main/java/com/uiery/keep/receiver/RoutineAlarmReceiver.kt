@@ -13,6 +13,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -101,8 +102,25 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
             routines = routines,
             routineId = trigger.routineId,
-        )?.let {
-            routineScheduler.scheduleRoutine(it)
+        )?.let { routineToReschedule ->
+            when (routineScheduler.scheduleRoutine(routineToReschedule)) {
+                RoutineScheduleResult.MissingExactAlarmPermission -> {
+                    val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
+                        routines = routines,
+                        routineId = routineToReschedule.id,
+                    )
+                    if (recovery.shouldResetAlarmPermissionPrompt) {
+                        routineDao.updateIsEnabledById(routineToReschedule.id, false)
+                        routineStore.writeCachedRoutines(recovery.routines)
+                        dataStore.edit { preferences ->
+                            preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
+                        }
+                    }
+                }
+                RoutineScheduleResult.Scheduled,
+                RoutineScheduleResult.NotEnabled,
+                -> Unit
+            }
         }
     }
 
