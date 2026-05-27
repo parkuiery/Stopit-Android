@@ -88,6 +88,10 @@
 - CI/check status
 - latest outputs from metrics/health/ideation crons when available
 
+추가 규칙:
+- `stopit-executor-docs-lane`가 #13/#14/#16/#65처럼 **docs/ops/analytics/product-metrics 성격 이슈**를 다룰 때는 `product-context.md`, `metrics-context.md`도 기본 입력에 포함한다.
+- 이런 문서 lane 작업은 단순 문장 다듬기가 아니라 제품/지표 해석 계약을 고정하는 작업이므로, release/engineering 문맥만 읽고 진행하지 않는다.
+
 ### `stopit-merge-controller`
 
 필수:

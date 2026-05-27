@@ -139,6 +139,20 @@
 | `ad_precision_type` | AdMob가 제공한 수익 정밀도 (`estimated`, `precise`, `publisher_provided`, `unknown`) |
 | `ad_value_micros` | 마이크로 단위 광고 수익 |
 
+## User property 계약
+
+현재 live metadata에서 확인된 custom dimension은 `customUser:routines_count` 하나뿐이므로, 이 값의 의미를 이벤트 파라미터와 분리해서 명시한다.
+
+| user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
+| --- | --- | --- | --- |
+| `routines_count` | `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt` | 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때 | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. |
+
+운영 원칙:
+
+- `routines_count`는 #13에서 **이미 조회 가능한 customUser 축**이므로, `customEvent:*` 등록이 비어 있어도 루틴 보유 분포 해석에는 사용할 수 있다.
+- 다만 user property 특성상 과거 시점 복원이 어렵기 때문에, 코호트/퍼널 결론은 `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 이벤트와 함께 본다.
+- product/metrics 문서에서 `루틴 생성 사용자 비율`을 언급할 때는 이 계약을 source of truth로 본다.
+
 ## GA4 custom dimension / metric 등록 계약
 
 `screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다. 실제 GA4 Admin 등록 절차, registration ledger, metadata 증적 포맷은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
