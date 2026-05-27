@@ -16,7 +16,7 @@
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 제한적이지만, `ReceiverRuntimeIntegrationTest`가 BootReceiver/RoutineAlarmReceiver의 Room → DataStore 재수화와 알람/알림 후속 동작을, `EmergencyUnlockExpiryIntegrationTest`가 긴급해제 만료 후 state 정리와 재차단 대상을 실제 device/emulator에서 scriptable하게 검증한다. 이 체크리스트는 그 자동화가 아직 덮지 못하는 실제 Accessibility 차단 진입과 cold boot 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), 네 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, uninstall 방지, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -56,12 +56,31 @@ cd <repo-root>
 - `./gradlew :app:testDevDebugUnitTest`
 - `./gradlew :app:lintDevDebug`
 - `./gradlew :app:assembleProdDebug`
-- focused runtime smoke:
+- focused runtime smoke class/method set:
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest`
+  - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
+- separate host-side appops run:
+  - `./gradlew :app:installDevDebug`
+  - `adb shell appops set com.uiery.keep POST_NOTIFICATION ignore`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 gate는 develop/main PR 단계에서 lint·핵심 receiver/service/runtime 계약을 먼저 막는 역할이다. exact alarm 권한 deny/allow 전환과 전체 `:app:connectedDevDebugAndroidTest` 회귀는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다.
+
+- `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
+- `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
+- focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced 재수화, 루틴 시작 재예약, notification-denied fallback notice contract
+- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정
+- `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
+- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환에서 `BlockActivity` 진입과 emergency unlock 우회 safety 계약
+
+exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
 ### Android 공식 testing skill 기반 UI smoke baseline
 
@@ -71,16 +90,24 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 - `/Users/uiel/.agents/skills/android-cli/SKILL.md`
 - 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
 
-release/hotfix PR은 아래 focused UI smoke를 `Release instrumentation QA`에서 먼저 실행한 뒤 전체 Android runtime test를 실행한다.
+release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
-./gradlew :app:connectedDevDebugAndroidTest
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest
 ```
 
-현재 smoke test는 Compose semantics tag `stopit_app_nav_host`와 UIAutomator package visibility를 함께 확인한다. 이는 테스트 코드만의 형식 검사가 아니라 앱이 실제 emulator에서 MainActivity와 Compose navigation host까지 올라오는지 확인하는 release candidate baseline이다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm deny -> exact alarm allow -> remaining connected suite` 순서다. exact alarm appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 ### receiver/service instrumentation baseline
 
@@ -93,13 +120,27 @@ cd <repo-root>
 ```
 
 - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+- `manifestRegistersBootReceiverForMyPackageReplaced`
+- `packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
 - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
+- `routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`까지 포함해 앱 업데이트 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인한다. 또한 Android 13+에서 `POST_NOTIFICATION`이 꺼진 상태에서도 루틴 시작이 조용히 사라지지 않고 앱 내 fallback notice로 이어지는지 확인한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+
+`POST_NOTIFICATION` deny focused test는 exact alarm appops와 비슷하게 **호스트 ADB/appops에서 먼저 상태를 바꾸고 그 다음 focused instrumentation을 실행**해야 한다. 테스트 메서드 안에서 notification appops를 바꾸면 target process가 죽어 flaky/crash가 날 수 있다.
+
+```bash
+cd <repo-root>
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
+adb shell appops set com.uiery.keep POST_NOTIFICATION allow
+```
 
 ### exact alarm permission baseline
 
-issue #77 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
+issue #77 / #137 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
 
 ```bash
 cd <repo-root>
@@ -110,7 +151,23 @@ adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
 
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
+
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
+
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent
+
 # 허용 상태: 동일 경로에서 실제 PendingIntent 예약이 생겨야 한다.
+./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm
@@ -120,6 +177,9 @@ adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
   - `RoutineBottomSheetViewModel` 저장 시 side effect로 권한 안내를 띄우는지
   - DB에 저장된 루틴이 `enabled=false`로 안전하게 내려가는지
   - 동일 루틴 ID의 `PendingIntent`가 남지 않는지
+  - `BootReceiver`가 부팅/패키지 교체 복구 중 exact alarm 재예약 실패를 만나도 해당 루틴을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌리는지
+  - `MY_PACKAGE_REPLACED` 경로에서도 동일한 downgrade/no-pending-intent 계약이 유지되는지
+  - `RoutineAlarmReceiver`가 루틴 시작 알림은 현재 시점에 계속 보여주되, 다음 exact alarm 재예약 실패 시 루틴을 `enabled=false`로 내리고 다음 `PendingIntent`를 남기지 않는지
 - 허용 경로 검증 범위:
   - `RoutineViewModel.changeEnabled(...)`가 루틴을 다시 `enabled=true`로 올리는지
   - exact alarm `PendingIntent`가 실제로 예약되는지
@@ -225,9 +285,9 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 ### 목적
 
-부팅 후 저장된 루틴이 다시 스케줄링되어야 한다.
+부팅 후 저장된 루틴이 다시 스케줄링되어야 한다. 동일한 복구 계약은 앱 업데이트로 패키지가 교체된 뒤(`MY_PACKAGE_REPLACED`)에도 유지되어야 한다.
 
-### 시나리오
+### 시나리오 A — cold boot / reboot
 
 1. 루틴이 1개 이상 활성화된 상태를 만든다.
 2. 앱을 완전히 종료한다.
@@ -236,18 +296,26 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 > `BOOT_COMPLETED`는 protected broadcast라서 `adb shell am broadcast ...`만으로 안정적으로 재현되지 않을 수 있다. BootReceiver 검증은 실제 reboot/cold boot를 기준으로 남긴다.
 
+### 시나리오 B — 앱 업데이트 후 복구
+
+1. 활성 루틴 1개 이상을 만든다.
+2. 업데이트 전 `adb shell dumpsys alarm | grep com.uiery.keep`로 예약 상태를 남긴다.
+3. 같은 variant를 `adb install -r <apk>`로 덮어쓴다.
+4. 업데이트 직후 앱을 열지 않은 상태에서 다음 루틴 예약이 유지되거나 즉시 재복구되는지 확인한다.
+5. 필요하면 앱 실행 후 홈/루틴 화면에서 상태가 초기화되지 않았는지 확인한다.
+
 ### 확인 포인트
 
 - [ ] `BOOT_COMPLETED` 이후 앱 크래시가 없다.
-- [ ] 저장된 루틴이 사라지지 않는다.
+- [ ] `MY_PACKAGE_REPLACED` 이후에도 활성 루틴이 사라지지 않는다.
 - [ ] 다음 루틴 시각에 맞는 알림/동작이 다시 예약된다.
-- [ ] 재부팅 직후 열어본 홈/루틴 화면에서 루틴 상태가 비정상으로 초기화되지 않는다.
+- [ ] 재부팅/업데이트 직후 열어본 홈/루틴 화면에서 루틴 상태가 비정상으로 초기화되지 않는다.
 
 ### 실패 시 남길 evidence
 
 - 기기/에뮬레이터 정보
-- 재부팅 전후 루틴 이름/시간
-- 재부팅 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 차이
+- 재부팅 또는 업데이트 전후 루틴 이름/시간
+- 전후 `adb shell dumpsys alarm | grep com.uiery.keep` 차이
 - logcat 핵심 라인
 - 실제 누락된 알림 또는 스케줄 증상
 
@@ -313,6 +381,35 @@ adb shell dumpsys alarm | grep com.uiery.keep
 ### 목적
 
 접근성 서비스가 저장된 잠금 상태와 루틴 상태를 반영해 실제 차단을 수행해야 한다.
+
+### 현재 자동화 baseline
+
+이 영역은 현재 두 층으로 evidence를 쌓는다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
+```
+
+- `KeepAccessibilityServiceBlockDecisionTest`: manual keep / timed lock / routine / duplicate / emergency unlock 우회 판단을 순수 JVM 회귀로 빠르게 고정한다.
+- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환에서 차단 Activity 진입 여부를 검증하려는 focused runtime harness다.
+- 현재 Android 15 emulator baseline은 실제 bind 후 두 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity` 와 `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`.
+
+### Android 15 emulator instrumentation 메모
+
+`KeepAccessibilityServiceIntegrationTest`를 Android 15 emulator에서 돌릴 때는 "토글은 켜졌지만 서비스 bind가 실제로 일어났는지"를 설정 값만 보고 추정하지 말고 아래 4가지를 같이 남긴다. 현재 baseline은 이 관측을 assertion message에 포함한 상태에서 실제 bind 성공까지 확인되도록 보강되었다.
+
+```bash
+adb shell settings get secure accessibility_enabled
+adb shell settings get secure enabled_accessibility_services
+adb shell dumpsys accessibility | grep -n 'Bound services\|Enabled services\|Binding services\|Crashed services' -A1 -B1
+adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|frozen process'
+```
+
+최근 qa-lane에서는 초기 run에서 `enabled_accessibility_services` 반영 뒤에도 `Bound services:{}` 상태와 `IPCThreadState: Sending oneway calls to frozen process.`가 보이는 bind 경계를 먼저 고정했고, 이후 harness를 보강해 **첫 테스트에서 실제 bind 성공, 후속 테스트에서는 연결 플래그를 유지한 채 emergency unlock safety 시나리오까지 연속 검증**하도록 안정화했다. 다시 유사 실패가 재발하면 PR/이슈 보고에는 **토글 반영과 실제 service bind를 분리해서** 적고, instrumentation assertion/message에도 동일 진단 정보를 남긴다.
 
 ### 시나리오 A — 수동 잠금
 

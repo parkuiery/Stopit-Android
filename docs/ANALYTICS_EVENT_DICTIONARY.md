@@ -7,14 +7,17 @@
 - 이벤트명/파라미터를 코드와 동일하게 유지한다.
 - `screen_view` 이름을 안정적으로 관리해 `(not set)` 비중을 낮춘다.
 - 퍼널/리뷰/수익화 분석 시 어떤 이벤트를 봐야 하는지 빠르게 확인한다.
+- 첫 잠금 활성화 퍼널의 단계 의미와 운영 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`와 함께 본다.
 
 ## 소스 오브 트루스
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
 - Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- AdMob 배너 계측 래퍼: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 - 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/history/HistoryViewModelTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
@@ -87,6 +90,22 @@
 세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
 현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다.
 
+### 광고 / 수익화
+
+광고 관련 이벤트는 `KeepAnalytics.kt` 상수 집합이 아니라 `TrackedBannerAd.kt`의 전용 contract가 source of truth다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `ad_impression` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 노출 |
+| `ad_click` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 클릭 |
+| `ad_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | 광고 수익 발생 |
+
+운영 원칙:
+
+- `(not set)` `adUnitName` 또는 수익 해석 오류가 보이면 먼저 `TrackedBannerAd` 적용 화면과 아래 파라미터 계약을 확인한다.
+- 광고 성과 자체는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를, 이벤트/파라미터 명세는 이 문서를 source of truth로 본다.
+- `screen_name`은 기존 `screen_view` 계약의 canonical 화면명(`RoutineScreen`, `LockScreen` 등)과 일치해야 한다.
+
 ## 주요 파라미터 사전
 
 | 파라미터 | 의미 |
@@ -105,6 +124,14 @@
 | `error` | 리뷰 프롬프트 실패 이유 |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
+| `screen_name` | 광고가 발생한 canonical 화면명 |
+| `screen_context` | 같은 화면 안에서의 광고 문맥 (`empty_state`, `inline`, `footer` 등) |
+| `ad_placement` | 제품 관점에서의 광고 위치 식별자 |
+| `ad_format` | 광고 형식 (`banner` 등) |
+| `ad_unit_id` | 실제 AdMob ad unit id |
+| `ad_currency` | 수익 통화 코드 |
+| `ad_precision_type` | AdMob가 제공한 수익 정밀도 (`estimated`, `precise`, `publisher_provided`, `unknown`) |
+| `ad_value_micros` | 마이크로 단위 광고 수익 |
 
 ## GA4 custom dimension / metric 등록 계약
 
@@ -125,9 +152,16 @@
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
 | Required | `end_reason` | `end_reason` | `lock_session_end` | 세션 종료 사유 비교 |
 | Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_failed`, `device_registration_skipped`, `review_prompt_skipped` | 실패/스킵/긴급해제 이유 분석 |
+| Required | `screen_context` | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 같은 화면 안 광고 문맥별 성과 비교 |
+| Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
+| Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |
+| Required | `ad_unit_id` | `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
+| Recommended | `screen_name` | `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
+| Recommended | `ad_currency` | `ad_currency` | `ad_revenue` | 통화 코드 확인 |
+| Recommended | `ad_precision_type` | `ad_precision_type` | `ad_revenue` | 추정 수익 vs 정밀 수익 구분 |
 
 ### 필요 시 등록할 이벤트 지표
 
@@ -138,6 +172,7 @@
 | Recommended | `duration_minutes` | `duration_minutes` | `emergency_unlock_completed` | 긴급해제 사용 길이 분포 분석 |
 | Recommended | `remaining_unlocks` | `remaining_unlocks` | `emergency_unlock_completed` | 잔여 긴급해제 수와 재사용 패턴 분석 |
 | Recommended | `elapsed_since_first_open_seconds` | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 첫 가치 도달 시간 분석 |
+| Recommended | `ad_value_micros` | `ad_value_micros` | `ad_revenue` | placement/context별 수익 분포 재집계 |
 
 운영 원칙:
 
@@ -263,6 +298,13 @@ PY
 3. GA4 metadata에서 해당 `customEvent:*` 차원/지표가 실제 등록됐는지 확인한다.
 4. 이벤트가 최근 버전에서만 추가된 경우 `appVersion` 세그먼트로 다시 본다.
 5. 그래도 불명확하면 제품 결론보다 계측 개선 이슈를 먼저 연다.
+
+### 2026-05-27 live 점검 메모
+
+- GA4 metadata 기준 현재 조회 가능한 custom dimension은 `customUser:routines_count`만 확인됐다.
+- `customEvent:*` 차원/지표는 아직 보이지 않아 activation/review/ad parameter 조회 결론 confidence를 낮게 둬야 한다.
+- 최근 14일 `screen_view`는 총 `11,567`건이고, `(not set)` `8,780`건 + 빈 `unifiedScreenName` `807`건으로 합계 `9,587 / 11,567 = 82.9%`다.
+- 온보딩 화면명은 보이기 시작했지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 
 ## 운영 메모
 

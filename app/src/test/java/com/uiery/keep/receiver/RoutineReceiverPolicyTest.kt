@@ -1,6 +1,7 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
@@ -12,9 +13,9 @@ import org.junit.Test
 class RoutineReceiverPolicyTest {
 
     @Test
-    fun shouldRestoreRoutinesOnBootReturnsTrueOnlyForBootCompletedAction() {
+    fun shouldRestoreRoutinesOnBootReturnsTrueForBootCompletedAndMyPackageReplacedActions() {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
-        assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
     }
 
@@ -183,6 +184,72 @@ class RoutineReceiverPolicyTest {
                 databaseRoutines = database,
             ),
         )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenNotificationPermissionDenied() {
+        assertEquals(
+            PendingRoutineStartNotice(message = "Routine started without notification permission"),
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                fallbackMessage = "Routine started without notification permission",
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsNullWhenNotificationPosted() {
+        assertNull(
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.Posted,
+                fallbackMessage = "Should not be used",
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsNullWhenFallbackMessageBlank() {
+        assertNull(
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                fallbackMessage = "  ",
+            ),
+        )
+    }
+
+    @Test
+    fun applyMissingExactAlarmPermissionDisablesMatchingEnabledRoutineAndRequestsPromptReset() {
+        val matchingRoutine = routine(id = 10L, name = "Morning focus", isEnabled = true)
+        val otherRoutine = routine(id = 11L, name = "Evening focus", isEnabled = true)
+
+        val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 10L,
+        )
+
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            recovery.routines,
+        )
+        assertEquals(true, recovery.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
+    fun applyMissingExactAlarmPermissionReturnsOriginalRoutinesWhenRoutineIdMissing() {
+        val matchingRoutine = routine(id = 12L, name = "Morning focus", isEnabled = true)
+        val otherRoutine = routine(id = 13L, name = "Evening focus", isEnabled = true)
+        val routines = listOf(matchingRoutine, otherRoutine)
+
+        val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
+            routines = routines,
+            routineId = 99L,
+        )
+
+        assertEquals(routines, recovery.routines)
+        assertEquals(false, recovery.shouldResetAlarmPermissionPrompt)
     }
 
     private fun routine(

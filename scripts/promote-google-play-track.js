@@ -136,6 +136,13 @@ function versionNumber(code) {
   return Number.isFinite(value) ? value : -1;
 }
 
+function resolvePromotionVersionCode(targetTrack, versionCode) {
+  if (targetTrack === 'production' && !versionCode) {
+    throw new Error('VERSION_CODE is required when DEPLOY_TRACK=production');
+  }
+  return versionCode;
+}
+
 function selectRelease(sourceTrack, requestedVersionCode) {
   const releases = Array.isArray(sourceTrack.releases) ? sourceTrack.releases : [];
   if (releases.length === 0) {
@@ -162,7 +169,7 @@ async function main() {
   const targetTrack = env('DEPLOY_TRACK', 'production');
   const releaseStatus = env('RELEASE_STATUS', 'completed');
   const rolloutFraction = env('ROLLOUT_FRACTION');
-  const versionCode = env('VERSION_CODE');
+  const versionCode = resolvePromotionVersionCode(targetTrack, env('VERSION_CODE'));
 
   if (!serviceAccountPath) throw new Error('GOOGLE_PLAY_SERVICE_ACCOUNT_PATH is required');
   if (!packageName) throw new Error('PACKAGE_NAME is required');
@@ -202,7 +209,14 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error && error.stack ? error.stack : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error && error.stack ? error.stack : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  resolvePromotionVersionCode,
+  selectRelease,
+};

@@ -4,6 +4,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -12,6 +14,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.core.app.NotificationManagerCompat
+import com.uiery.keep.R
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.PreferencesKey
@@ -47,7 +51,6 @@ class ReceiverRuntimeIntegrationTest {
     fun setUp() {
         runBlocking {
             dataStoreName = "$DATASTORE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
-            grantPostNotificationsPermission()
             grantExactAlarmPermission()
             clearAppState()
             database = Room.databaseBuilder(context, KeepDatabase::class.java, DATABASE_NAME)
@@ -90,13 +93,44 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
+    fun manifestRegistersBootReceiverForMyPackageReplaced() {
+        assertTrue(
+            matchingReceiverClassNames(Intent.ACTION_MY_PACKAGE_REPLACED).contains(BootReceiver::class.java.name),
+        )
+    }
+
+    @Test
+    fun packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced restore"))
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("BootReceiver should persist routines into DataStore after package replace") {
+            storedRoutineNames() == listOf("Package replaced restore")
+        }
+        waitUntil("BootReceiver should schedule the restored routine after package replace") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(listOf("Package replaced restore"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
     fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine() = runBlocking {
+        grantPostNotificationsPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
             routineDao = database.routineDao()
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+            appContext = context
         }
 
         receiver.handleRoutineAlarm(
@@ -120,10 +154,59 @@ class ReceiverRuntimeIntegrationTest {
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
+    @Test
+    fun routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine() = runBlocking {
+        assertTrue(
+            "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
+            !NotificationManagerCompat.from(context).areNotificationsEnabled(),
+        )
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
+        val receiver = RoutineAlarmReceiver().apply {
+            notificationHelper = NotificationHelper(context)
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+            appContext = context
+        }
+
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Morning focus",
+            routineId = TEST_ROUTINE_ID,
+        )
+
+        waitUntil("RoutineAlarmReceiver should persist fallback notice when notifications are denied") {
+            storedRoutineStartNoticeMessage() == context.getString(
+                R.string.routine_notification_permission_fallback_message,
+                "Morning focus",
+            )
+        }
+        waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room when notifications are denied") {
+            storedRoutineNames() == listOf("Morning focus")
+        }
+        waitUntil("RoutineAlarmReceiver should reschedule enabled routine when notifications are denied") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(emptySet<Int>(), activeNotificationIds())
+        assertEquals(
+            context.getString(R.string.routine_notification_permission_fallback_message, "Morning focus"),
+            storedRoutineStartNoticeMessage(),
+        )
+        assertEquals(listOf("Morning focus"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
     private fun grantPostNotificationsPermission() {
         instrumentation.uiAutomation.executeShellCommand(
             "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
         ).close()
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set ${context.packageName} POST_NOTIFICATION allow",
+        ).close()
+        waitUntil("POST_NOTIFICATIONS should be enabled for test setup") {
+            NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
     }
 
     private fun grantExactAlarmPermission() {
@@ -150,6 +233,13 @@ class ReceiverRuntimeIntegrationTest {
         return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.name }
     }
 
+    private fun storedRoutineStartNoticeMessage(): String? {
+        val preferences = runBlocking {
+            runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
+        }
+        return preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE]
+    }
+
     private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
         val requestCode = (routineId * 10 + today.ordinal).toInt()
         return PendingIntent.getBroadcast(
@@ -174,6 +264,21 @@ class ReceiverRuntimeIntegrationTest {
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.cancel(routineId.toInt())
+    }
+
+    private fun matchingReceiverClassNames(action: String): Set<String> {
+        val intent = Intent(action).setPackage(context.packageName)
+        val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.queryBroadcastReceivers(
+                intent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.queryBroadcastReceivers(intent, PackageManager.MATCH_ALL)
+        }
+
+        return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
 
     private fun enabledRoutineEntity(id: Long, name: String): RoutineEntity {

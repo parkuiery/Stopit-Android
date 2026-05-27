@@ -91,6 +91,7 @@
     <string name="routine_alarm_permission_button">Configurar notificaciones</string>
     <string name="notification_routine_start_title">La rutina %1$s ha comenzado</string>
     <string name="notification_routine_start_message">Se bloqueó el uso de apps para ayudarte a concentrarte.</string>
+    <string name="routine_notification_permission_fallback_message">La rutina %1$s comenzó, pero el permiso de notificaciones está desactivado, así que StopIt te avisará dentro de la app.</string>
     <string name="routine_running_tag">En curso</string>
     <string name="prevent_uninstall">Protección contra desinstalación</string>
     <string name="prevent_uninstall_subtitle">Protege StopIt de ser desinstalado</string>

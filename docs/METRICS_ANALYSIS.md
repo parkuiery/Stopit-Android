@@ -2,6 +2,8 @@
 
 이 문서는 스탑잇(Stopit / Keep Android)의 제품 지표를 분석하고, 개선 작업을 GitHub Issue로 전환하는 표준 절차를 정리한다.
 
+첫 잠금 활성화 퍼널의 canonical 계약과 CTA/guardrail은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+
 ## 목적
 
 지표 분석의 목적은 단순 리포트가 아니라 다음 실행을 정하는 것이다.
@@ -57,7 +59,8 @@
 - `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
 - `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
 - `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`
-- 관련 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
+- 관련 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 
 ### GitHub Issues
 
@@ -70,7 +73,7 @@
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
-- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함.
+- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
@@ -201,6 +204,11 @@ filter_payload = {
 
 ### 광고 단위별 수익
 
+전제 확인:
+
+- `TrackedBannerAd.kt`와 `TrackedBannerAdTest.kt` 기준으로 `ad_impression`, `ad_click`, `ad_revenue` 이벤트와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다.
+- 운영 가드레일과 해석 순서는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 같이 본다.
+
 사용할 차원과 지표:
 
 - dimensions: `adUnitName`, `adFormat`
@@ -259,11 +267,13 @@ PY
 - 빈 화면명 비중
 - 등록된 커스텀 차원/지표 목록
 - 이벤트명과 코드의 일치 여부
+- 광고 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)와 `TrackedBannerAd` 파라미터 계약 일치 여부
 
 판단 기준:
 
 - 화면 조회 대부분이 `(not set)`이면 제품 퍼널 결론보다 계측 개선을 먼저 한다.
 - 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 이벤트 딕셔너리와 커스텀 차원 등록 작업을 먼저 만든다.
+- 광고 분석 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 guardrail을 같이 확인한다.
 
 ### 2. 획득 / 신규 유입
 
@@ -284,9 +294,9 @@ PY
 권장 퍼널:
 
 1. `first_open`
-2. `onboarding_intro_started`
+2. `onboarding_step_view` / `onboarding_step_complete`
 3. `permission_outcome`
-4. `select_app_complete` 또는 `app_selection_completed`
+4. `app_selection_completed`
 5. `first_lock_configured`
 6. `first_core_action_completed`
 7. `app_block_intercepted`
@@ -402,6 +412,12 @@ PY
 - Organic Search 의존도가 높다.
 - 스토어 문구/스크린샷이 현재 Android 앱 가치와 맞지 않는다.
 
+현재 Stopit 운영 메모:
+
+- issue #65의 저장소 문서화 범위는 이미 완료되었고, 대표님 수동 반영 기준으로 실제 Play Console copy/스크린샷도 반영 완료 상태다.
+- 남은 일은 "문안 만들기"가 아니라 **반영 시각/노출값 사후 복원**과 **14일·30일 전후 비교 기록**이다.
+- 따라서 이후 metrics/docs run에서 #65를 다시 보면 "ASO 초안 부재"로 해석하지 말고, 외부 수동 증적/시간 경과를 기다리는 follow-up 이슈로 다룬다.
+
 ### 광고 수익화
 
 예시 문제:
@@ -462,3 +478,9 @@ PY
 - `app_block_intercepted` users: 121
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
+
+2026-05-27 live 확인 메모:
+
+- 최근 14일 `screen_view` 총량: `11,567`
+- `(not set)` `8,780` + 빈 `unifiedScreenName` `807` = `9,587 / 11,567 = 82.9%`
+- GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.

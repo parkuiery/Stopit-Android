@@ -7,6 +7,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | Layer | Workflow | Trigger | Does |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
 | Release Build | `.github/workflows/release-build.yml` | PR/push to `main`, manual | Signed `prodRelease` AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build and Google Play upload. |
 
@@ -18,8 +19,26 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:assembleProdDebug`
   - upload prod debug APK artifact
 - Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
-  - release/hotfix 전용 exact alarm deny/allow 시나리오와 전체 connected suite는 계속 `Android Release QA`가 담당
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
+  - 자동 검증 범위:
+    - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
+    - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는지
+    - `ReceiverRuntimeIntegrationTest`: boot/package-replaced 재수화, 루틴 시작 알림·재예약, notification-denied fallback notice contract
+    - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
+    - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
+  - release/hotfix 전용 exact alarm deny/allow 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
+- Release candidates targeting `main` also run Android Release QA before merge:
+  - `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny` 후 아래 focused exact alarm deny 경로를 순서대로 실행
+    - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
+  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow` 후 `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
+  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 - Release candidates targeting `main` run Android Release Build:
   - `./gradlew :app:testProdReleaseUnitTest`
   - signed `prodRelease` AAB build
@@ -33,6 +52,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
 - Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`.
+- `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 
 ## Required GitHub secrets
 
@@ -90,11 +110,12 @@ The release PR should pass:
 - Branch Hygiene
 - Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes, and must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
 - Android CI
+- Android Release QA
 - Android Release Build
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
 - Backup/restore sign-off from `docs/BACKUP_RESTORE_POLICY.md` when backup XML or persisted-state contracts changed
 
-If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example `./gradlew :app:connectedDevDebugAndroidTest`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
+If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example exact alarm deny/allow focused instrumentation or `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=...`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
 
 After the release PR is merged into `main`:
 
@@ -106,6 +127,12 @@ scripts/release-tag.sh 1.7.2
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
+
+Production promotion safety contract:
+- `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.
+- The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.
+- `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
+- The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.
 
 ## VersionCode guardrail before Play upload
 

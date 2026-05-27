@@ -107,6 +107,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineDao = database.routineDao()
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
+            appContext = context
         }
 
         receiver.handleRoutineAlarm(

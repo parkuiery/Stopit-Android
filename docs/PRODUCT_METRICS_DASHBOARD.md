@@ -2,6 +2,8 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+
 ## 목적
 
 스탑잇의 지표 관리는 “많이 쓰는가?”보다 “사용자가 실제로 앱 차단/집중 가치를 얻었는가?”를 중심으로 본다.
@@ -54,7 +56,7 @@
 | North Star | 주간 활성 차단 사용자 | 7일 내 `app_block_intercepted` 1회 이상 사용자 | GA4/Firebase | 핵심 가치 전달 규모 |
 | Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목 |
 | Input | 첫 핵심 행동 완료율 | `first_core_action_completed` users / `first_open` users | GA4 | 첫 가치 경험률 |
-| Input | 앱 선택 완료율 | `select_app_complete` 또는 `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
+| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
@@ -94,9 +96,9 @@
 ### 활성화 퍼널
 
 1. `first_open`
-2. `onboarding_intro_started`
+2. `onboarding_step_view` / `onboarding_step_complete`
 3. `permission_outcome`
-4. `select_app_complete` 또는 `app_selection_completed`
+4. `app_selection_completed`
 5. `first_lock_configured`
 6. `first_core_action_completed`
 7. `app_block_intercepted`
@@ -140,6 +142,7 @@
 - 단기 실행은 `GA4 계측 품질 개선`과 `Play Store ASO 개선`이 가장 안전하다.
 - `첫 잠금 활성화 개선`은 임팩트가 크지만 계측 정리 후 더 정확히 설계하는 편이 좋다.
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
+- 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 
 ## 성장 루프 후보
 

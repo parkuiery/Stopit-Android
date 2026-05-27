@@ -21,6 +21,7 @@
 - Stopit Android는 `dev`/`prod` flavor가 있으므로 flavorless Gradle task를 피하고 variant-specific task를 우선한다.
 - PR body나 Issue comment가 markdown/backtick/괄호/멀티라인을 포함하면 temp file과 `--body-file`을 사용한다.
 - 이슈 실행/배포 follow-through의 현재 source of truth는 legacy 단일 cron이 아니라 `stopit-executor-{docs,qa,code}-lane` + `stopit-merge-controller` + `stopit-release-orchestrator-internal` 조합이다.
+- 실행 lane은 "한 번에 닫히는 작은 slice"만 찾다가 멈추지 않는다. 같은 이슈에서 더 진행 가능한 코드/테스트/문서/QA/운영 준비가 남아 있으면 실제 외부 경계(배포 대기, Play Console 수동 반영, 대표님 승인, 디바이스·콘솔 증적 부족 등)를 만날 때까지 계속 밀어붙인다.
 - 안전/잠금/긴급해제/권한/백업/복구 플로우는 신뢰 리스크가 커서 QA 기준을 높게 본다.
 - 실제 Play 배포를 수행하지 않았으면 배포 완료라고 말하지 않는다. tag-triggered CD는 기본적으로 internal track이다.
 
