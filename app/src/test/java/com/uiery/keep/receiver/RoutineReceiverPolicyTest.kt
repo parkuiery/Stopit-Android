@@ -217,6 +217,41 @@ class RoutineReceiverPolicyTest {
         )
     }
 
+    @Test
+    fun applyMissingExactAlarmPermissionDisablesMatchingEnabledRoutineAndRequestsPromptReset() {
+        val matchingRoutine = routine(id = 10L, name = "Morning focus", isEnabled = true)
+        val otherRoutine = routine(id = 11L, name = "Evening focus", isEnabled = true)
+
+        val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 10L,
+        )
+
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            recovery.routines,
+        )
+        assertEquals(true, recovery.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
+    fun applyMissingExactAlarmPermissionReturnsOriginalRoutinesWhenRoutineIdMissing() {
+        val matchingRoutine = routine(id = 12L, name = "Morning focus", isEnabled = true)
+        val otherRoutine = routine(id = 13L, name = "Evening focus", isEnabled = true)
+        val routines = listOf(matchingRoutine, otherRoutine)
+
+        val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
+            routines = routines,
+            routineId = 99L,
+        )
+
+        assertEquals(routines, recovery.routines)
+        assertEquals(false, recovery.shouldResetAlarmPermissionPrompt)
+    }
+
     private fun routine(
         id: Long,
         name: String,

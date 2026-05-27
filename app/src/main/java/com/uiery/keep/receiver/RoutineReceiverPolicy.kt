@@ -14,6 +14,11 @@ data class PendingRoutineStartNotice(
     val message: String,
 )
 
+data class ExactAlarmPermissionRecovery(
+    val routines: List<RoutineModel>,
+    val shouldResetAlarmPermissionPrompt: Boolean,
+)
+
 object RoutineReceiverPolicy {
     // Room is the authoritative routine source of truth.
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
@@ -65,6 +70,26 @@ object RoutineReceiverPolicy {
         routines: List<RoutineModel>,
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
+
+    fun applyMissingExactAlarmPermission(
+        routines: List<RoutineModel>,
+        routineId: Long,
+    ): ExactAlarmPermissionRecovery {
+        var didDisableRoutine = false
+        val updatedRoutines = routines.map { routine ->
+            if (routine.id == routineId && routine.isEnabled) {
+                didDisableRoutine = true
+                routine.copy(isEnabled = false)
+            } else {
+                routine
+            }
+        }
+
+        return ExactAlarmPermissionRecovery(
+            routines = updatedRoutines,
+            shouldResetAlarmPermissionPrompt = didDisableRoutine,
+        )
+    }
 
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,
