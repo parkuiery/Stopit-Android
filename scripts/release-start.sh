@@ -8,10 +8,14 @@ Usage: scripts/release-start.sh <versionName> [--code <versionCode>] [--service-
 Creates release/<versionName> from develop, bumps Android version, verifies release tasks,
 and commits the version bump.
 
+Important: release-start delegates to scripts/bump-version.sh, so you must provide
+either --service-account-json <path> for live Google Play max versionCode lookup or
+--fallback-play-max-version-code <n> as an explicit operator override.
+
 Example:
-  scripts/release-start.sh 1.7.2
-  scripts/release-start.sh 1.7.2 --code 24
   scripts/release-start.sh 1.7.2 --service-account-json /path/to/play-service-account.json
+  scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
+  scripts/release-start.sh 1.7.2 --code 24 --service-account-json /path/to/play-service-account.json
 USAGE
 }
 
