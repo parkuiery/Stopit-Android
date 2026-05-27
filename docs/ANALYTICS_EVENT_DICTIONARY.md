@@ -323,7 +323,7 @@ PY
 
 - GA4 metadata 기준 현재 조회 가능한 custom dimension은 `customUser:routines_count`만 확인됐다.
 - `customEvent:*` 차원/지표는 아직 보이지 않아 activation/review/ad parameter 조회 결론 confidence를 낮게 둬야 한다.
-- 최근 14일 `screen_view`는 총 `11,988`건이고, `(not set)` `9,390`건 + 빈 `unifiedScreenName` `342`건으로 합계 `9,732 / 11,988 = 81.2%`다.
+- 최근 14일 `screen_view`는 총 `12,095`건이고, `(not set)` `9,390`건 + 빈 `unifiedScreenName` `407`건으로 합계 `9,797 / 12,095 = 81.0%`다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
