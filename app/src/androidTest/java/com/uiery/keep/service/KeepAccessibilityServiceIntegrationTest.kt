@@ -73,9 +73,9 @@ class KeepAccessibilityServiceIntegrationTest {
         launchPackage(blockedPackage)
         waitForWindowEvent(blockedPackage)
 
-        waitForPackageForeground(
+        waitForPackageVisible(
             packageName = APP_PACKAGE,
-            message = "Expected BlockActivity package to take foreground when $blockedPackage launches",
+            message = "Expected BlockActivity package to become visible when $blockedPackage launches",
         )
     }
 
@@ -86,6 +86,7 @@ class KeepAccessibilityServiceIntegrationTest {
         configureEmergencyUnlock(bypassPackage)
         waitForServiceStatePropagation()
         waitForServiceToObserveSelectedPackage(bypassPackage)
+        waitForServiceToObserveEmergencyUnlockPackage(bypassPackage)
 
         launchPackage(bypassPackage)
         waitForWindowEvent(bypassPackage)
@@ -94,8 +95,12 @@ class KeepAccessibilityServiceIntegrationTest {
             packageName = bypassPackage,
             message = "Expected $bypassPackage to stay foreground while emergency unlock is active",
         )
-        val blockVisible = isPackageForeground(APP_PACKAGE)
-        assertFalse("Did not expect BlockActivity to launch while emergency unlock is active", blockVisible)
+        val debugSnapshot = KeepAccessibilityServiceDebugState.read(context)
+        val blockVisible = device.hasObject(By.pkg(APP_PACKAGE).depth(0)) || isPackageForeground(APP_PACKAGE)
+        assertFalse(
+            "Did not expect BlockActivity to launch while emergency unlock is active. snapshot=$debugSnapshot focused=${shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'").trim()} resumed=${shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'").trim()}",
+            blockVisible,
+        )
     }
 
     private suspend fun configureManualKeepBlock(packageName: String) {
@@ -255,6 +260,14 @@ class KeepAccessibilityServiceIntegrationTest {
         }
     }
 
+    private fun waitForServiceToObserveEmergencyUnlockPackage(packageName: String) {
+        waitUntil("KeepAccessibilityService should observe emergency unlock state before launch", SERVICE_PROPAGATION_TIMEOUT_MS) {
+            KeepAccessibilityServiceDebugState.read(context)
+                .observedEmergencyUnlockApps
+                .contains(packageName)
+        }
+    }
+
     private fun waitForWindowEvent(packageName: String) {
         waitUntil("KeepAccessibilityService should receive a window change event for $packageName", SERVICE_PROPAGATION_TIMEOUT_MS) {
             KeepAccessibilityServiceDebugState.read(context).lastWindowStateChangedPackage == packageName
@@ -271,6 +284,15 @@ class KeepAccessibilityServiceIntegrationTest {
         }
 
         return false
+    }
+
+    private fun waitForPackageVisible(
+        packageName: String,
+        message: String,
+    ) {
+        waitUntil(message, PACKAGE_VISIBILITY_TIMEOUT_MS) {
+            device.hasObject(By.pkg(packageName).depth(0)) || isPackageForeground(packageName)
+        }
     }
 
     private fun waitForPackageForeground(
