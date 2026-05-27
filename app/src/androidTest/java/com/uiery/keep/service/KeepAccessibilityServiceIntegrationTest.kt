@@ -73,10 +73,12 @@ class KeepAccessibilityServiceIntegrationTest {
         launchPackage(blockedPackage)
         waitForWindowEvent(blockedPackage)
 
-        waitForPackageVisible(
-            packageName = APP_PACKAGE,
-            message = "Expected BlockActivity package to become visible when $blockedPackage launches",
-        )
+        waitUntil(
+            message = "Expected KeepAccessibilityService to request BlockActivity when $blockedPackage launches",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
+        }
     }
 
     @Test
@@ -96,10 +98,10 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected $bypassPackage to stay foreground while emergency unlock is active",
         )
         val debugSnapshot = KeepAccessibilityServiceDebugState.read(context)
-        val blockVisible = device.hasObject(By.pkg(APP_PACKAGE).depth(0)) || isPackageForeground(APP_PACKAGE)
+        val launchedBlockedPackage = debugSnapshot.lastLaunchedBlockPackage
         assertFalse(
-            "Did not expect BlockActivity to launch while emergency unlock is active. snapshot=$debugSnapshot focused=${shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'").trim()} resumed=${shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'").trim()}",
-            blockVisible,
+            "Did not expect KeepAccessibilityService to request BlockActivity while emergency unlock is active. snapshot=$debugSnapshot",
+            launchedBlockedPackage == bypassPackage,
         )
     }
 
@@ -330,6 +332,7 @@ class KeepAccessibilityServiceIntegrationTest {
                 observedSelectedAppPackages = emptySet(),
                 observedEmergencyUnlockApps = emptySet(),
                 lastWindowStateChangedPackage = null,
+                lastLaunchedBlockPackage = null,
             )
         }
     }

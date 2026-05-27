@@ -14,6 +14,7 @@ object KeepAccessibilityServiceDebugState {
         val observedSelectedAppPackages: Set<String> = emptySet(),
         val observedEmergencyUnlockApps: Set<String> = emptySet(),
         val lastWindowStateChangedPackage: String? = null,
+        val lastLaunchedBlockPackage: String? = null,
     )
 
     @Volatile
@@ -36,13 +37,14 @@ object KeepAccessibilityServiceDebugState {
         val file = stateFile(context)
         if (!file.exists()) return Snapshot()
         val parts = file.readText().split('\n')
-        if (parts.size < 5) return Snapshot()
+        if (parts.size < 6) return Snapshot()
         return Snapshot(
             isServiceConnected = parts[0].toBoolean(),
             observedIsKeep = parts[1].toBoolean(),
             observedSelectedAppPackages = decodeSet(parts[2]),
             observedEmergencyUnlockApps = decodeSet(parts[3]),
             lastWindowStateChangedPackage = parts[4].ifBlank { null },
+            lastLaunchedBlockPackage = parts[5].ifBlank { null },
         )
     }
 
@@ -56,7 +58,8 @@ object KeepAccessibilityServiceDebugState {
                 appendLine(snapshot.observedIsKeep)
                 appendLine(encodeSet(snapshot.observedSelectedAppPackages))
                 appendLine(encodeSet(snapshot.observedEmergencyUnlockApps))
-                append(snapshot.lastWindowStateChangedPackage.orEmpty())
+                appendLine(snapshot.lastWindowStateChangedPackage.orEmpty())
+                append(snapshot.lastLaunchedBlockPackage.orEmpty())
             },
         )
     }
