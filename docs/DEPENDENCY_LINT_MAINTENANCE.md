@@ -240,13 +240,13 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
      --forbid-text ObsoleteLintCustomCheck
    ```
 
-   이 verifier는 `scripts/tests/test_verify_lint_registry.py` fixture RED/GREEN과 함께 유지한다.
+   이 verifier는 `scripts/tests/test_verify_lint_registry.py` fixture RED/GREEN과 함께 유지한다. PR fast verification에서는 `app/build/reports/lint-results-devDebug.html`을, release QA에서는 `app/build/reports/lint-results-prodRelease.html`을 같은 기준으로 검사해 dev green과 release green이 모두 "navigation lint registry 포함 green"인지 확인한다.
 3. 실제 rule 발화 probe (선택적 심화 검증)
    type-safe destination 하나에서 `@Serializable`을 **임시로 제거한 뒤** `./gradlew :app:lintDevDebug`를 다시 돌려 `MissingSerializableAnnotation from androidx.navigation.compose`가 실제 에러로 잡히는지 확인하고, 즉시 원복한다.
 4. 제품 lint 정리
    runtime 복구 후 새로 surfaced 되는 Compose/Android lint를 해결한다. 이번 복구에서는 `LocalContextConfigurationRead`가 새로 드러났고, `LocalConfiguration.current`로 바꿔 lint green을 회복했다.
 
-이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다. 이제 Android CI fast verification도 같은 verifier를 실행하므로, 향후 회귀가 나면 PR 단계에서 바로 막히는 형태를 기본값으로 본다.
+이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다. 이제 Android CI fast verification과 release QA full-release gate가 모두 같은 verifier를 실행하므로, 향후 회귀가 나면 PR 단계와 release gate 양쪽에서 바로 막히는 형태를 기본값으로 본다.
 
 ## 후속 maintenance PR에 남겨야 할 evidence
 

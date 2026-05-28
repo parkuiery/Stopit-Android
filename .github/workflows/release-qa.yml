@@ -58,6 +58,18 @@ jobs:
             :app:lintProdRelease \
             :app:assembleProdDebug
 
+      - name: Verify Navigation/Compose lint registry coverage
+        run: >-
+          python3 scripts/verify_lint_registry.py
+          --report app/build/reports/lint-results-prodRelease.html
+          --require-section "Included Additional Checks"
+          --require-identifier androidx.navigation.compose
+          --require-issue-id MissingSerializableAnnotation
+          --require-issue-id MissingKeepAnnotation
+          --require-issue-id WrongNavigateRouteType
+          --forbid-text "Requires newer lint; these checks will be skipped!"
+          --forbid-text ObsoleteLintCustomCheck
+
   release-instrumentation-qa:
     name: Release instrumentation QA
     if: >-
