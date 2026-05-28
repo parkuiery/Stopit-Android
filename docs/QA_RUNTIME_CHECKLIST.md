@@ -399,7 +399,8 @@ cd <repo-root>
 - `KeepAccessibilityServiceBlockDecisionTest`: manual keep / timed lock / routine / duplicate / emergency unlock 우회 판단을 순수 JVM 회귀로 빠르게 고정한다.
 - `KeepAccessibilityServiceUninstallDetectionTest`: 앱 삭제 방지(`prevent_uninstall`)가 켜진 상태에서 self-uninstall surface를 가로채야 하는 package/text 판별 규칙을 JVM 회귀로 고정한다.
 - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환과 self-uninstall interception이 런타임에서 유지되는지 검증하는 focused runtime harness다.
-- 현재 Android 15 emulator baseline은 실제 bind 후 네 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity`, `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`, `uninstallAttemptWithPreventUninstallEnabled_dismissesDeleteSurface`, `uninstallAttemptWithPreventUninstallDisabled_keepsDeleteSurfaceVisible`.
+- 현재 Android 15 emulator baseline은 실제 bind 후 다섯 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity`, `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`, `appInfoScreenWithPreventUninstallEnabled_staysVisibleBeforeDeleteConfirmation`, `uninstallAttemptWithPreventUninstallEnabled_dismissesDeleteSurface`, `uninstallAttemptWithPreventUninstallDisabled_keepsDeleteSurfaceVisible`.
+- uninstall interception baseline은 **앱 정보 화면 단계에서는 너무 이르게 개입하지 않고**, 사용자가 실제 삭제 확인 surface를 연 뒤에만 dismissal이 일어나야 한다는 경계도 함께 고정한다.
 
 ### Android 15 emulator instrumentation 메모
 

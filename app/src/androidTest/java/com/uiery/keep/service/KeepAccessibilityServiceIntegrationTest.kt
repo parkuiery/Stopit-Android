@@ -129,6 +129,30 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun appInfoScreenWithPreventUninstallEnabled_staysVisibleBeforeDeleteConfirmation() = runBlocking {
+        configurePreventUninstall(enabled = true)
+        waitForServiceStatePropagation()
+        waitForPreventUninstallPropagation(expected = true)
+
+        launchSelfAppInfoScreen()
+        waitForPackageForeground(
+            packageName = SETTINGS_PACKAGE,
+            message = "Expected the app info screen to stay foreground before uninstall confirmation",
+        )
+
+        Thread.sleep(750)
+
+        assertTrue(
+            "Expected no uninstall dismissal record before the delete confirmation surface is opened",
+            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == null,
+        )
+        assertTrue(
+            "Expected the app info screen to stay visible before tapping uninstall",
+            isPackageForeground(SETTINGS_PACKAGE),
+        )
+    }
+
+    @Test
     fun uninstallAttemptWithPreventUninstallDisabled_keepsDeleteSurfaceVisible() = runBlocking {
         configurePreventUninstall(enabled = false)
         waitForServiceStatePropagation()
@@ -210,6 +234,12 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun launchSelfUninstallFlow() {
+        launchSelfAppInfoScreen()
+        device.findObject(By.text("Uninstall"))?.click()
+            ?: fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
+    }
+
+    private fun launchSelfAppInfoScreen() {
         device.pressHome()
         context.startActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -220,8 +250,6 @@ class KeepAccessibilityServiceIntegrationTest {
         waitUntil("Expected app info screen to expose an uninstall button for $APP_PACKAGE", UI_TIMEOUT_MS) {
             device.hasObject(By.text("Uninstall"))
         }
-        device.findObject(By.text("Uninstall"))?.click()
-            ?: fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
     }
 
     private fun primeAppProcess() {
