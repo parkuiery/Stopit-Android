@@ -120,7 +120,7 @@ The release PR should pass:
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
 - Backup/restore sign-off from `docs/BACKUP_RESTORE_POLICY.md` when backup XML or persisted-state contracts changed
 
-If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example exact alarm deny/allow focused instrumentation or `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=...`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
+If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example one of the exact alarm deny/allow focused instrumentation commands, the focused receiver/runtime class list, or the separate `POST_NOTIFICATION ignore` receiver fallback command) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
 
 After the release PR is merged into `main`:
 
