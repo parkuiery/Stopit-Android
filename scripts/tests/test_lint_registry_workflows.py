@@ -9,6 +9,7 @@ REQUIRED_STEP_NAME = "Verify Navigation/Compose lint registry coverage"
 REQUIRED_TEST_STEP_NAME = "Run lint registry verifier unit tests"
 REQUIRED_TEST_COMMAND = (
     "python3 -m unittest "
+    "scripts.tests.test_compose_compiler_gradle_contract "
     "scripts.tests.test_verify_lint_registry "
     "scripts.tests.test_lint_registry_workflows"
 )
