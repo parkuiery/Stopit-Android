@@ -224,13 +224,29 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
    - `Requires newer lint; these checks will be skipped!`
    - `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType`가 “skipped issue 목록”에만 있고 실제 오류/경고로는 안 잡히는지
 2. runtime 복구 후 GREEN
-   같은 명령을 다시 돌려 위 skip 문자열이 사라졌는지 확인한다.
-3. 실제 rule 발화 probe
+   같은 명령을 다시 돌린 뒤 아래 자동 verifier를 통과시켜 “skip 문자열 없음 + navigation registry/issue id 포함”을 함께 확인한다.
+
+   ```bash
+   cd <repo-root>
+   ./gradlew :app:lintDevDebug
+   python3 scripts/verify_lint_registry.py \
+     --report app/build/reports/lint-results-devDebug.html \
+     --require-section "Included Additional Checks" \
+     --require-identifier androidx.navigation.compose \
+     --require-issue-id MissingSerializableAnnotation \
+     --require-issue-id MissingKeepAnnotation \
+     --require-issue-id WrongNavigateRouteType \
+     --forbid-text "Requires newer lint; these checks will be skipped!" \
+     --forbid-text ObsoleteLintCustomCheck
+   ```
+
+   이 verifier는 `scripts/tests/test_verify_lint_registry.py` fixture RED/GREEN과 함께 유지한다.
+3. 실제 rule 발화 probe (선택적 심화 검증)
    type-safe destination 하나에서 `@Serializable`을 **임시로 제거한 뒤** `./gradlew :app:lintDevDebug`를 다시 돌려 `MissingSerializableAnnotation from androidx.navigation.compose`가 실제 에러로 잡히는지 확인하고, 즉시 원복한다.
 4. 제품 lint 정리
    runtime 복구 후 새로 surfaced 되는 Compose/Android lint를 해결한다. 이번 복구에서는 `LocalContextConfigurationRead`가 새로 드러났고, `LocalConfiguration.current`로 바꿔 lint green을 회복했다.
 
-이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다.
+이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다. 이제 Android CI fast verification도 같은 verifier를 실행하므로, 향후 회귀가 나면 PR 단계에서 바로 막히는 형태를 기본값으로 본다.
 
 ## 후속 maintenance PR에 남겨야 할 evidence
 
