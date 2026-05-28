@@ -6,6 +6,12 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github/workflows/android-ci.yml"
 RELEASE_QA_WORKFLOW = REPO_ROOT / ".github/workflows/release-qa.yml"
 REQUIRED_STEP_NAME = "Verify Navigation/Compose lint registry coverage"
+REQUIRED_TEST_STEP_NAME = "Run lint registry verifier unit tests"
+REQUIRED_TEST_COMMAND = (
+    "python3 -m unittest "
+    "scripts.tests.test_verify_lint_registry "
+    "scripts.tests.test_lint_registry_workflows"
+)
 REQUIRED_FLAGS = (
     '--require-section "Included Additional Checks"',
     "--require-identifier androidx.navigation.common",
@@ -21,6 +27,8 @@ REQUIRED_FLAGS = (
 
 class LintRegistryWorkflowTest(unittest.TestCase):
     def assert_workflow_verifier_contract(self, workflow: str, report_path: str) -> None:
+        self.assertIn(REQUIRED_TEST_STEP_NAME, workflow)
+        self.assertIn(REQUIRED_TEST_COMMAND, workflow)
         self.assertIn(REQUIRED_STEP_NAME, workflow)
         self.assertIn(f"--report {report_path}", workflow)
 
