@@ -35,7 +35,16 @@ For release/hotfix PRs:
   - focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - exact alarm deny gate
   - exact alarm allow gate
-  - remaining connected Android suite (`notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`)
+  - remaining connected Android suite:
+    - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+    - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+    - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced`
+    - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
+    - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
+    - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+    - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+    - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
+  - separate notification-denied fallback run `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 - [ ] Android Release Build passes and produces signed AAB artifact
 
 For UI/behavior changes:
