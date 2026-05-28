@@ -114,8 +114,17 @@ The release PR should pass:
 - Android Release Build
 - Receiver/service runtime QA sign-off from `docs/QA_RUNTIME_CHECKLIST.md`
 - Backup/restore sign-off from `docs/BACKUP_RESTORE_POLICY.md` when backup XML or persisted-state contracts changed
+- If analytics payload / screen contract / queryability assumptions changed, analytics handoff from `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+  - release PR evidence must distinguish **repo 문서/코드 정리 완료** from **GA4 Admin 수동 등록 / metadata 재확인 / 배포 후 14일 재측정**
+  - if live metadata still shows only `customUser:routines_count` and the needed `customEvent:*` axes are absent, keep product/metrics conclusions at low confidence instead of claiming queryability is solved
 
-If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example exact alarm deny/allow focused instrumentation or `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.notClass=...`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
+If device/emulator instrumentation could not run, keep the release PR honest: record the exact blocked command (for example the focused exact alarm deny/allow commands or the focused runtime smoke / receiver fallback commands documented in `docs/RELEASE_CHECKLIST.md` and `docs/QA_RUNTIME_CHECKLIST.md`) and attach the manual QA evidence instead of claiming Android runtime verification happened automatically.
+
+If a release includes analytics payload/schema work, also keep the analytics claim honest:
+
+- code/tests/docs being merged does **not** prove GA4 queryability is healthy yet
+- before calling a product metric queryable, confirm the required `customEvent:*` axes are actually visible in GA4 metadata and stop treating `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension` as mere no-data
+- after the release ships, record the 14-day remeasurement in `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 
 After the release PR is merged into `main`:
 

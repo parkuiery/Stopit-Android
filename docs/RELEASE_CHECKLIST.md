@@ -60,6 +60,14 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
 - [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
+- [ ] If analytics payload, screen name, event dictionary, or queryability assumptions changed, the PR body links `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` and separates these states explicitly:
+  - repo code/docs/tests landed
+  - GA4 Admin custom dimension / metric registration still manual or already completed
+  - live metadata / runReport reconfirmation status
+  - post-release 14-day remeasurement still pending or completed
+- [ ] Analytics/product claims in the PR body do not overstate queryability:
+  - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension` is recorded as a registration gap when applicable, not as simple no-data
+  - `customUser:routines_count` visibility alone is not used as proof that activation/review/monetization `customEvent:*` axes are queryable
 - [ ] User-facing changes are summarized below.
 
 ## Change summary
