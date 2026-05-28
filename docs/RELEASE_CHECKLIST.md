@@ -75,7 +75,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] The PR body separates what the Android CI focused runtime smoke already proved (launch smoke / backup-restore runtime reset / receiver rehydration / notification-denied fallback notice / emergency-unlock expiry / FCM token regeneration wiring) from what release-only exact alarm gating proved and from any manual-only evidence still required.
 - [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
-- [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
+- [ ] If the remaining connected/emulator suite beyond the focused Android CI / release gate matrix did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
 - [ ] User-facing changes are summarized below.
 
 ## Change summary
