@@ -22,6 +22,7 @@
 | `metrics-context.md` | GA4/Play/수익 지표 정의, 퍼널, 해석 주의사항 | 지표, Metrics, Monetization/Review |
 | `engineering-context.md` | Android 구조, flavor, 테스트/Gradle, 코드 변경 주의사항 | 건강도, 실행, Bug Scout, Tech Debt, Executor |
 | `automation-ops.md` | 현재 Stopit cron topology, live source of truth, issue #18 acceptance mapping | 실행 lane, merge/release controller, 운영 점검 |
+| `context-bundle-protocol.md` | 고정 운영 맥락과 동적 상태를 엮어 역할별 Context Bundle로 넘기는 표준 절차 | 모든 cron 오케스트레이터 |
 | `issue-policy.md` | GitHub Issue 라벨, 제목/본문 형식, 생성 제한, 중복 기준 | 모든 cron/agent |
 | `release-context.md` | 브랜치/PR/CI/Play 배포 guardrail | 실행, Build/Release Maintenance, PR/CI Verifier |
 | `agent-roles.md` | 전문 subagent 역할, 입력, 출력, 금지사항 | 모든 cron 오케스트레이터 |
