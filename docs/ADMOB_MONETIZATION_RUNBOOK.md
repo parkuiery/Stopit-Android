@@ -59,7 +59,7 @@ issue #16에 기록된 최근 30일 기준선:
 
 ## 현재 #13 queryability 경계
 
-2026-05-28 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 등록되지 않았다.
+2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 등록되지 않았다.
 
 - metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
 - monetization smoke (`ad_impression` / `ad_click` / `ad_revenue` by `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_unit_id`):

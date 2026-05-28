@@ -481,10 +481,10 @@ PY
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
 
-2026-05-28 live 확인 메모:
+2026-05-29 live 확인 메모:
 
-- 최근 14일 `screen_view` 총량: `12,458`
-- `(not set)` `9,390` + 빈 `unifiedScreenName` `689` = `10,079 / 12,458 = 80.9%`
+- 최근 14일 `screen_view` 총량: `13,154`
+- `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
 - GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
 - activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) runReport smoke query는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 현재 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
 - 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.

@@ -35,7 +35,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 
 ### 현재 #13 queryability 경계
 
-2026-05-28 live 확인 기준으로 활성화 퍼널 해석에 직접 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+2026-05-29 live 확인 기준으로 활성화 퍼널 해석에 직접 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
 
 - `permission_outcome` by `customEvent:permission_name`, `customEvent:outcome` → `400 INVALID_ARGUMENT`
 - `first_lock_configured` by `customEvent:source` → `400 INVALID_ARGUMENT`

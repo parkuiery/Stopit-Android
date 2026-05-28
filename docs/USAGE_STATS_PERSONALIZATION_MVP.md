@@ -209,7 +209,7 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 
 ## 현재 #13 queryability 경계
 
-2026-05-28 live 확인 기준으로 Stopit의 제품/지표 문서는 아직 **Usage Access MVP 자체를 측정할 새 `customEvent:*` 축까지 등록한 상태가 아니다.** 현재 확인된 live metadata는 `customUser:routines_count`만 보이고, activation/review/monetization 축조차 `customEvent:*` registration gap이 남아 있다.
+2026-05-29 live 확인 기준으로 Stopit의 제품/지표 문서는 아직 **Usage Access MVP 자체를 측정할 새 `customEvent:*` 축까지 등록한 상태가 아니다.** 현재 확인된 live metadata는 `customUser:routines_count`만 보이고, activation/review/monetization 축조차 `customEvent:*` registration gap이 남아 있다.
 
 따라서 이 문서는 Usage Access MVP를 "지금 바로 구현 가능한 계측-ready 기능"으로 간주하지 않는다. 실행 후보로 승격할 때는 아래를 먼저 별도 계약으로 닫아야 한다.
 

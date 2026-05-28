@@ -87,21 +87,21 @@
 | `first_lock_configured` users | 41 |
 | `app_block_intercepted` users | 121 |
 
-### 2026-05-28 최근 14일 screen 품질 / queryability 기준선
+### 2026-05-29 최근 14일 screen 품질 / queryability 기준선
 
 | 지표 | 값 |
 |---|---:|
-| total `screen_view` | 12,458 |
-| `(not set)` `unifiedScreenName` | 9,390 |
-| blank `unifiedScreenName` | 689 |
-| combined screen quality gap | `10,079 / 12,458 = 80.9%` |
+| total `screen_view` | 13,154 |
+| `(not set)` `unifiedScreenName` | 9,473 |
+| blank `unifiedScreenName` | 801 |
+| combined screen quality gap | `10,274 / 13,154 = 78.1%` |
 | metadata에서 확인된 custom dimension | `customUser:routines_count` |
 | metadata에서 확인된 `customEvent:*` | 없음 |
 
 대표 해석:
 
 - 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
-- 2026-05-28 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이다.
+- 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이다.
 - activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) 분해 쿼리는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
 
 주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
@@ -158,7 +158,7 @@
 - `첫 잠금 활성화 개선`은 임팩트가 크지만 계측 정리 후 더 정확히 설계하는 편이 좋다.
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
 - 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
-- 2026-05-28 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했다. 따라서 현재 #14/#16류 세부 파라미터 분석은 no-data가 아니라 **GA4 Admin 미등록 queryability gap** 때문에 confidence가 낮다.
+- 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했다. 따라서 현재 #14/#16류 세부 파라미터 분석은 no-data가 아니라 **GA4 Admin 미등록 queryability gap** 때문에 confidence가 낮다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 
 ## 성장 루프 후보

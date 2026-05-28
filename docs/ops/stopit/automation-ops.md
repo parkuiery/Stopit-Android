@@ -71,7 +71,7 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
 중요한 해석 경계:
 
 - 위 성공 조건은 **snapshot transport/API 호출 성공**을 뜻할 뿐, open issue `#13`의 GA4 custom-event queryability가 해결됐다는 뜻은 아니다.
-- 2026-05-28 live 기준 metadata에서 확인된 custom 축은 `customUser:routines_count`뿐이고, activation/review/monetization용 `customEvent:*`는 아직 Admin registration/manual follow-through가 남아 있다.
+- 2026-05-29 live 기준 metadata에서 확인된 custom 축은 `customUser:routines_count`뿐이고, activation/review/monetization용 `customEvent:*`는 아직 Admin registration/manual follow-through가 남아 있다.
 - 따라서 metrics/product cron은 `customEvent:*` 쿼리에서 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면 최근 데이터 부족이나 제품 이벤트 부재로 과해석하지 말고, 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger와 수동 경계를 확인한다.
 - #13의 남은 외부/manual 경계는 GA4 Admin 실제 등록, 등록 후 metadata/runReport 재확인, 배포 후 14일 재측정이다.
 
