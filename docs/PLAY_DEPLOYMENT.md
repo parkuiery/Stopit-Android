@@ -19,7 +19,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:assembleProdDebug`
   - upload prod debug APK artifact
 - Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - source of truth for this class list is `.github/workflows/android-ci.yml`; `docs/ops/stopit/release-context.md` mirrors that contract for operators, and release-facing docs must stay in sync with both
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
   - 자동 검증 범위:
     - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
@@ -27,6 +28,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
     - `ReceiverRuntimeIntegrationTest`: boot/package-replaced 재수화, 루틴 시작 알림·재예약, notification-denied fallback notice contract
     - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
     - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
+    - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 차단 진입 + emergency unlock 우회 safety
   - release/hotfix 전용 exact alarm deny/allow 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
 - Release candidates targeting `main` also run Android Release QA before merge:
   - `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
@@ -64,10 +66,14 @@ Set these in GitHub repository settings or run `scripts/setup-play-deploy-secret
 | `ANDROID_KEYSTORE_PASSWORD` | Release Build, CD | Keystore password. |
 | `ANDROID_KEY_ALIAS` | Release Build, CD | Upload key alias. |
 | `ANDROID_KEY_PASSWORD` | Release Build, CD | Upload key password. |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | CD | Google Play Android Publisher service account JSON. |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, CD | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. |
 | `GOOGLE_SERVICES_JSON` | CI, Release Build, CD | Production Firebase `google-services.json` content for `app/src/prod`. |
 | `DISCORD_BOT_TOKEN` | CD | Discord bot token used to post deploy approval cards to the deploy channel. |
 | `DISCORD_DEPLOY_CHANNEL_ID` | CD | Discord channel ID for deploy approval/status messages. |
+
+Operational failure boundary for `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`:
+- missing before `main`-target `release/*` or `hotfix/*` PR -> `Version Guard` cannot query Google Play visible max `versionCode`, so the release PR blocks before merge
+- missing during tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play, so CD blocks after release build
 
 The service account must have access in Play Console:
 

@@ -15,8 +15,8 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than the highest versionCode currently visible through Google Play tracks; `Version Guard` and `scripts/play_version_code_guard.py` are the source of truth for this check.
-- [ ] `./gradlew testProdReleaseUnitTest` passes locally or in Android Release Build.
-- [ ] `./gradlew bundleProdRelease` passes locally or in Android Release Build.
+- [ ] `./gradlew :app:testProdReleaseUnitTest` passes locally or in Android Release Build.
+- [ ] `./gradlew :app:bundleProdRelease` passes locally or in Android Release Build.
 - [ ] Branch Hygiene passes on the PR.
 - [ ] Version Guard runs and passes on the PR (it should appear on every `main`-target PR, not only when `app/build.gradle.kts` changed).
 - [ ] `version-guard.yml` uses the same current `actions/checkout` major version as the repository's other governance/release workflows.
@@ -46,6 +46,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest` (AccessibilityService bind 이후 cross-app foreground 차단 진입 + emergency unlock 우회 safety)
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
