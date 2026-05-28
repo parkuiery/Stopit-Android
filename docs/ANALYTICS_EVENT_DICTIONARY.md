@@ -332,5 +332,5 @@ PY
 ## 운영 메모
 
 - 신규 화면/이벤트 추가 시 이 문서와 테스트를 같이 갱신한다.
-- 커스텀 차원 등록 상태가 바뀌면 `docs/METRICS_ANALYSIS.md`의 조회 가이드도 같이 업데이트한다.
+- 커스텀 차원 등록 상태가 바뀌면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger / metadata 증적 / 재측정 표와 `docs/METRICS_ANALYSIS.md`의 조회 가이드를 같이 업데이트한다.
 - `(not set)` 비율 재측정 기본 창은 배포 후 14일이다.

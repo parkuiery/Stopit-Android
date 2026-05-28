@@ -273,7 +273,7 @@ PY
 판단 기준:
 
 - 화면 조회 대부분이 `(not set)`이면 제품 퍼널 결론보다 계측 개선을 먼저 한다.
-- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 이벤트 딕셔너리와 커스텀 차원 등록 작업을 먼저 만든다.
+- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 등록 계약과 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger / metadata 증적 / 외부 경계 정리를 먼저 맞춘다.
 - docs lane이 repo 안에서 할 수 있는 범위는 registration contract / ledger / 검증 포맷 정리까지이며, 실제 GA4 Admin 등록과 배포 후 14일 재측정은 외부/manual 경계로 분리해 기록한다.
 - 광고 분석 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 guardrail을 같이 확인한다.
 
@@ -352,7 +352,7 @@ PY
 
 - Play Store 평점과 리뷰 수
 - `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`
-- `review_prompt_skipped` reason 분포
+- `review_prompt_skipped` reason 분포 (GA4 Admin에서 `customEvent:reason` 등록이 끝난 뒤에만 안정적으로 해석)
 - 성공적 사용 이벤트: `app_block_intercepted`, `lock_session_start`, `core_action_completed`
 
 판단 기준:

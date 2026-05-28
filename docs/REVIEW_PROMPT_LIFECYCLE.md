@@ -195,8 +195,13 @@
 
 - `review_prompt_eligible` 발생량
 - `review_prompt_shown` 발생량
-- `review_prompt_skipped`와 skip reason 분포
-- `review_prompt_failed`와 error 분포
+- `review_prompt_skipped` 발생량
+- `review_prompt_failed` 발생량
+
+### GA4 Admin 등록 후에만 안정적으로 분해 가능한 것
+
+- `review_prompt_skipped`의 skip reason 분포
+- `review_prompt_failed`의 error / failure reason 분포
 
 ### 앱/GA4에서 직접 측정 불가
 
@@ -224,8 +229,9 @@ Play Console에서 다음을 후행 지표로 본다.
 ### 나쁜 신호
 
 - `eligible`는 있는데 `shown`이 거의 없다.
-- `skipped`가 대부분이고 reason이 `AccessibilityOff`, `QuietHours`, `NotHomeRoot`, `NoActivity`에 몰린다.
-- `failed`가 특정 error로 반복된다.
+- `skipped`가 대부분이다.
+- GA4 Admin 등록이 끝난 뒤에도 skip reason이 `AccessibilityOff`, `QuietHours`, `NotHomeRoot`, `NoActivity`에 과도하게 몰린다.
+- GA4 Admin 등록이 끝난 뒤에도 `failed`가 특정 error로 반복된다.
 
 ### 대표적인 해석 실수
 
@@ -237,7 +243,7 @@ Play Console에서 다음을 후행 지표로 본다.
 
 ```bash
 cd <repo-root>
-git diff -- docs/REVIEW_PROMPT_LIFECYCLE.md docs/ANALYTICS_EVENT_DICTIONARY.md docs/METRICS_ANALYSIS.md
+git diff -- docs/REVIEW_PROMPT_LIFECYCLE.md docs/ANALYTICS_EVENT_DICTIONARY.md docs/METRICS_ANALYSIS.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md
 ./gradlew :app:testDevDebugUnitTest \
   --tests com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest \
   --tests com.uiery.keep.feature.review.InAppReviewManagerTest \
@@ -249,5 +255,6 @@ rg -n "review_prompt_|REVIEW_PENDING|LAST_REVIEW_PROMPT_AT_MS|SUCCESSFUL_SESSION
 ## 문서 갱신 규칙
 
 - 리뷰 eligibility 규칙이 바뀌면 이 문서와 `docs/ANALYTICS_EVENT_DICTIONARY.md`를 같이 업데이트한다.
+- review queryability 상태가 바뀌면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review ledger와 `docs/METRICS_ANALYSIS.md`의 조회 가이드도 같이 갱신한다.
 - Play In-App Review 한계 때문에 `accepted` / `dismissed` 같은 용어를 새 문서에 다시 도입하지 않는다.
 - 실제 리뷰 개선 판단은 항상 14일/30일 후행 창으로 다시 확인한다.
