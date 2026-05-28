@@ -175,6 +175,39 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
     }
 
+    @Test
+    fun cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        database.routineDao().insert(
+            disabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Cleanup multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val viewModel = RoutineViewModel(
+            routineDao = database.routineDao(),
+            dataStore = createDataStore(),
+            analytics = RecordingKeepAnalytics(),
+            routineScheduler = RoutineScheduler(context),
+        )
+
+        waitUntil("Cleanup multi-day routine list should load from Room") {
+            viewModel.container.stateFlow.value.routines.any { it.id == TEST_ROUTINE_ID }
+        }
+
+        viewModel.changeEnabled(TEST_ROUTINE_ID, true)
+
+        waitUntil("Cleanup test should schedule every repeat day alarm") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        cancelRoutineAlarm(TEST_ROUTINE_ID)
+
+        assertNoScheduledAlarms(TEST_ROUTINE_ID)
+    }
+
     private fun nextStartTime(): LocalTime {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val startTotalMinutes = (now.time.hour * 60 + now.time.minute + 10) % (24 * 60)
@@ -240,7 +273,9 @@ class RoutineExactAlarmPermissionIntegrationTest {
     }
 
     private fun cancelRoutineAlarm(routineId: Long) {
-        findRoutinePendingIntent(routineId)?.cancel()
+        DayOfWeek.entries.forEach { dayOfWeek ->
+            findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
+        }
     }
 
     private fun clearAppState() {
