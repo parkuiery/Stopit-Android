@@ -16,6 +16,8 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `METRICS_ANALYSIS.md` | 스탑잇 제품 지표 분석, GA4 조회, 개선 이슈화 절차 문서. |
 | `PRODUCT_METRICS_DASHBOARD.md` | 스탑잇 North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의. |
 | `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. |
+| `REVIEW_PROMPT_LIFECYCLE.md` | #17용 리뷰 프롬프트 eligibility/drain 계약과 queryability guardrail 문서. |
+| `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 Usage Access 기반 리포트/추천 MVP 가설, guardrail, 측정 조건 문서. |
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
 
 ## Subdirectories
@@ -28,6 +30,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 
 ### Working In This Directory
 - Keep changes scoped to this directory’s responsibility and follow the neighboring file naming/style conventions.
+- Analytics/product-metrics docs work should treat `ANALYTICS_EVENT_DICTIONARY.md` as the contract definition and `GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` as the live registration/queryability runbook; do not collapse repo 문서 정리와 GA4 Admin 수동 작업을 같은 상태로 보고 닫지 않는다.
 
 ### Testing Requirements
 - ./gradlew test for repository-wide JVM tests when behavior changes.
