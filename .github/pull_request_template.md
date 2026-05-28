@@ -24,7 +24,7 @@ For normal development PRs:
 - [ ] `./gradlew :app:testDevDebugUnitTest`
 - [ ] `./gradlew :app:lintDevDebug`
 - [ ] `./gradlew :app:assembleProdDebug`
-- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, `ReceiverRuntimeIntegrationTest`, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
+- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` methods, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `ManifestContractIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
 - [ ] Android CI passes
 
 For release/hotfix PRs:
@@ -34,8 +34,10 @@ For release/hotfix PRs:
 - [ ] Release instrumentation evidence distinguishes:
   - focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - exact alarm deny gate
+  - receiver exact alarm deny follow-up gates (`bootReceiver...`, `packageReplaced...`, `routineAlarmReceiver...`)
   - exact alarm allow gate
-  - remaining connected Android suite (`notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`)
+  - remaining connected Android suite (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` methods, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `ManifestContractIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`)
+  - notification-denied receiver fallback gate (`routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`)
 - [ ] Android Release Build passes and produces signed AAB artifact
 
 For UI/behavior changes:
