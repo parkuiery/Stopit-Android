@@ -4,11 +4,16 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.PreferencesKey
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import com.uiery.keep.feature.review.FakeDataStore
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MenuViewModelTest {
@@ -23,6 +28,42 @@ class MenuViewModelTest {
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.MENU), analytics.screenViews)
+    }
+
+    @Test
+    fun preventUninstallDefaultsToEnabled() {
+        val viewModel = MenuViewModel(
+            dataStore = FakeDataStore(),
+            routineDao = FakeMenuRoutineDao(),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertTrue(viewModel.preventUninstall.value)
+    }
+
+    @Test
+    fun setPreventUninstallPersistsDisabledValue() = runBlocking {
+        val dataStore = FakeDataStore.withPrefs {
+            this[PreferencesKey.PREVENT_UNINSTALL] = true
+        }
+        val viewModel = MenuViewModel(
+            dataStore = dataStore,
+            routineDao = FakeMenuRoutineDao(),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        viewModel.setPreventUninstall(false)
+
+        repeat(20) {
+            if ((dataStore.snapshot()[PreferencesKey.PREVENT_UNINSTALL] ?: true).not()) {
+                return@runBlocking
+            }
+            delay(25)
+        }
+
+        assertFalse(
+            dataStore.snapshot()[PreferencesKey.PREVENT_UNINSTALL] ?: true,
+        )
     }
 }
 
