@@ -232,7 +232,9 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
    python3 scripts/verify_lint_registry.py \
      --report app/build/reports/lint-results-devDebug.html \
      --require-section "Included Additional Checks" \
+     --require-identifier androidx.navigation.common \
      --require-identifier androidx.navigation.compose \
+     --require-identifier androidx.navigation.runtime \
      --require-issue-id MissingSerializableAnnotation \
      --require-issue-id MissingKeepAnnotation \
      --require-issue-id WrongNavigateRouteType \

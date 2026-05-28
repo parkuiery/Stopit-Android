@@ -22,8 +22,8 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus PR/manual focused runtime smoke. No signed release, no Play upload. |
-| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate + focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite. |
+| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. |
 | Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
@@ -208,6 +208,8 @@ gh pr create --base develop --fill
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
 의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, version catalog와 `app/build.gradle.kts`의 direct dependency version을 함께 확인합니다.
+
+Navigation/Compose custom lint 복구(`issue #156` 유형)에서는 `:app:lintDevDebug` / `:app:lintProdRelease` green만으로 충분하다고 보지 않습니다. Android CI와 Release QA는 둘 다 `scripts/verify_lint_registry.py`로 HTML lint report를 다시 읽어 `androidx.navigation.common`, `androidx.navigation.compose`, `androidx.navigation.runtime` registry와 `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType` issue id가 실제 report에 포함되고, `Requires newer lint; these checks will be skipped!` / `ObsoleteLintCustomCheck`가 없는지까지 확인합니다.
 
 ## Standard Release Flow
 
