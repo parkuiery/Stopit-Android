@@ -205,6 +205,33 @@ cd <repo-root>
 - `ObsoleteLintCustomCheck`는 lint check JAR/runtime 조합 점검 이슈로 본다.
 - 제품 위험 lint는 dependency batch와 분리해서 우선순위를 다시 매긴다.
 
+### Navigation/Compose custom lint 복구 절차 (`#156` 유형)
+
+Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires newer lint; these checks will be skipped!`로 빠질 때는, lint report green 자체를 신뢰하지 말고 **lint runtime 복구 → 실제 rule 발화 확인 → 제품 lint 정리** 순서로 본다.
+
+현재 Stopit에서 재현/복구가 확인된 조합은 아래다.
+
+- AGP: `8.10.1`
+- Gradle wrapper: `8.11.1`
+- Kotlin: `2.1.10` 유지
+- Navigation Compose: `2.8.9` 유지
+
+검증 순서:
+
+1. baseline RED
+   `./gradlew :app:lintDevDebug` 후 `app/build/reports/lint-results-devDebug.txt`에서 아래 문자열이 있는지 확인한다.
+   - `ObsoleteLintCustomCheck`
+   - `Requires newer lint; these checks will be skipped!`
+   - `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType`가 “skipped issue 목록”에만 있고 실제 오류/경고로는 안 잡히는지
+2. runtime 복구 후 GREEN
+   같은 명령을 다시 돌려 위 skip 문자열이 사라졌는지 확인한다.
+3. 실제 rule 발화 probe
+   type-safe destination 하나에서 `@Serializable`을 **임시로 제거한 뒤** `./gradlew :app:lintDevDebug`를 다시 돌려 `MissingSerializableAnnotation from androidx.navigation.compose`가 실제 에러로 잡히는지 확인하고, 즉시 원복한다.
+4. 제품 lint 정리
+   runtime 복구 후 새로 surfaced 되는 Compose/Android lint를 해결한다. 이번 복구에서는 `LocalContextConfigurationRead`가 새로 드러났고, `LocalConfiguration.current`로 바꿔 lint green을 회복했다.
+
+이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다.
+
 ## 후속 maintenance PR에 남겨야 할 evidence
 
 최소한 아래를 PR 본문이나 체크리스트에 남긴다.
