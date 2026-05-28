@@ -87,6 +87,7 @@
 - open PRs
 - CI/check status
 - latest outputs from metrics/health/ideation crons when available
+- #13 같은 analytics/product-metrics 문서 이슈면 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`도 함께 읽어, repo 문서 미정리와 GA4 Admin 미등록 외부 경계를 섞지 않는다.
 
 추가 규칙:
 - `stopit-executor-docs-lane`가 #13/#14/#16/#65처럼 **docs/ops/analytics/product-metrics 성격 이슈**를 다룰 때는 `product-context.md`, `metrics-context.md`도 기본 입력에 포함한다.
