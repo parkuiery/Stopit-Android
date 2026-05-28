@@ -68,6 +68,11 @@ issue #16에 기록된 최근 30일 기준선:
 
 즉, 현재 `adUnitName` / `adFormat` 같은 AdMob 쪽 집계는 볼 수 있어도, Stopit 제품 문맥에서 중요한 `ad_placement`, `screen_context`, `ad_unit_id` 기준 해석은 아직 **미등록 queryability gap** 때문에 낮은 confidence 상태다.
 
+추가 주의:
+
+- 이번 smoke는 광고 문맥 축이 막혀 있다는 대표 증거이고, Required인 `ad_format`도 아직 live `customEvent:*` queryability가 확보됐다고 보지 않는다.
+- Recommended인 `ad_value_micros`까지 포함한 placement/context별 수익 재집계도 같은 외부 경계 뒤에 있다.
+
 운영 원칙:
 
 - placement별 CTR/eCPM 결론을 강하게 내리기 전에 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 광고 파라미터 등록 상태를 먼저 확인한다.

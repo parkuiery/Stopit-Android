@@ -71,7 +71,7 @@
 
 ## 현재 기준선
 
-2026-05-23 분석 기준 최근 30일:
+### 2026-05-23 최근 30일 제품/비즈니스 기준선
 
 | 지표 | 값 |
 |---|---:|
@@ -79,9 +79,7 @@
 | total users | 507 |
 | new users | 202 |
 | sessions | 4,681 |
-| screen views | 23,191 |
 | engagement rate | 61.4% |
-| `unifiedScreenName = (not set)` | 19,003 views |
 | total ad revenue | $2.168155 |
 | publisher ad impressions | 18,731 |
 | publisher ad clicks | 12 |
@@ -89,7 +87,24 @@
 | `first_lock_configured` users | 41 |
 | `app_block_intercepted` users | 121 |
 
-주의: 이 기준선은 고정값이 아니라 예시다. 다음 분석 시 GA4에서 새로 조회해야 한다.
+### 2026-05-28 최근 14일 screen 품질 / queryability 기준선
+
+| 지표 | 값 |
+|---|---:|
+| total `screen_view` | 12,458 |
+| `(not set)` `unifiedScreenName` | 9,390 |
+| blank `unifiedScreenName` | 689 |
+| combined screen quality gap | `10,079 / 12,458 = 80.9%` |
+| metadata에서 확인된 custom dimension | `customUser:routines_count` |
+| metadata에서 확인된 `customEvent:*` | 없음 |
+
+대표 해석:
+
+- 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
+- 2026-05-28 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) 분해 쿼리는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
+
+주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
 ## 핵심 퍼널
 

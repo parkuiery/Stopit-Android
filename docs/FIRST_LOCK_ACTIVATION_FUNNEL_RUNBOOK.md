@@ -43,6 +43,12 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 
 따라서 현재는 `first_open`, `app_selection_completed`, `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 **상위 이벤트 count/users 비율**은 읽을 수 있어도, 어떤 권한/출처/차단 앱에서 병목이 생기는지 세부 분해 해석은 낮은 confidence로 둬야 한다.
 
+추가 주의:
+
+- 위 smoke는 activation 분해 축이 실제로 막혀 있다는 **대표 증거**다.
+- activation follow-through에서 같이 필요한 `selected_app_count`, `is_onboarding`도 아직 `customEvent:*` registration/materialization 완료 전제로 취급하지 않는다.
+- 따라서 앱 선택량 분포, 온보딩 vs 홈 진입 차이 같은 세부 결론도 GA4 Admin 등록 전에는 참고 수준으로만 다룬다.
+
 운영 원칙:
 
 - 퍼널 숫자가 이상해 보여도 곧바로 CTA/UI 결론으로 점프하지 않는다.

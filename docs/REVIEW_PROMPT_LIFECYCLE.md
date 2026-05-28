@@ -183,6 +183,11 @@
 
 따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count 자체는 볼 수 있어도, skip/failure 사유 분포를 GA4에서 안정적으로 분해하는 작업은 아직 낮은 confidence 상태다.
 
+추가 주의:
+
+- 이번 live smoke는 `customEvent:reason` 기준의 대표 실패 증거를 남긴 것이다.
+- `review_prompt_failed.error` 같은 failure 세부 축도 별도로 조회 가능하다고 가정하지 않는다. `reason`이 막혀 있으면 `error`도 동일하게 GA4 Admin 등록/metadata 확인 전에는 외부 경계로 둔다.
+
 운영 원칙:
 
 - 리뷰 지표를 해석할 때 `reason` / `error` 축이 실제로 등록됐는지 먼저 확인한다.
