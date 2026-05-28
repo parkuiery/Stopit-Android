@@ -23,7 +23,7 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus PR/manual focused runtime smoke. No signed release, no Play upload. |
-| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate + focused UI smoke + exact alarm deny/allow gate(저장/enable + boot/receiver single-day·multi-day repeat-day 회귀) + remaining connected Android suite. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate + focused UI smoke + exact alarm deny/allow gate(저장/enable + boot/receiver single-day·multi-day repeat-day 회귀 + multi-day cleanup) + remaining connected Android suite + separate `POST_NOTIFICATION ignore` receiver fallback gate. |
 | Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
