@@ -411,6 +411,45 @@ adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|froz
 
 최근 qa-lane에서는 초기 run에서 `enabled_accessibility_services` 반영 뒤에도 `Bound services:{}` 상태와 `IPCThreadState: Sending oneway calls to frozen process.`가 보이는 bind 경계를 먼저 고정했고, 이후 harness를 보강해 **첫 테스트에서 실제 bind 성공, 후속 테스트에서는 연결 플래그를 유지한 채 emergency unlock safety 시나리오까지 연속 검증**하도록 안정화했다. 다시 유사 실패가 재발하면 PR/이슈 보고에는 **토글 반영과 실제 service bind를 분리해서** 적고, instrumentation assertion/message에도 동일 진단 정보를 남긴다.
 
+### 홈 접근성 권한 경고 재동기화
+
+정확한 권한 판별과 홈 화면 경고 다이얼로그 재동기화는 **자동 exact-match baseline + 수동 resume-sync evidence** 두 층으로 확인한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.util.ContextExtTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest
+```
+
+- `ContextExtTest`: `enabled_accessibility_services`가 패키지 substring만 포함할 때는 실패하고, 실제 `KeepAccessibilityService` component exact match일 때만 통과해야 함을 고정한다.
+- `HomeAccessibilityPermissionIntegrationTest`: returning-user 홈 진입 상태에서 **가짜 package substring 서비스 문자열만 있는 경우에도** 홈 접근성 권한 경고 다이얼로그가 다시 보여야 함을 검증하는 **초기 진입 baseline**이다. 설정 화면 왕복 후 `ON_RESUME` 재동기화는 아래 수동 resume-sync 절차로 별도 확인한다.
+
+수동/반복 가능한 resume-sync evidence:
+
+1. `IS_NEW=false` 상태(기존 사용자 홈 진입)로 앱을 연다.
+2. Stopit 접근성 권한을 실제로 켠 뒤 홈 화면에서 경고 다이얼로그가 사라진 상태를 확인한다.
+3. 홈에서 접근성 서비스 상세 설정으로 이동한다.
+4. `Stopit/KeepAccessibilityService`를 끄고 앱으로 되돌아온다.
+
+확인:
+- [ ] 홈으로 복귀한 직후 접근성 권한 경고 다이얼로그가 다시 나타난다.
+- [ ] `enabled_accessibility_services`에 `com.uiery.keep` substring이 들어 있더라도 실제 component exact match가 아니면 경고가 숨겨지지 않는다.
+- [ ] 리뷰/활성화 관련 후속 동작이 권한 오탐 상태에서 진행되지 않는다.
+
+권장 evidence:
+
+```bash
+adb shell settings get secure accessibility_enabled
+adb shell settings get secure enabled_accessibility_services
+adb shell dumpsys accessibility | grep -n 'Enabled services\|Bound services' -A1 -B1
+```
+
+- PR/이슈에는 가능하면 홈 복귀 직후 스크린샷 1장과 위 3개 명령의 출력 일부를 함께 남긴다.
+
 ### 시나리오 A — 수동 잠금
 
 1. 접근성 권한을 켠다.

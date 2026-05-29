@@ -102,6 +102,9 @@ fun HomeScreen(
     )
     val haptic = LocalHapticFeedback.current
     var openAlertDialog by remember { mutableStateOf(false) }
+    val syncAccessibilityPermissionDialogState = {
+        openAlertDialog = !hasAccessibilityPermission(context)
+    }
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
@@ -124,9 +127,7 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         viewModel.analyticsHomeScreen()
-        if (!hasAccessibilityPermission(context)) {
-            openAlertDialog = true
-        }
+        syncAccessibilityPermissionDialogState()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -134,6 +135,7 @@ fun HomeScreen(
     DisposableEffect(lifecycleOwner, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                syncAccessibilityPermissionDialogState()
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
