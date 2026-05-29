@@ -5,6 +5,17 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
 DOC_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
+WORKFLOW_DOC_PATH = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+
+EXPECTED_BUILD_CRITICAL_ROOT_INPUTS = {
+    "gradlew",
+    "gradlew.bat",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "gradle/**",
+    ".github/workflows/android-ci.yml",
+}
 
 
 class AndroidCiPathGatingTest(unittest.TestCase):
@@ -17,11 +28,27 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("- 'gradlew'", android_ci_block)
         self.assertIn("- 'gradlew.bat'", android_ci_block)
 
+    def test_android_ci_filter_keeps_expected_build_critical_root_inputs(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        filters_block = workflow.split("filters: |", 1)[1]
+        android_ci_block = filters_block.split("runtime_smoke:", 1)[0]
+
+        for expected_input in EXPECTED_BUILD_CRITICAL_ROOT_INPUTS:
+            self.assertIn(f"- '{expected_input}'", android_ci_block)
+
     def test_play_deployment_doc_mentions_wrapper_path_gating_contract(self):
         doc = DOC_PATH.read_text()
 
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("build-critical", doc)
+
+    def test_git_workflow_doc_mentions_build_critical_root_inputs(self):
+        doc = WORKFLOW_DOC_PATH.read_text()
+
+        self.assertIn("build-critical", doc)
+        self.assertIn("`gradlew` / `gradlew.bat`", doc)
+        self.assertIn("wrapper-only", doc)
 
 
 if __name__ == "__main__":

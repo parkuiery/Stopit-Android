@@ -30,6 +30,10 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
 
+Android CI path gating contract:
+- `gradlew` / `gradlew.bat`, root Gradle config files, and `.github/workflows/android-ci.yml` are treated as **build-critical** root inputs.
+- wrapper-only or Gradle-launcher-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
+
 ## Branch Naming
 
 | 목적 | 브랜치 형식 | 예시 |
