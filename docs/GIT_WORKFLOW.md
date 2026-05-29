@@ -30,6 +30,15 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
 
+## Analytics / Release Handoff Boundary
+
+릴리즈/핫픽스 PR에서 Android runtime / release QA가 green이어도, 그것만으로 GA4 `customEvent:*` queryability가 해결됐다고 보면 안 된다.
+
+- analytics payload, screen name, activation/review/monetization 파라미터 계약이 바뀐 PR이면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 확인한다.
+- PR 본문에는 **repo 코드·문서 반영 완료**와 **GA4 Admin 수동 등록 / metadata 재확인 / 배포 후 14일 재측정**을 분리해서 적는다.
+- `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 no-data보다 **GA4 Admin registration gap**으로 먼저 해석한다.
+- live metadata에 `customUser:routines_count`만 보인다고 해서 activation/review/monetization용 `customEvent:*` 축까지 queryable하다고 과대해석하지 않는다.
+
 ## Branch Naming
 
 | 목적 | 브랜치 형식 | 예시 |
@@ -222,6 +231,7 @@ git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 
 # 3. PR에서 Branch Hygiene, Version Guard, Android CI, Android Release QA, Android Release Build 통과 확인
+#    + analytics payload/queryability 영향이 있으면 PR 본문에 GA4 handoff(runbook 기준)까지 함께 기록
 
 # 4. main에 squash merge
 
