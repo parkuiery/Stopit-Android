@@ -101,6 +101,31 @@ class HomeAccessibilityPermissionIntegrationTest {
         }
     }
 
+    @Test
+    fun returningFromAccessibilitySettingsClearsHomePermissionDialogAfterReEnablingService() {
+        setAccessibilitySettings(
+            accessibilityEnabled = "0",
+            enabledServices = "",
+        )
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForStopItForeground()
+            waitUntil("Expected home permission dialog before enabling accessibility from Settings") {
+                device.hasObject(By.text(permissionDialogTitle))
+            }
+
+            enableAccessibilityServiceFromSettings()
+            waitForStopItForeground()
+            it.onActivity { activity ->
+                assertTrue(
+                    "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
+                    hasAccessibilityPermission(activity),
+                )
+            }
+            waitUntil("Expected home permission dialog to disappear after accessibility is re-enabled and the app resumes") {
+                !device.hasObject(By.text(permissionDialogTitle))
+            }
+        }
+    }
 
     private suspend fun configureReturningUserHomeState() {
         context.dataStore.edit { preferences ->
@@ -141,6 +166,20 @@ class HomeAccessibilityPermissionIntegrationTest {
         waitUntil("Expected KeepAccessibilityService to become disabled in secure settings") {
             shell("settings get secure accessibility_enabled").trim() == "0" ||
                 !shell("settings get secure enabled_accessibility_services").contains(keepServiceComponent)
+        }
+        device.pressHome()
+        launchStopIt()
+    }
+
+    private fun enableAccessibilityServiceFromSettings() {
+        openAccessibilityServiceDetails()
+        setAccessibilitySettings(
+            accessibilityEnabled = "1",
+            enabledServices = keepServiceComponent,
+        )
+        waitUntil("Expected KeepAccessibilityService to become enabled in secure settings") {
+            shell("settings get secure accessibility_enabled").trim() == "1" &&
+                shell("settings get secure enabled_accessibility_services").contains(keepServiceComponent)
         }
         device.pressHome()
         launchStopIt()
