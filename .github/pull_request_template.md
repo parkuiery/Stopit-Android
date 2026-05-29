@@ -24,7 +24,8 @@ For normal development PRs:
 - [ ] `./gradlew :app:testDevDebugUnitTest`
 - [ ] `./gradlew :app:lintDevDebug`
 - [ ] `./gradlew :app:assembleProdDebug`
-- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, `ReceiverRuntimeIntegrationTest`, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
+- [ ] Focused runtime smoke baseline (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` methods, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`) is covered by Android CI or equivalent evidence is linked
+- [ ] Separate `POST_NOTIFICATION ignore` receiver fallback run is covered by Android CI or equivalent evidence is linked
 - [ ] Android CI passes
 
 For release/hotfix PRs:
@@ -33,10 +34,13 @@ For release/hotfix PRs:
 - [ ] Android Release QA passes
 - [ ] Release instrumentation evidence distinguishes:
   - focused UI smoke `com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - exact alarm deny gate
-  - exact alarm allow gate
-  - remaining connected Android suite (`notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest`)
+  - exact alarm deny gate: `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+  - exact alarm deny receiver reentry gate: `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`, `#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`, `#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
+  - exact alarm allow gate: `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
+  - remaining focused runtime suite (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` methods, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`)
+  - separate `POST_NOTIFICATION ignore` receiver fallback run
 - [ ] Android Release Build passes and produces signed AAB artifact
+- [ ] If analytics payload / screen contract / queryability assumptions changed, the PR body distinguishes repo 문서/코드 정리 완료 from GA4 Admin 수동 등록, metadata 재확인, and 배포 후 14일 재측정
 
 For UI/behavior changes:
 - [ ] Manual app smoke test
