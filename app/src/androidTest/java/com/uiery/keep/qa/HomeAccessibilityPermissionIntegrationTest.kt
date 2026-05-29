@@ -14,6 +14,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -61,6 +62,39 @@ class HomeAccessibilityPermissionIntegrationTest {
         }
     }
 
+    @Test
+    fun returningFromAccessibilitySettingsResyncsHomePermissionDialogOnResume() {
+        setAccessibilitySettings(
+            accessibilityEnabled = "1",
+            enabledServices = keepServiceComponent,
+        )
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForStopItForeground()
+            assertFalse(
+                "Permission dialog should stay hidden while accessibility is enabled for KeepAccessibilityService",
+                device.hasObject(By.text(permissionDialogTitle)),
+            )
+
+            instrumentation.targetContext.startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+            )
+            waitForPackageForeground(settingsPackage)
+
+            setAccessibilitySettings(
+                accessibilityEnabled = "0",
+                enabledServices = "",
+            )
+
+            device.pressBack()
+            waitForStopItForeground()
+            waitUntil("Expected home permission dialog after accessibility is disabled and the app resumes") {
+                device.hasObject(By.text(permissionDialogTitle))
+            }
+        }
+    }
+
 
     private suspend fun configureReturningUserHomeState() {
         context.dataStore.edit { preferences ->
@@ -90,26 +124,32 @@ class HomeAccessibilityPermissionIntegrationTest {
     ) {
         shell("settings put secure accessibility_enabled $accessibilityEnabled")
         if (enabledServices.isBlank()) {
-            shell("settings put secure enabled_accessibility_services ''")
+            shell("settings delete secure enabled_accessibility_services")
         } else {
-            shell("settings put secure enabled_accessibility_services '$enabledServices'")
+            shell("settings put secure enabled_accessibility_services $enabledServices")
         }
     }
 
     private fun waitForStopItForeground() {
-        waitUntil("Expected StopIt package to be foreground") {
-            isTargetPackageForeground()
+        waitForPackageForeground(targetPackage)
+    }
+
+    private fun waitForPackageForeground(packageName: String) {
+        waitUntil("Expected $packageName to be foreground") {
+            isPackageForeground(packageName)
         }
     }
 
-    private fun isTargetPackageForeground(): Boolean {
+    private fun isTargetPackageForeground(): Boolean = isPackageForeground(targetPackage)
+
+    private fun isPackageForeground(packageName: String): Boolean {
         if (shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'")
-                .contains("$targetPackage/")) {
+                .contains("$packageName/")) {
             return true
         }
 
         return shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'")
-            .contains(targetPackage)
+            .contains(packageName)
     }
 
     private fun shell(command: String): String = device.executeShellCommand(command)
@@ -128,6 +168,7 @@ class HomeAccessibilityPermissionIntegrationTest {
 
     private companion object {
         const val targetPackage = "com.uiery.keep"
+        const val settingsPackage = "com.android.settings"
         const val keepServiceComponent = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
     }
 }

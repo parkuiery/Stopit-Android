@@ -413,7 +413,7 @@ adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|froz
 
 ### 홈 접근성 권한 경고 재동기화
 
-정확한 권한 판별과 홈 화면 경고 다이얼로그 재동기화는 **자동 exact-match baseline + 수동 resume-sync evidence** 두 층으로 확인한다.
+정확한 권한 판별과 홈 화면 경고 다이얼로그 재동기화는 **자동 exact-match/unit baseline + 자동 settings-resume instrumentation + 필요 시 수동 shell evidence**로 확인한다.
 
 자동 baseline:
 
@@ -425,10 +425,11 @@ cd <repo-root>
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest
 ```
 
-- `ContextExtTest`: `enabled_accessibility_services`가 패키지 substring만 포함할 때는 실패하고, 실제 `KeepAccessibilityService` component exact match일 때만 통과해야 함을 고정한다.
-- `HomeAccessibilityPermissionIntegrationTest`: returning-user 홈 진입 상태에서 **가짜 package substring 서비스 문자열만 있는 경우에도** 홈 접근성 권한 경고 다이얼로그가 다시 보여야 함을 검증하는 **초기 진입 baseline**이다. 설정 화면 왕복 후 `ON_RESUME` 재동기화는 아래 수동 resume-sync 절차로 별도 확인한다.
+- `ContextExtTest`: `enabled_accessibility_services`가 패키지 substring만 포함할 때는 실패하고, 실제 `KeepAccessibilityService` component exact match일 때만 통과해야 하며, Android 설정이 short class name(`com.uiery.keep/.service.KeepAccessibilityService`)으로 저장돼도 같은 서비스로 인식해야 함을 고정한다.
+- `HomeAccessibilityPermissionIntegrationTest#fakePackageSubstringStillShowsAccessibilityPermissionDialogOnHome`: returning-user 홈 진입 상태에서 **가짜 package substring 서비스 문자열만 있는 경우에도** 홈 접근성 권한 경고 다이얼로그가 다시 보여야 함을 검증하는 초기 진입 baseline이다.
+- `HomeAccessibilityPermissionIntegrationTest#returningFromAccessibilitySettingsResyncsHomePermissionDialogOnResume`: 접근성 설정 화면으로 나갔다가 `KeepAccessibilityService`를 끄고 돌아오면 홈 `ON_RESUME`에서 경고 다이얼로그가 즉시 다시 나타나야 함을 자동 검증한다.
 
-수동/반복 가능한 resume-sync evidence:
+필요 시 수동/shell evidence:
 
 1. `IS_NEW=false` 상태(기존 사용자 홈 진입)로 앱을 연다.
 2. Stopit 접근성 권한을 실제로 켠 뒤 홈 화면에서 경고 다이얼로그가 사라진 상태를 확인한다.
@@ -438,6 +439,7 @@ cd <repo-root>
 확인:
 - [ ] 홈으로 복귀한 직후 접근성 권한 경고 다이얼로그가 다시 나타난다.
 - [ ] `enabled_accessibility_services`에 `com.uiery.keep` substring이 들어 있더라도 실제 component exact match가 아니면 경고가 숨겨지지 않는다.
+- [ ] short class name 형식(`com.uiery.keep/.service.KeepAccessibilityService`)도 동일 서비스로 인식한다.
 - [ ] 리뷰/활성화 관련 후속 동작이 권한 오탐 상태에서 진행되지 않는다.
 
 권장 evidence:

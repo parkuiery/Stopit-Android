@@ -17,6 +17,16 @@ class ContextExtTest {
     }
 
     @Test
+    fun enabledAccessibilityServicesAcceptsShortClassNameForMatchingService() {
+        assertTrue(
+            enabledAccessibilityServicesContainsService(
+                enabledServices = "com.uiery.keep/.service.KeepAccessibilityService:com.other/.Helper",
+                serviceComponent = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService",
+            ),
+        )
+    }
+
+    @Test
     fun enabledAccessibilityServicesRejectsPackageSubstringFalsePositive() {
         assertFalse(
             enabledAccessibilityServicesContainsService(
