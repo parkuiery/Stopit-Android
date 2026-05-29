@@ -6,6 +6,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
 DOC_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 WORKFLOW_DOC_PATH = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+RELEASE_CONTEXT_PATH = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 
 EXPECTED_BUILD_CRITICAL_ROOT_INPUTS = {
     "gradlew",
@@ -49,6 +50,13 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("build-critical", doc)
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("wrapper-only", doc)
+
+    def test_release_context_mentions_build_critical_root_inputs(self):
+        doc = RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("build-critical", doc)
+        self.assertIn("`gradlew` / `gradlew.bat`", doc)
+        self.assertIn("Fast verification", doc)
 
     def test_android_ci_workflow_executes_scripts_unittests(self):
         workflow = WORKFLOW_PATH.read_text()
