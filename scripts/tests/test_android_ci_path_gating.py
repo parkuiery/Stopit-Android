@@ -50,6 +50,11 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("wrapper-only", doc)
 
+    def test_android_ci_workflow_executes_scripts_unittests(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
