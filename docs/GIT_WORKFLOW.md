@@ -232,7 +232,7 @@ scripts/release-tag.sh 1.7.2
 
 # 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행
 # branch ref로 internal/alpha/beta/production 업로드 우회 금지
-```
+
 # 6. main -> develop 역머지
 git checkout develop
 git pull origin develop

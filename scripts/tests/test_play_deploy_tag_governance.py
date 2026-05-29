@@ -30,6 +30,20 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("SemVer tag ref", doc)
         self.assertIn("branch ref", doc)
 
+    def test_git_workflow_release_flow_keeps_manual_dispatch_and_main_sync_in_same_code_block(self):
+        doc = GIT_WORKFLOW_DOC_PATH.read_text()
+
+        self.assertIn(
+            "# 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행\n"
+            "# branch ref로 internal/alpha/beta/production 업로드 우회 금지\n\n"
+            "# 6. main -> develop 역머지\n"
+            "git checkout develop\n"
+            "git pull origin develop\n"
+            "git merge origin/main\n"
+            "git push origin develop",
+            doc,
+        )
+
     def test_release_context_mentions_manual_non_production_tag_guard(self):
         doc = RELEASE_CONTEXT_PATH.read_text()
 
