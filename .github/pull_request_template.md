@@ -40,7 +40,14 @@ For release/hotfix PRs:
   - remaining focused runtime suite (`StopitReleaseSmokeTest`, `BackupRestoreRuntimeResetIntegrationTest`, focused `ReceiverRuntimeIntegrationTest` methods, `EmergencyUnlockExpiryIntegrationTest`, `KeepMessagingServiceIntegrationTest`, `KeepAccessibilityServiceIntegrationTest`)
   - separate `POST_NOTIFICATION ignore` receiver fallback run
 - [ ] Android Release Build passes and produces signed AAB artifact
-- [ ] If analytics payload / screen contract / queryability assumptions changed, the PR body distinguishes repo 문서/코드 정리 완료 from GA4 Admin 수동 등록, metadata 재확인, and 배포 후 14일 재측정
+- [ ] If analytics payload / screen contract / queryability assumptions changed, the PR body links `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` and distinguishes these states explicitly:
+  - repo 문서/코드/테스트 정리 완료
+  - GA4 Admin `customEvent:*` custom dimension / metric registration 상태 (still manual or already completed)
+  - live metadata / runReport 재확인 상태
+  - 배포 후 14일 재측정 상태
+- [ ] Analytics/product claims in the PR body do not overstate queryability:
+  - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 단순 no-data가 아니라 registration gap으로 기록한다
+  - `customUser:routines_count` 조회 가능만으로 activation / review / monetization `customEvent:*` 축이 queryable하다고 주장하지 않는다
 
 For UI/behavior changes:
 - [ ] Manual app smoke test
