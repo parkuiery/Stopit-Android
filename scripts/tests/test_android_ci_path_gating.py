@@ -58,6 +58,12 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("Fast verification", doc)
 
+    def test_release_context_explains_fast_verification_gate_contract(self):
+        doc = RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("workflow_dispatch", doc)
+        self.assertIn("android_ci=true", doc)
+
     def test_android_ci_workflow_executes_scripts_unittests(self):
         workflow = WORKFLOW_PATH.read_text()
 
