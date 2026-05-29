@@ -46,6 +46,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
   - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
@@ -56,8 +57,8 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
   - `:app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
-- [ ] The PR body separates what the Android CI focused runtime smoke already proved (launch smoke / backup-restore runtime reset / receiver rehydration / notification-denied fallback notice / emergency-unlock expiry / FCM token regeneration wiring) from what release-only exact alarm gating proved and from any manual-only evidence still required.
-- [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, cross-app Accessibility blocking, end-to-end emergency-unlock foreground return).
+- [ ] The PR body separates what the Android CI focused runtime smoke already proved (launch smoke / backup-restore runtime reset / receiver rehydration / notification-denied fallback notice / emergency-unlock expiry / FCM token regeneration wiring / AccessibilityService bind + self-uninstall interception safety) from what release-only exact alarm gating proved and from any manual-only evidence still required.
+- [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, broader device/OEM-specific Accessibility surfaces, end-to-end emergency-unlock foreground return).
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.
 - [ ] If full `:app:connectedDevDebugAndroidTest` did not run, the blocker and the focused instrumentation/manual evidence actually collected are recorded in the PR body before merge.
 - [ ] User-facing changes are summarized below.
