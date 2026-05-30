@@ -11,6 +11,7 @@ PLAY_DEPLOY = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 VERSION_GUARD = REPO_ROOT / ".github" / "workflows" / "version-guard.yml"
 FUNCTIONS_README = REPO_ROOT / "functions" / "README.md"
 FUNCTIONS_AGENTS = REPO_ROOT / "functions" / "AGENTS.md"
+FUNCTIONS_SRC_AGENTS = REPO_ROOT / "functions" / "src" / "AGENTS.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
 STOPIT_CONTEXT_README = REPO_ROOT / "docs" / "ops" / "stopit" / "README.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
@@ -65,6 +66,7 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         runbook = RUNBOOK.read_text(encoding="utf-8")
         functions_readme = FUNCTIONS_README.read_text(encoding="utf-8")
         functions_agents = FUNCTIONS_AGENTS.read_text(encoding="utf-8")
+        functions_src_agents = FUNCTIONS_SRC_AGENTS.read_text(encoding="utf-8")
         docs_agents = DOCS_AGENTS.read_text(encoding="utf-8")
         stopit_context_readme = STOPIT_CONTEXT_README.read_text(encoding="utf-8")
         qa_runtime_checklist = QA_RUNTIME_CHECKLIST.read_text(encoding="utf-8")
@@ -88,6 +90,10 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
             functions_readme,
         )
         self.assertIn("../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", functions_agents)
+        self.assertIn("../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", functions_src_agents)
+        self.assertIn("DISCORD_PUBLIC_KEY", functions_src_agents)
+        self.assertIn("GITHUB_ACTIONS_DISPATCH_TOKEN", functions_src_agents)
+        self.assertIn("python3 -m unittest scripts.tests.test_play_deploy_secret_contract_runbook -v", functions_src_agents)
         self.assertIn("PLAY_DEPLOY_SECRETS_RUNBOOK.md", docs_agents)
         self.assertIn("../PLAY_DEPLOY_SECRETS_RUNBOOK.md", stopit_context_readme)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", qa_runtime_checklist)
