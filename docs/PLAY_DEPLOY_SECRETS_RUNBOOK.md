@@ -164,3 +164,23 @@ python3 -m unittest scripts.tests.test_play_deploy_secret_contract_runbook -v
 
 이 문서는 helper/workflow/function 경계를 먼저 고정하기 위한 runbook이다.
 `docs/PLAY_DEPLOYMENT.md` 같은 operator-facing canonical release 문서와 내용이 겹치더라도, 실제 open PR overlap이 정리되기 전까지는 여기 내용을 우선 기준으로 사용해 secret drift를 줄인다.
+
+### overlap 정리 후 canonical 문서에 다시 반영할 항목
+
+아래 문서들은 release/operator 관점에서 결국 같은 계약을 직접 설명해야 한다.
+현재는 open PR overlap 때문에 한 번에 같이 수정하지 못할 수 있으므로, overlap이 풀리면 아래 체크리스트 순서로 재동기화한다.
+
+1. `docs/PLAY_DEPLOYMENT.md`
+   - `scripts/setup-play-deploy-secrets.sh`가 **Android/Play build-upload secrets만** 다룬다고 명시한다.
+   - `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`는 `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` 경로로 분리한다.
+   - `GOOGLE_SERVICES_JSON` 설명을 `app/src/prod` 전용 문구가 아니라 workflow별 restore matrix로 바꾼다.
+2. `docs/GIT_WORKFLOW.md`
+   - Play deploy secret/setup source of truth가 이 runbook임을 짧게 링크한다.
+   - release/operator가 helper scope를 오해하지 않도록 Discord deploy notification secret과 Functions secret 경계를 한 줄로 남긴다.
+3. `docs/RELEASE_CHECKLIST.md`
+   - release evidence 작성 시 secret setup self-check를 이 runbook 기준으로 참조하게 한다.
+   - `GOOGLE_SERVICES_JSON` dev+prod/prod-only 차이를 다시 적지 말고 runbook matrix를 따라가게 한다.
+4. `docs/ops/stopit/release-context.md`
+   - release guardrail 문맥에서 secret restore/source-set 계약은 이 runbook을 우선 참조한다고 연결한다.
+
+즉, 이 runbook은 영구적으로 canonical 문서를 대체하려는 것이 아니라 **overlap이 큰 동안 drift를 막는 임시 집중 source of truth**다.

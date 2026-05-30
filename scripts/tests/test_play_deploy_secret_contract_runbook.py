@@ -80,6 +80,12 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", functions_agents)
         self.assertIn("PLAY_DEPLOY_SECRETS_RUNBOOK.md", docs_agents)
         self.assertIn("../PLAY_DEPLOY_SECRETS_RUNBOOK.md", stopit_context_readme)
+        self.assertIn("docs/PLAY_DEPLOYMENT.md", runbook)
+        self.assertIn("docs/GIT_WORKFLOW.md", runbook)
+        self.assertIn("docs/RELEASE_CHECKLIST.md", runbook)
+        self.assertIn("docs/ops/stopit/release-context.md", runbook)
+        self.assertIn("Android/Play build-upload secrets만", runbook)
+        self.assertIn("workflow별 restore matrix", runbook)
 
 
 if __name__ == "__main__":
