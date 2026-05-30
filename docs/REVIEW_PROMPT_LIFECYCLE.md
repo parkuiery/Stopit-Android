@@ -37,7 +37,7 @@
 
 현재 흐름:
 
-1. `LockViewModel`이 성공 세션 종료 시 `SUCCESSFUL_SESSION_COUNT`를 증가시킨다.
+1. `LockViewModel`이 성공 세션 종료 시 `SUCCESSFUL_SESSION_COUNT`를 증가시킨다. 루틴 세션은 첫 차단 앱 진입 시각이 아니라 **현재 활성 루틴 창의 실제 시작 시각**을 세션 anchor로 사용한다.
 2. `ReviewEligibilityEvaluator.evaluate(...)`가 사전 조건을 검사한다.
 3. 결과가 `Eligible`이면:
    - `REVIEW_PENDING = true`

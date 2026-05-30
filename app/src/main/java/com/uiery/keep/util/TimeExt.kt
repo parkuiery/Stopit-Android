@@ -163,6 +163,26 @@ fun currentRoutineWindowEndDateTime(
     }
 }
 
+fun currentRoutineWindowStartDateTime(
+    startTime: LocalTime,
+    endTime: LocalTime,
+    nowDateTime: java.time.LocalDateTime = java.time.LocalDateTime.now(),
+): java.time.LocalDateTime {
+    val startToday = nowDateTime.toLocalDate().atTime(startTime.toJavaLocalTime())
+    val isCrossMidnight = !endTime.toJavaLocalTime().isAfter(startTime.toJavaLocalTime())
+
+    if (!isCrossMidnight) {
+        return startToday
+    }
+
+    val nowTime = nowDateTime.toKotlinLocalDateTime().time
+    return if (nowTime >= startTime) {
+        startToday
+    } else {
+        startToday.minusDays(1)
+    }
+}
+
 private fun DayOfWeek.previousDay(): DayOfWeek = if (this == DayOfWeek.MONDAY) DayOfWeek.SUNDAY else DayOfWeek.of(this.value - 1)
 
 fun isRoutineChangeLocked(
