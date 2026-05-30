@@ -19,8 +19,8 @@
 | `ANDROID_KEY_PASSWORD` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy | Gradle signing env |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | `scripts/setup-play-deploy-secrets.sh` | Version Guard, Play Deploy | runner temp service-account JSON |
 | `GOOGLE_SERVICES_JSON` | `scripts/setup-play-deploy-secrets.sh` | Android CI, Release QA, Release Build, Play Deploy | 아래 workflow matrix 참고 |
-| `DISCORD_BOT_TOKEN` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy | `scripts/notify-discord-deploy.py` |
-| `DISCORD_DEPLOY_CHANNEL_ID` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy, Firebase Functions | deploy 알림 채널 / Discord interaction 채널 검증 |
+| `DISCORD_BOT_TOKEN` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy | `scripts/notify-discord-deploy.py`가 Discord 메시지 POST에 사용 |
+| `DISCORD_DEPLOY_CHANNEL_ID` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy, Firebase Functions | `scripts/notify-discord-deploy.py`의 deploy 알림 채널 + `functions/src/index.ts`의 Discord interaction 채널 검증 |
 
 ### Firebase Functions secrets
 
@@ -125,16 +125,19 @@ gh secret list
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_DEPLOY_CHANNEL_ID`
 
-### Workflow contract 확인
+### Workflow / consumer contract 확인
 
 ```bash
 rg -n 'GOOGLE_SERVICES_JSON|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_PLAY_SERVICE_ACCOUNT_JSON' .github/workflows
+rg -n 'DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID' scripts/notify-discord-deploy.py
+rg -n 'DISCORD_PUBLIC_KEY|DISCORD_DEPLOY_CHANNEL_ID|DISCORD_DEPLOY_ALLOWED_ROLE_IDS|DISCORD_DEPLOY_ALLOWED_USER_IDS|GITHUB_ACTIONS_DISPATCH_TOKEN' functions/src/index.ts
 ```
 
 기대 결과:
 - Android CI / Release QA는 `GOOGLE_SERVICES_JSON`을 dev+prod 둘 다에 복원한다.
 - Release Build / Play Deploy는 `GOOGLE_SERVICES_JSON`을 prod만 복원한다.
-- Play Deploy만 `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`를 직접 사용한다.
+- Play Deploy workflow는 `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`를 `scripts/notify-discord-deploy.py`에만 전달한다.
+- Firebase Functions는 `functions/src/index.ts`에서 `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, `DISCORD_DEPLOY_ALLOWED_ROLE_IDS`, `DISCORD_DEPLOY_ALLOWED_USER_IDS`, `GITHUB_ACTIONS_DISPATCH_TOKEN`을 별도 secret으로 정의한다.
 - Version Guard와 Play Deploy가 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`을 사용한다.
 
 ### Helper scope 확인
