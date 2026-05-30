@@ -13,6 +13,8 @@ FUNCTIONS_README = REPO_ROOT / "functions" / "README.md"
 FUNCTIONS_AGENTS = REPO_ROOT / "functions" / "AGENTS.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
 STOPIT_CONTEXT_README = REPO_ROOT / "docs" / "ops" / "stopit" / "README.md"
+QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
+ENGINEERING_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "engineering-context.md"
 DISCORD_NOTIFIER = REPO_ROOT / "scripts" / "notify-discord-deploy.py"
 FUNCTIONS_INDEX = REPO_ROOT / "functions" / "src" / "index.ts"
 
@@ -65,6 +67,8 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         functions_agents = FUNCTIONS_AGENTS.read_text(encoding="utf-8")
         docs_agents = DOCS_AGENTS.read_text(encoding="utf-8")
         stopit_context_readme = STOPIT_CONTEXT_README.read_text(encoding="utf-8")
+        qa_runtime_checklist = QA_RUNTIME_CHECKLIST.read_text(encoding="utf-8")
+        engineering_context = ENGINEERING_CONTEXT.read_text(encoding="utf-8")
         discord_notifier = DISCORD_NOTIFIER.read_text(encoding="utf-8")
         functions_index = FUNCTIONS_INDEX.read_text(encoding="utf-8")
 
@@ -86,6 +90,11 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", functions_agents)
         self.assertIn("PLAY_DEPLOY_SECRETS_RUNBOOK.md", docs_agents)
         self.assertIn("../PLAY_DEPLOY_SECRETS_RUNBOOK.md", stopit_context_readme)
+        self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", qa_runtime_checklist)
+        self.assertIn("Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에", qa_runtime_checklist)
+        self.assertIn("Release Build / Play Deploy에서는 `app/src/prod`에만", qa_runtime_checklist)
+        self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", engineering_context)
+        self.assertIn("scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`", engineering_context)
         self.assertIn("docs/PLAY_DEPLOYMENT.md", runbook)
         self.assertIn("docs/GIT_WORKFLOW.md", runbook)
         self.assertIn("docs/RELEASE_CHECKLIST.md", runbook)

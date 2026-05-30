@@ -27,6 +27,8 @@
 - 필요 flavor의 `google-services.json`이 현재 worktree에 복원되어 있음
 - 테스트 기기 또는 에뮬레이터 1대 이상 연결
 
+`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `prod 전용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. 특히 같은 `GOOGLE_SERVICES_JSON` secret을 Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에, Release Build / Play Deploy에서는 `app/src/prod`에만 복원한다는 점을 먼저 맞춘다.
+
 ### 권장 사전 명령
 
 ```bash
