@@ -6,6 +6,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 PLAY_DOC_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 GIT_WORKFLOW_DOC_PATH = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+RELEASE_CHECKLIST_PATH = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT_PATH = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 
 
@@ -49,6 +50,13 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
 
         self.assertIn("manual dispatch도 SemVer tag ref에서만 허용", doc)
         self.assertIn("internal/alpha/beta/production", doc)
+
+    def test_release_checklist_mentions_manual_dispatch_tag_governance(self):
+        doc = RELEASE_CHECKLIST_PATH.read_text()
+
+        self.assertIn("manual `workflow_dispatch`", doc)
+        self.assertIn("SemVer tag ref", doc)
+        self.assertIn("branch ref", doc)
 
 
 if __name__ == "__main__":
