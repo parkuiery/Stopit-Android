@@ -10,6 +10,9 @@ RELEASE_BUILD = REPO_ROOT / ".github" / "workflows" / "release-build.yml"
 PLAY_DEPLOY = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 VERSION_GUARD = REPO_ROOT / ".github" / "workflows" / "version-guard.yml"
 FUNCTIONS_README = REPO_ROOT / "functions" / "README.md"
+FUNCTIONS_AGENTS = REPO_ROOT / "functions" / "AGENTS.md"
+DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
+STOPIT_CONTEXT_README = REPO_ROOT / "docs" / "ops" / "stopit" / "README.md"
 
 
 class PlayDeploySecretContractRunbookTest(unittest.TestCase):
@@ -57,6 +60,9 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
     def test_runbook_and_functions_readme_keep_secret_ownership_boundary_explicit(self):
         runbook = RUNBOOK.read_text(encoding="utf-8")
         functions_readme = FUNCTIONS_README.read_text(encoding="utf-8")
+        functions_agents = FUNCTIONS_AGENTS.read_text(encoding="utf-8")
+        docs_agents = DOCS_AGENTS.read_text(encoding="utf-8")
+        stopit_context_readme = STOPIT_CONTEXT_README.read_text(encoding="utf-8")
 
         self.assertIn("scripts/setup-play-deploy-secrets.sh`는 Android/Play 배포용 helper", runbook)
         self.assertIn("scripts/setup-discord-deploy-secrets.sh", runbook)
@@ -71,6 +77,9 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
             "This `functions/` setup only covers Firebase Functions secrets used by Crashlytics alerts and production-promotion interactions.",
             functions_readme,
         )
+        self.assertIn("../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", functions_agents)
+        self.assertIn("PLAY_DEPLOY_SECRETS_RUNBOOK.md", docs_agents)
+        self.assertIn("../PLAY_DEPLOY_SECRETS_RUNBOOK.md", stopit_context_readme)
 
 
 if __name__ == "__main__":
