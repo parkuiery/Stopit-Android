@@ -20,6 +20,10 @@ ENGINEERING_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "engineering-conte
 DEV_SOURCE_AGENTS = REPO_ROOT / "app" / "src" / "dev" / "AGENTS.md"
 PROD_SOURCE_AGENTS = REPO_ROOT / "app" / "src" / "prod" / "AGENTS.md"
 PR_TEMPLATE = REPO_ROOT / ".github" / "pull_request_template.md"
+ROOT_AGENTS = REPO_ROOT / "AGENTS.md"
+APP_AGENTS = REPO_ROOT / "app" / "AGENTS.md"
+CONTEXT_BUNDLE_PROTOCOL = REPO_ROOT / "docs" / "ops" / "stopit" / "context-bundle-protocol.md"
+RECENT_DECISIONS = REPO_ROOT / "docs" / "ops" / "stopit" / "recent-decisions.md"
 DISCORD_NOTIFIER = REPO_ROOT / "scripts" / "notify-discord-deploy.py"
 FUNCTIONS_INDEX = REPO_ROOT / "functions" / "src" / "index.ts"
 
@@ -79,6 +83,10 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         dev_source_agents = DEV_SOURCE_AGENTS.read_text(encoding="utf-8")
         prod_source_agents = PROD_SOURCE_AGENTS.read_text(encoding="utf-8")
         pr_template = PR_TEMPLATE.read_text(encoding="utf-8")
+        root_agents = ROOT_AGENTS.read_text(encoding="utf-8")
+        app_agents = APP_AGENTS.read_text(encoding="utf-8")
+        context_bundle_protocol = CONTEXT_BUNDLE_PROTOCOL.read_text(encoding="utf-8")
+        recent_decisions = RECENT_DECISIONS.read_text(encoding="utf-8")
         discord_notifier = DISCORD_NOTIFIER.read_text(encoding="utf-8")
         functions_index = FUNCTIONS_INDEX.read_text(encoding="utf-8")
 
@@ -116,6 +124,14 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("Android CI/Release QA may restore the same secret to both dev and prod", prod_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", pr_template)
         self.assertIn("workflow secret restore", pr_template)
+        self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", root_agents)
+        self.assertIn("GitHub Actions repo secrets, workflow별 `GOOGLE_SERVICES_JSON` restore matrix, Firebase Functions secret 경계", root_agents)
+        self.assertIn("../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", app_agents)
+        self.assertIn("Android CI / Release QA / Release Build / Play Deploy의 restore 차이", app_agents)
+        self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", context_bundle_protocol)
+        self.assertIn("secret ownership / helper scope / Firebase Functions 경계", context_bundle_protocol)
+        self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", recent_decisions)
+        self.assertIn("helper scope / `GOOGLE_SERVICES_JSON` restore matrix / Firebase Functions promotion secret boundary", recent_decisions)
         self.assertIn("docs/PLAY_DEPLOYMENT.md", runbook)
         self.assertIn("docs/GIT_WORKFLOW.md", runbook)
         self.assertIn("docs/RELEASE_CHECKLIST.md", runbook)

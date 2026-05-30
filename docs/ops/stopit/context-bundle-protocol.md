@@ -11,12 +11,16 @@
 
 ## 공통 고정 맥락
 
+
 모든 cron은 최소한 아래를 확인한다.
 
 - `docs/ops/stopit/README.md`
 - `docs/ops/stopit/issue-policy.md`
 - `docs/ops/stopit/agent-roles.md`
 - `docs/ops/stopit/recent-decisions.md`
+
+추가 규칙:
+- Play deploy / release-secret / workflow restore matrix를 다루는 실행·분석 run은 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 context bundle에 포함할지 먼저 판단한다. `release-context.md`보다 secret ownership / helper scope / Firebase Functions 경계를 더 구체적으로 설명하는 source of truth다.
 
 ## 공통 동적 상태
 
@@ -101,6 +105,9 @@ Subagent별 전달:
 - `agent-roles.md`
 - `recent-decisions.md`
 
+조건부 추가:
+- Play deploy secret / helper / workflow restore matrix / Discord promotion secret boundary를 건드리는 실행 run이면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`
+
 동적 상태:
 - git status/branch
 - open Issues
@@ -110,7 +117,7 @@ Subagent별 전달:
 
 Subagent별 전달:
 - Issue Picker: open Issues/PRs, priority policy, dirty tree state, latest cron outputs
-- Implementation Strategy: selected Issue body, relevant engineering/release context
+- Implementation Strategy: selected Issue body, relevant engineering/release context, 필요 시 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` 요약
 - Test/PR Verifier: diff summary, verification outputs, PR body/check state
 
 ## 최종 통합 절차
