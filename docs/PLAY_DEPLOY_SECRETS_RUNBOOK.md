@@ -143,12 +143,14 @@ rg -n 'GOOGLE_SERVICES_JSON|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_P
 bash -n scripts/setup-play-deploy-secrets.sh
 bash -n scripts/setup-discord-deploy-secrets.sh
 python3 -m unittest scripts.tests.test_setup_deploy_secret_helpers -v
+python3 -m unittest scripts.tests.test_play_deploy_secret_contract_runbook -v
 ```
 
 기대 결과:
 - Play helper는 Android/Play/Firebase config secret만 설정한다.
 - Discord helper는 GitHub Actions Discord deploy secret만 설정한다.
 - helper scope 차이가 테스트로 고정된다.
+- runbook의 workflow/ownership matrix가 실제 workflow/Functions README와 어긋나면 테스트가 바로 실패한다.
 
 ## 5. Operator pitfalls
 
