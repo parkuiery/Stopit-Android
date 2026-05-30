@@ -173,7 +173,7 @@
 - flavorless command drift
 - workflow separation 유지
 - versionCode/versionName guard
-- Play deploy secret/config 문서 일치
+- Play deploy secret/config 문서 일치 (`docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 helper scope / workflow restore matrix / Functions secret boundary 기준으로 함께 확인)
 
 금지:
 - 실제 배포를 수행하지 않고 배포 완료라고 표현하기
