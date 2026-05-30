@@ -8,6 +8,11 @@ internal const val EMERGENCY_UNLOCK_REASON_NOT_REQUIRED = "not_required"
 internal val ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS = listOf(3, 5, 10, 15)
 internal val DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS = listOf(3, 5, 10)
 
+internal enum class EmergencyUnlockNotificationPostResult {
+    Posted,
+    PermissionDenied,
+}
+
 @Deprecated("Use DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT")
 internal const val DAILY_EMERGENCY_UNLOCK_LIMIT = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 
@@ -90,6 +95,16 @@ internal fun isEmergencyUnlockActiveForPackage(
     nowMillis: Long = System.currentTimeMillis(),
 ): Boolean =
     unlockedApps.contains(packageName) && nowMillis < expireTimeMillis
+
+internal fun resolveEmergencyUnlockNotificationPostResult(
+    notificationsEnabled: Boolean,
+    postNotificationsPermissionGranted: Boolean,
+): EmergencyUnlockNotificationPostResult =
+    if (notificationsEnabled && postNotificationsPermissionGranted) {
+        EmergencyUnlockNotificationPostResult.Posted
+    } else {
+        EmergencyUnlockNotificationPostResult.PermissionDenied
+    }
 
 internal fun emergencyUnlockExpiryDelayMillis(
     expireTimeMillis: Long,

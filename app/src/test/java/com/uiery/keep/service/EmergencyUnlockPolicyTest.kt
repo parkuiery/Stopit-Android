@@ -8,6 +8,31 @@ import org.junit.Test
 class EmergencyUnlockPolicyTest {
 
     @Test
+    fun emergencyUnlockNotificationPostResultRequiresEnabledNotificationsAndPermission() {
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.PermissionDenied,
+            resolveEmergencyUnlockNotificationPostResult(
+                notificationsEnabled = false,
+                postNotificationsPermissionGranted = true,
+            )
+        )
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.PermissionDenied,
+            resolveEmergencyUnlockNotificationPostResult(
+                notificationsEnabled = true,
+                postNotificationsPermissionGranted = false,
+            )
+        )
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.Posted,
+            resolveEmergencyUnlockNotificationPostResult(
+                notificationsEnabled = true,
+                postNotificationsPermissionGranted = true,
+            )
+        )
+    }
+
+    @Test
     fun dailyLimitIsReachedAtThreeUnlocks() {
         assertFalse(isEmergencyUnlockDailyLimitReached(todayUnlockCount = 2))
         assertTrue(isEmergencyUnlockDailyLimitReached(todayUnlockCount = 3))

@@ -350,6 +350,7 @@ internal suspend fun handleExpiredEmergencyUnlockForContext(
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
+        cancelEmergencyUnlockNotification(context)
     }
 
     return resolution
