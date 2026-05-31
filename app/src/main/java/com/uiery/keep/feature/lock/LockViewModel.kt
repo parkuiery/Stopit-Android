@@ -226,6 +226,7 @@ class LockViewModel
                         )
                     }
                     startEmergencyUnlockCountdown(totalSeconds)
+                    postSideEffect(LockSideEffect.UnlockCompleted)
                 }
             }
         }
@@ -272,4 +273,5 @@ data class LockUiState(
 
 sealed class LockSideEffect {
     data object MoveToHome : LockSideEffect()
+    data object UnlockCompleted : LockSideEffect()
 }

@@ -69,7 +69,9 @@ fun LockScreen(
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
-            is LockSideEffect.MoveToHome -> onNavigateHome()
+            is LockSideEffect.MoveToHome,
+            is LockSideEffect.UnlockCompleted,
+            -> onNavigateHome()
         }
     }
 
