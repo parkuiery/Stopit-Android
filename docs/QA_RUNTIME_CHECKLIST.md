@@ -426,13 +426,26 @@ adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|froz
 ### 시나리오 B — 시간 잠금
 
 1. 가까운 미래까지 유지되는 timed lock을 설정한다.
-2. 잠금 중 대상 앱을 연다.
-3. 잠금 종료 후 같은 앱을 다시 연다.
+2. 잠금 예약 직후, 아직 Lock 화면 종료 시점이 오기 전에 history/누적 시간이 증가하지 않았는지 확인한다.
+3. 잠금 중 대상 앱을 연다.
+4. 잠금 종료 후 같은 앱을 다시 연다.
+5. 종료 후 history 상세와 누적 시간이 실제 종료된 세션 기준으로 한 번만 증가했는지 확인한다.
 
 확인:
+- [ ] 예약 직후에는 `lock_history`, `TOTAL_BLOCK_TIME`, `LONG_BLOCK_TIME`가 완료 세션처럼 선반영되지 않는다.
 - [ ] 잠금 시간 내에는 차단된다.
 - [ ] 잠금 만료 후에는 정상 진입된다.
 - [ ] 만료 직전/직후에 차단 상태가 뒤집히는 이상 동작이 없다.
+- [ ] 만료 후에는 home timer 세션이 `isRoutine=false`로 한 번만 기록되고 duration은 실제 시작~종료 구간과 일치한다.
+
+자동/scriptable baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger" \
+  --tests "com.uiery.keep.feature.lock.LockViewModelTest.completedHomeTimerRecordsHistoryLedgerAtLockCompletion"
+```
 
 ### 시나리오 C — 루틴 차단
 
