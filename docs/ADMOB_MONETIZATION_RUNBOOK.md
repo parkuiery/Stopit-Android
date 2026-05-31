@@ -179,6 +179,124 @@ issue #16에 기록된 최근 30일 기준선:
 2. 만약 이름을 유지한다면, GA4 report query가 SDK 자동 이벤트와 앱 custom 이벤트를 분리할 수 있는 필터(`customEvent:ad_placement != (not set)` 등)를 갖도록 runbook/query template을 고정한다.
 3. 보정 PR 또는 GA4 query 계약 변경 후 14일 재조회에서 `publisherAdImpressions` 표와 custom placement 표를 따로 보고, 둘을 합산하지 않는다.
 
+## GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리
+
+#16의 현재 경계는 “광고 custom dimension 등록 여부”가 아니라 **같은 이벤트명 아래 섞이는 SDK 자동 이벤트와 앱 custom 이벤트를 분리해서 볼 수 있느냐**다. 다음 template은 code-lane이 이벤트명을 바꾸기 전/후 모두에서 사용할 수 있는 최소 분리 조회 계약이다.
+
+운영 규칙:
+
+- `publisherAdImpressions` / `publisherAdClicks` / `totalAdRevenue` + `adUnitName` 표는 AdMob/GA4 광고 단위 성과표다.
+- `eventCount` + `customEvent:ad_placement` / `customEvent:ad_unit_id` 표는 `TrackedBannerAd` custom parameter coverage 표다.
+- 두 표를 합산하지 않는다. 첫 번째 표는 수익·노출 source of truth, 두 번째 표는 앱 custom event coverage/source 분리 진단용이다.
+- 앱 custom event coverage를 볼 때는 `customEvent:ad_placement`가 `(not set)` 또는 empty가 아닌 행만 따로 계산한다. 이 비율이 낮으면 placement별 수익화 결론을 보류한다.
+
+```python
+# Run inside <repo-root> with the local Analytics service account path.
+from google.oauth2 import service_account
+from google.auth.transport.requests import AuthorizedSession
+
+PROPERTY_ID = '502544175'
+# Do not commit or paste the real service-account path/value.
+# Set this to the local Analytics read-only service-account JSON path when running.
+CREDENTIAL_PATH = '<analytics-service-account.json>'
+
+creds = service_account.Credentials.from_service_account_file(
+    CREDENTIAL_PATH,
+    scopes=['https://www.googleapis.com/auth/analytics.readonly'],
+)
+session = AuthorizedSession(creds)
+
+
+def run_report(name, body):
+    response = session.post(
+        f'https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}:runReport',
+        json=body,
+    )
+    print(f'\n--- {name} {response.status_code} ---')
+    response.raise_for_status()
+    data = response.json()
+    headers = [h['name'] for h in data.get('dimensionHeaders', [])]
+    headers += [h['name'] for h in data.get('metricHeaders', [])]
+    print('\t'.join(headers))
+    for row in data.get('rows', []):
+        values = row.get('dimensionValues', []) + row.get('metricValues', [])
+        print('\t'.join(v.get('value', '') for v in values))
+
+
+def event_filter(event_name):
+    return {
+        'filter': {
+            'fieldName': 'eventName',
+            'stringFilter': {'matchType': 'EXACT', 'value': event_name},
+        },
+    }
+
+
+def custom_placement_present_filter():
+    # GA4 Data API cannot express "not (not set) and not empty" as a single
+    # reusable named segment here, so keep the raw breakdown plus this rule:
+    # count only rows where customEvent:ad_placement is neither '(not set)' nor ''.
+    return ['(not set)', '']
+
+
+# 1) AdMob/GA4 publisher surface: revenue/impression/click source of truth.
+run_report('publisher_ad_units_30d', {
+    'dateRanges': [{'startDate': '30daysAgo', 'endDate': 'yesterday'}],
+    'dimensions': [{'name': 'adUnitName'}, {'name': 'adFormat'}],
+    'metrics': [
+        {'name': 'totalAdRevenue'},
+        {'name': 'publisherAdImpressions'},
+        {'name': 'publisherAdClicks'},
+        {'name': 'activeUsers'},
+    ],
+    'orderBys': [{'metric': {'metricName': 'publisherAdImpressions'}, 'desc': True}],
+    'limit': 50,
+})
+
+# 2) App custom-event coverage: do not use this as revenue source of truth.
+for event_name in ['ad_impression', 'ad_click', 'ad_revenue']:
+    run_report(f'{event_name}_custom_placement_breakdown_30d', {
+        'dateRanges': [{'startDate': '30daysAgo', 'endDate': 'yesterday'}],
+        'dimensions': [{'name': 'customEvent:ad_placement'}, {'name': 'customEvent:ad_unit_id'}],
+        'metrics': [{'name': 'eventCount'}, {'name': 'totalUsers'}],
+        'dimensionFilter': event_filter(event_name),
+        'orderBys': [{'metric': {'metricName': 'eventCount'}, 'desc': True}],
+        'limit': 50,
+    })
+
+print('Coverage rule: custom-covered rows exclude', custom_placement_present_filter())
+```
+
+판단 template:
+
+```md
+## AdMob event-source split
+- Window:
+- Publisher surface:
+  - publisherAdImpressions:
+  - publisherAdClicks:
+  - totalAdRevenue:
+  - `(not set)` + empty `adUnitName`:
+- App custom-event coverage:
+  - `ad_impression` total eventCount:
+  - `customEvent:ad_placement` covered eventCount:
+  - coverage = covered / total:
+  - `ad_click` covered eventCount:
+  - `ad_revenue` covered eventCount:
+- Decision:
+  - [ ] safe to compare placements
+  - [ ] mapping/source split must be fixed first
+- Follow-up:
+```
+
+2026-06-01 template smoke 결과:
+
+- 실행: 위 template의 `customEvent:ad_placement` breakdown을 `30daysAgo..yesterday`로 실행.
+- `ad_impression`: total `21,159`, custom-covered `912`, coverage `4.31%`.
+- `ad_click`: total `11`, custom-covered `0`, coverage `0.00%`.
+- `ad_revenue`: total `8,602`, custom-covered `908`, coverage `10.56%`.
+- 판단: 현재 상태는 placement별 CTR/eCPM 결론을 내리기엔 custom coverage가 낮다. 새 광고 실험보다 SDK 자동 이벤트와 앱 custom 이벤트의 이름/필터 분리 또는 query contract 고정이 먼저다.
+
 ## 코드 기준 광고 placement 계약
 
 2026-05-31 문서 closure pass에서 main source의 `TrackedBannerAd` call site를 재확인한 코드 기준 계약이다. 이 표는 GA4/AdMob 결과의 `adUnitName`과 앱 코드의 `ad_placement`/`ad_unit_id`가 서로 같은 화면을 가리키는지 대조할 때 사용한다.
