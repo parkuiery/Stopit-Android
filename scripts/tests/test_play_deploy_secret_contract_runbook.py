@@ -17,6 +17,7 @@ STOPIT_CONTEXT_README = REPO_ROOT / "docs" / "ops" / "stopit" / "README.md"
 AGENT_ROLES = REPO_ROOT / "docs" / "ops" / "stopit" / "agent-roles.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 ENGINEERING_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "engineering-context.md"
+APP_SOURCE_AGENTS = REPO_ROOT / "app" / "src" / "AGENTS.md"
 DEV_SOURCE_AGENTS = REPO_ROOT / "app" / "src" / "dev" / "AGENTS.md"
 PROD_SOURCE_AGENTS = REPO_ROOT / "app" / "src" / "prod" / "AGENTS.md"
 PR_TEMPLATE = REPO_ROOT / ".github" / "pull_request_template.md"
@@ -80,6 +81,7 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         agent_roles = AGENT_ROLES.read_text(encoding="utf-8")
         qa_runtime_checklist = QA_RUNTIME_CHECKLIST.read_text(encoding="utf-8")
         engineering_context = ENGINEERING_CONTEXT.read_text(encoding="utf-8")
+        app_source_agents = APP_SOURCE_AGENTS.read_text(encoding="utf-8")
         dev_source_agents = DEV_SOURCE_AGENTS.read_text(encoding="utf-8")
         prod_source_agents = PROD_SOURCE_AGENTS.read_text(encoding="utf-8")
         pr_template = PR_TEMPLATE.read_text(encoding="utf-8")
@@ -120,6 +122,8 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("Release Build / Play Deploy에서는 `app/src/prod`에만", qa_runtime_checklist)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", engineering_context)
         self.assertIn("scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`", engineering_context)
+        self.assertIn("../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", app_source_agents)
+        self.assertIn("Android CI / Release QA는 같은 `GOOGLE_SERVICES_JSON` secret을 dev+prod 둘 다에 복원", app_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", dev_source_agents)
         self.assertIn("workflow-specific restore matrix", dev_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", prod_source_agents)
