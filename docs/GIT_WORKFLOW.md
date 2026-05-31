@@ -155,7 +155,7 @@ scripts/release-tag.sh 1.7.2
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
 - `v1.7.2` 태그 생성 및 push
-- GitHub Actions CD가 Google Play internal track 업로드 실행
+- GitHub Actions CD가 `scripts/validate-play-deploy-ref.sh`로 태그가 `origin/main`에서 온 SemVer release tag인지, 직전 SemVer production marker가 있는지 다시 검증한 뒤 Google Play internal track 업로드 실행
 
 ### 릴리즈 준비 상태 점검
 
@@ -225,7 +225,7 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 
 # 4. main에 squash merge
 
-# 5. main 최신화 후 태그 배포. 이때만 CD가 Google Play에 업로드한다.
+# 5. main 최신화 후 태그 배포. CD도 태그 ancestry + 직전 production marker를 재검증한 뒤에만 Google Play에 업로드한다.
 git checkout main
 git pull origin main
 scripts/release-tag.sh 1.7.2
@@ -264,6 +264,7 @@ gh pr create --base main --fill
 - Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다.
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
+- 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
 - secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
 - `versionCode`는 절대 재사용하지 않는다.
