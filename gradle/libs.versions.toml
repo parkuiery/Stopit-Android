@@ -27,6 +27,7 @@ orbit = "9.0.0"
 hilt = "2.56.1"
 ksp = "2.1.10-1.0.31"
 gmsGoogleServices = "4.4.4"
+firebaseCrashlytics = "3.0.6"
 utilcodex = "1.31.1"
 mockitoCore = "5.14.2"
 playReview = "2.0.2"
@@ -85,3 +86,5 @@ dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 gms-google-services = { id = "com.google.gms.google-services", version.ref = "gmsGoogleServices" }
+androidx-room = { id = "androidx.room", version.ref = "room" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

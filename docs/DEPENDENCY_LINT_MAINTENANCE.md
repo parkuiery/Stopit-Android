@@ -21,20 +21,18 @@
 
 - 버전 카탈로그: `gradle/libs.versions.toml`
 - 앱 의존성 선언: `app/build.gradle.kts`
+- 루트 Gradle plugin 선언: `build.gradle.kts`
 - lint 보고서 출력 위치: `app/build/reports/lint-results-devDebug.txt`
 - flavor-aware 기본 검증 명령: `docs/GIT_WORKFLOW.md`
 - ops 컨텍스트: `docs/ops/stopit/engineering-context.md`
 
 주의:
 
-- 이 저장소는 모든 의존성을 버전 카탈로그로 통일하지 않았다.
-- 현재 `app/build.gradle.kts`에는 다음처럼 **직접 버전 문자열**이 남아 있다.
-  - `androidx.room:room-runtime:2.7.1`
-  - `androidx.room:room-compiler:2.7.1`
-  - `androidx.room:room-testing:2.7.1`
-  - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1`
-  - `com.google.android.gms:play-services-ads:23.0.0`
-- 그래서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `app/build.gradle.kts`도 같이 봐야 한다.
+- dependency와 Gradle plugin 드리프트를 함께 봐야 한다.
+- Room library/runtime/compiler/testing과 Room Gradle plugin은 같은 `room` version ref를 쓴다.
+- Firebase Crashlytics Gradle plugin은 `firebaseCrashlytics` version ref를 쓴다.
+- 앱/루트 Gradle 파일에 새 직접 버전 문자열이 들어오면, 먼저 `gradle/libs.versions.toml` alias로 이동할 수 있는지 확인한다.
+- 그래서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `build.gradle.kts`와 `app/build.gradle.kts`도 같이 봐야 한다.
 
 ## 유지보수 원칙
 
