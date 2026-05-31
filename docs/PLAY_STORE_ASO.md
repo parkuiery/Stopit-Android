@@ -30,6 +30,26 @@
 
 따라서 이 문서는 이제 "반영 여부 의심" 문서가 아니라, **이미 반영된 수동 작업의 사후 복원 기록 + 후속 측정 런북**으로 해석한다.
 
+### 2026-06-01 repo-observable 중간 스냅샷
+
+- 확인 시각: `2026-06-01 06:08 KST`
+- 명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+- 해석 주의: Play Console 반영이 `2026-05-27 01:18 KST 이전`으로만 복원되어 있고, 아래 `30daysAgo..yesterday` 창은 ASO 반영 전/후가 섞인 중간 관측이다. 따라서 이 값은 **14일/30일 성과 판정이 아니라 다음 측정의 기준선 보강**으로만 쓴다.
+
+| 지표 | 2026-05-24 issue #65 기준 | 2026-06-01 GA4 30일 창 | 변화 | 해석 |
+| --- | ---: | ---: | ---: | --- |
+| `newUsers` | 203 | 274 | +35.0% | 직전 스냅샷보다 회복됐지만, 같은 창의 직전 30일 373 대비는 -26.5%라 완전 회복 아님 |
+| `Organic Search` 신규 사용자 | 178 | 167 | -6.2% | 신규 유저 증가는 `Direct` 비중 증가와 함께 봐야 하며, ASO organic 회복으로 단정 금지 |
+| `Organic Search` 신규 사용자 비중 | 87.7% | 60.9% | -26.8pp | acquisition mix가 바뀌었으므로 listing 효과 판단에는 Play Console listing conversion이 필요 |
+| `activeUsers` | 457 | 523 | +14.4% | 활성 사용자는 반등했지만 직전 30일 614 대비 -14.8% |
+| `sessions` | 4,636 | 4,481 | -3.3% | 세션은 아직 기준선보다 낮고 직전 30일 6,430 대비 -30.3% |
+
+다음 결론은 보류한다.
+
+- `Organic Search`만 보면 아직 #65 기준선보다 낮다.
+- 전체 `newUsers` 반등은 긍정 신호지만, Play listing copy/screenshot 효과인지 다른 유입/버전/노출 요인인지는 Play Console의 listing conversion과 store acquisition breakdown 없이는 분리할 수 없다.
+- 14일 체크는 `2026-06-10 KST 이후`, 30일 체크는 `2026-06-26 KST 이후`에 같은 분자/분모로 다시 기록한다.
+
 ## 지표/근거
 
 ### 실행 트리거
@@ -270,8 +290,8 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
 | EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
 | 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 Play Console 실제 반영 완료 확인 |
-| 14일 점검 | 예정 | `TODO` | `TODO` | |
-| 30일 점검 | 예정 | `TODO` | `TODO` | |
+| 14일 점검 | 예정 | `2026-06-10 KST 이후` | `TODO` | Play Console 반영이 `2026-05-27 01:18 KST 이전`인 점을 기준으로 한 최소 14일 후 체크 |
+| 30일 점검 | 예정 | `2026-06-26 KST 이후` | `TODO` | 같은 분자/분모로 `Organic Search`, 전체 `newUsers`, listing conversion, 평점/리뷰 수 비교 |
 
 ## 14일 / 30일 검증 포맷
 
@@ -294,8 +314,9 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | 시점 | newUsers | Organic Search 신규 사용자 | activeUsers | sessions | listing 전환율 | rating count | 평균 평점 | 판단 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | baseline | 203 | 178 | 457 | 4,636 | `TODO` | `TODO` | `TODO` | 반영 전 |
-| +14일 | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
-| +30일 | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| 2026-06-01 중간 스냅샷 | 274 | 167 | 523 | 4,481 | `TODO` | `TODO` | `TODO` | 반영 전/후 혼합 30일 창. 전체 신규 유저는 반등했지만 Organic Search는 아직 기준선보다 낮아 성과 판정 보류 |
+| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 
 ## 브랜딩 점검 메모
 
