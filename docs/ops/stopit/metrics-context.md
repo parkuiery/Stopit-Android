@@ -87,6 +87,7 @@
 - 지표 하나당 이슈 하나를 만들지 않는다. 실행 단위의 문제/기회로 묶는다.
 - 광고/수익화 개선은 activation, retention, trust guardrail과 함께 판단한다.
 - Play In-App Review API는 실제 리뷰 작성/취소 여부를 앱에 직접 알려주지 않는다. 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed` 수준이다.
+- Usage Access 개인화(#119)는 구현 ready 신호가 아니라 discovery gate로 본다. 권한 허용률만 보지 말고 `first_core_action_completed`, `app_block_intercepted`, review/rating, crash-free users guardrail을 함께 보며, 앱 이름/package/raw usage history는 analytics payload로 보내지 않는다.
 
 ## 지표 기반 이슈 생성 기준
 
@@ -107,3 +108,4 @@
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`

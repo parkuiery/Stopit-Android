@@ -66,6 +66,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - 긴급해제 기본권을 제한하는 수익화
 - 핵심 차단 기능을 갑자기 유료화하는 실험
 - 계측이 부족해 성공/실패를 판단할 수 없는 기능
+- Usage Access처럼 민감 권한을 핵심 차단 가치 이전에 요구하거나, 권한 거절 시 기존 차단/타이머/루틴 가치를 약화시키는 개인화 기능
 
 ## 관련 문서
 
@@ -73,3 +74,4 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/METRICS_ANALYSIS.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 Usage Access 선택형 개인화 discovery gate. 구현 ready가 아니라 권한 UX, privacy guardrail, QA evidence, child issue 분리 기준을 관리한다.
