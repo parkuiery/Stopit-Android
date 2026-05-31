@@ -21,20 +21,31 @@
 
 - 버전 카탈로그: `gradle/libs.versions.toml`
 - 앱 의존성 선언: `app/build.gradle.kts`
+- KDS 의존성 선언: `core/kds/build.gradle.kts`
 - lint 보고서 출력 위치: `app/build/reports/lint-results-devDebug.txt`
 - flavor-aware 기본 검증 명령: `docs/GIT_WORKFLOW.md`
 - ops 컨텍스트: `docs/ops/stopit/engineering-context.md`
 
 주의:
 
-- 이 저장소는 모든 의존성을 버전 카탈로그로 통일하지 않았다.
-- 현재 `app/build.gradle.kts`에는 다음처럼 **직접 버전 문자열**이 남아 있다.
-  - `androidx.room:room-runtime:2.7.1`
-  - `androidx.room:room-compiler:2.7.1`
-  - `androidx.room:room-testing:2.7.1`
-  - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1`
-  - `com.google.android.gms:play-services-ads:23.0.0`
-- 그래서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `app/build.gradle.kts`도 같이 봐야 한다.
+- 이 저장소는 버전 카탈로그를 **원칙적인 source of truth**로 두지만, 아직 모든 의존성이 TOML alias로 완전히 통일된 것은 아니다.
+- 2026-05-29 기준으로 direct version drift의 실제 잔여 위치는 `app`보다 `core:kds` 쪽이 더 중요하다.
+  - `core/kds/build.gradle.kts`
+    - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1`
+    - `com.google.android.gms:play-services-ads:23.0.0`
+    - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3`
+- 반면 `gradle/libs.versions.toml`에는 이미 아래 alias가 존재한다.
+  - `kotlinx-datetime`
+  - `google-play-services-ads`
+- 즉 `kotlinx-datetime` / `play-services-ads`는 catalog entry가 있는데도 `core/kds/build.gradle.kts`에 direct string이 남은 상태다.
+- `lifecycle-runtime-compose`는 현재 catalog alias 자체가 없으므로, direct version을 유지할지 아니면 새 alias를 추가할지 maintenance batch에서 함께 판단해야 한다.
+- 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, 최소한 `app/build.gradle.kts`와 `core/kds/build.gradle.kts`를 같이 확인해야 한다.
+
+### version catalog 정책 메모
+
+- 기본 규칙: **라이브러리/플러그인 버전은 가능하면 `gradle/libs.versions.toml`을 source of truth로 둔다.**
+- 예외가 남아 있으면 direct version을 유지하는 이유(예: alias 부재, stack 정렬 보류, 런타임 리스크)를 문서나 이슈에 남긴다.
+- `app`만 보고 source-of-truth drift를 판단하지 않는다. `:core:kds` 같은 공유 모듈도 같은 규칙으로 본다.
 
 ## 유지보수 원칙
 
@@ -112,18 +123,20 @@
 - `androidx.appcompat:appcompat`: `1.7.0 -> 1.7.1`
 - `androidx.test.ext:junit`: `1.2.1 -> 1.3.0`
 - `androidx.test.espresso:espresso-core`: `3.6.1 -> 3.7.0`
-- `Room`, `kotlinx-datetime`, `play-services-ads` 의존성 선언을 `app/build.gradle.kts`의 direct version 문자열에서 `gradle/libs.versions.toml`로 이동
+- `Room` 의존성 선언을 `app/build.gradle.kts`의 direct version 문자열에서 `gradle/libs.versions.toml`로 이동
+- 이후 direct version drift의 주요 잔여 위치가 `core/kds/build.gradle.kts`로 좁혀졌음을 확인
 
 이 배치의 의도:
 
-- **직접 버전 문자열 정리**로 `UseTomlInstead` 경고를 제거한다.
+- **직접 버전 문자열 정리**로 `UseTomlInstead` 경고를 줄이고, 이후 잔여 드리프트 위치를 `core:kds`까지 좁혀서 추적 가능하게 만든다.
 - 런타임 영향이 비교적 작은 patch(`appcompat`, `hilt-navigation-compose`)만 먼저 올린다.
 - Room / Ads / Kotlin / AGP / Compose 같은 더 큰 드리프트는 한 번에 밀어 넣지 않고 후속 배치로 남긴다.
 
 이번 배치 후에도 남겨둔 defer 항목:
 
 - `Room 2.7.1 -> 2.8.4`: KSP/annotation processing 회귀 확인이 필요하므로 별도 좁은 배치 권장
-- `play-services-ads 23.0.0 -> 25.3.0`: 수익화/런타임 QA 범위가 커서 별도 검토 권장
+- `core:kds`의 `play-services-ads 23.0.0 -> catalog alias 전환 (+ 필요 시 버전 업그레이드 분리)`: 수익화/런타임 QA 범위가 커서 별도 검토 권장
+- `core:kds`의 `lifecycle-runtime-compose 2.9.3`: catalog alias 신설 여부와 Compose/Lifecycle stack 정합성 검토 필요
 - `AGP`, `Kotlin`, `Compose`, `Lifecycle`, `Activity`, `Material`, `Navigation` 등 coordinated stack 계열
 
 ## 권장 업그레이드 순서
@@ -133,7 +146,7 @@
 1. **lint 기준선 확보**
    - `:app:lintDevDebug`를 돌려 현재 경고 목록을 저장한다.
 2. **버전 선언 위치 정리**
-   - `libs.versions.toml`와 `app/build.gradle.kts`의 direct version을 함께 확인한다.
+   - `libs.versions.toml`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`의 direct version을 함께 확인한다.
 3. **safe patch batch부터 처리**
    - Firebase / AndroidX / DataStore / Room patch처럼 비교적 독립적인 것부터.
 4. **stack upgrade 분리 처리**
@@ -261,6 +274,7 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
 - Changed coordinates:
   - `libs.versions.toml`: ...
   - `app/build.gradle.kts`: ...
+  - `core/kds/build.gradle.kts`: ...
 - Verification:
   - `./gradlew :app:testDevDebugUnitTest`
   - `./gradlew :app:assembleProdDebug`
@@ -289,7 +303,7 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
 
 ## 흔한 실수
 
-- `libs.versions.toml`만 보고 direct dependency version을 놓치기
+- `libs.versions.toml`만 보고 `core/kds/build.gradle.kts`에 남은 direct dependency version을 놓치기
 - AGP/Kotlin/Compose/KSP를 일반 patch와 한 배치에 섞기
 - lint 경고 감소를 확인하지 않고 “업그레이드 완료”라고 쓰기
 - flavor-less 명령 예시를 다시 문서에 넣기
