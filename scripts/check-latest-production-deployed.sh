@@ -37,7 +37,10 @@ fi
 
 git fetch --tags origin >/dev/null 2>&1 || git fetch --tags >/dev/null
 
-latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
+  | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+  | { if [[ -n "${STOPIT_RELEASE_GATE_EXCLUDE_TAG:-}" ]]; then grep -Fxv "$STOPIT_RELEASE_GATE_EXCLUDE_TAG"; else cat; fi; } \
+  | head -n 1 || true)"
 
 if [[ -z "$latest_tag" ]]; then
   echo "No existing SemVer tag found; latest production deployment gate is not applicable yet."
