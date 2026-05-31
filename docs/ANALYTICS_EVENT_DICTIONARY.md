@@ -64,7 +64,7 @@
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약 |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_package` | 실제 차단 발생 |
+| `app_block_intercepted` | `block_source`, `blocked_app_package`, `routine_id?` | 실제 차단 발생 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
@@ -158,7 +158,7 @@
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
-| Recommended | `routine_id` | `routine_id` | `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
+| Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
 | Recommended | `screen_name` | `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
 | Recommended | `ad_currency` | `ad_currency` | `ad_revenue` | 통화 코드 확인 |
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_revenue` | 추정 수익 vs 정밀 수익 구분 |

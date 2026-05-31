@@ -150,13 +150,15 @@ class FirebaseKeepAnalytics
         override fun trackAppBlockIntercepted(
             blockSource: String,
             blockedAppPackage: String,
+            routineId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
-                params = mapOf(
-                    KeepAnalyticsParam.BLOCK_SOURCE to blockSource,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to blockedAppPackage,
-                ),
+                params = buildMap {
+                    put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
+                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+                },
             )
         }
 
