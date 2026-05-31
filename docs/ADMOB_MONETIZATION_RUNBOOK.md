@@ -119,10 +119,51 @@ issue #16에 기록된 최근 30일 기준선:
 
 다음 실행 후보:
 
-1. `TrackedBannerAd`/AdMob adapter 쪽에서 every impression/click/revenue payload가 동일한 `adUnitName`/`ad_unit_id` 계약을 갖는지 확인한다.
-2. GA4 metadata에서 광고 관련 custom dimensions/metrics 등록 여부를 확인하고, 누락이면 #13 GA4 등록 runbook과 연결한다.
-3. `(not set)` 노출이 특정 appVersion 또는 screen에 집중되는지 `appVersion`, `unifiedScreenName` 분해 쿼리로 좁힌다.
-4. 보정 후 14일 기준으로 이 표를 다시 채워 광고 단위별 성과표 completion 여부를 판단한다.
+1. 아래 **코드 기준 광고 placement 계약**과 GA4 `adUnitName` 결과를 대조한다.
+2. `TrackedBannerAd`/AdMob adapter 쪽에서 every impression/click/revenue payload가 동일한 `adUnitName`/`ad_unit_id` 계약을 갖는지 확인한다.
+3. GA4 metadata에서 광고 관련 custom dimensions/metrics 등록 여부를 확인하고, 누락이면 #13 GA4 등록 runbook과 연결한다.
+4. `(not set)` 노출이 특정 appVersion, screen, event, source 쪽에 집중되는지 `appVersion`, `unifiedScreenName`, `eventName` 분해 쿼리로 좁힌다.
+5. 보정 후 14일 기준으로 이 표를 다시 채워 광고 단위별 성과표 completion 여부를 판단한다.
+
+## 코드 기준 광고 placement 계약
+
+2026-05-31 문서 closure pass에서 main source의 `TrackedBannerAd` call site를 재확인한 코드 기준 계약이다. 이 표는 GA4/AdMob 결과의 `adUnitName`과 앱 코드의 `ad_placement`/`ad_unit_id`가 서로 같은 화면을 가리키는지 대조할 때 사용한다.
+
+| 코드 위치 | `screen_name` | `screen_context` | `ad_placement` | `ad_unit_id` | 2026-05-31 GA4 표시명 | 운영 판단 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `BlockScreen.kt` | `block` | `blocked_app` | `block_top` | `ca-app-pub-1537867411423705/5467753282` | `블락 상단 배너` | 차단 경험과 가장 가까운 신뢰 민감 위치. 노출 확대 금지, 우선 guardrail 감사 대상. |
+| `HomeScreen.kt` | `home` | `main` | `home_bottom` | `ca-app-pub-1537867411423705/5120253017` | `홈 하단 배너` | 비핵심 하단 영역이지만 첫 잠금 CTA를 방해하면 안 됨. |
+| `MenuScreen.kt` | `menu` | `settings` | `menu_bottom` | `ca-app-pub-1537867411423705/3270829732` | `메뉴 하단 배너` | 설정/피드백/삭제방지와 같은 신뢰 설정 흐름을 가리지 않는지 확인. |
+| `LockScreen.kt` | `lock` | `routine` / `manual` | `lock_bottom` | `ca-app-pub-1537867411423705/7892727021` | `잠금 하단 배너` | 긴급해제와 인접한 안전 민감 위치. 수익보다 이탈/불만 guardrail 우선. |
+| `RoutineListContent.kt` | `routine` | `list` | `routine_list_bottom` | `ca-app-pub-1537867411423705/7750072748` | `루틴 목록 하단 배너` | 반복 사용자 화면. 활성 루틴 설정 방해 여부 확인. |
+| `RoutineNoContent.kt` | `routine` | `empty_state` | `routine_empty_bottom` | `ca-app-pub-1537867411423705/9271028233` | `루틴 공백 하단 배너` | 첫 루틴 생성 CTA와 충돌하면 안 됨. |
+| `HistoryScreen.kt` | `history` | `summary` | `history_bottom` | `ca-app-pub-1537867411423705/5324044368` | `사용 기록 하단 배너` | 비교적 안전한 비핵심 화면이지만 history/성과 회고 경험을 방해하지 않는지 확인. |
+
+해석:
+
+- 코드 기준 call site는 모두 `TrackedBannerAd`를 지나므로 앱 내부 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)에는 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`가 붙어야 한다.
+- 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
+- `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
+
+## #16 closure-pass 게이트
+
+#16을 `Closes`로 전환하려면 다음 repo-internal/외부 경계를 분리해서 모두 확인한다.
+
+1. **문서/계약 완료**
+   - 위 코드 기준 placement 표가 최신 call site와 일치한다.
+   - `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 이 문서의 audit 절차가 같은 필드명을 쓴다.
+   - `docs/METRICS_ANALYSIS.md`와 `docs/PRODUCT_METRICS_DASHBOARD.md`에서 수익화 분석이 이 런북으로 이어진다.
+2. **계측/매핑 보정 완료**
+   - `ad_unit_id`, `ad_placement`, `screen_context`가 GA4 custom dimension으로 조회 가능하다.
+   - `adUnitName = (not set)` 또는 empty의 원인이 AdMob 단위 naming, GA4 linkage, SDK 자동 이벤트, 앱 custom event 중 어디인지 분류됐다.
+   - 원인별 보정 PR 또는 Play/GA4/Admin 수동 조치가 기록됐다.
+3. **14일 재조회 완료**
+   - 보정 배포 또는 Admin 반영 시각을 기준으로 `14daysAgo..yesterday` 재조회 표를 남긴다.
+   - `(not set)` + empty 비중이 분자/분모로 기록되고, 줄지 않았으면 placement 최적화/실험을 진행하지 않는다.
+4. **실험 선택 완료**
+   - guardrail을 포함한 단 하나의 수익화 실험을 선택한다.
+   - 차단/긴급해제/권한/첫 루틴 CTA에 광고를 추가하는 실험은 기본 후보에서 제외한다.
+   - 실험 전후 비교 기간, appVersion, 분자/분모가 명시된다.
 
 판단 규칙:
 

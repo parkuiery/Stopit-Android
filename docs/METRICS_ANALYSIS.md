@@ -342,6 +342,8 @@ PY
 판단 기준:
 
 - 노출은 증가했는데 수익/CTR/eCPM이 하락하면 광고 위치·광고 품질·계측 문제를 함께 의심한다.
+- `adUnitName = (not set)` 또는 empty가 의미 있는 비중이면 placement 최적화나 새 광고 실험보다 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 코드 기준 placement 표와 #16 closure-pass 게이트를 먼저 적용한다.
+- `adUnitName`은 AdMob/GA4 표시명이고 앱 custom event의 `ad_unit_id`와 같은 필드가 아니므로, 둘을 연결하려면 `ad_unit_id`, `ad_placement`, `screen_context` custom dimension 등록 여부를 확인한다.
 - 차단/긴급해제 흐름을 방해하는 광고 실험은 하지 않는다.
 
 ### 6. 신뢰 / 리뷰
