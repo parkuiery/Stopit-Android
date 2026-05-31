@@ -275,6 +275,7 @@ adb logcat -d | grep -E "RoutineAlarmReceiver|BootReceiver|KeepAccessibilityServ
 
 - `dumpsys alarm`: receiver 이후 다음 알람/루틴 재예약 여부를 남길 때 유용하다.
 - `logcat`: 런타임 크래시/경고를 함께 남길 때 유용하다.
+- 민감 로그 금지: `RoutineModel.toString()`처럼 루틴명, 시간대, 반복 요일, 차단 앱 package를 한 번에 노출하는 raw 모델 로그를 남기지 않는다. 토큰, device id, 긴급해제 상태도 raw logcat evidence에 남기기 전에 마스킹한다.
 - 로그 태그나 출력은 빌드에 따라 충분하지 않을 수 있으므로, 스크린샷/시각/루틴 이름 같은 사용자 관찰 evidence를 같이 보관한다.
 
 ## 2. BootReceiver 검증
