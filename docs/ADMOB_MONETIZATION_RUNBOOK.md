@@ -75,6 +75,55 @@ issue #16에 기록된 최근 30일 기준선:
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | 예: HomeBanner | banner | 0 | 0 | 0% | $0.00 | $0.00 | 홈 화면 하단 | 유지/축소/계측수정 |
 
+## 2026-05-31 광고 단위 감사 스냅샷
+
+조회 조건:
+
+- 기간: `30daysAgo..yesterday`
+- GA4 property: `properties/502544175`
+- 쿼리: `adUnitName`, `adFormat` × `totalAdRevenue`, `publisherAdImpressions`, `publisherAdClicks`, `activeUsers`
+- 실행 근거: `/Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py` 및 동일 credential/session을 사용한 `runReport`
+
+전체 기준선:
+
+| 지표 | 값 |
+| --- | ---: |
+| activeUsers | 516 |
+| totalAdRevenue | $1.900233 |
+| publisherAdImpressions | 20,939 |
+| publisherAdClicks | 11 |
+| ARPU | $0.003683 |
+| CTR | 0.053% |
+| eCPM | $0.091 |
+
+광고 단위별 분해:
+
+| adUnitName | adFormat | impressions | clicks | CTR | revenue | eCPM | impression share | activeUsers |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 블락 상단 배너 | Banner | 8,874 | 5 | 0.056% | $1.129637 | $0.127 | 42.4% | 207 |
+| `(not set)` | banner | 8,198 | 0 | 0.000% | $0.000000 | $0.000 | 39.2% | 225 |
+| 홈 하단 배너 | Banner | 1,565 | 3 | 0.192% | $0.363071 | $0.232 | 7.5% | 301 |
+| 메뉴 하단 배너 | Banner | 844 | 0 | 0.000% | $0.157902 | $0.187 | 4.0% | 165 |
+| 잠금 하단 배너 | Banner | 503 | 2 | 0.398% | $0.130988 | $0.260 | 2.4% | 75 |
+| 루틴 목록 하단 배너 | Banner | 422 | 1 | 0.237% | $0.068327 | $0.162 | 2.0% | 70 |
+| empty `adUnitName` | banner | 316 | 0 | 0.000% | $0.000000 | $0.000 | 1.5% | 41 |
+| 루틴 공백 하단 배너 | Banner | 131 | 0 | 0.000% | $0.033163 | $0.253 | 0.6% | 65 |
+| 사용 기록 하단 배너 | Banner | 86 | 0 | 0.000% | $0.017145 | $0.199 | 0.4% | 62 |
+
+판단:
+
+- `adUnitName = (not set)`와 empty `adUnitName`이 합쳐서 `8,514 / 20,939 = 40.7%`의 노출을 차지한다. 따라서 **placement 최적화보다 계측 매핑 보정이 먼저**다.
+- 수익은 `블락 상단 배너`가 가장 크지만 CTR은 `5 / 8,874 = 0.056%`로 낮다. 이 위치가 실제 차단 경험과 겹치므로, 추가 노출 확대 후보가 아니라 **신뢰 guardrail 감사 대상**이다.
+- `홈 하단 배너`, `잠금 하단 배너`, `루틴 목록 하단 배너`는 노출 규모는 작지만 CTR/eCPM이 상대적으로 높다. 다만 잠금/긴급해제 흐름에 가까운 위치는 수익보다 trust risk를 우선해서 본다.
+- 이번 스냅샷만으로 issue #16 완료 기준을 닫을 수 없다. 완료 전에는 `(not set)`/empty 원인을 코드·GA4 등록·AdMob mapping 중 어디에서 해결할지 정하고, 수정 후 같은 표를 다시 조회해야 한다.
+
+다음 실행 후보:
+
+1. `TrackedBannerAd`/AdMob adapter 쪽에서 every impression/click/revenue payload가 동일한 `adUnitName`/`ad_unit_id` 계약을 갖는지 확인한다.
+2. GA4 metadata에서 광고 관련 custom dimensions/metrics 등록 여부를 확인하고, 누락이면 #13 GA4 등록 runbook과 연결한다.
+3. `(not set)` 노출이 특정 appVersion 또는 screen에 집중되는지 `appVersion`, `unifiedScreenName` 분해 쿼리로 좁힌다.
+4. 보정 후 14일 기준으로 이 표를 다시 채워 광고 단위별 성과표 completion 여부를 판단한다.
+
 판단 규칙:
 
 - `adUnitName`이 `(not set)`이면 **계측 보정 우선**이다.
