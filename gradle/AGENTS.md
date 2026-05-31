@@ -37,3 +37,9 @@ Gradle version catalog and wrapper support files shared by all modules.
 - See module build files for dependency declarations.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
+
+## Manual Notes
+
+- `gradle/libs.versions.toml` is the preferred source of truth for library/plugin versions across `:app` and `:core:kds`.
+- Before claiming direct-version drift is gone, inspect both `app/build.gradle.kts` and `core/kds/build.gradle.kts`; KDS can still carry leftover string-pinned dependencies even after app cleanup.
+- If a dependency remains direct-versioned because no catalog alias exists yet (for example a lifecycle artifact), document that exception in the maintenance issue or runbook instead of silently normalizing around it.
