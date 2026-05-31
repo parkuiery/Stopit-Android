@@ -14,6 +14,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `METRICS_ANALYSIS.md` | 스탑잇 제품 지표 분석, GA4 조회, 개선 이슈화 절차 문서. |
 | `PRODUCT_METRICS_DASHBOARD.md` | 스탑잇 North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의. |
 | `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. |
+| `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. |
 
 ## Subdirectories
 | Directory | Purpose |
