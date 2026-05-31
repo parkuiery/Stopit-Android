@@ -64,6 +64,34 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun selectedAppForegroundBeforeServiceConnects_launchesBlockActivityAfterServiceConnects() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        disableAccessibilityServiceIfEnabled()
+        waitUntil("KeepAccessibilityService should be disabled before connect catch-up setup", UI_TIMEOUT_MS) {
+            !isAccessibilityServiceEnabled()
+        }
+        configureManualKeepBlock(blockedPackage)
+
+        launchPackage(blockedPackage)
+        waitForPackageForeground(
+            packageName = blockedPackage,
+            message = "Expected $blockedPackage to be foreground before Accessibility service reconnects",
+        )
+        KeepAccessibilityServiceDebugState.reset(context)
+
+        enableAccessibilityServiceIfNeeded()
+        waitForServiceStatePropagation()
+        waitForServiceToObserveSelectedPackage(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to catch up and request BlockActivity for foreground $blockedPackage after service connection",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
+        }
+    }
+
+    @Test
     fun selectedAppWithManualKeep_launchesBlockActivity() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         configureManualKeepBlock(blockedPackage)
@@ -181,6 +209,17 @@ class KeepAccessibilityServiceIntegrationTest {
         }
         device.findObject(By.res(ALLOW_BUTTON_ID))?.click()
             ?: fail("Could not find Allow button for Accessibility permission dialog")
+    }
+
+    private fun disableAccessibilityServiceIfEnabled() {
+        if (!isAccessibilityServiceEnabled()) return
+
+        openAccessibilityServiceDetails()
+        waitUntil("Could not find Accessibility main switch for StopIt service", UI_TIMEOUT_MS) {
+            device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
+        }
+        device.findObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))?.click()
+            ?: fail("Could not find Accessibility main switch for StopIt service")
     }
 
     private fun openAccessibilityServiceDetails() {
