@@ -297,6 +297,44 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 - `ad_revenue`: total `8,602`, custom-covered `908`, coverage `10.56%`.
 - 판단: 현재 상태는 placement별 CTR/eCPM 결론을 내리기엔 custom coverage가 낮다. 새 광고 실험보다 SDK 자동 이벤트와 앱 custom 이벤트의 이름/필터 분리 또는 query contract 고정이 먼저다.
 
+## code-lane handoff: 광고 custom event source 분리
+
+#16을 다음 실행 lane으로 넘길 때는 아래 계약을 그대로 구현 후보 범위로 사용한다. 핵심은 “수익화 실험”이 아니라 **SDK 자동 광고 이벤트와 앱 custom 광고 이벤트를 분석에서 분리 가능하게 만드는 것**이다.
+
+### 문제 계약
+
+- 현재 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue`는 AdMob/GA4 publisher surface 기준 수익 지표다.
+- 앱 코드의 `TrackedBannerAd`도 `ad_impression`, `ad_click`, `ad_revenue` 이름으로 custom parameter를 기록한다.
+- GA4 breakdown에서 `customEvent:ad_placement` coverage가 낮기 때문에, 같은 이벤트명 아래 SDK 자동 이벤트와 앱 custom event가 섞여 보일 수 있다.
+- 따라서 placement별 CTR/eCPM 최적화나 광고 제거 관심도 실험을 진행하기 전에, code-lane은 이벤트명/필터/문서 계약 중 하나를 선택해 source split을 고정해야 한다.
+
+### 허용되는 해결 방향
+
+1. **이벤트명 분리(권장)**
+   - 앱 custom event를 SDK 자동 이벤트와 충돌하지 않는 이름으로 바꾼다.
+   - 후보: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`.
+   - `KeepAnalytics`, `FirebaseKeepAnalytics`, `TrackedBannerAd`, 관련 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`, GA4 registration runbook을 같은 PR에서 동기화한다.
+2. **이벤트명 유지 + query contract 고정(보수적 대안)**
+   - 이벤트명은 유지하되, 모든 운영 쿼리가 `customEvent:ad_placement` / `customEvent:ad_unit_id` present 행만 앱 custom coverage로 해석하도록 고정한다.
+   - 이 경우에도 PR body와 문서에 “publisher surface와 앱 custom-event coverage를 합산하지 않는다”를 명시한다.
+
+### 완료 기준
+
+- [ ] `TrackedBannerAdTest` 또는 동등한 analytics payload 테스트가 impression/click/revenue 이벤트명과 `ad_placement`, `ad_unit_id`, `screen_context`, `ad_format`, `screen_name` payload를 고정한다.
+- [ ] `docs/ANALYTICS_EVENT_DICTIONARY.md`가 선택한 이벤트명/필터 계약을 source of truth로 설명한다.
+- [ ] `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 새 이벤트명 또는 유지된 이벤트명의 custom dimension 조회 방식을 설명한다.
+- [ ] #16 PR/이슈에는 보정 배포 후 14일 재조회 기준이 남는다.
+- [ ] 배포 전에는 `Refs #16`가 맞고, 14일 재조회와 실험 선택까지 끝났을 때만 `Closes #16`를 사용한다.
+
+### 검증 권장 명령
+
+```bash
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.TrackedBannerAdTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest'
+git diff --check
+rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|customEvent:ad_placement|publisherAdImpressions' docs/ANALYTICS_EVENT_DICTIONARY.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md docs/ADMOB_MONETIZATION_RUNBOOK.md
+```
+
 ## 코드 기준 광고 placement 계약
 
 2026-05-31 문서 closure pass에서 main source의 `TrackedBannerAd` call site를 재확인한 코드 기준 계약이다. 이 표는 GA4/AdMob 결과의 `adUnitName`과 앱 코드의 `ad_placement`/`ad_unit_id`가 서로 같은 화면을 가리키는지 대조할 때 사용한다.
