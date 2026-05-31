@@ -125,6 +125,60 @@ issue #16에 기록된 최근 30일 기준선:
 4. `(not set)` 노출이 특정 appVersion, screen, event, source 쪽에 집중되는지 `appVersion`, `unifiedScreenName`, `eventName` 분해 쿼리로 좁힌다.
 5. 보정 후 14일 기준으로 이 표를 다시 채워 광고 단위별 성과표 completion 여부를 판단한다.
 
+## 2026-06-01 GA4 AdMob 파라미터 등록/조회 preflight
+
+이번 docs-lane closure pass에서 #16의 남은 경계가 “GA4 Admin 등록 누락”인지 “런타임 이벤트 소스/SDK 자동 이벤트 충돌”인지 분리하기 위해 metadata와 custom dimension breakdown을 추가 확인했다.
+
+확인 명령:
+
+- `properties/502544175/metadata`에서 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name` 존재 여부 확인
+- `eventName = ad_impression | ad_click | ad_revenue` 필터로 `customEvent:ad_placement`, `customEvent:ad_unit_id` 분해 조회
+
+결과:
+
+| 확인 항목 | 결과 |
+| --- | --- |
+| `customEvent:ad_unit_id` | 등록됨 (`Ad Unit ID`) |
+| `customEvent:ad_placement` | 등록됨 (`Ad Placement`) |
+| `customEvent:screen_context` | 등록됨 (`Screen Context`) |
+| `customEvent:ad_format` | 등록됨 (`Ad Format`) |
+| `customEvent:ad_value_micros` | 등록됨 (`Ad Value Micros`) |
+| `customEvent:screen_name` | 등록됨 (`Screen Name`) |
+| event-scoped custom dimensions | 22개 확인 |
+| event-scoped custom metrics | 5개 확인 |
+
+최근 30일 `ad_impression` × `customEvent:ad_placement` 조회:
+
+| `customEvent:ad_placement` | eventCount | totalUsers |
+| --- | ---: | ---: |
+| `(not set)` | 19,821 | 317 |
+| `block_top` | 546 | 45 |
+| empty value | 340 | 46 |
+| `home_bottom` | 112 | 55 |
+| `menu_bottom` | 74 | 29 |
+| `lock_bottom` | 61 | 17 |
+| `routine_list_bottom` | 15 | 11 |
+| `routine_empty_bottom` | 11 | 9 |
+| `history_bottom` | 7 | 7 |
+
+추가 확인:
+
+- `ad_impression` × `customEvent:ad_unit_id`도 같은 모양이다. `(not set)`이 `19,823`건이고 코드 기준 ad unit id가 붙은 이벤트는 소수만 보인다.
+- `ad_click` × `customEvent:ad_placement`은 `11`건 모두 `(not set)`으로 조회됐다.
+- `ad_revenue` × `customEvent:ad_placement`은 `(not set)` `7,694`건 + 코드 placement별 이벤트가 함께 보인다.
+
+해석:
+
+- 광고 관련 custom dimension/metric은 이제 GA4 metadata에 등록되어 있다. 따라서 #16의 다음 repo-internal/ops 작업은 단순 “GA4 Admin 등록”이 아니라, **같은 이벤트명(`ad_impression`, `ad_click`, `ad_revenue`)으로 들어오는 SDK 자동 수집 이벤트와 앱 custom 이벤트를 어떻게 분리/명명/집계할지 결정하는 것**이다.
+- 현재 `publisherAdImpressions` 기준 `adUnitName` 표와 앱 custom event 기준 `customEvent:ad_placement` 표를 같은 표처럼 합치면 안 된다. 전자는 AdMob/GA4 광고 단위 표시명 중심이고, 후자는 `TrackedBannerAd`가 직접 붙인 custom parameter 중심이다.
+- `ad_click`이 모두 `(not set)`으로 조회된 것은 클릭 이벤트가 앱 custom event 파라미터 없이 들어오거나, 앱 custom click 이벤트가 SDK 자동 이벤트와 같은 이름으로 섞여서 dimension 해석이 희석됐을 가능성을 시사한다.
+
+#16의 다음 실행 경계:
+
+1. code-lane에서 `TrackedBannerAd` custom 이벤트명을 SDK/GA4 권장 자동 이벤트명과 충돌하지 않게 분리할지 검토한다. 예: `ad_impression`을 그대로 쓸지, 제품 분석용 이벤트를 `ad_unit_impression`/`ad_banner_impression`처럼 별도 명명할지 결정한다.
+2. 만약 이름을 유지한다면, GA4 report query가 SDK 자동 이벤트와 앱 custom 이벤트를 분리할 수 있는 필터(`customEvent:ad_placement != (not set)` 등)를 갖도록 runbook/query template을 고정한다.
+3. 보정 PR 또는 GA4 query 계약 변경 후 14일 재조회에서 `publisherAdImpressions` 표와 custom placement 표를 따로 보고, 둘을 합산하지 않는다.
+
 ## 코드 기준 광고 placement 계약
 
 2026-05-31 문서 closure pass에서 main source의 `TrackedBannerAd` call site를 재확인한 코드 기준 계약이다. 이 표는 GA4/AdMob 결과의 `adUnitName`과 앱 코드의 `ad_placement`/`ad_unit_id`가 서로 같은 화면을 가리키는지 대조할 때 사용한다.
