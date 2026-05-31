@@ -92,7 +92,7 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 - `/Users/uiel/.agents/skills/android-cli/SKILL.md`
 - 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
 
-release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다.
+release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다. 세부 단계 source of truth는 `.github/workflows/release-qa.yml`과 `docs/ops/stopit/release-context.md`이며, 이 문서는 그 순서를 사람이 반복 실행하기 쉬운 checklist 형태로 풀어쓴 것이다.
 
 ```bash
 cd <repo-root>
@@ -102,14 +102,31 @@ cd <repo-root>
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent
+./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.notClass=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
 ```
 
-즉, release candidate baseline은 `focused UI smoke -> exact alarm deny -> exact alarm allow -> remaining connected suite` 순서다. exact alarm appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm deny(4개) -> exact alarm allow(1개) -> remaining connected suite -> notification-denied fallback` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 ### receiver/service instrumentation baseline
 
