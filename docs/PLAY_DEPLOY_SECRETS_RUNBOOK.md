@@ -109,6 +109,22 @@ firebase deploy --only functions
 
 secret 값을 출력하지 말고 **존재 여부와 workflow 계약**만 확인한다.
 
+### 빠른 자동 self-check
+
+```bash
+scripts/check-play-deploy-secret-contract.sh
+```
+
+보조 옵션:
+- `STOPIT_SKIP_GH_SECRET_LIST=1 scripts/check-play-deploy-secret-contract.sh`
+  - `gh` 인증이 없거나 로컬에서 secret 이름 조회만 건너뛰고 workflow/helper/consumer 계약 점검만 하고 싶을 때 사용한다.
+
+이 스크립트가 확인하는 것:
+- GitHub repo secret 이름 최소 세트 존재 여부
+- workflow / Discord notifier / Firebase Functions consumer grep audit
+- `setup-play` / `setup-discord` helper syntax check
+- helper scope / runbook contract unittest 실행
+
 ### GitHub secret names 확인
 
 ```bash
@@ -143,10 +159,17 @@ rg -n 'DISCORD_PUBLIC_KEY|DISCORD_DEPLOY_CHANNEL_ID|DISCORD_DEPLOY_ALLOWED_ROLE_
 ### Helper scope 확인
 
 ```bash
+scripts/check-play-deploy-secret-contract.sh
+```
+
+또는 수동으로는:
+
+```bash
 bash -n scripts/setup-play-deploy-secrets.sh
 bash -n scripts/setup-discord-deploy-secrets.sh
 python3 -m unittest scripts.tests.test_setup_deploy_secret_helpers -v
 python3 -m unittest scripts.tests.test_play_deploy_secret_contract_runbook -v
+python3 -m unittest scripts.tests.test_check_play_deploy_secret_contract -v
 ```
 
 기대 결과:
@@ -154,6 +177,7 @@ python3 -m unittest scripts.tests.test_play_deploy_secret_contract_runbook -v
 - Discord helper는 GitHub Actions Discord deploy secret만 설정한다.
 - helper scope 차이가 테스트로 고정된다.
 - runbook의 workflow/ownership matrix가 실제 workflow/Functions README와 어긋나면 테스트가 바로 실패한다.
+- 자동 self-check 스크립트가 필수 secret 이름 누락과 helper/test 계약 이탈을 한 번에 실패로 올린다.
 
 ## 5. Operator pitfalls
 

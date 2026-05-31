@@ -91,6 +91,8 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         functions_index = FUNCTIONS_INDEX.read_text(encoding="utf-8")
 
         self.assertIn("scripts/setup-play-deploy-secrets.sh`는 Android/Play 배포용 helper", runbook)
+        self.assertIn("scripts/check-play-deploy-secret-contract.sh", runbook)
+        self.assertIn("STOPIT_SKIP_GH_SECRET_LIST=1 scripts/check-play-deploy-secret-contract.sh", runbook)
         self.assertIn("scripts/setup-discord-deploy-secrets.sh", runbook)
         self.assertIn("Firebase Functions **양쪽에 모두 필요**", runbook)
         self.assertIn("GITHUB_ACTIONS_DISPATCH_TOKEN", runbook)
@@ -143,6 +145,7 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
             "Firebase Functions는 `functions/src/index.ts`에서 `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, `DISCORD_DEPLOY_ALLOWED_ROLE_IDS`, `DISCORD_DEPLOY_ALLOWED_USER_IDS`, `GITHUB_ACTIONS_DISPATCH_TOKEN`을 별도 secret으로 정의한다.",
             runbook,
         )
+        self.assertIn("python3 -m unittest scripts.tests.test_check_play_deploy_secret_contract -v", runbook)
 
         self.assertIn('env("DISCORD_BOT_TOKEN")', discord_notifier)
         self.assertIn('env("DISCORD_DEPLOY_CHANNEL_ID")', discord_notifier)
