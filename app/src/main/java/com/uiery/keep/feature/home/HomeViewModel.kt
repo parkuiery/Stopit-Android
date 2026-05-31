@@ -131,7 +131,6 @@ class HomeViewModel
                 if (!pending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                     return@intent
                 }
                 val live = reviewEligibility.evaluateLive()
