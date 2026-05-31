@@ -105,6 +105,8 @@
 - `(not set)` `adUnitName` 또는 수익 해석 오류가 보이면 먼저 `TrackedBannerAd` 적용 화면과 아래 파라미터 계약을 확인한다.
 - 광고 성과 자체는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를, 이벤트/파라미터 명세는 이 문서를 source of truth로 본다.
 - `screen_name`은 기존 `screen_view` 계약의 canonical 화면명(`RoutineScreen`, `LockScreen` 등)과 일치해야 한다.
+- GA4/AdMob의 `adUnitName` 차원과 앱 custom parameter `ad_unit_id`는 같은 필드가 아니다. `publisherAdImpressions`/`adUnitName` 보고서와 `customEvent:ad_placement` 보고서는 따로 해석하고, 합산하거나 서로 대체하지 않는다.
+- 2026-06-01 live preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있으므로, 이후 `(not set)` 원인은 단순 Admin 등록 누락보다 SDK 자동 이벤트와 앱 custom event의 이벤트명/필터 충돌 가능성을 먼저 본다.
 
 ## 주요 파라미터 사전
 
