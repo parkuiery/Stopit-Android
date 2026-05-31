@@ -76,13 +76,21 @@
 
 ### 디바이스 등록/푸시
 
-| 이벤트명 | 주요 파라미터 | 설명 |
-| --- | --- | --- |
-| `fcm_token_captured` | 없음 | FCM 토큰 확보 |
-| `device_registration_attempted` | 없음 | 디바이스 등록 시도 |
-| `device_registration_succeeded` | 없음 | 디바이스 등록 성공 |
-| `device_registration_failed` | `reason` | 디바이스 등록 실패 |
-| `device_registration_skipped` | `reason` | 디바이스 등록 생략 |
+현재 앱의 production 책임은 **FCM token 로컬 저장**이다. 백엔드 device registration 파이프라인은 제거되어 있으며, `DeviceTokenManager.saveDeviceToken(...)`은 토큰 저장 후 registration 성공/실패가 아니라 skip reason으로 현재 상태를 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 현재 발생 여부 | 설명 |
+| --- | --- | --- | --- |
+| `fcm_token_captured` | 없음 | 발생 | FCM 토큰을 로컬 DataStore에 저장한 시점 |
+| `device_registration_attempted` | 없음 | 발생 | legacy registration 흐름과의 호환/관측용 시도 이벤트. 현재는 외부 backend 호출을 의미하지 않는다. |
+| `device_registration_skipped` | `reason` | 발생 | backend 제거 또는 빈 토큰 때문에 registration이 생략된 상태. 현재 reason 값은 `backend_removed`, `missing_fcm_token`이다. |
+| `device_registration_succeeded` | 없음 | legacy/API 표면 | 현재 production call site 없음. backend registration 재도입 전에는 성공 이벤트로 해석하지 않는다. |
+| `device_registration_failed` | `reason` | legacy/API 표면 | 현재 production call site 없음. backend registration 재도입 전에는 실패율 지표로 해석하지 않는다. |
+
+운영 원칙:
+
+- `fcm_token_captured`와 `device_registration_skipped(reason=backend_removed)`는 “토큰 저장은 됐지만 backend device registration은 제거되어 호출하지 않았다”는 계약으로 함께 해석한다.
+- `device_registration_succeeded` / `device_registration_failed`가 GA4에 새로 보이면 먼저 코드 call site 재도입 여부를 확인한다. 현재 dictionary 기준에서는 살아 있는 제품 지표가 아니라 legacy/API 표면이다.
+- 백업/복원 또는 새 기기 QA에서 확인할 것은 backend registration 성공이 아니라 `KeepMessagingServiceIntegrationTest` 기준의 stale FCM token overwrite / local persistence wiring이다.
 
 ### 리뷰 프롬프트
 
@@ -171,7 +179,7 @@
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
 | Required | `end_reason` | `end_reason` | `lock_session_end` | 세션 종료 사유 비교 |
-| Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_failed`, `device_registration_skipped`, `review_prompt_skipped` | 실패/스킵/긴급해제 이유 분석 |
+| Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 긴급해제/스킵/리뷰 보류 이유 분석. `device_registration_failed`는 현재 production call site가 없는 legacy/API 표면이므로 backend registration 재도입 전에는 지표 축으로 해석하지 않는다. |
 | Required | `screen_context` | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 같은 화면 안 광고 문맥별 성과 비교 |
 | Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
 | Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |
