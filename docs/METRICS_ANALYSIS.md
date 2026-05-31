@@ -75,7 +75,7 @@
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
-- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
@@ -437,7 +437,9 @@ PY
 운영 원칙:
 
 - 먼저 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` 기준으로 권한 UX, fallback, MVP 범위, 규칙 기반 추천, 개인정보 가드레일을 닫는다.
+- #119는 아직 구현 착수용 `ready` 이슈가 아니라 discovery gate다. 실행 승격 시에는 discovery/contract child issue와 MVP implementation child issue를 분리한다.
 - Usage Access는 리포트/추천용 선택형 확장으로 다루고, 핵심 차단 기능의 필수 권한으로 만들지 않는다.
+- analytics에는 앱 이름/package/raw usage history를 보내지 않고 bucket 파라미터만 사용한다.
 - 외부 전송보다 로컬 집계/설명 가능한 추천을 우선한다.
 
 ### 리뷰 / 신뢰

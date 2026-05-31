@@ -1,8 +1,8 @@
 # 사용정보 기반 개인화 솔루션 / 리포트 MVP
 
-이 문서는 GitHub issue #82 `[백로그] 사용정보 기반 개인화 솔루션과 사용 리포트 제공`의 실행 판단 기준을 정리한 docs-lane 완료 산출물이다.
+이 문서는 GitHub issue #82에서 처음 정리된 Usage Access 개인화 아이디어를 이어받아, 현재 열린 umbrella issue #119 `[백로그] Usage Access 선택형 개인화 discovery 및 승격 게이트 정리`의 실행 판단 기준을 정리한 docs-lane source of truth다.
 
-목표는 막연한 “리포트 기능”을 제안하는 것이 아니라, 실제 착수 전에 아래 여섯 가지를 닫는 것이다.
+목표는 막연한 “리포트 기능”을 제안하는 것이 아니라, 실제 착수 전에 아래 여섯 가지를 닫고, #119를 그대로 코드 lane에 넘기지 않도록 discovery package와 implementation package의 경계를 분리하는 것이다.
 
 1. `UsageStatsManager`로 조회 가능한 데이터와 Android 제약을 명확히 한다.
 2. 권한 요청 UX와 미허용 fallback을 정의한다.
@@ -10,6 +10,13 @@
 4. 개인화 추천 로직 v1을 규칙 기반으로 정의한다.
 5. 개인정보/스토어 정책 리스크와 완화책을 문서화한다.
 6. backlog에서 실행 후보로 승격할지 판단하는 검증 기준을 남긴다.
+
+## 현재 이슈 상태 (#119)
+
+- 상태: `backlog` 유지. 아직 구현 착수용 `ready` 이슈가 아니다.
+- 이 문서가 닫는 범위: repo 내부에서 정리 가능한 권한 UX, 로컬 집계 계약, privacy guardrail, 측정 taxonomy, QA 시나리오, child issue 분리 기준.
+- 이 문서가 닫지 않는 범위: 대표님/정책 판단이 필요한 실제 기능 승격 결정, 개인정보 처리방침/Play listing 문구의 최종 외부 반영, 구현 후 14일/30일 지표 검증.
+- 실행 원칙: #119 자체를 코드 lane에 직접 넘기지 말고, 아래 `Discovery/contract package` 또는 `MVP implementation package`가 충분히 구체화됐을 때 별도 child issue를 만든다.
 
 ## 왜 지금 문서화하는가
 
@@ -220,6 +227,24 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - crash-free users 악화 금지
 - 권한 연속 요청으로 onboarding 이탈 증가 금지
 
+### 이벤트 taxonomy 초안
+
+이 taxonomy는 구현 전 계약 초안이다. 실제 코드 반영 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 production 이벤트 표에 추가하지 않는다.
+
+| 이벤트 | 발생 시점 | 최소 파라미터 | 금지 파라미터 |
+| --- | --- | --- | --- |
+| `usage_access_explainer_viewed` | Usage Access 사전 설명 카드/화면 노출 | `entry_point`, `activation_stage` | 앱 이름, package, raw usage |
+| `usage_access_settings_opened` | 사용자가 시스템 설정으로 이동 | `entry_point`, `activation_stage` | 앱별 사용량 원문 |
+| `usage_access_permission_result` | 앱 복귀 후 허용/거절/미확인 상태 판별 | `result`, `entry_point`, `activation_stage` | 설치 앱 전체 목록 |
+| `usage_report_viewed` | 권한 허용 후 리포트 요약 노출 | `report_period`, `has_recommendation`, `top_app_count_bucket` | 앱 이름, package, 정확한 분 단위 원문 |
+| `usage_recommendation_tapped` | 추천 차단/루틴 CTA 탭 | `recommendation_type`, `report_period` | 추천 대상 앱 이름/package |
+| `usage_recommendation_applied` | 추천으로 차단/루틴 생성 완료 | `recommendation_type`, `selected_app_count_bucket` | 선택 앱 목록 원문 |
+
+원칙:
+- 앱 이름/package는 analytics에 보내지 않는다. UI 표시와 로컬 추천 계산에만 쓴다.
+- 시간/횟수는 가능한 bucket으로 보낸다. 예: `0`, `1`, `2-3`, `4-5`, `6+` 또는 `0-30m`, `31-60m`, `61-120m`, `120m+`.
+- `activation_stage`는 `pre_first_core_action`, `post_first_core_action`, `returning_user`처럼 퍼널 방해 여부를 판단할 수 있는 값으로 제한한다.
+
 ## backlog → 실행 후보 승격 기준
 
 아래 조건이 충족되면 `backlog`에서 실행 후보로 올린다.
@@ -242,14 +267,70 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 구현 시작 시에는 큰 하나의 기능 이슈로 바로 가지 말고, 아래 2단계 패키지 중 어디까지 할지 먼저 정한다.
 
 1. **Discovery/contract package**
-   - 권한 UX
-   - 로컬 데이터 모델
+   - 권한 UX entry point와 사전 설명 카피
+   - 설정 이동/복귀 후 권한 상태 판별 contract
+   - 로컬 데이터 모델과 bucket 단위
    - 추천 규칙/측정 이벤트
    - 개인정보/정책 문구
+   - QA 시나리오와 kill criteria
 2. **MVP implementation package**
    - 리포트 카드 4종
    - 추천 CTA
    - 권한 허용/거절 instrumentation
+   - formatter/ViewModel/permission-return 테스트
+
+### Discovery/contract child issue 템플릿
+
+#119를 승격할 때 첫 child issue는 아래 범위를 한 번에 닫을 수 있어야 한다. 이 템플릿 수준으로 파일/검증이 명확하지 않으면 아직 `ready`가 아니다.
+
+```md
+## 문제
+Usage Access 개인화가 핵심 활성화 퍼널을 방해하지 않는 선택형 확장인지 검증할 권한 UX·측정·QA 계약이 필요하다.
+
+## 제안 작업
+- 권한 사전 설명 copy와 entry point를 `post_first_core_action` / returning user 중심으로 정의한다.
+- 설정 이동/복귀 후 권한 상태 판별, 미허용 fallback, 재시도 entry point를 문서화한다.
+- `UsageStatsManager` 집계 bucket, analytics 이벤트 초안, 금지 파라미터를 확정한다.
+- 개인정보 처리방침/Play listing/인앱 고지 업데이트 필요 여부를 체크리스트화한다.
+- QA 시나리오와 kill criteria를 `docs/QA_RUNTIME_CHECKLIST.md` 또는 별도 runbook에 연결한다.
+
+## 완료 기준
+- [ ] 권한 설명/거절 fallback/설정 복귀 contract가 문서화된다.
+- [ ] production analytics에 raw app/package/usage history를 보내지 않는 이벤트 계약이 확정된다.
+- [ ] 구현 child issue가 참조할 화면, 이벤트, 테스트, 문서 범위가 충분히 구체화된다.
+- [ ] #13/#14 선행 조건과 충돌하지 않는 승격 판단이 남는다.
+```
+
+### MVP implementation child issue 템플릿
+
+Discovery/contract package가 닫힌 뒤에만 아래 구현 issue를 `ready` 후보로 만든다.
+
+```md
+## 문제
+사용자가 Usage Access를 허용했을 때 지난 7일 방해 앱/시간대 리포트와 작은 추천 CTA를 로컬에서 제공해 반복 사용과 루틴 생성을 검증한다.
+
+## 제안 작업
+- Usage Access 권한 상태 감지와 설정 이동/복귀 UI를 구현한다.
+- Top 5, 위험 시간대, 전주 대비 변화, 추천 시작점 카드의 formatter/ViewModel contract를 구현한다.
+- 추천 CTA를 차단 목록 또는 루틴 생성 흐름으로 연결한다.
+- `usage_*` analytics 이벤트와 bucket 파라미터를 구현하고 이벤트 딕셔너리를 업데이트한다.
+- privacy guardrail 단위 테스트와 권한 복귀 QA 기준을 추가한다.
+
+## 완료 기준
+- [ ] 권한 미허용 상태에서도 기존 차단/타이머/루틴/긴급해제가 유지된다.
+- [ ] analytics에 앱 이름/package/raw usage history가 전송되지 않는 테스트가 있다.
+- [ ] 권한 허용/거절, empty state, 추천 적용 경로가 검증된다.
+- [ ] 배포 후 14일/30일 비교 지표가 문서에 남는다.
+```
+
+### QA 시나리오 초안
+
+- 권한 없음: 리포트 entry point 진입 시 사전 설명과 fallback 카드가 보이고 기존 차단 기능은 계속 동작한다.
+- 설정 이동 후 허용: 앱 복귀 시 `usage_access_permission_result(result=granted)`와 리포트 카드 노출이 가능하다.
+- 설정 이동 후 거절/뒤로가기: `denied` 또는 `unknown` 상태로 처리하고 재시도 CTA는 압박 없이 남긴다.
+- 데이터 없음/집계 지연: empty state를 보여주고 추천 CTA를 숨긴다.
+- privacy regression: analytics payload와 공유/로그에 앱 이름, package, raw usage history가 포함되지 않는다.
+- 활성화 guardrail: `pre_first_core_action` 사용자에게 권한 요청이 핵심 잠금 CTA보다 앞서 뜨지 않는다.
 
 현재 기준 판단:
 - **상태: backlog 유지**
