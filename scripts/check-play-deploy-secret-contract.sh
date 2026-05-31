@@ -61,7 +61,7 @@ run_contract_searches() {
 run_helper_and_contract_tests() {
   echo "[run] helper syntax + contract regression tests"
   bash -n scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh
-  python3 -m unittest \
+  env -u STOPIT_SKIP_GH_SECRET_LIST python3 -m unittest \
     scripts.tests.test_setup_deploy_secret_helpers \
     scripts.tests.test_play_deploy_secret_contract_runbook \
     scripts.tests.test_check_play_deploy_secret_contract -v

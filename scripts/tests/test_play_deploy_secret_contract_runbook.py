@@ -1,4 +1,5 @@
 import pathlib
+import stat
 import unittest
 
 
@@ -27,9 +28,20 @@ CONTEXT_BUNDLE_PROTOCOL = REPO_ROOT / "docs" / "ops" / "stopit" / "context-bundl
 RECENT_DECISIONS = REPO_ROOT / "docs" / "ops" / "stopit" / "recent-decisions.md"
 DISCORD_NOTIFIER = REPO_ROOT / "scripts" / "notify-discord-deploy.py"
 FUNCTIONS_INDEX = REPO_ROOT / "functions" / "src" / "index.ts"
+CHECK_SECRET_CONTRACT = REPO_ROOT / "scripts" / "check-play-deploy-secret-contract.sh"
+SETUP_PLAY_SECRETS = REPO_ROOT / "scripts" / "setup-play-deploy-secrets.sh"
+SETUP_DISCORD_SECRETS = REPO_ROOT / "scripts" / "setup-discord-deploy-secrets.sh"
 
 
 class PlayDeploySecretContractRunbookTest(unittest.TestCase):
+    def test_runbook_entrypoint_scripts_are_executable_for_direct_invocation_examples(self):
+        for script in (CHECK_SECRET_CONTRACT, SETUP_PLAY_SECRETS, SETUP_DISCORD_SECRETS):
+            self.assertTrue(script.exists(), f"missing script: {script}")
+            self.assertTrue(
+                script.stat().st_mode & stat.S_IXUSR,
+                f"runbook-documented direct invocation requires executable bit: {script}",
+            )
+
     def test_runbook_records_current_workflow_secret_restore_matrix(self):
         runbook = RUNBOOK.read_text(encoding="utf-8")
         android_ci = ANDROID_CI.read_text(encoding="utf-8")

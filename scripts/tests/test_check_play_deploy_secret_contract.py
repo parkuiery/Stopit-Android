@@ -68,6 +68,20 @@ class CheckPlayDeploySecretContractScriptTest(unittest.TestCase):
             self.assertIn("gh secret list --json name --jq .[].name", invocation_log)
             self.assertNotIn("python3 -m unittest", invocation_log)
 
+    def test_skip_gh_secret_list_does_not_leak_into_contract_unittests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            self._write_repo_fixture(repo)
+            self._write_gh_stub(repo, secret_names=REQUIRED_SECRET_NAMES)
+            self._write_rg_stub(repo)
+            self._write_python3_stub(repo, fail_if_env={"STOPIT_SKIP_GH_SECRET_LIST": "1"})
+
+            result = self._run_script(repo, extra_env={"STOPIT_SKIP_GH_SECRET_LIST": "1"})
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+            self.assertIn("[skip] gh secret list check skipped via STOPIT_SKIP_GH_SECRET_LIST=1", result.stdout)
+            self.assertIn("[ok] play deploy secret contract audit finished", result.stdout)
+
     def _write_repo_fixture(self, repo: pathlib.Path) -> None:
         (repo / "scripts").mkdir(parents=True, exist_ok=True)
         (repo / "functions" / "src").mkdir(parents=True, exist_ok=True)
@@ -142,21 +156,28 @@ class CheckPlayDeploySecretContractScriptTest(unittest.TestCase):
         )
         rg_stub.chmod(rg_stub.stat().st_mode | stat.S_IXUSR)
 
-    def _write_python3_stub(self, repo: pathlib.Path) -> None:
+    def _write_python3_stub(self, repo: pathlib.Path, *, fail_if_env: dict[str, str] | None = None) -> None:
         bin_dir = repo / "bin"
         bin_dir.mkdir(parents=True, exist_ok=True)
         log_path = repo / ".invocations.log"
         python_stub = bin_dir / "python3"
+        fail_if_env = fail_if_env or {}
         python_stub.write_text(
             textwrap.dedent(
                 f"""
                 #!{sys.executable}
+                import os
                 import pathlib
                 import sys
 
                 log_path = pathlib.Path(r"{log_path}")
                 args = sys.argv[1:]
                 log_path.write_text(log_path.read_text() + "python3 " + " ".join(args) + "\\n" if log_path.exists() else "python3 " + " ".join(args) + "\\n")
+                fail_if_env = {fail_if_env!r}
+                for key, value in fail_if_env.items():
+                    if os.environ.get(key) == value:
+                        print(f"unexpected env leakage: {{key}}={{value}}", file=sys.stderr)
+                        raise SystemExit(91)
                 raise SystemExit(0)
                 """
             ).lstrip(),
@@ -164,9 +185,16 @@ class CheckPlayDeploySecretContractScriptTest(unittest.TestCase):
         )
         python_stub.chmod(python_stub.stat().st_mode | stat.S_IXUSR)
 
-    def _run_script(self, repo: pathlib.Path) -> subprocess.CompletedProcess[str]:
+    def _run_script(
+        self,
+        repo: pathlib.Path,
+        *,
+        extra_env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env["PATH"] = f"{repo / 'bin'}:{env['PATH']}"
+        if extra_env:
+            env.update(extra_env)
         return subprocess.run(
             ["bash", "scripts/check-play-deploy-secret-contract.sh"],
             cwd=repo,
