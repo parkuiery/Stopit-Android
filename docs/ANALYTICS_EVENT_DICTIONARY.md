@@ -51,8 +51,8 @@
 | `onboarding_step_view` | `step_name` | 온보딩 스텝 노출 |
 | `onboarding_step_complete` | `step_name` | 온보딩 스텝 완료 |
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
-| `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 선택 완료 |
-| `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료 |
+| `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
+| `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. `source=onboarding`에서는 앱 1개 이상 선택 이후에만 기록 |
 | `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 첫 핵심 행동 완료 |
 | `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 반복 핵심 행동 완료 |
 

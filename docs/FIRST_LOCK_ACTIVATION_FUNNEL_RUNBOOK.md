@@ -51,8 +51,8 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | 1 | `first_open` | 앱이 신규 사용자에게 최초 실행되었다 | 온보딩 시작/완료, 권한 허용, 가치 경험 |
 | 2 | `onboarding_step_view`, `onboarding_step_complete` | 사용자가 온보딩 스텝을 실제로 봤고 일부를 완료했다 | 권한이 실제로 허용되었는지, 앱 선택/잠금까지 갔는지 |
 | 3 | `permission_outcome` | 접근성/알림 등 병목 권한의 결과가 남았다 | 차단 앱 선택/잠금 설정/실제 차단 성공 |
-| 4 | `app_selection_completed` | 사용자가 차단 대상 앱을 실제로 골랐다 | 잠금/타이머/Keep 토글 등 실제 차단 준비가 끝났는지 |
-| 5 | `first_lock_configured` | 사용자가 첫 잠금 진입점을 한 번이라도 구성했다 | 차단이 실제로 발생했는지 |
+| 4 | `app_selection_completed` | 사용자가 차단 대상 앱을 1개 이상 실제로 골랐다 (`selected_app_count >= 1`) | 잠금/타이머/Keep 토글 등 실제 차단 준비가 끝났는지 |
+| 5 | `first_lock_configured` | 사용자가 첫 잠금 진입점을 한 번이라도 구성했다. 온보딩 출처에서는 1개 이상 앱 선택 이후에만 성립한다 | 차단이 실제로 발생했는지 |
 | 6 | `first_core_action_completed` | 사용자가 첫 가치 경험에 도달했다 | 접근성 서비스가 실제 차단 화면까지 정상 동작했는지 |
 | 7 | `app_block_intercepted` | 스탑잇의 핵심 약속인 실제 차단이 발생했다 | 이후 반복 사용/루틴 정착 |
 
