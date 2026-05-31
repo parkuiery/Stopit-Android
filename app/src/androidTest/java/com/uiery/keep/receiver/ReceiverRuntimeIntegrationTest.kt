@@ -160,7 +160,9 @@ class ReceiverRuntimeIntegrationTest {
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
             !NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
+        val eveningRoutineId = TEST_ROUTINE_ID + 1
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
+        database.routineDao().insert(enabledRoutineEntity(id = eveningRoutineId, name = "Evening focus"))
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
@@ -174,27 +176,31 @@ class ReceiverRuntimeIntegrationTest {
             routineName = "Morning focus",
             routineId = TEST_ROUTINE_ID,
         )
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Evening focus",
+            routineId = eveningRoutineId,
+        )
 
-        waitUntil("RoutineAlarmReceiver should persist fallback notice when notifications are denied") {
-            storedRoutineStartNoticeMessage() == context.getString(
-                R.string.routine_notification_permission_fallback_message,
-                "Morning focus",
-            )
+        val expectedNoticeMessages = listOf(
+            context.getString(R.string.routine_notification_permission_fallback_message, "Morning focus"),
+            context.getString(R.string.routine_notification_permission_fallback_message, "Evening focus"),
+        )
+        waitUntil("RoutineAlarmReceiver should queue every fallback notice when notifications are denied") {
+            storedRoutineStartNoticeMessages() == expectedNoticeMessages
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room when notifications are denied") {
-            storedRoutineNames() == listOf("Morning focus")
+            storedRoutineNames() == listOf("Morning focus", "Evening focus")
         }
-        waitUntil("RoutineAlarmReceiver should reschedule enabled routine when notifications are denied") {
-            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        waitUntil("RoutineAlarmReceiver should reschedule enabled routines when notifications are denied") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null && findRoutinePendingIntent(eveningRoutineId) != null
         }
 
         assertEquals(emptySet<Int>(), activeNotificationIds())
-        assertEquals(
-            context.getString(R.string.routine_notification_permission_fallback_message, "Morning focus"),
-            storedRoutineStartNoticeMessage(),
-        )
-        assertEquals(listOf("Morning focus"), storedRoutineNames())
+        assertEquals(expectedNoticeMessages, storedRoutineStartNoticeMessages())
+        assertEquals(listOf("Morning focus", "Evening focus"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        assertNotNull(findRoutinePendingIntent(eveningRoutineId))
     }
 
     private fun grantPostNotificationsPermission() {
@@ -218,7 +224,9 @@ class ReceiverRuntimeIntegrationTest {
     private fun clearAppState() = runBlocking {
         context.deleteDatabase(DATABASE_NAME)
         cancelRoutineAlarm(TEST_ROUTINE_ID)
+        cancelRoutineAlarm(TEST_ROUTINE_ID + 1)
         cancelNotification(TEST_ROUTINE_ID)
+        cancelNotification(TEST_ROUTINE_ID + 1)
         dataStoreFile().delete()
         dataStoreFile().parentFile?.listFiles()
             ?.filter { it.name.startsWith(DATASTORE_PREFIX) }
@@ -233,11 +241,13 @@ class ReceiverRuntimeIntegrationTest {
         return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.name }
     }
 
-    private fun storedRoutineStartNoticeMessage(): String? {
+    private fun storedRoutineStartNoticeMessages(): List<String> {
         val preferences = runBlocking {
             runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
         }
-        return preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE]
+        return RoutineReceiverPolicy.decodePendingRoutineStartNotices(
+            preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
+        )
     }
 
     private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
