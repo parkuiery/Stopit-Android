@@ -342,6 +342,10 @@ PY
 판단 기준:
 
 - 노출은 증가했는데 수익/CTR/eCPM이 하락하면 광고 위치·광고 품질·계측 문제를 함께 의심한다.
+- `adUnitName = (not set)` 또는 empty가 의미 있는 비중이면 placement 최적화나 새 광고 실험보다 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 코드 기준 placement 표와 #16 closure-pass 게이트를 먼저 적용한다.
+- `adUnitName`은 AdMob/GA4 표시명이고 앱 custom event의 `ad_unit_id`와 같은 필드가 아니므로, 둘을 연결하려면 `ad_unit_id`, `ad_placement`, `screen_context` custom dimension 등록 여부와 실제 이벤트 breakdown을 따로 확인한다.
+- 2026-06-01 preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있으나, 최근 30일 실제 이벤트는 `(not set)`/empty 비중이 커서 SDK 자동 이벤트와 앱 custom event를 분리해 해석해야 한다. 세부 수치와 재사용 가능한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리` 섹션을 따른다.
+- 광고 custom-event coverage를 계산할 때는 `ad_impression`/`ad_click`/`ad_revenue`별 total `eventCount`와 `customEvent:ad_placement`가 `(not set)`/empty가 아닌 covered `eventCount`를 분리해 기록한다. coverage가 낮으면 placement별 CTR/eCPM 결론을 보류한다.
 - 차단/긴급해제 흐름을 방해하는 광고 실험은 하지 않는다.
 
 ### 6. 신뢰 / 리뷰
