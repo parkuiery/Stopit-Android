@@ -28,6 +28,10 @@
 | `agent-roles.md` | 전문 subagent 역할, 입력, 출력, 금지사항 | 모든 cron 오케스트레이터 |
 | `recent-decisions.md` | 오래 유지해야 하는 최근 운영 결정 | 모든 cron에서 필요 시 |
 
+운영 runbook 메모:
+- Play 배포 secret ownership / helper / workflow / Firebase Functions 경계는 `../PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 함께 본다.
+- `release-context.md`가 release guardrail을 설명하더라도, secret restore/source-set 계약은 위 runbook이 더 구체적인 source of truth다.
+
 ## Cron별 권장 읽기 세트
 
 ### `stopit-daily-metrics-monitor`

@@ -45,11 +45,13 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
-    fun notificationTracksPermissionOutcomeBeforeCompletion() {
+    fun notificationTracksSettingsOpenedBeforeGrantAndOnlyCompletesWhenGranted() {
         val viewModel = NotificationSettingViewModel(analytics)
 
         viewModel.onStepViewed()
-        viewModel.onPermissionResult(isGranted = false)
+        viewModel.onPermissionSettingsOpened()
+        viewModel.onPermissionDenied()
+        viewModel.onPermissionGranted()
 
         assertEquals(
             listOf(
@@ -57,7 +59,17 @@ class OnboardingAnalyticsViewModelTest {
                 AnalyticsCall.StepViewed(OnboardingStepName.NOTIFICATION),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.SETTINGS_OPENED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
                     outcome = AnalyticsOutcome.DENIED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.GRANTED,
                     stepName = OnboardingStepName.NOTIFICATION,
                 ),
                 AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),
