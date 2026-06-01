@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">Affiche le compte à rebours pendant le déverrouillage d\'urgence</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d restants</string>
     <string name="emergency_unlock_waiting_seconds_label">secondes</string>
+    <string name="first_lock_activation_cta_title">Prêt pour votre premier verrouillage ?</string>
+    <string name="first_lock_activation_cta_description">Vous avez choisi des applis. Activez StopIt pour tester le blocage.</string>
+    <string name="first_lock_activation_cta_action">Démarrer</string>
 </resources>

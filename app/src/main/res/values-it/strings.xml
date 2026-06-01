@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">Mostra il conto alla rovescia durante lo sblocco di emergenza</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d rimanenti</string>
     <string name="emergency_unlock_waiting_seconds_label">secondi</string>
+    <string name="first_lock_activation_cta_title">Pronto per il primo blocco?</string>
+    <string name="first_lock_activation_cta_description">Hai scelto le app. Attiva StopIt ora per provare il blocco.</string>
+    <string name="first_lock_activation_cta_action">Avvia</string>
 </resources>

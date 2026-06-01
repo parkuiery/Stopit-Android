@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">緊急解除中のカウントダウンを表示します</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d 残り</string>
     <string name="emergency_unlock_waiting_seconds_label">秒</string>
+    <string name="first_lock_activation_cta_title">最初のロックを試してみますか？</string>
+    <string name="first_lock_activation_cta_description">アプリの選択は完了しました。StopItをオンにしてブロックを体験しましょう。</string>
+    <string name="first_lock_activation_cta_action">開始</string>
 </resources>

@@ -71,7 +71,9 @@ class HomeViewModel
                 }
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
-                    trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)
+                    if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)) {
+                        reduce { state.copy(showFirstLockActivationCta = false) }
+                    }
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
                         isRoutine = false,
@@ -200,13 +202,18 @@ class HomeViewModel
 
         private fun getSelectedApp() =
             intent {
-                val selectedAppPackage =
-                    dataStore.data
-                        .map { data ->
-                            data[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
-                        }.firstOrNull()
-                selectedAppPackage?.let {
-                    reduce { state.copy(selectedAppPackage = it) }
+                val preferences = dataStore.data.firstOrNull()
+                val selectedAppPackage = preferences?.get(PreferencesKey.SELECTED_APP_PACKAGES).orEmpty()
+                val hasTrackedFirstLock = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackage,
+                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
+                            selectedAppPackage = selectedAppPackage,
+                            hasTrackedFirstLock = hasTrackedFirstLock,
+                            isKeep = state.isKeep,
+                        ),
+                    )
                 }
             }
 
@@ -240,7 +247,18 @@ class HomeViewModel
                     isOnboarding = false,
                 )
                 storeSelectedApp(selectedAppPackage)
-                reduce { state.copy(selectedAppPackage = selectedAppPackage) }
+                val hasTrackedFirstLock =
+                    dataStore.data.firstOrNull()?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackage,
+                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
+                            selectedAppPackage = selectedAppPackage,
+                            hasTrackedFirstLock = hasTrackedFirstLock,
+                            isKeep = state.isKeep,
+                        ),
+                    )
+                }
             }
 
         private fun storeIsKeep() =
@@ -330,7 +348,9 @@ class HomeViewModel
                         .between(LocalDateTime.now(), targetLockDateTime)
                         .toMillis()
                         .coerceAtLeast(0L)
-                trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)
+                if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
+                    reduce { state.copy(showFirstLockActivationCta = false) }
+                }
                 analytics.trackLockScheduled(
                     scheduleType = if (state.countdownDays > 0) {
                         AnalyticsScheduleType.COUNTDOWN
@@ -345,11 +365,11 @@ class HomeViewModel
                 )
             }
 
-        private suspend fun trackFirstLockConfiguredIfNeeded(source: String) {
+        private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
             val preferences = dataStore.data.firstOrNull()
             val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
 
-            if (hasTracked) return
+            if (hasTracked) return false
 
             val selectedAppCount =
                 preferences
@@ -364,7 +384,14 @@ class HomeViewModel
             dataStore.edit { mutablePreferences ->
                 mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
             }
+            return true
         }
+
+        private fun shouldShowFirstLockActivationCta(
+            selectedAppPackage: Set<String>,
+            hasTrackedFirstLock: Boolean,
+            isKeep: Boolean,
+        ): Boolean = selectedAppPackage.isNotEmpty() && !hasTrackedFirstLock && !isKeep
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()
@@ -404,6 +431,7 @@ data class HomeUiState(
     val timerTime: LocalTime = timeNow,
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
+    val showFirstLockActivationCta: Boolean = false,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
