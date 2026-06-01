@@ -1,6 +1,7 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
@@ -13,9 +14,11 @@ import org.junit.Test
 class RoutineReceiverPolicyTest {
 
     @Test
-    fun shouldRestoreRoutinesOnBootReturnsTrueForBootCompletedAndMyPackageReplacedActions() {
+    fun shouldRestoreRoutinesOnBootReturnsTrueForBootPackageAndClockChangeActions() {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIME_CHANGED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIMEZONE_CHANGED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
     }
 
@@ -187,6 +190,43 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun applyScheduleResultDisablesMatchingRoutineWhenExactAlarmPermissionMissing() {
+        val routines = listOf(
+            routine(id = 10L, name = "Morning", isEnabled = true),
+            routine(id = 11L, name = "Evening", isEnabled = true),
+        )
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = routines,
+            routineId = 10L,
+            scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+        )
+
+        assertEquals(setOf(10L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                routine(id = 10L, name = "Morning", isEnabled = false),
+                routine(id = 11L, name = "Evening", isEnabled = true),
+            ),
+            result.routines,
+        )
+    }
+
+    @Test
+    fun applyScheduleResultLeavesRoutinesUntouchedWhenSchedulingSucceeds() {
+        val routines = listOf(routine(id = 12L, name = "Morning", isEnabled = true))
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = routines,
+            routineId = 12L,
+            scheduleResult = RoutineScheduleResult.Scheduled,
+        )
+
+        assertEquals(emptySet<Long>(), result.disabledRoutineIds)
+        assertEquals(routines, result.routines)
+    }
+
+    @Test
     fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenNotificationPermissionDenied() {
         assertEquals(
             PendingRoutineStartNotice(message = "Routine started without notification permission"),
@@ -215,6 +255,61 @@ class RoutineReceiverPolicyTest {
                 fallbackMessage = "  ",
             ),
         )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticePreservesExistingNoticeOrder() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf("Morning focus started", "Lunch focus started"),
+            ),
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Morning focus started",
+                "Lunch focus started",
+                "Evening focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeKeepsLegacySingleMessageBeforeNewNotice() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = "Morning focus started",
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf("Morning focus started", "Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeReturnsFirstNoticeAndRemainder() {
+        val storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+            listOf("Morning focus started", "Evening focus started"),
+        )
+
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(storedValue)
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(
+            listOf("Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(drain.remainingStoredValue),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeClearsStoredValueAfterLastNotice() {
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice("Morning focus started")
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(null, drain.remainingStoredValue)
     }
 
     @Test

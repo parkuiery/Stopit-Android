@@ -168,6 +168,30 @@ class TimeExtTest {
     }
 
     @Test
+    fun currentRoutineWindowStartDateTimeHandlesSameDayStart() {
+        assertEquals(
+            LocalDateTime.of(2026, 4, 29, 9, 0),
+            currentRoutineWindowStartDateTime(
+                startTime = LocalTime(hour = 9, minute = 0),
+                endTime = LocalTime(hour = 10, minute = 0),
+                nowDateTime = LocalDateTime.of(2026, 4, 29, 9, 30),
+            ),
+        )
+    }
+
+    @Test
+    fun currentRoutineWindowStartDateTimeHandlesCrossMidnightAfterMidnight() {
+        assertEquals(
+            LocalDateTime.of(2026, 4, 27, 23, 0),
+            currentRoutineWindowStartDateTime(
+                startTime = LocalTime(hour = 23, minute = 0),
+                endTime = LocalTime(hour = 1, minute = 0),
+                nowDateTime = LocalDateTime.of(2026, 4, 28, 0, 30),
+            ),
+        )
+    }
+
+    @Test
     fun isRoutineChangeLockedHonorsLockWindowAndEnabledState() {
         val repeatDays = listOf(DayOfWeek.MONDAY)
 

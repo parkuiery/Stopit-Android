@@ -1,0 +1,112 @@
+name: Ops CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'functions/**'
+      - 'scripts/promote-google-play-track.js'
+      - 'scripts/notify-discord-deploy.py'
+      - 'scripts/check-release-readiness.sh'
+      - 'scripts/check-latest-production-deployed.sh'
+      - 'scripts/release-start.sh'
+      - 'scripts/bump-version.sh'
+      - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/play_version_code_guard.py'
+      - 'scripts/tests/**'
+      - '.github/workflows/**'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'functions/**'
+      - 'scripts/promote-google-play-track.js'
+      - 'scripts/notify-discord-deploy.py'
+      - 'scripts/check-release-readiness.sh'
+      - 'scripts/check-latest-production-deployed.sh'
+      - 'scripts/release-start.sh'
+      - 'scripts/bump-version.sh'
+      - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/play_version_code_guard.py'
+      - 'scripts/tests/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: Workflow syntax lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install actionlint
+        run: |
+          set -euo pipefail
+          curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash -s -- latest /usr/local/bin
+
+      - name: Run actionlint
+        run: actionlint
+
+  functions:
+    name: Firebase Functions verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: functions
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check Firebase Functions
+        run: npm run lint
+
+      - name: Run Firebase Functions tests
+        run: npm test
+
+  release-helper-scripts:
+    name: Release helper script verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Run Google Play promotion helper tests
+        run: node --test scripts/tests/test_promote_google_play_track.js
+
+      - name: Run release-helper guardrail Python tests
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
+      - name: Check release-helper shell syntax
+        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh
+
+      - name: Compile Discord deploy notification script
+        run: python3 -m py_compile scripts/notify-discord-deploy.py

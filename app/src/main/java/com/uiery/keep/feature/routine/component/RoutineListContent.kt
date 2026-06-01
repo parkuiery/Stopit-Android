@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
@@ -79,8 +80,8 @@ internal fun RoutineListContent(
             metadata = AdPlacementMetadata(
                 screenName = KeepAnalyticsScreen.ROUTINE,
                 screenContext = "list",
-                placement = "routine_list_bottom",
-                adUnitId = "ca-app-pub-1537867411423705/7750072748",
+                placement = AdPlacement.RoutineListBottom.analyticsPlacement,
+                adUnitId = AdPlacement.RoutineListBottom.adUnitId,
             ),
         )
     }

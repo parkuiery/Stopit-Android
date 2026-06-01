@@ -1,8 +1,9 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
-import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.notification.RoutineScheduleResult
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import kotlinx.serialization.json.Json
 
 data class RoutineAlarmTrigger(
@@ -14,8 +15,14 @@ data class PendingRoutineStartNotice(
     val message: String,
 )
 
-data class ExactAlarmPermissionRecovery(
+data class PendingRoutineStartNoticeDrain(
+    val message: String?,
+    val remainingStoredValue: String?,
+)
+
+data class RoutineScheduleApplication(
     val routines: List<RoutineModel>,
+    val disabledRoutineIds: Set<Long>,
     val shouldResetAlarmPermissionPrompt: Boolean,
 )
 
@@ -24,7 +31,10 @@ object RoutineReceiverPolicy {
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
     // from Room after boot/restore/alarm entry, never the primary read path.
     fun shouldRestoreRoutinesOnBoot(action: String?): Boolean =
-        action == Intent.ACTION_BOOT_COMPLETED || action == Intent.ACTION_MY_PACKAGE_REPLACED
+        action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED
 
     fun parseRoutineAlarmTrigger(
         action: String?,
@@ -71,25 +81,49 @@ object RoutineReceiverPolicy {
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
 
+    fun applyScheduleResult(
+        routines: List<RoutineModel>,
+        routineId: Long,
+        scheduleResult: RoutineScheduleResult,
+    ): RoutineScheduleApplication {
+        if (scheduleResult != RoutineScheduleResult.MissingExactAlarmPermission) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
+            )
+        }
+
+        val disabledRoutineIds = routines
+            .filter { it.id == routineId && it.isEnabled }
+            .map { it.id }
+            .toSet()
+
+        if (disabledRoutineIds.isEmpty()) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
+            )
+        }
+
+        return RoutineScheduleApplication(
+            routines = routines.map { routine ->
+                if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
+            },
+            disabledRoutineIds = disabledRoutineIds,
+            shouldResetAlarmPermissionPrompt = true,
+        )
+    }
+
     fun applyMissingExactAlarmPermission(
         routines: List<RoutineModel>,
         routineId: Long,
-    ): ExactAlarmPermissionRecovery {
-        var didDisableRoutine = false
-        val updatedRoutines = routines.map { routine ->
-            if (routine.id == routineId && routine.isEnabled) {
-                didDisableRoutine = true
-                routine.copy(isEnabled = false)
-            } else {
-                routine
-            }
-        }
-
-        return ExactAlarmPermissionRecovery(
-            routines = updatedRoutines,
-            shouldResetAlarmPermissionPrompt = didDisableRoutine,
-        )
-    }
+    ): RoutineScheduleApplication = applyScheduleResult(
+        routines = routines,
+        routineId = routineId,
+        scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+    )
 
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,
@@ -98,5 +132,42 @@ object RoutineReceiverPolicy {
         notificationResult != RoutineStartNotificationResult.PermissionDenied -> null
         fallbackMessage.isBlank() -> null
         else -> PendingRoutineStartNotice(message = fallbackMessage)
+    }
+
+    fun enqueuePendingRoutineStartNotice(
+        storedValue: String?,
+        notice: PendingRoutineStartNotice,
+    ): String? = encodePendingRoutineStartNotices(
+        decodePendingRoutineStartNotices(storedValue) + notice.message,
+    )
+
+    fun drainNextPendingRoutineStartNotice(storedValue: String?): PendingRoutineStartNoticeDrain {
+        val notices = decodePendingRoutineStartNotices(storedValue)
+        val message = notices.firstOrNull()
+        val remaining = notices.drop(1)
+        return PendingRoutineStartNoticeDrain(
+            message = message,
+            remainingStoredValue = encodePendingRoutineStartNotices(remaining),
+        )
+    }
+
+    fun decodePendingRoutineStartNotices(storedValue: String?): List<String> {
+        if (storedValue.isNullOrBlank()) {
+            return emptyList()
+        }
+
+        return runCatching {
+            Json.decodeFromString<List<String>>(storedValue)
+        }.getOrElse {
+            listOf(storedValue)
+        }.filter { it.isNotBlank() }
+    }
+
+    fun encodePendingRoutineStartNotices(notices: List<String>): String? {
+        val normalized = notices.filter { it.isNotBlank() }
+        if (normalized.isEmpty()) {
+            return null
+        }
+        return Json.encodeToString(normalized)
     }
 }

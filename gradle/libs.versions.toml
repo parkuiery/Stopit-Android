@@ -1,17 +1,18 @@
 [versions]
 accompanistSystemuicontroller = "0.32.0"
-agp = "8.6.0"
+agp = "8.10.1"
 coreKtx = "1.15.0"
 datastorePreferences = "1.2.1"
 firebaseBom = "34.13.0"
 
-kotlin = "2.1.0"
+kotlin = "2.1.10"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 uiAutomator = "2.3.0"
 kotlinxSerializationJson = "1.8.1"
 lifecycleRuntimeKtx = "2.8.7"
+lifecycleRuntimeCompose = "2.9.3"
 activityCompose = "1.10.1"
 composeBom = "2025.01.01"
 jetbrainsKotlinJvm = "2.1.10"
@@ -27,6 +28,7 @@ orbit = "9.0.0"
 hilt = "2.56.1"
 ksp = "2.1.10-1.0.31"
 gmsGoogleServices = "4.4.4"
+firebaseCrashlytics = "3.0.6"
 utilcodex = "1.31.1"
 mockitoCore = "5.14.2"
 playReview = "2.0.2"
@@ -51,6 +53,7 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiAutomator" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -85,3 +88,5 @@ dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 gms-google-services = { id = "com.google.gms.google-services", version.ref = "gmsGoogleServices" }
+androidx-room = { id = "androidx.room", version.ref = "room" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

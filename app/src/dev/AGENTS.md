@@ -4,12 +4,12 @@
 # dev source set
 
 ## Purpose
-Development flavor source set. It currently carries the Firebase `google-services.json` for dev builds.
+Development flavor source set. CI/Release QA may restore `google-services.json` here for the dev flavor, but the workflow-specific restore matrix is owned by `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` rather than this directory alone.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `google-services.json` | Firebase/Google services configuration for this flavor; treat as environment-specific config. |
+| `google-services.json` | Firebase/Google services configuration for this flavor when restored locally or by CI. Check `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` before assuming which workflow writes this file. |
 
 ## Subdirectories
 No documented child directories.

@@ -21,6 +21,25 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword,
 ).all { !it.isNullOrBlank() }
 
+fun com.android.build.api.dsl.ProductFlavor.setAdMobConfig(
+    applicationId: String,
+    blockTop: String,
+    homeBottom: String,
+    lockBottom: String,
+    menuBottom: String,
+    routineListBottom: String,
+    routineEmptyBottom: String,
+) {
+    manifestPlaceholders["adMobApplicationId"] = applicationId
+    buildConfigField("String", "ADMOB_APPLICATION_ID", "\"$applicationId\"")
+    buildConfigField("String", "ADMOB_BLOCK_TOP_AD_UNIT_ID", "\"$blockTop\"")
+    buildConfigField("String", "ADMOB_HOME_BOTTOM_AD_UNIT_ID", "\"$homeBottom\"")
+    buildConfigField("String", "ADMOB_LOCK_BOTTOM_AD_UNIT_ID", "\"$lockBottom\"")
+    buildConfigField("String", "ADMOB_MENU_BOTTOM_AD_UNIT_ID", "\"$menuBottom\"")
+    buildConfigField("String", "ADMOB_ROUTINE_LIST_BOTTOM_AD_UNIT_ID", "\"$routineListBottom\"")
+    buildConfigField("String", "ADMOB_ROUTINE_EMPTY_BOTTOM_AD_UNIT_ID", "\"$routineEmptyBottom\"")
+}
+
 android {
     namespace = "com.uiery.keep"
     compileSdk = 35
@@ -29,8 +48,8 @@ android {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
         targetSdk = 35
-        versionCode = 28
-        versionName = "1.7.6"
+        versionCode = 29
+        versionName = "1.7.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,9 +61,27 @@ android {
         create("dev") {
             dimension = "server"
             //applicationIdSuffix = ".dev"
+            setAdMobConfig(
+                applicationId = "ca-app-pub-3940256099942544~3347511713",
+                blockTop = "ca-app-pub-3940256099942544/6300978111",
+                homeBottom = "ca-app-pub-3940256099942544/6300978111",
+                lockBottom = "ca-app-pub-3940256099942544/6300978111",
+                menuBottom = "ca-app-pub-3940256099942544/6300978111",
+                routineListBottom = "ca-app-pub-3940256099942544/6300978111",
+                routineEmptyBottom = "ca-app-pub-3940256099942544/6300978111",
+            )
         }
         create("prod") {
             dimension = "server"
+            setAdMobConfig(
+                applicationId = "ca-app-pub-1537867411423705~6734784292",
+                blockTop = "ca-app-pub-1537867411423705/5467753282",
+                homeBottom = "ca-app-pub-1537867411423705/5120253017",
+                lockBottom = "ca-app-pub-1537867411423705/7892727021",
+                menuBottom = "ca-app-pub-1537867411423705/3270829732",
+                routineListBottom = "ca-app-pub-1537867411423705/7750072748",
+                routineEmptyBottom = "ca-app-pub-1537867411423705/9271028233",
+            )
         }
     }
 
@@ -83,9 +120,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {

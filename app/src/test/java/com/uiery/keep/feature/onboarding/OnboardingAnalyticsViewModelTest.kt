@@ -4,15 +4,23 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
+import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
 import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
+import com.uiery.keep.feature.onboarding.select.canCompleteOnboardingAppSelection
+import com.uiery.keep.feature.review.FakeDataStore
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingAnalyticsViewModelTest {
@@ -37,11 +45,13 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
-    fun notificationTracksPermissionOutcomeBeforeCompletion() {
+    fun notificationTracksSettingsOpenedBeforeGrantAndOnlyCompletesWhenGranted() {
         val viewModel = NotificationSettingViewModel(analytics)
 
         viewModel.onStepViewed()
-        viewModel.onPermissionResult(isGranted = false)
+        viewModel.onPermissionSettingsOpened()
+        viewModel.onPermissionDenied()
+        viewModel.onPermissionGranted()
 
         assertEquals(
             listOf(
@@ -49,7 +59,17 @@ class OnboardingAnalyticsViewModelTest {
                 AnalyticsCall.StepViewed(OnboardingStepName.NOTIFICATION),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.SETTINGS_OPENED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
                     outcome = AnalyticsOutcome.DENIED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.GRANTED,
                     stepName = OnboardingStepName.NOTIFICATION,
                 ),
                 AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),
@@ -103,6 +123,59 @@ class OnboardingAnalyticsViewModelTest {
             analytics.calls,
         )
     }
+
+    @Test
+    fun selectAppCompletionWithEmptySelectionDoesNotCompleteOnboardingOrFirstLock() = runBlocking {
+        val dataStore = FakeDataStore()
+        val viewModel = SelectAppViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+        )
+
+        viewModel.selectCategoryComplete(emptySet())
+        delay(100)
+
+        assertEquals(emptyList<AnalyticsCall>(), analytics.calls)
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.IS_NEW])
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun selectAppCompletionWithSelectionTracksAndStoresOnboardingCompletion() = runBlocking {
+        val dataStore = FakeDataStore()
+        val viewModel = SelectAppViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+        )
+
+        viewModel.selectCategoryComplete(setOf("com.example.app"))
+        delay(100)
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.AppSelectionCompleted(
+                    selectedAppCount = 1,
+                    isOnboarding = true,
+                ),
+                AnalyticsCall.StepCompleted(OnboardingStepName.SELECT_APP),
+                AnalyticsCall.FirstLockConfigured(
+                    source = AnalyticsSource.ONBOARDING,
+                    selectedAppCount = 1,
+                ),
+            ),
+            analytics.calls,
+        )
+        assertEquals(setOf("com.example.app"), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+        assertEquals(false, dataStore.snapshot()[PreferencesKey.IS_NEW])
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun onboardingAppSelectionRequiresAtLeastOneSelectedPackage() {
+        assertFalse(canCompleteOnboardingAppSelection(emptySet()))
+        assertTrue(canCompleteOnboardingAppSelection(setOf("com.example.app")))
+    }
 }
 
 private sealed interface AnalyticsCall {
@@ -116,6 +189,10 @@ private sealed interface AnalyticsCall {
         val permissionName: String,
         val outcome: String,
         val stepName: String?,
+    ) : AnalyticsCall
+    data class AppSelectionCompleted(
+        val selectedAppCount: Int,
+        val isOnboarding: Boolean,
     ) : AnalyticsCall
     data class FirstLockConfigured(
         val source: String,
@@ -178,6 +255,16 @@ private class RecordingKeepAnalytics : KeepAnalytics {
             permissionName = permissionName,
             outcome = outcome,
             stepName = stepName,
+        )
+    }
+
+    override fun trackAppSelectionCompleted(
+        selectedAppCount: Int,
+        isOnboarding: Boolean,
+    ) {
+        calls += AnalyticsCall.AppSelectionCompleted(
+            selectedAppCount = selectedAppCount,
+            isOnboarding = isOnboarding,
         )
     }
 

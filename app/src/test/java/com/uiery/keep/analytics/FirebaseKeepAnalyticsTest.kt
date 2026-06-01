@@ -132,6 +132,11 @@ class FirebaseKeepAnalyticsTest {
             blockSource = AnalyticsBlockSource.TIMED_LOCK,
             blockedAppPackage = "com.example.blocked",
         )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.ROUTINE,
+            blockedAppPackage = "com.example.routine",
+            routineId = "42",
+        )
         analytics.trackEmergencyUnlockCompleted(
             reason = "work",
             durationMinutes = 15,
@@ -177,6 +182,17 @@ class FirebaseKeepAnalyticsTest {
         )
         assertEquals(
             LoggedEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.ROUTINE_ID to "42",
+                ),
+            ),
+            backend.loggedEvents[4],
+        )
+        assertEquals(
+            LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.REASON to "work",
@@ -184,7 +200,7 @@ class FirebaseKeepAnalyticsTest {
                     KeepAnalyticsParam.REMAINING_UNLOCKS to 1,
                 ),
             ),
-            backend.loggedEvents[4],
+            backend.loggedEvents[5],
         )
     }
 
@@ -204,8 +220,6 @@ class FirebaseKeepAnalyticsTest {
         )
         analytics.trackFcmTokenCaptured()
         analytics.trackDeviceRegistrationAttempted()
-        analytics.trackDeviceRegistrationSucceeded()
-        analytics.trackDeviceRegistrationFailed("network_error")
         analytics.trackDeviceRegistrationSkipped("backend_removed")
 
         assertEquals(
@@ -233,20 +247,24 @@ class FirebaseKeepAnalyticsTest {
         )
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
-        assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_SUCCEEDED, emptyMap()), backend.loggedEvents[4])
-        assertEquals(
-            LoggedEvent(
-                KeepAnalyticsEvent.DEVICE_REGISTRATION_FAILED,
-                mapOf(KeepAnalyticsParam.REASON to "network_error"),
-            ),
-            backend.loggedEvents[5],
-        )
         assertEquals(
             LoggedEvent(
                 KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
                 mapOf(KeepAnalyticsParam.REASON to "backend_removed"),
             ),
-            backend.loggedEvents[6],
+            backend.loggedEvents[4],
+        )
+    }
+
+    @Test
+    fun deviceRegistrationRuntimeEventsOnlyExposeCurrentBackendRemovedContract() {
+        assertEquals(
+            setOf(
+                KeepAnalyticsEvent.FCM_TOKEN_CAPTURED,
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED,
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
+            ),
+            KeepAnalyticsEvent.ACTIVE_DEVICE_REGISTRATION_EVENTS,
         )
     }
 
@@ -276,12 +294,65 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun focusSummaryShareEventsUsePrivacySafeBuckets() {
+        analytics.trackFocusSummaryShareTapped(
+            periodType = "week",
+            sessionCountBucket = "2_3",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackFocusSummaryShareSheetOpened(
+            periodType = "week",
+            sessionCountBucket = "2_3",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackFocusSummaryShareFailed(
+            periodType = "week",
+            reason = "activity_not_found",
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "2_3",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_SHEET_OPENED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "2_3",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_FAILED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.REASON to "activity_not_found",
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
+        assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
+        assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
         assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
-        assertEquals("HistoryScreen", KeepAnalyticsScreen.HISTORY)
+        assertEquals("LockHistoryScreen", KeepAnalyticsScreen.LOCK_HISTORY)
         assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)

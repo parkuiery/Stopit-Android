@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.home.component
 
-import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +43,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.home.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,7 +55,9 @@ fun CategoryBottomSheetContent(
     onComplete: (Set<String>) -> Unit,
 ) {
     val context = LocalContext.current
-    val packageManager = context.packageManager
+    val installedAppRepository = remember(context.packageManager) {
+        InstalledAppRepository(context.packageManager)
+    }
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     val selectedAppPackages by remember { mutableStateOf(storeSelectApps.toMutableSet()) }
@@ -64,11 +66,12 @@ fun CategoryBottomSheetContent(
     }
     var searchContent by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            apps = getInstalledApps(packageManager)
-            isLoading = false
+    LaunchedEffect(installedAppRepository) {
+        val loadedApps = withContext(Dispatchers.IO) {
+            installedAppRepository.loadSelectableApps()
         }
+        apps = loadedApps
+        isLoading = false
     }
 
     Column(
@@ -147,7 +150,9 @@ fun CategoryBottomSheetContent(
                     }
                 }
                 items(
-                    items = apps.filter { it.appName.contains(searchContent, ignoreCase = true) },
+                    items = apps
+                        .filter { it.appName.contains(searchContent, ignoreCase = true) }
+                        .sortedByDescending { it.packageName in storeSelectApps },
                     key = { it.packageName }
                 ) { app ->
                     var isCheck by remember(isSelectAll, selectedAppPackages) {
@@ -194,19 +199,6 @@ fun CategoryBottomSheetContent(
                 fontSize = 18.sp,
             )
         }
-    }
-}
-
-private fun getInstalledApps(packageManager: PackageManager): List<AppInfo> {
-    val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-        .filter { packageManager.getLaunchIntentForPackage(it.packageName) != null && it.packageName != "com.uiery.keep" }
-    return apps.map { app ->
-        AppInfo(
-            packageName = app.packageName,
-            appName = packageManager.getApplicationLabel(app).toString(),
-            appIcon = packageManager.getApplicationIcon(app),
-            isChecked = false,
-        )
     }
 }
 

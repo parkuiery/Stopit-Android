@@ -17,9 +17,6 @@ import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -43,23 +40,26 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var appContext: Context
 
     override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action
+        val routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME)
+        val routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L)
+
         RoutineReceiverPolicy.parseRoutineAlarmTrigger(
-            action = intent.action,
-            routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
-            routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
+            action = action,
+            routineName = routineName,
+            routineId = routineId,
         ) ?: return
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                handleRoutineAlarm(
-                    action = intent.action,
-                    routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
-                    routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
-                )
-            } finally {
-                pendingResult.finish()
-            }
+        ReceiverCoroutineRunner.launch(
+            receiverName = "RoutineAlarmReceiver",
+            finish = { pendingResult.finish() },
+        ) {
+            handleRoutineAlarm(
+                action = action,
+                routineName = routineName,
+                routineId = routineId,
+            )
         }
     }
 
@@ -83,7 +83,12 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
         )?.let { pendingNotice ->
             dataStore.edit { preferences ->
-                preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = pendingNotice.message
+                RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+                    storedValue = preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
+                    notice = pendingNotice,
+                )?.let { encodedNotices ->
+                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = encodedNotices
+                }
             }
         }
 
@@ -95,31 +100,39 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             databaseRoutines = databaseRoutines,
         )
 
-        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-            routineStore.writeCachedRoutines(routines)
-        }
+        var updatedRoutines = routines
+        val disabledRoutineIds = linkedSetOf<Long>()
+        var shouldResetAlarmPermissionPrompt = false
 
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
             routines = routines,
             routineId = trigger.routineId,
-        )?.let { routineToReschedule ->
-            when (routineScheduler.scheduleRoutine(routineToReschedule)) {
-                RoutineScheduleResult.MissingExactAlarmPermission -> {
-                    val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
-                        routines = routines,
-                        routineId = routineToReschedule.id,
-                    )
-                    if (recovery.shouldResetAlarmPermissionPrompt) {
-                        routineDao.updateIsEnabledById(routineToReschedule.id, false)
-                        routineStore.writeCachedRoutines(recovery.routines)
-                        dataStore.edit { preferences ->
-                            preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
-                        }
-                    }
-                }
-                RoutineScheduleResult.Scheduled,
-                RoutineScheduleResult.NotEnabled,
-                -> Unit
+        )?.let { routine ->
+            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+                routines = updatedRoutines,
+                routineId = routine.id,
+                scheduleResult = routineScheduler.scheduleRoutine(routine),
+            )
+            updatedRoutines = scheduleApplication.routines
+            disabledRoutineIds += scheduleApplication.disabledRoutineIds
+            shouldResetAlarmPermissionPrompt =
+                shouldResetAlarmPermissionPrompt || scheduleApplication.shouldResetAlarmPermissionPrompt
+        }
+
+        disabledRoutineIds.forEach { routineId ->
+            routineDao.updateIsEnabledById(routineId, false)
+        }
+
+        if (
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
+            disabledRoutineIds.isNotEmpty()
+        ) {
+            routineStore.writeCachedRoutines(updatedRoutines)
+        }
+
+        if (shouldResetAlarmPermissionPrompt) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
             }
         }
     }

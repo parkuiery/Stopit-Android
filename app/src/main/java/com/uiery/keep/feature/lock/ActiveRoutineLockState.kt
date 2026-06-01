@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.lock
 
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.util.currentRoutineWindowStartDateTime
 import com.uiery.keep.util.currentRoutineWindowEndDateTime
 import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -9,6 +10,7 @@ import java.time.LocalDateTime
 internal data class ActiveRoutineLockState(
     val routines: List<RoutineModel>,
     val blockedApps: Set<String>,
+    val startTime: LocalDateTime,
     val endTime: LocalDateTime,
 )
 
@@ -31,6 +33,7 @@ internal fun resolveActiveRoutineLockState(
         return ActiveRoutineLockState(
             routines = emptyList(),
             blockedApps = emptySet(),
+            startTime = nowDateTime,
             endTime = nowDateTime,
         )
     }
@@ -39,6 +42,14 @@ internal fun resolveActiveRoutineLockState(
         activeRoutines
             .flatMap { it.lockApplications.orEmpty() }
             .toCollection(linkedSetOf())
+    val startTime =
+        activeRoutines.minOf { routine ->
+            currentRoutineWindowStartDateTime(
+                startTime = routine.startTime,
+                endTime = routine.endTime,
+                nowDateTime = nowDateTime,
+            )
+        }
     val endTime =
         activeRoutines.maxOf { routine ->
             currentRoutineWindowEndDateTime(
@@ -51,6 +62,7 @@ internal fun resolveActiveRoutineLockState(
     return ActiveRoutineLockState(
         routines = activeRoutines,
         blockedApps = blockedApps,
+        startTime = startTime,
         endTime = endTime,
     )
 }

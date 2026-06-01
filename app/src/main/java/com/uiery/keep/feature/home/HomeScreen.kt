@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -47,11 +48,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import android.app.Activity
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -61,6 +65,7 @@ import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
@@ -102,6 +107,10 @@ fun HomeScreen(
     )
     val haptic = LocalHapticFeedback.current
     var openAlertDialog by remember { mutableStateOf(false) }
+    val syncAccessibilityPermissionDialogState = {
+        openAlertDialog = !hasAccessibilityPermission(context)
+    }
+    val noSelectedAppsMessage = stringResource(R.string.select_apps_to_lock)
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
@@ -124,22 +133,22 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         viewModel.analyticsHomeScreen()
-        if (!hasAccessibilityPermission(context)) {
-            openAlertDialog = true
-        }
+        syncAccessibilityPermissionDialogState()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
-    DisposableEffect(lifecycleOwner, activity) {
+    val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
+    DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                syncAccessibilityPermissionDialogState()
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        observedLifecycle.addObserver(observer)
+        onDispose { observedLifecycle.removeObserver(observer) }
     }
 
     if (openAlertDialog) {
@@ -186,16 +195,20 @@ fun HomeScreen(
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
-                    viewModel.lockTime()
-                    coroutineScope
-                        .launch {
-                            timeBottomSheetState.hide()
-                        }.invokeOnCompletion {
-                            if (!timeBottomSheetState.isVisible) {
-                                viewModel.hideTimeBottomSheet()
-                                viewModel.moveToLock()
+                    if (uiState.selectedAppPackage.isEmpty()) {
+                        viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
+                    } else {
+                        viewModel.lockTime()
+                        coroutineScope
+                            .launch {
+                                timeBottomSheetState.hide()
+                            }.invokeOnCompletion {
+                                if (!timeBottomSheetState.isVisible) {
+                                    viewModel.hideTimeBottomSheet()
+                                    viewModel.moveToLock()
+                                }
                             }
-                        }
+                    }
                 },
             )
         }
@@ -265,6 +278,15 @@ fun HomeScreen(
                 enabled = !uiState.isKeep,
                 categorySize = uiState.selectedAppPackage.size,
             )
+            if (uiState.showFirstLockActivationCta) {
+                FirstLockActivationCta(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                    onClick = { viewModel.changeIsKeep() },
+                )
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
@@ -304,8 +326,12 @@ fun HomeScreen(
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.showSnackBar(message)
-                                        viewModel.changeIsKeep()
+                                        if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                            viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                        } else {
+                                            viewModel.showSnackBar(message)
+                                            viewModel.changeIsKeep()
+                                        }
                                     },
                             painter = painterResource(id = image),
                             contentDescription = null,
@@ -317,8 +343,12 @@ fun HomeScreen(
                             KeepSwitch(
                                 checked = uiState.isKeep,
                                 onCheckedChange = {
-                                    viewModel.showSnackBar(message)
-                                    viewModel.changeIsKeep()
+                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                        viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                    } else {
+                                        viewModel.showSnackBar(message)
+                                        viewModel.changeIsKeep()
+                                    }
                                 },
                             )
                             Image(
@@ -362,12 +392,51 @@ fun HomeScreen(
                         metadata = AdPlacementMetadata(
                             screenName = KeepAnalyticsScreen.HOME,
                             screenContext = "main",
-                            placement = "home_bottom",
-                            adUnitId = "ca-app-pub-1537867411423705/5120253017",
+                            placement = AdPlacement.HomeBottom.analyticsPlacement,
+                            adUnitId = AdPlacement.HomeBottom.adUnitId,
                         ),
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FirstLockActivationCta(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(KeepTheme.colors.onSecondary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_description),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+        }
+        Text(
+            text = stringResource(R.string.first_lock_activation_cta_action),
+            color = KeepTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+        )
     }
 }

@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Validate PR routing
         env:
@@ -26,13 +26,15 @@ jobs:
 
           if [[ "$HEAD_REF" =~ ^(feature|fix|refactor|docs|test|ci|chore)/[a-z0-9][a-z0-9-]*$ ]]; then
             expected_base="develop"
+          elif [[ "$HEAD_REF" =~ ^ecc-tools/[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
+            expected_base="develop"
           elif [[ "$HEAD_REF" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             expected_base="main"
           elif [[ "$HEAD_REF" =~ ^hotfix/[a-z0-9][a-z0-9-]*$ ]]; then
             expected_base="main"
           else
             echo "Invalid branch name: $HEAD_REF"
-            echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, release/x.y.z, hotfix/*"
+            echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, ecc-tools/*, release/x.y.z, hotfix/*"
             exit 1
           fi
 

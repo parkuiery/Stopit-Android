@@ -62,6 +62,7 @@ class BlockViewModel
             analytics.trackAppBlockIntercepted(
                 blockSource = blockSource,
                 blockedAppPackage = packageName,
+                routineId = routineId,
             )
             if (hasTrackedFirstCoreAction) {
                 analytics.trackCoreActionCompleted(

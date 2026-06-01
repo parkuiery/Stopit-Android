@@ -69,13 +69,7 @@ class KeepAccessibilityService :
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
-
-        private val UNINSTALL_PACKAGES = setOf(
-            "com.android.packageinstaller",
-            "com.google.android.packageinstaller",
-            "com.samsung.android.packageinstaller",
-            "com.android.vending",
-        )
+        private const val FOREGROUND_REEVALUATION_RETRY_DELAY_MS = 300L
     }
 
     override fun onServiceConnected() {
@@ -98,16 +92,19 @@ class KeepAccessibilityService :
                 KeepAccessibilityServiceDebugState.update(applicationContext) {
                     it.copy(
                         observedIsKeep = cachedPrefs.isKeep,
+                        observedPreventUninstall = cachedPrefs.preventUninstall,
                         observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
                         observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
                     )
                 }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
+                reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
         launch {
             entryPoint.routineDao().fetchAll().collect { routineEntities ->
                 cachedRoutines = routineEntities.map { it.toModel() }
+                reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
     }
@@ -161,44 +158,88 @@ class KeepAccessibilityService :
 
         if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
 
+        launchBlockActivity(blockRequest)
+    }
+
+    private fun reevaluateCurrentForegroundAfterStateUpdate() {
+        handler.post {
+            reevaluateCurrentForegroundOnce()
+            handler.postDelayed({ reevaluateCurrentForegroundOnce() }, FOREGROUND_REEVALUATION_RETRY_DELAY_MS)
+        }
+    }
+
+    private fun reevaluateCurrentForegroundOnce() {
+        val packageName = currentForegroundPackage() ?: return
+        val prefs = cachedPrefs
+
+        cleanupExpiredEmergencyUnlock()
+        if (isEmergencyUnlocked(packageName)) return
+
+        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
+            dismissUninstallScreen()
+            return
+        }
+
+        val blockRequest = resolveServiceConnectionForegroundBlockRequest(
+            currentForegroundPackage = packageName,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = prefs.isKeep,
+                lockTime = prefs.lockTime,
+                selectedAppPackages = prefs.selectedAppPackages,
+            ),
+            cachedRoutines = cachedRoutines,
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        ) ?: return
+
+        if (isDuplicateBlock(packageName = blockRequest.packageName, blockSource = blockRequest.blockSource)) return
+
+        launchBlockActivity(blockRequest)
+    }
+
+    private fun launchBlockActivity(blockRequest: ForegroundBlockRequest) {
         KeepAccessibilityServiceDebugState.update(applicationContext) {
-            it.copy(lastLaunchedBlockPackage = packageName)
+            it.copy(lastLaunchedBlockPackage = blockRequest.packageName)
         }
         val intent = Intent(this, BlockActivity::class.java)
-        intent.putExtra("package_name", packageName)
+        intent.putExtra("package_name", blockRequest.packageName)
         intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
+        blockRequest.routineId?.let { intent.putExtra(BlockActivity.EXTRA_ROUTINE_ID, it) }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
 
     private fun isUninstallAttempt(eventPackageName: String): Boolean {
-        if (eventPackageName !in UNINSTALL_PACKAGES) return false
+        if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
         val rootNode = rootInActiveWindow ?: return false
         try {
             val idNodes = rootNode.findAccessibilityNodeInfosByText(BuildConfig.APPLICATION_ID)
-            val foundById = !idNodes.isNullOrEmpty()
+            val hasApplicationIdMatch = !idNodes.isNullOrEmpty()
             idNodes?.forEach { it.recycle() }
-            if (foundById) return true
+            if (hasApplicationIdMatch) return true
 
             val nameNodes = rootNode.findAccessibilityNodeInfosByText(getString(R.string.app_name))
-            val foundByName = !nameNodes.isNullOrEmpty()
+            val hasAppNameMatch = !nameNodes.isNullOrEmpty()
             nameNodes?.forEach { it.recycle() }
-            return foundByName
+            return shouldInterceptUninstallAttempt(
+                eventPackageName = eventPackageName,
+                hasApplicationIdMatch = hasApplicationIdMatch,
+                hasAppNameMatch = hasAppNameMatch,
+            )
         } finally {
             rootNode.recycle()
         }
     }
 
     private fun dismissUninstallScreen() {
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(lastDismissedUninstallPackage = BuildConfig.APPLICATION_ID)
+        }
         performGlobalAction(GLOBAL_ACTION_BACK)
 
         handler.postDelayed({
-            val root = rootInActiveWindow
-            val currentPackage = root?.packageName?.toString()
-            root?.recycle()
-            if (currentPackage != null && currentPackage in UNINSTALL_PACKAGES) {
-                launchHomeScreen()
-            }
+            rootInActiveWindow?.recycle()
+            launchHomeScreen()
         }, 500)
     }
 
@@ -350,6 +391,7 @@ internal suspend fun handleExpiredEmergencyUnlockForContext(
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
+        cancelEmergencyUnlockNotification(context)
     }
 
     return resolution
