@@ -17,9 +17,6 @@ import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -43,23 +40,26 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var appContext: Context
 
     override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action
+        val routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME)
+        val routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L)
+
         RoutineReceiverPolicy.parseRoutineAlarmTrigger(
-            action = intent.action,
-            routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
-            routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
+            action = action,
+            routineName = routineName,
+            routineId = routineId,
         ) ?: return
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                handleRoutineAlarm(
-                    action = intent.action,
-                    routineName = intent.getStringExtra(EXTRA_ROUTINE_NAME),
-                    routineId = intent.getLongExtra(EXTRA_ROUTINE_ID, -1L),
-                )
-            } finally {
-                pendingResult.finish()
-            }
+        ReceiverCoroutineRunner.launch(
+            receiverName = "RoutineAlarmReceiver",
+            finish = { pendingResult.finish() },
+        ) {
+            handleRoutineAlarm(
+                action = action,
+                routineName = routineName,
+                routineId = routineId,
+            )
         }
     }
 
