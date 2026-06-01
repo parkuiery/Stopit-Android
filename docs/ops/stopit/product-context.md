@@ -47,7 +47,8 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - 트래픽보다 핵심 가치 전달을 우선한다.
 - 활성화 병목은 `first_open -> onboarding_step_view/onboarding_step_complete -> permission_outcome -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted`로 본다.
 - 첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리, 해석 guardrail은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
-- #14의 홈 첫 잠금 CTA는 PR #256 이후 구현된 상태이므로, 다음 제품 판단은 CTA 반복이 아니라 첫 잠금 이후 첫 가치 경험 피드백과 실차단 신뢰 증거를 우선한다.
+- #14의 홈 첫 잠금 CTA는 PR #256 이후 구현됐고, 첫 차단 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 develop에 반영됐다. 이후 제품 판단은 CTA/피드백을 다시 만드는 것이 아니라, 배포 후 `first_lock_configured -> first_core_action_completed -> app_block_intercepted` 전환이 실제로 개선됐는지 14일 창으로 검증하는 쪽을 우선한다.
+- #14 후속 문서/실행 후보를 고를 때는 `first_lock_configured`를 실제 차단 완료로 과장하지 않는다. 이미 들어간 안내/피드백 표면을 기준선으로 두고, 남은 repo-internal 후보는 release/metrics 템플릿과 GA4 queryability handoff 보강 정도다.
 - `customUser:routines_count`가 조회된다고 해서 activation/review/monetization의 `customEvent:*` queryability까지 해결됐다고 보지 않는다.
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 제품 신호 부재보다 **GA4 Admin registration gap** 가능성을 먼저 의심하고, 최종 해석은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 묶는다.
 - 민감한 행동 정보, 차단 앱 목록, 집중 실패/중독 뉘앙스는 노출하지 않는다.

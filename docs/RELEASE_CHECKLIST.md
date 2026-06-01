@@ -84,6 +84,11 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - GA4 Admin custom dimension / metric registration still manual or already completed
   - live metadata / runReport reconfirmation status
   - post-release 14-day remeasurement still pending or completed
+- [ ] If first-lock activation, first-value feedback, or block-intercept UX changed, the PR body links `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` and records the post-release #14 measurement window:
+  - `first_lock_configured` users / `first_open` users
+  - `first_core_action_completed` users / `first_lock_configured` users
+  - `app_block_intercepted` users / `first_core_action_completed` users
+  - whether #13 GA4 Admin registration still blocks source/app/permission-level breakdowns
 - [ ] Analytics/product claims in the PR body do not overstate queryability:
   - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension` is recorded as a registration gap when applicable, not as simple no-data
   - `customUser:routines_count` visibility alone is not used as proof that activation/review/monetization `customEvent:*` axes are queryable

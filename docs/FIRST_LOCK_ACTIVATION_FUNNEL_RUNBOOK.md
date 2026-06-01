@@ -280,9 +280,9 @@ cd <repo-root>
 
 이번 docs lane 계약 정리만으로는 아직 다음이 남는다.
 
-- 앱 선택 후 미완료 사용자의 홈 첫 잠금 CTA는 PR #256 기준으로 구현됨. 남은 것은 해당 CTA가 배포된 뒤 `first_lock_configured / first_open`을 재측정하는 일이다.
-- 첫 차단/첫 가치 경험 UI 피드백 구현 또는 정교화
-- 첫 가치 경험 피드백이 `first_lock_configured`를 실제 차단 완료로 과장하지 않는지 확인하는 문구/QA 검증
+- 앱 선택 후 미완료 사용자의 홈 첫 잠금 CTA는 PR #256 기준으로 구현됨. 이후 차단 화면 첫 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 반영됐으므로, 남은 repo-internal 문서 경계는 이 세 표면을 기준선으로 묶어 release/metrics handoff가 다시 과거 상태로 퇴행하지 않게 하는 일이다.
+- 첫 차단/첫 가치 경험 UI 피드백은 현재 “미정의”가 아니라 develop 반영 상태로 취급한다. 추가 정교화가 필요하면 새 UI 변경이 아니라 배포 후 14일 재측정과 실제 사용자 반응을 근거로 범위를 다시 잡는다.
+- 첫 가치 경험 피드백이 `first_lock_configured`를 실제 차단 완료로 과장하지 않는지 확인하는 문구/QA 검증은 PR #279/#283 기준으로 done 상태를 먼저 확인하고, 동일 문구를 반복 수정하지 않는다.
 - 배포 후 14일 기준 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed` 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
 - `permission_name` / `source` / `blocking_mode` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인

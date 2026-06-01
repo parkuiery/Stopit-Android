@@ -75,6 +75,7 @@
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷, #242 acquisition attribution gate, UTM/Install Referrer 운영 기준 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 첫 잠금 활성화 퍼널 source of truth. 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283) 이후에는 “CTA/피드백 부재”가 아니라 post-release 14일 재측정과 #13 queryability 경계를 기준으로 본다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
@@ -313,8 +314,8 @@ PY
 
 - 이벤트가 버전별로 새로 추가되었으면 전체 30일 합산 퍼널을 그대로 믿지 않는다.
 - `appVersion`별로 나눠 보고, 이벤트가 동일한 의미로 찍히는 기간만 비교한다.
-- PR #256 이후 #14는 홈 첫 잠금 CTA가 구현된 상태다. 이후 docs/metrics lane은 이 이슈를 다시 “앱 선택 후 CTA가 없음”으로 해석하지 않는다.
-- 다음 repo 내부 실행 후보는 `first_lock_configured` 이후의 **첫 가치 경험 피드백**이다. 준비 완료(`first_lock_configured`)를 실제 차단 완료로 과장하지 않고, 사용자가 선택 앱을 열면 Stopit이 막아준다는 안내와 실제 `BlockViewModel.trackBlockShown(...)`의 `app_block_intercepted` → 최초 `first_core_action_completed` 계측 계약을 같이 유지해야 한다.
+- PR #256 이후 #14는 홈 첫 잠금 CTA가 구현된 상태이며, PR #279/#283 이후 첫 차단 성공 피드백과 홈 Keep/타이머 시작 직후 안내도 develop 반영 상태다. 이후 docs/metrics lane은 이 이슈를 다시 “앱 선택 후 CTA가 없음” 또는 “첫 가치 피드백 미정의”로 해석하지 않는다.
+- 다음 repo 내부 후보는 새 CTA/피드백을 또 만드는 것이 아니라, 준비 완료(`first_lock_configured`)를 실제 차단 완료로 과장하지 않는 현재 안내 계약과 실제 `BlockViewModel.trackBlockShown(...)`의 `app_block_intercepted` → 최초 `first_core_action_completed` 계측 계약을 release/metrics handoff에서 유지하는 것이다.
 - 측정은 `first_lock_configured / first_open`뿐 아니라 `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 본다. 세부 `source`, `blocking_mode`, `block_source` 분해는 #13 GA4 Admin registration 상태를 먼저 확인한다.
 
 ### 4. 유지 / 반복 사용
