@@ -3,7 +3,8 @@ name: Android Release QA
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    # Include edited so develop -> main retargets materialize release gates without a new commit.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_dispatch:
 
 permissions:
@@ -49,6 +50,9 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
+      - name: Run lint registry verifier unit tests
+        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
+
       - name: Run full release JVM and build QA
         run: |
           set -euo pipefail
@@ -57,6 +61,20 @@ jobs:
             :app:testProdReleaseUnitTest \
             :app:lintProdRelease \
             :app:assembleProdDebug
+
+      - name: Verify Navigation/Compose lint registry coverage
+        run: >-
+          python3 scripts/verify_lint_registry.py
+          --report app/build/reports/lint-results-prodRelease.html
+          --require-section "Included Additional Checks"
+          --require-identifier androidx.navigation.common
+          --require-identifier androidx.navigation.compose
+          --require-identifier androidx.navigation.runtime
+          --require-issue-id MissingSerializableAnnotation
+          --require-issue-id MissingKeepAnnotation
+          --require-issue-id WrongNavigateRouteType
+          --forbid-text "Requires newer lint; these checks will be skipped!"
+          --forbid-text ObsoleteLintCustomCheck
 
   release-instrumentation-qa:
     name: Release instrumentation QA

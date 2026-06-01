@@ -67,6 +67,30 @@ class HomeViewModelRoutineStartNoticeTest {
         )
     }
 
+    @Test
+    fun hideCategoryBottomSheetDrainsPendingRoutineStartNoticeAfterSheetDismisses() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE to "Morning focus started without notification permission",
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore)
+
+        delay(50)
+        viewModel.showCategoryBottomSheet()
+        delay(50)
+        viewModel.maybeDrainRoutineStartNotice()
+        delay(50)
+        viewModel.hideCategoryBottomSheet()
+        delay(50)
+
+        assertEquals(
+            "Morning focus started without notification permission",
+            viewModel.container.stateFlow.value.snackbarMessage,
+        )
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE])
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: KeepAnalytics = RecordingKeepAnalytics(),

@@ -54,9 +54,9 @@
 | 레이어 | 지표 | 정의 | 데이터 소스 | 해석 |
 |---|---|---|---|---|
 | North Star | 주간 활성 차단 사용자 | 7일 내 `app_block_intercepted` 1회 이상 사용자 | GA4/Firebase | 핵심 가치 전달 규모 |
-| Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목 |
+| Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목. 온보딩/홈 출처 모두 `selected_app_count >= 1` 이후만 유효 |
 | Input | 첫 핵심 행동 완료율 | `first_core_action_completed` users / `first_open` users | GA4 | 첫 가치 경험률 |
-| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
+| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환. `selected_app_count >= 1` 계약을 전제로 해석 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
@@ -67,7 +67,7 @@
 | Business | 광고 eCPM | `totalAdRevenue` / impressions × 1000 | GA4/AdMob | 광고 효율 |
 | Business | 광고 CTR | clicks / impressions | GA4/AdMob | 광고 반응 |
 | Acquisition | 신규 사용자 | `newUsers` | GA4 | 성장 흐름 |
-| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` | GA4 | ASO 효과 |
+| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용 |
 
 ## 현재 기준선
 
@@ -160,6 +160,7 @@
 - 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
 - 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했다. 따라서 현재 #14/#16류 세부 파라미터 분석은 no-data가 아니라 **GA4 Admin 미등록 queryability gap** 때문에 confidence가 낮다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
+- 2026-06-01 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
 
 ## 성장 루프 후보
 
@@ -170,6 +171,7 @@
 - 유입 경로: 공유 카드 → Play Store 링크.
 - 리스크: 사용자의 집중/중독 문제가 민감할 수 있으므로 공유는 완전 선택형이어야 한다.
 - 지표: 공유 클릭률, 공유 후 설치, 공유 사용자의 유지율.
+- 실행 계약: `docs/FOCUS_SUMMARY_SHARE_MVP.md`, issue #211
 
 ### 2. 루틴 템플릿 공유 루프
 
@@ -282,6 +284,7 @@
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
 - #17 리뷰 프롬프트 생애주기 개선 (`docs/REVIEW_PROMPT_LIFECYCLE.md` 참조)
 - #119 Usage Access 기반 사용기록 리포트 MVP 실행 후보 재검토 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조, `#82`는 초기 문서화 이력)
+- #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
 ## 관련 실행 문서
 

@@ -8,7 +8,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
-| Release Build | `.github/workflows/release-build.yml` | PR/push to `main`, manual | Signed `prodRelease` AAB artifact. No Play upload. |
+| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, manual, or post-merge main push | Signed `prodRelease` AAB artifact. No Play upload. Non-release main PRs are skipped before signing/Firebase secrets are read. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build and Google Play upload. |
 
 ## What is automated
@@ -41,11 +41,13 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow` 후 `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
-- Release candidates targeting `main` run Android Release Build:
+- Release candidates targeting `main` run Android Release Build. Scope: release/* -> main, hotfix/* -> main, manual, or post-merge main push; a non-release main PR must not read signing/Firebase secrets or build a signed release artifact:
   - `./gradlew :app:testProdReleaseUnitTest`
   - signed `prodRelease` AAB build
   - upload signed AAB artifact to GitHub Actions
-- Pushing a semver tag like `v1.7.1` runs Play deployment:
+- Pushing a semver tag like `v1.7.1` runs Play deployment only after the tag-push guard passes:
+  - tag must be reachable from `origin/main`
+  - previous SemVer tag must already have the production completion marker
   - release unit tests
   - signed `prodRelease` AAB build
   - artifact upload to GitHub Actions
@@ -140,7 +142,7 @@ git pull origin main
 scripts/release-tag.sh 1.7.2
 ```
 
-The tag push triggers CD and uploads the signed bundle to the Play `internal` track.
+The tag push triggers CD and uploads the signed bundle to the Play `internal` track only when `.github/workflows/play-deploy.yml` validates the same safety contract again through `scripts/validate-play-deploy-ref.sh`: the SemVer tag must be reachable from `origin/main`, and `scripts/check-latest-production-deployed.sh` must pass while excluding the just-pushed tag from the "latest existing tag" lookup. This keeps a hand-created `v*.*.*` tag from bypassing the `scripts/release-tag.sh` main/production-marker guardrail.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
 
 Production promotion safety contract:
@@ -214,5 +216,6 @@ Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and loc
 - General CI does not upload to Play and does not require Play service account access.
 - Release Build creates signed artifacts only; it does not upload externally.
 - Tag-triggered CD targets `internal` by default, not production.
+- Tag-triggered CD still validates that the tag came from `origin/main` and that the previous SemVer release has the production marker before any Play upload starts.
 - Production upload is intentionally manual through workflow dispatch.
 - `scripts/release-start.sh` and `scripts/release-tag.sh` block if the latest existing SemVer tag does not have a production completion marker. Use `STOPIT_RELEASE_GATE_BYPASS=1` only for an explicitly approved emergency override.
