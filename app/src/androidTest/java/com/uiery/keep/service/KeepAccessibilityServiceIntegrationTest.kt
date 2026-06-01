@@ -204,6 +204,8 @@ class KeepAccessibilityServiceIntegrationTest {
         assertTrue(
             "Expected no uninstall dismissal record when prevent_uninstall is disabled",
             KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == null,
+        )
+    }
 
     @Test
     fun cleanupRestoresAccessibilityServiceWhenItWasInitiallyDisabled() = runBlocking {
