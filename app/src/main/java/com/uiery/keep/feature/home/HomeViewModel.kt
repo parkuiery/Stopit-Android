@@ -302,7 +302,6 @@ class HomeViewModel
                     source = AnalyticsSource.HOME_TIMER,
                     isRoutine = false,
                 )
-                storeBlockTime(lockedDuration)
             }
 
         private suspend fun trackFirstLockConfiguredIfNeeded(source: String) {

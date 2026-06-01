@@ -6,7 +6,10 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -86,6 +89,33 @@ class HomeViewModelActivationAnalyticsTest {
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
     }
 
+    @Test
+    fun lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.TOTAL_BLOCK_TIME to 9_000L,
+                PreferencesKey.LONG_BLOCK_TIME to 4_000L,
+            ),
+        )
+        val lockHistoryDao = HomeRecordingLockHistoryDao()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = lockHistoryDao,
+        )
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals("예약만으로는 완료된 잠금 세션을 Room 원장에 적재하지 않아야 합니다.", emptyList<LockHistoryEntity>(), lockHistoryDao.inserted)
+        assertEquals(9_000L, dataStore.snapshot()[PreferencesKey.TOTAL_BLOCK_TIME])
+        assertEquals(4_000L, dataStore.snapshot()[PreferencesKey.LONG_BLOCK_TIME])
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: HomeRecordingKeepAnalytics,
@@ -111,6 +141,23 @@ class HomeViewModelActivationAnalyticsTest {
                 clock = clock,
             ),
         )
+}
+
+private class HomeRecordingLockHistoryDao : LockHistoryDao {
+    val inserted = mutableListOf<LockHistoryEntity>()
+
+    override suspend fun insert(entity: LockHistoryEntity) {
+        inserted += entity
+    }
+
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override fun fetchAll(): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override suspend fun countSuccessfulSessions(): Int = inserted.size
+
+    override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
+        inserted.count { it.startTimestamp >= timestampMillis }
 }
 
 private sealed interface HomeAnalyticsCall {
