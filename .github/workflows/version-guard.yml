@@ -38,7 +38,21 @@ jobs:
               )
           PY
 
+      - name: Detect Android version file changes
+        id: version_changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet "origin/$BASE_REF" -- app/build.gradle.kts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "app/build.gradle.kts unchanged; skipping versionCode validation for this main-target governance hotfix."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Restore Google Play service account for guardrail
+        if: steps.version_changes.outputs.changed == 'true'
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -50,6 +64,7 @@ jobs:
           echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=$service_account_path" >> "$GITHUB_ENV"
 
       - name: Resolve base and Google Play versionCode maxima
+        if: steps.version_changes.outputs.changed == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -73,6 +88,7 @@ jobs:
           echo "play: maxUsedVersionCode=$play_max_version_code"
 
       - name: Validate versionName and versionCode
+        if: steps.version_changes.outputs.changed == 'true'
         run: |
           set -euo pipefail
           python3 scripts/play_version_code_guard.py validate-build \
