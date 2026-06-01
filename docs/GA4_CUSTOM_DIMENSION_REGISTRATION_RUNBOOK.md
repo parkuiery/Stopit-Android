@@ -131,10 +131,10 @@
 | `end_reason` | `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:end_reason` |
 | `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 미확인/등록 필요 | 동일 | `customEvent:reason` |
 | `reason` legacy note | `device_registration_failed` | 현재 코드 API/event constant에서 제거됨 | backend registration 재도입 전에는 GA4 지표 축으로 해석 금지 | 해당 없음 |
-| `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:screen_context` |
-| `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_placement` |
-| `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_format` |
-| `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_unit_id` |
+| `screen_context` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 새 배너 이벤트명 배포 후 14일 재조회 | `customEvent:screen_context` |
+| `ad_placement` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 새 배너 이벤트명 배포 후 14일 재조회 | `customEvent:ad_placement` |
+| `ad_format` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 새 배너 이벤트명 배포 후 14일 재조회 | `customEvent:ad_format` |
+| `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 새 배너 이벤트명 배포 후 14일 재조회 | `customEvent:ad_unit_id` |
 | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 코드 구현 전/등록 필요 | 관심도 실험 구현 전 GA4 Admin 등록 후 metadata 확인 | `customEvent:interest_context` |
 | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 코드 구현 전/등록 필요 | 동일 | `customEvent:interest_surface` |
 
@@ -145,9 +145,9 @@
 | `error` | `review_prompt_failed` | 미확인 | review 실패 원인 추적이 실제로 필요할 때 |
 | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 미확인 | 첫 가치 경험 비교를 appVersion별로 재분석할 때 |
 | `routine_id` | `first_core_action_completed`, `core_action_completed` | 미확인 | 루틴별 성과/문제 추적이 필요할 때 |
-| `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
-| `ad_currency` | `ad_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
-| `ad_precision_type` | `ad_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
+| `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
+| `ad_currency` | `ad_banner_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
+| `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
 | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | 코드 구현 전/등록 필요 | CTA copy/variant 비교가 필요할 때 |
 | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 코드 구현 전/등록 필요 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
 
@@ -160,7 +160,7 @@
 | `duration_minutes` | `emergency_unlock_completed` | 미확인 | 긴급해제 사용 길이 분포를 볼 때 |
 | `remaining_unlocks` | `emergency_unlock_completed` | 미확인 | 잔여 긴급해제 수 패턴을 볼 때 |
 | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 미확인 | first value latency를 분석할 때 |
-| `ad_value_micros` | `ad_revenue` | 2026-06-01 metadata 등록 확인 | placement/context별 수익 분포를 재집계할 때 |
+| `ad_value_micros` | `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | placement/context별 수익 분포를 재집계할 때 |
 
 운영 원칙:
 

@@ -208,7 +208,7 @@ filter_payload = {
 
 전제 확인:
 
-- `TrackedBannerAd.kt`와 `TrackedBannerAdTest.kt` 기준으로 `ad_impression`, `ad_click`, `ad_revenue` 이벤트와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다.
+- `TrackedBannerAd.kt`와 `TrackedBannerAdTest.kt` 기준으로 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다.
 - 운영 가드레일과 해석 순서는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 같이 본다.
 
 사용할 차원과 지표:
@@ -269,7 +269,7 @@ PY
 - 빈 화면명 비중
 - 등록된 커스텀 차원/지표 목록
 - 이벤트명과 코드의 일치 여부
-- 광고 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)와 `TrackedBannerAd` 파라미터 계약 일치 여부
+- Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)와 `TrackedBannerAd` 파라미터 계약 일치 여부
 
 판단 기준:
 
