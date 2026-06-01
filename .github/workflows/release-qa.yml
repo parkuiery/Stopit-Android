@@ -160,3 +160,6 @@ jobs:
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
             ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
+            ./gradlew :app:installDevDebug
+            adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
