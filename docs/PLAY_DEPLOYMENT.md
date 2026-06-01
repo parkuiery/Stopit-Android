@@ -55,7 +55,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - A successful `production` CD run writes two completion markers for the tag:
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
-- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`.
+- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires a SemVer tag ref.
+- Manual CD `workflow_dispatch` still requires a SemVer tag ref; branch refs are rejected for `internal`, `alpha`, `beta`, and `production`.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 
 ## Required GitHub secrets
@@ -144,6 +145,10 @@ scripts/release-tag.sh 1.7.2
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track only when `.github/workflows/play-deploy.yml` validates the same safety contract again through `scripts/validate-play-deploy-ref.sh`: the SemVer tag must be reachable from `origin/main`, and `scripts/check-latest-production-deployed.sh` must pass while excluding the just-pushed tag from the "latest existing tag" lookup. This keeps a hand-created `v*.*.*` tag from bypassing the `scripts/release-tag.sh` main/production-marker guardrail.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
+
+Manual dispatch tag-governance contract:
+- manual `workflow_dispatch` runs are not a branch bypass; they must start from the same SemVer tag ref governance as tag-triggered CD.
+- branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, so non-production uploads cannot bypass release PR → merge → tag evidence.
 
 Production promotion safety contract:
 - `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.

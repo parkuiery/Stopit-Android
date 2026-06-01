@@ -245,6 +245,9 @@ git checkout main
 git pull origin main
 scripts/release-tag.sh 1.7.2
 
+# 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행
+# branch ref로 internal/alpha/beta/production 업로드 우회 금지
+
 # 6. main -> develop 역머지
 git checkout develop
 git pull origin develop
@@ -278,6 +281,7 @@ gh pr create --base main --fill
 - 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
 - Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다.
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
+- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
 - 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
