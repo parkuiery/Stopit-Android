@@ -119,6 +119,22 @@ cd <repo-root>
 - `prodDebug`/`prodRelease` 조합에서는 DevTool route가 `NavHost`에 등록되지 않는다.
 - prod 사용자 화면에서 `Device ID`/`FCM Token` 진단값으로 이동할 수 있는 메뉴/graph 경로가 남지 않는다.
 
+### 앱 선택 package visibility baseline
+
+Issue #249 계열 PR은 `QUERY_ALL_PACKAGES`를 UI에서 직접 소비하지 않고 앱 선택 데이터 소스 계약 뒤에 격리해야 한다. 권한의 목적은 사용자가 차단 대상을 고르는 데 필요한 launchable app 목록 구성으로 제한한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.appselection.SelectableAppPolicyTest'
+./gradlew :app:assembleProdDebug
+```
+
+검증 기준:
+- `CategoryBottomSheetContent`는 `PackageManager.getInstalledApplications(...)`를 직접 호출하지 않는다.
+- broad package visibility query는 `InstalledAppRepository`에서만 수행한다.
+- `SelectableAppPolicyTest`가 launch intent 없는 앱 제외, Stopit 자기 package 제외, picker 정렬 안정성을 고정한다.
+- Manifest/Play 정책 설명은 “앱 차단 대상 선택” 목적과 충돌하지 않아야 한다.
+
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
