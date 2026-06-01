@@ -163,6 +163,7 @@
 - 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata만 일부 복구 확인됐다. 따라서 현재 #14류 activation/review 세부 파라미터는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 - 2026-06-01 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
+- 현재 #14는 홈 첫 잠금 CTA가 PR #256으로 반영된 상태다. 다음 활성화 실행 후보는 “CTA를 또 만드는 것”이 아니라 `first_lock_configured` 이후 사용자가 첫 가치/실차단을 이해하도록 하는 피드백 계약이며, `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`의 `첫 가치 경험 피드백 계약`을 기준으로 본다.
 
 ## 성장 루프 후보
 

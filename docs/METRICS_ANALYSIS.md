@@ -313,6 +313,9 @@ PY
 
 - 이벤트가 버전별로 새로 추가되었으면 전체 30일 합산 퍼널을 그대로 믿지 않는다.
 - `appVersion`별로 나눠 보고, 이벤트가 동일한 의미로 찍히는 기간만 비교한다.
+- PR #256 이후 #14는 홈 첫 잠금 CTA가 구현된 상태다. 이후 docs/metrics lane은 이 이슈를 다시 “앱 선택 후 CTA가 없음”으로 해석하지 않는다.
+- 다음 repo 내부 실행 후보는 `first_lock_configured` 이후의 **첫 가치 경험 피드백**이다. 준비 완료(`first_lock_configured`)를 실제 차단 완료로 과장하지 않고, 사용자가 선택 앱을 열면 Stopit이 막아준다는 안내와 실제 `BlockViewModel.trackBlockShown(...)`의 `app_block_intercepted` → 최초 `first_core_action_completed` 계측 계약을 같이 유지해야 한다.
+- 측정은 `first_lock_configured / first_open`뿐 아니라 `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 본다. 세부 `source`, `blocking_mode`, `block_source` 분해는 #13 GA4 Admin registration 상태를 먼저 확인한다.
 
 ### 4. 유지 / 반복 사용
 
