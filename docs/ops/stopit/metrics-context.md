@@ -49,8 +49,17 @@
 
 - newUsers
 - Organic Search newUsers
+- Direct newUsers share
+- Paid Search newUsers / activeUsers / sessions
+- Play Console Search/Explore vs external/campaign acquisition source
 - Store listing visitors/conversion if available
 - rating count and average rating
+
+ASO 판정 주의:
+- #65의 14일/30일 성과 판단은 `docs/PLAY_STORE_ASO.md`의 #242 acquisition attribution gate를 따른다.
+- GA4 `Organic Search`와 Play Console Search/Explore가 같은 방향인지 확인하기 전에는 ASO 효과로 단정하지 않는다.
+- `Direct` 비중 급증은 UTM/Install Referrer 누락 또는 외부 링크 유입일 수 있으므로 먼저 분리한다.
+- 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 
 ## 핵심 퍼널
 
