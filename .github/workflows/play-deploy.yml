@@ -171,7 +171,6 @@ jobs:
           tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
-          changesNotSentForReview: true
 
       - name: Promote internal release to production
         if: env.DEPLOY_TRACK == 'production'
