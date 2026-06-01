@@ -41,6 +41,7 @@ import com.uiery.keep.feature.menu.component.MenuItem
 import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
 import com.uiery.keep.BuildConfig
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -167,8 +168,8 @@ fun MenuScreen(
                 metadata = AdPlacementMetadata(
                     screenName = KeepAnalyticsScreen.MENU,
                     screenContext = "settings",
-                    placement = "menu_bottom",
-                    adUnitId = "ca-app-pub-1537867411423705/3270829732",
+                    placement = AdPlacement.MenuBottom.analyticsPlacement,
+                    adUnitId = AdPlacement.MenuBottom.adUnitId,
                 ),
             )
         }
