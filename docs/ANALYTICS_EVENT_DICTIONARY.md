@@ -138,13 +138,15 @@
 
 ### 광고 / 수익화
 
-광고 관련 이벤트는 `KeepAnalytics.kt` 상수 집합이 아니라 `TrackedBannerAd.kt`의 전용 contract가 source of truth다.
+AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 아직 구현 전 문서 계약이며, code-lane 구현 시 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / 관련 테스트와 함께 추가해야 한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
 | `ad_impression` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 노출 |
 | `ad_click` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 클릭 |
 | `ad_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | 광고 수익 발생 |
+| `monetization_interest_shown` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 노출 |
+| `monetization_interest_clicked` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 클릭 |
 
 운영 원칙:
 
@@ -153,6 +155,8 @@
 - `screen_name`은 기존 `screen_view` 계약의 canonical 화면명(`RoutineScreen`, `LockScreen` 등)과 일치해야 한다.
 - GA4/AdMob의 `adUnitName` 차원과 앱 custom parameter `ad_unit_id`는 같은 필드가 아니다. `publisherAdImpressions`/`adUnitName` 보고서와 `customEvent:ad_placement` 보고서는 따로 해석하고, 합산하거나 서로 대체하지 않는다.
 - 2026-06-01 live preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있으므로, 이후 `(not set)` 원인은 단순 Admin 등록 누락보다 SDK 자동 이벤트와 앱 custom event의 이벤트명/필터 충돌 가능성을 먼저 본다.
+- 광고 제거 관심도 실험은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 1차 실험 계약을 따른다. `monetization_interest_context` 같은 별도 이벤트를 만들지 않고, `shown`/`clicked` 이벤트에 `interest_context` 파라미터를 붙인다.
+- 결제 기능이 실제로 없을 때는 `purchase_available=false`로 기록하고, 이 이벤트를 구매 전환이 아니라 관심도 신호로만 해석한다.
 
 ## 주요 파라미터 사전
 
@@ -183,6 +187,10 @@
 | `ad_currency` | 수익 통화 코드 |
 | `ad_precision_type` | AdMob가 제공한 수익 정밀도 (`estimated`, `precise`, `publisher_provided`, `unknown`) |
 | `ad_value_micros` | 마이크로 단위 광고 수익 |
+| `interest_context` | 수익화 관심도 CTA가 놓인 제품 문맥 (`menu_settings`, `home_secondary`, `ad_management` 등) |
+| `interest_surface` | 수익화 관심도 CTA 노출 표면 (`menu`, `home`, `settings` 등) |
+| `interest_variant` | 수익화 관심도 CTA copy/실험 variant (`default` 등) |
+| `purchase_available` | 실제 결제 가능 여부. 결제 구현 전 관심도 측정은 `false` |
 
 ## User property 계약
 
@@ -224,12 +232,16 @@
 | Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
 | Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
+| Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
+| Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
 | Recommended | `screen_name` | `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
 | Recommended | `ad_currency` | `ad_currency` | `ad_revenue` | 통화 코드 확인 |
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_revenue` | 추정 수익 vs 정밀 수익 구분 |
+| Recommended | `interest_variant` | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | CTA copy/variant 비교가 필요할 때 |
+| Recommended | `purchase_available` | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리 |
 
 ### 필요 시 등록할 이벤트 지표
 

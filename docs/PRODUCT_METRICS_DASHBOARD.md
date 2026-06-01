@@ -219,8 +219,9 @@
 
 - 장점: 소비자 유틸리티 앱에 단순하고 신뢰를 해치기 적다.
 - 리스크: 현재 광고 수익이 낮아도 구매 의향이 없을 수 있다.
-- 검증: 설정/메뉴에 “광고 제거 준비 중” 관심 클릭 측정.
+- 검증: 설정/메뉴에 “광고 제거 준비 중” 관심 클릭 측정. 기본 분자/분모는 `monetization_interest_clicked` users / `monetization_interest_shown` users이며, `interest_context` / `interest_surface`별로 본다.
 - 선행 조건: #16의 AdMob 감사에서 `(not set)`/empty 광고 단위 원인이 분류되고, `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 placement 계약표 기준으로 최소 14일 재조회가 가능해야 한다. 계측 매핑이 불명확하면 수익화 실험보다 보정 PR/GA4 Admin 조치를 먼저 둔다.
+- 이벤트/GA4 등록 계약: `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 따른다. 결제 구현 전 `purchase_available=false` 상태의 클릭은 구매 전환이 아니라 관심도 신호로만 해석한다.
 
 ### 2. 보상형 광고 기반 추가 긴급해제
 
