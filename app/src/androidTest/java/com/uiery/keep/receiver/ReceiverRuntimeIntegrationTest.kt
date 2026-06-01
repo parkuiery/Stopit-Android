@@ -21,7 +21,9 @@ import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -53,7 +55,6 @@ class ReceiverRuntimeIntegrationTest {
     fun setUp() {
         runBlocking {
             dataStoreName = "$DATASTORE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
-            grantExactAlarmPermission()
             clearAppState()
             database = Room.databaseBuilder(context, KeepDatabase::class.java, DATABASE_NAME)
                 .allowMainThreadQueries()
@@ -74,6 +75,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
@@ -209,6 +211,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
@@ -227,6 +230,62 @@ class ReceiverRuntimeIntegrationTest {
 
         assertEquals(listOf("Package replaced restore"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent() = runBlocking {
+        val scheduler = RoutineScheduler(context)
+        assertFalse(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            scheduler.canScheduleExactAlarms(),
+        )
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot deny"))
+        val receiver = BootReceiver().apply {
+            routineScheduler = scheduler
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
+
+        waitUntil("BootReceiver should disable the routine when exact alarm permission is missing") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("BootReceiver should persist disabled routine state into DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent() = runBlocking {
+        val scheduler = RoutineScheduler(context)
+        assertFalse(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            scheduler.canScheduleExactAlarms(),
+        )
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced deny"))
+        val receiver = BootReceiver().apply {
+            routineScheduler = scheduler
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("Package-replaced restore should disable the routine when exact alarm permission is missing") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("Package-replaced restore should persist disabled routine state into DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
     @Test
@@ -260,6 +319,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine() = runBlocking {
+        grantExactAlarmPermission()
         grantPostNotificationsPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
         val receiver = RoutineAlarmReceiver().apply {
@@ -337,6 +397,7 @@ class ReceiverRuntimeIntegrationTest {
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
             !NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
+        grantExactAlarmPermission()
         val eveningRoutineId = TEST_ROUTINE_ID + 1
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
         database.routineDao().insert(enabledRoutineEntity(id = eveningRoutineId, name = "Evening focus"))
@@ -380,6 +441,42 @@ class ReceiverRuntimeIntegrationTest {
         assertNotNull(findRoutinePendingIntent(eveningRoutineId))
     }
 
+    @Test
+    fun routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule() = runBlocking {
+        val scheduler = RoutineScheduler(context)
+        assertFalse(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            scheduler.canScheduleExactAlarms(),
+        )
+        grantPostNotificationsPermission()
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
+        val receiver = RoutineAlarmReceiver().apply {
+            notificationHelper = NotificationHelper(context)
+            routineScheduler = scheduler
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+            appContext = context
+        }
+
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Morning focus",
+            routineId = TEST_ROUTINE_ID,
+        )
+
+        waitUntil("RoutineAlarmReceiver should disable the routine when exact alarm permission is missing") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("RoutineAlarmReceiver should persist disabled routine state into DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
     private fun grantPostNotificationsPermission() {
         instrumentation.uiAutomation.executeShellCommand(
             "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
@@ -419,6 +516,14 @@ class ReceiverRuntimeIntegrationTest {
         }
         val storedJson = preferences[PreferencesKey.ROUTINES] ?: return emptyList()
         return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.name }
+    }
+
+    private fun storedRoutineEnabledStates(): List<Boolean> {
+        val preferences = runBlocking {
+            runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
+        }
+        val storedJson = preferences[PreferencesKey.ROUTINES] ?: return emptyList()
+        return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.isEnabled }
     }
 
     private fun storedRoutineStartNoticeMessages(): List<String> {
