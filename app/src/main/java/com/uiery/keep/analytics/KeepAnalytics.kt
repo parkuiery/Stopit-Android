@@ -61,6 +61,7 @@ interface KeepAnalytics {
     fun trackAppBlockIntercepted(
         blockSource: String,
         blockedAppPackage: String,
+        routineId: String? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
