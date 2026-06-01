@@ -42,6 +42,7 @@
     <string name="keep_on_status">StopIt is ingeschakeld</string>
     <string name="block_screen_title">StopIt blokkeert het gebruik van de app</string>
     <string name="block_screen_message">%1$s kan niet worden gebruikt omdat het beperkt is.</string>
+    <string name="block_screen_first_core_action_feedback">Je eerste blokkade werkte. StopIt blijft de geselecteerde apps blokkeren zolang Keep aan staat.</string>
     <string name="block_screen_close">Sluiten</string>
     <string name="permission_dialog_title">Toegankelijkheidsmachtiging is vereist om de app-vergrendelfunctie te gebruiken.</string>
     <string name="permission_dialog_message">StopIt blokkeert de toegang tot vergrendelde apps om de app-vergrendelfunctie te bieden. Hiervoor worden informatie over het huidige app-scherm en interactiegegevens verzameld en verwerkt. Deze gegevens worden niet voor andere doeleinden gebruikt dan het bieden van de app-vergrendelfunctie en worden niet extern verzonden. Wilt u de toegankelijkheidsmachtiging verlenen?</string>

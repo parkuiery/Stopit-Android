@@ -41,6 +41,7 @@
     <string name="keep_turned_off">StopIt has been turned off</string>
     <string name="block_screen_title">StopIt is blocking app usage</string>
     <string name="block_screen_message">%1$s cannot be used because it is restricted.</string>
+    <string name="block_screen_first_core_action_feedback">Your first block worked. StopIt will keep blocking selected apps while Keep is on.</string>
     <string name="block_screen_close">Close</string>
     <string name="permission_dialog_title">Accessibility permission is required to use the app lock feature.</string>
     <string name="permission_dialog_message">StopIt blocks access to locked apps to provide the app lock feature. For this, it collects and processes information about the current app\'s screen and interaction data. This data is not used for any purpose other than providing the app lock feature and is not sent externally. Would you like to grant accessibility permission?</string>

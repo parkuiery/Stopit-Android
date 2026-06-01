@@ -41,6 +41,7 @@
     <string name="keep_on_status">StopIt está activado</string>
     <string name="block_screen_title">StopIt está bloqueando el uso de la aplicación</string>
     <string name="block_screen_message">%1$s no se puede usar porque está restringido.</string>
+    <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras Keep esté activado.</string>
     <string name="block_screen_close">Cerrar</string>
     <string name="permission_dialog_title">Se requiere permiso de accesibilidad</string>
     <string name="permission_dialog_message">Este permiso ayuda a detectar el uso de la aplicación para bloquear aplicaciones específicas.\nLa información recopilada no se utiliza para ningún otro propósito que no sea el bloqueo de aplicaciones y no se transmite externamente.</string>

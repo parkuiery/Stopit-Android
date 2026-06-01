@@ -42,6 +42,7 @@
     <string name="keep_on_status">StopIt включен</string>
     <string name="block_screen_title">StopIt блокирует использование приложения</string>
     <string name="block_screen_message">%1$s нельзя использовать, так как он ограничен.</string>
+    <string name="block_screen_first_core_action_feedback">Первая блокировка сработала. StopIt продолжит блокировать выбранные приложения, пока Keep включён.</string>
     <string name="block_screen_close">Закрыть</string>
     <string name="permission_dialog_title">Для использования функции блокировки приложений требуется разрешение на доступность.</string>
     <string name="permission_dialog_message">StopIt блокирует доступ к заблокированным приложениям для предоставления функции блокировки. Для этого собирается и обрабатывается информация о текущем экране приложения и данных взаимодействия. Эти данные не используются ни для каких других целей, кроме предоставления функции блокировки, и не передаются внешним лицам. Предоставить разрешение на доступность?</string>

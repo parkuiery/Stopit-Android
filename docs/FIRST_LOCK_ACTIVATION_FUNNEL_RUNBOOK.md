@@ -25,13 +25,13 @@
 
 issue #14는 이제 “앱 선택 후 첫 잠금 CTA가 전혀 없는 상태”가 아니다. PR #256으로 홈 첫 잠금 CTA가 develop에 들어갔고, 선택 앱이 1개 이상이며 아직 첫 잠금이 기록되지 않은 사용자에게 Keep 토글로 이어지는 CTA를 보여주는 계약이 코드/테스트/문서에 반영됐다.
 
-따라서 이후 #14 follow-through의 repo 내부 우선순위는 아래처럼 이동한다.
+따라서 이후 #14 follow-through의 repo 내부 우선순위는 아래처럼 이동했다.
 
-1. **첫 잠금 이후 첫 가치 경험 피드백**: `first_lock_configured` 이후 사용자가 “이제 언제/어떻게 차단이 작동하는지”를 이해하도록 안내한다.
+1. **첫 잠금 이후 첫 가치 경험 피드백**: `first_lock_configured` 이후 사용자가 “이제 언제/어떻게 차단이 작동하는지”를 이해하도록 안내한다. 2026-06-01 code lane에서 차단 화면 최초 진입 시 첫 차단 성공 피드백을 표시하는 경로를 추가해 이 항목의 repo-internal 구현을 시작했다.
 2. **첫 가치 경험과 실차단 계측 연결**: `BlockViewModel.trackBlockShown(...)` 기준으로 `app_block_intercepted`와 `first_core_action_completed`가 같은 차단 화면 진입에서 어떤 순서와 조건으로 찍히는지 유지한다.
 3. **배포 후 14일 재측정**: `first_lock_configured / first_open`만 보지 말고 `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`까지 함께 본다.
 
-문서 lane은 이번 섹션을 기준으로 #14를 “CTA 미정의”로 되돌리지 않는다. 다음 code/product lane은 첫 잠금 CTA 자체보다 **첫 가치 경험 피드백과 실차단 연결 증거**를 좁은 패키지로 잡는 편이 맞다.
+문서 lane은 이번 섹션을 기준으로 #14를 “CTA 미정의”로 되돌리지 않는다. 다음 code/product lane은 첫 잠금 CTA 자체보다 **첫 가치 경험 피드백과 실차단 연결 증거**를 좁은 패키지로 잡는 편이 맞다. 차단 화면 피드백이 들어간 뒤의 남은 repo-internal 후보는 홈/타이머 시작 직후의 “아직 차단 완료는 아님” 안내와 배포 후 측정 템플릿 정리이며, GA4 Admin 등록과 14일 재측정은 외부/post-release 경계로 분리한다.
 
 ## 왜 별도 런북이 필요한가
 
@@ -159,7 +159,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | --- | --- | --- |
 | 홈 CTA 클릭으로 Keep이 켜짐 | “선택한 앱을 열면 Stopit이 막아준다”는 즉시 안내. 성공처럼 보이되 실제 차단 완료로 과장하지 않는다 | 기존 `first_lock_configured(source=home, selected_app_count=...)`와 `lock_session_start(source=home_keep_switch)` 순서 유지 |
 | 타이머/카운트다운으로 첫 잠금이 예약됨 | 잠금 시작 시점과 선택 앱이 차단될 조건을 보여준다 | `first_lock_configured(source=home_timer, ...)`가 이미 기록된 사용자는 중복 기록하지 않는다 |
-| 차단 화면이 처음 노출됨 | “첫 차단이 실제로 작동했다”는 신뢰 피드백을 준다. 긴급해제/닫기 같은 안전 동작은 가리지 않는다 | `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록하고, 최초 1회만 `first_core_action_completed`를 기록하는 현재 계약을 유지 |
+| 차단 화면이 처음 노출됨 | “첫 차단이 실제로 작동했다”는 신뢰 피드백을 준다. 긴급해제/닫기 같은 안전 동작은 가리지 않는다 | `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록하고, 최초 1회만 `first_core_action_completed`를 기록하며, `BlockUiState.showFirstCoreActionFeedback`은 최초 차단에서만 `true`가 된다 |
 | 첫 차단 이후 홈/기록으로 복귀함 | 첫 성공을 축하하되 사용 앱 이름/민감 정보를 과하게 노출하지 않는다 | 후속 제품 실험을 만들 경우 새 이벤트보다 `core_action_completed`, lock history, review guardrail을 우선 재사용 |
 
 금지사항:
@@ -172,7 +172,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 
 - 홈/타이머 시작 직후 안내 문구 또는 snackbar를 기존 KDS/홈 상태 흐름 안에서 최소로 추가한다.
 - 차단 화면 최초 진입 시 `first_core_action_completed`가 찍히는 경로와 UI 문구가 같은 “첫 가치 경험” 의미를 공유하도록 테스트한다.
-- `HomeViewModelActivationAnalyticsTest`, `FirebaseKeepAnalyticsTest`, `BlockViewModelTest` 또는 동등한 focused JVM 테스트로 이벤트 순서와 중복 방지를 고정한다.
+- `HomeViewModelActivationAnalyticsTest`, `FirebaseKeepAnalyticsTest`, `BlockViewModelTest` 또는 동등한 focused JVM 테스트로 이벤트 순서와 중복 방지를 고정한다. 차단 화면 피드백은 `BlockViewModelTest.firstBlockShowsFirstCoreActionFeedbackAndTracksFunnelOrder`와 `repeatBlockDoesNotShowFirstCoreActionFeedback`이 baseline이다.
 - 문구를 추가하면 모든 shipped locale string resource와 `docs/ANALYTICS_EVENT_DICTIONARY.md` / 이 런북을 함께 갱신한다.
 
 ## 해석 guardrail
