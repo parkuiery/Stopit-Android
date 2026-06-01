@@ -94,21 +94,27 @@ cd <repo-root>
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest
 ```
 
-## 남은 repo-internal 코드 정리 경계
+## 현재 closure-pass 상태와 남은 경계
 
-이 문서는 docs-lane에서 가능한 비중복 계약 정리다. issue #194를 완전히 닫으려면 code lane 또는 PR #154 이후 closure pass에서 아래를 별도로 결정해야 한다.
+문서/운영 계약은 docs-lane에서 가능한 범위까지 정리됐다.
+
+- PR #215가 `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`, backup/restore 문서, AGENTS 근접 문서에 FCM token 로컬 저장 vs 제거된 backend registration 경계를 추가했다.
+- PR #154가 merge되면서 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 canonical analytics 표도 같은 해석으로 동기화됐다.
+- 현재 문서 기준으로 `fcm_token_captured`, `device_registration_attempted`, `device_registration_skipped(reason=backend_removed|missing_fcm_token)`만 살아 있는 런타임 운영 신호로 본다.
+- `device_registration_succeeded` / `device_registration_failed`는 production call site가 없는 legacy/API 표면이며, backend registration 재도입 전에는 성공/실패 제품 지표로 해석하지 않는다.
+
+issue #194를 완전히 닫으려면 이제 docs-lane 문서 보강이 아니라 code lane 판단이 필요하다.
 
 - `device_registration_succeeded` / `device_registration_failed` API와 event constant를 제거할지, deprecated로 유지할지 결정한다.
 - `FirebaseKeepAnalyticsTest`의 “queryability” test가 legacy success/fail 이벤트를 계속 고정해야 하는지 재판단한다.
 - `DeviceTokenManager` 이름과 `device_registration_attempted` 이벤트가 현재 책임(token 저장 + backend removed skip marker)을 충분히 설명하는지 정리한다.
-- `docs/ANALYTICS_EVENT_DICTIONARY.md`의 디바이스 등록/푸시 표는 PR #154와 파일 충돌 가능성이 있으므로, #154 merge 이후 현재 문서와 같은 해석으로 canonical event table을 동기화한다.
 
 ## PR / issue 기록 문구
 
-#194를 부분 전진시키는 문서 PR에서는 아래처럼 경계를 명확히 적는다.
+#194를 문서 closure-pass로 전진시키는 PR에서는 아래처럼 경계를 명확히 적는다.
 
 ```md
 Refs #194
 
-이번 PR은 FCM token 로컬 저장과 제거된 backend registration의 운영 해석을 분리하는 비중복 문서 계약을 추가한다. `docs/ANALYTICS_EVENT_DICTIONARY.md` canonical table과 unused analytics API 제거/deprecation은 PR #154 merge 이후 또는 code lane에서 별도 closure pass가 필요하다.
+이번 PR은 PR #154 merge 이후 상태에 맞춰 FCM token / backend registration 문서 계약을 closure-pass했다. canonical analytics dictionary는 이미 같은 해석으로 동기화됐고, 남은 #194 경계는 unused registration success/fail API·상수·테스트를 제거할지 deprecated로 유지할지에 대한 code lane 판단이다.
 ```
