@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">Zeigt Countdown während der Notfall-Entsperrung</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d verbleibend</string>
     <string name="emergency_unlock_waiting_seconds_label">Sekunden</string>
+    <string name="first_lock_activation_cta_title">Bereit für deine erste Sperre?</string>
+    <string name="first_lock_activation_cta_description">Du hast Apps ausgewählt. Schalte StopIt jetzt ein und erlebe die Sperre.</string>
+    <string name="first_lock_activation_cta_action">Starten</string>
 </resources>

@@ -144,4 +144,7 @@
     <string name="emergency_unlock_notification_channel_description">긴급 해제 중 카운트다운을 표시합니다</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d 남음</string>
     <string name="emergency_unlock_waiting_seconds_label">초</string>
+    <string name="first_lock_activation_cta_title">첫 잠금을 바로 시작해볼까요?</string>
+    <string name="first_lock_activation_cta_description">앱 선택은 끝났어요. StopIt을 켜서 실제 차단을 경험해보세요.</string>
+    <string name="first_lock_activation_cta_action">시작</string>
 </resources>

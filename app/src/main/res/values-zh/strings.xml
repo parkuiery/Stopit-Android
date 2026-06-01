@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">紧急解锁期间显示倒计时</string>
     <string name="emergency_unlock_remaining_count">剩余%1$d/%2$d</string>
     <string name="emergency_unlock_waiting_seconds_label">秒</string>
+    <string name="first_lock_activation_cta_title">要试试第一次锁定吗？</string>
+    <string name="first_lock_activation_cta_description">你已经选择了应用。现在开启 StopIt，体验真正的拦截。</string>
+    <string name="first_lock_activation_cta_action">开始</string>
 </resources>

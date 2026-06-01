@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -47,8 +48,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -270,6 +273,15 @@ fun HomeScreen(
                 enabled = !uiState.isKeep,
                 categorySize = uiState.selectedAppPackage.size,
             )
+            if (uiState.showFirstLockActivationCta) {
+                FirstLockActivationCta(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                    onClick = { viewModel.changeIsKeep() },
+                )
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
@@ -382,5 +394,44 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FirstLockActivationCta(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(KeepTheme.colors.onSecondary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_description),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+        }
+        Text(
+            text = stringResource(R.string.first_lock_activation_cta_action),
+            color = KeepTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+        )
     }
 }

@@ -103,9 +103,16 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | `first_open`만 있음 | 앱을 켰지만 온보딩/권한/선택으로 진입하지 않음 | 온보딩 첫 가치 약속을 더 선명히 보여준다 | `onboarding_step_view`, `onboarding_step_complete` |
 | `onboarding_step_view`는 있으나 `permission_outcome`이 약함 | 권한 단계에서 이탈 | 접근성/알림 권한의 왜 필요한지와 다음 행동을 명확히 보여준다 | `permission_outcome` (`permission_name`, `outcome`) |
 | `permission_outcome`은 있으나 `app_selection_completed`가 낮음 | 권한 뒤 앱 선택에서 이탈 | 앱 선택 자체를 더 빠르고 덜 부담스럽게 만든다 | `app_selection_completed`, `selected_app_count` |
-| `app_selection_completed`는 있으나 `first_lock_configured`가 낮음 | 앱은 골랐지만 첫 잠금/Keep 토글/타이머/루틴으로 이어지지 않음 | 다음 행동 CTA를 홈/온보딩 종료 상태에 명시한다 | `first_lock_configured`, `source` |
+| `app_selection_completed`는 있으나 `first_lock_configured`가 낮음 | 앱은 골랐지만 첫 잠금/Keep 토글/타이머/루틴으로 이어지지 않음 | 홈에서 첫 잠금 CTA를 노출해 Keep 토글로 바로 이어지게 한다 | `first_lock_configured`, `source=home` |
 | `first_lock_configured`는 있으나 `first_core_action_completed`가 낮음 | 준비는 했지만 첫 가치 경험으로 이어지지 않음 | 실제 차단이 언제/어떻게 발생하는지 피드백을 분명히 한다 | `first_core_action_completed`, `elapsed_since_first_open_seconds`, `blocking_mode` |
 | `first_core_action_completed`는 있으나 `app_block_intercepted`가 낮음 | 첫 가치/세션 계측과 실차단 계측이 어긋나거나 런타임 계약이 비어 있음 | 접근성 runtime/차단 화면/실차단 계측 연결을 검증한다 | `app_block_intercepted`, `block_source`, `blocked_app_package` |
+
+### 홈 첫 잠금 CTA 계약
+
+- 노출 조건: 선택 앱이 1개 이상이고 `HAS_TRACKED_FIRST_LOCK_CONFIGURED=false`이며 현재 Keep 모드가 꺼져 있을 때만 홈 상단에 표시한다.
+- 클릭 동작: 기존 Home Keep 토글 경로를 그대로 호출한다. 별도 계측 이벤트를 만들지 않고, 성공 시 기존 `first_lock_configured(source=home, selected_app_count=...)`와 `lock_session_start(source=home_keep_switch)` 순서를 유지한다.
+- 숨김 조건: 첫 잠금이 기록되거나 Keep 모드가 켜지면 CTA를 숨긴다. 이미 첫 잠금을 기록한 사용자에게는 반복 노출하지 않는다.
+- 검증 기준: `HomeViewModelActivationAnalyticsTest`가 노출/숨김 조건과 첫 잠금 시작 후 숨김을 고정한다.
 
 ## 해석 guardrail
 

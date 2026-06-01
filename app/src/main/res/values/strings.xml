@@ -145,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">Shows countdown during emergency unlock</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d remaining</string>
     <string name="emergency_unlock_waiting_seconds_label">seconds</string>
+    <string name="first_lock_activation_cta_title">Ready to try your first lock?</string>
+    <string name="first_lock_activation_cta_description">You picked apps. Turn on StopIt now to feel the block.</string>
+    <string name="first_lock_activation_cta_action">Start</string>
 </resources>

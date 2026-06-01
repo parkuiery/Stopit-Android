@@ -134,6 +134,79 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun selectedAppsWithoutFirstLockExposeActivationCta() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaStaysHiddenWithoutSelectedApps() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaStaysHiddenAfterFirstLockConfigured() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun selectingAppsBeforeFirstLockExposesActivationCta() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.selectCategoryComplete(setOf("com.example.one"))
+        delay(50)
+
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaHidesAfterHomeKeepStartsFirstLock() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+        viewModel.changeIsKeep()
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
     fun lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
