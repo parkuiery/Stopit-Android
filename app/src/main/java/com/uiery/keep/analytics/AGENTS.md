@@ -43,3 +43,7 @@ No documented child directories.
 - See module build files for dependency declarations.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
+
+- Analytics schema source of truth lives in `docs/ANALYTICS_EVENT_DICTIONARY.md`; GA4 Admin registration/queryability follow-through lives in `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`.
+- When adding or changing event params, sync the code contract, the dictionary, and the required test coverage in the same package.
+- Do not interpret GA4 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension` as product-side no-data by default; for Stopit issue #13 that currently means the `customEvent:*` axis is still missing from GA4 Admin registration until the runbook says otherwise.

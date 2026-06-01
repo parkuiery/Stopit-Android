@@ -10,10 +10,9 @@ import com.uiery.keep.feature.devtool.devToolScreen
 import com.uiery.keep.feature.devtool.navigateToDevTool
 import com.uiery.keep.feature.emergencyunlocksettings.emergencyUnlockSettingsScreen
 import com.uiery.keep.feature.emergencyunlocksettings.navigateToEmergencyUnlockSettings
-import com.uiery.keep.feature.history.historyScreen
-import com.uiery.keep.feature.history.navigateToHistory
 import com.uiery.keep.feature.lockhistory.blockedapps.blockedAppsScreen
 import com.uiery.keep.feature.lockhistory.blockedapps.navigateToBlockedApps
+import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import com.uiery.keep.feature.lockhistory.lockHistoryScreen
 import com.uiery.keep.feature.lockhistory.navigateToLockHistory
 import com.uiery.keep.feature.home.homeScreen
@@ -35,6 +34,11 @@ import com.uiery.keep.feature.splash.splashScreen
 @Composable
 internal fun KeepApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+
+    val isDevToolEnabled = shouldRegisterDevToolRoute(
+        flavor = BuildConfig.FLAVOR,
+        isDebug = BuildConfig.DEBUG,
+    )
 
     NavHost(
         modifier = modifier
@@ -59,20 +63,24 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateLock = navController::navigateToLock,
         )
         menuScreen(
-            onNavigateDevTool = navController::navigateToDevTool,
+            onNavigateDevTool = if (isDevToolEnabled) {
+                { navController.navigateToDevTool() }
+            } else {
+                {}
+            },
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
-            onNavigateHistory = navController::navigateToHistory,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
-        devToolScreen(onNavigateBack = navController::navigateUp)
+        if (isDevToolEnabled) {
+            devToolScreen(onNavigateBack = navController::navigateUp)
+        }
         routineScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateLock = navController::navigateToLock,
         )
-        historyScreen(onNavigateBack = navController::navigateUp)
         lockHistoryScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateBlockedApps = navController::navigateToBlockedApps,
@@ -81,3 +89,12 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
     }
 }
+
+internal fun shouldRegisterDevToolRoute(
+    flavor: String,
+    isDebug: Boolean,
+): Boolean = flavor == "dev" && isDebug
+
+internal fun canonicalHistoryRoute() = LockHistoryRoute
+
+internal fun shouldRegisterLegacyHistoryRoute(): Boolean = false
