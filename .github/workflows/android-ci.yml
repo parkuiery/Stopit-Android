@@ -90,11 +90,28 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
+      - name: Run lint registry verifier unit tests
+        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
+
       - name: Run app unit tests
         run: ./gradlew --console=plain :app:testDevDebugUnitTest
 
       - name: Run dev lint gate
         run: ./gradlew --console=plain :app:lintDevDebug
+
+      - name: Verify Navigation/Compose lint registry coverage
+        run: >-
+          python3 scripts/verify_lint_registry.py
+          --report app/build/reports/lint-results-devDebug.html
+          --require-section "Included Additional Checks"
+          --require-identifier androidx.navigation.common
+          --require-identifier androidx.navigation.compose
+          --require-identifier androidx.navigation.runtime
+          --require-issue-id MissingSerializableAnnotation
+          --require-issue-id MissingKeepAnnotation
+          --require-issue-id WrongNavigateRouteType
+          --forbid-text "Requires newer lint; these checks will be skipped!"
+          --forbid-text ObsoleteLintCustomCheck
 
       - name: Build prod debug APK
         run: ./gradlew --console=plain :app:assembleProdDebug
@@ -155,7 +172,7 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.manifest.ManifestContractIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
+            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
             ./gradlew --console=plain :app:installDevDebug
             adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
             ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
