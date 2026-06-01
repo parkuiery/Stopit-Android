@@ -150,7 +150,9 @@ fun CategoryBottomSheetContent(
                     }
                 }
                 items(
-                    items = apps.filter { it.appName.contains(searchContent, ignoreCase = true) },
+                    items = apps
+                        .filter { it.appName.contains(searchContent, ignoreCase = true) }
+                        .sortedByDescending { it.packageName in storeSelectApps },
                     key = { it.packageName }
                 ) { app ->
                     var isCheck by remember(isSelectAll, selectedAppPackages) {
