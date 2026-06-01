@@ -86,6 +86,59 @@
 - `Paid Search` 신규 사용자가 0인데 활성/세션만 남으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행이 확인될 때만 유료 획득 실험으로 해석한다.
 - Play Console source와 GA4 channel group이 크게 어긋나면 #65 성과 판정 전에 UTM/Install Referrer 운영 규칙을 먼저 보강한다.
 
+#### Link / campaign attribution 운영 규칙
+
+#242가 닫히기 전까지 ASO/캠페인 효과를 판단할 때는 아래 규칙을 함께 적용한다. 이 섹션의 목적은 `Direct` 급증을 무조건 제품 성장으로 읽거나, `Organic Search` 변화만으로 #65 ASO 효과를 단정하는 일을 막는 것이다.
+
+| 유입 표면 | 기본 분류 | 필요한 태깅/기록 | ASO 판정 시 처리 |
+| --- | --- | --- | --- |
+| Play Store 검색/탐색 | Play Console Search/Explore | Play Console source, listing visitors, conversion rate | `Organic Search`와 같은 방향이면 ASO 후보 |
+| Discord/커뮤니티/문서 링크 | external/campaign 후보 | 링크 URL, 게시 시각, `utm_source`, `utm_medium`, `utm_campaign` | GA4 `Direct` 증가와 겹치면 ASO 효과에서 분리 |
+| 유료 검색/광고 | Paid campaign | 집행 여부, 기간, 예산, campaign name | 신규 `Paid Search`가 0이면 신규 획득 성과로 계산하지 않음 |
+| QR/오프라인 공유 | external/unknown | 배포 위치, 날짜, 가능하면 전용 링크 또는 UTM | `Direct` 급증 원인 후보로 별도 메모 |
+| 앱 내/웹 redirect 또는 짧은 링크 | attribution risk | redirect 보존 여부, final Play URL, referrer 보존 여부 | Play Console/GA4 불일치 원인으로 먼저 점검 |
+
+운영 계약:
+
+1. 대표님이나 자동화가 Play Store 링크를 새로 배포할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`을 붙인 URL을 기록한다.
+2. Play Store로 redirect되는 짧은 링크/문서 링크를 쓰면 final URL에서 UTM이 보존되는지 확인한다.
+3. Android 앱 코드가 Install Referrer SDK를 아직 사용하지 않는 상태에서는, GA4 `Direct`를 “출처 없음/어트리뷰션 누락 가능성”으로 보수적으로 해석한다.
+4. #65의 +14일/+30일 ASO 판정 표에는 GA4 채널뿐 아니라 Play Console Search/Explore와 external/campaign source를 같이 적는다.
+5. campaign 집행이 없었다는 운영 확인이 있으면 `Paid Search` 활성/세션 잔상은 신규 획득 성과에서 제외한다.
+6. 외부 링크/캠페인 운영 규칙이 실제로 필요해지면 별도 code/ops 이슈로 Install Referrer 또는 campaign link helper를 다룬다. #242 docs slice에서는 source-of-truth와 판정 기준만 고정한다.
+
+#### Play Console 수동 확인 템플릿
+
+Play Console 접근은 저장소에서 자동 확정할 수 없는 외부 경계다. 확인자가 아래 값을 채운 뒤 #242 또는 #65에 코멘트로 남긴다.
+
+```md
+## Play Console acquisition 확인
+
+- 확인 시각(KST):
+- 확인 기간: 최근 30일 / +14일 / +30일 중 선택
+- Play Console source:
+  - Search:
+  - Explore:
+  - External/campaign:
+  - Other/unknown:
+- Store listing:
+  - visitors:
+  - acquisitions/conversions:
+  - conversion rate:
+- 캠페인 집행 여부:
+  - Paid Search 집행: yes/no/unknown
+  - 링크/Discord/웹/QR 배포: yes/no/unknown
+  - 사용한 UTM/campaign name:
+- GA4와 비교:
+  - GA4 newUsers:
+  - GA4 Organic Search 신규:
+  - GA4 Direct 신규:
+  - GA4 Paid Search 신규:
+- 판정:
+  - ASO 효과 후보 / attribution 불명 / campaign 효과 / 판정 보류 중 선택
+- 후속 작업:
+```
+
 ## 지표/근거
 
 ### 실행 트리거

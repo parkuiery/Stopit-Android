@@ -58,8 +58,9 @@
 ASO 판정 주의:
 - #65의 14일/30일 성과 판단은 `docs/PLAY_STORE_ASO.md`의 #242 acquisition attribution gate를 따른다.
 - GA4 `Organic Search`와 Play Console Search/Explore가 같은 방향인지 확인하기 전에는 ASO 효과로 단정하지 않는다.
-- `Direct` 비중 급증은 UTM/Install Referrer 누락 또는 외부 링크 유입일 수 있으므로 먼저 분리한다.
+- `Direct` 비중 급증은 UTM/Install Referrer 누락, Discord/웹/QR 링크, redirect의 referrer 손실, 외부 캠페인 유입일 수 있으므로 먼저 분리한다.
 - 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
+- Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
 
 ## 핵심 퍼널
 
