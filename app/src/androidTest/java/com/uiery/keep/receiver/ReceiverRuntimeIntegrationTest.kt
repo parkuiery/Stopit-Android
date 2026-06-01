@@ -97,6 +97,35 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
+    fun bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Boot restore multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
+
+        waitUntil("BootReceiver should persist multi-day routines into DataStore") {
+            storedRoutineNames() == listOf("Boot restore multi-day")
+        }
+        waitUntil("BootReceiver should schedule every repeat day alarm for the restored multi-day routine") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        assertEquals(listOf("Boot restore multi-day"), storedRoutineNames())
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+    }
+
+    @Test
     fun manifestRegistersBootReceiverForPackageAndClockChangeActions() {
         listOf(
             Intent.ACTION_MY_PACKAGE_REPLACED,
@@ -260,6 +289,35 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
+    fun packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Package replaced multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("BootReceiver should persist multi-day routines into DataStore after package replace") {
+            storedRoutineNames() == listOf("Package replaced multi-day")
+        }
+        waitUntil("BootReceiver should schedule every repeat day alarm after package replace") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        assertEquals(listOf("Package replaced multi-day"), storedRoutineNames())
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+    }
+
+    @Test
     fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine() = runBlocking {
         grantExactAlarmPermission()
         grantPostNotificationsPermission()
@@ -291,6 +349,46 @@ class ReceiverRuntimeIntegrationTest {
         assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
         assertEquals(listOf("Morning focus"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine() = runBlocking {
+        grantPostNotificationsPermission()
+        val repeatDays = multiDayRepeatDays()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Morning focus multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val receiver = RoutineAlarmReceiver().apply {
+            notificationHelper = NotificationHelper(context)
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+            appContext = context
+        }
+
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Morning focus multi-day",
+            routineId = TEST_ROUTINE_ID,
+        )
+
+        waitUntil("RoutineAlarmReceiver should post a notification for the multi-day routine") {
+            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+        }
+        waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room for the multi-day routine") {
+            storedRoutineNames() == listOf("Morning focus multi-day")
+        }
+        waitUntil("RoutineAlarmReceiver should reschedule every repeat day alarm for the multi-day routine") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertEquals(listOf("Morning focus multi-day"), storedRoutineNames())
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
     }
 
     @Test
@@ -394,7 +492,7 @@ class ReceiverRuntimeIntegrationTest {
         instrumentation.uiAutomation.executeShellCommand(
             "appops set ${context.packageName} SCHEDULE_EXACT_ALARM allow",
         ).close()
-        waitUntil("SCHEDULE_EXACT_ALARM should be enabled for test setup") {
+        waitUntil("SCHEDULE_EXACT_ALARM allow should be visible before runtime receiver tests run") {
             RoutineScheduler(context).canScheduleExactAlarms()
         }
     }
@@ -457,6 +555,16 @@ class ReceiverRuntimeIntegrationTest {
         }
     }
 
+    private fun assertRoutinePendingIntentsMatchRepeatDays(routineId: Long, repeatDays: List<DayOfWeek>) {
+        val missingDays = repeatDays.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) == null }
+        val unexpectedDays = DayOfWeek.entries
+            .filterNot(repeatDays::contains)
+            .filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+
+        assertEquals(emptyList<DayOfWeek>(), missingDays)
+        assertEquals(emptyList<DayOfWeek>(), unexpectedDays)
+    }
+
     private fun activeNotificationIds(): Set<Int> {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         return manager.activeNotifications.map { it.id }.toSet()
@@ -501,6 +609,8 @@ class ReceiverRuntimeIntegrationTest {
             changeLockHours = null,
         )
     }
+
+    private fun multiDayRepeatDays(): List<DayOfWeek> = listOf(today, today.plus(2), today.plus(4)).distinct()
 
     private fun createDataStore(): DataStore<Preferences> = PreferenceDataStoreFactory.create(
         produceFile = { dataStoreFile() },

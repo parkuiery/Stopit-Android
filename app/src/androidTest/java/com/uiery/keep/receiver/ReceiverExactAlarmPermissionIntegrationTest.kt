@@ -18,6 +18,7 @@ import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
@@ -63,7 +64,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     @After
     fun tearDown() {
         runBlocking {
-            cancelRoutineAlarm(TEST_ROUTINE_ID)
+            cancelRoutineAlarms(TEST_ROUTINE_ID)
             cancelNotification(TEST_ROUTINE_ID)
             database.close()
             clearAppState()
@@ -96,6 +97,41 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     }
 
     @Test
+    fun bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            !RoutineScheduler(context).canScheduleExactAlarms(),
+        )
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Boot deny multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Boot restore deny multi-day", repeatDays)
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
+
+        waitUntil("BootReceiver should disable the multi-day routine in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertFalse(hasShownAlarmPermission())
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+    }
+
+    @Test
     fun packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent() = runBlocking {
         assertTrue(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
@@ -118,6 +154,41 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         assertEquals(listOf(false), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            !RoutineScheduler(context).canScheduleExactAlarms(),
+        )
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Package replaced deny multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Package replaced deny multi-day", repeatDays)
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("Package replaced restore should disable the multi-day routine in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertFalse(hasShownAlarmPermission())
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
     }
 
     @Test
@@ -157,6 +228,50 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
+    @Test
+    fun routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
+        grantPostNotificationsPermission()
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            !RoutineScheduler(context).canScheduleExactAlarms(),
+        )
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Morning focus multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val receiver = RoutineAlarmReceiver().apply {
+            notificationHelper = NotificationHelper(context)
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+            appContext = context
+        }
+
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Morning focus multi-day", repeatDays)
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Morning focus multi-day",
+            routineId = TEST_ROUTINE_ID,
+        )
+
+        waitUntil("RoutineAlarmReceiver should disable the multi-day routine in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+
+        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertFalse(hasShownAlarmPermission())
+        assertNotNull(findPostedNotification(TEST_ROUTINE_ID))
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+    }
+
     private fun grantPostNotificationsPermission() {
         instrumentation.uiAutomation.executeShellCommand(
             "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
@@ -182,9 +297,27 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         return preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
     }
 
+    private fun setExactAlarmPermissionAllowed() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set ${context.packageName} SCHEDULE_EXACT_ALARM allow",
+        ).close()
+        waitUntil("SCHEDULE_EXACT_ALARM allow should be visible before exact alarm allow-path assertions") {
+            RoutineScheduler(context).canScheduleExactAlarms()
+        }
+    }
+
+    private fun setExactAlarmPermissionDenied() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set ${context.packageName} SCHEDULE_EXACT_ALARM deny",
+        ).close()
+        waitUntil("SCHEDULE_EXACT_ALARM deny should be visible before exact alarm deny-path assertions") {
+            !RoutineScheduler(context).canScheduleExactAlarms()
+        }
+    }
+
     private fun clearAppState() = runBlocking {
         context.deleteDatabase(DATABASE_NAME)
-        cancelRoutineAlarm(TEST_ROUTINE_ID)
+        cancelRoutineAlarms(TEST_ROUTINE_ID)
         cancelNotification(TEST_ROUTINE_ID)
         dataStoreFile().delete()
         dataStoreFile().parentFile?.listFiles()
@@ -200,8 +333,11 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.isEnabled }
     }
 
-    private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
-        val requestCode = (routineId * 10 + today.ordinal).toInt()
+    private fun findRoutinePendingIntent(routineId: Long): PendingIntent? =
+        findRoutinePendingIntent(routineId, today)
+
+    private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
+        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -212,8 +348,41 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
     }
 
-    private fun cancelRoutineAlarm(routineId: Long) {
-        findRoutinePendingIntent(routineId)?.cancel()
+    private fun cancelRoutineAlarms(routineId: Long, days: Iterable<DayOfWeek> = DayOfWeek.entries) {
+        days.forEach { dayOfWeek ->
+            findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
+        }
+    }
+
+    private fun seedRoutinePendingIntents(routineId: Long, routineName: String, repeatDays: Iterable<DayOfWeek>) {
+        repeatDays.forEach { dayOfWeek ->
+            val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, RoutineAlarmReceiver::class.java).apply {
+                    action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routineName)
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routineId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+    }
+
+    private fun assertRoutinePendingIntentsMatchRepeatDays(routineId: Long, repeatDays: List<DayOfWeek>) {
+        val missingDays = repeatDays.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) == null }
+        val unexpectedDays = DayOfWeek.entries
+            .filterNot(repeatDays::contains)
+            .filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+
+        assertEquals(emptyList<DayOfWeek>(), missingDays)
+        assertEquals(emptyList<DayOfWeek>(), unexpectedDays)
+    }
+
+    private fun assertNoPendingIntentsForAnyDay(routineId: Long) {
+        val remainingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+        assertEquals(emptyList<DayOfWeek>(), remainingDays)
     }
 
     private fun activeNotificationIds(): Set<Int> {
@@ -231,7 +400,11 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         manager.cancel(routineId.toInt())
     }
 
-    private fun enabledRoutineEntity(id: Long, name: String): RoutineEntity {
+    private fun enabledRoutineEntity(
+        id: Long,
+        name: String,
+        repeatDays: List<DayOfWeek> = listOf(today),
+    ): RoutineEntity {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val startTotalMinutes = (now.time.hour * 60 + now.time.minute + 10) % (24 * 60)
         val endTotalMinutes = (startTotalMinutes + 30) % (24 * 60)
@@ -240,12 +413,14 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             name = name,
             startTime = LocalTime(hour = startTotalMinutes / 60, minute = startTotalMinutes % 60),
             endTime = LocalTime(hour = endTotalMinutes / 60, minute = endTotalMinutes % 60),
-            repeatDays = listOf(today),
+            repeatDays = repeatDays,
             lockApplications = listOf("com.example.blocked"),
             isEnabled = true,
             changeLockHours = null,
         )
     }
+
+    private fun multiDayRepeatDays(): List<DayOfWeek> = listOf(today, today.plus(2), today.plus(4)).distinct()
 
     private fun createDataStore(): DataStore<Preferences> = PreferenceDataStoreFactory.create(
         produceFile = { dataStoreFile() },
