@@ -150,13 +150,15 @@ class FirebaseKeepAnalytics
         override fun trackAppBlockIntercepted(
             blockSource: String,
             blockedAppPackage: String,
+            routineId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
-                params = mapOf(
-                    KeepAnalyticsParam.BLOCK_SOURCE to blockSource,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to blockedAppPackage,
-                ),
+                params = buildMap {
+                    put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
+                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+                },
             )
         }
 
@@ -256,6 +258,59 @@ class FirebaseKeepAnalytics
                 params = mapOf(KeepAnalyticsParam.ERROR to error),
             )
         }
+
+        override fun trackFocusSummaryShareTapped(
+            periodType: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED,
+                params = focusSummaryShareParams(
+                    periodType = periodType,
+                    sessionCountBucket = sessionCountBucket,
+                    durationMinutesBucket = durationMinutesBucket,
+                ),
+            )
+        }
+
+        override fun trackFocusSummaryShareSheetOpened(
+            periodType: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_SHEET_OPENED,
+                params = focusSummaryShareParams(
+                    periodType = periodType,
+                    sessionCountBucket = sessionCountBucket,
+                    durationMinutesBucket = durationMinutesBucket,
+                ),
+            )
+        }
+
+        override fun trackFocusSummaryShareFailed(
+            periodType: String,
+            reason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_FAILED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.REASON to reason,
+                ),
+            )
+        }
+
+        private fun focusSummaryShareParams(
+            periodType: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) = mapOf(
+            KeepAnalyticsParam.PERIOD_TYPE to periodType,
+            KeepAnalyticsParam.SESSION_COUNT_BUCKET to sessionCountBucket,
+            KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+        )
 
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,

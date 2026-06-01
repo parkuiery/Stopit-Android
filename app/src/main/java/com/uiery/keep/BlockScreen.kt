@@ -35,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -112,8 +113,8 @@ fun BlockScreen(
             metadata = AdPlacementMetadata(
                 screenName = KeepAnalyticsScreen.BLOCK,
                 screenContext = "blocked_app",
-                placement = "block_top",
-                adUnitId = "ca-app-pub-1537867411423705/5467753282",
+                placement = AdPlacement.BlockTop.analyticsPlacement,
+                adUnitId = AdPlacement.BlockTop.adUnitId,
             ),
         )
         Column(

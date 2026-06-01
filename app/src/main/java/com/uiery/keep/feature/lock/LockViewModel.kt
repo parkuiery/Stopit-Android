@@ -120,6 +120,8 @@ class LockViewModel
                 )
                 if (state.isRoutine) {
                     saveRoutineLockHistory()
+                } else {
+                    saveTimerLockHistory()
                 }
                 maybeArmReviewPrompt(
                     isRoutine = state.isRoutine,
@@ -172,6 +174,19 @@ class LockViewModel
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,
                     isRoutine = true,
+                )
+            }
+
+        private fun saveTimerLockHistory() =
+            intent {
+                val endTime = System.currentTimeMillis()
+                recordLockHistorySession(
+                    dataStore = dataStore,
+                    lockHistoryDao = lockHistoryDao,
+                    startTimestamp = state.timerStartTime,
+                    endTimestamp = endTime,
+                    lockedApps = state.selectedAppPackage,
+                    isRoutine = false,
                 )
             }
 
@@ -229,6 +244,7 @@ class LockViewModel
                         )
                     }
                     startEmergencyUnlockCountdown(totalSeconds)
+                    postSideEffect(LockSideEffect.UnlockCompleted)
                 }
             }
         }
@@ -275,4 +291,5 @@ data class LockUiState(
 
 sealed class LockSideEffect {
     data object MoveToHome : LockSideEffect()
+    data object UnlockCompleted : LockSideEffect()
 }

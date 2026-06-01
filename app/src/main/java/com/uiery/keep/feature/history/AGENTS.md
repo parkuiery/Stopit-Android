@@ -1,48 +1,40 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-04-27 | Updated: 2026-04-27 -->
+<!-- Generated: 2026-04-27 | Updated: 2026-06-01 -->
 
-# history feature
+# history navigation shim
 
 ## Purpose
-Legacy or focused history feature for displaying individual lock history items.
+This package is now a legacy navigation compatibility shim. The user-facing history surface is `feature/lockhistory` and legacy callers must route to `LockHistoryRoute` instead of registering a separate History graph node.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `HistoryNavigation.kt` | Type-safe navigation route and graph wiring for History. |
-| `HistoryScreen.kt` | Compose screen for the History flow. |
-| `HistoryViewModel.kt` | Orbit MVI view-model/state holder for History. |
+| `HistoryNavigation.kt` | Legacy `navigateToHistory(...)` helper that forwards to the canonical lock-history route. |
 
 ## Subdirectories
-| Directory | Purpose |
-|-----------|---------|
-| `component/` | Reusable history item row composable. (see `component/AGENTS.md`) |
+No active child source directories.
 
 ## For AI Agents
 
 ### Working In This Directory
-- Follow the existing Orbit MVI pattern: immutable `UiState`, one-time `SideEffect`, and intent methods that reduce state or post effects.
-- Keep Composable screens stateless where practical; route user events into the feature ViewModel.
-- Place feature-private UI pieces in `component/` instead of expanding screen files indefinitely.
+- Do not reintroduce `HistoryScreen`, `HistoryViewModel`, or a separate `HistoryRoute` without a product decision.
+- Add new history UI or analytics work under `feature/lockhistory`, not this legacy shim package.
+- Keep any compatibility helper routing to `LockHistoryRoute` so GA4 screen_view remains `LockHistoryScreen`.
 
 ### Testing Requirements
-- ./gradlew :app:testDevDebugUnitTest
-- ./gradlew :app:assembleProdDebug
-- ./gradlew :app:connectedDevDebugAndroidTest when Android services/receivers/permissions/resources require device validation.
+- `./gradlew :app:testDevDebugUnitTest`
+- `./gradlew :app:assembleProdDebug`
 
 ### Common Patterns
-- Feature package pattern: `{Feature}Navigation.kt`, `{Feature}Screen.kt`, `{Feature}ViewModel.kt`, optional `component/` package.
-- Compose + Orbit MVI are the default interaction model.
-- Navigation routes are type-safe Kotlin objects/classes rather than raw string constants.
+- Prefer the canonical `navigateToLockHistory(...)` helper for new call sites.
+- Keep legacy helpers thin and side-effect free.
 
 ## Dependencies
 
 ### Internal
-- `app/src/main/java/com/uiery/keep/model/` for domain models.
-- `app/src/main/java/com/uiery/keep/datastore/` and `database/` for persistence as needed.
-- `core/kds/` for reusable UI components.
+- `app/src/main/java/com/uiery/keep/feature/lockhistory/` for the canonical history surface.
 
 ### External
-- Jetpack Compose, Navigation Compose, Orbit MVI, Hilt where injected.
+- Jetpack Navigation Compose only where compatibility helpers need route types.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
