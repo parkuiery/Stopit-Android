@@ -102,6 +102,7 @@ fun HomeScreen(
     )
     val haptic = LocalHapticFeedback.current
     var openAlertDialog by remember { mutableStateOf(false) }
+    val noSelectedAppsMessage = stringResource(R.string.select_apps_to_lock)
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
@@ -186,16 +187,20 @@ fun HomeScreen(
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
-                    viewModel.lockTime()
-                    coroutineScope
-                        .launch {
-                            timeBottomSheetState.hide()
-                        }.invokeOnCompletion {
-                            if (!timeBottomSheetState.isVisible) {
-                                viewModel.hideTimeBottomSheet()
-                                viewModel.moveToLock()
+                    if (uiState.selectedAppPackage.isEmpty()) {
+                        viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
+                    } else {
+                        viewModel.lockTime()
+                        coroutineScope
+                            .launch {
+                                timeBottomSheetState.hide()
+                            }.invokeOnCompletion {
+                                if (!timeBottomSheetState.isVisible) {
+                                    viewModel.hideTimeBottomSheet()
+                                    viewModel.moveToLock()
+                                }
                             }
-                        }
+                    }
                 },
             )
         }
@@ -304,8 +309,12 @@ fun HomeScreen(
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.showSnackBar(message)
-                                        viewModel.changeIsKeep()
+                                        if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                            viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                        } else {
+                                            viewModel.showSnackBar(message)
+                                            viewModel.changeIsKeep()
+                                        }
                                     },
                             painter = painterResource(id = image),
                             contentDescription = null,
@@ -317,8 +326,12 @@ fun HomeScreen(
                             KeepSwitch(
                                 checked = uiState.isKeep,
                                 onCheckedChange = {
-                                    viewModel.showSnackBar(message)
-                                    viewModel.changeIsKeep()
+                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                        viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                    } else {
+                                        viewModel.showSnackBar(message)
+                                        viewModel.changeIsKeep()
+                                    }
                                 },
                             )
                             Image(

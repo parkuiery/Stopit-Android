@@ -53,9 +53,22 @@ class HomeViewModel
             getSelectedApp()
         }
 
-        internal fun changeIsKeep() =
+        internal fun changeIsKeep(noSelectedAppsMessage: String? = null) =
             intent {
                 val isKeep = !state.isKeep
+                if (isKeep && state.selectedAppPackage.isEmpty()) {
+                    reduce {
+                        state.copy(
+                            isShowCategoryBottomSheet = true,
+                            sheetVisible = true,
+                        )
+                    }
+                    if (!noSelectedAppsMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
+                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
+                    }
+                    return@intent
+                }
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
                     trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)
@@ -289,8 +302,21 @@ class HomeViewModel
                 reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
             }
 
-        internal fun lockTime() =
+        internal fun lockTime(noSelectedAppsMessage: String? = null) =
             intent {
+                if (state.selectedAppPackage.isEmpty()) {
+                    reduce {
+                        state.copy(
+                            isShowCategoryBottomSheet = true,
+                            sheetVisible = true,
+                        )
+                    }
+                    if (!noSelectedAppsMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
+                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
+                    }
+                    return@intent
+                }
                 val targetLockDateTime = if (state.countdownDays > 0) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
