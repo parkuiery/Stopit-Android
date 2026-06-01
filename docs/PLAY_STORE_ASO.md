@@ -42,13 +42,49 @@
 | `Organic Search` 신규 사용자 | 178 | 167 | -6.2% | 신규 유저 증가는 `Direct` 비중 증가와 함께 봐야 하며, ASO organic 회복으로 단정 금지 |
 | `Organic Search` 신규 사용자 비중 | 87.7% | 60.9% | -26.8pp | acquisition mix가 바뀌었으므로 listing 효과 판단에는 Play Console listing conversion이 필요 |
 | `activeUsers` | 457 | 523 | +14.4% | 활성 사용자는 반등했지만 직전 30일 614 대비 -14.8% |
-| `sessions` | 4,636 | 4,481 | -3.3% | 세션은 아직 기준선보다 낮고 직전 30일 6,430 대비 -30.3% |
+| `sessions` | 4,636 | 4,484 | -3.3% | 세션은 아직 기준선보다 낮고 직전 30일 6,430 대비 -30.3% |
 
 다음 결론은 보류한다.
 
 - `Organic Search`만 보면 아직 #65 기준선보다 낮다.
 - 전체 `newUsers` 반등은 긍정 신호지만, Play listing copy/screenshot 효과인지 다른 유입/버전/노출 요인인지는 Play Console의 listing conversion과 store acquisition breakdown 없이는 분리할 수 없다.
 - 14일 체크는 `2026-06-10 KST 이후`, 30일 체크는 `2026-06-26 KST 이후`에 같은 분자/분모로 다시 기록한다.
+
+### 2026-06-01 acquisition attribution gate (#242)
+
+#65의 14일/30일 ASO 판정 전에 #242의 획득 채널 기준을 먼저 고정한다. 2026-06-01 GA4 스냅샷에서는 전체 신규 유저가 회복된 것처럼 보이지만 `Direct` 비중이 크게 늘었고 `Paid Search`는 신규 유저 없이 활성/세션만 남아 있어, 이 상태로 ASO 효과를 `Organic Search` 변화만으로 판정하면 오판 가능성이 크다.
+
+| 항목 | 2026-06-01 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 274 | 직전 373 대비 -26.5% | 신규 유입은 아직 완전 회복 전 |
+| 전체 `activeUsers` | 523 | 직전 614 대비 -14.8% | 활성 사용자도 직전 기간보다 낮음 |
+| 전체 `sessions` | 4,484 | 직전 6,430 대비 -30.3% | 세션 회복은 더 약함 |
+| `Organic Search` 신규 사용자 | 167 | 167 / 274 = 60.9% | #65 기준선 178보다 낮아 ASO 회복 단정 금지 |
+| `Direct` 신규 사용자 | 107 | 107 / 274 = 39.1% | 실제 direct 유입인지, 링크/캠페인 attribution 누락인지 확인 필요 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 225회와 함께 보면 과거 유저/재방문/분류 잔상 가능성 확인 필요 |
+
+#### ASO 성과 판정 전 attribution 확인 순서
+
+1. Play Console `Store performance` / acquisition report에서 같은 최근 30일 창의 검색·탐색·외부/캠페인 유입을 확인한다.
+2. GA4 `firstUserDefaultChannelGroup`의 `Organic Search`, `Direct`, `Paid Search`와 Play Console acquisition source가 같은 방향인지 표로 비교한다.
+3. 실제 Paid Search 캠페인이 집행 중인지 확인한다. 집행 중이 아니라면 `Paid Search`의 활성 19명·세션 225회는 신규 유입 성과가 아니라 과거 사용자/재방문/분류 잔상으로 분리한다.
+4. Discord, 웹, 문서, QR, 캠페인 링크가 Play Store로 유입을 만들고 있다면 UTM 또는 Play Install Referrer 적용 여부를 점검한다.
+5. #65의 14일/30일 판정은 아래 `획득 채널 판정 표`가 채워진 뒤에만 “ASO 효과”로 표현한다. 표가 비어 있으면 `newUsers`/`Organic Search` 변화는 중간 신호로만 둔다.
+
+#### 획득 채널 판정 표
+
+| 시점 | GA4 `newUsers` | GA4 `Organic Search` 신규 | GA4 `Direct` 신규 | GA4 `Paid Search` 신규 | Play Console Search/Explore | Play Console external/campaign | Paid campaign 집행 여부 | 판단 |
+| --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
+| 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 39.1%와 Paid Search 신규 0명 때문에 ASO 회복 판정 보류 |
+| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+
+#### 판정 규칙
+
+- `Organic Search` 신규 사용자와 Play Console Search/Explore가 함께 개선되고, `Direct` 비중이 과도하게 늘지 않으면 ASO copy/screenshot 반영 효과 후보로 본다.
+- `newUsers`가 늘었지만 `Direct` 또는 external/campaign만 늘면 ASO 효과가 아니라 링크/캠페인/어트리뷰션 변화로 분리한다.
+- `Paid Search` 신규 사용자가 0인데 활성/세션만 남으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행이 확인될 때만 유료 획득 실험으로 해석한다.
+- Play Console source와 GA4 channel group이 크게 어긋나면 #65 성과 판정 전에 UTM/Install Referrer 운영 규칙을 먼저 보강한다.
 
 ## 지표/근거
 
@@ -298,6 +334,9 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 ### 14일 후 확인
 - `Organic Search` 신규 사용자 변화
 - 전체 `newUsers` 변화
+- GA4 `Direct` 신규 사용자 비중과 Play Console external/campaign 유입 변화
+- GA4 `Paid Search` 신규/활성/세션과 실제 캠페인 집행 여부
+- Play Console Search/Explore와 GA4 `Organic Search` 방향 일치 여부
 - listing 전환율 변화
 - 리뷰 수 증가 여부
 - 평점 변화 여부
@@ -306,17 +345,18 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 ### 30일 후 확인
 - 신규 사용자 회복 여부
 - `activeUsers` / `sessions` 동반 회복 여부
+- 획득 채널 믹스가 ASO 효과로 해석 가능한지 여부
 - ASO 카피 유지 vs 2차 수정 결정
 - 스크린샷 교체 필요 여부
 
 ### 기록 표
 
-| 시점 | newUsers | Organic Search 신규 사용자 | activeUsers | sessions | listing 전환율 | rating count | 평균 평점 | 판단 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 203 | 178 | 457 | 4,636 | `TODO` | `TODO` | `TODO` | 반영 전 |
-| 2026-06-01 중간 스냅샷 | 274 | 167 | 523 | 4,481 | `TODO` | `TODO` | `TODO` | 반영 전/후 혼합 30일 창. 전체 신규 유저는 반등했지만 Organic Search는 아직 기준선보다 낮아 성과 판정 보류 |
-| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
-| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| 시점 | newUsers | Organic Search 신규 사용자 | Direct 신규 사용자 | Paid Search 신규 사용자 | activeUsers | sessions | listing 전환율 | rating count | 평균 평점 | 판단 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline | 203 | 178 | 25 | `TODO` | 457 | 4,636 | `TODO` | `TODO` | `TODO` | 반영 전 |
+| 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | 523 | 4,484 | `TODO` | `TODO` | `TODO` | 반영 전/후 혼합 30일 창. 전체 신규 유저는 반등했지만 Organic Search는 아직 기준선보다 낮고 Direct가 39.1%까지 커져 성과 판정 보류 |
+| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 
 ## 브랜딩 점검 메모
 

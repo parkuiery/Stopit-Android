@@ -14,7 +14,17 @@ object RoutineRuntimePolicy {
         packageName: String,
         routines: List<RoutineModel>,
         isRoutineActive: (RoutineModel) -> Boolean = ::isRoutineCurrentlyActive,
-    ): Boolean = routines.any { routine ->
+    ): Boolean = findBlockingRoutine(
+        packageName = packageName,
+        routines = routines,
+        isRoutineActive = isRoutineActive,
+    ) != null
+
+    fun findBlockingRoutine(
+        packageName: String,
+        routines: List<RoutineModel>,
+        isRoutineActive: (RoutineModel) -> Boolean = ::isRoutineCurrentlyActive,
+    ): RoutineModel? = routines.firstOrNull { routine ->
         routine.isEnabled &&
             routine.lockApplications?.contains(packageName) == true &&
             isRoutineActive(routine)

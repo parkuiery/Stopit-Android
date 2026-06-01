@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.lockhistory
 
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.model.toModel
@@ -23,17 +25,26 @@ enum class PeriodType {
 @HiltViewModel
 class LockHistoryViewModel @Inject constructor(
     private val lockHistoryDao: LockHistoryDao,
+    private val analytics: KeepAnalytics,
 ) : ContainerHost<LockHistoryUiState, LockHistorySideEffect>, ViewModel() {
 
     override val container: Container<LockHistoryUiState, LockHistorySideEffect> =
         container(LockHistoryUiState())
 
     init {
+        analytics.logScreenView(KeepAnalyticsScreen.LOCK_HISTORY)
         loadHistory()
     }
 
     internal fun selectPeriodType(periodType: PeriodType) = intent {
-        reduce { state.copy(periodType = periodType, currentDate = LocalDate.now()) }
+        reduce {
+            state.copy(
+                periodType = periodType,
+                currentDate = LocalDate.now(),
+                selectedDate = null,
+                focusSummarySharePayload = null,
+            )
+        }
         loadHistory()
     }
 
@@ -82,8 +93,38 @@ class LockHistoryViewModel @Inject constructor(
                 topApps = summary.topApps,
                 durationByDate = summary.durationByDate,
                 selectedDate = null,
+                focusSummarySharePayload = buildFocusSummarySharePayload(
+                    periodType = state.periodType,
+                    sessionCount = summary.sessionCount,
+                    totalDurationMillis = summary.totalDurationMillis,
+                ),
             )
         }
+    }
+
+    internal fun shareFocusSummary() = intent {
+        val payload = state.focusSummarySharePayload ?: return@intent
+        analytics.trackFocusSummaryShareTapped(
+            periodType = payload.periodType,
+            sessionCountBucket = payload.sessionCountBucket,
+            durationMinutesBucket = payload.durationMinutesBucket,
+        )
+        postSideEffect(LockHistorySideEffect.ShareFocusSummary(payload))
+    }
+
+    internal fun onFocusSummaryShareSheetOpened(payload: FocusSummarySharePayload) {
+        analytics.trackFocusSummaryShareSheetOpened(
+            periodType = payload.periodType,
+            sessionCountBucket = payload.sessionCountBucket,
+            durationMinutesBucket = payload.durationMinutesBucket,
+        )
+    }
+
+    internal fun onFocusSummaryShareFailed(payload: FocusSummarySharePayload) {
+        analytics.trackFocusSummaryShareFailed(
+            periodType = payload.periodType,
+            reason = "activity_not_found",
+        )
     }
 
     private fun getDateRange(periodType: PeriodType, currentDate: LocalDate): Pair<LocalDate, LocalDate> {
@@ -113,6 +154,9 @@ data class LockHistoryUiState(
     val topApps: List<String> = emptyList(),
     val durationByDate: Map<LocalDate, Long> = emptyMap(),
     val selectedDate: LocalDate? = null,
+    val focusSummarySharePayload: FocusSummarySharePayload? = null,
 )
 
-sealed class LockHistorySideEffect
+sealed class LockHistorySideEffect {
+    data class ShareFocusSummary(val payload: FocusSummarySharePayload) : LockHistorySideEffect()
+}

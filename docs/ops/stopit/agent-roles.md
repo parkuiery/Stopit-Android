@@ -47,6 +47,8 @@
 - `first_open -> onboarding_step_view/onboarding_step_complete -> permission_outcome -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted`
 - 퍼널 단계 의미/legacy 이름 drift/source-of-truth는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` 기준으로 해석한다.
 - `first_lock_configured`는 준비 완료, `first_core_action_completed`는 첫 가치 경험, `app_block_intercepted`는 실차단 증거로 구분한다.
+- GA4 조회성/수동 등록/14일 재측정 계약은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
+- `customUser:routines_count`는 현재 live metadata에서 이미 보이는 축일 수 있지만, 그 사실을 `customEvent:*` 조회 가능으로 과대해석하지 않는다.
 - screen name `(not set)` 비율
 - appVersion별 이벤트 의미 변화
 - crash-free users and app_exception
@@ -55,6 +57,7 @@
 금지:
 - 지표 근거 없이 제품 결론 내리기
 - 지표 하나당 이슈 하나 추천하기
+- GA4 Admin 미등록 / post-release 재측정 같은 외부 경계를 repo 문서 미비와 혼동하기
 
 ## Product/Growth Analyst
 
@@ -93,6 +96,7 @@
 - ad revenue, impressions, clicks, eCPM, ARPU
 - 리뷰 eligibility/shown/skipped/failed 신호
 - Organic Search newUsers and Store conversion
+- 광고/리뷰 관련 이벤트 파라미터가 실제 `customEvent:*` 차원/지표로 조회 가능한지부터 확인한다.
 - 수익화가 activation/retention/trust를 해치지 않는지
 
 금지:
