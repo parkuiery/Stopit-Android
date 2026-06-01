@@ -45,6 +45,7 @@ import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.RotatingCircleGradient
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
@@ -69,7 +70,9 @@ fun LockScreen(
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
-            is LockSideEffect.MoveToHome -> onNavigateHome()
+            is LockSideEffect.MoveToHome,
+            is LockSideEffect.UnlockCompleted,
+            -> onNavigateHome()
         }
     }
 
@@ -266,8 +269,8 @@ fun LockScreen(
                     metadata = AdPlacementMetadata(
                         screenName = KeepAnalyticsScreen.LOCK,
                         screenContext = if (uiState.isRoutine) "routine" else "manual",
-                        placement = "lock_bottom",
-                        adUnitId = "ca-app-pub-1537867411423705/7892727021",
+                        placement = AdPlacement.LockBottom.analyticsPlacement,
+                        adUnitId = AdPlacement.LockBottom.adUnitId,
                     ),
                 )
             }

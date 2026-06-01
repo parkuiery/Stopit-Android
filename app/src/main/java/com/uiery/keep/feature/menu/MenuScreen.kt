@@ -41,6 +41,7 @@ import com.uiery.keep.feature.menu.component.MenuItem
 import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
 import com.uiery.keep.BuildConfig
+import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -54,7 +55,6 @@ fun MenuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
-    onNavigateHistory: () -> Unit,
     onNavigateLockHistory: () -> Unit,
     onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
@@ -126,11 +126,6 @@ fun MenuScreen(
                 onClick = onNavigateRoutine,
             )
             MenuItem(
-                icon = R.drawable.ic_history,
-                title = stringResource(id = R.string.view_keep_usage_history),
-                onClick = onNavigateHistory,
-            )
-            MenuItem(
                 icon = R.drawable.ic_local_history,
                 title = stringResource(id = R.string.lock_history_menu_title),
                 onClick = onNavigateLockHistory,
@@ -173,8 +168,8 @@ fun MenuScreen(
                 metadata = AdPlacementMetadata(
                     screenName = KeepAnalyticsScreen.MENU,
                     screenContext = "settings",
-                    placement = "menu_bottom",
-                    adUnitId = "ca-app-pub-1537867411423705/3270829732",
+                    placement = AdPlacement.MenuBottom.analyticsPlacement,
+                    adUnitId = AdPlacement.MenuBottom.adUnitId,
                 ),
             )
         }

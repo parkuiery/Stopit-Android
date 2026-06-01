@@ -85,6 +85,8 @@
     <string name="lock_history_routine_session">루틴</string>
     <string name="lock_history_manual_session">수동</string>
     <string name="lock_history_no_records">이 기간에 잠금 기록이 없어요</string>
+    <string name="lock_history_focus_share_button">이번 주 집중 기록 공유</string>
+    <string name="lock_history_focus_share_sheet_title">스탑잇 집중 기록 공유</string>
     <string name="lock_history_top_apps_title">가장 많이 차단된 앱</string>
     <string name="lock_history_block_count">%1$d회</string>
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
@@ -104,7 +106,7 @@
     <string name="change_lock_description">%s부터 루틴 수정 및 삭제가 제한됩니다</string>
     <string name="day_unit">일</string>
     <string name="lock_duration_with_day">%1$d일 %2$d시간 %3$d분 동안 잠금 시간</string>
-    <string name="lock_time_with_date">%1$d월 %2$d일 %3$d시 %4$d분까지</string>
+    <string name="lock_time_with_date">%1$d월 %2$d일 %3$d시 %4$02d분까지</string>
     <string name="lock_screen_unavailable_message_with_date">%1$s까지 선택한 앱은 사용할 수 없어요</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">긴급 해제</string>
@@ -142,4 +144,7 @@
     <string name="emergency_unlock_notification_channel_description">긴급 해제 중 카운트다운을 표시합니다</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d 남음</string>
     <string name="emergency_unlock_waiting_seconds_label">초</string>
+    <string name="first_lock_activation_cta_title">첫 잠금을 바로 시작해볼까요?</string>
+    <string name="first_lock_activation_cta_description">앱 선택은 끝났어요. StopIt을 켜서 실제 차단을 경험해보세요.</string>
+    <string name="first_lock_activation_cta_action">시작</string>
 </resources>

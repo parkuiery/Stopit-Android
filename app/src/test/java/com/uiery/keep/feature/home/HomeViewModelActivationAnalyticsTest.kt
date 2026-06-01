@@ -6,7 +6,10 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -19,7 +22,11 @@ import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -86,6 +93,155 @@ class HomeViewModelActivationAnalyticsTest {
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
     }
 
+    @Test
+    fun changeIsKeepPromptsAppSelectionInsteadOfTrackingFirstLockWhenNoAppsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.changeIsKeep(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        delay(50)
+
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(false, viewModel.container.stateFlow.value.isKeep)
+        assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        sideEffectJob.cancel()
+    }
+
+    @Test
+    fun lockTimePromptsAppSelectionInsteadOfTrackingFirstLockWhenNoAppsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.lockTime(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        delay(50)
+
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        sideEffectJob.cancel()
+    }
+
+    @Test
+    fun selectedAppsWithoutFirstLockExposeActivationCta() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaStaysHiddenWithoutSelectedApps() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaStaysHiddenAfterFirstLockConfigured() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun selectingAppsBeforeFirstLockExposesActivationCta() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.selectCategoryComplete(setOf("com.example.one"))
+        delay(50)
+
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun firstLockActivationCtaHidesAfterHomeKeepStartsFirstLock() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+        viewModel.changeIsKeep()
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.TOTAL_BLOCK_TIME to 9_000L,
+                PreferencesKey.LONG_BLOCK_TIME to 4_000L,
+            ),
+        )
+        val lockHistoryDao = HomeRecordingLockHistoryDao()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = lockHistoryDao,
+        )
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals("예약만으로는 완료된 잠금 세션을 Room 원장에 적재하지 않아야 합니다.", emptyList<LockHistoryEntity>(), lockHistoryDao.inserted)
+        assertEquals(9_000L, dataStore.snapshot()[PreferencesKey.TOTAL_BLOCK_TIME])
+        assertEquals(4_000L, dataStore.snapshot()[PreferencesKey.LONG_BLOCK_TIME])
+    }
+
+    private fun CoroutineScope.launchSideEffects(
+        viewModel: HomeViewModel,
+        sideEffects: MutableList<HomeSideEffect>,
+    ): Job = launch {
+        viewModel.container.sideEffectFlow.collect { sideEffect ->
+            sideEffects += sideEffect
+        }
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: HomeRecordingKeepAnalytics,
@@ -111,6 +267,23 @@ class HomeViewModelActivationAnalyticsTest {
                 clock = clock,
             ),
         )
+}
+
+private class HomeRecordingLockHistoryDao : LockHistoryDao {
+    val inserted = mutableListOf<LockHistoryEntity>()
+
+    override suspend fun insert(entity: LockHistoryEntity) {
+        inserted += entity
+    }
+
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override fun fetchAll(): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override suspend fun countSuccessfulSessions(): Int = inserted.size
+
+    override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
+        inserted.count { it.startTimestamp >= timestampMillis }
 }
 
 private sealed interface HomeAnalyticsCall {
