@@ -14,9 +14,6 @@ import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -38,12 +35,11 @@ class BootReceiver : BroadcastReceiver() {
         }
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                restoreRoutinesForBoot(intent.action)
-            } finally {
-                pendingResult.finish()
-            }
+        ReceiverCoroutineRunner.launch(
+            receiverName = "BootReceiver",
+            finish = { pendingResult.finish() },
+        ) {
+            restoreRoutinesForBoot(intent.action)
         }
     }
 
