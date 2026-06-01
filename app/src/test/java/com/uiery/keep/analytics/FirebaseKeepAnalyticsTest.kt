@@ -220,8 +220,6 @@ class FirebaseKeepAnalyticsTest {
         )
         analytics.trackFcmTokenCaptured()
         analytics.trackDeviceRegistrationAttempted()
-        analytics.trackDeviceRegistrationSucceeded()
-        analytics.trackDeviceRegistrationFailed("network_error")
         analytics.trackDeviceRegistrationSkipped("backend_removed")
 
         assertEquals(
@@ -249,20 +247,24 @@ class FirebaseKeepAnalyticsTest {
         )
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
-        assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_SUCCEEDED, emptyMap()), backend.loggedEvents[4])
-        assertEquals(
-            LoggedEvent(
-                KeepAnalyticsEvent.DEVICE_REGISTRATION_FAILED,
-                mapOf(KeepAnalyticsParam.REASON to "network_error"),
-            ),
-            backend.loggedEvents[5],
-        )
         assertEquals(
             LoggedEvent(
                 KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
                 mapOf(KeepAnalyticsParam.REASON to "backend_removed"),
             ),
-            backend.loggedEvents[6],
+            backend.loggedEvents[4],
+        )
+    }
+
+    @Test
+    fun deviceRegistrationRuntimeEventsOnlyExposeCurrentBackendRemovedContract() {
+        assertEquals(
+            setOf(
+                KeepAnalyticsEvent.FCM_TOKEN_CAPTURED,
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED,
+                KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
+            ),
+            KeepAnalyticsEvent.ACTIVE_DEVICE_REGISTRATION_EVENTS,
         )
     }
 

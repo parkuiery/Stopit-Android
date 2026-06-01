@@ -117,7 +117,7 @@
 | `is_routine` | `lock_session_start`, `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:is_routine` |
 | `end_reason` | `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:end_reason` |
 | `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 미확인/등록 필요 | 동일 | `customEvent:reason` |
-| `reason` legacy note | `device_registration_failed` | 현재 production call site 없음 | backend registration 재도입 전에는 GA4 지표 축으로 해석 금지 | 해당 없음 |
+| `reason` legacy note | `device_registration_failed` | 현재 코드 API/event constant에서 제거됨 | backend registration 재도입 전에는 GA4 지표 축으로 해석 금지 | 해당 없음 |
 | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:screen_context` |
 | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_placement` |
 | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_format` |
