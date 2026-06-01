@@ -82,6 +82,8 @@
     <string name="lock_history_routine_session">Routine</string>
     <string name="lock_history_manual_session">Manuale</string>
     <string name="lock_history_no_records">Nessuna cronologia blocchi per questo periodo</string>
+    <string name="lock_history_focus_share_button">Condividi il record di concentrazione settimanale</string>
+    <string name="lock_history_focus_share_sheet_title">Condividi il record di concentrazione StopIt</string>
     <string name="lock_history_top_apps_title">App più bloccate</string>
     <string name="lock_history_block_count">%1$d volte</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>

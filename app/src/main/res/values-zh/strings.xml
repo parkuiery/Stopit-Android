@@ -82,6 +82,8 @@
     <string name="lock_history_routine_session">例程</string>
     <string name="lock_history_manual_session">手动</string>
     <string name="lock_history_no_records">此期间没有锁定记录</string>
+    <string name="lock_history_focus_share_button">分享本周专注记录</string>
+    <string name="lock_history_focus_share_sheet_title">分享 StopIt 专注记录</string>
     <string name="lock_history_top_apps_title">最常被阻止的应用</string>
     <string name="lock_history_block_count">%1$d次</string>
     <string name="lock_history_duration_short_hour">%1$d小时%2$d分</string>

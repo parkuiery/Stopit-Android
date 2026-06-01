@@ -82,6 +82,8 @@
     <string name="lock_history_routine_session">Рутина</string>
     <string name="lock_history_manual_session">Вручную</string>
     <string name="lock_history_no_records">Нет истории блокировок за этот период</string>
+    <string name="lock_history_focus_share_button">Поделиться записью фокуса за неделю</string>
+    <string name="lock_history_focus_share_sheet_title">Поделиться записью фокуса StopIt</string>
     <string name="lock_history_top_apps_title">Наиболее блокируемые приложения</string>
     <string name="lock_history_block_count">%1$d раз</string>
     <string name="lock_history_duration_short_hour">%1$dч%2$dм</string>

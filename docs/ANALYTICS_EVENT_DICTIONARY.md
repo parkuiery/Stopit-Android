@@ -16,7 +16,9 @@
 - AdMob 배너 계측 래퍼: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
+- 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 - 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/history/HistoryViewModelTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
@@ -90,6 +92,23 @@
 세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
 현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다. `NotHomeRoot`와 `NoActivity`는 일시적 노출 보류이므로 `REVIEW_PENDING`을 유지하고, `AccessibilityOff`/`QuietHours`/`KillSwitch` 같은 live eligibility 실패는 pending을 삭제하는 최종 skip으로 해석한다.
 
+### 집중 요약 공유
+
+`LockHistory` 주간 요약 공유 MVP의 제품/QA 계약은 `docs/FOCUS_SUMMARY_SHARE_MVP.md`를 source of truth로 본다. 공유문과 이벤트 파라미터에는 앱 이름, package name, raw session 목록, raw duration을 넣지 않고 bucket/기간 타입만 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `focus_summary_share_tapped` | `period_type`, `session_count_bucket`, `duration_minutes_bucket` | 주간 LockHistory 공유 CTA 탭 |
+| `focus_summary_share_sheet_opened` | `period_type`, `session_count_bucket`, `duration_minutes_bucket` | Android share sheet launch 시도/성공 |
+| `focus_summary_share_failed` | `period_type`, `reason` | share sheet를 열 수 없어 공유를 중단 |
+
+현재 bucket 계약:
+
+- `period_type`: `week`만 기록한다. 월간 화면에서는 공유 payload/CTA를 만들지 않는다.
+- `session_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
+- `duration_minutes_bucket`: `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
+- `focus_summary_share_failed.reason`: `activity_not_found`
+
 ### 광고 / 수익화
 
 광고 관련 이벤트는 `KeepAnalytics.kt` 상수 집합이 아니라 `TrackedBannerAd.kt`의 전용 contract가 source of truth다.
@@ -124,6 +143,9 @@
 | `end_reason` | 세션 종료 이유 |
 | `reason` | 긴급해제/등록 실패/스킵의 이유 |
 | `error` | 리뷰 프롬프트 실패 이유 |
+| `period_type` | 집중 요약 공유 대상 기간 (`week`) |
+| `session_count_bucket` | 집중 요약 공유 세션 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
+| `duration_minutes_bucket` | 집중 요약 공유 총 시간 bucket (`1_29`, `30_59`, `60_119`, `120_239`, `240_plus`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
@@ -154,6 +176,9 @@
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
 | Required | `end_reason` | `end_reason` | `lock_session_end` | 세션 종료 사유 비교 |
 | Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_failed`, `device_registration_skipped`, `review_prompt_skipped` | 실패/스킵/긴급해제 이유 분석 |
+| Required | `period_type` | `period_type` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `focus_summary_share_failed` | 공유 지표를 주간 요약 기준으로 해석 |
+| Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
+| Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 집중 시간대별 공유 의도 비교(privacy-safe bucket) |
 | Required | `screen_context` | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 같은 화면 안 광고 문맥별 성과 비교 |
 | Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
 | Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |

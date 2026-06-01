@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.lockhistory
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,12 +24,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.component.LockHistorySessionItem
@@ -40,6 +44,7 @@ import com.uiery.keep.util.formatLockHistoryDateHeader
 import com.uiery.keep.util.formatMonthDay
 import com.uiery.keep.util.formatYearMonth
 import org.orbitmvi.orbit.compose.collectAsState
+import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +56,28 @@ internal fun LockHistoryScreen(
     onNavigateBlockedApps: () -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
+    val context = LocalContext.current
+
+    viewModel.collectSideEffect { effect ->
+        when (effect) {
+            is LockHistorySideEffect.ShareFocusSummary -> {
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, effect.payload.text)
+                }
+                val chooser = Intent.createChooser(
+                    sendIntent,
+                    context.getString(R.string.lock_history_focus_share_sheet_title),
+                )
+                try {
+                    context.startActivity(chooser)
+                    viewModel.onFocusSummaryShareSheetOpened(effect.payload)
+                } catch (_: ActivityNotFoundException) {
+                    viewModel.onFocusSummaryShareFailed(effect.payload)
+                }
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -128,6 +155,15 @@ internal fun LockHistoryScreen(
                 totalDuration = displayTotalDuration,
                 sessionCount = displaySessionCount,
             )
+
+            uiState.focusSummarySharePayload?.let {
+                Spacer(modifier = Modifier.height(12.dp))
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.lock_history_focus_share_button),
+                    onClick = viewModel::shareFocusSummary,
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

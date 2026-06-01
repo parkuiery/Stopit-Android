@@ -292,8 +292,61 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun focusSummaryShareEventsUsePrivacySafeBuckets() {
+        analytics.trackFocusSummaryShareTapped(
+            periodType = "week",
+            sessionCountBucket = "2_3",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackFocusSummaryShareSheetOpened(
+            periodType = "week",
+            sessionCountBucket = "2_3",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackFocusSummaryShareFailed(
+            periodType = "week",
+            reason = "activity_not_found",
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "2_3",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_SHEET_OPENED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "2_3",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_FAILED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "week",
+                    KeepAnalyticsParam.REASON to "activity_not_found",
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
+        assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
+        assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
         assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
