@@ -19,7 +19,7 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), 네 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, uninstall 방지, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -104,9 +104,11 @@ cd <repo-root>
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
-- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정
+- `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
-- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환에서 `BlockActivity` 진입과 emergency unlock 우회 safety 계약
+- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환, emergency unlock 우회, self-uninstall interception safety 계약
+
+Receiver async 예외 containment는 JVM baseline `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.receiver.ReceiverCoroutineRunnerTest"`로 먼저 확인한다. 이 baseline은 `BootReceiver` / `RoutineAlarmReceiver`의 `goAsync()` 작업이 내부 dependency 예외를 만나도 `PendingResult.finish()`를 1회 호출하고 sibling receiver coroutine을 취소하지 않는 계약을 고정한다. Runtime smoke는 정상/권한/fallback 경로를 검증하고, dependency 예외 주입 경계는 이 JVM baseline을 PR evidence에 함께 남긴다.
 
 exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
@@ -410,8 +412,22 @@ cd <repo-root>
 ```
 
 - `LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect`: LockScreen 진입점에서 긴급해제 완료 후 `UnlockCompleted` side effect가 발생해 화면 이탈 계약이 끊기지 않는지 고정한다.
-- `EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리는지 검증한다.
+- `EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리며, 기존 ongoing 긴급해제 notification도 함께 정리하는지 검증한다.
 - 이 baseline은 실제 cross-app Accessibility 진입 전체를 대체하지는 않지만, 긴급해제 완료 후 Lock 화면 고착과 만료 후 우회 지속 회귀를 각각 JVM/device-emulator 레벨에서 반복 가능하게 고정한다.
+
+`POST_NOTIFICATION` guard는 루틴 알림 fallback baseline과 같은 패턴으로 **호스트 ADB/appops에서 먼저 상태를 deny로 바꾼 뒤** focused instrumentation을 실행한다. 긴급해제 helper 내부에서 appops를 직접 토글하지 않는다.
+
+```bash
+cd <repo-root>
+./gradlew :app:installDevDebug
+adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
+adb shell appops set com.uiery.keep POST_NOTIFICATION allow
+```
+
+- `emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
+- deny 검증 범위: `EmergencyUnlockNotificationHelper`가 `areNotificationsEnabled()` / `POST_NOTIFICATIONS` guard 없이 무가드 `notify(...)`를 호출하지 않고, permission denied 결과를 돌려주며 stale notification을 남기지 않는지
 
 ### receiver/service QA용 권장 focused JVM baseline
 
@@ -554,15 +570,19 @@ adb shell dumpsys alarm | grep com.uiery.keep
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
-  --tests 'com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest'
+  --tests 'com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest' \
+  --tests 'com.uiery.keep.service.KeepAccessibilityServiceUninstallDetectionTest' \
+  --tests 'com.uiery.keep.feature.menu.MenuViewModelTest'
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
 ```
 
 - `KeepAccessibilityServiceBlockDecisionTest`: manual keep / timed lock / routine / duplicate / emergency unlock 우회 판단을 순수 JVM 회귀로 빠르게 고정한다.
-- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환에서 차단 Activity 진입 여부를 검증하려는 focused runtime harness다.
+- `KeepAccessibilityServiceUninstallDetectionTest`: 앱 삭제 방지(`prevent_uninstall`)가 켜진 상태에서 self-uninstall surface를 가로채야 하는 package/text 판별 규칙을 JVM 회귀로 고정한다.
+- `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환과 self-uninstall interception이 런타임에서 유지되는지 검증하는 focused runtime harness다.
+- 현재 Android 15 emulator baseline은 실제 bind 후 다섯 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity`, `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`, `appInfoScreenWithPreventUninstallEnabled_staysVisibleBeforeDeleteConfirmation`, `uninstallAttemptWithPreventUninstallEnabled_dismissesDeleteSurface`, `uninstallAttemptWithPreventUninstallDisabled_keepsDeleteSurfaceVisible`.
+- uninstall interception baseline은 **앱 정보 화면 단계에서는 너무 이르게 개입하지 않고**, 사용자가 실제 삭제 확인 surface를 연 뒤에만 dismissal이 일어나야 한다는 경계도 함께 고정한다.
 - 이 harness는 `setUp()`에서 접근성 서비스의 초기 활성 상태를 저장하고, `tearDown()`에서 **원래 꺼져 있던 경우 다시 disabled 상태로 원복**해야 한다. 후속 instrumentation/수동 QA가 접근성 서비스 잔여 상태에 오염되지 않도록 이 cleanup 계약을 유지한다.
-- 현재 Android 15 emulator baseline은 실제 bind 후 두 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity` 와 `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`.
 
 ### Android 15 emulator instrumentation 메모
 
@@ -810,6 +830,6 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - 이 문서는 수동/반수동 기준선이다.
 - `BootReceiver`와 `RoutineAlarmReceiver`는 `app/src/androidTest/java/com/uiery/keep/receiver/ReceiverRuntimeIntegrationTest.kt`로 최소 재수화/재예약 contract가 자동 검증된다.
 - `app/src/androidTest/java/com/uiery/keep/qa/BackupRestoreRuntimeResetIntegrationTest.kt`는 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는 baseline을 고정한다.
-- 여전히 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 수동 또는 추가 automation 전략이 필요하다.
+- 여전히 실제 cold boot와 더 넓은 device/OEM별 Accessibility surface는 수동 또는 추가 automation 전략이 필요하다. 다만 Android CI focused runtime smoke는 `KeepAccessibilityServiceIntegrationTest`로 대표적인 cross-app foreground 전환과 self-uninstall interception safety baseline을 이미 자동 검증한다.
 - 긴급해제 만료는 `app/src/androidTest/java/com/uiery/keep/service/EmergencyUnlockExpiryIntegrationTest.kt`로 state 정리와 재차단 대상 판정을 scriptable하게 검증하지만, 실제 third-party app foreground 전환까지 포함한 end-to-end evidence는 수동 시나리오를 함께 남기는 것이 안전하다.
 - issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.

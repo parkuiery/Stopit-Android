@@ -1,6 +1,7 @@
 package com.uiery.keep.service
 
 import android.content.Intent
+import android.net.Uri
 import android.app.UiAutomation
 import android.provider.Settings
 import androidx.datastore.preferences.core.edit
@@ -141,6 +142,72 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun uninstallAttemptWithPreventUninstallEnabled_dismissesDeleteSurface() = runBlocking {
+        configurePreventUninstall(enabled = true)
+        waitForServiceStatePropagation()
+        waitForPreventUninstallPropagation(expected = true)
+
+        launchSelfUninstallFlow()
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to dismiss the self-uninstall surface when prevent_uninstall is enabled",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == APP_PACKAGE
+        }
+        waitUntil(
+            message = "Expected the uninstall surface to leave foreground after dismissal",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            !isUninstallSurfaceForeground()
+        }
+    }
+
+    @Test
+    fun appInfoScreenWithPreventUninstallEnabled_staysVisibleBeforeDeleteConfirmation() = runBlocking {
+        configurePreventUninstall(enabled = true)
+        waitForServiceStatePropagation()
+        waitForPreventUninstallPropagation(expected = true)
+
+        launchSelfAppInfoScreen()
+        waitForPackageForeground(
+            packageName = SETTINGS_PACKAGE,
+            message = "Expected the app info screen to stay foreground before uninstall confirmation",
+        )
+
+        Thread.sleep(750)
+
+        assertTrue(
+            "Expected no uninstall dismissal record before the delete confirmation surface is opened",
+            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == null,
+        )
+        assertTrue(
+            "Expected the app info screen to stay visible before tapping uninstall",
+            isPackageForeground(SETTINGS_PACKAGE),
+        )
+    }
+
+    @Test
+    fun uninstallAttemptWithPreventUninstallDisabled_keepsDeleteSurfaceVisible() = runBlocking {
+        configurePreventUninstall(enabled = false)
+        waitForServiceStatePropagation()
+        waitForPreventUninstallPropagation(expected = false)
+
+        launchSelfUninstallFlow()
+
+        waitUntil(
+            message = "Expected the uninstall surface to stay visible when prevent_uninstall is disabled",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            isUninstallSurfaceForeground()
+        }
+        assertTrue(
+            "Expected no uninstall dismissal record when prevent_uninstall is disabled",
+            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == null,
+        )
+    }
+
+    @Test
     fun cleanupRestoresAccessibilityServiceWhenItWasInitiallyDisabled() = runBlocking {
         assertTrue(
             "Expected test setup to enable KeepAccessibilityService before cleanup verification. ${accessibilityDiagnostics()}",
@@ -184,11 +251,18 @@ class KeepAccessibilityServiceIntegrationTest {
         )
     }
 
+    private suspend fun configurePreventUninstall(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKey.PREVENT_UNINSTALL] = enabled
+        }
+    }
+
     private suspend fun clearAccessibilityBlockState() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
             preferences.remove(PreferencesKey.IS_KEEP)
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.PREVENT_UNINSTALL)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
@@ -213,6 +287,25 @@ class KeepAccessibilityServiceIntegrationTest {
         context.startActivity(
             launchIntent!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
         )
+    }
+
+    private fun launchSelfUninstallFlow() {
+        launchSelfAppInfoScreen()
+        device.findObject(By.text("Uninstall"))?.click()
+            ?: fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
+    }
+
+    private fun launchSelfAppInfoScreen() {
+        device.pressHome()
+        context.startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", APP_PACKAGE, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
+        waitUntil("Expected app info screen to expose an uninstall button for $APP_PACKAGE", UI_TIMEOUT_MS) {
+            device.hasObject(By.text("Uninstall"))
+        }
     }
 
     private fun primeAppProcess() {
@@ -375,6 +468,12 @@ class KeepAccessibilityServiceIntegrationTest {
         }
     }
 
+    private fun waitForPreventUninstallPropagation(expected: Boolean) {
+        waitUntil("KeepAccessibilityService should observe prevent_uninstall=$expected before uninstall assertions", SERVICE_PROPAGATION_TIMEOUT_MS) {
+            KeepAccessibilityServiceDebugState.read(context).observedPreventUninstall == expected
+        }
+    }
+
     private fun waitForWindowEvent(packageName: String) {
         waitUntil("KeepAccessibilityService should receive a window change event for $packageName", SERVICE_PROPAGATION_TIMEOUT_MS) {
             KeepAccessibilityServiceDebugState.read(context).lastWindowStateChangedPackage == packageName
@@ -421,6 +520,9 @@ class KeepAccessibilityServiceIntegrationTest {
             .contains(packageName)
     }
 
+    private fun isUninstallSurfaceForeground(): Boolean =
+        KNOWN_UNINSTALL_PACKAGES.any(::isPackageForeground)
+
     private fun shell(command: String): String {
         return device.executeShellCommand(command)
     }
@@ -434,10 +536,12 @@ class KeepAccessibilityServiceIntegrationTest {
             it.copy(
                 isServiceConnected = existingSnapshot.isServiceConnected,
                 observedIsKeep = false,
+                observedPreventUninstall = true,
                 observedSelectedAppPackages = emptySet(),
                 observedEmergencyUnlockApps = emptySet(),
                 lastWindowStateChangedPackage = null,
                 lastLaunchedBlockPackage = null,
+                lastDismissedUninstallPackage = null,
             )
         }
     }
@@ -463,6 +567,12 @@ class KeepAccessibilityServiceIntegrationTest {
         const val SETTINGS_PACKAGE = "com.android.settings"
         const val MAIN_SWITCH_BAR_ID = "main_switch_bar"
         const val ALLOW_BUTTON_ID = "android:id/accessibility_permission_enable_allow_button"
+        val KNOWN_UNINSTALL_PACKAGES = setOf(
+            "com.android.packageinstaller",
+            "com.google.android.packageinstaller",
+            "com.samsung.android.packageinstaller",
+            "com.android.vending",
+        )
         val LAUNCHABLE_PACKAGE_CANDIDATES = listOf(
             "com.google.android.deskclock",
             "com.android.deskclock",
