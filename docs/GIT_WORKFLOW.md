@@ -30,6 +30,15 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
 
+## Analytics / Release Handoff Boundary
+
+릴리즈/핫픽스 PR에서 Android runtime / release QA가 green이어도, 그것만으로 GA4 `customEvent:*` queryability가 해결됐다고 보면 안 된다.
+
+- analytics payload, screen name, activation/review/monetization 파라미터 계약이 바뀐 PR이면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 확인한다.
+- PR 본문에는 **repo 코드·문서 반영 완료**와 **GA4 Admin 수동 등록 / metadata 재확인 / 배포 후 14일 재측정**을 분리해서 적는다.
+- `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 no-data보다 **GA4 Admin registration gap**으로 먼저 해석한다.
+- live metadata에 `customUser:routines_count`만 보인다고 해서 activation/review/monetization용 `customEvent:*` 축까지 queryable하다고 과대해석하지 않는다.
+
 ## Branch Naming
 
 | 목적 | 브랜치 형식 | 예시 |
@@ -209,7 +218,7 @@ gh pr create --base develop --fill
 
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
-의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, version catalog와 `app/build.gradle.kts`의 direct dependency version을 함께 확인합니다.
+의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, `gradle/libs.versions.toml`과 `app/build.gradle.kts`, `core/kds/build.gradle.kts`의 dependency source-of-truth drift를 함께 확인합니다. 특히 #175 계열 작업은 app 모듈만 보지 말고 `:core:kds`의 direct version 문자열까지 확인합니다.
 
 Navigation/Compose custom lint 복구(`issue #156` 유형)에서는 `:app:lintDevDebug` / `:app:lintProdRelease` green만으로 충분하다고 보지 않습니다. Android CI와 Release QA는 둘 다 `scripts/verify_lint_registry.py`로 HTML lint report를 다시 읽어 `androidx.navigation.common`, `androidx.navigation.compose`, `androidx.navigation.runtime` registry와 `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType` issue id가 실제 report에 포함되고, `Requires newer lint; these checks will be skipped!` / `ObsoleteLintCustomCheck`가 없는지까지 확인합니다.
 
@@ -226,6 +235,7 @@ git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 
 # 3. PR에서 Branch Hygiene, Version Guard, Android CI, Android Release QA, Android Release Build 통과 확인
+#    + analytics payload/queryability 영향이 있으면 PR 본문에 GA4 handoff(runbook 기준)까지 함께 기록
 
 # 4. main에 squash merge
 

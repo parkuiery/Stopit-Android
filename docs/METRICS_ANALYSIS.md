@@ -73,9 +73,10 @@
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
-- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: open issue #119 follow-through용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일. `#82`는 초기 문서화 이력으로만 본다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
@@ -223,7 +224,7 @@ filter_payload = {
 ### 계측 메타데이터 확인
 
 GA4에서 등록된 커스텀 차원/지표를 확인한다.
-등록 필요 목록은 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 `GA4 custom dimension / metric 등록 계약` 표를 source of truth로 삼는다.
+등록 필요 목록은 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 `GA4 custom dimension / metric 등록 계약` 표를, 실제 Admin 등록 절차/registration ledger/외부 경계 구분은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 삼는다.
 
 ```bash
 python3 - <<'PY'
@@ -272,7 +273,8 @@ PY
 판단 기준:
 
 - 화면 조회 대부분이 `(not set)`이면 제품 퍼널 결론보다 계측 개선을 먼저 한다.
-- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 이벤트 딕셔너리와 커스텀 차원 등록 작업을 먼저 만든다.
+- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 등록 계약과 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger / metadata 증적 / 외부 경계 정리를 먼저 맞춘다.
+- docs lane이 repo 안에서 할 수 있는 범위는 registration contract / ledger / 검증 포맷 정리까지이며, 실제 GA4 Admin 등록과 배포 후 14일 재측정은 외부/manual 경계로 분리해 기록한다.
 - 광고 분석 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 guardrail을 같이 확인한다.
 
 ### 2. 획득 / 신규 유입
@@ -361,7 +363,7 @@ PY
 
 - Play Store 평점과 리뷰 수
 - `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`
-- `review_prompt_skipped` reason 분포
+- `review_prompt_skipped` reason 분포 (GA4 Admin에서 `customEvent:reason` 등록이 끝난 뒤에만 안정적으로 해석)
 - 성공적 사용 이벤트: `app_block_intercepted`, `lock_session_start`, `core_action_completed`
 
 판단 기준:
@@ -490,8 +492,10 @@ PY
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
 
-2026-05-27 live 확인 메모:
+2026-05-29 live 확인 메모:
 
-- 최근 14일 `screen_view` 총량: `11,567`
-- `(not set)` `8,780` + 빈 `unifiedScreenName` `807` = `9,587 / 11,567 = 82.9%`
+- 최근 14일 `screen_view` 총량: `13,154`
+- `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
 - GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) runReport smoke query는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 현재 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.

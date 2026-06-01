@@ -91,6 +91,9 @@ ASO 판정 주의:
 ## 해석 원칙
 
 - 먼저 계기판을 의심한다. 화면명 `(not set)`이나 커스텀 차원 누락이 크면 제품 결론을 낮은 confidence로 둔다.
+- #13 계열 분석에서는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 보고, 실제 `customEvent:*` 등록/조회 가능 여부와 repo 문서 범위를 구분한다.
+- `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
+- `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.
 - 전환율은 항상 분자/분모/기간을 같이 기록한다.
 - 지표 하나당 이슈 하나를 만들지 않는다. 실행 단위의 문제/기회로 묶는다.
@@ -117,5 +120,7 @@ ASO 판정 주의:
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`
+- `docs/PLAY_STORE_ASO.md`
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`

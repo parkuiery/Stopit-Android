@@ -71,7 +71,7 @@
 
 ## 현재 기준선
 
-2026-05-23 분석 기준 최근 30일:
+### 2026-05-23 최근 30일 제품/비즈니스 기준선
 
 | 지표 | 값 |
 |---|---:|
@@ -79,9 +79,7 @@
 | total users | 507 |
 | new users | 202 |
 | sessions | 4,681 |
-| screen views | 23,191 |
 | engagement rate | 61.4% |
-| `unifiedScreenName = (not set)` | 19,003 views |
 | total ad revenue | $2.168155 |
 | publisher ad impressions | 18,731 |
 | publisher ad clicks | 12 |
@@ -89,7 +87,24 @@
 | `first_lock_configured` users | 41 |
 | `app_block_intercepted` users | 121 |
 
-주의: 이 기준선은 고정값이 아니라 예시다. 다음 분석 시 GA4에서 새로 조회해야 한다.
+### 2026-05-29 최근 14일 screen 품질 / queryability 기준선
+
+| 지표 | 값 |
+|---|---:|
+| total `screen_view` | 13,154 |
+| `(not set)` `unifiedScreenName` | 9,473 |
+| blank `unifiedScreenName` | 801 |
+| combined screen quality gap | `10,274 / 13,154 = 78.1%` |
+| metadata에서 확인된 custom dimension | `customUser:routines_count` |
+| metadata에서 확인된 `customEvent:*` | 없음 |
+
+대표 해석:
+
+- 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
+- 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) 분해 쿼리는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
+
+주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
 ## 핵심 퍼널
 
@@ -142,6 +157,8 @@
 - 단기 실행은 `GA4 계측 품질 개선`과 `Play Store ASO 개선`이 가장 안전하다.
 - `첫 잠금 활성화 개선`은 임팩트가 크지만 계측 정리 후 더 정확히 설계하는 편이 좋다.
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
+- 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
+- 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했다. 따라서 현재 #14/#16류 세부 파라미터 분석은 no-data가 아니라 **GA4 Admin 미등록 queryability gap** 때문에 confidence가 낮다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 - 2026-06-01 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
 
@@ -191,7 +208,7 @@
   - 권한 미허용 시 기존 차단/타이머/루틴 가치가 훼손되지 않아야 한다.
   - 민감한 앱 이름 노출과 감시 느낌을 피해야 한다.
   - 허용률/추천 클릭률뿐 아니라 `first_lock_configured`, `app_block_intercepted`, review/rating 악화 여부를 같이 본다.
-- 상세 계약: `docs/USAGE_STATS_PERSONALIZATION_MVP.md`, issue #82
+- 상세 계약: `docs/USAGE_STATS_PERSONALIZATION_MVP.md`, open issue #119 (`#82`는 초기 문서화 이력)
 
 ## 수익화 실험 후보
 
@@ -265,12 +282,15 @@
 - #14 첫 잠금 활성화 퍼널 개선
 - #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
+- #17 리뷰 프롬프트 생애주기 개선 (`docs/REVIEW_PROMPT_LIFECYCLE.md` 참조)
+- #119 Usage Access 기반 사용기록 리포트 MVP 실행 후보 재검토 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조, `#82`는 초기 문서화 이력)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
-- #17 리뷰 프롬프트 생애주기 개선
-- #82 사용정보 기반 개인화 솔루션과 사용 리포트 제공 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조)
 
 ## 관련 실행 문서
 
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 activation 퍼널 canonical 계약, CTA, queryability guardrail
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
-- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일
+- `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, queryability guardrail
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 follow-through용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일 (`#82`는 초기 문서화 이력)

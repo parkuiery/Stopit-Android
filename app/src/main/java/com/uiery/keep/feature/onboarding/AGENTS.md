@@ -47,3 +47,6 @@ Onboarding route graph for the first-run flow across intro, notification, app-se
 - Jetpack Compose, Navigation Compose, Orbit MVI, Hilt where injected.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
+
+- Onboarding analytics/screen contracts feed both issue #13 (GA4 queryability) and issue #14 (activation funnel). If onboarding step names, permission outcomes, or first-value events change here, sync `docs/ANALYTICS_EVENT_DICTIONARY.md` and `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` together.
+- Until `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` shows the required `customEvent:*` dimensions registered, invalid GA4 breakdown queries for onboarding params should be treated as a registration gap, not immediate evidence that users are not hitting the flow.
