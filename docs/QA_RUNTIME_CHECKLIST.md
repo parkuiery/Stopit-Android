@@ -106,6 +106,44 @@ cd <repo-root>
 
 exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
+### notification onboarding permission baseline
+
+issue #172 계열 PR에서는 알림 권한 온보딩이 **설정 화면 방문만으로 완료 처리되지 않는지**를 아래처럼 남긴다.
+
+- 자동 baseline
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" \
+  --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"
+```
+
+- 검증 범위:
+  - Android 12L 이하 legacy 경로에서 첫 진입은 `settings_opened`, 재방문 + 미허용은 `denied`, 재방문 + 허용만 `granted + onboarding_step_complete(step_name=notification)`인지
+  - Android 13+ runtime permission 경로에서 거절 시 다음 화면으로 넘어가지 않고 `denied`만 남는지
+  - 실제 허용 전에는 notification onboarding completion이 기록되지 않는지
+
+- 추가 manual evidence가 필요하면 아래 형식으로 남긴다.
+
+```md
+## Notification onboarding permission evidence
+- Device/Emulator:
+- Android version:
+- Variant:
+- Flow: Android 13+ runtime permission / Android 12L 이하 settings round-trip
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"`
+- Observed analytics/order:
+  - `settings_opened` (legacy only, first settings launch)
+  - `denied` after returning without enabling notifications
+  - `granted` + `onboarding_step_complete(step_name=notification)` only after notifications are actually enabled
+- Observed UI:
+  - 거절 상태에서 다음 화면으로 자동 이동하지 않는지
+  - 허용 상태에서만 앱 선택 화면으로 이동하는지
+- Notes:
+```
+
 ### DevTool production graph baseline
 
 DevTool은 `Device ID`/`FCM Token` 같은 내부 진단값을 표시하므로 production graph에 등록되지 않아야 한다. dev/debug 진단 접근은 유지하되, prod flavor에서는 debug/release 여부와 무관하게 route 등록 자체가 막혀야 한다.
@@ -138,7 +176,6 @@ cd <repo-root>
 - broad package visibility query는 `InstalledAppRepository`에서만 수행한다.
 - `SelectableAppPolicyTest`가 launch intent 없는 앱 제외, Stopit 자기 package 제외, picker 정렬 안정성을 고정한다.
 - Manifest/Play 정책 설명은 “앱 차단 대상 선택” 목적과 충돌하지 않아야 한다.
-
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
