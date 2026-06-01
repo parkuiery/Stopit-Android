@@ -6,6 +6,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import kotlinx.coroutines.flow.first
@@ -83,6 +84,7 @@ class EmergencyUnlockExpiryIntegrationTest {
             foregroundPackage = blockedPackage,
             applicationId = context.packageName,
             isForegroundStillEmergencyUnlocked = false,
+            clearExpiredEmergencyUnlockState = BlockingStateStore(context.dataStore)::clearEmergencyUnlockRuntimeState,
             nowMillis = expireTimeMillis,
         )
 

@@ -8,6 +8,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -80,6 +81,7 @@ class LockViewModelTest {
     ): LockViewModel {
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
             emergencyUnlockDao = emergencyUnlockDao,
@@ -93,8 +95,10 @@ class LockViewModelTest {
             routineDao = FakeRoutineDao(),
             lockHistoryDao = FakeLockHistoryDao(),
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 dataStore = dataStore,
+                blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = emergencyUnlockDao,
                 analytics = analytics,
             ),
@@ -119,6 +123,7 @@ class LockViewModelTest {
         val lockHistoryDao = LockRecordingHistoryDao()
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
             emergencyUnlockDao = emergencyUnlockDao,
@@ -132,8 +137,10 @@ class LockViewModelTest {
             routineDao = FakeRoutineDao(),
             lockHistoryDao = lockHistoryDao,
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 dataStore = dataStore,
+                blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = emergencyUnlockDao,
                 analytics = analytics,
             ),
@@ -165,6 +172,7 @@ class LockViewModelTest {
         val emergencyUnlockDao = FakeEmergencyUnlockDao()
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
             emergencyUnlockDao = emergencyUnlockDao,
@@ -191,8 +199,10 @@ class LockViewModelTest {
                 routineDao = FakeRoutineDao(flowOf(listOf(routine))),
                 lockHistoryDao = lockHistoryDao,
                 dataStore = dataStore,
+                blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                     dataStore = dataStore,
+                    blockingStateStore = BlockingStateStore(dataStore),
                     emergencyUnlockDao = emergencyUnlockDao,
                     analytics = analytics,
                 ),

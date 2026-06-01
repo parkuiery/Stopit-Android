@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -100,10 +101,11 @@ class BlockViewModelTest {
         analytics: BlockRecordingKeepAnalytics,
     ): BlockViewModel =
         BlockViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 dataStore = dataStore,
+                blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = FakeEmergencyUnlockDao(),
                 analytics = analytics,
             ),

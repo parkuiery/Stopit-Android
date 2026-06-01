@@ -1,8 +1,5 @@
 package com.uiery.keep
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsSource
@@ -10,14 +7,13 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
+
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -28,7 +24,7 @@ import javax.inject.Inject
 class BlockViewModel
     @Inject
     constructor(
-        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
     ) : ViewModel(),
@@ -45,19 +41,15 @@ class BlockViewModel
             blockSource: String,
             routineId: String?,
         ) = intent {
-            val firstOpenTimestamp =
-                dataStore.data
-                    .map { preferences -> preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] }
-                    .firstOrNull()
-                    ?: System.currentTimeMillis()
+            val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
+                fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
+            )
+            val firstOpenTimestamp = firstCoreActionState.firstOpenTimestampMillis
             val elapsedSeconds =
                 TimeUnit.MILLISECONDS
                     .toSeconds(System.currentTimeMillis() - firstOpenTimestamp)
                     .coerceAtLeast(0L)
-            val hasTrackedFirstCoreAction =
-                dataStore.data
-                    .map { preferences -> preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] == true }
-                    .firstOrNull() == true
+            val hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction
 
             analytics.trackAppBlockIntercepted(
                 blockSource = blockSource,
@@ -80,12 +72,7 @@ class BlockViewModel
                     blockedAppPackage = packageName,
                     routineId = routineId,
                 )
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] = true
-                    if (preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] == null) {
-                        preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] = firstOpenTimestamp
-                    }
-                }
+                blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
             }
         }
 

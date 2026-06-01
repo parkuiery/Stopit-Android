@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import java.time.Clock
 import java.time.LocalTime
@@ -24,6 +25,7 @@ private const val DEV_FLAVOR = "dev"
 @Singleton
 class ReviewEligibilityEvaluator @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val blockingStateStore: BlockingStateStore,
     private val remoteConfig: ReviewRemoteConfig,
     private val accessibilityChecker: AccessibilityChecker,
     private val emergencyUnlockDao: EmergencyUnlockDao,
@@ -45,7 +47,7 @@ class ReviewEligibilityEvaluator @Inject constructor(
         if (isQuietHours()) return ineligible(SkipReason.QuietHours)
 
         val prefs = dataStore.data.firstOrNull()
-        val sessionCount = prefs?.get(PreferencesKey.SUCCESSFUL_SESSION_COUNT) ?: 0
+        val sessionCount = blockingStateStore.readSuccessfulSessionCount()
         if (sessionCount < SESSION_THRESHOLD) return ineligible(SkipReason.BelowSessionThreshold)
 
         val lastPromptAt = prefs?.get(PreferencesKey.LAST_REVIEW_PROMPT_AT_MS)

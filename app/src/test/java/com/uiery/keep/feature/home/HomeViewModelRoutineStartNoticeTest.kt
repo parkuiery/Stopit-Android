@@ -3,6 +3,7 @@ package com.uiery.keep.feature.home
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -130,10 +131,12 @@ class HomeViewModelRoutineStartNoticeTest {
     ): HomeViewModel =
         HomeViewModel(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
             reviewEligibility = ReviewEligibilityEvaluator(
                 dataStore = dataStore,
+                blockingStateStore = BlockingStateStore(dataStore),
                 remoteConfig = FakeReviewRemoteConfig(enabled = true),
                 accessibilityChecker = FakeAccessibilityChecker(enabled = true),
                 emergencyUnlockDao = FakeEmergencyUnlockDao(),

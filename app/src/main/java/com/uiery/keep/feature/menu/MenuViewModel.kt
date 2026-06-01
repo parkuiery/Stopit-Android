@@ -1,15 +1,11 @@
 package com.uiery.keep.feature.menu
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MenuViewModel @Inject constructor(
-    @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val blockingStateStore: BlockingStateStore,
     private val routineDao: RoutineDao,
     private val analytics: KeepAnalytics,
 ) : ViewModel() {
@@ -34,26 +30,23 @@ class MenuViewModel @Inject constructor(
         analytics.logScreenView(KeepAnalyticsScreen.MENU)
     }
 
-    val preventUninstall: StateFlow<Boolean> = dataStore.data
-        .map { it[PreferencesKey.PREVENT_UNINSTALL] ?: true }
+    val preventUninstall: StateFlow<Boolean> = blockingStateStore.accessibilitySnapshot
+        .map { it.preventUninstall }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    val isBlocking: StateFlow<Boolean> = combine(dataStore.data, routineDao.fetchAll()) { prefs, routineEntities ->
-            val isKeep = prefs[PreferencesKey.IS_KEEP] ?: false
-            val isLockTime = prefs[PreferencesKey.LOCK_TIME]?.let {
+    val isBlocking: StateFlow<Boolean> = combine(blockingStateStore.accessibilitySnapshot, routineDao.fetchAll()) { snapshot, routineEntities ->
+            val isLockTime = snapshot.lockTime?.let {
                 runCatching { LocalDateTime.now().isBefore(LocalDateTime.parse(it)) }
                     .getOrDefault(false)
             } ?: false
             val isRoutineActive = RoutineRuntimePolicy.isAnyRoutineActive(routineEntities.map { it.toModel() })
-            isKeep || isLockTime || isRoutineActive
+            snapshot.isKeep || isLockTime || isRoutineActive
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setPreventUninstall(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            dataStore.edit { prefs ->
-                prefs[PreferencesKey.PREVENT_UNINSTALL] = enabled
-            }
+            blockingStateStore.setPreventUninstall(enabled)
         }
     }
 }

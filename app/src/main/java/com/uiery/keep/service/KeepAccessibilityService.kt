@@ -7,15 +7,12 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.datastore.dataStore
+import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import dagger.hilt.EntryPoint
@@ -36,26 +33,16 @@ class KeepAccessibilityService :
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + job
 
-    private data class CachedPreferences(
-        val isKeep: Boolean = false,
-        val lockTime: String? = null,
-        val selectedAppPackages: Set<String> = emptySet(),
-        val preventUninstall: Boolean = true,
-        val emergencyUnlockApps: Set<String> = emptySet(),
-        val emergencyUnlockExpireTime: Long = 0L,
-    )
-
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface RoutineRuntimeEntryPoint {
         fun routineDao(): RoutineDao
 
-        @com.uiery.keep.KeepDataSource
-        fun dataStore(): DataStore<Preferences>
+        fun blockingStateStore(): BlockingStateStore
     }
 
     @Volatile
-    private var cachedPrefs = CachedPreferences()
+    private var cachedPrefs = AccessibilityBlockingSnapshot()
 
     @Volatile
     private var cachedRoutines: List<RoutineModel> = emptyList()
@@ -80,15 +67,8 @@ class KeepAccessibilityService :
             RoutineRuntimeEntryPoint::class.java,
         )
         launch {
-            entryPoint.dataStore().data.collect { preferences ->
-                cachedPrefs = CachedPreferences(
-                    isKeep = preferences[PreferencesKey.IS_KEEP] ?: false,
-                    lockTime = preferences[PreferencesKey.LOCK_TIME],
-                    selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES] ?: emptySet(),
-                    preventUninstall = preferences[PreferencesKey.PREVENT_UNINSTALL] ?: true,
-                    emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] ?: emptySet(),
-                    emergencyUnlockExpireTime = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
-                )
+            entryPoint.blockingStateStore().accessibilitySnapshot.collect { snapshot ->
+                cachedPrefs = snapshot
                 KeepAccessibilityServiceDebugState.update(applicationContext) {
                     it.copy(
                         observedIsKeep = cachedPrefs.isKeep,
@@ -97,7 +77,7 @@ class KeepAccessibilityService :
                         observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
                     )
                 }
-                scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
+                scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
                 reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
@@ -142,7 +122,7 @@ class KeepAccessibilityService :
 
     private fun blockIfNeeded(
         packageName: String,
-        prefs: CachedPreferences,
+        prefs: AccessibilityBlockingSnapshot,
     ) {
         val blockRequest = resolveForegroundBlockRequest(
             packageName = packageName,
@@ -266,7 +246,7 @@ class KeepAccessibilityService :
         if (isEmergencyUnlockActiveForPackage(
                 packageName = packageName,
                 unlockedApps = prefs.emergencyUnlockApps,
-                expireTimeMillis = prefs.emergencyUnlockExpireTime,
+                expireTimeMillis = prefs.emergencyUnlockExpireTimeMillis,
                 nowMillis = now,
             )) {
             return true
@@ -276,15 +256,16 @@ class KeepAccessibilityService :
 
     private fun cleanupExpiredEmergencyUnlock() {
         val prefs = cachedPrefs
-        if (prefs.emergencyUnlockExpireTime > 0 &&
-            System.currentTimeMillis() >= prefs.emergencyUnlockExpireTime &&
+        if (prefs.emergencyUnlockExpireTimeMillis > 0 &&
+            System.currentTimeMillis() >= prefs.emergencyUnlockExpireTimeMillis &&
             isCleaningUp.compareAndSet(false, true)) {
             EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
             launch {
-                dataStore.edit { preferences ->
-                    preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
-                    preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
-                }
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    applicationContext,
+                    RoutineRuntimeEntryPoint::class.java,
+                )
+                entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
                 isCleaningUp.set(false)
             }
         }
@@ -324,14 +305,19 @@ class KeepAccessibilityService :
         val isForegroundStillEmergencyUnlocked = foregroundPackage?.let(::isEmergencyUnlocked) ?: false
 
         launch {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                applicationContext,
+                RoutineRuntimeEntryPoint::class.java,
+            )
             val resolution = handleExpiredEmergencyUnlockForContext(
                 context = this@KeepAccessibilityService,
                 expectedExpireTimeMillis = expectedExpireTimeMillis,
-                currentExpireTimeMillis = prefs.emergencyUnlockExpireTime,
+                currentExpireTimeMillis = prefs.emergencyUnlockExpireTimeMillis,
                 expiredUnlockedApps = prefs.emergencyUnlockApps,
                 foregroundPackage = foregroundPackage,
                 applicationId = BuildConfig.APPLICATION_ID,
                 isForegroundStillEmergencyUnlocked = isForegroundStillEmergencyUnlocked,
+                clearExpiredEmergencyUnlockState = entryPoint.blockingStateStore()::clearEmergencyUnlockRuntimeState,
             )
 
             resolution.packageToReblock?.let { packageName ->
@@ -373,6 +359,7 @@ internal suspend fun handleExpiredEmergencyUnlockForContext(
     foregroundPackage: String?,
     applicationId: String,
     isForegroundStillEmergencyUnlocked: Boolean,
+    clearExpiredEmergencyUnlockState: suspend () -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
 ): EmergencyUnlockExpiryResolution {
     val resolution = resolveEmergencyUnlockExpiry(
@@ -387,10 +374,7 @@ internal suspend fun handleExpiredEmergencyUnlockForContext(
 
     if (resolution.shouldClearState) {
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
-        context.dataStore.edit { preferences ->
-            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
-            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
-        }
+        clearExpiredEmergencyUnlockState()
         cancelEmergencyUnlockNotification(context)
     }
 
