@@ -63,7 +63,7 @@ ASO 판정 주의:
 
 ## 핵심 퍼널
 
-첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
+첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-01 기준 #14 홈 첫 잠금 CTA는 PR #256으로 반영됐으므로, 이후 활성화 분석은 “CTA 부재”로 되돌리지 않는다. 다음 repo 내부 후보는 `first_lock_configured` 이후 첫 가치 경험 피드백과 `app_block_intercepted` → 최초 `first_core_action_completed` 연결 증거다.
 
 활성화 퍼널:
 1. `first_open`

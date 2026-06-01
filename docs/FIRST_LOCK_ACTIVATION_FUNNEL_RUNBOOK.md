@@ -21,6 +21,18 @@
 - `docs/ops/stopit/product-context.md`
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`
 
+## 2026-06-01 진행 상태
+
+issue #14는 이제 “앱 선택 후 첫 잠금 CTA가 전혀 없는 상태”가 아니다. PR #256으로 홈 첫 잠금 CTA가 develop에 들어갔고, 선택 앱이 1개 이상이며 아직 첫 잠금이 기록되지 않은 사용자에게 Keep 토글로 이어지는 CTA를 보여주는 계약이 코드/테스트/문서에 반영됐다.
+
+따라서 이후 #14 follow-through의 repo 내부 우선순위는 아래처럼 이동한다.
+
+1. **첫 잠금 이후 첫 가치 경험 피드백**: `first_lock_configured` 이후 사용자가 “이제 언제/어떻게 차단이 작동하는지”를 이해하도록 안내한다.
+2. **첫 가치 경험과 실차단 계측 연결**: `BlockViewModel.trackBlockShown(...)` 기준으로 `app_block_intercepted`와 `first_core_action_completed`가 같은 차단 화면 진입에서 어떤 순서와 조건으로 찍히는지 유지한다.
+3. **배포 후 14일 재측정**: `first_lock_configured / first_open`만 보지 말고 `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`까지 함께 본다.
+
+문서 lane은 이번 섹션을 기준으로 #14를 “CTA 미정의”로 되돌리지 않는다. 다음 code/product lane은 첫 잠금 CTA 자체보다 **첫 가치 경험 피드백과 실차단 연결 증거**를 좁은 패키지로 잡는 편이 맞다.
+
 ## 왜 별도 런북이 필요한가
 
 issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫자만으로 바로 UI 결론을 내리면 안 된다.
@@ -137,6 +149,32 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 - 숨김 조건: 첫 잠금이 기록되거나 Keep 모드가 켜지면 CTA를 숨긴다. 이미 첫 잠금을 기록한 사용자에게는 반복 노출하지 않는다.
 - 검증 기준: `HomeViewModelActivationAnalyticsTest`가 노출/숨김 조건과 첫 잠금 시작 후 숨김을 고정한다.
 
+### 첫 가치 경험 피드백 계약
+
+홈 첫 잠금 CTA가 들어간 뒤에도 사용자는 “Stopit을 켜면 바로 어떤 일이 일어나는지”를 놓칠 수 있다. 특히 `first_lock_configured`는 준비 완료 신호일 뿐이고, 실제 사용자가 가치를 느끼는 순간은 차단 화면이 뜨거나 차단 세션이 시작됐음을 확신하는 순간이다.
+
+다음 code/product lane은 아래 계약을 기준으로 첫 가치 경험 피드백을 구현 후보로 다룬다.
+
+| 상태 | 사용자에게 필요한 피드백 | 계측/검증 계약 |
+| --- | --- | --- |
+| 홈 CTA 클릭으로 Keep이 켜짐 | “선택한 앱을 열면 Stopit이 막아준다”는 즉시 안내. 성공처럼 보이되 실제 차단 완료로 과장하지 않는다 | 기존 `first_lock_configured(source=home, selected_app_count=...)`와 `lock_session_start(source=home_keep_switch)` 순서 유지 |
+| 타이머/카운트다운으로 첫 잠금이 예약됨 | 잠금 시작 시점과 선택 앱이 차단될 조건을 보여준다 | `first_lock_configured(source=home_timer, ...)`가 이미 기록된 사용자는 중복 기록하지 않는다 |
+| 차단 화면이 처음 노출됨 | “첫 차단이 실제로 작동했다”는 신뢰 피드백을 준다. 긴급해제/닫기 같은 안전 동작은 가리지 않는다 | `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록하고, 최초 1회만 `first_core_action_completed`를 기록하는 현재 계약을 유지 |
+| 첫 차단 이후 홈/기록으로 복귀함 | 첫 성공을 축하하되 사용 앱 이름/민감 정보를 과하게 노출하지 않는다 | 후속 제품 실험을 만들 경우 새 이벤트보다 `core_action_completed`, lock history, review guardrail을 우선 재사용 |
+
+금지사항:
+
+- `first_lock_configured` 직후에 “차단 완료”라고 말하지 않는다. 아직 사용자가 차단 대상 앱을 열어 실제 block intercept를 본 것은 아니다.
+- 긴급해제, 차단 화면, 권한 복구 등 안전 플로우를 축하/리뷰/광고 피드백 뒤에 숨기지 않는다.
+- 첫 성공 피드백에 차단 앱 목록이나 민감한 앱 이름을 불필요하게 노출하지 않는다.
+
+권장 구현 패키지:
+
+- 홈/타이머 시작 직후 안내 문구 또는 snackbar를 기존 KDS/홈 상태 흐름 안에서 최소로 추가한다.
+- 차단 화면 최초 진입 시 `first_core_action_completed`가 찍히는 경로와 UI 문구가 같은 “첫 가치 경험” 의미를 공유하도록 테스트한다.
+- `HomeViewModelActivationAnalyticsTest`, `FirebaseKeepAnalyticsTest`, `BlockViewModelTest` 또는 동등한 focused JVM 테스트로 이벤트 순서와 중복 방지를 고정한다.
+- 문구를 추가하면 모든 shipped locale string resource와 `docs/ANALYTICS_EVENT_DICTIONARY.md` / 이 런북을 함께 갱신한다.
+
 ## 해석 guardrail
 
 ### 1. 버전 혼합 금지
@@ -240,12 +278,13 @@ cd <repo-root>
 
 ## 이 문서가 닫지 않는 경계
 
-이 문서 추가만으로는 아직 다음이 남는다.
+이번 docs lane 계약 정리만으로는 아직 다음이 남는다.
 
-- 앱 선택 후 미완료 사용자에게 실제 CTA를 어떤 화면/상태에 노출할지 구현
+- 앱 선택 후 미완료 사용자의 홈 첫 잠금 CTA는 PR #256 기준으로 구현됨. 남은 것은 해당 CTA가 배포된 뒤 `first_lock_configured / first_open`을 재측정하는 일이다.
 - 첫 차단/첫 가치 경험 UI 피드백 구현 또는 정교화
-- 배포 후 14일 기준 재측정
+- 첫 가치 경험 피드백이 `first_lock_configured`를 실제 차단 완료로 과장하지 않는지 확인하는 문구/QA 검증
+- 배포 후 14일 기준 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed` 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
-- `permission_name` / `source` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인
+- `permission_name` / `source` / `blocking_mode` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인
 
-따라서 docs lane 산출물은 기본적으로 `Refs #14`가 맞고, `Closes #14`는 code/product/manual measurement까지 충족될 때만 사용한다.
+따라서 이번 docs lane 산출물은 `Refs #14`가 맞고, `Closes #14`는 code/product/manual measurement까지 충족될 때만 사용한다.
