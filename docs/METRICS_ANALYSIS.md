@@ -498,6 +498,8 @@ PY
 
 - 최근 14일 `screen_view` 총량: `13,154`
 - `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
-- GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
-- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) runReport smoke query는 모두 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 현재 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- 2026-05-29 live 확인 기준 GA4 metadata에서 확인된 custom dimension은 `customUser:routines_count`뿐이었고 activation/review용 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
+- 2026-06-01 #16 AdMob preflight 기준 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 것으로 보정 확인됐다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`) runReport smoke query는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 활성화/리뷰 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- monetization은 광고 metadata 일부가 복구됐지만 `ad_impression` / `ad_click` / `ad_revenue` source split과 `(not set)`/empty coverage 때문에 placement별 결론을 보류한다. 자세한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 따른다.
 - 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.
