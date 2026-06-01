@@ -57,9 +57,13 @@ class KeepAccessibilityServiceIntegrationTest {
     @After
     fun tearDown() {
         runBlocking {
-            clearAccessibilityBlockState()
-            device.pressHome()
-            Configurator.getInstance().setUiAutomationFlags(originalUiAutomationFlags)
+            try {
+                clearAccessibilityBlockState()
+                restoreAccessibilityServiceState(initiallyEnabled = accessibilityServiceInitiallyEnabled)
+                device.pressHome()
+            } finally {
+                Configurator.getInstance().setUiAutomationFlags(originalUiAutomationFlags)
+            }
         }
     }
 
@@ -130,6 +134,27 @@ class KeepAccessibilityServiceIntegrationTest {
         assertFalse(
             "Did not expect KeepAccessibilityService to request BlockActivity while emergency unlock is active. snapshot=$debugSnapshot",
             launchedBlockedPackage == bypassPackage,
+        )
+    }
+
+    @Test
+    fun cleanupRestoresAccessibilityServiceWhenItWasInitiallyDisabled() = runBlocking {
+        assertTrue(
+            "Expected test setup to enable KeepAccessibilityService before cleanup verification. ${accessibilityDiagnostics()}",
+            isAccessibilityServiceEnabled(),
+        )
+
+        restoreAccessibilityServiceState(initiallyEnabled = false)
+
+        waitUntil(
+            message = "Expected cleanup helper to disable KeepAccessibilityService when it was initially disabled. ${accessibilityDiagnostics()}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            !isAccessibilityServiceEnabled()
+        }
+        assertFalse(
+            "Expected KeepAccessibilityService to be disabled after cleanup restoration. ${accessibilityDiagnostics()}",
+            isAccessibilityServiceEnabled(),
         )
     }
 
@@ -214,14 +239,52 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun disableAccessibilityServiceIfEnabled() {
         if (!isAccessibilityServiceEnabled()) return
 
-        openAccessibilityServiceDetails()
-        waitUntil("Could not find Accessibility main switch for StopIt service", UI_TIMEOUT_MS) {
-            device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
+        val before = accessibilityDiagnostics()
+        setAccessibilityServiceEnabled(enabled = false)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to be disabled. before=$before; after=${accessibilityDiagnostics()}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            !isAccessibilityServiceEnabled()
         }
-        device.findObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))?.click()
-            ?: fail("Could not find Accessibility main switch for StopIt service")
     }
 
+    private fun restoreAccessibilityServiceState(initiallyEnabled: Boolean) {
+        if (initiallyEnabled) return
+        disableAccessibilityServiceIfEnabled()
+    }
+
+    private fun setAccessibilityServiceEnabled(enabled: Boolean) {
+        val currentServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
+        val retainedServices = currentServices
+            .split(':')
+            .filter { it.isNotBlank() && it != SERVICE_COMPONENT }
+            .toMutableList()
+
+        if (enabled) {
+            retainedServices += SERVICE_COMPONENT
+        }
+
+        if (retainedServices.isEmpty()) {
+            shell("settings delete secure enabled_accessibility_services")
+            shell("settings put secure accessibility_enabled 0")
+        } else {
+            shell("settings put secure enabled_accessibility_services ${retainedServices.joinToString(":")}")
+            shell("settings put secure accessibility_enabled 1")
+        }
+    }
+
+    private fun accessibilityDiagnostics(): String {
+        val snapshot = KeepAccessibilityServiceDebugState.read(context)
+        val accessibilityEnabled = normalizeSecureSetting(shell("settings get secure accessibility_enabled"))
+        val enabledServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
+        val accessibilityDump = shell("""dumpsys accessibility | grep -n 'Bound services\|Enabled services\|Binding services\|Crashed services' -A1 -B1""").trim()
+        return "snapshot=$snapshot; accessibility_enabled=$accessibilityEnabled; enabled_accessibility_services=$enabledServices; accessibilityDump=$accessibilityDump"
+    }
+
+    private fun normalizeSecureSetting(rawValue: String): String =
+        rawValue.trim().takeUnless { it == "null" } ?: ""
     private fun openAccessibilityServiceDetails() {
         repeat(3) { attempt ->
             if (openAccessibilityServiceDetailsViaIntent()) {

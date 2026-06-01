@@ -282,12 +282,18 @@ PY
 - `newUsers`
 - `first_open`
 - `firstUserDefaultChannelGroup`
+- `Organic Search`, `Direct`, `Paid Search`별 `newUsers` / `activeUsers` / `sessions`
+- Play Console Store performance / acquisition source의 Search/Explore/external/campaign 수치
 - 최근 30일 vs 직전 30일 변화
 
 판단 기준:
 
 - engagement rate가 유지되는데 newUsers만 크게 하락하면 제품 사용성보다 스토어/유입 문제를 우선 본다.
 - Organic Search 비중이 높으면 Play Store ASO, 키워드, 스크린샷, 리뷰 수를 우선 개선한다.
+- ASO 성과를 판정할 때는 GA4 `firstUserDefaultChannelGroup`만 보지 않는다. Play Console Search/Explore와 같은 방향인지 확인한 뒤 #65의 14일/30일 판정에 쓴다.
+- `Direct` 신규 사용자 비중이 갑자기 커지면 실제 direct 유입인지, Discord/웹/문서 링크 또는 캠페인 링크의 UTM/Install Referrer 누락인지 먼저 확인한다.
+- `Paid Search`의 신규 사용자는 0명인데 활성 사용자/세션만 남아 있으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행 여부를 확인하고, 집행 중이 아니면 과거 유저/재방문/분류 잔상으로 분리한다.
+- #65 ASO 검증의 획득 채널 판정 표와 판정 규칙은 `docs/PLAY_STORE_ASO.md`의 `acquisition attribution gate (#242)` 섹션을 source of truth로 본다.
 
 ### 3. 활성화 퍼널
 
@@ -345,6 +351,7 @@ PY
 - `adUnitName = (not set)` 또는 empty가 의미 있는 비중이면 placement 최적화나 새 광고 실험보다 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 코드 기준 placement 표와 #16 closure-pass 게이트를 먼저 적용한다.
 - `adUnitName`은 AdMob/GA4 표시명이고 앱 custom event의 `ad_unit_id`와 같은 필드가 아니므로, 둘을 연결하려면 `ad_unit_id`, `ad_placement`, `screen_context` custom dimension 등록 여부와 실제 이벤트 breakdown을 따로 확인한다.
 - 2026-06-01 preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있으나, 최근 30일 실제 이벤트는 `(not set)`/empty 비중이 커서 SDK 자동 이벤트와 앱 custom event를 분리해 해석해야 한다. 세부 수치와 재사용 가능한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리` 섹션을 따른다.
+- production AdMob application/ad unit id가 UI/Manifest에 분산된 상태(#250류)는 수익화 성과 저하 원인으로 단정하지 않는다. 이것은 광고 inventory 운영 안전성/환경 분리 문제이므로, `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `issue #250: flavor별 광고 설정 계약 handoff`를 보고 config 중앙화와 dev/debug non-production guard를 code/maintenance lane으로 넘긴다.
 - 광고 custom-event coverage를 계산할 때는 `ad_impression`/`ad_click`/`ad_revenue`별 total `eventCount`와 `customEvent:ad_placement`가 `(not set)`/empty가 아닌 covered `eventCount`를 분리해 기록한다. coverage가 낮으면 placement별 CTR/eCPM 결론을 보류한다.
 - 차단/긴급해제 흐름을 방해하는 광고 실험은 하지 않는다.
 

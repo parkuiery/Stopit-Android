@@ -210,6 +210,7 @@ class KeepAccessibilityService :
         val intent = Intent(this, BlockActivity::class.java)
         intent.putExtra("package_name", blockRequest.packageName)
         intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
+        blockRequest.routineId?.let { intent.putExtra(BlockActivity.EXTRA_ROUTINE_ID, it) }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }

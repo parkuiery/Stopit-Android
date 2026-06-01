@@ -24,7 +24,10 @@ object RoutineReceiverPolicy {
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
     // from Room after boot/restore/alarm entry, never the primary read path.
     fun shouldRestoreRoutinesOnBoot(action: String?): Boolean =
-        action == Intent.ACTION_BOOT_COMPLETED || action == Intent.ACTION_MY_PACKAGE_REPLACED
+        action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED
 
     fun parseRoutineAlarmTrigger(
         action: String?,

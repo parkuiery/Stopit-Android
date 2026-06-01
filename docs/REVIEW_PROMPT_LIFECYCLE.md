@@ -57,7 +57,8 @@
 1. `REVIEW_PENDING`이 false면 아무 것도 하지 않는다.
 2. 홈에서 bottom sheet가 열린 상태(`sheetVisible`)면:
    - analytics: `review_prompt_skipped(reason=NotHomeRoot)`
-   - `REVIEW_PENDING = false`
+   - `REVIEW_PENDING`을 유지한다.
+   - bottom sheet가 닫힌 뒤 다음 drain에서 다시 live eligibility를 평가한다.
 3. `reviewEligibility.evaluateLive()`가 실패하면:
    - analytics: `review_prompt_skipped(reason=<SkipReason.name>)`
    - `REVIEW_PENDING = false`
@@ -69,7 +70,7 @@
    - 먼저 `REVIEW_PENDING = false`
    - 그 다음 `InAppReviewManager.launchIfReady(activity)` 호출
 
-`activity == null`에서 pending을 유지하는 이유는, eligibility는 확보됐지만 실제 Android Activity 문맥이 없는 순간의 재시도를 허용하기 위해서다.
+`sheetVisible`과 `activity == null`에서 pending을 유지하는 이유는, eligibility는 확보됐지만 일시적 UI/Activity 문맥 때문에 지금 노출할 수 없는 순간의 재시도를 허용하기 위해서다. 반대로 `evaluateLive()`가 실패한 경우는 현재 노출 조건이 실제로 깨진 것이므로 pending을 삭제하고 명시적인 skip reason을 기록한다.
 
 ### 3. 실제 launch 결과 기록
 

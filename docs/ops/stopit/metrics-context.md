@@ -49,8 +49,17 @@
 
 - newUsers
 - Organic Search newUsers
+- Direct newUsers share
+- Paid Search newUsers / activeUsers / sessions
+- Play Console Search/Explore vs external/campaign acquisition source
 - Store listing visitors/conversion if available
 - rating count and average rating
+
+ASO 판정 주의:
+- #65의 14일/30일 성과 판단은 `docs/PLAY_STORE_ASO.md`의 #242 acquisition attribution gate를 따른다.
+- GA4 `Organic Search`와 Play Console Search/Explore가 같은 방향인지 확인하기 전에는 ASO 효과로 단정하지 않는다.
+- `Direct` 비중 급증은 UTM/Install Referrer 누락 또는 외부 링크 유입일 수 있으므로 먼저 분리한다.
+- 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 
 ## 핵심 퍼널
 
@@ -87,6 +96,7 @@
 - 지표 하나당 이슈 하나를 만들지 않는다. 실행 단위의 문제/기회로 묶는다.
 - 광고/수익화 개선은 activation, retention, trust guardrail과 함께 판단한다.
 - AdMob/광고 분석은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. 특히 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` + `adUnitName` 표와 앱 custom-event `eventCount` + `customEvent:ad_placement` coverage 표를 합산하지 않는다. 2026-06-01 기준 `ad_impression` custom coverage가 `912 / 21,159 = 4.31%`에 그쳤으므로, 광고 placement 최적화나 새 수익화 실험 전에는 SDK 자동 이벤트와 앱 custom 이벤트 source split을 먼저 고정한다.
+- 광고 설정/운영 안전성 이슈(#250류)는 성과표와 별도로 본다. production AdMob application/ad unit id는 Manifest/UI call site에 흩어 두지 말고 flavor별 config source에서 관리해야 하며, dev/debug가 production 광고 ID를 쓰지 않는 정적 가드가 필요하다.
 - Play In-App Review API는 실제 리뷰 작성/취소 여부를 앱에 직접 알려주지 않는다. 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed` 수준이다.
 
 ## 지표 기반 이슈 생성 기준
@@ -108,3 +118,4 @@
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`
+- `docs/FOCUS_SUMMARY_SHARE_MVP.md`

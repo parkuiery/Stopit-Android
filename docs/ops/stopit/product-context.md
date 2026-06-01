@@ -73,3 +73,4 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/METRICS_ANALYSIS.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
+- `docs/FOCUS_SUMMARY_SHARE_MVP.md`
