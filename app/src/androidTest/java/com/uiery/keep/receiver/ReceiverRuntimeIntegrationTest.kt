@@ -95,10 +95,69 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
-    fun manifestRegistersBootReceiverForMyPackageReplaced() {
-        assertTrue(
-            matchingReceiverClassNames(Intent.ACTION_MY_PACKAGE_REPLACED).contains(BootReceiver::class.java.name),
+    fun manifestRegistersBootReceiverForPackageAndClockChangeActions() {
+        listOf(
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+        ).forEach { action ->
+            assertTrue(
+                "BootReceiver should be registered for $action",
+                matchingReceiverClassNames(action).contains(BootReceiver::class.java.name),
+            )
+        }
+    }
+
+    @Test
+    fun timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Clock changed restore"))
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_TIME_CHANGED)
+
+        waitUntil("BootReceiver should persist routines into DataStore after time change") {
+            storedRoutineNames() == listOf("Clock changed restore")
+        }
+        waitUntil("BootReceiver should reschedule restored routine after time change") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(listOf("Clock changed restore"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+    }
+
+    @Test
+    fun timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms() = runBlocking {
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Timezone changed restore",
+                repeatDays = listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+            ),
         )
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineDao = database.routineDao()
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_TIMEZONE_CHANGED)
+
+        waitUntil("BootReceiver should persist multi-day routines after timezone change") {
+            storedRoutineNames() == listOf("Timezone changed restore")
+        }
+        waitUntil("BootReceiver should reschedule every enabled day after timezone change") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.MONDAY) != null &&
+                findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.WEDNESDAY) != null
+        }
+
+        assertEquals(listOf("Timezone changed restore"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.MONDAY))
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.WEDNESDAY))
     }
 
     @Test
@@ -180,7 +239,9 @@ class ReceiverRuntimeIntegrationTest {
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
             !NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
+        val eveningRoutineId = TEST_ROUTINE_ID + 1
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
+        database.routineDao().insert(enabledRoutineEntity(id = eveningRoutineId, name = "Evening focus"))
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
@@ -194,27 +255,31 @@ class ReceiverRuntimeIntegrationTest {
             routineName = "Morning focus",
             routineId = TEST_ROUTINE_ID,
         )
+        receiver.handleRoutineAlarm(
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM,
+            routineName = "Evening focus",
+            routineId = eveningRoutineId,
+        )
 
-        waitUntil("RoutineAlarmReceiver should persist fallback notice when notifications are denied") {
-            storedRoutineStartNoticeMessage() == context.getString(
-                R.string.routine_notification_permission_fallback_message,
-                "Morning focus",
-            )
+        val expectedNoticeMessages = listOf(
+            context.getString(R.string.routine_notification_permission_fallback_message, "Morning focus"),
+            context.getString(R.string.routine_notification_permission_fallback_message, "Evening focus"),
+        )
+        waitUntil("RoutineAlarmReceiver should queue every fallback notice when notifications are denied") {
+            storedRoutineStartNoticeMessages() == expectedNoticeMessages
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room when notifications are denied") {
-            storedRoutineNames() == listOf("Morning focus")
+            storedRoutineNames() == listOf("Morning focus", "Evening focus")
         }
-        waitUntil("RoutineAlarmReceiver should reschedule enabled routine when notifications are denied") {
-            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        waitUntil("RoutineAlarmReceiver should reschedule enabled routines when notifications are denied") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null && findRoutinePendingIntent(eveningRoutineId) != null
         }
 
         assertEquals(emptySet<Int>(), activeNotificationIds())
-        assertEquals(
-            context.getString(R.string.routine_notification_permission_fallback_message, "Morning focus"),
-            storedRoutineStartNoticeMessage(),
-        )
-        assertEquals(listOf("Morning focus"), storedRoutineNames())
+        assertEquals(expectedNoticeMessages, storedRoutineStartNoticeMessages())
+        assertEquals(listOf("Morning focus", "Evening focus"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        assertNotNull(findRoutinePendingIntent(eveningRoutineId))
     }
 
     private fun grantPostNotificationsPermission() {
@@ -238,7 +303,9 @@ class ReceiverRuntimeIntegrationTest {
     private fun clearAppState() = runBlocking {
         context.deleteDatabase(DATABASE_NAME)
         cancelRoutineAlarm(TEST_ROUTINE_ID)
+        cancelRoutineAlarm(TEST_ROUTINE_ID + 1)
         cancelNotification(TEST_ROUTINE_ID)
+        cancelNotification(TEST_ROUTINE_ID + 1)
         dataStoreFile().delete()
         dataStoreFile().parentFile?.listFiles()
             ?.filter { it.name.startsWith(DATASTORE_PREFIX) }
@@ -253,15 +320,20 @@ class ReceiverRuntimeIntegrationTest {
         return Json.decodeFromString<List<RoutineModel>>(storedJson).map { it.name }
     }
 
-    private fun storedRoutineStartNoticeMessage(): String? {
+    private fun storedRoutineStartNoticeMessages(): List<String> {
         val preferences = runBlocking {
             runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
         }
-        return preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE]
+        return RoutineReceiverPolicy.decodePendingRoutineStartNotices(
+            preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
+        )
     }
 
-    private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
-        val requestCode = (routineId * 10 + today.ordinal).toInt()
+    private fun findRoutinePendingIntent(
+        routineId: Long,
+        dayOfWeek: DayOfWeek = today,
+    ): PendingIntent? {
+        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -273,7 +345,9 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     private fun cancelRoutineAlarm(routineId: Long) {
-        findRoutinePendingIntent(routineId)?.cancel()
+        DayOfWeek.entries.forEach { dayOfWeek ->
+            findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
+        }
     }
 
     private fun activeNotificationIds(): Set<Int> {
@@ -301,7 +375,11 @@ class ReceiverRuntimeIntegrationTest {
         return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
 
-    private fun enabledRoutineEntity(id: Long, name: String): RoutineEntity {
+    private fun enabledRoutineEntity(
+        id: Long,
+        name: String,
+        repeatDays: List<DayOfWeek> = listOf(today),
+    ): RoutineEntity {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val startTotalMinutes = (now.time.hour * 60 + now.time.minute + 10) % (24 * 60)
         val endTotalMinutes = (startTotalMinutes + 30) % (24 * 60)
@@ -310,7 +388,7 @@ class ReceiverRuntimeIntegrationTest {
             name = name,
             startTime = LocalTime(hour = startTotalMinutes / 60, minute = startTotalMinutes % 60),
             endTime = LocalTime(hour = endTotalMinutes / 60, minute = endTotalMinutes % 60),
-            repeatDays = listOf(today),
+            repeatDays = repeatDays,
             lockApplications = listOf("com.example.blocked"),
             isEnabled = true,
             changeLockHours = null,

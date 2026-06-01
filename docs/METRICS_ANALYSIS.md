@@ -73,9 +73,10 @@
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
-- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일.
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 
 ## 빠른 분석 명령
@@ -223,7 +224,7 @@ filter_payload = {
 ### 계측 메타데이터 확인
 
 GA4에서 등록된 커스텀 차원/지표를 확인한다.
-등록 필요 목록은 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 `GA4 custom dimension / metric 등록 계약` 표를 source of truth로 삼는다.
+등록 필요 목록은 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 `GA4 custom dimension / metric 등록 계약` 표를, 실제 Admin 등록 절차/registration ledger/외부 경계 구분은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 삼는다.
 
 ```bash
 python3 - <<'PY'
@@ -272,7 +273,8 @@ PY
 판단 기준:
 
 - 화면 조회 대부분이 `(not set)`이면 제품 퍼널 결론보다 계측 개선을 먼저 한다.
-- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 이벤트 딕셔너리와 커스텀 차원 등록 작업을 먼저 만든다.
+- 주요 이벤트 파라미터가 GA4 차원으로 조회되지 않으면 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 등록 계약과 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger / metadata 증적 / 외부 경계 정리를 먼저 맞춘다.
+- docs lane이 repo 안에서 할 수 있는 범위는 registration contract / ledger / 검증 포맷 정리까지이며, 실제 GA4 Admin 등록과 배포 후 14일 재측정은 외부/manual 경계로 분리해 기록한다.
 - 광고 분석 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 AdMob 파라미터 계약과 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 guardrail을 같이 확인한다.
 
 ### 2. 획득 / 신규 유입
@@ -282,12 +284,18 @@ PY
 - `newUsers`
 - `first_open`
 - `firstUserDefaultChannelGroup`
+- `Organic Search`, `Direct`, `Paid Search`별 `newUsers` / `activeUsers` / `sessions`
+- Play Console Store performance / acquisition source의 Search/Explore/external/campaign 수치
 - 최근 30일 vs 직전 30일 변화
 
 판단 기준:
 
 - engagement rate가 유지되는데 newUsers만 크게 하락하면 제품 사용성보다 스토어/유입 문제를 우선 본다.
 - Organic Search 비중이 높으면 Play Store ASO, 키워드, 스크린샷, 리뷰 수를 우선 개선한다.
+- ASO 성과를 판정할 때는 GA4 `firstUserDefaultChannelGroup`만 보지 않는다. Play Console Search/Explore와 같은 방향인지 확인한 뒤 #65의 14일/30일 판정에 쓴다.
+- `Direct` 신규 사용자 비중이 갑자기 커지면 실제 direct 유입인지, Discord/웹/문서 링크 또는 캠페인 링크의 UTM/Install Referrer 누락인지 먼저 확인한다.
+- `Paid Search`의 신규 사용자는 0명인데 활성 사용자/세션만 남아 있으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행 여부를 확인하고, 집행 중이 아니면 과거 유저/재방문/분류 잔상으로 분리한다.
+- #65 ASO 검증의 획득 채널 판정 표와 판정 규칙은 `docs/PLAY_STORE_ASO.md`의 `acquisition attribution gate (#242)` 섹션을 source of truth로 본다.
 
 ### 3. 활성화 퍼널
 
@@ -345,6 +353,7 @@ PY
 - `adUnitName = (not set)` 또는 empty가 의미 있는 비중이면 placement 최적화나 새 광고 실험보다 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 코드 기준 placement 표와 #16 closure-pass 게이트를 먼저 적용한다.
 - `adUnitName`은 AdMob/GA4 표시명이고 앱 custom event의 `ad_unit_id`와 같은 필드가 아니므로, 둘을 연결하려면 `ad_unit_id`, `ad_placement`, `screen_context` custom dimension 등록 여부와 실제 이벤트 breakdown을 따로 확인한다.
 - 2026-06-01 preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있으나, 최근 30일 실제 이벤트는 `(not set)`/empty 비중이 커서 SDK 자동 이벤트와 앱 custom event를 분리해 해석해야 한다. 세부 수치와 재사용 가능한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리` 섹션을 따른다.
+- production AdMob application/ad unit id가 UI/Manifest에 분산된 상태(#250류)는 수익화 성과 저하 원인으로 단정하지 않는다. 이것은 광고 inventory 운영 안전성/환경 분리 문제이므로, `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `issue #250: flavor별 광고 설정 계약 handoff`를 보고 config 중앙화와 dev/debug non-production guard를 code/maintenance lane으로 넘긴다.
 - 광고 custom-event coverage를 계산할 때는 `ad_impression`/`ad_click`/`ad_revenue`별 total `eventCount`와 `customEvent:ad_placement`가 `(not set)`/empty가 아닌 covered `eventCount`를 분리해 기록한다. coverage가 낮으면 placement별 CTR/eCPM 결론을 보류한다.
 - 차단/긴급해제 흐름을 방해하는 광고 실험은 하지 않는다.
 
@@ -354,7 +363,7 @@ PY
 
 - Play Store 평점과 리뷰 수
 - `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`
-- `review_prompt_skipped` reason 분포
+- `review_prompt_skipped` reason 분포 (GA4 Admin에서 `customEvent:reason` 등록이 끝난 뒤에만 안정적으로 해석)
 - 성공적 사용 이벤트: `app_block_intercepted`, `lock_session_start`, `core_action_completed`
 
 판단 기준:
@@ -441,7 +450,9 @@ PY
 운영 원칙:
 
 - 먼저 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` 기준으로 권한 UX, fallback, MVP 범위, 규칙 기반 추천, 개인정보 가드레일을 닫는다.
+- #119는 아직 구현 착수용 `ready` 이슈가 아니라 discovery gate다. 실행 승격 시에는 discovery/contract child issue와 MVP implementation child issue를 분리한다.
 - Usage Access는 리포트/추천용 선택형 확장으로 다루고, 핵심 차단 기능의 필수 권한으로 만들지 않는다.
+- analytics에는 앱 이름/package/raw usage history를 보내지 않고 bucket 파라미터만 사용한다.
 - 외부 전송보다 로컬 집계/설명 가능한 추천을 우선한다.
 
 ### 리뷰 / 신뢰
@@ -483,8 +494,12 @@ PY
 
 이 기준선은 시간이 지나면 낡는다. 다음 분석에서는 반드시 GA4에서 새로 조회한 값으로 갱신한다.
 
-2026-05-27 live 확인 메모:
+2026-05-29 live 확인 메모:
 
-- 최근 14일 `screen_view` 총량: `11,567`
-- `(not set)` `8,780` + 빈 `unifiedScreenName` `807` = `9,587 / 11,567 = 82.9%`
-- GA4 metadata에서 현재 확인된 custom dimension은 `customUser:routines_count`만 보였고 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
+- 최근 14일 `screen_view` 총량: `13,154`
+- `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
+- 2026-05-29 live 확인 기준 GA4 metadata에서 확인된 custom dimension은 `customUser:routines_count`뿐이었고 activation/review용 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
+- 2026-06-01 #16 AdMob preflight 기준 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 것으로 보정 확인됐다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`) runReport smoke query는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 활성화/리뷰 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- monetization은 광고 metadata 일부가 복구됐지만 `ad_impression` / `ad_click` / `ad_revenue` source split과 `(not set)`/empty coverage 때문에 placement별 결론을 보류한다. 자세한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 따른다.
+- 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.
