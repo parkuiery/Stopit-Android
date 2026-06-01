@@ -67,6 +67,33 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun changeIsKeepShowsFirstLockGuidanceOnlyWhenFirstLockIsConfigured() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.changeIsKeep(firstLockStartedMessage = "선택한 앱을 열면 첫 차단을 확인할 수 있어요")
+        delay(50)
+        viewModel.changeIsKeep(firstLockStartedMessage = "선택한 앱을 열면 첫 차단을 확인할 수 있어요")
+        delay(50)
+        viewModel.changeIsKeep(firstLockStartedMessage = "선택한 앱을 열면 첫 차단을 확인할 수 있어요")
+        delay(50)
+
+        assertEquals(
+            listOf(HomeSideEffect.ShowSnackBar("선택한 앱을 열면 첫 차단을 확인할 수 있어요")),
+            sideEffects,
+        )
+        sideEffectJob.cancel()
+    }
+
+    @Test
     fun lockTimeTracksFirstLockConfiguredFromHomeTimerOnce() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
@@ -91,6 +118,32 @@ class HomeViewModelActivationAnalyticsTest {
             analytics.calls[2],
         )
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun lockTimeShowsScheduledFirstLockGuidanceOnlyWhenFirstLockIsConfigured() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.lockTime(firstLockScheduledMessage = "예약 시간이 되면 선택한 앱 차단으로 첫 성공을 확인해요")
+        delay(50)
+        viewModel.lockTime(firstLockScheduledMessage = "예약 시간이 되면 선택한 앱 차단으로 첫 성공을 확인해요")
+        delay(50)
+
+        assertEquals(
+            listOf(HomeSideEffect.ShowSnackBar("예약 시간이 되면 선택한 앱 차단으로 첫 성공을 확인해요")),
+            sideEffects,
+        )
+        sideEffectJob.cancel()
     }
 
     @Test

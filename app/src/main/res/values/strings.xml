@@ -149,4 +149,6 @@
     <string name="first_lock_activation_cta_title">Ready to try your first lock?</string>
     <string name="first_lock_activation_cta_description">You picked apps. Turn on StopIt now to feel the block.</string>
     <string name="first_lock_activation_cta_action">Start</string>
+    <string name="first_lock_keep_started_guidance">StopIt is on. Open one of your selected apps to confirm the first block.</string>
+    <string name="first_lock_timer_scheduled_guidance">Your first lock is scheduled. When the time comes, open a selected app to confirm the block.</string>
 </resources>

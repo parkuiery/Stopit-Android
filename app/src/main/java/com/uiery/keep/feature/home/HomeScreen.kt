@@ -139,6 +139,8 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
     val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
+    val firstLockKeepStartedMessage = stringResource(R.string.first_lock_keep_started_guidance)
+    val firstLockTimerScheduledMessage = stringResource(R.string.first_lock_timer_scheduled_guidance)
     DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -198,7 +200,13 @@ fun HomeScreen(
                     if (uiState.selectedAppPackage.isEmpty()) {
                         viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
                     } else {
-                        viewModel.lockTime()
+                        viewModel.lockTime(
+                            firstLockScheduledMessage = if (uiState.showFirstLockActivationCta) {
+                                firstLockTimerScheduledMessage
+                            } else {
+                                null
+                            },
+                        )
                         coroutineScope
                             .launch {
                                 timeBottomSheetState.hide()
@@ -284,7 +292,7 @@ fun HomeScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 12.dp),
-                    onClick = { viewModel.changeIsKeep() },
+                    onClick = { viewModel.changeIsKeep(firstLockStartedMessage = firstLockKeepStartedMessage) },
                 )
             }
             Box(
@@ -329,8 +337,17 @@ fun HomeScreen(
                                         if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
                                             viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                         } else {
-                                            viewModel.showSnackBar(message)
-                                            viewModel.changeIsKeep()
+                                            val isStartingFirstLock = !uiState.isKeep && uiState.showFirstLockActivationCta
+                                            if (!isStartingFirstLock) {
+                                                viewModel.showSnackBar(message)
+                                            }
+                                            viewModel.changeIsKeep(
+                                                firstLockStartedMessage = if (isStartingFirstLock) {
+                                                    firstLockKeepStartedMessage
+                                                } else {
+                                                    null
+                                                },
+                                            )
                                         }
                                     },
                             painter = painterResource(id = image),
@@ -346,8 +363,17 @@ fun HomeScreen(
                                     if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
                                         viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                     } else {
-                                        viewModel.showSnackBar(message)
-                                        viewModel.changeIsKeep()
+                                        val isStartingFirstLock = !uiState.isKeep && uiState.showFirstLockActivationCta
+                                        if (!isStartingFirstLock) {
+                                            viewModel.showSnackBar(message)
+                                        }
+                                        viewModel.changeIsKeep(
+                                            firstLockStartedMessage = if (isStartingFirstLock) {
+                                                firstLockKeepStartedMessage
+                                            } else {
+                                                null
+                                            },
+                                        )
                                     }
                                 },
                             )
