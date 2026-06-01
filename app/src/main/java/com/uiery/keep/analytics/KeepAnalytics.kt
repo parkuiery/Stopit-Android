@@ -183,6 +183,7 @@ object OnboardingStepName {
 }
 
 object KeepAnalyticsScreen {
+    const val SPLASH = "SplashScreen"
     const val ONBOARDING_INTRO = "OnboardingIntroScreen"
     const val ONBOARDING_PERMISSION = "OnboardingPermissionScreen"
     const val ONBOARDING_NOTIFICATION = "OnboardingNotificationScreen"
@@ -190,7 +191,9 @@ object KeepAnalyticsScreen {
     const val HOME = "HomeScreen"
     const val MENU = "MenuScreen"
     const val LOCK_HISTORY = "LockHistoryScreen"
+    const val BLOCKED_APPS = "BlockedAppsScreen"
     const val ROUTINE = "RoutineScreen"
+    const val EMERGENCY_UNLOCK_SETTINGS = "EmergencyUnlockSettingsScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
 }

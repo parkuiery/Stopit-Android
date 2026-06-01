@@ -26,17 +26,20 @@
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
 
 | 화면 | screen_name | 코드 진입점 |
 | --- | --- | --- |
+| 스플래시 | `SplashScreen` | `SplashViewModel` |
 | 홈 | `HomeScreen` | `HomeViewModel` |
 | 메뉴 | `MenuScreen` | `MenuViewModel` |
 | 잠금 히스토리(히스토리 도메인의 canonical surface) | `LockHistoryScreen` | `LockHistoryViewModel` |
+| 차단 앱 상세 | `BlockedAppsScreen` | `BlockedAppsViewModel` |
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
+| 긴급해제 설정 | `EmergencyUnlockSettingsScreen` | `EmergencyUnlockSettingsViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
 | 온보딩 소개 | `OnboardingIntroScreen` | `IntroViewModel.onStepViewed()` |

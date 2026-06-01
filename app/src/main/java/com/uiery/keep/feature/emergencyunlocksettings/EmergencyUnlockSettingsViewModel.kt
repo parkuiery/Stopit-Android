@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
@@ -27,6 +29,7 @@ class EmergencyUnlockSettingsViewModel
     @Inject
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val analytics: KeepAnalytics,
     ) : ViewModel() {
         val uiState: StateFlow<EmergencyUnlockSettingsUiState> =
             dataStore.data
@@ -47,6 +50,10 @@ class EmergencyUnlockSettingsViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = EmergencyUnlockSettingsUiState(),
                 )
+
+        init {
+            analytics.logScreenView(KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
+        }
 
         fun setEnabled(enabled: Boolean) {
             viewModelScope.launch {

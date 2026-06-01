@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.lockhistory.blockedapps
 
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.toModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,12 +15,14 @@ import javax.inject.Inject
 @HiltViewModel
 class BlockedAppsViewModel @Inject constructor(
     private val lockHistoryDao: LockHistoryDao,
+    private val analytics: KeepAnalytics,
 ) : ContainerHost<BlockedAppsUiState, BlockedAppsSideEffect>, ViewModel() {
 
     override val container: Container<BlockedAppsUiState, BlockedAppsSideEffect> =
         container(BlockedAppsUiState())
 
     init {
+        analytics.logScreenView(KeepAnalyticsScreen.BLOCKED_APPS)
         loadBlockedApps()
     }
 
