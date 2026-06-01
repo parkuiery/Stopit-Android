@@ -3,6 +3,8 @@ name: Version Guard
 on:
   pull_request:
     branches: [main]
+    # Include edited so develop -> main retargets materialize release gates without a new commit.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions:
   contents: read

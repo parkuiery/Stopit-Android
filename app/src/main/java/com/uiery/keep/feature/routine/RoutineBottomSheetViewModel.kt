@@ -42,14 +42,18 @@ class RoutineBottomSheetViewModel
         internal fun resetEditState(routineModel: RoutineModel) =
             intent {
                 reduce {
-                    state.copy(
-                        name = routineModel.name,
-                        startTime = routineModel.startTime,
-                        endTime = routineModel.endTime,
-                        selectDays = routineModel.repeatDays.toDayOfWeekList(),
-                        selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
-                        changeLockHours = routineModel.changeLockHours,
-                    )
+                    val editState =
+                        state.copy(
+                            name = routineModel.name,
+                            startTime = routineModel.startTime,
+                            endTime = routineModel.endTime,
+                            selectDays = routineModel.repeatDays.toDayOfWeekList(),
+                            selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
+                            isEnabled = routineModel.isEnabled,
+                            changeLockHours = routineModel.changeLockHours,
+                        )
+
+                    editState.copy(isButtonEnable = editState.isValidForSave())
                 }
             }
 
@@ -97,11 +101,7 @@ class RoutineBottomSheetViewModel
 
         private fun setButtonEnabled() =
             intent {
-                val isNameValid = state.name.isNotEmpty()
-                val isTimeValid = routineDurationMinutes(state.startTime, state.endTime) >= 15
-                val isDaySelected = state.selectDays.isNotEmpty()
-                val isEnabled = isNameValid && isTimeValid && isDaySelected && state.selectApps.isNotEmpty()
-                reduce { state.copy(isButtonEnable = isEnabled) }
+                reduce { state.copy(isButtonEnable = state.isValidForSave()) }
             }
 
         internal fun addRoutine() =
@@ -182,6 +182,13 @@ data class RoutineBottomSheetUiState(
     val isEnabled: Boolean = true,
     val changeLockHours: Int? = null,
 )
+
+private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
+    val isNameValid = name.isNotEmpty()
+    val isTimeValid = routineDurationMinutes(startTime, endTime) >= 15
+    val isDaySelected = selectDays.isNotEmpty()
+    return isNameValid && isTimeValid && isDaySelected && selectApps.isNotEmpty()
+}
 
 private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
     RoutineModel(

@@ -15,6 +15,7 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
   - GA4 스냅샷 수집
   - 열린 product/analytics 이슈와 중복 여부 확인
   - 신규 이상 신호를 이슈화할지 판단
+  - 단, 스냅샷/`runReport` 호출 성공만으로 GA4 queryability가 건강하다고 보지 않는다. `customEvent:*`가 아직 Admin에 등록되지 않은 상태에서는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 **제품 no-data가 아니라 registration gap** 신호다.
 - `stopit-feature-ideation-discord`
   - 지표 기반 신규 기능/실험 아이디어 정리
   - 가설 수준이면 GitHub Issue 대신 아이데이션 채널/보고로 남김
@@ -66,6 +67,13 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
   - credential path가 존재한다.
   - GA4 `runReport` 호출이 실패 없이 JSON `ok: true`를 반환한다.
   - 결과가 `~/.hermes/state/stopit_metrics_history.jsonl`에 append 된다.
+
+중요한 해석 경계:
+
+- 위 성공 조건은 **snapshot transport/API 호출 성공**을 뜻할 뿐, open issue `#13`의 GA4 custom-event queryability가 해결됐다는 뜻은 아니다.
+- 2026-05-29 live 기준 metadata에서 확인된 custom 축은 `customUser:routines_count`뿐이고, activation/review/monetization용 `customEvent:*`는 아직 Admin registration/manual follow-through가 남아 있다.
+- 따라서 metrics/product cron은 `customEvent:*` 쿼리에서 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면 최근 데이터 부족이나 제품 이벤트 부재로 과해석하지 말고, 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger와 수동 경계를 확인한다.
+- #13의 남은 외부/manual 경계는 GA4 Admin 실제 등록, 등록 후 metadata/runReport 재확인, 배포 후 14일 재측정이다.
 
 권장 확인:
 

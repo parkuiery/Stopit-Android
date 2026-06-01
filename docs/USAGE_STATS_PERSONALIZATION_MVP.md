@@ -2,6 +2,8 @@
 
 이 문서는 GitHub issue #82 `[백로그] 사용정보 기반 개인화 솔루션과 사용 리포트 제공`의 실행 판단 기준을 정리한 docs-lane 완료 산출물이다.
 
+현재 backlog follow-through source of truth는 open issue #119 `[백로그] Usage Access 기반 사용기록 리포트 MVP 실행 후보 재검토`로 본다. 이 문서는 #119가 승격 판단을 할 때 참조하는 제품/권한/가드레일 계약서다.
+
 목표는 막연한 “리포트 기능”을 제안하는 것이 아니라, 실제 착수 전에 아래 여섯 가지를 닫는 것이다.
 
 1. `UsageStatsManager`로 조회 가능한 데이터와 Android 제약을 명확히 한다.
@@ -17,6 +19,7 @@
 - 사용정보 리포트는 활성화/리텐션/프리미엄 확장 가능성이 있지만, 민감한 사용 패턴을 다루므로 신뢰/정책 리스크가 크다.
 - 따라서 바로 구현 이슈로 밀지 말고, **권한/데이터/가드레일 계약**부터 명확히 해야 한다.
 - 활성화 guardrail과 권한 요청 타이밍 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`의 퍼널 계약을 함께 따른다.
+- queryability/GA4 Admin 등록 follow-through는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
 ## 문제/기회 요약
 
@@ -204,6 +207,18 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - 사용 패턴을 외부 공유하게 만드는 성장 루프
 - 미성년/민감 사용자에게 죄책감을 유도하는 문구
 
+## 현재 #13 queryability 경계
+
+2026-05-29 live 확인 기준으로 Stopit의 제품/지표 문서는 아직 **Usage Access MVP 자체를 측정할 새 `customEvent:*` 축까지 등록한 상태가 아니다.** 현재 확인된 live metadata는 `customUser:routines_count`만 보이고, activation/review/monetization 축조차 `customEvent:*` registration gap이 남아 있다.
+
+따라서 이 문서는 Usage Access MVP를 "지금 바로 구현 가능한 계측-ready 기능"으로 간주하지 않는다. 실행 후보로 승격할 때는 아래를 먼저 별도 계약으로 닫아야 한다.
+
+- Usage Access 설명/설정 진입/허용/거절/추천 적용 흐름에서 어떤 이벤트와 파라미터를 남길지 코드·문서 기준을 먼저 정의한다.
+- 그 파라미터가 실제 분석에 필요하다면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 형식으로 registration ledger에 추가하고, GA4 Admin 등록/metadata 확인까지 추적한다.
+- `runReport`가 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`을 반환하면 no-data가 아니라 **미등록 쿼리 축**으로 분류한다.
+
+즉 #119를 `ready`나 `priority:p1` 쪽으로 승격하기 전에, 이 문서의 제품/권한 계약과 #13의 queryability 계약을 함께 닫는 것이 기본값이다.
+
 ## 측정 계획
 
 ### 성공 판단 후보 지표
@@ -212,6 +227,10 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - 권한 허용 사용자 중 추천 CTA 클릭률
 - 추천으로 생성된 차단/루틴 적용률
 - 권한 허용 사용자 7일 반복 사용률
+
+해석 주의:
+- 위 지표는 Usage Access 전용 이벤트/파라미터의 code contract와 GA4 queryability가 실제로 확보됐을 때만 실험 판단 근거로 쓴다.
+- #13 registration follow-through가 끝나기 전에는 "계측값이 0/희박하다"와 "GA4 Admin 등록이 아직 안 됐다"를 구분해야 한다.
 
 ### guardrail
 - `first_lock_configured / first_open` 악화 금지
@@ -230,6 +249,7 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - [ ] MVP 리포트 범위가 4개 카드 수준으로 제한되어 있다.
 - [ ] 추천 로직이 규칙 기반으로 설명 가능하다.
 - [ ] 민감 데이터 외부 전송 없이도 v1 검증이 가능하다.
+- [ ] Usage Access 전용 이벤트/파라미터가 필요하면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 형식의 registration ledger와 metadata 확인 절차까지 정의한다.
 
 ### 실행 우선순위 판단 질문
 1. 이 기능이 `first_core_action_completed` 또는 반복 사용률을 실제로 끌어올릴 가능성이 높은가?
@@ -269,6 +289,7 @@ v1은 설명 가능한 규칙 기반으로 시작한다.
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/PLAY_STORE_ASO.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/product-context.md`
 - `docs/ops/stopit/metrics-context.md`

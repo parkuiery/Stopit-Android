@@ -38,3 +38,6 @@ No documented child directories.
 - See module build files for dependency declarations.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
+
+- Keep analytics tests aligned with `docs/ANALYTICS_EVENT_DICTIONARY.md`; new event names/params should land with focused test coverage rather than doc-only promises.
+- If a test adds or changes a queryable custom-event parameter, also update `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` so manual GA4 Admin registration and metadata re-check steps do not drift from the code/test contract.

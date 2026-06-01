@@ -13,9 +13,11 @@ import org.junit.Test
 class RoutineReceiverPolicyTest {
 
     @Test
-    fun shouldRestoreRoutinesOnBootReturnsTrueForBootCompletedAndMyPackageReplacedActions() {
+    fun shouldRestoreRoutinesOnBootReturnsTrueForBootPackageAndClockChangeActions() {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIME_CHANGED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIMEZONE_CHANGED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
     }
 
