@@ -282,12 +282,18 @@ PY
 - `newUsers`
 - `first_open`
 - `firstUserDefaultChannelGroup`
+- `Organic Search`, `Direct`, `Paid Search`별 `newUsers` / `activeUsers` / `sessions`
+- Play Console Store performance / acquisition source의 Search/Explore/external/campaign 수치
 - 최근 30일 vs 직전 30일 변화
 
 판단 기준:
 
 - engagement rate가 유지되는데 newUsers만 크게 하락하면 제품 사용성보다 스토어/유입 문제를 우선 본다.
 - Organic Search 비중이 높으면 Play Store ASO, 키워드, 스크린샷, 리뷰 수를 우선 개선한다.
+- ASO 성과를 판정할 때는 GA4 `firstUserDefaultChannelGroup`만 보지 않는다. Play Console Search/Explore와 같은 방향인지 확인한 뒤 #65의 14일/30일 판정에 쓴다.
+- `Direct` 신규 사용자 비중이 갑자기 커지면 실제 direct 유입인지, Discord/웹/문서 링크 또는 캠페인 링크의 UTM/Install Referrer 누락인지 먼저 확인한다.
+- `Paid Search`의 신규 사용자는 0명인데 활성 사용자/세션만 남아 있으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행 여부를 확인하고, 집행 중이 아니면 과거 유저/재방문/분류 잔상으로 분리한다.
+- #65 ASO 검증의 획득 채널 판정 표와 판정 규칙은 `docs/PLAY_STORE_ASO.md`의 `acquisition attribution gate (#242)` 섹션을 source of truth로 본다.
 
 ### 3. 활성화 퍼널
 
