@@ -48,6 +48,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
+- 광고 앱 ID / 광고 단위 ID 설정 표면 (`app/src/main/AndroidManifest.xml`, `app/build.gradle.kts`, 향후 `AdConfig`/DI source)
 - GA4 Analytics Data API / AdMob 보고서
 
 운영 원칙:
@@ -356,6 +357,73 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 - 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
 - `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
 
+## issue #250: flavor별 광고 설정 계약 handoff
+
+#250은 #16의 성과 감사와 연결되지만, 문제의 핵심은 성과표가 아니라 **production AdMob application/ad unit id가 Manifest와 여러 Compose 화면에 분산된 설정 계약 drift**다. docs-lane에서는 구현을 하지 않고, code/maintenance lane이 한 PR에서 닫을 수 있도록 아래 계약을 먼저 고정한다.
+
+### 현재 분산 표면
+
+2026-06-01 기준 `origin/develop`에서 production 광고 ID가 직접 박힌 표면은 다음과 같다.
+
+| 표면 | 현재 위치 | production ID 종류 | 문제 |
+| --- | --- | --- | --- |
+| AdMob application id | `app/src/main/AndroidManifest.xml` meta-data `com.google.android.gms.ads.APPLICATION_ID` | `ca-app-pub-1537867411423705~6734784292` | flavor/build type별 교체가 어렵고 dev/debug가 production app id를 쓰는지 정적 가드가 없다. |
+| `block_top` | `BlockScreen.kt` | ad unit id | 차단 경험과 가장 가까운 신뢰 민감 위치인데 UI 코드가 production id까지 소유한다. |
+| `home_bottom` | `HomeScreen.kt` | ad unit id | 첫 잠금 CTA 주변의 광고 설정 변경이 UI diff와 섞인다. |
+| `menu_bottom` | `MenuScreen.kt` | ad unit id | 설정/피드백/삭제방지 흐름과 광고 inventory 변경이 분리되지 않는다. |
+| `lock_bottom` | `LockScreen.kt` | ad unit id | 긴급해제 인접 위치라 dev/prod 혼동이 특히 위험하다. |
+| `routine_list_bottom` | `RoutineListContent.kt` | ad unit id | 반복 사용 화면의 광고 설정을 한 곳에서 감사하기 어렵다. |
+| `routine_empty_bottom` | `RoutineNoContent.kt` | ad unit id | 첫 루틴 생성 CTA 주변 광고 설정이 코드 곳곳에 흩어져 있다. |
+
+참고: `history_bottom`은 active main-source call site가 아니다. 다시 추가하려면 이 계약표와 광고 config source에 먼저 등록해야 한다.
+
+### 구현 계약
+
+권장 구현 방향:
+
+1. `AdPlacement` / `AdConfig` 같은 단일 source를 만든다.
+   - placement key는 `block_top`, `home_bottom`, `menu_bottom`, `lock_bottom`, `routine_list_bottom`, `routine_empty_bottom`으로 시작한다.
+   - 각 placement는 `screenName`, `screenContext`, `placement`, `adFormat`, `adUnitId`를 한 곳에서 제공한다.
+   - Compose call site는 production id 문자열을 직접 들고 있지 않고 placement key 또는 config object만 사용한다.
+2. AdMob application id는 Manifest literal이 아니라 Gradle `manifestPlaceholders` 또는 flavor별 resource/BuildConfig 계약으로 옮긴다.
+   - `prod`는 실제 production application id를 쓴다.
+   - `dev`/debug는 Google test app id 또는 명시적 fake/test config를 쓴다.
+   - CI/test에서 어떤 flavor가 어떤 id를 쓰는지 검증 가능해야 한다.
+3. production ad unit id는 `prod` config에만 존재해야 한다.
+   - `app/src/main/java/**` UI 파일에서 `ca-app-pub-1537867411423705/` 문자열이 사라져야 한다.
+   - test/dev config에는 Google sample banner id 또는 fake id를 사용한다.
+4. analytics 계약은 유지한다.
+   - `TrackedBannerAd` payload의 `ad_placement`는 placement key와 동일해야 한다.
+   - `ad_unit_id`는 실행 flavor의 resolved id를 기록하되, 운영 문서/테스트에서 dev/test id와 prod id를 구분한다.
+
+### 정적/테스트 가드
+
+#250을 닫는 PR에는 최소 아래 가드 중 하나 이상이 필요하다.
+
+```text
+- production id 문자열이 UI call site에 남아 있지 않음을 확인하는 JVM/정적 테스트
+- dev/debug 광고 config가 production `ca-app-pub-1537867411423705/` ad unit id를 쓰지 않음을 확인하는 테스트
+- Manifest application id가 flavor별 placeholder/resValue에서 resolve된다는 Gradle/manifest 검사
+- placement inventory가 config source와 이 문서의 표를 같은 순서/키로 설명한다는 regression check
+```
+
+권장 검증 명령:
+
+```bash
+./gradlew --console=plain :app:testDevDebugUnitTest --tests '*Ad*Config*' --tests '*TrackedBannerAd*'
+./gradlew --console=plain :app:testDevDebugUnitTest
+./gradlew --console=plain :app:assembleProdDebug
+rg -n 'ca-app-pub-1537867411423705/' app/src/main/java
+rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app/build.gradle.kts app/src/main/AndroidManifest.xml app/src/*/AndroidManifest.xml
+```
+
+`rg -n 'ca-app-pub-1537867411423705/' app/src/main/java`는 #250 완료 PR에서는 **결과가 없어야 한다**. production ID는 config source 또는 prod flavor boundary에서만 보이게 둔다.
+
+### `Refs` / `Closes` 판단
+
+- 이 docs-lane 반영은 #250의 implementation handoff이므로 `Refs #250`가 맞다.
+- `Closes #250`는 Manifest application id, ad unit config 중앙화, dev/debug non-production guard, placement inventory, `:app:testDevDebugUnitTest`까지 충족한 code/maintenance PR에서만 사용한다.
+
 ## #16 closure-pass 게이트
 
 #16을 `Closes`로 전환하려면 다음 repo-internal/외부 경계를 분리해서 모두 확인한다.
@@ -541,6 +609,7 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 이 lane에서는 아래만 안전하다.
 
 - 광고 단위 감사 절차 문서화
+- 광고 application/ad unit id의 flavor별 config 계약과 code-lane handoff 정리
 - 수익화 실험 우선순위/guardrail 문서화
 - metrics 문서에서 광고 분석 문서를 발견 가능하게 연결
 
