@@ -37,7 +37,7 @@ fun TimerPicker(
 ) {
     val context = LocalContext.current
     val timePeriodsValues = remember { listOf(context.getString(R.string.am),context.getString(R.string.pm)) }
-    val hourValues = remember { (0..11).map { it.toString() } }
+    val hourValues = remember { timerPickerHourLabels() }
     val minuteValues = remember { (0..59).map { it.toString() } }
     val timerPeriodsPickerState = rememberPickerState()
     val hourPickerState = rememberPickerState()
@@ -45,7 +45,11 @@ fun TimerPicker(
 
     LaunchedEffect(timerPeriodsPickerState.selectedItem,hourPickerState.selectedItem,minutePickerState.selectedItem) {
         if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
-            val hour = if(timerPeriodsPickerState.selectedItem == context.getString(R.string.pm)) hourPickerState.selectedItem.toInt() + 12 else hourPickerState.selectedItem.toInt()
+            val hour = timerPickerSelectedTime(
+                isPm = timerPeriodsPickerState.selectedItem == context.getString(R.string.pm),
+                hourLabel = hourPickerState.selectedItem,
+                minute = minutePickerState.selectedItem.toInt(),
+            ).hour
             onChangeTimerTime(LocalTime(hour,minutePickerState.selectedItem.toInt()))
         }
     }
@@ -89,7 +93,7 @@ fun TimerPicker(
                 modifier = Modifier.widthIn(min = 28.dp),
                 state = hourPickerState,
                 items = hourValues,
-                startIndex = time.hour % 12,
+                startIndex = timerPickerStartIndex(time),
                 visibleItemsCount = 7,
                 color = KeepTheme.colors.onSurfaceVariant,
                 textStyle = TextStyle(

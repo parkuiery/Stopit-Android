@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.receiver.RoutineAlarmReceiver
 import com.uiery.keep.util.toDayOfWeekList
@@ -37,7 +36,6 @@ class RoutineScheduler @Inject constructor(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
     fun scheduleRoutine(routine: RoutineModel): RoutineScheduleResult {
-        Log.d("TEST", "scheduleRoutine: $routine")
         if (!routine.isEnabled) {
             cancelRoutine(routine.id)
             return RoutineScheduleResult.NotEnabled
