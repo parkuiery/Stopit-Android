@@ -22,7 +22,11 @@ import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -90,6 +94,46 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun changeIsKeepPromptsAppSelectionInsteadOfTrackingFirstLockWhenNoAppsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.changeIsKeep(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        delay(50)
+
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(false, viewModel.container.stateFlow.value.isKeep)
+        assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        sideEffectJob.cancel()
+    }
+
+    @Test
+    fun lockTimePromptsAppSelectionInsteadOfTrackingFirstLockWhenNoAppsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.lockTime(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        delay(50)
+
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        sideEffectJob.cancel()
+    }
+
+    @Test
     fun lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
@@ -114,6 +158,15 @@ class HomeViewModelActivationAnalyticsTest {
         assertEquals("예약만으로는 완료된 잠금 세션을 Room 원장에 적재하지 않아야 합니다.", emptyList<LockHistoryEntity>(), lockHistoryDao.inserted)
         assertEquals(9_000L, dataStore.snapshot()[PreferencesKey.TOTAL_BLOCK_TIME])
         assertEquals(4_000L, dataStore.snapshot()[PreferencesKey.LONG_BLOCK_TIME])
+    }
+
+    private fun CoroutineScope.launchSideEffects(
+        viewModel: HomeViewModel,
+        sideEffects: MutableList<HomeSideEffect>,
+    ): Job = launch {
+        viewModel.container.sideEffectFlow.collect { sideEffect ->
+            sideEffects += sideEffect
+        }
     }
 
     private fun createViewModel(
