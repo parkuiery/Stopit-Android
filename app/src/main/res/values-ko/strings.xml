@@ -104,7 +104,7 @@
     <string name="change_lock_description">%s부터 루틴 수정 및 삭제가 제한됩니다</string>
     <string name="day_unit">일</string>
     <string name="lock_duration_with_day">%1$d일 %2$d시간 %3$d분 동안 잠금 시간</string>
-    <string name="lock_time_with_date">%1$d월 %2$d일 %3$d시 %4$d분까지</string>
+    <string name="lock_time_with_date">%1$d월 %2$d일 %3$d시 %4$02d분까지</string>
     <string name="lock_screen_unavailable_message_with_date">%1$s까지 선택한 앱은 사용할 수 없어요</string>
     <!-- Emergency Unlock -->
     <string name="emergency_unlock">긴급 해제</string>
