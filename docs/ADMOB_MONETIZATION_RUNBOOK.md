@@ -577,11 +577,23 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 - 실제 결제 구현 전, 클릭/탭 관심도만 측정한다.
 - 안전/차단/긴급해제 흐름에는 넣지 않는다.
 
-추천 추적 이벤트:
+추천 추적 계약:
 
-- `monetization_interest_shown`
-- `monetization_interest_clicked`
-- `monetization_interest_context`
+| 구분 | 계약 | 설명 |
+| --- | --- | --- |
+| 노출 이벤트 | `monetization_interest_shown` | 광고 제거 관심도 CTA가 실제로 노출된 시점 |
+| 클릭 이벤트 | `monetization_interest_clicked` | 사용자가 광고 제거 관심도 CTA를 탭한 시점 |
+| Required parameter | `interest_context` | CTA가 놓인 제품 문맥. 초기 허용값은 `menu_settings`, `home_secondary`, `ad_management`처럼 핵심 차단/긴급해제 흐름 밖의 안전한 표면만 사용 |
+| Required parameter | `interest_surface` | 노출 표면. 예: `menu`, `home`, `settings` |
+| Recommended parameter | `interest_variant` | copy/CTA variant. A/B가 없으면 `default` |
+| Recommended parameter | `purchase_available` | 실제 결제 가능 여부. 결제 구현 전 관심도 측정은 `false`로 고정 |
+
+운영 원칙:
+
+- `monetization_interest_context`를 별도 이벤트처럼 만들지 않는다. 관심도 실험은 `shown`/`clicked` 두 이벤트에 `interest_context` 파라미터를 붙여 조회한다.
+- `interest_context` / `interest_surface`는 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 등록 계약을 먼저 추가한 뒤 code-lane에서 구현한다.
+- 결제 구현 전에는 “구매 완료”나 “전환”으로 표현하지 않고, 관심 클릭률만 낮은 confidence의 demand signal로 본다.
+- 클릭률 계산은 `monetization_interest_clicked` users / `monetization_interest_shown` users를 기본 분자/분모로 사용한다.
 
 실험 성공 판단 예시:
 
