@@ -14,7 +14,7 @@ on:
       - 'scripts/validate-play-deploy-ref.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
-      - '.github/workflows/ops-ci.yml'
+      - '.github/workflows/**'
   push:
     branches: [main, develop]
     paths:
@@ -28,7 +28,7 @@ on:
       - 'scripts/validate-play-deploy-ref.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
-      - '.github/workflows/ops-ci.yml'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  actionlint:
+    name: Workflow syntax lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install actionlint
+        run: |
+          set -euo pipefail
+          curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash -s -- latest /usr/local/bin
+
+      - name: Run actionlint
+        run: actionlint
+
   functions:
     name: Firebase Functions verification
     runs-on: ubuntu-latest
