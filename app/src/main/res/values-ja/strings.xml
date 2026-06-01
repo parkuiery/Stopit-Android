@@ -82,6 +82,8 @@
     <string name="lock_history_routine_session">ルーチン</string>
     <string name="lock_history_manual_session">手動</string>
     <string name="lock_history_no_records">この期間のロック履歴はありません</string>
+    <string name="lock_history_focus_share_button">今週の集中記録を共有</string>
+    <string name="lock_history_focus_share_sheet_title">StopItの集中記録を共有</string>
     <string name="lock_history_top_apps_title">最もブロックされたアプリ</string>
     <string name="lock_history_block_count">%1$d回</string>
     <string name="lock_history_duration_short_hour">%1$d時間%2$d分</string>

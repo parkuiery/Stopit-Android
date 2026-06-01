@@ -85,6 +85,8 @@
     <string name="lock_history_routine_session">루틴</string>
     <string name="lock_history_manual_session">수동</string>
     <string name="lock_history_no_records">이 기간에 잠금 기록이 없어요</string>
+    <string name="lock_history_focus_share_button">이번 주 집중 기록 공유</string>
+    <string name="lock_history_focus_share_sheet_title">스탑잇 집중 기록 공유</string>
     <string name="lock_history_top_apps_title">가장 많이 차단된 앱</string>
     <string name="lock_history_block_count">%1$d회</string>
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
