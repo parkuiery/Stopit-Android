@@ -6,9 +6,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.receiver.RoutineAlarmReceiver
+import com.uiery.keep.util.AppLogger
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.datetime.Clock
@@ -47,7 +47,7 @@ class RoutineScheduler @Inject constructor(
         ) == AppOpsManager.MODE_ALLOWED
         val alarmManagerAllowed = alarmManager.canScheduleExactAlarms()
         val canSchedule = appOpsAllowed && alarmManagerAllowed
-        Log.d(
+        AppLogger.debug(
             "RoutineScheduler",
             "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsAllowed=$appOpsAllowed alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
         )
@@ -65,7 +65,7 @@ class RoutineScheduler @Inject constructor(
         if (repeatDays.isEmpty()) return RoutineScheduleResult.NotEnabled
 
         val hasExactAlarmPermission = canScheduleExactAlarms()
-        Log.d(
+        AppLogger.debug(
             "RoutineScheduler",
             "scheduleRoutine exact-alarm precheck routineId=${routine.id} result=$hasExactAlarmPermission",
         )

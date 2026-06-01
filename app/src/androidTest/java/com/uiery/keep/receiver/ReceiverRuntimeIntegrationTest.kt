@@ -397,6 +397,7 @@ class ReceiverRuntimeIntegrationTest {
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
             !NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
+        grantExactAlarmPermission()
         val eveningRoutineId = TEST_ROUTINE_ID + 1
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
         database.routineDao().insert(enabledRoutineEntity(id = eveningRoutineId, name = "Evening focus"))
