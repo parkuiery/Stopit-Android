@@ -163,6 +163,7 @@ scripts/check-latest-production-deployed.sh
 동작:
 - 최신 기존 SemVer 태그(`vX.Y.Z`)를 찾는다.
 - 해당 태그에 GitHub Deployment `environment=production` + `success` 상태가 있거나, GitHub Release 본문에 `<!-- stopit-production-deployed: vX.Y.Z -->` marker가 있으면 통과한다.
+- 이 marker는 Play Deploy가 `track=production` + `release_status=completed`로 성공했을 때만 production 완료로 기록한다. `draft`, `inProgress`, `halted` 상태는 production 완료 marker를 쓰지 않는다.
 - marker가 없으면 새 릴리즈 시작/태그 생성을 중단한다.
 - 긴급 상황에서만 명시 승인 후 `STOPIT_RELEASE_GATE_BYPASS=1`로 우회한다.
 

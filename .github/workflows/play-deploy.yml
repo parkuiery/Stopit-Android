@@ -177,7 +177,7 @@ jobs:
         run: node scripts/promote-google-play-track.js
 
       - name: Mark production deployment complete
-        if: success() && env.DEPLOY_TRACK == 'production'
+        if: success() && env.DEPLOY_TRACK == 'production' && env.RELEASE_STATUS == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

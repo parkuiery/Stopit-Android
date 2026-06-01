@@ -18,11 +18,29 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("Manual Play deploys require a SemVer tag ref", workflow)
         self.assertIn("internal, alpha, beta, and production", workflow)
 
+    def test_production_completion_marker_requires_completed_release_status(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("- name: Mark production deployment complete", workflow)
+        self.assertIn("if: success() && env.DEPLOY_TRACK == 'production' && env.RELEASE_STATUS == 'completed'", workflow)
+
     def test_play_deployment_doc_mentions_tag_governance_for_manual_dispatch(self):
         doc = PLAY_DOC_PATH.read_text()
 
         self.assertIn("Manual CD `workflow_dispatch` still requires a SemVer tag ref", doc)
         self.assertIn("branch refs are rejected for `internal`, `alpha`, `beta`, and `production`", doc)
+
+    def test_play_deployment_doc_defines_completion_marker_as_completed_production_only(self):
+        doc = PLAY_DOC_PATH.read_text()
+
+        self.assertIn("only when `track=production` and `release_status=completed`", doc)
+        self.assertIn("`draft`, `inProgress`, or `halted` production runs must not write", doc)
+
+    def test_git_workflow_doc_defines_completion_marker_as_completed_production_only(self):
+        doc = GIT_WORKFLOW_DOC_PATH.read_text()
+
+        self.assertIn("`track=production` + `release_status=completed`", doc)
+        self.assertIn("`draft`, `inProgress`, `halted` 상태는 production 완료 marker를 쓰지 않는다", doc)
 
     def test_git_workflow_doc_mentions_manual_play_dispatch_tag_governance(self):
         doc = GIT_WORKFLOW_DOC_PATH.read_text()
@@ -50,6 +68,12 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
 
         self.assertIn("manual dispatch도 SemVer tag ref에서만 허용", doc)
         self.assertIn("internal/alpha/beta/production", doc)
+
+    def test_release_context_defines_completion_marker_as_completed_production_only(self):
+        doc = RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("`track=production` + `release_status=completed`", doc)
+        self.assertIn("`draft`, `inProgress`, `halted` production dispatch", doc)
 
     def test_release_checklist_mentions_manual_dispatch_tag_governance(self):
         doc = RELEASE_CHECKLIST_PATH.read_text()
