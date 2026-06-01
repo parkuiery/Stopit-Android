@@ -57,9 +57,13 @@ class KeepAccessibilityServiceIntegrationTest {
     @After
     fun tearDown() {
         runBlocking {
-            clearAccessibilityBlockState()
-            device.pressHome()
-            Configurator.getInstance().setUiAutomationFlags(originalUiAutomationFlags)
+            try {
+                clearAccessibilityBlockState()
+                restoreAccessibilityServiceState(initiallyEnabled = accessibilityServiceInitiallyEnabled)
+                device.pressHome()
+            } finally {
+                Configurator.getInstance().setUiAutomationFlags(originalUiAutomationFlags)
+            }
         }
     }
 
@@ -102,6 +106,27 @@ class KeepAccessibilityServiceIntegrationTest {
         assertFalse(
             "Did not expect KeepAccessibilityService to request BlockActivity while emergency unlock is active. snapshot=$debugSnapshot",
             launchedBlockedPackage == bypassPackage,
+        )
+    }
+
+    @Test
+    fun cleanupRestoresAccessibilityServiceWhenItWasInitiallyDisabled() = runBlocking {
+        assertTrue(
+            "Expected test setup to enable KeepAccessibilityService before cleanup verification. ${accessibilityDiagnostics()}",
+            isAccessibilityServiceEnabled(),
+        )
+
+        restoreAccessibilityServiceState(initiallyEnabled = false)
+
+        waitUntil(
+            message = "Expected cleanup helper to disable KeepAccessibilityService when it was initially disabled. ${accessibilityDiagnostics()}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            !isAccessibilityServiceEnabled()
+        }
+        assertFalse(
+            "Expected KeepAccessibilityService to be disabled after cleanup restoration. ${accessibilityDiagnostics()}",
+            isAccessibilityServiceEnabled(),
         )
     }
 
@@ -182,6 +207,44 @@ class KeepAccessibilityServiceIntegrationTest {
         device.findObject(By.res(ALLOW_BUTTON_ID))?.click()
             ?: fail("Could not find Allow button for Accessibility permission dialog")
     }
+
+    private fun restoreAccessibilityServiceState(initiallyEnabled: Boolean) {
+        if (initiallyEnabled) return
+        if (!isAccessibilityServiceEnabled()) return
+
+        val before = accessibilityDiagnostics()
+        val currentServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
+        val updatedServices = currentServices
+            .split(':')
+            .filter { it.isNotBlank() && it != SERVICE_COMPONENT }
+            .joinToString(":")
+
+        if (updatedServices.isEmpty()) {
+            shell("settings delete secure enabled_accessibility_services")
+            shell("settings put secure accessibility_enabled 0")
+        } else {
+            shell("settings put secure enabled_accessibility_services $updatedServices")
+            shell("settings put secure accessibility_enabled 1")
+        }
+
+        waitUntil(
+            message = "Expected cleanup to restore KeepAccessibilityService to disabled state. before=$before; after=${accessibilityDiagnostics()}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            !isAccessibilityServiceEnabled()
+        }
+    }
+
+    private fun accessibilityDiagnostics(): String {
+        val snapshot = KeepAccessibilityServiceDebugState.read(context)
+        val accessibilityEnabled = normalizeSecureSetting(shell("settings get secure accessibility_enabled"))
+        val enabledServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
+        val accessibilityDump = shell("""dumpsys accessibility | grep -n 'Bound services\|Enabled services\|Binding services\|Crashed services' -A1 -B1""").trim()
+        return "snapshot=$snapshot; accessibility_enabled=$accessibilityEnabled; enabled_accessibility_services=$enabledServices; accessibilityDump=$accessibilityDump"
+    }
+
+    private fun normalizeSecureSetting(rawValue: String): String =
+        rawValue.trim().takeUnless { it == "null" } ?: ""
 
     private fun openAccessibilityServiceDetails() {
         repeat(3) { attempt ->

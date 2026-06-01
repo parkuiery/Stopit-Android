@@ -455,6 +455,7 @@ cd <repo-root>
 
 - `KeepAccessibilityServiceBlockDecisionTest`: manual keep / timed lock / routine / duplicate / emergency unlock 우회 판단을 순수 JVM 회귀로 빠르게 고정한다.
 - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 전환에서 차단 Activity 진입 여부를 검증하려는 focused runtime harness다.
+- 이 harness는 `setUp()`에서 접근성 서비스의 초기 활성 상태를 저장하고, `tearDown()`에서 **원래 꺼져 있던 경우 다시 disabled 상태로 원복**해야 한다. 후속 instrumentation/수동 QA가 접근성 서비스 잔여 상태에 오염되지 않도록 이 cleanup 계약을 유지한다.
 - 현재 Android 15 emulator baseline은 실제 bind 후 두 핵심 시나리오를 반복 가능하게 검증한다: `selectedAppWithManualKeep_launchesBlockActivity` 와 `emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity`.
 
 ### Android 15 emulator instrumentation 메모
