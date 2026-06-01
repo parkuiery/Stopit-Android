@@ -18,10 +18,26 @@ class NotificationSettingViewModel @Inject constructor(
         analytics.trackOnboardingStepView(OnboardingStepName.NOTIFICATION)
     }
 
-    fun onPermissionResult(isGranted: Boolean) {
+    fun onPermissionSettingsOpened() {
         analytics.trackPermissionOutcome(
             permissionName = AnalyticsPermissionName.NOTIFICATIONS,
-            outcome = if (isGranted) AnalyticsOutcome.GRANTED else AnalyticsOutcome.DENIED,
+            outcome = AnalyticsOutcome.SETTINGS_OPENED,
+            stepName = OnboardingStepName.NOTIFICATION,
+        )
+    }
+
+    fun onPermissionDenied() {
+        analytics.trackPermissionOutcome(
+            permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+            outcome = AnalyticsOutcome.DENIED,
+            stepName = OnboardingStepName.NOTIFICATION,
+        )
+    }
+
+    fun onPermissionGranted() {
+        analytics.trackPermissionOutcome(
+            permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+            outcome = AnalyticsOutcome.GRANTED,
             stepName = OnboardingStepName.NOTIFICATION,
         )
         analytics.trackOnboardingStepComplete(OnboardingStepName.NOTIFICATION)

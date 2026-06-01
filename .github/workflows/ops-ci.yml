@@ -7,6 +7,12 @@ on:
       - 'functions/**'
       - 'scripts/promote-google-play-track.js'
       - 'scripts/notify-discord-deploy.py'
+      - 'scripts/check-release-readiness.sh'
+      - 'scripts/check-latest-production-deployed.sh'
+      - 'scripts/release-start.sh'
+      - 'scripts/bump-version.sh'
+      - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/ops-ci.yml'
   push:
@@ -15,6 +21,12 @@ on:
       - 'functions/**'
       - 'scripts/promote-google-play-track.js'
       - 'scripts/notify-discord-deploy.py'
+      - 'scripts/check-release-readiness.sh'
+      - 'scripts/check-latest-production-deployed.sh'
+      - 'scripts/release-start.sh'
+      - 'scripts/bump-version.sh'
+      - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/ops-ci.yml'
   workflow_dispatch:
@@ -72,6 +84,12 @@ jobs:
 
       - name: Run Google Play promotion helper tests
         run: node --test scripts/tests/test_promote_google_play_track.js
+
+      - name: Run release-helper guardrail Python tests
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
+      - name: Check release-helper shell syntax
+        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh
 
       - name: Compile Discord deploy notification script
         run: python3 -m py_compile scripts/notify-discord-deploy.py

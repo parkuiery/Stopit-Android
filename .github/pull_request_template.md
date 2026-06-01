@@ -59,6 +59,7 @@ For UI/behavior changes:
 - [ ] Google Play/internal release expected after tag
 - [ ] Discord deploy-channel approval card expected after internal deploy
 - [ ] Production promotion requires Discord deploy-channel button approval by an allowed role/user
+- [ ] Secret/setup contract was checked against `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` when this PR touches Play deploy, Discord deploy notifications, workflow secret restore, or Firebase Functions promotion wiring
 
 ## Notes / screenshots
 
