@@ -72,6 +72,16 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Validate manual deploy ref is a SemVer tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Manual Play deploys require a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+            echo "This applies to internal, alpha, beta, and production workflow_dispatch runs." >&2
+            exit 1
+          fi
+
       - name: Validate tag-push release guardrails
         run: scripts/validate-play-deploy-ref.sh
 

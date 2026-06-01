@@ -23,6 +23,7 @@ Main Android application module for package `com.uiery.keep`. It contains flavor
 
 ### Working In This Directory
 - Keep changes scoped to this directory’s responsibility and follow the neighboring file naming/style conventions.
+- flavor source-set의 `google-services.json`은 디렉터리만 보고 상주 파일처럼 가정하지 않는다. Android CI / Release QA / Release Build / Play Deploy의 restore 차이는 `../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 기준으로 확인한다.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

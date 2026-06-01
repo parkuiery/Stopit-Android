@@ -25,6 +25,7 @@ Firebase Functions TypeScript project for operational integrations outside the A
 ### Working In This Directory
 - Keep Firebase Functions handlers small and push formatting/helper logic into pure functions that can be tested locally.
 - Never hardcode secret webhook values; use Firebase secret parameters.
+- GitHub Actions repo secrets와 Firebase Functions secrets 경계가 섞이면 `../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 `README.md`를 함께 확인한다.
 
 ### Testing Requirements
 - cd functions && npm run build
