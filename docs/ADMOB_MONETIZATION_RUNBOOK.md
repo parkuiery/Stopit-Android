@@ -60,25 +60,26 @@ issue #16에 기록된 최근 30일 기준선:
 
 ## 현재 #13 queryability 경계
 
-2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 등록되지 않았다.
+2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 GA4 Admin에 등록되지 않은 상태로 보였다.
 
 - metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
 - monetization smoke (`ad_impression` / `ad_click` / `ad_revenue` by `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_unit_id`):
   - `400 INVALID_ARGUMENT`
   - `Field customEvent:ad_placement is not a valid dimension.`
 
-즉, 현재 `adUnitName` / `adFormat` 같은 AdMob 쪽 집계는 볼 수 있어도, Stopit 제품 문맥에서 중요한 `ad_placement`, `screen_context`, `ad_unit_id` 기준 해석은 아직 **미등록 queryability gap** 때문에 낮은 confidence 상태다.
+2026-06-01 preflight에서는 광고 관련 custom dimensions/metrics가 metadata에 등록된 것으로 확인됐다. 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이 아니라, 아래 **event-source split / coverage 문제**다.
 
 추가 주의:
 
-- 이번 smoke는 광고 문맥 축이 막혀 있다는 대표 증거이고, Required인 `ad_format`도 아직 live `customEvent:*` queryability가 확보됐다고 보지 않는다.
-- Recommended인 `ad_value_micros`까지 포함한 placement/context별 수익 재집계도 같은 외부 경계 뒤에 있다.
+- `adUnitName` / `adFormat` 같은 AdMob SDK 자동 집계와 Stopit 앱 custom event의 `ad_placement`, `screen_context`, `ad_unit_id`를 같은 축으로 합쳐 해석하지 않는다.
+- `ad_impression` / `ad_click` / `ad_revenue` custom-event breakdown에서 `(not set)`/empty 비중이 크면 placement별 CTR/eCPM 결론은 계속 보류한다.
+- 활성화/리뷰용 `customEvent:*` registration gap은 여전히 #13 경계로 남아 있으므로, 광고 preflight 결과를 전체 GA4 queryability 회복으로 확대 해석하지 않는다.
 
 운영 원칙:
 
-- placement별 CTR/eCPM 결론을 강하게 내리기 전에 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 광고 파라미터 등록 상태를 먼저 확인한다.
-- `adUnitName = (not set)` 문제와 `customEvent:*` 미등록 문제를 섞지 않는다. 전자는 AdMob 보고 축 문제일 수 있고, 후자는 GA4 Admin 등록 문제다.
-- issue #16 follow-through에서는 revenue 표를 만들더라도, `ad_placement` / `screen_context`가 아직 미등록이면 "제품 문맥까지 포함한 위치 최적화 결론"은 보류라고 명시한다.
+- placement별 CTR/eCPM 결론을 강하게 내리기 전에 아래 `2026-06-01 GA4 AdMob 파라미터 등록/조회 preflight`의 source split query를 먼저 확인한다.
+- `adUnitName = (not set)` 문제와 앱 custom-event coverage 문제를 섞지 않는다. 전자는 AdMob 보고 축 문제일 수 있고, 후자는 Stopit 이벤트 payload/source 문제다.
+- issue #16 follow-through에서는 revenue 표를 만들더라도, `ad_placement` / `screen_context` coverage가 낮으면 "제품 문맥까지 포함한 위치 최적화 결론"은 보류라고 명시한다.
 
 ## 먼저 답해야 할 질문
 
