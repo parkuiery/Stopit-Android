@@ -150,6 +150,21 @@ cd <repo-root>
 - Notes:
 ```
 
+### Crashlytics startup ANR / AdMob 초기화 baseline
+
+Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77fafc0d6ce7c7a75c8b13d20ed2bb2c`, `4c1ed3a5d227234e314f386a5b9a1d97`)은 모두 `KeepApplication.onCreate`로 blame되지만 sample thread는 실제로 Chromium/System WebView 또는 Play services Ads 초기화가 main thread에서 binder/IO를 기다린 형태다. 앱 시작 critical path에 광고 SDK 초기화를 다시 inline으로 넣지 않도록 아래 JVM 계약을 PR evidence에 남긴다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.MobileAdsStartupPolicyTest'
+```
+
+검증 기준:
+- `MainActivity.onCreate`에서 `MobileAds.initialize(...)`를 즉시 호출하지 않는다.
+- 광고 SDK 초기화는 첫 frame/post 이후 최소 1초 이상 지연된 lifecycle coroutine에서 실행한다.
+- Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
+- Crashlytics MCP/Console에서 같은 ANR issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
+
 ### DevTool production graph baseline
 
 DevTool은 `Device ID`/`FCM Token` 같은 내부 진단값을 표시하므로 production graph에 등록되지 않아야 한다. dev/debug 진단 접근은 유지하되, prod flavor에서는 debug/release 여부와 무관하게 route 등록 자체가 막혀야 한다.
