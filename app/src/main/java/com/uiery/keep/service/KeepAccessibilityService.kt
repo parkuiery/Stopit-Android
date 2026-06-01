@@ -69,6 +69,7 @@ class KeepAccessibilityService :
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
+        private const val FOREGROUND_REEVALUATION_RETRY_DELAY_MS = 300L
     }
 
     override fun onServiceConnected() {
@@ -97,11 +98,13 @@ class KeepAccessibilityService :
                     )
                 }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTime)
+                reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
         launch {
             entryPoint.routineDao().fetchAll().collect { routineEntities ->
                 cachedRoutines = routineEntities.map { it.toModel() }
+                reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
     }
@@ -155,12 +158,53 @@ class KeepAccessibilityService :
 
         if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
 
+        launchBlockActivity(blockRequest)
+    }
+
+    private fun reevaluateCurrentForegroundAfterStateUpdate() {
+        handler.post {
+            reevaluateCurrentForegroundOnce()
+            handler.postDelayed({ reevaluateCurrentForegroundOnce() }, FOREGROUND_REEVALUATION_RETRY_DELAY_MS)
+        }
+    }
+
+    private fun reevaluateCurrentForegroundOnce() {
+        val packageName = currentForegroundPackage() ?: return
+        val prefs = cachedPrefs
+
+        cleanupExpiredEmergencyUnlock()
+        if (isEmergencyUnlocked(packageName)) return
+
+        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
+            dismissUninstallScreen()
+            return
+        }
+
+        val blockRequest = resolveServiceConnectionForegroundBlockRequest(
+            currentForegroundPackage = packageName,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = prefs.isKeep,
+                lockTime = prefs.lockTime,
+                selectedAppPackages = prefs.selectedAppPackages,
+            ),
+            cachedRoutines = cachedRoutines,
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        ) ?: return
+
+        if (isDuplicateBlock(packageName = blockRequest.packageName, blockSource = blockRequest.blockSource)) return
+
+        launchBlockActivity(blockRequest)
+    }
+
+    private fun launchBlockActivity(blockRequest: ForegroundBlockRequest) {
         KeepAccessibilityServiceDebugState.update(applicationContext) {
-            it.copy(lastLaunchedBlockPackage = packageName)
+            it.copy(lastLaunchedBlockPackage = blockRequest.packageName)
         }
         val intent = Intent(this, BlockActivity::class.java)
-        intent.putExtra("package_name", packageName)
+        intent.putExtra("package_name", blockRequest.packageName)
         intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
+        blockRequest.routineId?.let { intent.putExtra(BlockActivity.EXTRA_ROUTINE_ID, it) }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }

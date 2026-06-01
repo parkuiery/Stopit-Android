@@ -125,3 +125,4 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 - `docs/GIT_WORKFLOW.md`
 - `docs/PLAY_DEPLOYMENT.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`

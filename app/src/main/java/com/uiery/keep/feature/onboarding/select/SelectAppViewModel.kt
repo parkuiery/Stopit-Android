@@ -40,6 +40,8 @@ class SelectAppViewModel @Inject constructor(
     }
 
     internal fun selectCategoryComplete(selectedAppPackage: Set<String>) = intent {
+        if (!canCompleteOnboardingAppSelection(selectedAppPackage)) return@intent
+
         analytics.trackAppSelectionCompleted(
             selectedAppCount = selectedAppPackage.size,
             isOnboarding = true,
@@ -87,3 +89,6 @@ data class SelectAppUiState(
 )
 
 sealed class SelectAppSideEffect
+
+internal fun canCompleteOnboardingAppSelection(selectedAppPackages: Set<String>): Boolean =
+    selectedAppPackages.isNotEmpty()

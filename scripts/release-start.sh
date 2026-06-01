@@ -6,7 +6,9 @@ usage() {
 Usage: scripts/release-start.sh <versionName> [--code <versionCode>] [--service-account-json <path>] [--fallback-play-max-version-code <n>]
 
 Creates release/<versionName> from develop, bumps Android version, verifies release tasks,
-and commits the version bump.
+and commits the version bump. Unlike low-level bump-version.sh, release-start never
+accepts --no-dry-run because the release branch preparation contract includes the
+release task dry-run gate.
 
 Important: release-start delegates to scripts/bump-version.sh, so you must provide
 either --service-account-json <path> for live Google Play max versionCode lookup or
@@ -27,6 +29,13 @@ fi
 version_name="$1"
 shift
 extra_args=("$@")
+
+for arg in "${extra_args[@]}"; do
+  if [[ "$arg" == "--no-dry-run" ]]; then
+    echo "release-start always runs release task dry-run verification; use scripts/bump-version.sh directly only for low-level maintenance." >&2
+    exit 2
+  fi
+done
 
 if [[ ! "$version_name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "versionName must be SemVer without a leading v, e.g. 1.7.2" >&2

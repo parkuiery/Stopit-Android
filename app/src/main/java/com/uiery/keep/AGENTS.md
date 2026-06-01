@@ -12,7 +12,7 @@ Application package root. It hosts app entry points, top-level Compose app wirin
 | `BlockActivity.kt` | Activity used for the in-app blocking screen presentation. |
 | `BlockScreen.kt` | Compose UI for app-blocking screen. |
 | `BlockViewModel.kt` | State holder for block-screen behavior. |
-| `DeviceTokenManager.kt` | Coordinates device/FCM token persistence or registration. |
+| `DeviceTokenManager.kt` | Persists FCM tokens locally and records the current backend-removed registration skip analytics contract. See `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`. |
 | `KeepApp.kt` | Top-level Compose app shell and navigation graph wiring. |
 | `KeepApplication.kt` | Application class for global initialization and dependency setup. |
 | `MainActivity.kt` | Main Compose activity hosting the app UI/navigation. |

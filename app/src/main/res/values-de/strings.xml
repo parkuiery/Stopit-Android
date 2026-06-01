@@ -82,6 +82,8 @@
     <string name="lock_history_routine_session">Routine</string>
     <string name="lock_history_manual_session">Manuell</string>
     <string name="lock_history_no_records">Kein Sperrverlauf für diesen Zeitraum</string>
+    <string name="lock_history_focus_share_button">Fokusrekord dieser Woche teilen</string>
+    <string name="lock_history_focus_share_sheet_title">StopIt-Fokusrekord teilen</string>
     <string name="lock_history_top_apps_title">Am häufigsten blockierte Apps</string>
     <string name="lock_history_block_count">%1$d Mal</string>
     <string name="lock_history_duration_short_hour">%1$d Std.%2$d Min.</string>
@@ -143,4 +145,7 @@
     <string name="emergency_unlock_notification_channel_description">Zeigt Countdown während der Notfall-Entsperrung</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d verbleibend</string>
     <string name="emergency_unlock_waiting_seconds_label">Sekunden</string>
+    <string name="first_lock_activation_cta_title">Bereit für deine erste Sperre?</string>
+    <string name="first_lock_activation_cta_description">Du hast Apps ausgewählt. Schalte StopIt jetzt ein und erlebe die Sperre.</string>
+    <string name="first_lock_activation_cta_action">Starten</string>
 </resources>

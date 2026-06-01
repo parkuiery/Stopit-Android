@@ -3,7 +3,8 @@ name: Android Release Build
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    # Include edited so develop -> main retargets materialize release gates without a new commit.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   push:
     branches: [main]
   workflow_dispatch:
@@ -20,6 +21,11 @@ jobs:
     name: Build signed release AAB artifact
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'release/') ||
+      startsWith(github.head_ref, 'hotfix/')
 
     env:
       ANDROID_KEYSTORE_PATH: /tmp/stopit-upload-key.jks
