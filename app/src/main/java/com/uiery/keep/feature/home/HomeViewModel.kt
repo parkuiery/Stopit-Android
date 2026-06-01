@@ -12,6 +12,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
@@ -24,7 +25,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalTime
@@ -41,6 +41,7 @@ class HomeViewModel
     @Inject
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -165,8 +166,7 @@ class HomeViewModel
 
         internal fun maybeDrainReviewFlag(activity: Activity?) =
             intent {
-                val prefs = dataStore.data.firstOrNull()
-                val pending = prefs?.get(PreferencesKey.REVIEW_PENDING) ?: false
+                val pending = blockingStateStore.isReviewPending()
                 if (!pending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
@@ -175,14 +175,14 @@ class HomeViewModel
                 val live = reviewEligibility.evaluateLive()
                 if (live is ReviewEligibilityDecision.Ineligible) {
                     analytics.reviewPromptSkipped(live.reason.name)
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
+                    blockingStateStore.clearReviewPending()
                     return@intent
                 }
                 if (activity == null) {
                     analytics.reviewPromptSkipped(SkipReason.NoActivity.name)
                     return@intent
                 }
-                dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
+                blockingStateStore.clearReviewPending()
                 inAppReviewManager.launchIfReady(activity)
             }
 
@@ -196,6 +196,8 @@ class HomeViewModel
             }
 
         private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
+            // Routine start notices are a receiver -> home UI handoff queue, not lock/session
+            // blocking state. Keep this compatibility key on the existing receiver policy boundary.
             val pendingStoredValue = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
             if (pendingStoredValue.isNullOrBlank()) return null
             if (sheetVisible) return null
@@ -225,15 +227,13 @@ class HomeViewModel
 
         private fun getSelectedApp() =
             intent {
-                val preferences = dataStore.data.firstOrNull()
-                val selectedAppPackage = preferences?.get(PreferencesKey.SELECTED_APP_PACKAGES).orEmpty()
-                val hasTrackedFirstLock = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                val selectionState = blockingStateStore.readSelectionState()
                 reduce {
                     state.copy(
-                        selectedAppPackage = selectedAppPackage,
+                        selectedAppPackage = selectionState.selectedAppPackages,
                         showFirstLockActivationCta = shouldShowFirstLockActivationCta(
-                            selectedAppPackage = selectedAppPackage,
-                            hasTrackedFirstLock = hasTrackedFirstLock,
+                            selectedAppPackage = selectionState.selectedAppPackages,
+                            hasTrackedFirstLock = selectionState.hasTrackedFirstLockConfigured,
                             isKeep = state.isKeep,
                         ),
                     )
@@ -242,9 +242,7 @@ class HomeViewModel
 
         private fun storeSelectedApp(selectedAppPackage: Set<String>) =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.SELECTED_APP_PACKAGES] = selectedAppPackage
-                }
+                blockingStateStore.saveSelectedAppPackages(selectedAppPackage)
             }
 
         private fun storeBlockTime(
@@ -270,8 +268,7 @@ class HomeViewModel
                     isOnboarding = false,
                 )
                 storeSelectedApp(selectedAppPackage)
-                val hasTrackedFirstLock =
-                    dataStore.data.firstOrNull()?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                val hasTrackedFirstLock = blockingStateStore.readSelectionState().hasTrackedFirstLockConfigured
                 reduce {
                     state.copy(
                         selectedAppPackage = selectedAppPackage,
@@ -286,37 +283,25 @@ class HomeViewModel
 
         private fun storeIsKeep() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.IS_KEEP] = state.isKeep
-                }
+                blockingStateStore.setIsKeep(state.isKeep)
             }
 
         private fun storeStartTime() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.START_TIME] = System.currentTimeMillis()
-                }
+                blockingStateStore.saveStartTime(System.currentTimeMillis())
             }
 
         private fun getStartTime() =
             intent {
-                val startTime =
-                    dataStore.data
-                        .map { preferences ->
-                            preferences[PreferencesKey.START_TIME]
-                        }.firstOrNull()
+                val startTime = blockingStateStore.readStartTime()
                 reduce { state.copy(startTime = startTime ?: System.currentTimeMillis()) }
             }
 
         private fun getIsKeep() =
             intent {
-                val isKeep =
-                    dataStore.data
-                        .map { preferences ->
-                            preferences[PreferencesKey.IS_KEEP]
-                        }.firstOrNull()
-                reduce { state.copy(isKeep = isKeep == true) }
-                if (isKeep == true) {
+                val isKeep = blockingStateStore.readIsKeep()
+                reduce { state.copy(isKeep = isKeep) }
+                if (isKeep) {
                     getStartTime()
                 }
             }
@@ -366,9 +351,7 @@ class HomeViewModel
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
                 }
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.LOCK_TIME] = targetLockDateTime.toString()
-                }
+                blockingStateStore.saveLockTime(targetLockDateTime.toString())
                 val lockedDuration =
                     Duration
                         .between(LocalDateTime.now(), targetLockDateTime)
@@ -402,24 +385,14 @@ class HomeViewModel
             }
 
         private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
-            val preferences = dataStore.data.firstOrNull()
-            val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+            if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return false
 
-            if (hasTracked) return false
-
-            val selectedAppCount =
-                preferences
-                    ?.get(PreferencesKey.SELECTED_APP_PACKAGES)
-                    ?.size ?: 0
+            val selectedAppCount = blockingStateStore.readSelectedAppPackages().size
 
             analytics.trackFirstLockConfigured(
                 source = source,
                 selectedAppCount = selectedAppCount,
             )
-
-            dataStore.edit { mutablePreferences ->
-                mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
-            }
             return true
         }
 

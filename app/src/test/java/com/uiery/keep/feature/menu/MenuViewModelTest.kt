@@ -4,6 +4,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -22,7 +23,7 @@ class MenuViewModelTest {
         val analytics = MenuRecordingKeepAnalytics()
 
         MenuViewModel(
-            dataStore = FakeDataStore(),
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
             routineDao = FakeMenuRoutineDao(),
             analytics = analytics,
         )
@@ -33,7 +34,7 @@ class MenuViewModelTest {
     @Test
     fun preventUninstallDefaultsToEnabled() {
         val viewModel = MenuViewModel(
-            dataStore = FakeDataStore(),
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
             routineDao = FakeMenuRoutineDao(),
             analytics = MenuRecordingKeepAnalytics(),
         )
@@ -47,7 +48,7 @@ class MenuViewModelTest {
             this[PreferencesKey.PREVENT_UNINSTALL] = true
         }
         val viewModel = MenuViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             routineDao = FakeMenuRoutineDao(),
             analytics = MenuRecordingKeepAnalytics(),
         )

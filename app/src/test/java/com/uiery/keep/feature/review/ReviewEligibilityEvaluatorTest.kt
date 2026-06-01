@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.review
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import java.time.Clock
 import java.time.Instant
@@ -31,15 +32,19 @@ class ReviewEligibilityEvaluatorTest {
         recentSuccess: Int = 1,
         isDebug: Boolean = false,
         flavor: String = "prod",
-    ) = ReviewEligibilityEvaluator(
-        dataStore = FakeDataStore(prefs),
-        remoteConfig = FakeReviewRemoteConfig(rcEnabled),
-        accessibilityChecker = FakeAccessibilityChecker(accessibilityEnabled),
-        emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),
-        lockHistoryDao = FakeLockHistoryDao(recentSuccess),
-        clock = clock,
-        buildConfig = ReviewBuildConfig(isDebug = isDebug, flavor = flavor),
-    )
+    ): ReviewEligibilityEvaluator {
+        val dataStore = FakeDataStore(prefs)
+        return ReviewEligibilityEvaluator(
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            remoteConfig = FakeReviewRemoteConfig(rcEnabled),
+            accessibilityChecker = FakeAccessibilityChecker(accessibilityEnabled),
+            emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),
+            lockHistoryDao = FakeLockHistoryDao(recentSuccess),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = isDebug, flavor = flavor),
+        )
+    }
 
     private fun evaluate(evaluator: ReviewEligibilityEvaluator): ReviewEligibilityDecision = runBlocking {
         evaluator.evaluate(nowMs = baselineNowMs, durationMillis = 60_000L, isRoutine = false)

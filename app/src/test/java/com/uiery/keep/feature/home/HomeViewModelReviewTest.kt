@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.AnalyticsEventRecord
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
@@ -35,6 +36,7 @@ class HomeViewModelReviewTest {
         val accessibilityChecker = FakeAccessibilityChecker(enabled = true)
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = accessibilityChecker,
             emergencyUnlockDao = FakeEmergencyUnlockDao(),
@@ -44,6 +46,7 @@ class HomeViewModelReviewTest {
         )
         val viewModel = HomeViewModel(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
             reviewEligibility = reviewEligibility,
@@ -89,6 +92,7 @@ class HomeViewModelReviewTest {
         )
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = false),
             emergencyUnlockDao = FakeEmergencyUnlockDao(),
@@ -98,6 +102,7 @@ class HomeViewModelReviewTest {
         )
         val viewModel = HomeViewModel(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
             reviewEligibility = reviewEligibility,
@@ -127,6 +132,7 @@ class HomeViewModelReviewTest {
         val launcher = FakeReviewLauncher()
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
             emergencyUnlockDao = FakeEmergencyUnlockDao(),
@@ -136,6 +142,7 @@ class HomeViewModelReviewTest {
         )
         val viewModel = HomeViewModel(
             dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
             reviewEligibility = reviewEligibility,

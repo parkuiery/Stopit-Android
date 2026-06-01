@@ -1,16 +1,11 @@
 package com.uiery.keep.feature.splash
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
-import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.BlockingStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
+
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -22,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 class SplashViewModel
     @Inject
     constructor(
-        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<SplashUiState, SplashSideEffect> {
@@ -53,40 +48,14 @@ class SplashViewModel
         }
 
         private suspend fun trackFirstOpenIfNeeded() {
-            val hasTracked =
-                dataStore.data
-                    .map { preferences ->
-                        preferences[PreferencesKey.HAS_TRACKED_FIRST_OPEN] == true
-                    }.firstOrNull() == true
-
-            if (hasTracked) return
-
-            analytics.trackFirstOpen()
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.HAS_TRACKED_FIRST_OPEN] = true
-                preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] = System.currentTimeMillis()
+            if (blockingStateStore.markFirstOpenTrackedIfNeeded(System.currentTimeMillis())) {
+                analytics.trackFirstOpen()
             }
         }
 
-        private suspend fun getIsNew(): Boolean {
-            val isNew =
-                dataStore.data
-                    .map { preferences ->
-                        preferences[PreferencesKey.IS_NEW]
-                    }.firstOrNull()
+        private suspend fun getIsNew(): Boolean = blockingStateStore.readIsNew(default = true)
 
-            return isNew ?: true
-        }
-
-        private suspend fun getLockTime(): String? {
-            val lockTime =
-                dataStore.data
-                    .map { preferences ->
-                        preferences[PreferencesKey.LOCK_TIME]
-                    }.firstOrNull()
-
-            return lockTime
-        }
+        private suspend fun getLockTime(): String? = blockingStateStore.readLockTime()
     }
 
 data class SplashUiState(

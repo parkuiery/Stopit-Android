@@ -2,7 +2,7 @@ package com.uiery.keep.feature.lock
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
@@ -14,7 +14,8 @@ import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.BlockingStateStore
+
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.model.RoutineModel
@@ -28,7 +29,7 @@ import com.uiery.keep.service.recordLockHistorySession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
+
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -45,6 +46,7 @@ class LockViewModel
         private val routineDao: RoutineDao,
         private val lockHistoryDao: LockHistoryDao,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
@@ -81,14 +83,8 @@ class LockViewModel
 
         private fun getSelectedApp() =
             intent {
-                val selectedAppPackage =
-                    dataStore.data
-                        .map { data ->
-                            data[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
-                        }.firstOrNull()
-                selectedAppPackage?.let {
-                    reduce { state.copy(selectedAppPackage = it) }
-                }
+                val selectedAppPackages = blockingStateStore.readSelectedAppPackages()
+                reduce { state.copy(selectedAppPackage = selectedAppPackages) }
             }
 
         private fun getRoutines() =
@@ -143,10 +139,7 @@ class LockViewModel
             } else {
                 now - timerStartTime
             }
-            dataStore.edit { prefs ->
-                val current = prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] ?: 0
-                prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] = current + 1
-            }
+            blockingStateStore.incrementSuccessfulSessionCount()
             val decision = reviewEligibility.evaluate(
                 nowMs = now,
                 durationMillis = durationMillis,
@@ -155,7 +148,7 @@ class LockViewModel
             )
             when (decision) {
                 is ReviewEligibilityDecision.Eligible -> {
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = true }
+                    blockingStateStore.markReviewPending()
                     analytics.reviewPromptEligible()
                 }
                 is ReviewEligibilityDecision.Ineligible -> {

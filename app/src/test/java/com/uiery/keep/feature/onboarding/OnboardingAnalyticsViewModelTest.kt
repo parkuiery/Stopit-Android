@@ -8,6 +8,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
@@ -109,7 +110,7 @@ class OnboardingAnalyticsViewModelTest {
     @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
-            dataStore = UnusedPreferencesDataStore,
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
             analytics = analytics,
         )
 
@@ -128,7 +129,7 @@ class OnboardingAnalyticsViewModelTest {
     fun selectAppCompletionWithEmptySelectionDoesNotCompleteOnboardingOrFirstLock() = runBlocking {
         val dataStore = FakeDataStore()
         val viewModel = SelectAppViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
         )
 
@@ -145,7 +146,7 @@ class OnboardingAnalyticsViewModelTest {
     fun selectAppCompletionWithSelectionTracksAndStoresOnboardingCompletion() = runBlocking {
         val dataStore = FakeDataStore()
         val viewModel = SelectAppViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
         )
 
