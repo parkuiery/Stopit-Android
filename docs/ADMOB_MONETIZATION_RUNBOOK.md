@@ -58,7 +58,7 @@ issue #16에 기록된 최근 30일 기준선:
 - 계측 누락이 있으면 제품/수익화 결론 confidence를 낮춘다.
 - 활성화/신뢰를 해치는 실험은 revenue가 좋아 보여도 기본안으로 채택하지 않는다.
 
-## 현재 #13 queryability 경계
+## 현재 #13 / #16 queryability 경계
 
 2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 GA4 Admin에 등록되지 않은 상태로 보였다.
 
@@ -67,17 +67,17 @@ issue #16에 기록된 최근 30일 기준선:
   - `400 INVALID_ARGUMENT`
   - `Field customEvent:ad_placement is not a valid dimension.`
 
-2026-06-01 preflight에서는 광고 관련 custom dimensions/metrics가 metadata에 등록된 것으로 확인됐다. 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이 아니라, 아래 **event-source split / coverage 문제**다.
+2026-06-01 preflight에서는 광고 관련 custom dimensions/metrics가 metadata에 등록된 것으로 확인됐다. 이후 PR #293에서 Stopit 앱 소유 배너 이벤트명이 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **새 이벤트명 배포 후 14일 coverage 재조회와 단일 실험 선택**이다.
 
 추가 주의:
 
 - `adUnitName` / `adFormat` 같은 AdMob SDK 자동 집계와 Stopit 앱 custom event의 `ad_placement`, `screen_context`, `ad_unit_id`를 같은 축으로 합쳐 해석하지 않는다.
-- `ad_impression` / `ad_click` / `ad_revenue` custom-event breakdown에서 `(not set)`/empty 비중이 크면 placement별 CTR/eCPM 결론은 계속 보류한다.
+- legacy `ad_impression` / `ad_click` / `ad_revenue` custom-event breakdown은 PR #293 이전 source-split baseline으로만 본다. 새 분석은 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` 기준으로 다시 조회한다.
 - 활성화/리뷰용 `customEvent:*` registration gap은 여전히 #13 경계로 남아 있으므로, 광고 preflight 결과를 전체 GA4 queryability 회복으로 확대 해석하지 않는다.
 
 운영 원칙:
 
-- placement별 CTR/eCPM 결론을 강하게 내리기 전에 아래 `2026-06-01 GA4 AdMob 파라미터 등록/조회 preflight`의 source split query를 먼저 확인한다.
+- placement별 CTR/eCPM 결론을 강하게 내리기 전에 아래 `GA4 query template`을 새 `ad_banner_*` 이벤트명 기준으로 실행해 source split이 실제로 해소됐는지 먼저 확인한다.
 - `adUnitName = (not set)` 문제와 앱 custom-event coverage 문제를 섞지 않는다. 전자는 AdMob 보고 축 문제일 수 있고, 후자는 Stopit 이벤트 payload/source 문제다.
 - issue #16 follow-through에서는 revenue 표를 만들더라도, `ad_placement` / `screen_context` coverage가 낮으면 "제품 문맥까지 포함한 위치 최적화 결론"은 보류라고 명시한다.
 
@@ -87,7 +87,7 @@ issue #16에 기록된 최근 30일 기준선:
 
 1. 어떤 광고 단위가 실제로 노출되고 있는가?
 2. `(not set)` 또는 이름 없는 광고 단위가 있는가?
-3. `ad_impression` / `ad_click` / `ad_revenue`와 `screen_context` / `ad_placement` / `ad_unit_id` 계약이 코드·문서·GA4 조회 가정에서 일치하는가?
+3. `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`와 `screen_context` / `ad_placement` / `ad_unit_id` 계약이 코드·문서·GA4 조회 가정에서 일치하는가?
 4. 어떤 위치가 노출은 많은데 CTR/eCPM이 낮은가?
 5. 그 위치가 정말 유지할 가치가 있는가?
 6. 광고 최적화보다 먼저, 더 안전한 수익화 가설이 있는가?
@@ -200,20 +200,21 @@ issue #16에 기록된 최근 30일 기준선:
 
 #16의 다음 실행 경계:
 
-1. code-lane에서 `TrackedBannerAd` custom 이벤트명을 SDK/GA4 권장 자동 이벤트명과 충돌하지 않게 분리할지 검토한다. 예: `ad_impression`을 그대로 쓸지, 제품 분석용 이벤트를 `ad_unit_impression`/`ad_banner_impression`처럼 별도 명명할지 결정한다.
-2. 만약 이름을 유지한다면, GA4 report query가 SDK 자동 이벤트와 앱 custom 이벤트를 분리할 수 있는 필터(`customEvent:ad_placement != (not set)` 등)를 갖도록 runbook/query template을 고정한다.
-3. 보정 PR 또는 GA4 query 계약 변경 후 14일 재조회에서 `publisherAdImpressions` 표와 custom placement 표를 따로 보고, 둘을 합산하지 않는다.
+1. PR #293 이후 배포된 앱 버전에서 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`가 충분히 쌓인 14일 창을 잡는다.
+2. `publisherAdImpressions` 표와 새 `ad_banner_*` custom placement 표를 따로 조회하고, 둘을 합산하지 않는다.
+3. 새 이벤트명에서도 `customEvent:ad_placement` / `customEvent:ad_unit_id` coverage가 낮으면 수익화 실험 선택을 보류하고 이벤트 payload/GA4 materialization 문제를 먼저 이슈화한다.
+4. coverage가 충분하면 placement별 CTR/eCPM, activation/trust guardrail, 관심도 CTA 준비 상태를 함께 보고 하나의 수익화 실험만 선택한다.
 
-## GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리
+## GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리
 
-#16의 현재 경계는 “광고 custom dimension 등록 여부”가 아니라 **같은 이벤트명 아래 섞이는 SDK 자동 이벤트와 앱 custom 이벤트를 분리해서 볼 수 있느냐**다. 다음 template은 code-lane이 이벤트명을 바꾸기 전/후 모두에서 사용할 수 있는 최소 분리 조회 계약이다.
+#16의 현재 경계는 “광고 custom dimension 등록 여부”가 아니라 **publisher surface와 Stopit 앱 custom 이벤트를 따로 해석할 수 있느냐**다. PR #293 이후에는 legacy `ad_impression` / `ad_click` / `ad_revenue`가 아니라 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`를 조회한다.
 
 운영 규칙:
 
 - `publisherAdImpressions` / `publisherAdClicks` / `totalAdRevenue` + `adUnitName` 표는 AdMob/GA4 광고 단위 성과표다.
 - `eventCount` + `customEvent:ad_placement` / `customEvent:ad_unit_id` 표는 `TrackedBannerAd` custom parameter coverage 표다.
 - 두 표를 합산하지 않는다. 첫 번째 표는 수익·노출 source of truth, 두 번째 표는 앱 custom event coverage/source 분리 진단용이다.
-- 앱 custom event coverage를 볼 때는 `customEvent:ad_placement`가 `(not set)` 또는 empty가 아닌 행만 따로 계산한다. 이 비율이 낮으면 placement별 수익화 결론을 보류한다.
+- 앱 custom event coverage를 볼 때는 `customEvent:ad_placement`가 `(not set)` 또는 empty가 아닌 행만 따로 계산한다. PR #293 이후 새 `ad_banner_*` 이벤트명에서도 이 비율이 낮으면 placement별 수익화 결론을 보류한다.
 
 ```python
 # Run inside <repo-root> with the local Analytics service account path.
@@ -278,8 +279,9 @@ run_report('publisher_ad_units_30d', {
     'limit': 50,
 })
 
-# 2) App custom-event coverage: do not use this as revenue source of truth.
-for event_name in ['ad_impression', 'ad_click', 'ad_revenue']:
+# 2) Stopit app custom-event coverage: do not use this as revenue source of truth.
+# PR #293 split these names away from GA4/AdMob automatic ad events.
+for event_name in ['ad_banner_impression', 'ad_banner_click', 'ad_banner_revenue']:
     run_report(f'{event_name}_custom_placement_breakdown_30d', {
         'dateRanges': [{'startDate': '30daysAgo', 'endDate': 'yesterday'}],
         'dimensions': [{'name': 'customEvent:ad_placement'}, {'name': 'customEvent:ad_unit_id'}],
@@ -302,29 +304,29 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
   - publisherAdClicks:
   - totalAdRevenue:
   - `(not set)` + empty `adUnitName`:
-- App custom-event coverage:
-  - `ad_impression` total eventCount:
+- Stopit app custom-event coverage:
+  - `ad_banner_impression` total eventCount:
   - `customEvent:ad_placement` covered eventCount:
   - coverage = covered / total:
-  - `ad_click` covered eventCount:
-  - `ad_revenue` covered eventCount:
+  - `ad_banner_click` covered eventCount:
+  - `ad_banner_revenue` covered eventCount:
 - Decision:
   - [ ] safe to compare placements
   - [ ] mapping/source split must be fixed first
 - Follow-up:
 ```
 
-2026-06-01 template smoke 결과:
+2026-06-01 legacy template smoke 결과:
 
 - 실행: 위 template의 `customEvent:ad_placement` breakdown을 `30daysAgo..yesterday`로 실행.
 - `ad_impression`: total `21,159`, custom-covered `912`, coverage `4.31%`.
 - `ad_click`: total `11`, custom-covered `0`, coverage `0.00%`.
 - `ad_revenue`: total `8,602`, custom-covered `908`, coverage `10.56%`.
-- 판단: 현재 상태는 placement별 CTR/eCPM 결론을 내리기엔 custom coverage가 낮다. 새 광고 실험보다 SDK 자동 이벤트와 앱 custom 이벤트의 이름/필터 분리 또는 query contract 고정이 먼저다.
+- 판단: 이 값은 PR #293 이전 legacy 이벤트명 baseline이다. 새 `ad_banner_*` 이벤트명 배포 후 14일 재조회 전까지는 placement별 CTR/eCPM 결론을 내리지 않는다.
 
-## code-lane handoff: 광고 custom event source 분리
+## code-lane handoff 완료: 광고 custom event source 분리
 
-#16을 다음 실행 lane으로 넘길 때는 아래 계약을 그대로 구현 후보 범위로 사용한다. 핵심은 “수익화 실험”이 아니라 **SDK 자동 광고 이벤트와 앱 custom 광고 이벤트를 분석에서 분리 가능하게 만드는 것**이다.
+#16의 code-lane handoff는 PR #293에서 완료됐다. 아래 계약은 구현 후보가 아니라 **이미 선택된 이벤트명 분리 계약과 이후 측정 gate**로 본다.
 
 ### 문제 계약
 
@@ -333,23 +335,24 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 - 2026-06-01 이전 GA4 breakdown의 낮은 `customEvent:ad_placement` coverage는 같은 이벤트명 아래 SDK 자동 이벤트와 앱 custom event가 섞인 상태에서 관측된 baseline으로만 본다.
 - 따라서 placement별 CTR/eCPM 최적화나 광고 제거 관심도 실험을 진행하기 전에, 배포 후 새 배너 이벤트명 기준으로 14일 재조회해 source split이 실제로 고정됐는지 확인해야 한다.
 
-### 허용되는 해결 방향
+### 선택된 해결 방향
 
-1. **이벤트명 분리(선택됨)**
+1. **이벤트명 분리(선택됨, PR #293 머지)**
    - 앱 custom event를 SDK 자동 이벤트와 충돌하지 않는 이름으로 바꾼다.
    - 선택 이벤트명: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`.
    - `TrackedBannerAd`, 관련 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`, GA4 registration runbook을 같은 PR에서 동기화한다.
-2. **이벤트명 유지 + query contract 고정(보수적 대안)**
+2. **이벤트명 유지 + query contract 고정(더 이상 기본안 아님)**
    - 이벤트명은 유지하되, 모든 운영 쿼리가 `customEvent:ad_placement` / `customEvent:ad_unit_id` present 행만 앱 custom coverage로 해석하도록 고정한다.
    - 이 경우에도 PR body와 문서에 “publisher surface와 앱 custom-event coverage를 합산하지 않는다”를 명시한다.
 
-### 완료 기준
+### 완료 기준 / 남은 gate
 
 - [x] `TrackedBannerAdTest` 또는 동등한 analytics payload 테스트가 impression/click/revenue 이벤트명과 `ad_placement`, `ad_unit_id`, `screen_context`, `ad_format`, `screen_name` payload를 고정한다.
 - [x] `docs/ANALYTICS_EVENT_DICTIONARY.md`가 선택한 이벤트명/필터 계약을 source of truth로 설명한다.
 - [x] `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 새 이벤트명의 custom dimension 조회 방식을 설명한다.
-- [ ] #16 PR/이슈에는 보정 배포 후 14일 재조회 기준이 남는다.
-- [ ] 배포 전에는 `Refs #16`가 맞고, 14일 재조회와 실험 선택까지 끝났을 때만 `Closes #16`를 사용한다.
+- [x] #16 PR/이슈에는 보정 배포 후 14일 재조회 기준이 남는다.
+- [ ] PR #293 포함 버전이 배포된 뒤 14일 창에서 `ad_banner_*` coverage와 placement별 CTR/eCPM을 재조회한다.
+- [ ] 14일 재조회와 guardrail 포함 단일 실험 선택까지 끝났을 때만 `Closes #16`를 사용한다.
 
 ### 검증 권장 명령
 
@@ -357,7 +360,7 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.TrackedBannerAdTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest'
 git diff --check
-rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|customEvent:ad_placement|publisherAdImpressions' docs/ANALYTICS_EVENT_DICTIONARY.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md docs/ADMOB_MONETIZATION_RUNBOOK.md
+rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|customEvent:ad_placement|publisherAdImpressions|PR #293' docs/ANALYTICS_EVENT_DICTIONARY.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md docs/ADMOB_MONETIZATION_RUNBOOK.md
 ```
 
 ## 코드 기준 광고 placement 계약
