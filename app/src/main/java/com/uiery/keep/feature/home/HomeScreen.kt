@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import android.app.Activity
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -106,6 +107,9 @@ fun HomeScreen(
     )
     val haptic = LocalHapticFeedback.current
     var openAlertDialog by remember { mutableStateOf(false) }
+    val syncAccessibilityPermissionDialogState = {
+        openAlertDialog = !hasAccessibilityPermission(context)
+    }
     val noSelectedAppsMessage = stringResource(R.string.select_apps_to_lock)
 
     viewModel.collectSideEffect { effect ->
@@ -129,22 +133,22 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         viewModel.analyticsHomeScreen()
-        if (!hasAccessibilityPermission(context)) {
-            openAlertDialog = true
-        }
+        syncAccessibilityPermissionDialogState()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
-    DisposableEffect(lifecycleOwner, activity) {
+    val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
+    DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                syncAccessibilityPermissionDialogState()
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        observedLifecycle.addObserver(observer)
+        onDispose { observedLifecycle.removeObserver(observer) }
     }
 
     if (openAlertDialog) {

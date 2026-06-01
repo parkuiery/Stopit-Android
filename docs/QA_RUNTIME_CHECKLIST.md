@@ -19,7 +19,7 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), 네 개의 focused `ReceiverRuntimeIntegrationTest` 메서드(boot/package-replaced 재수화 + 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 
 ## 1. 사전 준비
 
@@ -82,6 +82,7 @@ cd <repo-root>
 - focused runtime smoke class/method set:
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+  - `com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions`
@@ -101,6 +102,7 @@ cd <repo-root>
 
 - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
+- `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
@@ -594,6 +596,50 @@ adb logcat -d | grep -E 'KeepAccessibilityService|TestRunner|IPCThreadState|froz
 ```
 
 최근 qa-lane에서는 초기 run에서 `enabled_accessibility_services` 반영 뒤에도 `Bound services:{}` 상태와 `IPCThreadState: Sending oneway calls to frozen process.`가 보이는 bind 경계를 먼저 고정했고, 이후 harness를 보강해 **첫 테스트에서 실제 bind 성공, 후속 테스트에서는 연결 플래그를 유지한 채 emergency unlock safety 시나리오까지 연속 검증**하도록 안정화했다. 다시 유사 실패가 재발하면 PR/이슈 보고에는 **토글 반영과 실제 service bind를 분리해서** 적고, instrumentation assertion/message에도 동일 진단 정보를 남긴다.
+
+### 홈 접근성 권한 경고 재동기화
+
+정확한 권한 판별과 홈 화면 경고 다이얼로그 재동기화는 **자동 exact-match/unit baseline + 자동 settings-resume instrumentation + 필요 시 수동 shell evidence**로 확인한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.util.ContextExtTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest
+```
+
+- `ContextExtTest`: `enabled_accessibility_services`가 패키지 substring만 포함할 때는 실패하고, 실제 `KeepAccessibilityService` component exact match일 때만 통과해야 하며, Android 설정이 short class name(`com.uiery.keep/.service.KeepAccessibilityService`)으로 저장돼도 같은 서비스로 인식해야 함을 고정한다.
+- `HomeAccessibilityPermissionIntegrationTest#fakePackageSubstringStillShowsAccessibilityPermissionDialogOnHome`: returning-user 홈 진입 상태에서 **가짜 package substring 서비스 문자열만 있는 경우에도** 홈 접근성 권한 경고 다이얼로그가 다시 보여야 함을 검증하는 초기 진입 baseline이다.
+- `HomeAccessibilityPermissionIntegrationTest#returningFromAccessibilitySettingsResyncsHomePermissionDialogOnResume`: 접근성 설정 화면으로 나갔다가 `KeepAccessibilityService`를 끄고 돌아오면 홈 `ON_RESUME`에서 경고 다이얼로그가 즉시 다시 나타나야 함을 자동 검증한다.
+- `HomeAccessibilityPermissionIntegrationTest#returningFromAccessibilitySettingsClearsHomePermissionDialogAfterReEnablingService`: 같은 설정 왕복에서 접근성 서비스를 다시 켠 뒤 앱으로 돌아오면 홈 `ON_RESUME`에서 경고 다이얼로그가 즉시 사라져야 함을 자동 검증한다.
+
+필요 시 수동/shell evidence:
+
+1. `IS_NEW=false` 상태(기존 사용자 홈 진입)로 앱을 연다.
+2. Stopit 접근성 권한을 실제로 켠 뒤 홈 화면에서 경고 다이얼로그가 사라진 상태를 확인한다.
+3. 홈에서 접근성 서비스 상세 설정으로 이동한다.
+4. `Stopit/KeepAccessibilityService`를 끄고 앱으로 되돌아온다.
+5. 다시 설정으로 이동해 `Stopit/KeepAccessibilityService`를 켜고 앱으로 되돌아온다.
+
+확인:
+- [ ] 홈으로 복귀한 직후 접근성 권한 경고 다이얼로그가 다시 나타난다.
+- [ ] 접근성 서비스를 다시 켠 뒤 홈으로 복귀하면 경고 다이얼로그가 즉시 사라진다.
+- [ ] `enabled_accessibility_services`에 `com.uiery.keep` substring이 들어 있더라도 실제 component exact match가 아니면 경고가 숨겨지지 않는다.
+- [ ] short class name 형식(`com.uiery.keep/.service.KeepAccessibilityService`)도 동일 서비스로 인식한다.
+- [ ] 홈 접근성 권한 경고가 권한 해제/재허용을 반영해 복귀 직후 최신 상태로 재동기화된다.
+
+권장 evidence:
+
+```bash
+adb shell settings get secure accessibility_enabled
+adb shell settings get secure enabled_accessibility_services
+adb shell dumpsys accessibility | grep -n 'Enabled services\|Bound services' -A1 -B1
+```
+
+- PR/이슈에는 가능하면 홈 복귀 직후 스크린샷 1장과 위 3개 명령의 출력 일부를 함께 남긴다.
 
 ### 시나리오 A — 수동 잠금
 
