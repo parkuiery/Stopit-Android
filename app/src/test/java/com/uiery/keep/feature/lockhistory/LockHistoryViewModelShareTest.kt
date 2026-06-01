@@ -6,8 +6,11 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -67,13 +70,15 @@ class LockHistoryViewModelShareTest {
     fun monthlyHistoryDoesNotExposeSharePayload() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = LockHistoryDaoWithSessions(
+            lockHistoryDao = MonthFetchDelayingLockHistoryDao(
                 listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
             ),
             analytics = analytics,
         )
 
         waitForHistoryLoad(viewModel)
+        assertNotNull(viewModel.container.stateFlow.value.focusSummarySharePayload)
+
         viewModel.selectPeriodType(PeriodType.MONTH)
         waitUntil { viewModel.container.stateFlow.value.periodType == PeriodType.MONTH }
 
@@ -111,7 +116,7 @@ class LockHistoryViewModelShareTest {
     }
 }
 
-private class LockHistoryDaoWithSessions(
+private open class LockHistoryDaoWithSessions(
     private val sessions: List<LockHistoryEntity>,
 ) : LockHistoryDao {
     override suspend fun insert(entity: LockHistoryEntity) = Unit
@@ -125,6 +130,22 @@ private class LockHistoryDaoWithSessions(
 
     override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
         sessions.count { it.startTimestamp >= timestampMillis }
+}
+
+private class MonthFetchDelayingLockHistoryDao(
+    sessions: List<LockHistoryEntity>,
+) : LockHistoryDaoWithSessions(sessions) {
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> {
+        val startDate = Instant.ofEpochMilli(startMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+        val endDate = Instant.ofEpochMilli(endMillis - 1).atZone(ZoneId.systemDefault()).toLocalDate()
+        if (startDate.dayOfMonth == 1 && endDate.dayOfMonth == endDate.lengthOfMonth()) {
+            return flow {
+                delay(500)
+                emit(super.fetchByDateRange(startMillis, endMillis).firstOrNull() ?: emptyList())
+            }
+        }
+        return super.fetchByDateRange(startMillis, endMillis)
+    }
 }
 
 private data class ShareAnalyticsEvent(
