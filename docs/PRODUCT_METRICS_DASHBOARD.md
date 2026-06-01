@@ -104,7 +104,7 @@
 - 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
 - 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
 - activation (`customEvent:permission_name`, `customEvent:source`)과 review (`customEvent:reason`) 분해 쿼리는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
-- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐지만, `ad_impression` / `ad_click` / `ad_revenue` source split과 `(not set)`/empty coverage 때문에 placement별 monetization 결론은 계속 낮은 confidence로 둔다.
+- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 새 이벤트명 포함 버전 배포 후 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다.
 
 주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
