@@ -22,6 +22,7 @@
 | `metrics-context.md` | GA4/Play/수익 지표 정의, 퍼널, 해석 주의사항 | 지표, Metrics, Monetization/Review |
 | `engineering-context.md` | Android 구조, flavor, 테스트/Gradle, 코드 변경 주의사항 | 건강도, 실행, Bug Scout, Tech Debt, Executor |
 | `automation-ops.md` | 현재 Stopit cron topology, live source of truth, issue #18 acceptance mapping | 실행 lane, merge/release controller, 운영 점검 |
+| `context-bundle-protocol.md` | 고정 운영 맥락과 동적 상태를 엮어 역할별 Context Bundle로 넘기는 표준 절차 | 모든 cron 오케스트레이터 |
 | `issue-policy.md` | GitHub Issue 라벨, 제목/본문 형식, 생성 제한, 중복 기준 | 모든 cron/agent |
 | `release-context.md` | 브랜치/PR/CI/Play 배포 guardrail | 실행, Build/Release Maintenance, PR/CI Verifier |
 | `agent-roles.md` | 전문 subagent 역할, 입력, 출력, 금지사항 | 모든 cron 오케스트레이터 |
@@ -91,6 +92,11 @@
 - open PRs
 - CI/check status
 - latest outputs from metrics/health/ideation crons when available
+- #13 같은 analytics/product-metrics 문서 이슈면 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`도 함께 읽어, repo 문서 미정리와 GA4 Admin 미등록 외부 경계를 섞지 않는다.
+
+추가 규칙:
+- `stopit-executor-docs-lane`가 #13/#14/#16/#65처럼 **docs/ops/analytics/product-metrics 성격 이슈**를 다룰 때는 `product-context.md`, `metrics-context.md`도 기본 입력에 포함한다.
+- 이런 문서 lane 작업은 단순 문장 다듬기가 아니라 제품/지표 해석 계약을 고정하는 작업이므로, release/engineering 문맥만 읽고 진행하지 않는다.
 
 ### `stopit-merge-controller`
 

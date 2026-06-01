@@ -25,6 +25,8 @@
 - 안전/잠금/긴급해제/권한/백업/복구 플로우는 신뢰 리스크가 커서 QA 기준을 높게 본다.
 - 실제 Play 배포를 수행하지 않았으면 배포 완료라고 말하지 않는다. tag-triggered CD는 기본적으로 internal track이다.
 - Play deploy secret ownership / helper scope / `GOOGLE_SERVICES_JSON` restore matrix / Firebase Functions promotion secret boundary의 장기 source of truth는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`다.
+- issue #13의 docs/ops 범위는 이벤트 딕셔너리만이 아니라 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger, metadata 증적 포맷, issue/PR handoff까지 포함한다.
+- issue #13은 docs lane 문서화만으로 닫지 않는다. 실제 `customEvent:*` 등록, live metadata/runReport 확인, 배포 후 14일 재측정이 끝나기 전까지는 `Refs #13`과 외부/manual 경계를 명시하는 것이 기본값이다.
 
 ## 업데이트 규칙
 
