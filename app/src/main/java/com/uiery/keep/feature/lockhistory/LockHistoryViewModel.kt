@@ -37,7 +37,14 @@ class LockHistoryViewModel @Inject constructor(
     }
 
     internal fun selectPeriodType(periodType: PeriodType) = intent {
-        reduce { state.copy(periodType = periodType, currentDate = LocalDate.now()) }
+        reduce {
+            state.copy(
+                periodType = periodType,
+                currentDate = LocalDate.now(),
+                selectedDate = null,
+                focusSummarySharePayload = null,
+            )
+        }
         loadHistory()
     }
 
