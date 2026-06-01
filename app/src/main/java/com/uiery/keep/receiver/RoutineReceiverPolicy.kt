@@ -15,6 +15,11 @@ data class PendingRoutineStartNotice(
     val message: String,
 )
 
+data class PendingRoutineStartNoticeDrain(
+    val message: String?,
+    val remainingStoredValue: String?,
+)
+
 data class RoutineScheduleApplication(
     val routines: List<RoutineModel>,
     val disabledRoutineIds: Set<Long>,
@@ -26,7 +31,10 @@ object RoutineReceiverPolicy {
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
     // from Room after boot/restore/alarm entry, never the primary read path.
     fun shouldRestoreRoutinesOnBoot(action: String?): Boolean =
-        action == Intent.ACTION_BOOT_COMPLETED || action == Intent.ACTION_MY_PACKAGE_REPLACED
+        action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED
 
     fun parseRoutineAlarmTrigger(
         action: String?,
@@ -124,5 +132,42 @@ object RoutineReceiverPolicy {
         notificationResult != RoutineStartNotificationResult.PermissionDenied -> null
         fallbackMessage.isBlank() -> null
         else -> PendingRoutineStartNotice(message = fallbackMessage)
+    }
+
+    fun enqueuePendingRoutineStartNotice(
+        storedValue: String?,
+        notice: PendingRoutineStartNotice,
+    ): String? = encodePendingRoutineStartNotices(
+        decodePendingRoutineStartNotices(storedValue) + notice.message,
+    )
+
+    fun drainNextPendingRoutineStartNotice(storedValue: String?): PendingRoutineStartNoticeDrain {
+        val notices = decodePendingRoutineStartNotices(storedValue)
+        val message = notices.firstOrNull()
+        val remaining = notices.drop(1)
+        return PendingRoutineStartNoticeDrain(
+            message = message,
+            remainingStoredValue = encodePendingRoutineStartNotices(remaining),
+        )
+    }
+
+    fun decodePendingRoutineStartNotices(storedValue: String?): List<String> {
+        if (storedValue.isNullOrBlank()) {
+            return emptyList()
+        }
+
+        return runCatching {
+            Json.decodeFromString<List<String>>(storedValue)
+        }.getOrElse {
+            listOf(storedValue)
+        }.filter { it.isNotBlank() }
+    }
+
+    fun encodePendingRoutineStartNotices(notices: List<String>): String? {
+        val normalized = notices.filter { it.isNotBlank() }
+        if (normalized.isEmpty()) {
+            return null
+        }
+        return Json.encodeToString(normalized)
     }
 }

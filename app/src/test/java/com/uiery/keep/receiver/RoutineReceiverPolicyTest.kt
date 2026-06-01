@@ -14,9 +14,11 @@ import org.junit.Test
 class RoutineReceiverPolicyTest {
 
     @Test
-    fun shouldRestoreRoutinesOnBootReturnsTrueForBootCompletedAndMyPackageReplacedActions() {
+    fun shouldRestoreRoutinesOnBootReturnsTrueForBootPackageAndClockChangeActions() {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_BOOT_COMPLETED))
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_MY_PACKAGE_REPLACED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIME_CHANGED))
+        assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIMEZONE_CHANGED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
     }
 
@@ -253,6 +255,61 @@ class RoutineReceiverPolicyTest {
                 fallbackMessage = "  ",
             ),
         )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticePreservesExistingNoticeOrder() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf("Morning focus started", "Lunch focus started"),
+            ),
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Morning focus started",
+                "Lunch focus started",
+                "Evening focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeKeepsLegacySingleMessageBeforeNewNotice() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = "Morning focus started",
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf("Morning focus started", "Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeReturnsFirstNoticeAndRemainder() {
+        val storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+            listOf("Morning focus started", "Evening focus started"),
+        )
+
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(storedValue)
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(
+            listOf("Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(drain.remainingStoredValue),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeClearsStoredValueAfterLastNotice() {
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice("Morning focus started")
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(null, drain.remainingStoredValue)
     }
 
     @Test

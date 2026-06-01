@@ -54,9 +54,9 @@
 | 레이어 | 지표 | 정의 | 데이터 소스 | 해석 |
 |---|---|---|---|---|
 | North Star | 주간 활성 차단 사용자 | 7일 내 `app_block_intercepted` 1회 이상 사용자 | GA4/Firebase | 핵심 가치 전달 규모 |
-| Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목 |
+| Input | 첫 잠금 설정률 | `first_lock_configured` users / `first_open` users | GA4 | 신규 활성화 병목. 온보딩/홈 출처 모두 `selected_app_count >= 1` 이후만 유효 |
 | Input | 첫 핵심 행동 완료율 | `first_core_action_completed` users / `first_open` users | GA4 | 첫 가치 경험률 |
-| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환 |
+| Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환. `selected_app_count >= 1` 계약을 전제로 해석 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
@@ -67,11 +67,11 @@
 | Business | 광고 eCPM | `totalAdRevenue` / impressions × 1000 | GA4/AdMob | 광고 효율 |
 | Business | 광고 CTR | clicks / impressions | GA4/AdMob | 광고 반응 |
 | Acquisition | 신규 사용자 | `newUsers` | GA4 | 성장 흐름 |
-| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` | GA4 | ASO 효과 |
+| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용 |
 
 ## 현재 기준선
 
-2026-05-23 분석 기준 최근 30일:
+### 2026-05-23 최근 30일 제품/비즈니스 기준선
 
 | 지표 | 값 |
 |---|---:|
@@ -79,9 +79,7 @@
 | total users | 507 |
 | new users | 202 |
 | sessions | 4,681 |
-| screen views | 23,191 |
 | engagement rate | 61.4% |
-| `unifiedScreenName = (not set)` | 19,003 views |
 | total ad revenue | $2.168155 |
 | publisher ad impressions | 18,731 |
 | publisher ad clicks | 12 |
@@ -89,7 +87,26 @@
 | `first_lock_configured` users | 41 |
 | `app_block_intercepted` users | 121 |
 
-주의: 이 기준선은 고정값이 아니라 예시다. 다음 분석 시 GA4에서 새로 조회해야 한다.
+### 2026-05-29 최근 14일 screen 품질 / queryability 기준선
+
+| 지표 | 값 |
+|---|---:|
+| total `screen_view` | 13,154 |
+| `(not set)` `unifiedScreenName` | 9,473 |
+| blank `unifiedScreenName` | 801 |
+| combined screen quality gap | `10,274 / 13,154 = 78.1%` |
+| 2026-05-29 metadata에서 확인된 custom dimension | `customUser:routines_count` |
+| 2026-05-29 metadata에서 확인된 `customEvent:*` | 없음 |
+| 2026-06-01 광고 metadata 보정 | `ad_unit_id`, `ad_placement`, `screen_context`, `ad_format`, `ad_value_micros`, `screen_name` 등록 확인 |
+
+대표 해석:
+
+- 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
+- 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
+- activation (`customEvent:permission_name`, `customEvent:source`)과 review (`customEvent:reason`) 분해 쿼리는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
+- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐지만, `ad_impression` / `ad_click` / `ad_revenue` source split과 `(not set)`/empty coverage 때문에 placement별 monetization 결론은 계속 낮은 confidence로 둔다.
+
+주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
 ## 핵심 퍼널
 
@@ -142,7 +159,10 @@
 - 단기 실행은 `GA4 계측 품질 개선`과 `Play Store ASO 개선`이 가장 안전하다.
 - `첫 잠금 활성화 개선`은 임팩트가 크지만 계측 정리 후 더 정확히 설계하는 편이 좋다.
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
+- 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
+- 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata만 일부 복구 확인됐다. 따라서 현재 #14류 activation/review 세부 파라미터는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
+- 2026-06-01 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
 
 ## 성장 루프 후보
 
@@ -153,6 +173,7 @@
 - 유입 경로: 공유 카드 → Play Store 링크.
 - 리스크: 사용자의 집중/중독 문제가 민감할 수 있으므로 공유는 완전 선택형이어야 한다.
 - 지표: 공유 클릭률, 공유 후 설치, 공유 사용자의 유지율.
+- 실행 계약: `docs/FOCUS_SUMMARY_SHARE_MVP.md`, issue #211
 
 ### 2. 루틴 템플릿 공유 루프
 
@@ -189,7 +210,7 @@
   - 권한 미허용 시 기존 차단/타이머/루틴 가치가 훼손되지 않아야 한다.
   - 민감한 앱 이름 노출과 감시 느낌을 피해야 한다.
   - 허용률/추천 클릭률뿐 아니라 `first_lock_configured`, `app_block_intercepted`, review/rating 악화 여부를 같이 본다.
-- 상세 계약: `docs/USAGE_STATS_PERSONALIZATION_MVP.md`, issue #82
+- 상세 계약: `docs/USAGE_STATS_PERSONALIZATION_MVP.md`, issue #119. 기존 #82는 아이디어 정리 이력이고, 현재 실행 판단은 #119 discovery gate가 관리한다.
 
 ## 수익화 실험 후보
 
@@ -263,11 +284,15 @@
 - #14 첫 잠금 활성화 퍼널 개선
 - #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
-- #17 리뷰 프롬프트 생애주기 개선
-- #82 사용정보 기반 개인화 솔루션과 사용 리포트 제공 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조)
+- #17 리뷰 프롬프트 생애주기 개선 (`docs/REVIEW_PROMPT_LIFECYCLE.md` 참조)
+- #119 Usage Access 선택형 개인화 discovery gate (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조; #82는 기존 아이디어 정리 이력)
+- #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
 ## 관련 실행 문서
 
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷 포함
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 activation 퍼널 canonical 계약, CTA, queryability guardrail
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
-- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #82용 Usage Access 범위, 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일
+- `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, queryability guardrail
+- `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일, QA evidence, child issue 분리 기준 포함.

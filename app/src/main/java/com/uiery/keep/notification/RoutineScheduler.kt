@@ -56,7 +56,6 @@ class RoutineScheduler @Inject constructor(
     }
 
     fun scheduleRoutine(routine: RoutineModel): RoutineScheduleResult {
-        Log.d("TEST", "scheduleRoutine: $routine")
         if (!routine.isEnabled) {
             cancelRoutine(routine.id)
             return RoutineScheduleResult.NotEnabled

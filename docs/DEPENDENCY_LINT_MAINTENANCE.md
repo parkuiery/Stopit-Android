@@ -28,17 +28,12 @@
 
 주의:
 
-- 이 저장소는 버전 카탈로그를 **원칙적인 source of truth**로 두지만, 아직 모든 의존성이 TOML alias로 완전히 통일된 것은 아니다.
-- 2026-05-29 기준으로 direct version drift의 실제 잔여 위치는 `app`보다 `core:kds` 쪽이 더 중요하다.
-  - `core/kds/build.gradle.kts`
-    - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1`
-    - `com.google.android.gms:play-services-ads:23.0.0`
-    - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3`
-- 반면 `gradle/libs.versions.toml`에는 이미 아래 alias가 존재한다.
-  - `kotlinx-datetime`
-  - `google-play-services-ads`
-- 즉 `kotlinx-datetime` / `play-services-ads`는 catalog entry가 있는데도 `core/kds/build.gradle.kts`에 direct string이 남은 상태다.
-- `lifecycle-runtime-compose`는 현재 catalog alias 자체가 없으므로, direct version을 유지할지 아니면 새 alias를 추가할지 maintenance batch에서 함께 판단해야 한다.
+- 이 저장소는 버전 카탈로그를 **원칙적인 source of truth**로 둔다.
+- 2026-06-01 기준 `core/kds/build.gradle.kts`의 기존 direct version drift는 catalog alias로 이동됐다.
+  - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1` → `libs.kotlinx.datetime`
+  - `com.google.android.gms:play-services-ads:23.0.0` → `libs.google.play.services.ads`
+  - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3` → `libs.androidx.lifecycle.runtime.compose`
+- `gradle/libs.versions.toml`에는 위 세 의존성의 alias가 모두 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 재유입을 막는다.
 - 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, 최소한 `app/build.gradle.kts`와 `core/kds/build.gradle.kts`를 같이 확인해야 한다.
 
 ### version catalog 정책 메모
@@ -135,8 +130,7 @@
 이번 배치 후에도 남겨둔 defer 항목:
 
 - `Room 2.7.1 -> 2.8.4`: KSP/annotation processing 회귀 확인이 필요하므로 별도 좁은 배치 권장
-- `core:kds`의 `play-services-ads 23.0.0 -> catalog alias 전환 (+ 필요 시 버전 업그레이드 분리)`: 수익화/런타임 QA 범위가 커서 별도 검토 권장
-- `core:kds`의 `lifecycle-runtime-compose 2.9.3`: catalog alias 신설 여부와 Compose/Lifecycle stack 정합성 검토 필요
+- `core:kds`의 `play-services-ads 23.0.0` / `lifecycle-runtime-compose 2.9.3`: catalog alias 전환은 완료됐지만, 실제 버전 업그레이드는 수익화/런타임 QA 범위가 커서 별도 검토 권장
 - `AGP`, `Kotlin`, `Compose`, `Lifecycle`, `Activity`, `Material`, `Navigation` 등 coordinated stack 계열
 
 ## 권장 업그레이드 순서
@@ -217,6 +211,51 @@ cd <repo-root>
 - `NewerVersionAvailable`는 “당장 버그”가 아니라 유지보수 backlog 신호다.
 - `ObsoleteLintCustomCheck`는 lint check JAR/runtime 조합 점검 이슈로 본다.
 - 제품 위험 lint는 dependency batch와 분리해서 우선순위를 다시 매긴다.
+
+### Navigation/Compose custom lint 복구 절차 (`#156` 유형)
+
+Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires newer lint; these checks will be skipped!`로 빠질 때는, lint report green 자체를 신뢰하지 말고 **lint runtime 복구 → 실제 rule 발화 확인 → 제품 lint 정리** 순서로 본다.
+
+현재 Stopit에서 재현/복구가 확인된 조합은 아래다.
+
+- AGP: `8.10.1`
+- Gradle wrapper: `8.11.1`
+- Kotlin: `2.1.10` 유지
+- Navigation Compose: `2.8.9` 유지
+
+검증 순서:
+
+1. baseline RED
+   `./gradlew :app:lintDevDebug` 후 `app/build/reports/lint-results-devDebug.txt`에서 아래 문자열이 있는지 확인한다.
+   - `ObsoleteLintCustomCheck`
+   - `Requires newer lint; these checks will be skipped!`
+   - `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType`가 “skipped issue 목록”에만 있고 실제 오류/경고로는 안 잡히는지
+2. runtime 복구 후 GREEN
+   같은 명령을 다시 돌린 뒤 아래 자동 verifier를 통과시켜 “skip 문자열 없음 + navigation registry/issue id 포함”을 함께 확인한다.
+
+   ```bash
+   cd <repo-root>
+   ./gradlew :app:lintDevDebug
+   python3 scripts/verify_lint_registry.py \
+     --report app/build/reports/lint-results-devDebug.html \
+     --require-section "Included Additional Checks" \
+     --require-identifier androidx.navigation.common \
+     --require-identifier androidx.navigation.compose \
+     --require-identifier androidx.navigation.runtime \
+     --require-issue-id MissingSerializableAnnotation \
+     --require-issue-id MissingKeepAnnotation \
+     --require-issue-id WrongNavigateRouteType \
+     --forbid-text "Requires newer lint; these checks will be skipped!" \
+     --forbid-text ObsoleteLintCustomCheck
+   ```
+
+   이 verifier는 `scripts/tests/test_verify_lint_registry.py` fixture RED/GREEN과 함께 유지한다. PR fast verification에서는 `app/build/reports/lint-results-devDebug.html`을, release QA에서는 `app/build/reports/lint-results-prodRelease.html`을 같은 기준으로 검사해 dev green과 release green이 모두 "navigation lint registry 포함 green"인지 확인한다.
+3. 실제 rule 발화 probe (선택적 심화 검증)
+   type-safe destination 하나에서 `@Serializable`을 **임시로 제거한 뒤** `./gradlew :app:lintDevDebug`를 다시 돌려 `MissingSerializableAnnotation from androidx.navigation.compose`가 실제 에러로 잡히는지 확인하고, 즉시 원복한다.
+4. 제품 lint 정리
+   runtime 복구 후 새로 surfaced 되는 Compose/Android lint를 해결한다. 이번 복구에서는 `LocalContextConfigurationRead`가 새로 드러났고, `LocalConfiguration.current`로 바꿔 lint green을 회복했다.
+
+이 순서를 거치지 않으면 “skip warning만 줄었다”와 “실제로 navigation lint가 복구됐다”를 구분할 수 없다. 이제 Android CI fast verification과 release QA full-release gate가 모두 같은 verifier를 실행하므로, 향후 회귀가 나면 PR 단계와 release gate 양쪽에서 바로 막히는 형태를 기본값으로 본다.
 
 ## 후속 maintenance PR에 남겨야 할 evidence
 

@@ -89,7 +89,7 @@
 | `emergency_unlock_expire_time` | 긴급해제 만료 시각 | 복원 안 함 |
 | `emergency_unlock_enabled` | 긴급해제 진행 여부 | 복원 안 함 |
 | `routines` | receiver/service 호환성용 루틴 JSON 캐시(비권위) | 복원 안 함 |
-| `fcm_token` | FCM 등록 토큰 | 복원 안 함 |
+| `fcm_token` | FCM token 로컬 저장 값(백엔드 device registration 아님) | 복원 안 함 |
 | `has_tracked_first_open` | 분석 플래그 | 복원 안 함 |
 | `has_tracked_first_lock_configured` | 분석 플래그 | 복원 안 함 |
 | `first_open_timestamp` | 분석 기준 시각 | 복원 안 함 |
@@ -159,10 +159,11 @@
 
 ### 시나리오 C — 리뷰/토큰/분석 재초기화
 1. 복원 후 앱 실행
-2. FCM 등록/리뷰 프롬프트/최초 실행 관련 흐름 확인
+2. FCM token 로컬 저장/리뷰 프롬프트/최초 실행 관련 흐름 확인
 
 확인:
-- [ ] 새 기기에서 FCM token이 정상 재생성된다.
+- [ ] 새 기기에서 FCM token이 정상 재생성되고 로컬 DataStore에 다시 저장된다.
+  - 이 확인은 제거된 backend device registration 성공을 의미하지 않는다. token 저장과 registration 이벤트 해석 경계는 `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`를 따른다.
   - 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
   - 수동 evidence 형식은 `docs/QA_RUNTIME_CHECKLIST.md`의 `FCM token regeneration evidence` 템플릿을 따른다.
 - [ ] 리뷰 프롬프트가 복원 직후 부자연스럽게 즉시 뜨지 않는다.
