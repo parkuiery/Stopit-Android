@@ -50,8 +50,8 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
-      - name: Run lint registry verifier unit tests
-        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
+      - name: Run static policy unit tests
+        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
 
       - name: Run full release JVM and build QA
         run: |
