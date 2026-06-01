@@ -148,4 +148,6 @@
     <string name="first_lock_activation_cta_title">¿Probamos tu primer bloqueo?</string>
     <string name="first_lock_activation_cta_description">Ya elegiste apps. Activa StopIt ahora para sentir el bloqueo.</string>
     <string name="first_lock_activation_cta_action">Iniciar</string>
+    <string name="first_lock_keep_started_guidance">StopIt está activado. Abre una app seleccionada para confirmar el primer bloqueo.</string>
+    <string name="first_lock_timer_scheduled_guidance">Tu primer bloqueo está programado. Cuando llegue la hora, abre una app seleccionada para confirmarlo.</string>
 </resources>

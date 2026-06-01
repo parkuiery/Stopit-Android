@@ -149,4 +149,6 @@
     <string name="first_lock_activation_cta_title">Bereit für deine erste Sperre?</string>
     <string name="first_lock_activation_cta_description">Du hast Apps ausgewählt. Schalte StopIt jetzt ein und erlebe die Sperre.</string>
     <string name="first_lock_activation_cta_action">Starten</string>
+    <string name="first_lock_keep_started_guidance">StopIt ist aktiviert. Öffne eine ausgewählte App, um die erste Blockierung zu bestätigen.</string>
+    <string name="first_lock_timer_scheduled_guidance">Deine erste Sperre ist geplant. Öffne zur geplanten Zeit eine ausgewählte App, um die Blockierung zu bestätigen.</string>
 </resources>

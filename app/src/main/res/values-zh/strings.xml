@@ -149,4 +149,6 @@
     <string name="first_lock_activation_cta_title">要试试第一次锁定吗？</string>
     <string name="first_lock_activation_cta_description">你已经选择了应用。现在开启 StopIt，体验真正的拦截。</string>
     <string name="first_lock_activation_cta_action">开始</string>
+    <string name="first_lock_keep_started_guidance">StopIt 已开启。打开一个已选择的应用即可确认首次拦截。</string>
+    <string name="first_lock_timer_scheduled_guidance">首次锁定已预约。到时间后打开已选择的应用即可确认拦截。</string>
 </resources>

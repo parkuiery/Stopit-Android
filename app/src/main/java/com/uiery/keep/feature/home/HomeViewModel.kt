@@ -54,7 +54,10 @@ class HomeViewModel
             getSelectedApp()
         }
 
-        internal fun changeIsKeep(noSelectedAppsMessage: String? = null) =
+        internal fun changeIsKeep(
+            noSelectedAppsMessage: String? = null,
+            firstLockStartedMessage: String? = null,
+        ) =
             intent {
                 val isKeep = !state.isKeep
                 if (isKeep && state.selectedAppPackage.isEmpty()) {
@@ -73,7 +76,17 @@ class HomeViewModel
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
                     if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)) {
-                        reduce { state.copy(showFirstLockActivationCta = false) }
+                        if (!firstLockStartedMessage.isNullOrBlank()) {
+                            postSideEffect(HomeSideEffect.ShowSnackBar(firstLockStartedMessage))
+                            reduce {
+                                state.copy(
+                                    showFirstLockActivationCta = false,
+                                    snackbarMessage = firstLockStartedMessage,
+                                )
+                            }
+                        } else {
+                            reduce { state.copy(showFirstLockActivationCta = false) }
+                        }
                     }
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
@@ -330,7 +343,10 @@ class HomeViewModel
                 reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
             }
 
-        internal fun lockTime(noSelectedAppsMessage: String? = null) =
+        internal fun lockTime(
+            noSelectedAppsMessage: String? = null,
+            firstLockScheduledMessage: String? = null,
+        ) =
             intent {
                 if (state.selectedAppPackage.isEmpty()) {
                     reduce {
@@ -359,7 +375,17 @@ class HomeViewModel
                         .toMillis()
                         .coerceAtLeast(0L)
                 if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
-                    reduce { state.copy(showFirstLockActivationCta = false) }
+                    if (!firstLockScheduledMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(firstLockScheduledMessage))
+                        reduce {
+                            state.copy(
+                                showFirstLockActivationCta = false,
+                                snackbarMessage = firstLockScheduledMessage,
+                            )
+                        }
+                    } else {
+                        reduce { state.copy(showFirstLockActivationCta = false) }
+                    }
                 }
                 analytics.trackLockScheduled(
                     scheduleType = if (state.countdownDays > 0) {
