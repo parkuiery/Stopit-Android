@@ -36,6 +36,8 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
     8. `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 - [ ] Android Release Build passes and produces a signed AAB artifact.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
+- [ ] Play deploy secret/setup contract was reviewed against `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`; if Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed, attach `scripts/check-play-deploy-secret-contract.sh` evidence.
+- [ ] `GOOGLE_SERVICES_JSON` restore expectations are not restated ad hoc in the PR: Android CI / Release QA use the runbook's dev+prod restore matrix, while Release Build / Play Deploy use the prod-only restore path.
 - [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; release PR evidence distinguishes Android CI의 focused runtime smoke와 release exact alarm/runtime gate를 separate layers로 기록한다.
 - [ ] Automated runtime evidence is explicit in the PR body:
   - Android CI focused runtime smoke (PR/manual):
