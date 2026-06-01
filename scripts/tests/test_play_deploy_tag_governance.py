@@ -8,6 +8,7 @@ PLAY_DOC_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 GIT_WORKFLOW_DOC_PATH = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CHECKLIST_PATH = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT_PATH = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+FUNCTIONS_README_PATH = REPO_ROOT / "functions" / "README.md"
 
 
 class PlayDeployTagGovernanceTest(unittest.TestCase):
@@ -81,6 +82,26 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("manual `workflow_dispatch`", doc)
         self.assertIn("SemVer tag ref", doc)
         self.assertIn("branch ref", doc)
+
+    def test_play_deploy_production_track_uses_github_environment_gate(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("environment:", workflow)
+        self.assertIn("inputs.track == 'production'", workflow)
+        self.assertIn("production", workflow)
+        self.assertIn("play-deploy-non-production", workflow)
+
+    def test_docs_explain_production_environment_required_reviewer_gate(self):
+        docs = "\n--- docs/PLAY_DEPLOYMENT.md ---\n" + PLAY_DOC_PATH.read_text()
+        docs += "\n--- docs/GIT_WORKFLOW.md ---\n" + GIT_WORKFLOW_DOC_PATH.read_text()
+        docs += "\n--- docs/RELEASE_CHECKLIST.md ---\n" + RELEASE_CHECKLIST_PATH.read_text()
+        docs += "\n--- docs/ops/stopit/release-context.md ---\n" + RELEASE_CONTEXT_PATH.read_text()
+        docs += "\n--- functions/README.md ---\n" + FUNCTIONS_README_PATH.read_text()
+
+        self.assertIn("GitHub Environment", docs)
+        self.assertIn("production", docs)
+        self.assertIn("required reviewer", docs)
+        self.assertIn("Discord", docs)
 
 
 if __name__ == "__main__":
