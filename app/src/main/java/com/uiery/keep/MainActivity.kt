@@ -18,6 +18,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.uiery.keep.util.AppLogger
 import com.uiery.kds.theme.KeepTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,7 +31,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        MobileAds.initialize(this)
+        window.decorView.post {
+            lifecycleScope.launch {
+                delay(MobileAdsDeferredStartupDelayMillis)
+                if (shouldStartMobileAdsForActivity(isFinishing, isDestroyed)) {
+                    MobileAds.initialize(applicationContext)
+                }
+            }
+        }
 
         enableEdgeToEdge()
         setContent {
