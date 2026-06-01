@@ -2,6 +2,7 @@ package com.uiery.keep.feature.lockhistory
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.model.toModel
@@ -31,6 +32,7 @@ class LockHistoryViewModel @Inject constructor(
         container(LockHistoryUiState())
 
     init {
+        analytics.logScreenView(KeepAnalyticsScreen.LOCK_HISTORY)
         loadHistory()
     }
 

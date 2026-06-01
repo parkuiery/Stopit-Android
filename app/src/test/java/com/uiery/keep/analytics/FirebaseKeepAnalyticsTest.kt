@@ -350,7 +350,7 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
         assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
-        assertEquals("HistoryScreen", KeepAnalyticsScreen.HISTORY)
+        assertEquals("LockHistoryScreen", KeepAnalyticsScreen.LOCK_HISTORY)
         assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)

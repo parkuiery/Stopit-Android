@@ -20,7 +20,7 @@
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/history/HistoryViewModelTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -29,7 +29,7 @@
 | --- | --- | --- |
 | 홈 | `HomeScreen` | `HomeViewModel` |
 | 메뉴 | `MenuScreen` | `MenuViewModel` |
-| 히스토리 | `HistoryScreen` | `HistoryViewModel` |
+| 잠금 히스토리(히스토리 도메인의 canonical surface) | `LockHistoryScreen` | `LockHistoryViewModel` |
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |

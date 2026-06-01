@@ -54,7 +54,6 @@ fun MenuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
-    onNavigateHistory: () -> Unit,
     onNavigateLockHistory: () -> Unit,
     onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
@@ -124,11 +123,6 @@ fun MenuScreen(
                 icon = R.drawable.ic_routine,
                 title = stringResource(id = R.string.routine),
                 onClick = onNavigateRoutine,
-            )
-            MenuItem(
-                icon = R.drawable.ic_history,
-                title = stringResource(id = R.string.view_keep_usage_history),
-                onClick = onNavigateHistory,
             )
             MenuItem(
                 icon = R.drawable.ic_local_history,
