@@ -112,6 +112,11 @@ class HomeViewModel
                         sheetVisible = state.isShowTimeBottomSheet,
                     )
                 }
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (!pendingMessage.isNullOrBlank()) {
+                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    reduce { state.copy(snackbarMessage = pendingMessage) }
+                }
             }
 
         internal fun hideTimeBottomSheet() =
@@ -121,6 +126,11 @@ class HomeViewModel
                         isShowTimeBottomSheet = false,
                         sheetVisible = state.isShowCategoryBottomSheet,
                     )
+                }
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (!pendingMessage.isNullOrBlank()) {
+                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    reduce { state.copy(snackbarMessage = pendingMessage) }
                 }
             }
 
@@ -149,15 +159,21 @@ class HomeViewModel
 
         internal fun maybeDrainRoutineStartNotice() =
             intent {
-                val prefs = dataStore.data.firstOrNull()
-                val pendingMessage = prefs?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (pendingMessage.isNullOrBlank()) return@intent
-                if (state.sheetVisible) return@intent
 
-                dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
                 postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
                 reduce { state.copy(snackbarMessage = pendingMessage) }
             }
+
+        private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
+            val pendingMessage = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+            if (pendingMessage.isNullOrBlank()) return null
+            if (sheetVisible) return null
+
+            dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
+            return pendingMessage
+        }
 
         internal fun moveToLock() =
             intent {
