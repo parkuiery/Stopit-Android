@@ -43,7 +43,9 @@
 
 현재 흐름:
 
-1. `LockViewModel`이 성공 세션 종료 시 `SUCCESSFUL_SESSION_COUNT`를 증가시킨다.
+1. `LockViewModel`이 성공 세션 종료 시 `SUCCESSFUL_SESSION_COUNT`를 증가시킨다. 루틴 세션은 첫 차단 앱 진입 시각이 아니라 **현재 활성 루틴 창의 실제 시작 시각**을 세션 anchor로 사용한다.
+   - 반대로 홈 타이머 세션은 사용자가 타이머를 시작한 시각(`timerStartTime`)을 anchor로 유지한다.
+   - 즉, 루틴 경로는 “이미 진행 중인 루틴 창에 늦게 진입해도 실제 루틴 시작 시각으로 회귀해야 한다”는 계약이고, 홈 타이머 경로는 사용자가 직접 시작한 countdown 세션 anchor를 유지하는 별도 계약이다.
 2. `ReviewEligibilityEvaluator.evaluate(...)`가 사전 조건을 검사한다.
 3. 결과가 `Eligible`이면:
    - `REVIEW_PENDING = true`
