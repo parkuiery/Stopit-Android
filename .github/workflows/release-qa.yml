@@ -3,7 +3,8 @@ name: Android Release QA
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    # Include edited so develop -> main retargets materialize release gates without a new commit.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_dispatch:
 
 permissions:
