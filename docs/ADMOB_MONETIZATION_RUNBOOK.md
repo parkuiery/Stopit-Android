@@ -60,14 +60,26 @@ issue #16에 기록된 최근 30일 기준선:
 
 ## 현재 #13 / #16 queryability 경계
 
-2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 GA4 Admin에 등록되지 않은 상태로 보였다.
+#16의 광고/수익화 경계는 2026-06-01 preflight와 PR #293 이후 다음 상태로 해석한다.
 
-- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
-- monetization smoke (`ad_impression` / `ad_click` / `ad_revenue` by `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_unit_id`):
-  - `400 INVALID_ARGUMENT`
-  - `Field customEvent:ad_placement is not a valid dimension.`
+- 광고 관련 GA4 custom dimensions/metrics는 metadata에서 등록 확인됨:
+  - `customEvent:ad_unit_id`
+  - `customEvent:ad_placement`
+  - `customEvent:screen_context`
+  - `customEvent:ad_format`
+  - `customEvent:ad_value_micros`
+  - `customEvent:screen_name`
+- PR #293에서 Stopit 앱 소유 배너 이벤트명은 GA4/AdMob SDK 자동 이벤트와 분리됨:
+  - `ad_banner_impression`
+  - `ad_banner_click`
+  - `ad_banner_revenue`
+- 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **PR #293 포함 버전 배포 후 새 `ad_banner_*` 이벤트명 기준 14일 coverage 재조회와 단일 실험 선택**이다.
 
-2026-06-01 preflight에서는 광고 관련 custom dimensions/metrics가 metadata에 등록된 것으로 확인됐다. 이후 PR #293에서 Stopit 앱 소유 배너 이벤트명이 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **새 이벤트명 배포 후 14일 coverage 재조회와 단일 실험 선택**이다.
+이전 참고값:
+
+- 2026-05-29 live 확인에서는 `customUser:routines_count`만 보이고 광고 `customEvent:*` smoke query도 `400 INVALID_ARGUMENT`로 실패했다.
+- 2026-06-01 preflight에서 이 광고 축은 등록 확인 상태로 보정됐으므로, 이 오래된 진단을 #16의 현재 blocker로 다시 사용하지 않는다.
+- activation/review용 `customEvent:*` registration gap은 여전히 #13 경계로 남아 있으므로, 광고 preflight 결과를 전체 GA4 queryability 회복으로 확대 해석하지 않는다.
 
 추가 주의:
 
@@ -194,7 +206,7 @@ issue #16에 기록된 최근 30일 기준선:
 
 해석:
 
-- 광고 관련 custom dimension/metric은 이제 GA4 metadata에 등록되어 있다. 따라서 #16의 다음 repo-internal/ops 작업은 단순 “GA4 Admin 등록”이 아니라, **같은 이벤트명(`ad_impression`, `ad_click`, `ad_revenue`)으로 들어오는 SDK 자동 수집 이벤트와 앱 custom 이벤트를 어떻게 분리/명명/집계할지 결정하는 것**이다.
+- 광고 관련 custom dimension/metric은 이제 GA4 metadata에 등록되어 있고, PR #293에서 Stopit 앱 custom 이벤트 이름도 `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`로 이미 분리됐다. 따라서 #16의 다음 repo-internal/ops 작업은 “GA4 Admin 광고 축 등록”이나 “이벤트명 분리 결정”이 아니라, **배포 후 14일 창에서 새 이벤트명의 coverage와 placement별 CTR/eCPM을 재조회해 단일 실험을 선택할 수 있는지 판단하는 것**이다.
 - 현재 `publisherAdImpressions` 기준 `adUnitName` 표와 앱 custom event 기준 `customEvent:ad_placement` 표를 같은 표처럼 합치면 안 된다. 전자는 AdMob/GA4 광고 단위 표시명 중심이고, 후자는 `TrackedBannerAd`가 직접 붙인 custom parameter 중심이다.
 - `ad_click`이 모두 `(not set)`으로 조회된 것은 클릭 이벤트가 앱 custom event 파라미터 없이 들어오거나, 앱 custom click 이벤트가 SDK 자동 이벤트와 같은 이름으로 섞여서 dimension 해석이 희석됐을 가능성을 시사한다.
 
