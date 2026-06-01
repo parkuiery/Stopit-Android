@@ -1,7 +1,6 @@
 package com.uiery.keep
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.messaging.FirebaseMessaging
+import com.uiery.keep.util.AppLogger
 import com.uiery.kds.theme.KeepTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
         }
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
-                Log.d("MainActivity", task.exception.toString(), task.exception)
+                AppLogger.debug("MainActivity", task.exception.toString(), task.exception)
                 return@addOnCompleteListener
             }
             lifecycleScope.launch {

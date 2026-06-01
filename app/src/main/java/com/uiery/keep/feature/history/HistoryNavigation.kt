@@ -1,27 +1,16 @@
 package com.uiery.keep.feature.history
 
 import androidx.navigation.NavController
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
-import androidx.navigation.compose.composable
-import kotlinx.serialization.Serializable
+import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 
-@Serializable
-data object HistoryRoute
-
+/**
+ * Legacy history callers are intentionally routed to the canonical lock-history surface.
+ * The top-level app graph no longer registers a separate History route.
+ */
 fun NavController.navigateToHistory(
     navOptions: NavOptions? = null,
 ) = navigate(
-    route = HistoryRoute,
+    route = LockHistoryRoute,
     navOptions = navOptions,
 )
-
-fun NavGraphBuilder.historyScreen(
-    onNavigateBack: () -> Unit,
-) {
-    composable<HistoryRoute> {
-        HistoryScreen(
-            onNavigateBack = onNavigateBack,
-        )
-    }
-}

@@ -81,6 +81,8 @@
     <string name="lock_history_routine_session">Rutina</string>
     <string name="lock_history_manual_session">Manual</string>
     <string name="lock_history_no_records">No hay historial de bloqueo para este período</string>
+    <string name="lock_history_focus_share_button">Compartir el registro de concentración de esta semana</string>
+    <string name="lock_history_focus_share_sheet_title">Compartir registro de concentración de StopIt</string>
     <string name="lock_history_top_apps_title">Apps más bloqueadas</string>
     <string name="lock_history_block_count">%1$d veces</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
@@ -142,4 +144,7 @@
     <string name="emergency_unlock_notification_channel_description">Muestra la cuenta regresiva durante el desbloqueo de emergencia</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d restantes</string>
     <string name="emergency_unlock_waiting_seconds_label">segundos</string>
+    <string name="first_lock_activation_cta_title">¿Probamos tu primer bloqueo?</string>
+    <string name="first_lock_activation_cta_description">Ya elegiste apps. Activa StopIt ahora para sentir el bloqueo.</string>
+    <string name="first_lock_activation_cta_action">Iniciar</string>
 </resources>

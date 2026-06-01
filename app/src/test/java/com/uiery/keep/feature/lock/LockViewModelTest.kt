@@ -1,10 +1,14 @@
 package com.uiery.keep.feature.lock
 
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.lifecycle.SavedStateHandle
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.feature.review.FakeLockHistoryDao
@@ -17,9 +21,15 @@ import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
 
@@ -29,8 +39,41 @@ class LockViewModelTest {
     @Test
     fun initLogsLockScreenView() {
         val analytics = LockRecordingKeepAnalytics()
-        val dataStore = FakeDataStore()
-        val emergencyUnlockDao = FakeEmergencyUnlockDao()
+
+        createViewModel(analytics = analytics)
+
+        assertEquals(listOf(KeepAnalyticsScreen.LOCK), analytics.screenViews)
+    }
+
+    @Test
+    fun emergencyUnlockCompletionPostsUnlockCompletedSideEffect() = runBlocking {
+        val viewModel = createViewModel()
+
+        val sideEffect = async {
+            withTimeout(2_000) {
+                viewModel.container.sideEffectFlow.first()
+            }
+        }
+
+        viewModel.emergencyUnlock(
+            reason = "집중 예외",
+            customReason = null,
+            apps = setOf("com.example.allowed"),
+            durationMinutes = 3,
+        )
+
+        assertEquals(LockSideEffect.UnlockCompleted, sideEffect.await())
+        val state = viewModel.container.stateFlow.value
+        assertTrue(state.isEmergencyUnlockActive)
+        assertEquals(180, state.emergencyUnlockRemainingSeconds)
+        assertEquals(setOf("com.example.allowed"), state.emergencyUnlockedApps)
+    }
+
+    private fun createViewModel(
+        analytics: LockRecordingKeepAnalytics = LockRecordingKeepAnalytics(),
+        dataStore: FakeDataStore = FakeDataStore(),
+        emergencyUnlockDao: FakeEmergencyUnlockDao = FakeEmergencyUnlockDao(),
+    ): LockViewModel {
         val reviewEligibility = ReviewEligibilityEvaluator(
             dataStore = dataStore,
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
@@ -41,7 +84,7 @@ class LockViewModelTest {
             buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
         )
 
-        LockViewModel(
+        return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineDao = FakeRoutineDao(),
             lockHistoryDao = FakeLockHistoryDao(),
@@ -55,9 +98,76 @@ class LockViewModelTest {
             analytics = analytics,
             reviewEligibility = reviewEligibility,
         )
-
-        assertEquals(listOf(KeepAnalyticsScreen.LOCK), analytics.screenViews)
     }
+
+    @Test
+    fun completedHomeTimerRecordsHistoryLedgerAtLockCompletion() = runBlocking {
+        val analytics = LockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one", "com.example.two"),
+                PreferencesKey.TOTAL_BLOCK_TIME to 9_000L,
+                PreferencesKey.LONG_BLOCK_TIME to 4_000L,
+            ),
+        )
+        val emergencyUnlockDao = FakeEmergencyUnlockDao()
+        val lockHistoryDao = LockRecordingHistoryDao()
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            dataStore = dataStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            emergencyUnlockDao = emergencyUnlockDao,
+            lockHistoryDao = FakeLockHistoryDao(),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
+        )
+
+        LockViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
+            routineDao = FakeRoutineDao(),
+            lockHistoryDao = lockHistoryDao,
+            dataStore = dataStore,
+            emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
+                dataStore = dataStore,
+                emergencyUnlockDao = emergencyUnlockDao,
+                analytics = analytics,
+            ),
+            notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
+            analytics = analytics,
+            reviewEligibility = reviewEligibility,
+        )
+        withTimeout(2_000) {
+            while (lockHistoryDao.inserted.isEmpty()) {
+                delay(10)
+            }
+        }
+
+        assertEquals(1, lockHistoryDao.inserted.size)
+        val session = lockHistoryDao.inserted.single()
+        assertEquals(listOf("com.example.one", "com.example.two"), session.lockedApps)
+        assertEquals(false, session.isRoutine)
+        assertEquals(session.endTimestamp - session.startTimestamp, session.durationMillis)
+        val snapshot = dataStore.snapshot()
+        assertEquals(9_000L + session.durationMillis, snapshot[PreferencesKey.TOTAL_BLOCK_TIME])
+        assertEquals(maxOf(4_000L, session.durationMillis), snapshot[PreferencesKey.LONG_BLOCK_TIME])
+    }
+}
+
+private class LockRecordingHistoryDao : LockHistoryDao {
+    val inserted = mutableListOf<LockHistoryEntity>()
+
+    override suspend fun insert(entity: LockHistoryEntity) {
+        inserted += entity
+    }
+
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override fun fetchAll(): Flow<List<LockHistoryEntity>> = emptyFlow()
+
+    override suspend fun countSuccessfulSessions(): Int = inserted.size
+
+    override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
+        inserted.count { it.startTimestamp >= timestampMillis }
 }
 
 private class FakeRoutineDao : RoutineDao {
