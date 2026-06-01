@@ -155,5 +155,5 @@ PY
 echo "Bumped Android version: $old_name ($old_code) -> $version_name ($new_code)"
 
 if [[ "$run_dry_run" -eq 1 ]]; then
-  ./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run
+  ./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run
 fi
