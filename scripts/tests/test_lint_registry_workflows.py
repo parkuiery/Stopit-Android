@@ -6,11 +6,12 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github/workflows/android-ci.yml"
 RELEASE_QA_WORKFLOW = REPO_ROOT / ".github/workflows/release-qa.yml"
 REQUIRED_STEP_NAME = "Verify Navigation/Compose lint registry coverage"
-REQUIRED_TEST_STEP_NAME = "Run lint registry verifier unit tests"
+REQUIRED_TEST_STEP_NAME = "Run static policy unit tests"
 REQUIRED_TEST_COMMAND = (
     "python3 -m unittest "
     "scripts.tests.test_compose_compiler_gradle_contract "
     "scripts.tests.test_kds_dependency_catalog_contract "
+    "scripts.tests.test_sensitive_logging_policy "
     "scripts.tests.test_verify_lint_registry "
     "scripts.tests.test_lint_registry_workflows"
 )
