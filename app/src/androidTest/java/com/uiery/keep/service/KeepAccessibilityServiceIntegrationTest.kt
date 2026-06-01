@@ -83,7 +83,10 @@ class KeepAccessibilityServiceIntegrationTest {
         )
         KeepAccessibilityServiceDebugState.reset(context)
 
-        enableAccessibilityServiceIfNeeded()
+        setAccessibilityServiceEnabled(enabled = true)
+        waitUntil("KeepAccessibilityService should be enabled without leaving the blocked foreground app", UI_TIMEOUT_MS) {
+            isAccessibilityServiceEnabled()
+        }
         waitForServiceStatePropagation()
         waitForServiceToObserveSelectedPackage(blockedPackage)
 
