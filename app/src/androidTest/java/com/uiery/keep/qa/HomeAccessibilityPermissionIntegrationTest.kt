@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.test.core.app.ActivityScenario
 import androidx.datastore.preferences.core.edit
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.Configurator
@@ -66,6 +67,15 @@ class HomeAccessibilityPermissionIntegrationTest {
             enabledServices = "com.uiery.keep.fake/com.fake.Service:com.other/.Helper",
         )
         ActivityScenario.launch(MainActivity::class.java).use {
+            waitForStopItForeground()
+            it.onActivity { activity ->
+                assertFalse(
+                    "hasAccessibilityPermission should reject fake package substring services",
+                    hasAccessibilityPermission(activity),
+                )
+            }
+            it.moveToState(Lifecycle.State.STARTED)
+            it.moveToState(Lifecycle.State.RESUMED)
             waitForStopItForeground()
 
             waitUntil("Expected home permission dialog when only a package substring matches") {

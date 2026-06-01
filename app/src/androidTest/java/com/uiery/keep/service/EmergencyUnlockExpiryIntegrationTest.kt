@@ -62,7 +62,9 @@ class EmergencyUnlockExpiryIntegrationTest {
             EmergencyUnlockNotificationPostResult.Posted,
             helper.showCountdown(remainingSeconds = 60, totalSeconds = 60),
         )
-        assertTrue(activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID))
+        waitUntil("Emergency unlock notification should become active after showCountdown") {
+            activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID)
+        }
 
         context.dataStore.edit { preferences ->
             preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = setOf(blockedPackage)
@@ -94,7 +96,9 @@ class EmergencyUnlockExpiryIntegrationTest {
         assertEquals(emptySet<String>(), storedUnlockedApps())
         assertNull(storedExpireTimeMillis())
         assertEquals(EmergencyUnlockData.EMPTY, EmergencyUnlockState.current)
-        assertFalse(activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID))
+        waitUntil("Emergency unlock notification should be cancelled after expiry handling") {
+            !activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID)
+        }
     }
 
     private fun grantPostNotificationsPermission() {

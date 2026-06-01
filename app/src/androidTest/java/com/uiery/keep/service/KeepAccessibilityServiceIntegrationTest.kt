@@ -291,21 +291,34 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun launchSelfUninstallFlow() {
         launchSelfAppInfoScreen()
-        device.findObject(By.text("Uninstall"))?.click()
-            ?: fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
+        waitForUninstallButton().click()
     }
 
     private fun launchSelfAppInfoScreen() {
+        shell("am force-stop $SETTINGS_PACKAGE")
         device.pressHome()
         context.startActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", APP_PACKAGE, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             },
         )
+        waitForPackageForeground(
+            packageName = SETTINGS_PACKAGE,
+            message = "Expected Settings app info screen to foreground for $APP_PACKAGE",
+        )
+        waitForUninstallButton()
+    }
+
+    private fun waitForUninstallButton(): androidx.test.uiautomator.UiObject2 {
         waitUntil("Expected app info screen to expose an uninstall button for $APP_PACKAGE", UI_TIMEOUT_MS) {
             device.hasObject(By.text("Uninstall"))
         }
+        val uninstallButton = device.findObject(By.text("Uninstall"))
+        if (uninstallButton == null) {
+            fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
+        }
+        return uninstallButton
     }
 
     private fun primeAppProcess() {
