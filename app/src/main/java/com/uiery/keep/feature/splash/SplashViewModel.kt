@@ -2,6 +2,7 @@ package com.uiery.keep.feature.splash
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -24,6 +25,7 @@ class SplashViewModel
         override val container: Container<SplashUiState, SplashSideEffect> = container(SplashUiState())
 
         init {
+            analytics.logScreenView(KeepAnalyticsScreen.SPLASH)
             navigateScreen()
         }
 

@@ -350,10 +350,13 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
         assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
+        assertEquals("SplashScreen", KeepAnalyticsScreen.SPLASH)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
         assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
         assertEquals("LockHistoryScreen", KeepAnalyticsScreen.LOCK_HISTORY)
+        assertEquals("BlockedAppsScreen", KeepAnalyticsScreen.BLOCKED_APPS)
         assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
+        assertEquals("EmergencyUnlockSettingsScreen", KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
     }
