@@ -7,9 +7,12 @@
 - `RoutineAlarmReceiver`
 - `KeepAccessibilityService`
 - 긴급해제 만료/차단 복귀
+- Usage Access 선택형 개인화 discovery / 권한 복귀 QA
 - release 전 device/emulator 검증 순서
 
 백업/복원 정책 자체는 `docs/BACKUP_RESTORE_POLICY.md`를 source of truth로 본다. 현재 정책은 `keep-database`만 복원하고 `keep-datastore`는 통째로 제외하는 보수적 계약이다. 이 문서는 복원 이후에도 receiver/service/runtime 상태가 안전하게 동작하는지 확인하는 실행 체크리스트다.
+
+Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZATION_MVP.md`를 source of truth로 본다. 현재 #119는 구현 착수용 `ready`가 아니라 discovery gate이며, 이 체크리스트는 향후 child issue가 생겼을 때 권한 허용/거절/fallback과 privacy analytics guardrail을 반복 검증하기 위한 evidence 표면만 미리 고정한다.
 
 비범위:
 - Room migration 세부 검증
@@ -301,6 +304,39 @@ cd <repo-root>
 - `persistNewTokenForContext_overwritesExistingStoredTokenViaEntryPoint`
 - 검증 범위: `KeepMessagingService -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
 - 이 baseline은 실제 FCM 서버 콜백을 대체하지 않지만, 새 기기/복원 후 토큰 재생성 시 앱 내부 저장 경로가 끊기지 않았는지 release 전에 반복 검증할 수 있게 한다.
+
+### Usage Access 개인화 discovery QA baseline
+
+issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child issue 또는 MVP implementation child issue가 생기면 아래 evidence를 PR 본문에 남긴다.
+
+```md
+## Usage Access discovery/QA evidence
+- Build / appVersion:
+- Device / Android version / OEM:
+- Entry point: report_card / recommendation_cta / post_success_soft_prompt / settings
+- Activation stage before prompt: pre_first_core_action / post_first_core_action / returning_user
+- Permission state before test: not_allowed / allowed / unknown
+- Steps:
+  1. 사전 설명 노출 확인
+  2. 시스템 설정 이동 확인
+  3. 허용/거절/뒤로가기 후 앱 복귀 확인
+  4. fallback 또는 리포트 카드 노출 확인
+- Expected analytics without sensitive payload:
+  - `usage_access_explainer_viewed(entry_point=..., activation_stage=...)`
+  - `usage_access_settings_opened(entry_point=..., activation_stage=...)`
+  - `usage_access_permission_result(result=granted|denied|unknown, entry_point=..., activation_stage=...)`
+- Privacy checks:
+  - 앱 이름/package/raw usage history가 analytics/log/share payload에 없음
+  - 권한 거절 후에도 앱 차단/타이머/루틴/긴급해제 진입 가능
+- Notes / screenshots:
+```
+
+검증 원칙:
+
+- Usage Access는 핵심 차단 기능의 필수 권한이 아니다. `pre_first_core_action` 사용자의 첫 잠금 CTA보다 먼저 blocking prompt로 노출되면 실패로 본다.
+- 권한 설정 화면 이동 후 복귀 상태는 `granted / denied / unknown`으로 기록한다. OEM 설정 화면 차이로 판별이 애매한 경우를 오류로 과대해석하지 않는다.
+- analytics payload에는 앱 이름, package name, 설치 앱 전체 목록, raw usage history, 정확한 분 단위 원문을 넣지 않는다. bucket과 entry point만 사용한다.
+- 로컬/CI 자동화가 없으면 manual evidence로 남기되, 구현 PR에서는 formatter/policy 단위 테스트와 event dictionary sync를 같이 요구한다.
 
 ### FCM token 재생성 수동 evidence 템플릿
 
