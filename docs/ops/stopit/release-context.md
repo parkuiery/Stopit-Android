@@ -147,6 +147,8 @@ gh pr view <PR_NUMBER> --json state,mergedAt,url,mergeCommit
 - Play/Firebase credentials
 - generated signed artifacts
 
+Play deploy / release-secret 작업에서는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 우선 source of truth로 본다. `scripts/setup-play-deploy-secrets.sh`는 Android/Play build-upload secret만 설정하고, Discord deploy notification은 `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set`, Firebase Functions production-promotion secret은 `firebase functions:secrets:set ...` 경로로 분리한다. `GOOGLE_SERVICES_JSON`도 workflow별 restore matrix(Android CI / Release QA는 dev+prod, Release Build / Play Deploy는 prod-only)를 그 runbook 기준으로 확인한다.
+
 ## 관련 문서
 
 - `docs/GIT_WORKFLOW.md`

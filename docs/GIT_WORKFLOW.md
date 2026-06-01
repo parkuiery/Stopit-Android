@@ -35,6 +35,12 @@ Android CI path gating contract:
 - `gradlew` / `gradlew.bat`, root Gradle config files, and `.github/workflows/android-ci.yml` are treated as **build-critical** root inputs.
 - wrapper-only or Gradle-launcher-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
 
+Play deploy secret/setup contract:
+- `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` is the source of truth for Play deploy secret ownership, helper scope, and the `GOOGLE_SERVICES_JSON` restore matrix.
+- `scripts/setup-play-deploy-secrets.sh` only configures Android/Play build-upload secrets; Discord deploy notification secrets use `scripts/setup-discord-deploy-secrets.sh` or direct `gh secret set`.
+- `DISCORD_DEPLOY_CHANNEL_ID` exists in two stores when Discord production approval is enabled: GitHub Actions repo secret for deploy notification, and Firebase Functions secret for interaction channel verification.
+- Release/operator evidence should run or reference `scripts/check-play-deploy-secret-contract.sh` when Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed.
+
 ## Analytics / Release Handoff Boundary
 
 릴리즈/핫픽스 PR에서 Android runtime / release QA가 green이어도, 그것만으로 GA4 `customEvent:*` queryability가 해결됐다고 보면 안 된다.
