@@ -89,6 +89,36 @@ class RoutineExactAlarmPermissionIntegrationTest {
     }
 
     @Test
+    fun addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = RoutineBottomSheetViewModel(
+            routineDao = database.routineDao(),
+            routineScheduler = RoutineScheduler(context),
+            analytics = analytics,
+        )
+
+        viewModel.resetState()
+        viewModel.setName("Morning focus multi-day")
+        viewModel.setStartTime(nextStartTime())
+        viewModel.setEndTime(nextEndTime())
+        repeatDays.forEach { dayOfWeek -> viewModel.setSelectDays(dayOfWeek) }
+        viewModel.setSelectApps(setOf("com.example.blocked"))
+        viewModel.addRoutine()
+
+        val sideEffect = withTimeout(5_000) { viewModel.container.sideEffectFlow.first() }
+        waitUntil("Multi-day routine should be stored") { database.routineDao().fetchAllOnce().isNotEmpty() }
+        val savedRoutine = database.routineDao().fetchAllOnce().single()
+
+        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect)
+        assertFalse(savedRoutine.isEnabled)
+        assertEquals(repeatDays.toSet(), savedRoutine.repeatDays.toSet())
+        assertEquals(0, analytics.lockScheduledCalls)
+        assertNoScheduledAlarms(TEST_ROUTINE_ID)
+    }
+
+    @Test
     fun enablingRoutineWithExactAlarmPermissionSchedulesAlarm() = runBlocking {
         assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
         database.routineDao().insert(disabledRoutineEntity(TEST_ROUTINE_ID, "Grant path"))
@@ -113,6 +143,71 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
+    @Test
+    fun enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        database.routineDao().insert(
+            disabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Grant path multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val viewModel = RoutineViewModel(
+            routineDao = database.routineDao(),
+            dataStore = createDataStore(),
+            analytics = RecordingKeepAnalytics(),
+            routineScheduler = RoutineScheduler(context),
+        )
+
+        waitUntil("Multi-day routine list should load from Room") {
+            viewModel.container.stateFlow.value.routines.any { it.id == TEST_ROUTINE_ID }
+        }
+
+        viewModel.changeEnabled(TEST_ROUTINE_ID, true)
+
+        waitUntil("Exact-alarm grant path should schedule every repeat day alarm") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        assertTrue(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+    }
+
+    @Test
+    fun cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent() = runBlocking {
+        val repeatDays = multiDayRepeatDays()
+        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        database.routineDao().insert(
+            disabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Cleanup multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        val viewModel = RoutineViewModel(
+            routineDao = database.routineDao(),
+            dataStore = createDataStore(),
+            analytics = RecordingKeepAnalytics(),
+            routineScheduler = RoutineScheduler(context),
+        )
+
+        waitUntil("Cleanup multi-day routine list should load from Room") {
+            viewModel.container.stateFlow.value.routines.any { it.id == TEST_ROUTINE_ID }
+        }
+
+        viewModel.changeEnabled(TEST_ROUTINE_ID, true)
+
+        waitUntil("Cleanup test should schedule every repeat day alarm") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+
+        cancelRoutineAlarm(TEST_ROUTINE_ID)
+
+        assertNoScheduledAlarms(TEST_ROUTINE_ID)
+    }
+
     private fun nextStartTime(): LocalTime {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val startTotalMinutes = (now.time.hour * 60 + now.time.minute + 10) % (24 * 60)
@@ -126,21 +221,28 @@ class RoutineExactAlarmPermissionIntegrationTest {
         return LocalTime(hour = endTotalMinutes / 60, minute = endTotalMinutes % 60)
     }
 
-    private fun disabledRoutineEntity(id: Long, name: String): RoutineEntity {
+    private fun disabledRoutineEntity(
+        id: Long,
+        name: String,
+        repeatDays: List<DayOfWeek> = listOf(today),
+    ): RoutineEntity {
         return RoutineEntity(
             id = id,
             name = name,
             startTime = nextStartTime(),
             endTime = nextEndTime(),
-            repeatDays = listOf(today),
+            repeatDays = repeatDays,
             lockApplications = listOf("com.example.blocked"),
             isEnabled = false,
             changeLockHours = null,
         )
     }
 
-    private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
-        val requestCode = (routineId * 10 + today.ordinal).toInt()
+    private fun findRoutinePendingIntent(routineId: Long): PendingIntent? =
+        findRoutinePendingIntent(routineId, today)
+
+    private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
+        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -155,8 +257,25 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertEquals(null, findRoutinePendingIntent(routineId))
     }
 
+    private fun assertNoScheduledAlarms(routineId: Long) {
+        val remainingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+        assertEquals(emptyList<DayOfWeek>(), remainingDays)
+    }
+
+    private fun assertRoutinePendingIntentsMatchRepeatDays(routineId: Long, repeatDays: List<DayOfWeek>) {
+        val missingDays = repeatDays.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) == null }
+        val unexpectedDays = DayOfWeek.entries
+            .filterNot(repeatDays::contains)
+            .filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+
+        assertEquals(emptyList<DayOfWeek>(), missingDays)
+        assertEquals(emptyList<DayOfWeek>(), unexpectedDays)
+    }
+
     private fun cancelRoutineAlarm(routineId: Long) {
-        findRoutinePendingIntent(routineId)?.cancel()
+        DayOfWeek.entries.forEach { dayOfWeek ->
+            findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
+        }
     }
 
     private fun clearAppState() {
@@ -173,6 +292,8 @@ class RoutineExactAlarmPermissionIntegrationTest {
     )
 
     private fun dataStoreFile() = context.preferencesDataStoreFile(dataStoreName)
+
+    private fun multiDayRepeatDays(): List<DayOfWeek> = listOf(today, today.plus(2), today.plus(4)).distinct()
 
     private fun waitUntil(message: String, timeoutMs: Long = 5_000, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + timeoutMs
