@@ -1,6 +1,6 @@
 package com.uiery.keep.receiver
 
-import android.util.Log
+import com.uiery.keep.util.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +19,7 @@ internal object ReceiverCoroutineRunner {
         receiverName = receiverName,
         finish = finish,
         onFailure = { throwable ->
-            Log.e(receiverName, "Receiver async work failed", throwable)
+            AppLogger.debug(receiverName, "Receiver async work failed", throwable)
         },
         work = work,
     )
