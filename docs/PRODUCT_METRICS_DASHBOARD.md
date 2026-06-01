@@ -67,7 +67,7 @@
 | Business | 광고 eCPM | `totalAdRevenue` / impressions × 1000 | GA4/AdMob | 광고 효율 |
 | Business | 광고 CTR | clicks / impressions | GA4/AdMob | 광고 반응 |
 | Acquisition | 신규 사용자 | `newUsers` | GA4 | 성장 흐름 |
-| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용 |
+| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용하고, UTM/Install Referrer/외부 링크 기록 여부를 확인 |
 
 ## 현재 기준선
 
