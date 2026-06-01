@@ -64,9 +64,10 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - signed `prodRelease` AAB build
   - artifact upload to GitHub Actions
   - upload to Google Play `internal` track by default
-- A successful `production` CD run writes two completion markers for the tag:
+- A successful `production` CD run writes two completion markers for the tag only when `track=production` and `release_status=completed`:
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
+- `draft`, `inProgress`, or `halted` production runs must not write either production completion marker. They may represent a Play Console rollout state, but they are not the repo-side signal that the version fully reached production.
 - Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires a SemVer tag ref.
 - Manual CD `workflow_dispatch` still requires a SemVer tag ref; branch refs are rejected for `internal`, `alpha`, `beta`, and `production`.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
@@ -194,6 +195,7 @@ Production promotion safety contract:
 - The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.
 - `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
 - The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.
+- Production completion markers are written only when the same run uses `release_status=completed`. If an operator intentionally dispatches production as `draft`, `inProgress`, or `halted`, the run must not create the GitHub Deployment success marker or GitHub Release `stopit-production-deployed` marker that unlocks the next release gate.
 
 ## VersionCode guardrail before Play upload
 
