@@ -2,6 +2,7 @@ package com.uiery.keep.receiver
 
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -31,6 +32,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -156,6 +158,24 @@ class ReceiverRuntimeIntegrationTest {
         assertEquals(listOf("Timezone changed restore"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.MONDAY))
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID, DayOfWeek.WEDNESDAY))
+    }
+
+    @Test
+    fun manifestMarksBootReceiverNotExported() {
+        val receiverInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getReceiverInfo(
+                ComponentName(context, BootReceiver::class.java),
+                PackageManager.ComponentInfoFlags.of(0),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getReceiverInfo(
+                ComponentName(context, BootReceiver::class.java),
+                0,
+            )
+        }
+
+        assertFalse(receiverInfo.exported)
     }
 
     @Test

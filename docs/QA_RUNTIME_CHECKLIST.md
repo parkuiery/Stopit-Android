@@ -30,6 +30,8 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - 필요 flavor의 `google-services.json`이 현재 worktree에 복원되어 있음
 - 테스트 기기 또는 에뮬레이터 1대 이상 연결
 
+`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `prod 전용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. 특히 같은 `GOOGLE_SERVICES_JSON` secret을 Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에, Release Build / Play Deploy에서는 `app/src/prod`에만 복원한다는 점을 먼저 맞춘다.
+
 ### 권장 사전 명령
 
 ```bash
@@ -81,6 +83,7 @@ cd <repo-root>
   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms`
@@ -104,6 +107,44 @@ cd <repo-root>
 - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환에서 `BlockActivity` 진입과 emergency unlock 우회 safety 계약
 
 exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
+
+### notification onboarding permission baseline
+
+issue #172 계열 PR에서는 알림 권한 온보딩이 **설정 화면 방문만으로 완료 처리되지 않는지**를 아래처럼 남긴다.
+
+- 자동 baseline
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" \
+  --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"
+```
+
+- 검증 범위:
+  - Android 12L 이하 legacy 경로에서 첫 진입은 `settings_opened`, 재방문 + 미허용은 `denied`, 재방문 + 허용만 `granted + onboarding_step_complete(step_name=notification)`인지
+  - Android 13+ runtime permission 경로에서 거절 시 다음 화면으로 넘어가지 않고 `denied`만 남는지
+  - 실제 허용 전에는 notification onboarding completion이 기록되지 않는지
+
+- 추가 manual evidence가 필요하면 아래 형식으로 남긴다.
+
+```md
+## Notification onboarding permission evidence
+- Device/Emulator:
+- Android version:
+- Variant:
+- Flow: Android 13+ runtime permission / Android 12L 이하 settings round-trip
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"`
+- Observed analytics/order:
+  - `settings_opened` (legacy only, first settings launch)
+  - `denied` after returning without enabling notifications
+  - `granted` + `onboarding_step_complete(step_name=notification)` only after notifications are actually enabled
+- Observed UI:
+  - 거절 상태에서 다음 화면으로 자동 이동하지 않는지
+  - 허용 상태에서만 앱 선택 화면으로 이동하는지
+- Notes:
+```
 
 ### DevTool production graph baseline
 
@@ -137,7 +178,6 @@ cd <repo-root>
 - broad package visibility query는 `InstalledAppRepository`에서만 수행한다.
 - `SelectableAppPolicyTest`가 launch intent 없는 앱 제외, Stopit 자기 package 제외, picker 정렬 안정성을 고정한다.
 - Manifest/Play 정책 설명은 “앱 차단 대상 선택” 목적과 충돌하지 않아야 한다.
-
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.
@@ -202,6 +242,7 @@ cd <repo-root>
 ```
 
 - `bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
+- `manifestMarksBootReceiverNotExported`
 - `manifestRegistersBootReceiverForPackageAndClockChangeActions`
 - `timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm`
 - `timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms`
@@ -209,7 +250,7 @@ cd <repo-root>
 - `routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
 - `routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`까지 포함해 앱 업데이트나 기기 wall-clock/timezone 변경 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인한다. 시간/시간대 변경 경로는 exact alarm 권한 회수(#137/#149)와 별개로, 사용자가 설정한 로컬 시각 기준으로 단일 요일·다중 요일 루틴 `PendingIntent`가 다시 생성되는지를 본다. 또한 Android 13+에서 `POST_NOTIFICATION`이 꺼진 상태에서도 루틴 시작이 조용히 사라지지 않고 앱 내 fallback notice로 이어지는지 확인한다. 현재 focused test는 두 개 루틴이 연달아 시작돼도 pending notice queue가 FIFO 순서로 보존되고 마지막 메시지로 덮이지 않는지까지 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
+이 baseline은 BootReceiver/RoutineAlarmReceiver의 핵심 재수화·재예약 contract를 검증한다. 특히 `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`까지 포함해 앱 업데이트나 기기 wall-clock/timezone 변경 후에도 활성 루틴 복구 경로가 manifest와 런타임 로직 양쪽에서 유지되는지 확인하고, `BootReceiver`가 `exported=false`로 고정되어 외부 앱의 explicit broadcast만으로 루틴 복원·비활성화 부작용을 만들 수 없도록 노출 계약을 검증한다. 시간/시간대 변경 경로는 exact alarm 권한 회수(#137/#149)와 별개로, 사용자가 설정한 로컬 시각 기준으로 단일 요일·다중 요일 루틴 `PendingIntent`가 다시 생성되는지를 본다. 또한 Android 13+에서 `POST_NOTIFICATION`이 꺼진 상태에서도 루틴 시작이 조용히 사라지지 않고 앱 내 fallback notice로 이어지는지 확인한다. 현재 focused test는 두 개 루틴이 연달아 시작돼도 pending notice queue가 FIFO 순서로 보존되고 마지막 메시지로 덮이지 않는지까지 검증한다. 다만 protected broadcast 기반 실제 cold boot와 AccessibilityService의 cross-app 차단 진입은 아래 수동 시나리오 evidence가 여전히 필요하다.
 
 `POST_NOTIFICATION` deny focused test는 exact alarm appops와 비슷하게 **호스트 ADB/appops에서 먼저 상태를 바꾸고 그 다음 focused instrumentation을 실행**해야 한다. 테스트 메서드 안에서 notification appops를 바꾸면 target process가 죽어 flaky/crash가 날 수 있다.
 

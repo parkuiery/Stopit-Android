@@ -55,6 +55,6 @@ python3 scripts/play_version_code_guard.py validate-build \
   --build-file app/build.gradle.kts \
   --minimum-main-version-code "$main_version_code"
 
-./gradlew testProdReleaseUnitTest bundleProdRelease --dry-run
+./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run
 
 echo "Release readiness dry-run passed."

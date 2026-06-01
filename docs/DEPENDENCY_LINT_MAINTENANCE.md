@@ -21,6 +21,7 @@
 
 - 버전 카탈로그: `gradle/libs.versions.toml`
 - 앱 의존성 선언: `app/build.gradle.kts`
+- 루트 Gradle plugin 선언: `build.gradle.kts`
 - KDS 의존성 선언: `core/kds/build.gradle.kts`
 - lint 보고서 출력 위치: `app/build/reports/lint-results-devDebug.txt`
 - flavor-aware 기본 검증 명령: `docs/GIT_WORKFLOW.md`
@@ -29,12 +30,16 @@
 주의:
 
 - 이 저장소는 버전 카탈로그를 **원칙적인 source of truth**로 둔다.
+- dependency와 Gradle plugin 드리프트를 함께 봐야 한다.
+- Room library/runtime/compiler/testing과 Room Gradle plugin은 같은 `room` version ref를 쓴다.
+- Firebase Crashlytics Gradle plugin은 `firebaseCrashlytics` version ref를 쓴다.
+- 앱/루트 Gradle 파일에 새 직접 버전 문자열이 들어오면, 먼저 `gradle/libs.versions.toml` alias로 이동할 수 있는지 확인한다.
 - 2026-06-01 기준 `core/kds/build.gradle.kts`의 기존 direct version drift는 catalog alias로 이동됐다.
   - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1` → `libs.kotlinx.datetime`
   - `com.google.android.gms:play-services-ads:23.0.0` → `libs.google.play.services.ads`
   - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3` → `libs.androidx.lifecycle.runtime.compose`
 - `gradle/libs.versions.toml`에는 위 세 의존성의 alias가 모두 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 재유입을 막는다.
-- 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, 최소한 `app/build.gradle.kts`와 `core/kds/build.gradle.kts`를 같이 확인해야 한다.
+- 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`를 같이 확인해야 한다.
 
 ### version catalog 정책 메모
 

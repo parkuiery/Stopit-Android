@@ -11,12 +11,16 @@
 
 ## 공통 고정 맥락
 
+
 모든 cron은 최소한 아래를 확인한다.
 
 - `docs/ops/stopit/README.md`
 - `docs/ops/stopit/issue-policy.md`
 - `docs/ops/stopit/agent-roles.md`
 - `docs/ops/stopit/recent-decisions.md`
+
+추가 규칙:
+- Play deploy / release-secret / workflow restore matrix를 다루는 실행·분석 run은 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 context bundle에 포함할지 먼저 판단한다. `release-context.md`보다 secret ownership / helper scope / Firebase Functions 경계를 더 구체적으로 설명하는 source of truth다.
 
 ## 공통 동적 상태
 
@@ -102,6 +106,7 @@ Subagent별 전달:
 - `recent-decisions.md`
 
 조건부 추가:
+- Play deploy secret / helper / workflow restore matrix / Discord promotion secret boundary를 건드리는 실행 run이면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`
 - 선택 이슈가 docs/ops/analytics/product-metrics 성격(#13, #14, #16, #65 같은 runbook/metrics/dashboard/funnel/ASO 문서 작업)이면 `product-context.md`, `metrics-context.md`도 함께 포함한다.
 - 특히 `stopit-executor-docs-lane`는 analytics/product 문서 이슈를 engineering/release-only context로 처리하지 않는다.
 - #13처럼 GA4 queryability/registration contract가 핵심인 analytics docs 이슈면 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`도 Context Bundle의 직접 입력으로 포함해, "repo 문서 미정리"와 "GA4 Admin 미등록 외부 경계"를 같은 문제로 섞지 않는다.
@@ -115,7 +120,7 @@ Subagent별 전달:
 
 Subagent별 전달:
 - Issue Picker: open Issues/PRs, priority policy, dirty tree state, latest cron outputs
-- Implementation Strategy: selected Issue body, relevant engineering/release context
+- Implementation Strategy: selected Issue body, relevant engineering/release context, 필요 시 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` 요약
 - Test/PR Verifier: diff summary, verification outputs, PR body/check state
 
 ## 최종 통합 절차
