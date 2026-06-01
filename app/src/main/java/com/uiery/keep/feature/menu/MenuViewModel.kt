@@ -13,6 +13,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.toModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -49,7 +50,7 @@ class MenuViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setPreventUninstall(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             dataStore.edit { prefs ->
                 prefs[PreferencesKey.PREVENT_UNINSTALL] = enabled
             }

@@ -70,13 +70,6 @@ class KeepAccessibilityService :
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
         private const val FOREGROUND_REEVALUATION_RETRY_DELAY_MS = 300L
-
-        private val UNINSTALL_PACKAGES = setOf(
-            "com.android.packageinstaller",
-            "com.google.android.packageinstaller",
-            "com.samsung.android.packageinstaller",
-            "com.android.vending",
-        )
     }
 
     override fun onServiceConnected() {
@@ -99,6 +92,7 @@ class KeepAccessibilityService :
                 KeepAccessibilityServiceDebugState.update(applicationContext) {
                     it.copy(
                         observedIsKeep = cachedPrefs.isKeep,
+                        observedPreventUninstall = cachedPrefs.preventUninstall,
                         observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
                         observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
                     )
@@ -216,33 +210,36 @@ class KeepAccessibilityService :
     }
 
     private fun isUninstallAttempt(eventPackageName: String): Boolean {
-        if (eventPackageName !in UNINSTALL_PACKAGES) return false
+        if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
         val rootNode = rootInActiveWindow ?: return false
         try {
             val idNodes = rootNode.findAccessibilityNodeInfosByText(BuildConfig.APPLICATION_ID)
-            val foundById = !idNodes.isNullOrEmpty()
+            val hasApplicationIdMatch = !idNodes.isNullOrEmpty()
             idNodes?.forEach { it.recycle() }
-            if (foundById) return true
+            if (hasApplicationIdMatch) return true
 
             val nameNodes = rootNode.findAccessibilityNodeInfosByText(getString(R.string.app_name))
-            val foundByName = !nameNodes.isNullOrEmpty()
+            val hasAppNameMatch = !nameNodes.isNullOrEmpty()
             nameNodes?.forEach { it.recycle() }
-            return foundByName
+            return shouldInterceptUninstallAttempt(
+                eventPackageName = eventPackageName,
+                hasApplicationIdMatch = hasApplicationIdMatch,
+                hasAppNameMatch = hasAppNameMatch,
+            )
         } finally {
             rootNode.recycle()
         }
     }
 
     private fun dismissUninstallScreen() {
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(lastDismissedUninstallPackage = BuildConfig.APPLICATION_ID)
+        }
         performGlobalAction(GLOBAL_ACTION_BACK)
 
         handler.postDelayed({
-            val root = rootInActiveWindow
-            val currentPackage = root?.packageName?.toString()
-            root?.recycle()
-            if (currentPackage != null && currentPackage in UNINSTALL_PACKAGES) {
-                launchHomeScreen()
-            }
+            rootInActiveWindow?.recycle()
+            launchHomeScreen()
         }, 500)
     }
 
