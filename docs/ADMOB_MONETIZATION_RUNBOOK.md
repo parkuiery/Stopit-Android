@@ -49,7 +49,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
-- 광고 앱 ID / 광고 단위 ID 설정 표면 (`app/src/main/AndroidManifest.xml`, `app/build.gradle.kts`, 향후 `AdConfig`/DI source)
+- 광고 앱 ID / 광고 단위 ID 설정 표면 (`app/build.gradle.kts`, `app/src/main/AndroidManifest.xml`, `app/src/main/java/com/uiery/keep/analytics/AdPlacement.kt`)
 - GA4 Analytics Data API / AdMob 보고서
 
 운영 원칙:
@@ -380,13 +380,13 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 - 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
 - `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
 
-## issue #250: flavor별 광고 설정 계약 handoff
+## issue #250: flavor별 광고 설정 계약
 
-#250은 #16의 성과 감사와 연결되지만, 문제의 핵심은 성과표가 아니라 **production AdMob application/ad unit id가 Manifest와 여러 Compose 화면에 분산된 설정 계약 drift**다. docs-lane에서는 구현을 하지 않고, code/maintenance lane이 한 PR에서 닫을 수 있도록 아래 계약을 먼저 고정한다.
+#250은 #16의 성과 감사와 연결되지만, 문제의 핵심은 성과표가 아니라 **production AdMob application/ad unit id가 Manifest와 여러 Compose 화면에 분산된 설정 계약 drift**다. docs-lane PR #254에서 구현 handoff를 먼저 고정했고, code-lane PR은 아래 계약을 실제 Gradle/Manifest/Compose call site에 반영한다.
 
-### 현재 분산 표면
+### 이전 분산 표면
 
-2026-06-01 기준 `origin/develop`에서 production 광고 ID가 직접 박힌 표면은 다음과 같다.
+2026-06-01 `origin/develop` 기준으로 production 광고 ID가 직접 박혀 있던 표면은 다음과 같다.
 
 | 표면 | 현재 위치 | production ID 종류 | 문제 |
 | --- | --- | --- | --- |
@@ -402,19 +402,18 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 
 ### 구현 계약
 
-권장 구현 방향:
+현재 코드 계약:
 
-1. `AdPlacement` / `AdConfig` 같은 단일 source를 만든다.
-   - placement key는 `block_top`, `home_bottom`, `menu_bottom`, `lock_bottom`, `routine_list_bottom`, `routine_empty_bottom`으로 시작한다.
-   - 각 placement는 `screenName`, `screenContext`, `placement`, `adFormat`, `adUnitId`를 한 곳에서 제공한다.
-   - Compose call site는 production id 문자열을 직접 들고 있지 않고 placement key 또는 config object만 사용한다.
-2. AdMob application id는 Manifest literal이 아니라 Gradle `manifestPlaceholders` 또는 flavor별 resource/BuildConfig 계약으로 옮긴다.
-   - `prod`는 실제 production application id를 쓴다.
-   - `dev`/debug는 Google test app id 또는 명시적 fake/test config를 쓴다.
-   - CI/test에서 어떤 flavor가 어떤 id를 쓰는지 검증 가능해야 한다.
-3. production ad unit id는 `prod` config에만 존재해야 한다.
+1. `app/build.gradle.kts`의 flavor별 `setAdMobConfig(...)`가 AdMob application id와 banner unit id의 source of truth다.
+   - `prod`는 production application id와 placement별 production ad unit id를 쓴다.
+   - `dev`는 Google sample app id와 sample banner ad unit id를 쓴다.
+   - Manifest `com.google.android.gms.ads.APPLICATION_ID`는 literal이 아니라 `${adMobApplicationId}` placeholder로 resolve된다.
+2. `AdPlacement`가 Compose call site와 analytics payload가 공유하는 placement inventory다.
+   - placement key는 `block_top`, `home_bottom`, `menu_bottom`, `lock_bottom`, `routine_list_bottom`, `routine_empty_bottom`이다.
+   - Compose call site는 production id 문자열을 직접 들고 있지 않고 `AdPlacement.*.adUnitId`만 전달한다.
+3. production ad unit id는 prod config / inventory contract에만 존재해야 한다.
    - `app/src/main/java/**` UI 파일에서 `ca-app-pub-1537867411423705/` 문자열이 사라져야 한다.
-   - test/dev config에는 Google sample banner id 또는 fake id를 사용한다.
+   - test/dev config에는 Google sample banner id를 사용한다.
 4. analytics 계약은 유지한다.
    - `TrackedBannerAd` payload의 `ad_placement`는 placement key와 동일해야 한다.
    - `ad_unit_id`는 실행 flavor의 resolved id를 기록하되, 운영 문서/테스트에서 dev/test id와 prod id를 구분한다.
