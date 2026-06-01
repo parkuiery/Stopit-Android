@@ -265,6 +265,7 @@
 - #14 첫 잠금 활성화 퍼널 개선
 - #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
+- #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 - #17 리뷰 프롬프트 생애주기 개선
 - #82 사용정보 기반 개인화 솔루션과 사용 리포트 제공 (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조)
 
