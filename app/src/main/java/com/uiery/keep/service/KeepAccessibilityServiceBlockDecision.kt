@@ -19,6 +19,25 @@ data class ForegroundBlockRequest(
     val routineId: String? = null,
 )
 
+internal fun resolveServiceConnectionForegroundBlockRequest(
+    currentForegroundPackage: String?,
+    prefs: AccessibilityBlockingPreferences,
+    cachedRoutines: List<RoutineModel>,
+    now: LocalDateTime = LocalDateTime.now(),
+    isEmergencyUnlocked: Boolean,
+    isDuplicateBlock: Boolean,
+): ForegroundBlockRequest? {
+    val packageName = currentForegroundPackage ?: return null
+    return resolveForegroundBlockRequest(
+        packageName = packageName,
+        prefs = prefs,
+        cachedRoutines = cachedRoutines,
+        now = now,
+        isEmergencyUnlocked = isEmergencyUnlocked,
+        isDuplicateBlock = isDuplicateBlock,
+    )
+}
+
 internal fun resolveForegroundBlockRequest(
     packageName: String,
     prefs: AccessibilityBlockingPreferences,

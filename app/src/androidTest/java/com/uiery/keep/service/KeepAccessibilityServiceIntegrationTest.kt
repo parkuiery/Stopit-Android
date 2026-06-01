@@ -68,6 +68,37 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun selectedAppForegroundBeforeServiceConnects_launchesBlockActivityAfterServiceConnects() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        disableAccessibilityServiceIfEnabled()
+        waitUntil("KeepAccessibilityService should be disabled before connect catch-up setup", UI_TIMEOUT_MS) {
+            !isAccessibilityServiceEnabled()
+        }
+        configureManualKeepBlock(blockedPackage)
+
+        launchPackage(blockedPackage)
+        waitForPackageForeground(
+            packageName = blockedPackage,
+            message = "Expected $blockedPackage to be foreground before Accessibility service reconnects",
+        )
+        KeepAccessibilityServiceDebugState.reset(context)
+
+        setAccessibilityServiceEnabled(enabled = true)
+        waitUntil("KeepAccessibilityService should be enabled without leaving the blocked foreground app", UI_TIMEOUT_MS) {
+            isAccessibilityServiceEnabled()
+        }
+        waitForServiceStatePropagation()
+        waitForServiceToObserveSelectedPackage(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to catch up and request BlockActivity for foreground $blockedPackage after service connection",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
+        }
+    }
+
+    @Test
     fun selectedAppWithManualKeep_launchesBlockActivity() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         configureManualKeepBlock(blockedPackage)
@@ -208,30 +239,42 @@ class KeepAccessibilityServiceIntegrationTest {
             ?: fail("Could not find Allow button for Accessibility permission dialog")
     }
 
-    private fun restoreAccessibilityServiceState(initiallyEnabled: Boolean) {
-        if (initiallyEnabled) return
+    private fun disableAccessibilityServiceIfEnabled() {
         if (!isAccessibilityServiceEnabled()) return
 
         val before = accessibilityDiagnostics()
-        val currentServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
-        val updatedServices = currentServices
-            .split(':')
-            .filter { it.isNotBlank() && it != SERVICE_COMPONENT }
-            .joinToString(":")
-
-        if (updatedServices.isEmpty()) {
-            shell("settings delete secure enabled_accessibility_services")
-            shell("settings put secure accessibility_enabled 0")
-        } else {
-            shell("settings put secure enabled_accessibility_services $updatedServices")
-            shell("settings put secure accessibility_enabled 1")
-        }
+        setAccessibilityServiceEnabled(enabled = false)
 
         waitUntil(
-            message = "Expected cleanup to restore KeepAccessibilityService to disabled state. before=$before; after=${accessibilityDiagnostics()}",
+            message = "Expected KeepAccessibilityService to be disabled. before=$before; after=${accessibilityDiagnostics()}",
             timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
         ) {
             !isAccessibilityServiceEnabled()
+        }
+    }
+
+    private fun restoreAccessibilityServiceState(initiallyEnabled: Boolean) {
+        if (initiallyEnabled) return
+        disableAccessibilityServiceIfEnabled()
+    }
+
+    private fun setAccessibilityServiceEnabled(enabled: Boolean) {
+        val currentServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
+        val retainedServices = currentServices
+            .split(':')
+            .filter { it.isNotBlank() && it != SERVICE_COMPONENT }
+            .toMutableList()
+
+        if (enabled) {
+            retainedServices += SERVICE_COMPONENT
+        }
+
+        if (retainedServices.isEmpty()) {
+            shell("settings delete secure enabled_accessibility_services")
+            shell("settings put secure accessibility_enabled 0")
+        } else {
+            shell("settings put secure enabled_accessibility_services ${retainedServices.joinToString(":")}")
+            shell("settings put secure accessibility_enabled 1")
         }
     }
 
@@ -245,7 +288,6 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun normalizeSecureSetting(rawValue: String): String =
         rawValue.trim().takeUnless { it == "null" } ?: ""
-
     private fun openAccessibilityServiceDetails() {
         repeat(3) { attempt ->
             if (openAccessibilityServiceDetailsViaIntent()) {
