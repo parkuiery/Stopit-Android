@@ -36,6 +36,11 @@ import com.uiery.keep.feature.splash.splashScreen
 internal fun KeepApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
 
+    val isDevToolEnabled = shouldRegisterDevToolRoute(
+        flavor = BuildConfig.FLAVOR,
+        isDebug = BuildConfig.DEBUG,
+    )
+
     NavHost(
         modifier = modifier
             .fillMaxSize()
@@ -59,7 +64,11 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateLock = navController::navigateToLock,
         )
         menuScreen(
-            onNavigateDevTool = navController::navigateToDevTool,
+            onNavigateDevTool = if (isDevToolEnabled) {
+                { navController.navigateToDevTool() }
+            } else {
+                {}
+            },
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateHistory = navController::navigateToHistory,
@@ -67,7 +76,9 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
         lockScreen(onNavigateHome = navController::navigateToHome)
-        devToolScreen(onNavigateBack = navController::navigateUp)
+        if (isDevToolEnabled) {
+            devToolScreen(onNavigateBack = navController::navigateUp)
+        }
         routineScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateLock = navController::navigateToLock,
@@ -81,3 +92,8 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
     }
 }
+
+internal fun shouldRegisterDevToolRoute(
+    flavor: String,
+    isDebug: Boolean,
+): Boolean = flavor == "dev" && isDebug
