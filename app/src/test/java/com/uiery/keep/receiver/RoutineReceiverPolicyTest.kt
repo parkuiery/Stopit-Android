@@ -220,6 +220,61 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun enqueuePendingRoutineStartNoticePreservesExistingNoticeOrder() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf("Morning focus started", "Lunch focus started"),
+            ),
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Morning focus started",
+                "Lunch focus started",
+                "Evening focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeKeepsLegacySingleMessageBeforeNewNotice() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = "Morning focus started",
+            notice = PendingRoutineStartNotice(message = "Evening focus started"),
+        )
+
+        assertEquals(
+            listOf("Morning focus started", "Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeReturnsFirstNoticeAndRemainder() {
+        val storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+            listOf("Morning focus started", "Evening focus started"),
+        )
+
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(storedValue)
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(
+            listOf("Evening focus started"),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(drain.remainingStoredValue),
+        )
+    }
+
+    @Test
+    fun drainNextPendingRoutineStartNoticeClearsStoredValueAfterLastNotice() {
+        val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice("Morning focus started")
+
+        assertEquals("Morning focus started", drain.message)
+        assertEquals(null, drain.remainingStoredValue)
+    }
+
+    @Test
     fun applyMissingExactAlarmPermissionDisablesMatchingEnabledRoutineAndRequestsPromptReset() {
         val matchingRoutine = routine(id = 10L, name = "Morning focus", isEnabled = true)
         val otherRoutine = routine(id = 11L, name = "Evening focus", isEnabled = true)

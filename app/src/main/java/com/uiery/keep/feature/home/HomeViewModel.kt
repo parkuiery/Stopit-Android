@@ -17,6 +17,7 @@ import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
+import com.uiery.keep.receiver.RoutineReceiverPolicy
 import com.uiery.keep.service.recordLockHistorySession
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -182,11 +183,20 @@ class HomeViewModel
             }
 
         private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
-            val pendingMessage = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
-            if (pendingMessage.isNullOrBlank()) return null
+            val pendingStoredValue = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+            if (pendingStoredValue.isNullOrBlank()) return null
             if (sheetVisible) return null
 
-            dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
+            val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(pendingStoredValue)
+            val pendingMessage = drain.message ?: return null
+            dataStore.edit { preferences ->
+                val remainingStoredValue = drain.remainingStoredValue
+                if (remainingStoredValue == null) {
+                    preferences.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+                } else {
+                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = remainingStoredValue
+                }
+            }
             return pendingMessage
         }
 
