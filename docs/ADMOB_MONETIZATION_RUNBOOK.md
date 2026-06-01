@@ -329,25 +329,25 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 ### 문제 계약
 
 - 현재 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue`는 AdMob/GA4 publisher surface 기준 수익 지표다.
-- 앱 코드의 `TrackedBannerAd`도 `ad_impression`, `ad_click`, `ad_revenue` 이름으로 custom parameter를 기록한다.
-- GA4 breakdown에서 `customEvent:ad_placement` coverage가 낮기 때문에, 같은 이벤트명 아래 SDK 자동 이벤트와 앱 custom event가 섞여 보일 수 있다.
-- 따라서 placement별 CTR/eCPM 최적화나 광고 제거 관심도 실험을 진행하기 전에, code-lane은 이벤트명/필터/문서 계약 중 하나를 선택해 source split을 고정해야 한다.
+- 앱 코드의 `TrackedBannerAd`는 Stopit 앱 소유 배너 이벤트를 SDK 자동 이벤트와 분리한다: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`.
+- 2026-06-01 이전 GA4 breakdown의 낮은 `customEvent:ad_placement` coverage는 같은 이벤트명 아래 SDK 자동 이벤트와 앱 custom event가 섞인 상태에서 관측된 baseline으로만 본다.
+- 따라서 placement별 CTR/eCPM 최적화나 광고 제거 관심도 실험을 진행하기 전에, 배포 후 새 배너 이벤트명 기준으로 14일 재조회해 source split이 실제로 고정됐는지 확인해야 한다.
 
 ### 허용되는 해결 방향
 
-1. **이벤트명 분리(권장)**
+1. **이벤트명 분리(선택됨)**
    - 앱 custom event를 SDK 자동 이벤트와 충돌하지 않는 이름으로 바꾼다.
-   - 후보: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`.
-   - `KeepAnalytics`, `FirebaseKeepAnalytics`, `TrackedBannerAd`, 관련 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`, GA4 registration runbook을 같은 PR에서 동기화한다.
+   - 선택 이벤트명: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`.
+   - `TrackedBannerAd`, 관련 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`, GA4 registration runbook을 같은 PR에서 동기화한다.
 2. **이벤트명 유지 + query contract 고정(보수적 대안)**
    - 이벤트명은 유지하되, 모든 운영 쿼리가 `customEvent:ad_placement` / `customEvent:ad_unit_id` present 행만 앱 custom coverage로 해석하도록 고정한다.
    - 이 경우에도 PR body와 문서에 “publisher surface와 앱 custom-event coverage를 합산하지 않는다”를 명시한다.
 
 ### 완료 기준
 
-- [ ] `TrackedBannerAdTest` 또는 동등한 analytics payload 테스트가 impression/click/revenue 이벤트명과 `ad_placement`, `ad_unit_id`, `screen_context`, `ad_format`, `screen_name` payload를 고정한다.
-- [ ] `docs/ANALYTICS_EVENT_DICTIONARY.md`가 선택한 이벤트명/필터 계약을 source of truth로 설명한다.
-- [ ] `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 새 이벤트명 또는 유지된 이벤트명의 custom dimension 조회 방식을 설명한다.
+- [x] `TrackedBannerAdTest` 또는 동등한 analytics payload 테스트가 impression/click/revenue 이벤트명과 `ad_placement`, `ad_unit_id`, `screen_context`, `ad_format`, `screen_name` payload를 고정한다.
+- [x] `docs/ANALYTICS_EVENT_DICTIONARY.md`가 선택한 이벤트명/필터 계약을 source of truth로 설명한다.
+- [x] `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 새 이벤트명의 custom dimension 조회 방식을 설명한다.
 - [ ] #16 PR/이슈에는 보정 배포 후 14일 재조회 기준이 남는다.
 - [ ] 배포 전에는 `Refs #16`가 맞고, 14일 재조회와 실험 선택까지 끝났을 때만 `Closes #16`를 사용한다.
 
@@ -377,7 +377,7 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 
 해석:
 
-- 코드 기준 call site는 모두 `TrackedBannerAd`를 지나므로 앱 내부 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)에는 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`가 붙어야 한다.
+- 코드 기준 call site는 모두 `TrackedBannerAd`를 지나므로 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)에는 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`가 붙어야 한다.
 - 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
 - `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
 
@@ -497,7 +497,7 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 
 사전 계약 확인:
 
-- `TrackedBannerAd.kt` / `TrackedBannerAdTest.kt` 기준으로 현재 앱은 `ad_impression`, `ad_click`, `ad_revenue`를 기록한다.
+- `TrackedBannerAd.kt` / `TrackedBannerAdTest.kt` 기준으로 현재 앱은 `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`를 기록한다.
 - placement 분석 전 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros`가 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 동일한지 먼저 본다.
 
 기본 차원/지표:

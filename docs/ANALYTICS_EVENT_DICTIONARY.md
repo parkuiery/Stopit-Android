@@ -142,9 +142,9 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
-| `ad_impression` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 노출 |
-| `ad_click` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | 광고 클릭 |
-| `ad_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | 광고 수익 발생 |
+| `ad_banner_impression` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | Stopit 앱 배너 광고 노출. SDK 자동 `ad_impression`과 섞지 않는다. |
+| `ad_banner_click` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id` | Stopit 앱 배너 광고 클릭. SDK 자동 `ad_click`과 섞지 않는다. |
+| `ad_banner_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | Stopit 앱 배너 광고 수익 발생. SDK 자동 `ad_revenue`와 섞지 않는다. |
 | `monetization_interest_shown` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 노출 |
 | `monetization_interest_clicked` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 클릭 |
 
@@ -228,18 +228,18 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `period_type` | `period_type` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `focus_summary_share_failed` | 공유 지표를 주간 요약 기준으로 해석 |
 | Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
 | Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 집중 시간대별 공유 의도 비교(privacy-safe bucket) |
-| Required | `screen_context` | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 같은 화면 안 광고 문맥별 성과 비교 |
-| Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
-| Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |
-| Required | `ad_unit_id` | `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
+| Required | `screen_context` | `screen_context` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 같은 화면 안 Stopit 앱 배너 광고 문맥별 성과 비교 |
+| Required | `ad_placement` | `ad_placement` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 제품 위치별 Stopit 앱 배너 CTR/eCPM 감사 |
+| Required | `ad_format` | `ad_format` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 광고 형식별 성과 분리 |
+| Required | `ad_unit_id` | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
-| Recommended | `screen_name` | `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
-| Recommended | `ad_currency` | `ad_currency` | `ad_revenue` | 통화 코드 확인 |
-| Recommended | `ad_precision_type` | `ad_precision_type` | `ad_revenue` | 추정 수익 vs 정밀 수익 구분 |
+| Recommended | `screen_name` | `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
+| Recommended | `ad_currency` | `ad_currency` | `ad_banner_revenue` | 통화 코드 확인 |
+| Recommended | `ad_precision_type` | `ad_precision_type` | `ad_banner_revenue` | 추정 수익 vs 정밀 수익 구분 |
 | Recommended | `interest_variant` | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | CTA copy/variant 비교가 필요할 때 |
 | Recommended | `purchase_available` | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리 |
 
@@ -252,7 +252,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `duration_minutes` | `duration_minutes` | `emergency_unlock_completed` | 긴급해제 사용 길이 분포 분석 |
 | Recommended | `remaining_unlocks` | `remaining_unlocks` | `emergency_unlock_completed` | 잔여 긴급해제 수와 재사용 패턴 분석 |
 | Recommended | `elapsed_since_first_open_seconds` | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 첫 가치 도달 시간 분석 |
-| Recommended | `ad_value_micros` | `ad_value_micros` | `ad_revenue` | placement/context별 수익 분포 재집계 |
+| Recommended | `ad_value_micros` | `ad_value_micros` | `ad_banner_revenue` | placement/context별 수익 분포 재집계 |
 
 운영 원칙:
 

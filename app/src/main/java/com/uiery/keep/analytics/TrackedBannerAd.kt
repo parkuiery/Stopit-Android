@@ -12,9 +12,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 
-internal const val AdImpressionEvent = "ad_impression"
-internal const val AdClickEvent = "ad_click"
-internal const val AdRevenueEvent = "ad_revenue"
+internal const val AdBannerImpressionEvent = "ad_banner_impression"
+internal const val AdBannerClickEvent = "ad_banner_click"
+internal const val AdBannerRevenueEvent = "ad_banner_revenue"
 
 internal data class AdPlacementMetadata(
     val screenName: String,
@@ -62,13 +62,13 @@ internal fun TrackedBannerAd(
 
 internal fun buildAdImpressionEvent(metadata: AdPlacementMetadata): MonetizationEvent =
     MonetizationEvent(
-        name = AdImpressionEvent,
+        name = AdBannerImpressionEvent,
         stringParams = baseParams(metadata),
     )
 
 internal fun buildAdClickEvent(metadata: AdPlacementMetadata): MonetizationEvent =
     MonetizationEvent(
-        name = AdClickEvent,
+        name = AdBannerClickEvent,
         stringParams = baseParams(metadata),
     )
 
@@ -77,7 +77,7 @@ internal fun buildAdRevenueEvent(
     revenueMetadata: RevenueMetadata,
 ): MonetizationEvent =
     MonetizationEvent(
-        name = AdRevenueEvent,
+        name = AdBannerRevenueEvent,
         stringParams = baseParams(metadata) + mapOf(
             "ad_currency" to revenueMetadata.currencyCode,
             "ad_precision_type" to revenueMetadata.precisionType,
