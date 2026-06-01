@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.lockhistory
 
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import kotlinx.coroutines.delay
@@ -33,6 +34,8 @@ class LockHistoryViewModelShareTest {
             ),
             analytics = analytics,
         )
+
+        assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViews)
 
         waitForHistoryLoad(viewModel)
         val payload = viewModel.container.stateFlow.value.focusSummarySharePayload
@@ -134,10 +137,13 @@ private data class ShareAnalyticsEvent(
 
 private class RecordingLockHistoryAnalytics : KeepAnalytics {
     val events = mutableListOf<ShareAnalyticsEvent>()
+    val screenViews = mutableListOf<String>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
-    override fun logScreenView(screenName: String) = Unit
+    override fun logScreenView(screenName: String) {
+        screenViews += screenName
+    }
 
     override fun setUserProperty(name: String, value: String) = Unit
 

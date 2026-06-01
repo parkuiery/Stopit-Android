@@ -347,7 +347,8 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 | `LockScreen.kt` | `lock` | `routine` / `manual` | `lock_bottom` | `ca-app-pub-1537867411423705/7892727021` | `잠금 하단 배너` | 긴급해제와 인접한 안전 민감 위치. 수익보다 이탈/불만 guardrail 우선. |
 | `RoutineListContent.kt` | `routine` | `list` | `routine_list_bottom` | `ca-app-pub-1537867411423705/7750072748` | `루틴 목록 하단 배너` | 반복 사용자 화면. 활성 루틴 설정 방해 여부 확인. |
 | `RoutineNoContent.kt` | `routine` | `empty_state` | `routine_empty_bottom` | `ca-app-pub-1537867411423705/9271028233` | `루틴 공백 하단 배너` | 첫 루틴 생성 CTA와 충돌하면 안 됨. |
-| `HistoryScreen.kt` | `history` | `summary` | `history_bottom` | `ca-app-pub-1537867411423705/5324044368` | `사용 기록 하단 배너` | 비교적 안전한 비핵심 화면이지만 history/성과 회고 경험을 방해하지 않는지 확인. |
+
+참고: `history_bottom`은 2026-06-01 code-lane 정리 후 더 이상 active main-source `TrackedBannerAd` call site가 아니다. legacy `HistoryScreen` route/screen은 제거됐고, 사용자는 `LockHistoryScreen` canonical surface로 진입한다.
 
 해석:
 
