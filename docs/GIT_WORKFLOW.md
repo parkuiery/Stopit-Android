@@ -31,6 +31,10 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
 
+Android CI path gating contract:
+- `gradlew` / `gradlew.bat`, root Gradle config files, and `.github/workflows/android-ci.yml` are treated as **build-critical** root inputs.
+- wrapper-only or Gradle-launcher-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
+
 ## Analytics / Release Handoff Boundary
 
 릴리즈/핫픽스 PR에서 Android runtime / release QA가 green이어도, 그것만으로 GA4 `customEvent:*` queryability가 해결됐다고 보면 안 된다.
