@@ -161,6 +161,19 @@ fun BlockScreen(
                     textAlign = TextAlign.Center,
                     color = KeepTheme.colors.surfaceVariant,
                 )
+                if (uiState.showFirstCoreActionFeedback) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(KeepTheme.colors.primaryContainer)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        text = stringResource(id = R.string.block_screen_first_core_action_feedback),
+                        textAlign = TextAlign.Center,
+                        color = KeepTheme.colors.onPrimaryContainer,
+                    )
+                }
             }
             Column(
                 modifier = Modifier

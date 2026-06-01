@@ -182,6 +182,22 @@ cd <repo-root>
 - broad package visibility query는 `InstalledAppRepository`에서만 수행한다.
 - `SelectableAppPolicyTest`가 launch intent 없는 앱 제외, Stopit 자기 package 제외, picker 정렬 안정성을 고정한다.
 - Manifest/Play 정책 설명은 “앱 차단 대상 선택” 목적과 충돌하지 않아야 한다.
+
+### 첫 차단 성공 피드백 baseline
+
+Issue #14 계열 PR에서 차단 화면의 첫 가치 경험 피드백을 바꿀 때는 `first_lock_configured`를 실제 차단 완료로 과장하지 않고, 실제 차단 화면 진입에서만 첫 성공 피드백이 노출되는지 확인한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.BlockViewModelTest'
+```
+
+검증 기준:
+- 최초 차단 진입은 `app_block_intercepted`를 먼저 기록하고 이어서 `first_core_action_completed`를 1회 기록한다.
+- `BlockUiState.showFirstCoreActionFeedback`은 최초 차단에서만 `true`다.
+- 이미 `HAS_TRACKED_FIRST_CORE_ACTION=true`인 반복 차단은 `core_action_completed`만 기록하고 첫 성공 피드백을 반복 노출하지 않는다.
+- 수동 QA에서는 차단 화면의 긴급해제/닫기 동작이 첫 성공 피드백 카드에 가려지지 않는지 함께 확인한다.
+
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.

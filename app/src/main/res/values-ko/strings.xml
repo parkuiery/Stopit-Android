@@ -41,6 +41,7 @@
     <string name="category_selected">%1$d개의 앱&amp;웹 카테고리 선택됨</string>
     <string name="block_screen_title">스탑잇이 앱 사용을\n막고 있어요</string>
     <string name="block_screen_message">%1$s은(는) 제한되었기 때문에 사용할 수 없습니다.</string>
+    <string name="block_screen_first_core_action_feedback">첫 차단이 정상 작동했어요. Keep이 켜져 있는 동안 선택한 앱을 계속 막아드릴게요.</string>
     <string name="block_screen_close">닫기</string>
     <string name="permission_dialog_title">앱 잠금 기능을 사용하시려면 접근성 권한이 필요해요.</string>
     <string name="permission_dialog_message">스탑잇은 사용자가 잠금 설정된 앱에 접근하려고 할 때 이를 차단해서 앱 잠금 기능을 제공해요.\n이를 위해 실행 중인 앱의 화면 구성 정보와 상호작용 데이터를 수집하고 처리해요.\n\n이 데이터는 앱 잠금 기능 제공 외의 다른 용도로 사용되지 않고, 외부로 전송되지 않아요.\n\n접근성 권한을 부여하시겠어요?</string>

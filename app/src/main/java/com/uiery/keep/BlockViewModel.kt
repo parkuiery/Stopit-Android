@@ -65,6 +65,7 @@ class BlockViewModel
                 routineId = routineId,
             )
             if (hasTrackedFirstCoreAction) {
+                reduce { state.copy(showFirstCoreActionFeedback = false) }
                 analytics.trackCoreActionCompleted(
                     elapsedSinceFirstOpenSeconds = elapsedSeconds,
                     blockingMode = blockSource,
@@ -72,6 +73,7 @@ class BlockViewModel
                     routineId = routineId,
                 )
             } else {
+                reduce { state.copy(showFirstCoreActionFeedback = true) }
                 analytics.trackFirstCoreActionCompleted(
                     elapsedSinceFirstOpenSeconds = elapsedSeconds,
                     blockingMode = blockSource,
@@ -145,6 +147,7 @@ data class BlockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val showFirstCoreActionFeedback: Boolean = false,
 )
 
 sealed class BlockSideEffect {
