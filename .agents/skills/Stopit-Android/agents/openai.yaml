@@ -1,0 +1,6 @@
+interface:
+  display_name: "Stopit Android"
+  short_description: "Repo-specific patterns and workflows for Stopit-Android"
+  default_prompt: "Use the Stopit-Android repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true

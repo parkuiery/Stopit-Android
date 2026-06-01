@@ -61,6 +61,7 @@ interface KeepAnalytics {
     fun trackAppBlockIntercepted(
         blockSource: String,
         blockedAppPackage: String,
+        routineId: String? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
@@ -100,6 +101,23 @@ interface KeepAnalytics {
     fun reviewPromptSkipped(reason: String) = Unit
 
     fun reviewPromptFailed(error: String) = Unit
+
+    fun trackFocusSummaryShareTapped(
+        periodType: String,
+        sessionCountBucket: String,
+        durationMinutesBucket: String,
+    ) = Unit
+
+    fun trackFocusSummaryShareSheetOpened(
+        periodType: String,
+        sessionCountBucket: String,
+        durationMinutesBucket: String,
+    ) = Unit
+
+    fun trackFocusSummaryShareFailed(
+        periodType: String,
+        reason: String,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -126,6 +144,9 @@ object KeepAnalyticsEvent {
     const val REVIEW_PROMPT_SHOWN = "review_prompt_shown"
     const val REVIEW_PROMPT_SKIPPED = "review_prompt_skipped"
     const val REVIEW_PROMPT_FAILED = "review_prompt_failed"
+    const val FOCUS_SUMMARY_SHARE_TAPPED = "focus_summary_share_tapped"
+    const val FOCUS_SUMMARY_SHARE_SHEET_OPENED = "focus_summary_share_sheet_opened"
+    const val FOCUS_SUMMARY_SHARE_FAILED = "focus_summary_share_failed"
 }
 
 object KeepAnalyticsParam {
@@ -150,6 +171,9 @@ object KeepAnalyticsParam {
     const val BLOCKING_MODE = "blocking_mode"
     const val ROUTINE_ID = "routine_id"
     const val ERROR = "error"
+    const val PERIOD_TYPE = "period_type"
+    const val SESSION_COUNT_BUCKET = "session_count_bucket"
+    const val DURATION_MINUTES_BUCKET = "duration_minutes_bucket"
 }
 
 object OnboardingStepName {
@@ -166,7 +190,7 @@ object KeepAnalyticsScreen {
     const val ONBOARDING_SELECT_APP = "OnboardingSelectAppScreen"
     const val HOME = "HomeScreen"
     const val MENU = "MenuScreen"
-    const val HISTORY = "HistoryScreen"
+    const val LOCK_HISTORY = "LockHistoryScreen"
     const val ROUTINE = "RoutineScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"

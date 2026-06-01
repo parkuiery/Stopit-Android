@@ -15,6 +15,7 @@
 ## 관련 문서
 
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ops/stopit/product-context.md`
@@ -31,6 +32,28 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 - 과거 메모/코멘트에는 `select_app_complete` 같은 구식 명칭이 섞여 있어, 현재 코드의 canonical 이벤트명과 바로 대응되지 않는다.
 
 따라서 먼저 **이벤트 계약과 퍼널 해석 규칙**을 고정하고, 그 다음에 CTA/UI/측정 개선을 진행해야 한다.
+
+### 현재 #13 queryability 경계
+
+2026-05-29 live 확인 기준으로 활성화 퍼널 해석에 직접 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+
+- `permission_outcome` by `customEvent:permission_name`, `customEvent:outcome` → `400 INVALID_ARGUMENT`
+- `first_lock_configured` by `customEvent:source` → `400 INVALID_ARGUMENT`
+- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_package` → 아직 registration gap 우선 정리 단계
+
+따라서 현재는 `first_open`, `app_selection_completed`, `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 **상위 이벤트 count/users 비율**은 읽을 수 있어도, 어떤 권한/출처/차단 앱에서 병목이 생기는지 세부 분해 해석은 낮은 confidence로 둬야 한다.
+
+추가 주의:
+
+- 위 smoke는 activation 분해 축이 실제로 막혀 있다는 **대표 증거**다.
+- activation follow-through에서 같이 필요한 `selected_app_count`, `is_onboarding`도 아직 `customEvent:*` registration/materialization 완료 전제로 취급하지 않는다.
+- 따라서 앱 선택량 분포, 온보딩 vs 홈 진입 차이 같은 세부 결론도 GA4 Admin 등록 전에는 참고 수준으로만 다룬다.
+
+운영 원칙:
+
+- 퍼널 숫자가 이상해 보여도 곧바로 CTA/UI 결론으로 점프하지 않는다.
+- 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 `permission_name`, `outcome`, `source`, `block_source`, `blocked_app_package` 등록/metadata 확인이 끝났는지 본다.
+- 그 전까지 issue #14 후속 문서/PR은 "퍼널 해석 계약 정리"와 "manual/live registration 대기"를 분리해서 기록한다.
 
 ## canonical 퍼널 정의
 
@@ -51,8 +74,8 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | 1 | `first_open` | 앱이 신규 사용자에게 최초 실행되었다 | 온보딩 시작/완료, 권한 허용, 가치 경험 |
 | 2 | `onboarding_step_view`, `onboarding_step_complete` | 사용자가 온보딩 스텝을 실제로 봤고 일부를 완료했다 | 권한이 실제로 허용되었는지, 앱 선택/잠금까지 갔는지 |
 | 3 | `permission_outcome` | 접근성/알림 등 병목 권한의 결과가 남았다 | 차단 앱 선택/잠금 설정/실제 차단 성공 |
-| 4 | `app_selection_completed` | 사용자가 차단 대상 앱을 실제로 골랐다 | 잠금/타이머/Keep 토글 등 실제 차단 준비가 끝났는지 |
-| 5 | `first_lock_configured` | 사용자가 첫 잠금 진입점을 한 번이라도 구성했다 | 차단이 실제로 발생했는지 |
+| 4 | `app_selection_completed` | 사용자가 차단 대상 앱을 1개 이상 실제로 골랐다 (`selected_app_count >= 1`) | 잠금/타이머/Keep 토글 등 실제 차단 준비가 끝났는지 |
+| 5 | `first_lock_configured` | 사용자가 첫 잠금 진입점을 한 번이라도 구성했다. 온보딩/홈 Keep 토글/홈 타이머 모두 1개 이상 앱 선택 이후에만 성립한다 | 차단이 실제로 발생했는지 |
 | 6 | `first_core_action_completed` | 사용자가 첫 가치 경험에 도달했다 | 접근성 서비스가 실제 차단 화면까지 정상 동작했는지 |
 | 7 | `app_block_intercepted` | 스탑잇의 핵심 약속인 실제 차단이 발생했다 | 이후 반복 사용/루틴 정착 |
 
@@ -103,9 +126,16 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | `first_open`만 있음 | 앱을 켰지만 온보딩/권한/선택으로 진입하지 않음 | 온보딩 첫 가치 약속을 더 선명히 보여준다 | `onboarding_step_view`, `onboarding_step_complete` |
 | `onboarding_step_view`는 있으나 `permission_outcome`이 약함 | 권한 단계에서 이탈 | 접근성/알림 권한의 왜 필요한지와 다음 행동을 명확히 보여준다 | `permission_outcome` (`permission_name`, `outcome`) |
 | `permission_outcome`은 있으나 `app_selection_completed`가 낮음 | 권한 뒤 앱 선택에서 이탈 | 앱 선택 자체를 더 빠르고 덜 부담스럽게 만든다 | `app_selection_completed`, `selected_app_count` |
-| `app_selection_completed`는 있으나 `first_lock_configured`가 낮음 | 앱은 골랐지만 첫 잠금/Keep 토글/타이머/루틴으로 이어지지 않음 | 다음 행동 CTA를 홈/온보딩 종료 상태에 명시한다 | `first_lock_configured`, `source` |
+| `app_selection_completed`는 있으나 `first_lock_configured`가 낮음 | 앱은 골랐지만 첫 잠금/Keep 토글/타이머/루틴으로 이어지지 않음 | 홈에서 첫 잠금 CTA를 노출해 Keep 토글로 바로 이어지게 한다 | `first_lock_configured`, `source=home` |
 | `first_lock_configured`는 있으나 `first_core_action_completed`가 낮음 | 준비는 했지만 첫 가치 경험으로 이어지지 않음 | 실제 차단이 언제/어떻게 발생하는지 피드백을 분명히 한다 | `first_core_action_completed`, `elapsed_since_first_open_seconds`, `blocking_mode` |
 | `first_core_action_completed`는 있으나 `app_block_intercepted`가 낮음 | 첫 가치/세션 계측과 실차단 계측이 어긋나거나 런타임 계약이 비어 있음 | 접근성 runtime/차단 화면/실차단 계측 연결을 검증한다 | `app_block_intercepted`, `block_source`, `blocked_app_package` |
+
+### 홈 첫 잠금 CTA 계약
+
+- 노출 조건: 선택 앱이 1개 이상이고 `HAS_TRACKED_FIRST_LOCK_CONFIGURED=false`이며 현재 Keep 모드가 꺼져 있을 때만 홈 상단에 표시한다.
+- 클릭 동작: 기존 Home Keep 토글 경로를 그대로 호출한다. 별도 계측 이벤트를 만들지 않고, 성공 시 기존 `first_lock_configured(source=home, selected_app_count=...)`와 `lock_session_start(source=home_keep_switch)` 순서를 유지한다.
+- 숨김 조건: 첫 잠금이 기록되거나 Keep 모드가 켜지면 CTA를 숨긴다. 이미 첫 잠금을 기록한 사용자에게는 반복 노출하지 않는다.
+- 검증 기준: `HomeViewModelActivationAnalyticsTest`가 노출/숨김 조건과 첫 잠금 시작 후 숨김을 고정한다.
 
 ## 해석 guardrail
 
@@ -216,5 +246,6 @@ cd <repo-root>
 - 첫 차단/첫 가치 경험 UI 피드백 구현 또는 정교화
 - 배포 후 14일 기준 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
+- `permission_name` / `source` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인
 
 따라서 docs lane 산출물은 기본적으로 `Refs #14`가 맞고, `Closes #14`는 code/product/manual measurement까지 충족될 때만 사용한다.
