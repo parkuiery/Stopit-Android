@@ -88,10 +88,6 @@ interface KeepAnalytics {
 
     fun trackDeviceRegistrationAttempted() = Unit
 
-    fun trackDeviceRegistrationSucceeded() = Unit
-
-    fun trackDeviceRegistrationFailed(reason: String) = Unit
-
     fun trackDeviceRegistrationSkipped(reason: String) = Unit
 
     fun reviewPromptEligible() = Unit
@@ -137,9 +133,12 @@ object KeepAnalyticsEvent {
     const val CORE_ACTION_COMPLETED = "core_action_completed"
     const val FCM_TOKEN_CAPTURED = "fcm_token_captured"
     const val DEVICE_REGISTRATION_ATTEMPTED = "device_registration_attempted"
-    const val DEVICE_REGISTRATION_SUCCEEDED = "device_registration_succeeded"
-    const val DEVICE_REGISTRATION_FAILED = "device_registration_failed"
     const val DEVICE_REGISTRATION_SKIPPED = "device_registration_skipped"
+    val ACTIVE_DEVICE_REGISTRATION_EVENTS = setOf(
+        FCM_TOKEN_CAPTURED,
+        DEVICE_REGISTRATION_ATTEMPTED,
+        DEVICE_REGISTRATION_SKIPPED,
+    )
     const val REVIEW_PROMPT_ELIGIBLE = "review_prompt_eligible"
     const val REVIEW_PROMPT_SHOWN = "review_prompt_shown"
     const val REVIEW_PROMPT_SKIPPED = "review_prompt_skipped"

@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | FCM token refresh entry point | `app/src/main/java/com/uiery/keep/service/KeepMessagingService.kt` | Firebase `onNewToken()`에서 새 token을 받아 저장 경로로 전달한다. |
 | token 저장/analytics 순서 | `app/src/main/java/com/uiery/keep/DeviceTokenManager.kt` | token을 `LocalDeviceDataStore`에 저장하고 현재 analytics 이벤트를 기록한다. |
-| analytics API/상수 | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | 현재 이벤트명과 아직 남아 있는 legacy registration API가 함께 존재한다. |
+| analytics API/상수 | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | 현재 발생 가능한 FCM token / backend-removed registration 이벤트만 노출한다. |
 | Firebase analytics adapter | `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` | `KeepAnalytics` 호출을 Firebase event로 변환한다. |
 | token 저장 regression | `app/src/test/java/com/uiery/keep/DeviceTokenManagerTest.kt` | 현재 저장 + event order 계약을 고정한다. |
 | runtime wiring baseline | `app/src/androidTest/java/com/uiery/keep/service/KeepMessagingServiceIntegrationTest.kt` | stale token overwrite wiring을 Android runtime에서 확인한다. |
@@ -44,14 +44,14 @@
 | `missing_fcm_token` | 전달된 token이 blank | 저장 경로에 진입했지만 registration/token 운영 신뢰도가 낮다. Firebase callback 또는 test fixture 입력을 점검한다. |
 | `backend_removed` | token이 blank가 아님 | 현재 정상 경로다. token은 로컬 저장됐지만 제거된 backend registration은 수행하지 않는다. |
 
-## 현재 비발생 / legacy 계약
+## 제거된 legacy 계약
 
-아래 API와 event constant는 코드 표면에 남아 있지만, 현재 앱 런타임에서 호출하는 production call site가 없다.
+아래 이벤트는 backend device registration 파이프라인이 제거된 뒤 더 이상 현재 코드 표면에서 API/event constant로 노출하지 않는다.
 
 | 이벤트명 | 현재 상태 | 해석 |
 | --- | --- | --- |
-| `device_registration_succeeded` | `KeepAnalytics` / `FirebaseKeepAnalytics` / analytics test에만 남아 있음 | backend registration 성공 이벤트처럼 해석하지 않는다. code lane에서 제거 또는 deprecation 판단 필요. |
-| `device_registration_failed` | `KeepAnalytics` / `FirebaseKeepAnalytics` / analytics test에만 남아 있음 | backend registration 실패 이벤트처럼 해석하지 않는다. code lane에서 제거 또는 deprecation 판단 필요. |
+| `device_registration_succeeded` | API/event constant 제거됨 | backend registration이 재도입되기 전까지 성공 이벤트로 해석하지 않는다. |
+| `device_registration_failed` | API/event constant 제거됨 | backend registration이 재도입되기 전까지 실패율 지표로 해석하지 않는다. |
 
 운영 분석에서 위 두 이벤트가 GA4에 잡히면 먼저 앱 버전, 과거 release, manual/test event, 또는 legacy client 유입 가능성을 분리한다. 현재 코드 기준의 건강도 판단은 `fcm_token_captured`와 `device_registration_skipped.reason`을 우선한다.
 
@@ -76,7 +76,7 @@ rg -n 'fcm_token_captured|device_registration_|backend_removed|missing_fcm_token
 확인 기준:
 
 - 실제 production call site가 `DeviceTokenManager.saveDeviceToken()` 경로인지 확인한다.
-- `device_registration_succeeded` / `device_registration_failed`가 production call site 없이 analytics API/test 표면에만 남아 있는지 확인한다.
+- `device_registration_succeeded` / `device_registration_failed`가 현재 코드 표면에 다시 추가되지 않았는지 확인한다.
 - 운영 문서에서 `FCM token 저장`과 `backend device registration`을 분리해 설명하는지 확인한다.
 
 ### 현재 token 저장 regression
@@ -96,25 +96,25 @@ cd <repo-root>
 
 ## 현재 closure-pass 상태와 남은 경계
 
-문서/운영 계약은 docs-lane에서 가능한 범위까지 정리됐다.
+문서/운영 계약은 docs-lane에서 가능한 범위까지 정리됐고, code lane에서 legacy success/fail API 제거 결정을 반영했다.
 
 - PR #215가 `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`, backup/restore 문서, AGENTS 근접 문서에 FCM token 로컬 저장 vs 제거된 backend registration 경계를 추가했다.
 - PR #154가 merge되면서 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 canonical analytics 표도 같은 해석으로 동기화됐다.
 - 현재 문서 기준으로 `fcm_token_captured`, `device_registration_attempted`, `device_registration_skipped(reason=backend_removed|missing_fcm_token)`만 살아 있는 런타임 운영 신호로 본다.
-- `device_registration_succeeded` / `device_registration_failed`는 production call site가 없는 legacy/API 표면이며, backend registration 재도입 전에는 성공/실패 제품 지표로 해석하지 않는다.
+- `device_registration_succeeded` / `device_registration_failed`는 API/event constant까지 제거된 legacy 이벤트이며, backend registration 재도입 전에는 성공/실패 제품 지표로 해석하지 않는다.
 
-issue #194를 완전히 닫으려면 이제 docs-lane 문서 보강이 아니라 code lane 판단이 필요하다.
+issue #194를 완전히 닫으려면 이제 배포 후 실제 GA4/운영 화면에서 legacy success/fail 이벤트가 새로 유입되지 않는지 관측하는 후속만 남는다.
 
-- `device_registration_succeeded` / `device_registration_failed` API와 event constant를 제거할지, deprecated로 유지할지 결정한다.
-- `FirebaseKeepAnalyticsTest`의 “queryability” test가 legacy success/fail 이벤트를 계속 고정해야 하는지 재판단한다.
-- `DeviceTokenManager` 이름과 `device_registration_attempted` 이벤트가 현재 책임(token 저장 + backend removed skip marker)을 충분히 설명하는지 정리한다.
+- `KeepAnalyticsEvent.ACTIVE_DEVICE_REGISTRATION_EVENTS`와 `FirebaseKeepAnalyticsTest`가 현재 런타임 이벤트 집합을 고정한다.
+- `DeviceTokenManager`는 계속 token 저장 + backend removed skip marker를 기록한다.
+- backend registration을 다시 도입할 때만 별도 이슈/PR에서 success/fail 이벤트명을 새 계약으로 재추가한다.
 
 ## PR / issue 기록 문구
 
-#194를 문서 closure-pass로 전진시키는 PR에서는 아래처럼 경계를 명확히 적는다.
+#194를 code lane에서 마무리하는 PR에서는 아래처럼 경계를 명확히 적는다.
 
 ```md
-Refs #194
+Closes #194
 
-이번 PR은 PR #154 merge 이후 상태에 맞춰 FCM token / backend registration 문서 계약을 closure-pass했다. canonical analytics dictionary는 이미 같은 해석으로 동기화됐고, 남은 #194 경계는 unused registration success/fail API·상수·테스트를 제거할지 deprecated로 유지할지에 대한 code lane 판단이다.
+이번 PR은 backend registration 제거 이후 남아 있던 `device_registration_succeeded` / `device_registration_failed` API·event constant·analytics test 고정을 제거하고, 현재 런타임 이벤트 집합을 `ACTIVE_DEVICE_REGISTRATION_EVENTS`로 고정했다. 배포 후 GA4에서 legacy success/fail 이벤트가 새로 보이면 과거 앱 버전/manual event/새 call site 재도입 여부를 먼저 분리한다.
 ```

@@ -219,17 +219,6 @@ class FirebaseKeepAnalytics
             backend.logEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED)
         }
 
-        override fun trackDeviceRegistrationSucceeded() {
-            backend.logEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_SUCCEEDED)
-        }
-
-        override fun trackDeviceRegistrationFailed(reason: String) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.DEVICE_REGISTRATION_FAILED,
-                params = mapOf(KeepAnalyticsParam.REASON to reason),
-            )
-        }
-
         override fun trackDeviceRegistrationSkipped(reason: String) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.DEVICE_REGISTRATION_SKIPPED,
