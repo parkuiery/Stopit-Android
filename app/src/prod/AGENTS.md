@@ -4,12 +4,12 @@
 # prod source set
 
 ## Purpose
-Production flavor source set. It currently carries the Firebase `google-services.json` for prod builds.
+Production flavor source set. Release Build/Play Deploy restore `google-services.json` here, while Android CI/Release QA may restore the same secret to both dev and prod; the workflow-specific restore matrix is owned by `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `google-services.json` | Firebase/Google services configuration for this flavor; treat as environment-specific config. |
+| `google-services.json` | Firebase/Google services configuration for this flavor when restored locally or by CI/CD. Check `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` before assuming which workflow writes this file. |
 
 ## Subdirectories
 No documented child directories.
