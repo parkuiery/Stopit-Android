@@ -15,6 +15,39 @@ import org.junit.Test
 
 class ReceiverCoroutineRunnerTest {
 
+    private class RecordingReceiverFailureReporter : ReceiverFailureReporter {
+        val failures = mutableListOf<ReceiverFailure>()
+
+        override fun record(failure: ReceiverFailure) {
+            failures += failure
+        }
+    }
+
+    @Test
+    fun launchReceiverWorkReportsReceiverFailureWithReceiverNameAndCause() = runBlocking {
+        val finishCount = AtomicInteger(0)
+        val reporter = RecordingReceiverFailureReporter()
+        val expected = IllegalStateException("notification helper failed")
+
+        val job = ReceiverCoroutineRunner.launch(
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+            receiverName = "RoutineAlarmReceiver",
+            finish = { finishCount.incrementAndGet() },
+            failureReporter = reporter,
+        ) {
+            throw expected
+        }
+
+        job.join()
+
+        assertEquals(1, finishCount.get())
+        assertEquals(1, reporter.failures.size)
+        assertEquals("RoutineAlarmReceiver", reporter.failures.single().receiverName)
+        assertSame(expected, reporter.failures.single().cause)
+        assertTrue(job.isCompleted)
+        assertFalse(job.isCancelled)
+    }
+
     @Test
     fun launchReceiverWorkFinishesPendingResultWhenWorkSucceeds() = runBlocking {
         val finishCount = AtomicInteger(0)

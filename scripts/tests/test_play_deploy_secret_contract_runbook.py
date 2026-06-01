@@ -10,6 +10,9 @@ RELEASE_QA = REPO_ROOT / ".github" / "workflows" / "release-qa.yml"
 RELEASE_BUILD = REPO_ROOT / ".github" / "workflows" / "release-build.yml"
 PLAY_DEPLOY = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 VERSION_GUARD = REPO_ROOT / ".github" / "workflows" / "version-guard.yml"
+PLAY_DEPLOYMENT = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
+GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 FUNCTIONS_README = REPO_ROOT / "functions" / "README.md"
 FUNCTIONS_AGENTS = REPO_ROOT / "functions" / "AGENTS.md"
 FUNCTIONS_SRC_AGENTS = REPO_ROOT / "functions" / "src" / "AGENTS.md"
@@ -85,6 +88,9 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
 
     def test_runbook_and_functions_readme_keep_secret_ownership_boundary_explicit(self):
         runbook = RUNBOOK.read_text(encoding="utf-8")
+        play_deployment = PLAY_DEPLOYMENT.read_text(encoding="utf-8")
+        git_workflow = GIT_WORKFLOW.read_text(encoding="utf-8")
+        release_checklist = RELEASE_CHECKLIST.read_text(encoding="utf-8")
         functions_readme = FUNCTIONS_README.read_text(encoding="utf-8")
         functions_agents = FUNCTIONS_AGENTS.read_text(encoding="utf-8")
         functions_src_agents = FUNCTIONS_SRC_AGENTS.read_text(encoding="utf-8")
@@ -162,6 +168,22 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
             runbook,
         )
         self.assertIn("python3 -m unittest scripts.tests.test_check_play_deploy_secret_contract -v", runbook)
+
+        for canonical_doc in (play_deployment, git_workflow, release_checklist, engineering_context):
+            self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", canonical_doc)
+        self.assertIn("scripts/check-play-deploy-secret-contract.sh", play_deployment)
+        self.assertIn("scripts/check-play-deploy-secret-contract.sh", release_checklist)
+        self.assertIn("scripts/setup-discord-deploy-secrets.sh", play_deployment)
+        self.assertIn("scripts/setup-discord-deploy-secrets.sh", git_workflow)
+        self.assertIn("Android / Play build-upload secrets", play_deployment)
+        self.assertIn("Android/Play build-upload secrets만", runbook)
+        self.assertIn("Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`", play_deployment)
+        self.assertIn("Release Build / Play Deploy write it only to `app/src/prod`", play_deployment)
+        self.assertIn("Firebase Functions secret", play_deployment)
+        self.assertIn("DISCORD_DEPLOY_CHANNEL_ID` exists in two stores", git_workflow)
+        self.assertIn("Firebase Functions secret for interaction channel verification", git_workflow)
+        self.assertIn("workflow별 restore matrix", runbook)
+        self.assertIn("Canonical 문서 동기화 상태", runbook)
 
         self.assertIn('env("DISCORD_BOT_TOKEN")', discord_notifier)
         self.assertIn('env("DISCORD_DEPLOY_CHANNEL_ID")', discord_notifier)

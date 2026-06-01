@@ -40,6 +40,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
     - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
     - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
     - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
+  - 위 deny gate는 exact alarm 재예약 실패 시 receiver 경로가 enabled 루틴을 `enabled=true`로 조용히 남기지 않고, `enabled=false` 강등 + `HAS_SHOWN_ALARM_PERMISSION=false` reset + no pending intent 계약을 지키는지 검증한다.
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow` 후 `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
@@ -63,7 +64,9 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 
 ## Required GitHub secrets
 
-Set these in GitHub repository settings or run `scripts/setup-play-deploy-secrets.sh`.
+Source of truth: `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` owns the helper / workflow / Firebase Functions secret boundary. Keep this section as the operator-facing summary, but use that runbook for audits and drift checks.
+
+Set Android / Play build-upload secrets in GitHub repository settings or run `scripts/setup-play-deploy-secrets.sh`. That helper intentionally manages only the build/upload set (`ANDROID_*`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_SERVICES_JSON`). Discord deploy notification secrets are separate: use `scripts/setup-discord-deploy-secrets.sh` or `gh secret set` for `DISCORD_BOT_TOKEN` and `DISCORD_DEPLOY_CHANNEL_ID`.
 
 | Secret | Used by | Description |
 | --- | --- | --- |
@@ -72,13 +75,21 @@ Set these in GitHub repository settings or run `scripts/setup-play-deploy-secret
 | `ANDROID_KEY_ALIAS` | Release Build, CD | Upload key alias. |
 | `ANDROID_KEY_PASSWORD` | Release Build, CD | Upload key password. |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, CD | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. |
-| `GOOGLE_SERVICES_JSON` | CI, Release Build, CD | Production Firebase `google-services.json` content for `app/src/prod`. |
-| `DISCORD_BOT_TOKEN` | CD | Discord bot token used to post deploy approval cards to the deploy channel. |
-| `DISCORD_DEPLOY_CHANNEL_ID` | CD | Discord channel ID for deploy approval/status messages. |
+| `GOOGLE_SERVICES_JSON` | CI, Release QA, Release Build, CD | Firebase `google-services.json` content restored per workflow: Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`, while Release Build / Play Deploy write it only to `app/src/prod`. |
+| `DISCORD_BOT_TOKEN` | CD | Discord bot token used by `scripts/notify-discord-deploy.py` to post deploy approval/status messages to the deploy channel. |
+| `DISCORD_DEPLOY_CHANNEL_ID` | CD, Firebase Functions | GitHub Actions uses this as the deploy notification channel, and Firebase Functions uses a separate secret of the same name to verify production-promotion interaction channel. Configure both stores when Discord production approval is enabled. |
 
 Operational failure boundary for `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`:
 - missing before `main`-target `release/*` or `hotfix/*` PR -> `Version Guard` cannot query Google Play visible max `versionCode`, so the release PR blocks before merge
 - missing during tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play, so CD blocks after release build
+
+Operational failure boundary for `GOOGLE_SERVICES_JSON`:
+- missing during Android CI / Release QA -> the workflow can fail while restoring either `app/src/dev/google-services.json` or `app/src/prod/google-services.json`
+- missing during Release Build / Play Deploy -> the workflow fails on prod-only Firebase config restoration before building/uploading the signed artifact
+
+Operational failure boundary for Discord deploy secrets:
+- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload, but deploy notification / approval-card posting is skipped or fails depending on the workflow step
+- missing Firebase Functions `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, allowed role/user IDs, or `GITHUB_ACTIONS_DISPATCH_TOKEN` -> Discord production-promotion button cannot verify/dispatch correctly even if GitHub Actions secrets exist
 
 The service account must have access in Play Console:
 
@@ -87,7 +98,7 @@ The service account must have access in Play Console:
 3. Grant the service account app access for Stopit.
 4. Required permission: release management/upload permission for the app.
 
-## Secret setup helper
+## Secret setup helpers
 
 From the repo root:
 
@@ -103,6 +114,23 @@ scripts/setup-play-deploy-secrets.sh \
 
 If the password environment variables are omitted, the script prompts for them.
 The script uses `gh secret set` and does not commit secret files.
+It does **not** set Discord deploy notification or Firebase Functions promotion secrets.
+
+For GitHub Actions Discord deploy notification secrets:
+
+```bash
+DISCORD_BOT_TOKEN='***' \
+DISCORD_DEPLOY_CHANNEL_ID='<deploy-channel-id>' \
+scripts/setup-discord-deploy-secrets.sh
+```
+
+For Firebase Functions production-promotion interaction secrets, use Firebase secret commands as shown below in `Discord production promotion setup`, then redeploy the affected function.
+
+Before a release, verify the contract without printing secret values:
+
+```bash
+scripts/check-play-deploy-secret-contract.sh
+```
 
 ## Release flow
 

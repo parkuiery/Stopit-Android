@@ -1,8 +1,9 @@
 package com.uiery.keep.receiver
 
 import android.content.Intent
-import com.uiery.keep.notification.RoutineStartNotificationResult
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.notification.RoutineScheduleResult
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import kotlinx.serialization.json.Json
 
 data class RoutineAlarmTrigger(
@@ -19,8 +20,9 @@ data class PendingRoutineStartNoticeDrain(
     val remainingStoredValue: String?,
 )
 
-data class ExactAlarmPermissionRecovery(
+data class RoutineScheduleApplication(
     val routines: List<RoutineModel>,
+    val disabledRoutineIds: Set<Long>,
     val shouldResetAlarmPermissionPrompt: Boolean,
 )
 
@@ -79,25 +81,49 @@ object RoutineReceiverPolicy {
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
 
+    fun applyScheduleResult(
+        routines: List<RoutineModel>,
+        routineId: Long,
+        scheduleResult: RoutineScheduleResult,
+    ): RoutineScheduleApplication {
+        if (scheduleResult != RoutineScheduleResult.MissingExactAlarmPermission) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
+            )
+        }
+
+        val disabledRoutineIds = routines
+            .filter { it.id == routineId && it.isEnabled }
+            .map { it.id }
+            .toSet()
+
+        if (disabledRoutineIds.isEmpty()) {
+            return RoutineScheduleApplication(
+                routines = routines,
+                disabledRoutineIds = emptySet(),
+                shouldResetAlarmPermissionPrompt = false,
+            )
+        }
+
+        return RoutineScheduleApplication(
+            routines = routines.map { routine ->
+                if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
+            },
+            disabledRoutineIds = disabledRoutineIds,
+            shouldResetAlarmPermissionPrompt = true,
+        )
+    }
+
     fun applyMissingExactAlarmPermission(
         routines: List<RoutineModel>,
         routineId: Long,
-    ): ExactAlarmPermissionRecovery {
-        var didDisableRoutine = false
-        val updatedRoutines = routines.map { routine ->
-            if (routine.id == routineId && routine.isEnabled) {
-                didDisableRoutine = true
-                routine.copy(isEnabled = false)
-            } else {
-                routine
-            }
-        }
-
-        return ExactAlarmPermissionRecovery(
-            routines = updatedRoutines,
-            shouldResetAlarmPermissionPrompt = didDisableRoutine,
-        )
-    }
+    ): RoutineScheduleApplication = applyScheduleResult(
+        routines = routines,
+        routineId = routineId,
+        scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+    )
 
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,

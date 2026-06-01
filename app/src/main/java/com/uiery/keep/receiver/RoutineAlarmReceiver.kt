@@ -100,31 +100,39 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             databaseRoutines = databaseRoutines,
         )
 
-        if (RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines)) {
-            routineStore.writeCachedRoutines(routines)
-        }
+        var updatedRoutines = routines
+        val disabledRoutineIds = linkedSetOf<Long>()
+        var shouldResetAlarmPermissionPrompt = false
 
         RoutineReceiverPolicy.findEnabledRoutineToReschedule(
             routines = routines,
             routineId = trigger.routineId,
-        )?.let { routineToReschedule ->
-            when (routineScheduler.scheduleRoutine(routineToReschedule)) {
-                RoutineScheduleResult.MissingExactAlarmPermission -> {
-                    val recovery = RoutineReceiverPolicy.applyMissingExactAlarmPermission(
-                        routines = routines,
-                        routineId = routineToReschedule.id,
-                    )
-                    if (recovery.shouldResetAlarmPermissionPrompt) {
-                        routineDao.updateIsEnabledById(routineToReschedule.id, false)
-                        routineStore.writeCachedRoutines(recovery.routines)
-                        dataStore.edit { preferences ->
-                            preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
-                        }
-                    }
-                }
-                RoutineScheduleResult.Scheduled,
-                RoutineScheduleResult.NotEnabled,
-                -> Unit
+        )?.let { routine ->
+            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+                routines = updatedRoutines,
+                routineId = routine.id,
+                scheduleResult = routineScheduler.scheduleRoutine(routine),
+            )
+            updatedRoutines = scheduleApplication.routines
+            disabledRoutineIds += scheduleApplication.disabledRoutineIds
+            shouldResetAlarmPermissionPrompt =
+                shouldResetAlarmPermissionPrompt || scheduleApplication.shouldResetAlarmPermissionPrompt
+        }
+
+        disabledRoutineIds.forEach { routineId ->
+            routineDao.updateIsEnabledById(routineId, false)
+        }
+
+        if (
+            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
+            disabledRoutineIds.isNotEmpty()
+        ) {
+            routineStore.writeCachedRoutines(updatedRoutines)
+        }
+
+        if (shouldResetAlarmPermissionPrompt) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
             }
         }
     }
