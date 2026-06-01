@@ -49,4 +49,6 @@ These functions use Firebase Alerts triggers from Crashlytics and post a formatt
 3. allows only comma-separated `DISCORD_DEPLOY_ALLOWED_ROLE_IDS` or `DISCORD_DEPLOY_ALLOWED_USER_IDS`;
 4. dispatches `.github/workflows/play-deploy.yml` on the selected SemVer tag with `track=production`.
 
+The function is an interaction/authentication gate, not the final production execution approval. The dispatched `track=production` workflow enters the GitHub Environment named `production`; configure that Environment in GitHub repository settings with a required reviewer so Discord-button dispatches and direct GitHub `workflow_dispatch` runs share the same final approval boundary.
+
 Set the Discord application's Interactions Endpoint URL to the deployed HTTPS function URL.

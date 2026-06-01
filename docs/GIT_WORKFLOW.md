@@ -39,6 +39,7 @@ Play deploy secret/setup contract:
 - `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` is the source of truth for Play deploy secret ownership, helper scope, and the `GOOGLE_SERVICES_JSON` restore matrix.
 - `scripts/setup-play-deploy-secrets.sh` only configures Android/Play build-upload secrets; Discord deploy notification secrets use `scripts/setup-discord-deploy-secrets.sh` or direct `gh secret set`.
 - `DISCORD_DEPLOY_CHANNEL_ID` exists in two stores when Discord production approval is enabled: GitHub Actions repo secret for deploy notification, and Firebase Functions secret for interaction channel verification.
+- Production Play deploy approval is enforced in two layers: Discord verifies channel/user/role before dispatching, and `.github/workflows/play-deploy.yml` routes `track=production` runs into the GitHub Environment named `production`, which must have required reviewer approval configured in repository settings. Direct GitHub `workflow_dispatch` and Discord dispatches share that same final Environment gate.
 - Release/operator evidence should run or reference `scripts/check-play-deploy-secret-contract.sh` when Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed.
 
 ## Analytics / Release Handoff Boundary
