@@ -9,6 +9,12 @@
 - 퍼널/리뷰/수익화 분석 시 어떤 이벤트를 봐야 하는지 빠르게 확인한다.
 - 첫 잠금 활성화 퍼널의 단계 의미와 운영 해석은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`와 함께 본다.
 
+## 관련 문서
+
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
+- `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
+
 ## 소스 오브 트루스
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
@@ -16,9 +22,11 @@
 - AdMob 배너 계측 래퍼: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
+- 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/history/HistoryViewModelTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 테스트: `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -27,7 +35,7 @@
 | --- | --- | --- |
 | 홈 | `HomeScreen` | `HomeViewModel` |
 | 메뉴 | `MenuScreen` | `MenuViewModel` |
-| 히스토리 | `HistoryScreen` | `HistoryViewModel` |
+| 잠금 히스토리(히스토리 도메인의 canonical surface) | `LockHistoryScreen` | `LockHistoryViewModel` |
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
@@ -51,8 +59,8 @@
 | `onboarding_step_view` | `step_name` | 온보딩 스텝 노출 |
 | `onboarding_step_complete` | `step_name` | 온보딩 스텝 완료 |
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
-| `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 선택 완료 |
-| `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료 |
+| `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
+| `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
 | `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 첫 핵심 행동 완료 |
 | `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 반복 핵심 행동 완료 |
 
@@ -64,19 +72,27 @@
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약 |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_package` | 실제 차단 발생 |
+| `app_block_intercepted` | `block_source`, `blocked_app_package`, `routine_id?` | 실제 차단 발생 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
 ### 디바이스 등록/푸시
 
-| 이벤트명 | 주요 파라미터 | 설명 |
-| --- | --- | --- |
-| `fcm_token_captured` | 없음 | FCM 토큰 확보 |
-| `device_registration_attempted` | 없음 | 디바이스 등록 시도 |
-| `device_registration_succeeded` | 없음 | 디바이스 등록 성공 |
-| `device_registration_failed` | `reason` | 디바이스 등록 실패 |
-| `device_registration_skipped` | `reason` | 디바이스 등록 생략 |
+현재 앱의 production 책임은 **FCM token 로컬 저장**이다. 백엔드 device registration 파이프라인은 제거되어 있으며, `DeviceTokenManager.saveDeviceToken(...)`은 토큰 저장 후 registration 성공/실패가 아니라 skip reason으로 현재 상태를 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 현재 발생 여부 | 설명 |
+| --- | --- | --- | --- |
+| `fcm_token_captured` | 없음 | 발생 | FCM 토큰을 로컬 DataStore에 저장한 시점 |
+| `device_registration_attempted` | 없음 | 발생 | legacy registration 흐름과의 호환/관측용 시도 이벤트. 현재는 외부 backend 호출을 의미하지 않는다. |
+| `device_registration_skipped` | `reason` | 발생 | backend 제거 또는 빈 토큰 때문에 registration이 생략된 상태. 현재 reason 값은 `backend_removed`, `missing_fcm_token`이다. |
+| `device_registration_succeeded` | 없음 | legacy/API 표면 | 현재 production call site 없음. backend registration 재도입 전에는 성공 이벤트로 해석하지 않는다. |
+| `device_registration_failed` | `reason` | legacy/API 표면 | 현재 production call site 없음. backend registration 재도입 전에는 실패율 지표로 해석하지 않는다. |
+
+운영 원칙:
+
+- `fcm_token_captured`와 `device_registration_skipped(reason=backend_removed)`는 “토큰 저장은 됐지만 backend device registration은 제거되어 호출하지 않았다”는 계약으로 함께 해석한다.
+- `device_registration_succeeded` / `device_registration_failed`가 GA4에 새로 보이면 먼저 코드 call site 재도입 여부를 확인한다. 현재 dictionary 기준에서는 살아 있는 제품 지표가 아니라 legacy/API 표면이다.
+- 백업/복원 또는 새 기기 QA에서 확인할 것은 backend registration 성공이 아니라 `KeepMessagingServiceIntegrationTest` 기준의 stale FCM token overwrite / local persistence wiring이다.
 
 ### 리뷰 프롬프트
 
@@ -88,7 +104,24 @@
 | `review_prompt_failed` | `error` | API/launcher 실패 |
 
 세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
-현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다.
+현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다. `NotHomeRoot`와 `NoActivity`는 일시적 노출 보류이므로 `REVIEW_PENDING`을 유지하고, `AccessibilityOff`/`QuietHours`/`KillSwitch` 같은 live eligibility 실패는 pending을 삭제하는 최종 skip으로 해석한다.
+
+### 집중 요약 공유
+
+`LockHistory` 주간 요약 공유 MVP의 제품/QA 계약은 `docs/FOCUS_SUMMARY_SHARE_MVP.md`를 source of truth로 본다. 공유문과 이벤트 파라미터에는 앱 이름, package name, raw session 목록, raw duration을 넣지 않고 bucket/기간 타입만 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `focus_summary_share_tapped` | `period_type`, `session_count_bucket`, `duration_minutes_bucket` | 주간 LockHistory 공유 CTA 탭 |
+| `focus_summary_share_sheet_opened` | `period_type`, `session_count_bucket`, `duration_minutes_bucket` | Android share sheet launch 시도/성공 |
+| `focus_summary_share_failed` | `period_type`, `reason` | share sheet를 열 수 없어 공유를 중단 |
+
+현재 bucket 계약:
+
+- `period_type`: `week`만 기록한다. 월간 화면에서는 공유 payload/CTA를 만들지 않는다.
+- `session_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
+- `duration_minutes_bucket`: `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
+- `focus_summary_share_failed.reason`: `activity_not_found`
 
 ### 광고 / 수익화
 
@@ -124,6 +157,9 @@
 | `end_reason` | 세션 종료 이유 |
 | `reason` | 긴급해제/등록 실패/스킵의 이유 |
 | `error` | 리뷰 프롬프트 실패 이유 |
+| `period_type` | 집중 요약 공유 대상 기간 (`week`) |
+| `session_count_bucket` | 집중 요약 공유 세션 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
+| `duration_minutes_bucket` | 집중 요약 공유 총 시간 bucket (`1_29`, `30_59`, `60_119`, `120_239`, `240_plus`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
@@ -135,9 +171,23 @@
 | `ad_precision_type` | AdMob가 제공한 수익 정밀도 (`estimated`, `precise`, `publisher_provided`, `unknown`) |
 | `ad_value_micros` | 마이크로 단위 광고 수익 |
 
+## User property 계약
+
+현재 live metadata에서 확인된 custom dimension은 `customUser:routines_count` 하나뿐이므로, 이 값의 의미를 이벤트 파라미터와 분리해서 명시한다.
+
+| user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
+| --- | --- | --- | --- |
+| `routines_count` | `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt` | 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때 | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. |
+
+운영 원칙:
+
+- `routines_count`는 #13에서 **이미 조회 가능한 customUser 축**이므로, `customEvent:*` 등록이 비어 있어도 루틴 보유 분포 해석에는 사용할 수 있다.
+- 다만 user property 특성상 과거 시점 복원이 어렵기 때문에, 코호트/퍼널 결론은 `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 이벤트와 함께 본다.
+- product/metrics 문서에서 `루틴 생성 사용자 비율`을 언급할 때는 이 계약을 source of truth로 본다.
+
 ## GA4 custom dimension / metric 등록 계약
 
-`screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다.
+`screen_view`와 이벤트명이 코드에 있어도, 주요 파라미터가 GA4 커스텀 차원/지표로 등록되지 않으면 대시보드와 cron 분석에서 조회할 수 없다. 아래 표를 기본 운영 계약으로 본다. 실제 GA4 Admin 등록 절차, registration ledger, metadata 증적 포맷은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
 ### 우선 등록할 이벤트 차원
 
@@ -153,14 +203,17 @@
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
 | Required | `end_reason` | `end_reason` | `lock_session_end` | 세션 종료 사유 비교 |
-| Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_failed`, `device_registration_skipped`, `review_prompt_skipped` | 실패/스킵/긴급해제 이유 분석 |
+| Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 긴급해제/스킵/리뷰 보류 이유 분석. `device_registration_failed`는 현재 production call site가 없는 legacy/API 표면이므로 backend registration 재도입 전에는 지표 축으로 해석하지 않는다. |
+| Required | `period_type` | `period_type` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `focus_summary_share_failed` | 공유 지표를 주간 요약 기준으로 해석 |
+| Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
+| Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 집중 시간대별 공유 의도 비교(privacy-safe bucket) |
 | Required | `screen_context` | `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 같은 화면 안 광고 문맥별 성과 비교 |
 | Required | `ad_placement` | `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 제품 위치별 CTR/eCPM 감사 |
 | Required | `ad_format` | `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 형식별 성과 분리 |
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
-| Recommended | `routine_id` | `routine_id` | `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
+| Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
 | Recommended | `screen_name` | `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
 | Recommended | `ad_currency` | `ad_currency` | `ad_revenue` | 통화 코드 확인 |
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_revenue` | 추정 수익 vs 정밀 수익 구분 |
@@ -290,7 +343,7 @@ PY
 
 1. `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / 관련 테스트를 먼저 확인한다.
 2. 이 문서의 이벤트 딕셔너리와 등록 계약 표를 같이 갱신한다.
-3. 필요한 차원/지표가 `Required`면 GA4 Admin에 등록하기 전까지 대시보드 결론을 보류한다.
+3. 필요한 차원/지표가 `Required`면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 ledger/절차에 따라 GA4 Admin 등록과 metadata 확인을 끝내기 전까지 대시보드 결론을 보류한다.
 4. 배포 후 14일 창으로 `(not set)` 비율과 새 파라미터 조회 가능 여부를 재측정한다.
 
 ### `(not set)` 또는 조회 불가가 보일 때 triage 순서
@@ -298,18 +351,21 @@ PY
 1. `screen_view` 누락인지 확인한다.
 2. 코드 파라미터 이름과 문서 이름이 일치하는지 확인한다.
 3. GA4 metadata에서 해당 `customEvent:*` 차원/지표가 실제 등록됐는지 확인한다.
-4. 이벤트가 최근 버전에서만 추가된 경우 `appVersion` 세그먼트로 다시 본다.
-5. 그래도 불명확하면 제품 결론보다 계측 개선 이슈를 먼저 연다.
+4. `runReport`가 `400 INVALID_ARGUMENT`와 함께 `Field customEvent:... is not a valid dimension`을 반환하면, no-data가 아니라 **미등록 상태**로 분류하고 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration follow-through를 우선한다.
+5. 이벤트가 최근 버전에서만 추가된 경우 `appVersion` 세그먼트로 다시 본다.
+6. 그래도 불명확하면 제품 결론보다 계측 개선 이슈를 먼저 연다.
 
-### 2026-05-27 live 점검 메모
+### 2026-05-29 live 점검 메모
 
 - GA4 metadata 기준 현재 조회 가능한 custom dimension은 `customUser:routines_count`만 확인됐다.
 - `customEvent:*` 차원/지표는 아직 보이지 않아 activation/review/ad parameter 조회 결론 confidence를 낮게 둬야 한다.
-- 최근 14일 `screen_view`는 총 `11,567`건이고, `(not set)` `8,780`건 + 빈 `unifiedScreenName` `807`건으로 합계 `9,587 / 11,567 = 82.9%`다.
-- 온보딩 화면명은 보이기 시작했지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
+- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) smoke query는 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패해, 현재 병목이 no-data가 아니라 **미등록 쿼리 축**임을 다시 확인했다.
+- 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
+- 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
+- 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
 ## 운영 메모
 
 - 신규 화면/이벤트 추가 시 이 문서와 테스트를 같이 갱신한다.
-- 커스텀 차원 등록 상태가 바뀌면 `docs/METRICS_ANALYSIS.md`의 조회 가이드도 같이 업데이트한다.
+- 커스텀 차원 등록 상태가 바뀌면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 registration ledger / metadata 증적 / 재측정 표와 `docs/METRICS_ANALYSIS.md`의 조회 가이드를 같이 업데이트한다.
 - `(not set)` 비율 재측정 기본 창은 배포 후 14일이다.

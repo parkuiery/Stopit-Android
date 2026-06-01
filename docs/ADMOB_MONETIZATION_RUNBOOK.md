@@ -45,9 +45,11 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/METRICS_ANALYSIS.md`
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
+- 광고 앱 ID / 광고 단위 ID 설정 표면 (`app/build.gradle.kts`, `app/src/main/AndroidManifest.xml`, `app/src/main/java/com/uiery/keep/analytics/AdPlacement.kt`)
 - GA4 Analytics Data API / AdMob 보고서
 
 운영 원칙:
@@ -55,6 +57,28 @@ issue #16에 기록된 최근 30일 기준선:
 - 과거 문서의 수치는 참고값일 뿐이고, 실제 판단은 **이번 분석에서 다시 조회한 수치**를 source of truth로 둔다.
 - 계측 누락이 있으면 제품/수익화 결론 confidence를 낮춘다.
 - 활성화/신뢰를 해치는 실험은 revenue가 좋아 보여도 기본안으로 채택하지 않는다.
+
+## 현재 #13 queryability 경계
+
+2026-05-29 live 확인 기준으로 광고/수익화 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 등록되지 않았다.
+
+- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
+- monetization smoke (`ad_impression` / `ad_click` / `ad_revenue` by `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_unit_id`):
+  - `400 INVALID_ARGUMENT`
+  - `Field customEvent:ad_placement is not a valid dimension.`
+
+즉, 현재 `adUnitName` / `adFormat` 같은 AdMob 쪽 집계는 볼 수 있어도, Stopit 제품 문맥에서 중요한 `ad_placement`, `screen_context`, `ad_unit_id` 기준 해석은 아직 **미등록 queryability gap** 때문에 낮은 confidence 상태다.
+
+추가 주의:
+
+- 이번 smoke는 광고 문맥 축이 막혀 있다는 대표 증거이고, Required인 `ad_format`도 아직 live `customEvent:*` queryability가 확보됐다고 보지 않는다.
+- Recommended인 `ad_value_micros`까지 포함한 placement/context별 수익 재집계도 같은 외부 경계 뒤에 있다.
+
+운영 원칙:
+
+- placement별 CTR/eCPM 결론을 강하게 내리기 전에 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 광고 파라미터 등록 상태를 먼저 확인한다.
+- `adUnitName = (not set)` 문제와 `customEvent:*` 미등록 문제를 섞지 않는다. 전자는 AdMob 보고 축 문제일 수 있고, 후자는 GA4 Admin 등록 문제다.
+- issue #16 follow-through에서는 revenue 표를 만들더라도, `ad_placement` / `screen_context`가 아직 미등록이면 "제품 문맥까지 포함한 위치 최적화 결론"은 보류라고 명시한다.
 
 ## 먼저 답해야 할 질문
 
@@ -347,13 +371,80 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 | `LockScreen.kt` | `lock` | `routine` / `manual` | `lock_bottom` | `ca-app-pub-1537867411423705/7892727021` | `잠금 하단 배너` | 긴급해제와 인접한 안전 민감 위치. 수익보다 이탈/불만 guardrail 우선. |
 | `RoutineListContent.kt` | `routine` | `list` | `routine_list_bottom` | `ca-app-pub-1537867411423705/7750072748` | `루틴 목록 하단 배너` | 반복 사용자 화면. 활성 루틴 설정 방해 여부 확인. |
 | `RoutineNoContent.kt` | `routine` | `empty_state` | `routine_empty_bottom` | `ca-app-pub-1537867411423705/9271028233` | `루틴 공백 하단 배너` | 첫 루틴 생성 CTA와 충돌하면 안 됨. |
-| `HistoryScreen.kt` | `history` | `summary` | `history_bottom` | `ca-app-pub-1537867411423705/5324044368` | `사용 기록 하단 배너` | 비교적 안전한 비핵심 화면이지만 history/성과 회고 경험을 방해하지 않는지 확인. |
+
+참고: `history_bottom`은 2026-06-01 code-lane 정리 후 더 이상 active main-source `TrackedBannerAd` call site가 아니다. legacy `HistoryScreen` route/screen은 제거됐고, 사용자는 `LockHistoryScreen` canonical surface로 진입한다.
 
 해석:
 
 - 코드 기준 call site는 모두 `TrackedBannerAd`를 지나므로 앱 내부 이벤트(`ad_impression`, `ad_click`, `ad_revenue`)에는 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`가 붙어야 한다.
 - 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
 - `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
+
+## issue #250: flavor별 광고 설정 계약
+
+#250은 #16의 성과 감사와 연결되지만, 문제의 핵심은 성과표가 아니라 **production AdMob application/ad unit id가 Manifest와 여러 Compose 화면에 분산된 설정 계약 drift**다. docs-lane PR #254에서 구현 handoff를 먼저 고정했고, code-lane PR은 아래 계약을 실제 Gradle/Manifest/Compose call site에 반영한다.
+
+### 이전 분산 표면
+
+2026-06-01 `origin/develop` 기준으로 production 광고 ID가 직접 박혀 있던 표면은 다음과 같다.
+
+| 표면 | 현재 위치 | production ID 종류 | 문제 |
+| --- | --- | --- | --- |
+| AdMob application id | `app/src/main/AndroidManifest.xml` meta-data `com.google.android.gms.ads.APPLICATION_ID` | `ca-app-pub-1537867411423705~6734784292` | flavor/build type별 교체가 어렵고 dev/debug가 production app id를 쓰는지 정적 가드가 없다. |
+| `block_top` | `BlockScreen.kt` | ad unit id | 차단 경험과 가장 가까운 신뢰 민감 위치인데 UI 코드가 production id까지 소유한다. |
+| `home_bottom` | `HomeScreen.kt` | ad unit id | 첫 잠금 CTA 주변의 광고 설정 변경이 UI diff와 섞인다. |
+| `menu_bottom` | `MenuScreen.kt` | ad unit id | 설정/피드백/삭제방지 흐름과 광고 inventory 변경이 분리되지 않는다. |
+| `lock_bottom` | `LockScreen.kt` | ad unit id | 긴급해제 인접 위치라 dev/prod 혼동이 특히 위험하다. |
+| `routine_list_bottom` | `RoutineListContent.kt` | ad unit id | 반복 사용 화면의 광고 설정을 한 곳에서 감사하기 어렵다. |
+| `routine_empty_bottom` | `RoutineNoContent.kt` | ad unit id | 첫 루틴 생성 CTA 주변 광고 설정이 코드 곳곳에 흩어져 있다. |
+
+참고: `history_bottom`은 active main-source call site가 아니다. 다시 추가하려면 이 계약표와 광고 config source에 먼저 등록해야 한다.
+
+### 구현 계약
+
+현재 코드 계약:
+
+1. `app/build.gradle.kts`의 flavor별 `setAdMobConfig(...)`가 AdMob application id와 banner unit id의 source of truth다.
+   - `prod`는 production application id와 placement별 production ad unit id를 쓴다.
+   - `dev`는 Google sample app id와 sample banner ad unit id를 쓴다.
+   - Manifest `com.google.android.gms.ads.APPLICATION_ID`는 literal이 아니라 `${adMobApplicationId}` placeholder로 resolve된다.
+2. `AdPlacement`가 Compose call site와 analytics payload가 공유하는 placement inventory다.
+   - placement key는 `block_top`, `home_bottom`, `menu_bottom`, `lock_bottom`, `routine_list_bottom`, `routine_empty_bottom`이다.
+   - Compose call site는 production id 문자열을 직접 들고 있지 않고 `AdPlacement.*.adUnitId`만 전달한다.
+3. production ad unit id는 prod config / inventory contract에만 존재해야 한다.
+   - `app/src/main/java/**` UI 파일에서 `ca-app-pub-1537867411423705/` 문자열이 사라져야 한다.
+   - test/dev config에는 Google sample banner id를 사용한다.
+4. analytics 계약은 유지한다.
+   - `TrackedBannerAd` payload의 `ad_placement`는 placement key와 동일해야 한다.
+   - `ad_unit_id`는 실행 flavor의 resolved id를 기록하되, 운영 문서/테스트에서 dev/test id와 prod id를 구분한다.
+
+### 정적/테스트 가드
+
+#250을 닫는 PR에는 최소 아래 가드 중 하나 이상이 필요하다.
+
+```text
+- production id 문자열이 UI call site에 남아 있지 않음을 확인하는 JVM/정적 테스트
+- dev/debug 광고 config가 production `ca-app-pub-1537867411423705/` ad unit id를 쓰지 않음을 확인하는 테스트
+- Manifest application id가 flavor별 placeholder/resValue에서 resolve된다는 Gradle/manifest 검사
+- placement inventory가 config source와 이 문서의 표를 같은 순서/키로 설명한다는 regression check
+```
+
+권장 검증 명령:
+
+```bash
+./gradlew --console=plain :app:testDevDebugUnitTest --tests '*Ad*Config*' --tests '*TrackedBannerAd*'
+./gradlew --console=plain :app:testDevDebugUnitTest
+./gradlew --console=plain :app:assembleProdDebug
+rg -n 'ca-app-pub-1537867411423705/' app/src/main/java
+rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app/build.gradle.kts app/src/main/AndroidManifest.xml app/src/*/AndroidManifest.xml
+```
+
+`rg -n 'ca-app-pub-1537867411423705/' app/src/main/java`는 #250 완료 PR에서는 **결과가 없어야 한다**. production ID는 config source 또는 prod flavor boundary에서만 보이게 둔다.
+
+### `Refs` / `Closes` 판단
+
+- 이 docs-lane 반영은 #250의 implementation handoff이므로 `Refs #250`가 맞다.
+- `Closes #250`는 Manifest application id, ad unit config 중앙화, dev/debug non-production guard, placement inventory, `:app:testDevDebugUnitTest`까지 충족한 code/maintenance PR에서만 사용한다.
 
 ## #16 closure-pass 게이트
 
@@ -540,6 +631,7 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 이 lane에서는 아래만 안전하다.
 
 - 광고 단위 감사 절차 문서화
+- 광고 application/ad unit id의 flavor별 config 계약과 code-lane handoff 정리
 - 수익화 실험 우선순위/guardrail 문서화
 - metrics 문서에서 광고 분석 문서를 발견 가능하게 연결
 
@@ -549,6 +641,7 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|ad_impression|cust
 - 전면 광고 배치 변경
 - 결제 구현
 - Play Console 또는 원격 설정 실험 실제 실행
+- GA4 Admin에서 `ad_placement` / `screen_context` / `ad_unit_id`를 직접 등록하는 수동 작업
 
 ## 흔한 실수
 

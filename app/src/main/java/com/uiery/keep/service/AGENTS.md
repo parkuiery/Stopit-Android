@@ -13,7 +13,7 @@ Long-lived Android services and service helpers for accessibility blocking, Fire
 | `EmergencyUnlockPolicy.kt` | Pure policy logic for emergency-unlock limits and eligibility. |
 | `EmergencyUnlockState.kt` | In-memory state bridge for emergency unlock status used by services/UI. |
 | `KeepAccessibilityService.kt` | Accessibility service that observes foreground windows and triggers blocking behavior. |
-| `KeepMessagingService.kt` | Firebase Messaging service for FCM token/message handling. |
+| `KeepMessagingService.kt` | Firebase Messaging service for FCM token/message handling; token refresh persists locally and does not perform backend device registration. See `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`. |
 
 ## Subdirectories
 No documented child directories.

@@ -58,13 +58,15 @@ fun SelectAppScreen(
             CategoryBottomSheetContent(
                 storeSelectApps = emptySet(),
                 onComplete = { selectPackages ->
-                    viewModel.selectCategoryComplete(selectPackages)
-                    coroutineScope.launch {
-                        categoryBottomSheetState.hide()
-                    }.invokeOnCompletion {
-                        if (!categoryBottomSheetState.isVisible) {
-                            viewModel.hideCategoryBottomSheet()
-                            onNavigateHome()
+                    if (canCompleteOnboardingAppSelection(selectPackages)) {
+                        viewModel.selectCategoryComplete(selectPackages)
+                        coroutineScope.launch {
+                            categoryBottomSheetState.hide()
+                        }.invokeOnCompletion {
+                            if (!categoryBottomSheetState.isVisible) {
+                                viewModel.hideCategoryBottomSheet()
+                                onNavigateHome()
+                            }
                         }
                     }
                 },

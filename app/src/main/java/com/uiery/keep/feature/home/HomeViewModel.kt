@@ -53,12 +53,27 @@ class HomeViewModel
             getSelectedApp()
         }
 
-        internal fun changeIsKeep() =
+        internal fun changeIsKeep(noSelectedAppsMessage: String? = null) =
             intent {
                 val isKeep = !state.isKeep
+                if (isKeep && state.selectedAppPackage.isEmpty()) {
+                    reduce {
+                        state.copy(
+                            isShowCategoryBottomSheet = true,
+                            sheetVisible = true,
+                        )
+                    }
+                    if (!noSelectedAppsMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
+                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
+                    }
+                    return@intent
+                }
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
-                    trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)
+                    if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)) {
+                        reduce { state.copy(showFirstLockActivationCta = false) }
+                    }
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
                         isRoutine = false,
@@ -112,6 +127,11 @@ class HomeViewModel
                         sheetVisible = state.isShowTimeBottomSheet,
                     )
                 }
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (!pendingMessage.isNullOrBlank()) {
+                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    reduce { state.copy(snackbarMessage = pendingMessage) }
+                }
             }
 
         internal fun hideTimeBottomSheet() =
@@ -122,6 +142,11 @@ class HomeViewModel
                         sheetVisible = state.isShowCategoryBottomSheet,
                     )
                 }
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (!pendingMessage.isNullOrBlank()) {
+                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    reduce { state.copy(snackbarMessage = pendingMessage) }
+                }
             }
 
         internal fun maybeDrainReviewFlag(activity: Activity?) =
@@ -131,7 +156,6 @@ class HomeViewModel
                 if (!pending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
                     return@intent
                 }
                 val live = reviewEligibility.evaluateLive()
@@ -150,15 +174,21 @@ class HomeViewModel
 
         internal fun maybeDrainRoutineStartNotice() =
             intent {
-                val prefs = dataStore.data.firstOrNull()
-                val pendingMessage = prefs?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (pendingMessage.isNullOrBlank()) return@intent
-                if (state.sheetVisible) return@intent
 
-                dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
                 postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
                 reduce { state.copy(snackbarMessage = pendingMessage) }
             }
+
+        private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
+            val pendingMessage = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
+            if (pendingMessage.isNullOrBlank()) return null
+            if (sheetVisible) return null
+
+            dataStore.edit { it.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE) }
+            return pendingMessage
+        }
 
         internal fun moveToLock() =
             intent {
@@ -172,13 +202,18 @@ class HomeViewModel
 
         private fun getSelectedApp() =
             intent {
-                val selectedAppPackage =
-                    dataStore.data
-                        .map { data ->
-                            data[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
-                        }.firstOrNull()
-                selectedAppPackage?.let {
-                    reduce { state.copy(selectedAppPackage = it) }
+                val preferences = dataStore.data.firstOrNull()
+                val selectedAppPackage = preferences?.get(PreferencesKey.SELECTED_APP_PACKAGES).orEmpty()
+                val hasTrackedFirstLock = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackage,
+                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
+                            selectedAppPackage = selectedAppPackage,
+                            hasTrackedFirstLock = hasTrackedFirstLock,
+                            isKeep = state.isKeep,
+                        ),
+                    )
                 }
             }
 
@@ -212,7 +247,18 @@ class HomeViewModel
                     isOnboarding = false,
                 )
                 storeSelectedApp(selectedAppPackage)
-                reduce { state.copy(selectedAppPackage = selectedAppPackage) }
+                val hasTrackedFirstLock =
+                    dataStore.data.firstOrNull()?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackage,
+                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
+                            selectedAppPackage = selectedAppPackage,
+                            hasTrackedFirstLock = hasTrackedFirstLock,
+                            isKeep = state.isKeep,
+                        ),
+                    )
+                }
             }
 
         private fun storeIsKeep() =
@@ -274,8 +320,21 @@ class HomeViewModel
                 reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
             }
 
-        internal fun lockTime() =
+        internal fun lockTime(noSelectedAppsMessage: String? = null) =
             intent {
+                if (state.selectedAppPackage.isEmpty()) {
+                    reduce {
+                        state.copy(
+                            isShowCategoryBottomSheet = true,
+                            sheetVisible = true,
+                        )
+                    }
+                    if (!noSelectedAppsMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
+                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
+                    }
+                    return@intent
+                }
                 val targetLockDateTime = if (state.countdownDays > 0) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
@@ -289,7 +348,9 @@ class HomeViewModel
                         .between(LocalDateTime.now(), targetLockDateTime)
                         .toMillis()
                         .coerceAtLeast(0L)
-                trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)
+                if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
+                    reduce { state.copy(showFirstLockActivationCta = false) }
+                }
                 analytics.trackLockScheduled(
                     scheduleType = if (state.countdownDays > 0) {
                         AnalyticsScheduleType.COUNTDOWN
@@ -302,14 +363,13 @@ class HomeViewModel
                     source = AnalyticsSource.HOME_TIMER,
                     isRoutine = false,
                 )
-                storeBlockTime(lockedDuration)
             }
 
-        private suspend fun trackFirstLockConfiguredIfNeeded(source: String) {
+        private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
             val preferences = dataStore.data.firstOrNull()
             val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
 
-            if (hasTracked) return
+            if (hasTracked) return false
 
             val selectedAppCount =
                 preferences
@@ -324,7 +384,14 @@ class HomeViewModel
             dataStore.edit { mutablePreferences ->
                 mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
             }
+            return true
         }
+
+        private fun shouldShowFirstLockActivationCta(
+            selectedAppPackage: Set<String>,
+            hasTrackedFirstLock: Boolean,
+            isKeep: Boolean,
+        ): Boolean = selectedAppPackage.isNotEmpty() && !hasTrackedFirstLock && !isKeep
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()
@@ -364,6 +431,7 @@ data class HomeUiState(
     val timerTime: LocalTime = timeNow,
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
+    val showFirstLockActivationCta: Boolean = false,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
