@@ -25,6 +25,61 @@ class HomeViewModelReviewTest {
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-11T14:30:00Z"), ZoneId.of("UTC"))
 
     @Test
+    fun maybeDrainReviewFlagKeepsPendingWhenHomeSheetIsVisibleAndReevaluatesAfterDismiss() = runBlocking {
+        val analytics = RecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.REVIEW_PENDING to true,
+            ),
+        )
+        val accessibilityChecker = FakeAccessibilityChecker(enabled = true)
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            dataStore = dataStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = accessibilityChecker,
+            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
+        )
+        val viewModel = HomeViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = FakeLockHistoryDao(),
+            reviewEligibility = reviewEligibility,
+            inAppReviewManager = InAppReviewManager(
+                launcher = FakeReviewLauncher(),
+                analytics = analytics,
+                dataStore = dataStore,
+                clock = clock,
+            ),
+        )
+
+        viewModel.showCategoryBottomSheet()
+        delay(50)
+        viewModel.maybeDrainReviewFlag(activity = null)
+        delay(50)
+
+        assertEquals(listOf(AnalyticsEventRecord.Skipped("NotHomeRoot")), analytics.events)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
+
+        accessibilityChecker.enabled = false
+        viewModel.hideCategoryBottomSheet()
+        delay(50)
+        viewModel.maybeDrainReviewFlag(activity = null)
+        delay(50)
+
+        assertEquals(
+            listOf(
+                AnalyticsEventRecord.Skipped("NotHomeRoot"),
+                AnalyticsEventRecord.Skipped("AccessibilityOff"),
+            ),
+            analytics.events,
+        )
+        assertEquals(false, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
+    }
+
+    @Test
     fun maybeDrainReviewFlagClearsPendingWhenLiveEligibilityFails() = runBlocking {
         val analytics = RecordingKeepAnalytics()
         val dataStore = FakeDataStore(

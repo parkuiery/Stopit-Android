@@ -32,7 +32,6 @@ import com.uiery.keep.R
 import com.uiery.keep.feature.home.CountdownDuration
 import com.uiery.keep.util.timeNow
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.toJavaLocalTime
 
 @Composable
 fun TimeBottomSheetContent(
@@ -125,15 +124,16 @@ fun TimeBottomSheetContent(
             text = stringResource(R.string.lock_message),
             color = KeepTheme.colors.surface,
         )
+        val timerDuration = calculateTimerDuration(now = timeNow, target = blockTime)
         val hour = if (selectedIndex == 0) {
             countdownTime.hour
         } else {
-            blockTime.toJavaLocalTime().minusHours(timeNow.hour.toLong()).hour
+            timerDuration.hours
         }
         val minute = if (selectedIndex == 0) {
             countdownTime.minute
         } else {
-            blockTime.toJavaLocalTime().minusMinutes(timeNow.minute.toLong()).minute
+            timerDuration.minutes
         }
         Button(
             modifier = Modifier
