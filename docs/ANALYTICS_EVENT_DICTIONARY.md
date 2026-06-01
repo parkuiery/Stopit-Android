@@ -59,6 +59,12 @@
 | `onboarding_step_view` | `step_name` | 온보딩 스텝 노출 |
 | `onboarding_step_complete` | `step_name` | 온보딩 스텝 완료 |
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
+
+알림 권한 온보딩 계약:
+- `permission_outcome(permission_name=notifications, outcome=settings_opened)`는 Android 12L 이하 설정 진입을 기록한다.
+- 알림 온보딩은 실제 권한 상태가 허용되었을 때만 `onboarding_step_complete(step_name=notification)`를 기록한다.
+- 설정 왕복 뒤에도 알림이 비활성화되어 있으면 `permission_outcome(permission_name=notifications, outcome=denied)`만 남기고 재시도 UX를 유지한다.
+
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
 | `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 첫 핵심 행동 완료 |

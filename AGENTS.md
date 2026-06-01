@@ -37,6 +37,7 @@ Keep (StopIt) is a Kotlin Android screen-time management app that blocks selecte
 ### Working In This Directory
 - Respect the module boundary between `:app` and `:core:kds`; reusable visual primitives belong in KDS, app-specific orchestration belongs in `app/`.
 - Do not commit local secrets from `local.properties` or flavor `google-services.json` edits unless explicitly requested.
+- Play deploy / release-secret 작업은 helper 하나만 보고 끝내지 말고 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. 이 문서가 GitHub Actions repo secrets, workflow별 `GOOGLE_SERVICES_JSON` restore matrix, Firebase Functions secret 경계를 함께 설명한다.
 - Keep generated/build output (`build/`, release artifacts, compiled Firebase output, caches) out of documentation and source changes.
 
 ### Testing Requirements

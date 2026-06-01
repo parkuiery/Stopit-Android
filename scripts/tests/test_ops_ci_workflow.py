@@ -17,6 +17,12 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("functions/**", workflow)
         self.assertIn("scripts/notify-discord-deploy.py", workflow)
         self.assertIn("scripts/promote-google-play-track.js", workflow)
+        self.assertIn("scripts/check-release-readiness.sh", workflow)
+        self.assertIn("scripts/check-latest-production-deployed.sh", workflow)
+        self.assertIn("scripts/release-start.sh", workflow)
+        self.assertIn("scripts/bump-version.sh", workflow)
+        self.assertIn("scripts/validate-play-deploy-ref.sh", workflow)
+        self.assertIn("scripts/play_version_code_guard.py", workflow)
         self.assertIn("scripts/tests/**", workflow)
         self.assertIn("actions/setup-node", workflow)
         self.assertIn("node-version: '22'", workflow)
@@ -25,6 +31,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("npm test", workflow)
         self.assertIn("node --test scripts/tests/test_promote_google_play_track.js", workflow)
         self.assertIn("python3 -m py_compile scripts/notify-discord-deploy.py", workflow)
+        self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
+        self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh", workflow)
 
     def test_operator_docs_name_ops_ci_responsibility(self):
         docs = [GIT_WORKFLOW_DOC.read_text(), RELEASE_CONTEXT_DOC.read_text()]
@@ -33,6 +41,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("functions/", doc)
             self.assertIn("scripts/promote-google-play-track.js", doc)
             self.assertIn("scripts/notify-discord-deploy.py", doc)
+            self.assertIn("release-helper guardrail", doc)
+            self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", doc)
 
 
 if __name__ == "__main__":

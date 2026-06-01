@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.map
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
+import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -48,6 +49,7 @@ class LockViewModel
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
         private val reviewEligibility: ReviewEligibilityEvaluator,
+        private val clock: Clock,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = LockRoute(
@@ -57,9 +59,9 @@ class LockViewModel
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
-                    lockTime = if (route.lockTime == null) LocalDateTime.now() else LocalDateTime.parse(route.lockTime),
+                    lockTime = if (route.lockTime == null) LocalDateTime.now(clock) else LocalDateTime.parse(route.lockTime),
                     isRoutine = route.isRoutine,
-                    timerStartTime = System.currentTimeMillis(),
+                    timerStartTime = clock.millis(),
                 ),
             )
 
@@ -91,9 +93,10 @@ class LockViewModel
 
         private fun getRoutines() =
             intent {
-                val routineStartTime = System.currentTimeMillis()
+                val nowDateTime = LocalDateTime.now(clock)
                 val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }.orEmpty()
-                val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines)
+                val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines, nowDateTime = nowDateTime)
+                val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
                     state.copy(
                         routines = activeRoutineLockState.routines,
@@ -107,7 +110,7 @@ class LockViewModel
 
         private fun navigateHome(lockTime: LocalDateTime) {
             navigateHomeJob = intent {
-                val nowDateTime = LocalDateTime.now()
+                val nowDateTime = LocalDateTime.now(clock)
                 val duration = Duration.between(nowDateTime, lockTime).coerceAtLeast(Duration.ZERO)
                 delay(duration.toMillis())
                 analytics.trackLockSessionEnd(
@@ -134,7 +137,7 @@ class LockViewModel
             routineStartTime: Long,
             timerStartTime: Long,
         ) {
-            val now = System.currentTimeMillis()
+            val now = clock.millis()
             val durationMillis = if (isRoutine) {
                 now - routineStartTime
             } else {
@@ -163,7 +166,7 @@ class LockViewModel
 
         private fun saveRoutineLockHistory() =
             intent {
-                val endTime = System.currentTimeMillis()
+                val endTime = clock.millis()
                 recordLockHistorySession(
                     dataStore = dataStore,
                     lockHistoryDao = lockHistoryDao,
