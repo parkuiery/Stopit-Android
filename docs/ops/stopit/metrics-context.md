@@ -64,7 +64,13 @@ ASO 판정 주의:
 
 ## 핵심 퍼널
 
-첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-01 기준 #14 홈 첫 잠금 CTA는 PR #256으로 반영됐으므로, 이후 활성화 분석은 “CTA 부재”로 되돌리지 않는다. 다음 repo 내부 후보는 `first_lock_configured` 이후 첫 가치 경험 피드백과 `app_block_intercepted` → 최초 `first_core_action_completed` 연결 증거다.
+첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-02 기준 #14 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 develop에 반영됐으므로, 이후 활성화 분석은 “CTA 부재”나 “첫 가치 피드백 미정의”로 되돌리지 않는다. 다음 판단은 post-release 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 재측정하는 것이다.
+
+#14 측정 전제:
+- `first_lock_configured`는 준비 완료 신호이고, 실제 차단 완료가 아니다.
+- `first_core_action_completed`는 첫 가치 경험 신호이며, 최초 차단 화면 진입의 피드백/계측과 같이 본다.
+- `app_block_intercepted`는 실제 차단 증거다.
+- GA4 Admin에서 activation customEvent 축(`source`, `selected_app_count`, `block_source`, `blocked_app_package` 등)이 등록/metadata 확인되기 전에는 상위 이벤트 users 비율까지만 high-confidence로 보고, 출처/앱/권한별 세부 분해는 #13 외부 경계로 남긴다.
 
 활성화 퍼널:
 1. `first_open`
