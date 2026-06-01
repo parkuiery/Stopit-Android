@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           if find .github/workflows -name '*.yml' ! -name 'branch-hygiene.yml' -print0 \
-            | xargs -0 grep -nE '\b(testDebugUnitTest|assembleDebug|lintDebug)\b'; then
-            echo 'Flavorless app Gradle task found in workflow. Use variant-specific app tasks instead.'
+            | xargs -0 grep -nE 'run:[[:space:]]*\./gradlew([[:space:]]+--console=plain)?[[:space:]]+(testDebugUnitTest|assembleDebug|lintDebug|testProdReleaseUnitTest|bundleProdRelease)\b'; then
+            echo 'Unqualified app Gradle task found in workflow. Use variant-specific :app tasks instead.'
             exit 1
           fi
