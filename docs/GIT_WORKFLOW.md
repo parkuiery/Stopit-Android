@@ -22,13 +22,23 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus PR/manual focused runtime smoke. No signed release, no Play upload. |
-| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate + focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite. |
+| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
+| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, `scripts/tests/**`, or manual | Firebase Functions `npm ci`/`npm run lint`/`npm test`, Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py`. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. |
 | Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
+
+## Analytics / Release Handoff Boundary
+
+릴리즈/핫픽스 PR에서 Android runtime / release QA가 green이어도, 그것만으로 GA4 `customEvent:*` queryability가 해결됐다고 보면 안 된다.
+
+- analytics payload, screen name, activation/review/monetization 파라미터 계약이 바뀐 PR이면 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 확인한다.
+- PR 본문에는 **repo 코드·문서 반영 완료**와 **GA4 Admin 수동 등록 / metadata 재확인 / 배포 후 14일 재측정**을 분리해서 적는다.
+- `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 no-data보다 **GA4 Admin registration gap**으로 먼저 해석한다.
+- live metadata에 `customUser:routines_count`만 보인다고 해서 activation/review/monetization용 `customEvent:*` 축까지 queryable하다고 과대해석하지 않는다.
 
 ## Branch Naming
 
@@ -117,6 +127,8 @@ scripts/bump-version.sh 1.7.2 --code 24 --fallback-play-max-version-code 23
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - Gradle release task dry-run으로 task 존재 확인
 
+`bump-version.sh`는 저수준 helper이므로 maintenance/debug 상황에서만 `--no-dry-run`을 직접 사용할 수 있다. 일반 릴리즈 브랜치 준비는 아래 `release-start.sh`를 사용하고 dry-run 검증을 건너뛰지 않는다.
+
 ### 릴리즈 브랜치 준비
 
 ```bash
@@ -129,7 +141,7 @@ scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 먼저 확인
 - `develop`에서 `release/1.7.2` 생성
 - 버전 bump
-- release dry-run 검증
+- release dry-run 검증(상위 release-start에서는 `--no-dry-run`을 허용하지 않음)
 - `chore: bump version to 1.7.2` 커밋 생성
 
 ### 릴리즈 production 완료 게이트
@@ -155,7 +167,7 @@ scripts/release-tag.sh 1.7.2
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
 - `v1.7.2` 태그 생성 및 push
-- GitHub Actions CD가 Google Play internal track 업로드 실행
+- GitHub Actions CD가 `scripts/validate-play-deploy-ref.sh`로 태그가 `origin/main`에서 온 SemVer release tag인지, 직전 SemVer production marker가 있는지 다시 검증한 뒤 Google Play internal track 업로드 실행
 
 ### 릴리즈 준비 상태 점검
 
@@ -207,7 +219,9 @@ gh pr create --base develop --fill
 
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
-의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, version catalog와 `app/build.gradle.kts`의 direct dependency version을 함께 확인합니다.
+의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, `gradle/libs.versions.toml`과 `app/build.gradle.kts`, `core/kds/build.gradle.kts`의 dependency source-of-truth drift를 함께 확인합니다. 특히 #175 계열 작업은 app 모듈만 보지 말고 `:core:kds`의 direct version 문자열까지 확인합니다.
+
+Navigation/Compose custom lint 복구(`issue #156` 유형)에서는 `:app:lintDevDebug` / `:app:lintProdRelease` green만으로 충분하다고 보지 않습니다. Android CI와 Release QA는 둘 다 `scripts/verify_lint_registry.py`로 HTML lint report를 다시 읽어 `androidx.navigation.common`, `androidx.navigation.compose`, `androidx.navigation.runtime` registry와 `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType` issue id가 실제 report에 포함되고, `Requires newer lint; these checks will be skipped!` / `ObsoleteLintCustomCheck`가 없는지까지 확인합니다.
 
 ## Standard Release Flow
 
@@ -222,10 +236,11 @@ git push -u origin HEAD
 gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECKLIST.md
 
 # 3. PR에서 Branch Hygiene, Version Guard, Android CI, Android Release QA, Android Release Build 통과 확인
+#    + analytics payload/queryability 영향이 있으면 PR 본문에 GA4 handoff(runbook 기준)까지 함께 기록
 
 # 4. main에 squash merge
 
-# 5. main 최신화 후 태그 배포. 이때만 CD가 Google Play에 업로드한다.
+# 5. main 최신화 후 태그 배포. CD도 태그 ancestry + 직전 production marker를 재검증한 뒤에만 Google Play에 업로드한다.
 git checkout main
 git pull origin main
 scripts/release-tag.sh 1.7.2
@@ -268,6 +283,7 @@ gh pr create --base main --fill
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
 - manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
+- 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
 - secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
 - `versionCode`는 절대 재사용하지 않는다.

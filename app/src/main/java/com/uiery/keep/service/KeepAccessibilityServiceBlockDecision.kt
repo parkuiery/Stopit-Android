@@ -16,7 +16,27 @@ data class AccessibilityBlockingPreferences(
 data class ForegroundBlockRequest(
     val packageName: String,
     val blockSource: String,
+    val routineId: String? = null,
 )
+
+internal fun resolveServiceConnectionForegroundBlockRequest(
+    currentForegroundPackage: String?,
+    prefs: AccessibilityBlockingPreferences,
+    cachedRoutines: List<RoutineModel>,
+    now: LocalDateTime = LocalDateTime.now(),
+    isEmergencyUnlocked: Boolean,
+    isDuplicateBlock: Boolean,
+): ForegroundBlockRequest? {
+    val packageName = currentForegroundPackage ?: return null
+    return resolveForegroundBlockRequest(
+        packageName = packageName,
+        prefs = prefs,
+        cachedRoutines = cachedRoutines,
+        now = now,
+        isEmergencyUnlocked = isEmergencyUnlocked,
+        isDuplicateBlock = isDuplicateBlock,
+    )
+}
 
 internal fun resolveForegroundBlockRequest(
     packageName: String,
@@ -31,7 +51,7 @@ internal fun resolveForegroundBlockRequest(
     val isLockTime = prefs.lockTime?.let {
         runCatching { now.isBefore(LocalDateTime.parse(it)) }.getOrDefault(false)
     } ?: false
-    val isShouldRoutineBlock = RoutineRuntimePolicy.shouldBlockPackage(
+    val blockingRoutine = RoutineRuntimePolicy.findBlockingRoutine(
         packageName = packageName,
         routines = cachedRoutines,
     ) { routine ->
@@ -42,6 +62,7 @@ internal fun resolveForegroundBlockRequest(
             nowDateTime = now,
         )
     }
+    val isShouldRoutineBlock = blockingRoutine != null
     val isBlocking = prefs.isKeep || isLockTime || isShouldRoutineBlock
     if (!isBlocking) return null
     if (!prefs.selectedAppPackages.contains(packageName) && !isShouldRoutineBlock) return null
@@ -56,5 +77,6 @@ internal fun resolveForegroundBlockRequest(
     return ForegroundBlockRequest(
         packageName = packageName,
         blockSource = blockSource,
+        routineId = blockingRoutine?.id?.toString(),
     )
 }

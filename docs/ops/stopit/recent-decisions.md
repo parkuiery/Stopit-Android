@@ -24,6 +24,8 @@
 - 실행 lane은 "한 번에 닫히는 작은 slice"만 찾다가 멈추지 않는다. 같은 이슈에서 더 진행 가능한 코드/테스트/문서/QA/운영 준비가 남아 있으면 실제 외부 경계(배포 대기, Play Console 수동 반영, 대표님 승인, 디바이스·콘솔 증적 부족 등)를 만날 때까지 계속 밀어붙인다.
 - 안전/잠금/긴급해제/권한/백업/복구 플로우는 신뢰 리스크가 커서 QA 기준을 높게 본다.
 - 실제 Play 배포를 수행하지 않았으면 배포 완료라고 말하지 않는다. tag-triggered CD는 기본적으로 internal track이다.
+- issue #13의 docs/ops 범위는 이벤트 딕셔너리만이 아니라 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger, metadata 증적 포맷, issue/PR handoff까지 포함한다.
+- issue #13은 docs lane 문서화만으로 닫지 않는다. 실제 `customEvent:*` 등록, live metadata/runReport 확인, 배포 후 14일 재측정이 끝나기 전까지는 `Refs #13`과 외부/manual 경계를 명시하는 것이 기본값이다.
 
 ## 업데이트 규칙
 

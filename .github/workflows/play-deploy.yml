@@ -82,6 +82,9 @@ jobs:
             exit 1
           fi
 
+      - name: Validate tag-push release guardrails
+        run: scripts/validate-play-deploy-ref.sh
+
       - name: Validate deployment secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

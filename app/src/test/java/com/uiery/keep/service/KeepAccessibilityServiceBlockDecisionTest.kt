@@ -61,7 +61,7 @@ class KeepAccessibilityServiceBlockDecisionTest {
         val request = resolveForegroundBlockRequest(
             packageName = "com.uiery.keep.target",
             prefs = AccessibilityBlockingPreferences(),
-            cachedRoutines = listOf(activeRoutine(targetPackage = "com.uiery.keep.target")),
+            cachedRoutines = listOf(activeRoutine(id = 42L, targetPackage = "com.uiery.keep.target")),
             now = LocalDateTime.of(2026, 5, 27, 10, 0),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
@@ -71,6 +71,31 @@ class KeepAccessibilityServiceBlockDecisionTest {
             ForegroundBlockRequest(
                 packageName = "com.uiery.keep.target",
                 blockSource = AnalyticsBlockSource.ROUTINE,
+                routineId = "42",
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun manualKeepSelectedPackageDoesNotAttachRoutineId() {
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.uiery.keep",
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf("com.uiery.keep"),
+            ),
+            cachedRoutines = listOf(activeRoutine(id = 42L, targetPackage = "com.uiery.keep.target")),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.uiery.keep",
+                blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+                routineId = null,
             ),
             request,
         )
@@ -111,6 +136,46 @@ class KeepAccessibilityServiceBlockDecisionTest {
     }
 
     @Test
+    fun serviceConnectionForegroundReevaluationUsesCurrentForegroundPackage() {
+        val request = resolveServiceConnectionForegroundBlockRequest(
+            currentForegroundPackage = "com.uiery.keep",
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf("com.uiery.keep"),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.uiery.keep",
+                blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun serviceConnectionForegroundReevaluationSkipsWhenForegroundPackageIsUnavailable() {
+        val request = resolveServiceConnectionForegroundBlockRequest(
+            currentForegroundPackage = null,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf("com.uiery.keep"),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
     fun unselectedPackageWithoutActiveRoutineDoesNotBlock() {
         val request = resolveForegroundBlockRequest(
             packageName = "com.uiery.keep.other",
@@ -127,8 +192,11 @@ class KeepAccessibilityServiceBlockDecisionTest {
         assertNull(request)
     }
 
-    private fun activeRoutine(targetPackage: String): RoutineModel = RoutineModel(
-        id = 1L,
+    private fun activeRoutine(
+        id: Long = 1L,
+        targetPackage: String,
+    ): RoutineModel = RoutineModel(
+        id = id,
         name = "Morning block",
         startTime = LocalTime(9, 0),
         endTime = LocalTime(11, 0),

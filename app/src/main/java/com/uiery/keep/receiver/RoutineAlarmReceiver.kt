@@ -83,7 +83,12 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
         )?.let { pendingNotice ->
             dataStore.edit { preferences ->
-                preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = pendingNotice.message
+                RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+                    storedValue = preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
+                    notice = pendingNotice,
+                )?.let { encodedNotices ->
+                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = encodedNotices
+                }
             }
         }
 
