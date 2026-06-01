@@ -6,6 +6,10 @@ Crashlytics alerts are forwarded to Discord through Firebase Functions. The same
 
 This Functions package targets the Firebase Node.js 22 runtime.
 
+Secret ownership note:
+- GitHub Actions repo secrets for Android/Play build/upload and Discord deploy notifications are documented in `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`.
+- This `functions/` setup only covers Firebase Functions secrets used by Crashlytics alerts and production-promotion interactions.
+
 ```bash
 cd functions
 npm install

@@ -42,7 +42,33 @@ class ActiveRoutineLockStateTest {
 
         assertEquals(listOf(focusRoutine, studyRoutine), resolved.routines)
         assertEquals(linkedSetOf("com.instagram", "com.youtube", "com.discord"), resolved.blockedApps)
+        assertEquals(LocalDateTime.of(2026, 5, 25, 9, 0), resolved.startTime)
         assertEquals(LocalDateTime.of(2026, 5, 25, 11, 0), resolved.endTime)
+    }
+
+    @Test
+    fun resolveActiveRoutineLockStateUsesPreviousDayStartForCrossMidnightRoutineAfterMidnight() {
+        val nowDateTime = LocalDateTime.of(2026, 5, 26, 1, 15)
+        val overnightRoutine =
+            routine(
+                id = 3,
+                name = "Sleep lock",
+                startHour = 23,
+                startMinute = 0,
+                endHour = 2,
+                endMinute = 0,
+                repeatDays = listOf(DayOfWeek.MONDAY),
+                lockApplications = listOf("com.youtube"),
+            )
+
+        val resolved =
+            resolveActiveRoutineLockState(
+                routines = listOf(overnightRoutine),
+                nowDateTime = nowDateTime,
+            )
+
+        assertEquals(LocalDateTime.of(2026, 5, 25, 23, 0), resolved.startTime)
+        assertEquals(LocalDateTime.of(2026, 5, 26, 2, 0), resolved.endTime)
     }
 
     @Test
@@ -80,6 +106,7 @@ class ActiveRoutineLockStateTest {
 
         assertEquals(emptyList<RoutineModel>(), resolved.routines)
         assertEquals(emptySet<String>(), resolved.blockedApps)
+        assertEquals(nowDateTime, resolved.startTime)
         assertEquals(nowDateTime, resolved.endTime)
     }
 

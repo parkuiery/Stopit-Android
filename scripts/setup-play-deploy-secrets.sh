@@ -10,13 +10,19 @@ Required environment variables or prompts:
   ANDROID_KEYSTORE_PASSWORD
   ANDROID_KEY_PASSWORD
 
-This script stores required deployment credentials as GitHub Actions secrets for the current repo:
+This script stores required Android/Play deployment credentials as GitHub Actions secrets for the current repo:
   ANDROID_KEYSTORE_BASE64
   ANDROID_KEYSTORE_PASSWORD
   ANDROID_KEY_ALIAS
   ANDROID_KEY_PASSWORD
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
   GOOGLE_SERVICES_JSON
+
+Scope notes:
+- configures build/upload secrets only
+- does NOT configure Discord deploy notification secrets (`DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`)
+- use `scripts/setup-discord-deploy-secrets.sh` for GitHub Actions Discord deploy secrets
+- see `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` for the full secret matrix
 
 It does not commit any secret files.
 USAGE
@@ -106,3 +112,4 @@ gh secret set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON < "$SERVICE_ACCOUNT"
 gh secret set GOOGLE_SERVICES_JSON < "$GOOGLE_SERVICES"
 
 echo "Deployment secrets configured for $(gh repo view --json nameWithOwner -q .nameWithOwner)."
+echo "Discord deploy notification secrets are managed separately via scripts/setup-discord-deploy-secrets.sh."

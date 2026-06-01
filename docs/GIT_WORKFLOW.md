@@ -23,13 +23,17 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
-| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, `scripts/tests/**`, or manual | Firebase Functions `npm ci`/`npm run lint`/`npm test`, Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py`. |
+| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, release-helper guardrail scripts (`scripts/check-release-readiness.sh`, `scripts/check-latest-production-deployed.sh`, `scripts/release-start.sh`, `scripts/bump-version.sh`, `scripts/validate-play-deploy-ref.sh`, `scripts/play_version_code_guard.py`), `scripts/tests/**`, or manual | Firebase Functions `npm ci`/`npm run lint`/`npm test`, Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, release-helper guardrail Python tests `python3 -m unittest discover -s scripts/tests -p 'test_*.py'`, release-helper shell syntax `bash -n ...`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py`. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. |
 | Release Build | `.github/workflows/release-build.yml` | PR to `main`, push to `main`, manual | Signed prod release AAB artifact. No Play upload. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
+
+Android CI path gating contract:
+- `gradlew` / `gradlew.bat`, root Gradle config files, and `.github/workflows/android-ci.yml` are treated as **build-critical** root inputs.
+- wrapper-only or Gradle-launcher-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
 
 ## Analytics / Release Handoff Boundary
 
@@ -245,6 +249,9 @@ git checkout main
 git pull origin main
 scripts/release-tag.sh 1.7.2
 
+# 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행
+# branch ref로 internal/alpha/beta/production 업로드 우회 금지
+
 # 6. main -> develop 역머지
 git checkout develop
 git pull origin develop
@@ -278,6 +285,7 @@ gh pr create --base main --fill
 - 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
 - Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다.
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
+- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
 - 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
