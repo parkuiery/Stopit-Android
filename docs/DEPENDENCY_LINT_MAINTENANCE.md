@@ -38,8 +38,11 @@
   - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1` → `libs.kotlinx.datetime`
   - `com.google.android.gms:play-services-ads:23.0.0` → `libs.google.play.services.ads`
   - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3` → `libs.androidx.lifecycle.runtime.compose`
-- `gradle/libs.versions.toml`에는 위 세 의존성의 alias가 모두 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 재유입을 막는다.
-- 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`를 같이 확인해야 한다.
+- 2026-06-02 기준 KDS modal bottom sheet의 deprecated Accompanist `SystemUiController` 의존성은 제거됐다.
+  - 앱 entry point의 `androidx.activity.enableEdgeToEdge()`와 Material3 `ModalBottomSheet`/insets 계약을 source of truth로 둔다.
+  - `app`/`core:kds`에 `libs.accompanist.systemuicontroller`, `rememberSystemUiController`, 또는 `accompanist-systemuicontroller`가 재유입되면 `scripts.tests.test_kds_dependency_catalog_contract`가 실패해야 한다.
+- `gradle/libs.versions.toml`에는 위 세 의존성의 alias가 모두 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 direct-version drift와 deprecated Accompanist 재유입을 막는다.
+- 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`, `core/kds/src/main/java`를 같이 확인해야 한다.
 
 ### version catalog 정책 메모
 
