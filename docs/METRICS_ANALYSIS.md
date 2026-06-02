@@ -73,7 +73,7 @@
 
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
-- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷. 2026-06-02 기준 PR #296으로 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` screen_view 보강이 develop에 들어갔으므로, 2026-05-29 screen quality baseline은 pre-#296 기준선으로 해석한다.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷. 2026-06-02 기준 PR #296으로 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`, PR #318로 dev/debug `DevToolScreen` screen_view 보강이 develop에 들어갔으므로, 2026-05-29 screen quality baseline은 pre-#296/#318 기준선으로 해석한다.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷, #242 acquisition attribution gate, UTM/Install Referrer 운영 기준 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다. 2026-06-02 스냅샷에서는 전체 `newUsers`가 402명으로 반등했지만 `Direct` 신규가 230명(57.2%)까지 올라갔으므로, Play Console Search/Explore 확인 전에는 ASO 회복으로 표현하지 않는다.
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 첫 잠금 활성화 퍼널 source of truth. 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283) 이후에는 “CTA/피드백 부재”가 아니라 post-release 14일 재측정과 #13 queryability 경계를 기준으로 본다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
@@ -504,7 +504,7 @@ PY
 
 - 최근 14일 `screen_view` 총량: `13,154`
 - `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
-- 이 screen 품질 수치는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 보강 전 baseline이다. 해당 세 화면은 develop에서 명시적 `screen_view`가 추가됐으므로, 동일 화면에 대한 추가 코드 작업은 PR #296 포함 버전 배포 후 14일 재측정 결과를 보고 판단한다.
+- 이 screen 품질 수치는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. 해당 네 화면은 develop에서 명시적 `screen_view`가 추가됐으므로, 동일 화면에 대한 추가 코드 작업은 PR #296/#318 포함 버전 배포 후 14일 재측정 결과를 보고 판단한다. 단, `DevToolScreen`은 dev/debug 내부 진단 route라 production 사용자 screen 품질 분모와 분리한다.
 - 2026-05-29 live 확인 기준 GA4 metadata에서 확인된 custom dimension은 `customUser:routines_count`뿐이었고 activation/review용 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
 - 2026-06-01 #16 AdMob preflight 기준 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 것으로 보정 확인됐다.
 - activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`) runReport smoke query는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 활성화/리뷰 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
