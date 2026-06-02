@@ -6,6 +6,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.model.toModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
+
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,10 +36,7 @@ class MenuViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val isBlocking: StateFlow<Boolean> = combine(blockingStateStore.accessibilitySnapshot, routineDao.fetchAll()) { snapshot, routineEntities ->
-            val isLockTime = snapshot.lockTime?.let {
-                runCatching { LocalDateTime.now().isBefore(LocalDateTime.parse(it)) }
-                    .getOrDefault(false)
-            } ?: false
+            val isLockTime = ManualLockTimePolicy.isActiveAt(snapshot.lockTime)
             val isRoutineActive = RoutineRuntimePolicy.isAnyRoutineActive(routineEntities.map { it.toModel() })
             snapshot.isKeep || isLockTime || isRoutineActive
         }

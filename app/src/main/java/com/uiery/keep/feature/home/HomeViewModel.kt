@@ -13,6 +13,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
@@ -34,6 +35,7 @@ import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -353,10 +355,11 @@ class HomeViewModel
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
                 }
-                blockingStateStore.saveLockTime(targetLockDateTime.toString())
+                val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                blockingStateStore.saveLockTime(ManualLockTimePolicy.encodeDeadline(targetLockInstant))
                 val lockedDuration =
                     Duration
-                        .between(LocalDateTime.now(), targetLockDateTime)
+                        .between(java.time.Instant.now(), targetLockInstant)
                         .toMillis()
                         .coerceAtLeast(0L)
                 if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {

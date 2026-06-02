@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 
@@ -42,7 +43,7 @@ class SplashViewModel
             }
 
             val lockTime = getLockTime()
-            val isLock = runCatching { LocalDateTime.now() < LocalDateTime.parse(lockTime) }.getOrNull() ?: false
+            val isLock = ManualLockTimePolicy.isActiveAt(lockTime)
             return when {
                 isLock && lockTime != null -> SplashSideEffect.MoveToLock(lockTime = lockTime, false)
                 else -> SplashSideEffect.MoveToHome
