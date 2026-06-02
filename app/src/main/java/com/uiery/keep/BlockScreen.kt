@@ -20,6 +20,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.util.AppDisplayMetadataResolver
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
@@ -56,6 +58,9 @@ fun BlockScreen(
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
+    val appDisplayMetadataResolver = remember(packageManager) {
+        AppDisplayMetadataResolver(packageManager)
+    }
     val uiState by viewModel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -121,10 +126,9 @@ fun BlockScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val appName = runCatching {
-                val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-                packageManager.getApplicationLabel(applicationInfo).toString()
-            }.getOrDefault("")
+            val appName = remember(packageName, appDisplayMetadataResolver) {
+                appDisplayMetadataResolver.resolve(packageName).label
+            }
 
             Column(
                 modifier = Modifier
