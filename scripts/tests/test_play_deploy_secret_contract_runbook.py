@@ -54,11 +54,11 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         version_guard = VERSION_GUARD.read_text(encoding="utf-8")
 
         self.assertIn(
-            "| `android-ci.yml` | `app/src/dev/google-services.json`, `app/src/prod/google-services.json` 둘 다 복원 | 없음 |",
+            "| `android-ci.yml` | `GOOGLE_SERVICES_JSON_DEV` -> `app/src/dev/google-services.json`, `GOOGLE_SERVICES_JSON` -> `app/src/prod/google-services.json` | 없음 |",
             runbook,
         )
         self.assertIn(
-            "| `release-qa.yml` | `app/src/dev/google-services.json`, `app/src/prod/google-services.json` 둘 다 복원 | 없음 |",
+            "| `release-qa.yml` | `GOOGLE_SERVICES_JSON_DEV` -> `app/src/dev/google-services.json`, `GOOGLE_SERVICES_JSON` -> `app/src/prod/google-services.json` | 없음 |",
             runbook,
         )
         self.assertIn(
@@ -75,7 +75,7 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         )
 
         for workflow in (android_ci, release_qa):
-            self.assertIn("printf '%s' \"$GOOGLE_SERVICES_JSON\" > app/src/dev/google-services.json", workflow)
+            self.assertIn("printf '%s' \"$GOOGLE_SERVICES_JSON_DEV\" > app/src/dev/google-services.json", workflow)
             self.assertIn("printf '%s' \"$GOOGLE_SERVICES_JSON\" > app/src/prod/google-services.json", workflow)
 
         for workflow in (release_build, play_deploy):
@@ -136,16 +136,16 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("../PLAY_DEPLOY_SECRETS_RUNBOOK.md", stopit_context_readme)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", agent_roles)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", qa_runtime_checklist)
-        self.assertIn("Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에", qa_runtime_checklist)
+        self.assertIn("Android CI / Release QA에서는 `GOOGLE_SERVICES_JSON_DEV`를 `app/src/dev`에, `GOOGLE_SERVICES_JSON`를 `app/src/prod`에", qa_runtime_checklist)
         self.assertIn("Release Build / Play Deploy에서는 `app/src/prod`에만", qa_runtime_checklist)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", engineering_context)
         self.assertIn("scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`", engineering_context)
         self.assertIn("../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", app_source_agents)
-        self.assertIn("Android CI / Release QA는 같은 `GOOGLE_SERVICES_JSON` secret을 dev+prod 둘 다에 복원", app_source_agents)
+        self.assertIn("Android CI / Release QA는 `GOOGLE_SERVICES_JSON_DEV`를 dev에, `GOOGLE_SERVICES_JSON`를 prod에 복원", app_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", dev_source_agents)
         self.assertIn("workflow-specific restore matrix", dev_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", prod_source_agents)
-        self.assertIn("Android CI/Release QA may restore the same secret to both dev and prod", prod_source_agents)
+        self.assertIn("Android CI/Release QA restore `GOOGLE_SERVICES_JSON` to prod while `GOOGLE_SERVICES_JSON_DEV` owns dev", prod_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", pr_template)
         self.assertIn("workflow secret restore", pr_template)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", root_agents)
@@ -177,7 +177,7 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("scripts/setup-discord-deploy-secrets.sh", git_workflow)
         self.assertIn("Android / Play build-upload secrets", play_deployment)
         self.assertIn("Android/Play build-upload secrets만", runbook)
-        self.assertIn("Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`", play_deployment)
+        self.assertIn("Android CI / Release QA write `GOOGLE_SERVICES_JSON_DEV` to `app/src/dev` and `GOOGLE_SERVICES_JSON` to `app/src/prod`", play_deployment)
         self.assertIn("Release Build / non-production Play Deploy write it only to `app/src/prod`", play_deployment)
         self.assertIn("Production promotion does not restore it", play_deployment)
         self.assertIn("Firebase Functions secret", play_deployment)

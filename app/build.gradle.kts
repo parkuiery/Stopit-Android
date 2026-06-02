@@ -60,7 +60,7 @@ android {
     productFlavors {
         create("dev") {
             dimension = "server"
-            //applicationIdSuffix = ".dev"
+            applicationIdSuffix = ".dev"
             setAdMobConfig(
                 applicationId = "ca-app-pub-3940256099942544~3347511713",
                 blockTop = "ca-app-pub-3940256099942544/6300978111",
