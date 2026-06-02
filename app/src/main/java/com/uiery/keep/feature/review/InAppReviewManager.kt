@@ -22,17 +22,19 @@ class InAppReviewManager @Inject constructor(
 
     private val inFlight = AtomicBoolean(false)
 
-    suspend fun launchIfReady(activity: Activity?) {
-        if (activity == null) return
-        if (!inFlight.compareAndSet(false, true)) return
-        try {
+    suspend fun launchIfReady(activity: Activity?): Boolean {
+        if (activity == null) return false
+        if (!inFlight.compareAndSet(false, true)) return false
+        return try {
             when (val result = launcher.launch(activity)) {
                 is ReviewLaunchResult.Success -> {
                     dataStore.edit { it[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS] = clock.millis() }
                     analytics.reviewPromptShown()
+                    true
                 }
                 is ReviewLaunchResult.Failure -> {
                     analytics.reviewPromptFailed(result.error)
+                    false
                 }
             }
         } finally {

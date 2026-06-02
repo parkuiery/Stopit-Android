@@ -182,8 +182,10 @@ class HomeViewModel
                     analytics.reviewPromptSkipped(SkipReason.NoActivity.name)
                     return@intent
                 }
-                blockingStateStore.clearReviewPending()
-                inAppReviewManager.launchIfReady(activity)
+                val launched = inAppReviewManager.launchIfReady(activity)
+                if (launched) {
+                    blockingStateStore.clearReviewPending()
+                }
             }
 
         internal fun maybeDrainRoutineStartNotice() =

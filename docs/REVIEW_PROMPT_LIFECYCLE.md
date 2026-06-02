@@ -75,10 +75,11 @@
    - `REVIEW_PENDING`을 유지한다.
    - 다음 홈 루트 진입에서 다시 시도한다.
 5. 위 조건을 모두 통과하면:
-   - 먼저 `REVIEW_PENDING = false`
-   - 그 다음 `InAppReviewManager.launchIfReady(activity)` 호출
+   - `InAppReviewManager.launchIfReady(activity)` 호출
+   - launch 성공(`review_prompt_shown`)일 때만 `REVIEW_PENDING = false`
+   - launch 실패(`review_prompt_failed`) 또는 in-flight short-circuit이면 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 다시 시도한다.
 
-`sheetVisible`과 `activity == null`에서 pending을 유지하는 이유는, eligibility는 확보됐지만 일시적 UI/Activity 문맥 때문에 지금 노출할 수 없는 순간의 재시도를 허용하기 위해서다. 반대로 `evaluateLive()`가 실패한 경우는 현재 노출 조건이 실제로 깨진 것이므로 pending을 삭제하고 명시적인 skip reason을 기록한다.
+`sheetVisible`, `activity == null`, launch 실패에서 pending을 유지하는 이유는, eligibility는 확보됐지만 일시적 UI/Activity/Play review 문맥 때문에 지금 노출할 수 없는 순간의 재시도를 허용하기 위해서다. 반대로 `evaluateLive()`가 실패한 경우는 현재 노출 조건이 실제로 깨진 것이므로 pending을 삭제하고 명시적인 skip reason을 기록한다.
 
 ### 3. 실제 launch 결과 기록
 
