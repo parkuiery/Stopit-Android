@@ -178,7 +178,7 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 
 - repo 내부 문서/계약 정리만 완료되고 배포·14일 관측·Play Console 수동 기록이 남아 있으면 PR은 `Refs #307`을 사용한다.
 - PR #308과 PR #312는 이제 merge 완료 상태이므로, 이전 runtime-smoke blocker나 PR #312 merge 대기를 현재 blocker로 반복 보고하지 않는다.
-- `review_prompt_skipped.reason` / `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
+- `review_prompt_skipped.reason`은 2026-06-02T18:06:45Z 기준 조회 가능하므로 #307 skip reason 분석에 사용한다. `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
 - PR #308/#312 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
 
 ## 다음 run 체크리스트

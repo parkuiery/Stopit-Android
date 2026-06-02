@@ -179,25 +179,26 @@
 
 ### 현재 #13 queryability 경계
 
-2026-05-29 live 확인 기준으로 review 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+리뷰 프롬프트 세부 축은 2026-05-29와 2026-06-02 live 확인 결과가 서로 다르다. 오래된 `customEvent:*` 전면 미등록 진단을 그대로 반복하지 말고, 축별 최신 상태를 분리해서 읽는다.
 
-- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
-- review smoke (`review_prompt_skipped` by `customEvent:reason`):
-  - `400 INVALID_ARGUMENT`
-  - `Field customEvent:reason is not a valid dimension.`
+| 확인 시점 | 축 | 결과 | 운영 해석 |
+| --- | --- | --- | --- |
+| 2026-05-29 | `customEvent:reason` | `400 INVALID_ARGUMENT` / `Field customEvent:reason is not a valid dimension.` | 당시에는 skip reason breakdown을 제품 결론에 쓰지 않는다. |
+| 2026-06-02T18:06:45Z | `customEvent:reason` | metadata 등록 및 `review_prompt_skipped` breakdown 조회 가능 | #307 skip reason 분석에는 사용할 수 있다. |
+| 2026-06-02T18:06:45Z | `customEvent:error` | `Field customEvent:error is not a valid dimension.` | `review_prompt_failed` 원인 breakdown은 아직 GA4 Admin 등록/metadata 외부 경계다. |
 
-따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count 자체는 볼 수 있어도, skip/failure 사유 분포를 GA4에서 안정적으로 분해하는 작업은 아직 낮은 confidence 상태다.
+따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count와 `review_prompt_skipped.reason` 분포를 함께 볼 수 있다. 단, `review_prompt_failed.error`는 별도 등록 전까지 원인별 분석 confidence를 낮게 둔다.
 
 추가 주의:
 
-- 이번 live smoke는 `customEvent:reason` 기준의 대표 실패 증거를 남긴 것이다.
-- `review_prompt_failed.error` 같은 failure 세부 축도 별도로 조회 가능하다고 가정하지 않는다. `reason`이 막혀 있으면 `error`도 동일하게 GA4 Admin 등록/metadata 확인 전에는 외부 경계로 둔다.
+- `customEvent:reason`이 조회 가능해졌다는 사실을 activation 세부 축이나 `customEvent:error`까지 등록됐다는 뜻으로 확장하지 않는다.
+- `customEvent:error`가 막혀 있으면 failure 원인 분석은 #13 GA4 Admin registration follow-through로 넘긴다.
 
 운영 원칙:
 
-- 리뷰 지표를 해석할 때 `reason` / `error` 축이 실제로 등록됐는지 먼저 확인한다.
-- 등록 전에는 "특정 reason이 많다"는 결론을 대시보드 전제로 단정하지 않는다.
-- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review 등록 순서와 metadata 확인 절차를 선행한 뒤 세부 reason 분석을 한다.
+- 리뷰 지표를 해석할 때 `reason` / `error` 축의 최신 metadata 상태를 각각 확인한다.
+- `reason`은 #307 skip reason breakdown에 사용할 수 있지만, PR #308/#312 포함 버전이 배포되기 전 pre-fix cohort noise를 현재 blocker로 되살리지 않는다.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review ledger와 `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`의 버전별 재측정 표를 함께 본다.
 
 ## 무엇을 측정할 수 있고 없는가
 
@@ -208,10 +209,10 @@
 - `review_prompt_skipped` 발생량
 - `review_prompt_failed` 발생량
 
-### GA4 Admin 등록 후에만 안정적으로 분해 가능한 것
+### GA4 Admin 등록/metadata 확인 후에만 안정적으로 분해 가능한 것
 
-- `review_prompt_skipped`의 skip reason 분포
-- `review_prompt_failed`의 error / failure reason 분포
+- `review_prompt_skipped`의 skip reason 분포: 2026-06-02T18:06:45Z 기준 `customEvent:reason` 등록/조회 가능
+- `review_prompt_failed`의 error / failure reason 분포: 2026-06-02T18:06:45Z 기준 `customEvent:error` 미등록
 
 ### 앱/GA4에서 직접 측정 불가
 
