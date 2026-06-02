@@ -358,7 +358,7 @@ PY
 - 노출은 증가했는데 수익/CTR/eCPM이 하락하면 광고 위치·광고 품질·계측 문제를 함께 의심한다.
 - `adUnitName = (not set)` 또는 empty가 의미 있는 비중이면 placement 최적화나 새 광고 실험보다 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 코드 기준 placement 표와 #16 closure-pass 게이트를 먼저 적용한다.
 - `adUnitName`은 AdMob/GA4 표시명이고 앱 custom event의 `ad_unit_id`와 같은 필드가 아니므로, 둘을 연결하려면 `ad_unit_id`, `ad_placement`, `screen_context` custom dimension 등록 여부와 실제 이벤트 breakdown을 따로 확인한다.
-- 2026-06-01 preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있고, PR #293에서 앱 소유 배너 이벤트명이 SDK 자동 이벤트와 분리됐다. 이후 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리` 섹션을 따라 PR #293 포함 버전 배포 후 14일 창에서 재조회한다.
+- 2026-06-01 preflight 기준 광고 custom dimensions/metrics는 GA4 metadata에 등록되어 있고, PR #293에서 앱 소유 배너 이벤트명이 SDK 자동 이벤트와 분리됐다. 이후 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리` 및 `release boundary snapshot` 섹션을 따라 PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 창에서 재조회한다. 2026-06-02 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않으므로, `v1.7.7` 광고 데이터는 post-split measurement로 쓰지 않는다.
 - production AdMob application/ad unit id가 UI/Manifest에 분산된 상태(#250류)는 수익화 성과 저하 원인으로 단정하지 않는다. 이것은 광고 inventory 운영 안전성/환경 분리 문제이므로, `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `issue #250: flavor별 광고 설정 계약 handoff`를 보고 config 중앙화와 dev/debug non-production guard를 code/maintenance lane으로 넘긴다.
 - 광고 custom-event coverage를 계산할 때는 `ad_banner_impression`/`ad_banner_click`/`ad_banner_revenue`별 total `eventCount`와 `customEvent:ad_placement`가 `(not set)`/empty가 아닌 covered `eventCount`를 분리해 기록한다. coverage가 낮으면 placement별 CTR/eCPM 결론을 보류한다.
 - 차단/긴급해제 흐름을 방해하는 광고 실험은 하지 않는다.
