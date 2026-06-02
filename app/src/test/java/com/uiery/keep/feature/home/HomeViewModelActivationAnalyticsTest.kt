@@ -8,6 +8,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -109,8 +110,15 @@ class HomeViewModelActivationAnalyticsTest {
         viewModel.lockTime()
         delay(50)
 
+        val storedLockTime = dataStore.snapshot()[PreferencesKey.LOCK_TIME]
+
         assertEquals(HomeAnalyticsCall.FirstLockConfigured(AnalyticsSource.HOME_TIMER, 1), analytics.calls[0])
         assertEquals(HomeAnalyticsCall.LockScheduled(AnalyticsScheduleType.TIMER), analytics.calls[1])
+        assertEquals(true, runCatching { Instant.parse(storedLockTime) }.isSuccess)
+        assertEquals(
+            true,
+            ManualLockTimePolicy.isActiveAt(storedLockTime),
+        )
         assertEquals(
             HomeAnalyticsCall.LockSessionStarted(
                 source = AnalyticsSource.HOME_TIMER,

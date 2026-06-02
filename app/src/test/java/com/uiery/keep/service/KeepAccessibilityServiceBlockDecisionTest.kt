@@ -1,6 +1,7 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -8,6 +9,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 class KeepAccessibilityServiceBlockDecisionTest {
     @Test
@@ -43,6 +45,31 @@ class KeepAccessibilityServiceBlockDecisionTest {
             ),
             cachedRoutines = emptyList(),
             now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.uiery.keep",
+                blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun timedLockInstantDeadlineUsesTimedLockSource() {
+        val zone = ZoneId.systemDefault()
+        val now = LocalDateTime.of(2026, 5, 27, 10, 0)
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.uiery.keep",
+            prefs = AccessibilityBlockingPreferences(
+                lockTime = ManualLockTimePolicy.encodeDeadline(now.plusMinutes(5).atZone(zone).toInstant()),
+                selectedAppPackages = setOf("com.uiery.keep"),
+            ),
+            cachedRoutines = emptyList(),
+            now = now,
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
         )
