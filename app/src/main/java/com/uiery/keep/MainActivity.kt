@@ -38,6 +38,12 @@ class MainActivity : ComponentActivity() {
                     MobileAds.initialize(applicationContext)
                 }
             }
+            lifecycleScope.launch {
+                delay(FcmTokenDeferredStartupDelayMillis)
+                if (shouldFetchFcmTokenForActivity(isFinishing, isDestroyed)) {
+                    fetchAndSaveFcmToken()
+                }
+            }
         }
 
         enableEdgeToEdge()
@@ -51,6 +57,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun fetchAndSaveFcmToken() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
                 AppLogger.debug("MainActivity", task.exception.toString(), task.exception)
