@@ -103,8 +103,8 @@
 
 - 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
 - 2026-05-29 `78.1%` screen 품질 gap은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 명시적 `screen_view` 보강 전 baseline이다. 같은 화면에 대한 추가 코드 작업은 PR #296/#318 포함 버전 배포 후 14일 재측정으로 실제 잔여 gap을 확인한 뒤 판단한다. `DevToolScreen`은 production 사용자 지표와 분리해서 해석한다.
-- 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
-- activation (`customEvent:permission_name`, `customEvent:source`)과 review (`customEvent:reason`) 분해 쿼리는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
+- 2026-05-29 live smoke 기준 당시 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
+- activation (`customEvent:permission_name`, `customEvent:source`) 분해 쿼리는 아직 별도 metadata 확인 전까지 낮은 confidence로 둔다. review `customEvent:reason`은 2026-06-02T18:06:45Z #307 재조회에서 등록/조회 가능해졌으므로 `review_prompt_skipped` reason breakdown에 사용할 수 있다. 단, `customEvent:error`는 여전히 미등록이다.
 - 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다. 2026-06-02/2026-06-03 확인 기준 최신 production tag `v1.7.7`과 현재 `origin/main`은 PR #293 split commit을 포함하지 않으므로, `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline이다. 2026-06-03 GA4 smoke에서 소량의 `ad_banner_*` 행이 보인 것은 source-split queryability 확인용이며, production 14일 placement 판단으로 승격하지 않는다.
 
 주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
@@ -161,7 +161,7 @@
 - `첫 잠금 활성화 개선`은 임팩트가 크지만 계측 정리 후 더 정확히 설계하는 편이 좋다.
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
 - 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
-- 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata만 일부 복구 확인됐다. 따라서 현재 #14류 activation/review 세부 파라미터는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다.
+- 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata가 일부 복구 확인됐다. 2026-06-02T18:06:45Z #307 재조회에서는 review `customEvent:reason`도 등록/조회 가능했다. 따라서 현재 #14류 activation 세부 파라미터와 review `customEvent:error`는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다. review skip reason 자체는 이제 live breakdown으로 판단할 수 있다.
 - 2026-05-29 `screen_view` gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. #13의 다음 screen 품질 판단은 PR #296/#318 포함 버전 배포 후 14일 재측정 결과로 한다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 - 2026-06-01/2026-06-02 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 2026-06-02 최신 조회 기준 전체 `newUsers`는 421명으로 직전 대비 +15.0%였지만 `Direct` 신규가 252명(59.9%)까지 증가했고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
