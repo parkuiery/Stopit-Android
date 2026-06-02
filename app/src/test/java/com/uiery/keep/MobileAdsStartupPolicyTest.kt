@@ -20,4 +20,15 @@ class MobileAdsStartupPolicyTest {
         assertFalse(shouldStartMobileAdsForActivity(isFinishing = true, isDestroyed = false))
         assertFalse(shouldStartMobileAdsForActivity(isFinishing = false, isDestroyed = true))
     }
+
+    @Test
+    fun fcmTokenFetchUsesTheSameDeferredStartupBoundary() {
+        assertTrue(
+            "FCM token fetch should also wait until after first-frame startup work instead of running inline during Activity.onCreate",
+            FcmTokenDeferredStartupDelayMillis >= 1_000L,
+        )
+        assertTrue(shouldFetchFcmTokenForActivity(isFinishing = false, isDestroyed = false))
+        assertFalse(shouldFetchFcmTokenForActivity(isFinishing = true, isDestroyed = false))
+        assertFalse(shouldFetchFcmTokenForActivity(isFinishing = false, isDestroyed = true))
+    }
 }
