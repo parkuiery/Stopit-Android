@@ -156,20 +156,27 @@ cd <repo-root>
 - Notes:
 ```
 
-### Crashlytics startup ANR / AdMob 초기화 baseline
+### Crashlytics startup ANR / SDK background crash baseline
 
-Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77fafc0d6ce7c7a75c8b13d20ed2bb2c`, `4c1ed3a5d227234e314f386a5b9a1d97`)은 모두 `KeepApplication.onCreate`로 blame되지만 sample thread는 실제로 Chromium/System WebView 또는 Play services Ads 초기화가 main thread에서 binder/IO를 기다린 형태다. 앱 시작 critical path에 광고 SDK 초기화를 다시 inline으로 넣지 않도록 아래 JVM 계약을 PR evidence에 남긴다.
+Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77fafc0d6ce7c7a75c8b13d20ed2bb2c`, `4c1ed3a5d227234e314f386a5b9a1d97`, `0864599aefbd42499c770e81e4426ddf`)은 모두 `KeepApplication.onCreate` 또는 `BlockActivity` 시작 근처로 blame되지만 sample thread는 실제로 Chromium/System WebView 또는 Play services Ads 초기화가 main thread에서 binder/IO를 기다린 형태다. 앱 시작 critical path에 광고 SDK 초기화를 다시 inline으로 넣지 않도록 아래 JVM 계약을 PR evidence에 남긴다.
+
+Issue #101의 최근 fatal topIssues에는 앱 코드 직접 line이 아니라 Google/Firebase/AndroidX SDK background thread에서 플랫폼 API mismatch가 process fatal로 승격되는 샘플도 있다. 대표 케이스:
+- `d1369c1905b65f09a031309198552d10`: `ScionFrontendApi` background thread, `play-services-base@@18.9.0` / `Firebase measurement`, `getAttributionSource()` `NoSuchMethodError`, lastSeen `1.7.7`.
+- `8a2cfe07f945b5bcc4e7cbd4928d42a6`: `androidx.profileinstaller.ProfileVerifier$Api33Impl.getPackageInfo`, `PackageInfoFlags.of` `NoSuchMethodError`, lastSeen `1.7.7`.
+- `5c3f76729005f60fffa2beae30e770c7`: Compose font resolver `fontWeightAdjustment`, `NoSuchFieldError`, lastSeen `1.7.7`.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.MobileAdsStartupPolicyTest'
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.BackgroundSdkCrashPolicyTest'
 ```
 
 검증 기준:
 - `MainActivity.onCreate`에서 `MobileAds.initialize(...)`를 즉시 호출하지 않는다.
 - 광고 SDK 초기화는 첫 frame/post 이후 최소 1초 이상 지연된 lifecycle coroutine에서 실행한다.
 - Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
-- Crashlytics MCP/Console에서 같은 ANR issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
+- known SDK/platform mismatch는 main thread crash가 아닐 때만 containment 대상이다. 앱 코드 crash 또는 main thread crash는 기존 platform/Crashlytics handler로 위임한다.
+- Crashlytics MCP/Console에서 같은 ANR/fatal issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
 
 ### DevTool production graph baseline
 
