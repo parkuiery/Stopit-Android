@@ -38,7 +38,7 @@ npm run build
 - Regression alert
 - Velocity alert
 
-These functions use Firebase Alerts triggers from Crashlytics and post a formatted message to Discord.
+These functions use Firebase Alerts triggers from Crashlytics and post a formatted message to Discord. Each alert must include the Crashlytics console link, the raw Crashlytics Issue ID, and a GitHub duplicate-search link so #101-style fatal/ANR follow-through can copy stack trace, affected versions, and affected-user evidence into one canonical GitHub issue or PR before starting code changes.
 
 ## Production promotion interaction
 

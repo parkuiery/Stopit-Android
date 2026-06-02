@@ -88,6 +88,8 @@ jobs:
           fi
 
       - name: Validate tag-push release guardrails
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: scripts/validate-play-deploy-ref.sh
 
       - name: Validate build/upload deployment secrets

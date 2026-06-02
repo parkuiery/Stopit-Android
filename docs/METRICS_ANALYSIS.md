@@ -74,11 +74,12 @@
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷. 2026-06-02 기준 PR #296으로 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` screen_view 보강이 develop에 들어갔으므로, 2026-05-29 screen quality baseline은 pre-#296 기준선으로 해석한다.
-- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷, #242 acquisition attribution gate, UTM/Install Referrer 운영 기준 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다.
+- `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷, #242 acquisition attribution gate, UTM/Install Referrer 운영 기준 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다. 2026-06-02 스냅샷에서는 전체 `newUsers`가 402명으로 반등했지만 `Direct` 신규가 230명(57.2%)까지 올라갔으므로, Play Console Search/Explore 확인 전에는 ASO 회복으로 표현하지 않는다.
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 첫 잠금 활성화 퍼널 source of truth. 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283) 이후에는 “CTA/피드백 부재”가 아니라 post-release 14일 재측정과 #13 queryability 경계를 기준으로 본다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
+- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약은 develop에 merge됐으므로, 다음 판단은 PR #308 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인한다.
 
 ## 빠른 분석 명령
 
@@ -507,5 +508,6 @@ PY
 - 2026-05-29 live 확인 기준 GA4 metadata에서 확인된 custom dimension은 `customUser:routines_count`뿐이었고 activation/review용 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
 - 2026-06-01 #16 AdMob preflight 기준 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 것으로 보정 확인됐다.
 - activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`) runReport smoke query는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 활성화/리뷰 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- 2026-06-02 acquisition snapshot에서는 `newUsers` 402 / 직전 362 = `+11.0%`, `activeUsers` 658 / 직전 606 = `+8.6%`였지만, `sessions`는 4,651 / 직전 6,372 = `-27.0%`이고 `Direct` 신규가 230 / 402 = `57.2%`까지 증가했다. #65/#242 판단은 신규 유저 반등보다 Play Console Search/Explore, external/campaign, Paid Search 집행 여부 확인을 우선한다.
 - monetization은 광고 metadata 일부가 복구됐고 PR #293에서 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 source split 구현이 끝났다. 다만 PR #293 포함 버전 배포 후 14일 재조회 전까지 placement별 결론은 보류한다. 자세한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 따른다.
 - 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.

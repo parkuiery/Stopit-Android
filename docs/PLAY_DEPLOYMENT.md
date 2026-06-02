@@ -60,6 +60,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Pushing a semver tag like `v1.7.1` runs Play deployment only after the tag-push guard passes:
   - tag must be reachable from `origin/main`
   - previous SemVer tag must already have the production completion marker
+  - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
   - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
   - tag-triggered runs upload to Google Play `internal` track by default
@@ -158,7 +159,8 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes, and must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
+- Version Guard (must appear on every `main`-target PR; normal `release/*` / `hotfix/*` version PRs must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
+- Workflow-only / governance-only main-target hotfixes that do not change `app/build.gradle.kts` still keep the `Version Guard` job visible, but the workflow skips the Play service-account restore and versionCode API lookup after `Detect Android version file changes` reports `changed=false`.
 - Android CI
 - Android Release QA
 - Android Release Build
