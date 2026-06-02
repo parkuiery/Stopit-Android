@@ -19,6 +19,10 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ManifestContractIntegrationTest {
+    // Static policy shape (sensitive permissions, exported flags, accessibility metadata,
+    // and backup/data-extraction XML scope) is locked by
+    // scripts.tests.test_android_manifest_contract so PR/release gates can fail before the
+    // emulator starts. This class stays focused on PackageManager/runtime resolution.
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test

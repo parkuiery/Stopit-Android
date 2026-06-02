@@ -8,8 +8,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
-| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch | Signed `prodRelease` AAB artifact. No Play upload. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch are required. |
-| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks build/sign/upload the AAB. Production promotes the already-internal release that matches the selected SemVer tag `versionCode`. |
+| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch | Signed `prodRelease` AAB artifact. Before the signed AAB is built it runs `:app:lintProdRelease` and `scripts/verify_lint_registry.py` against the prodRelease lint report. No Play upload. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch are required. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks run `:app:lintProdRelease` + prodRelease lint registry verification before building/signing/uploading the AAB. Production promotes the already-internal release that matches the selected SemVer tag `versionCode` and does not run `:app:lintProdRelease`, build, or upload a new AAB. |
 
 ## What is automated
 
@@ -55,14 +55,16 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
 - Release candidates targeting `main` run Android Release Build. Scope: release/* -> main, hotfix/* -> main, or manual dispatch; direct push to `main` does not trigger a signed release artifact. A non-release main PR must not read signing/Firebase secrets or build a signed release artifact:
   - `./gradlew :app:testProdReleaseUnitTest`
+  - `./gradlew :app:lintProdRelease`
+  - `python3 scripts/verify_lint_registry.py --report app/build/reports/lint-results-prodRelease.html ...`
   - signed `prodRelease` AAB build
   - upload signed AAB artifact to GitHub Actions
 - Pushing a semver tag like `v1.7.1` runs Play deployment only after the tag-push guard passes:
   - tag must be reachable from `origin/main`
   - previous SemVer tag must already have the production completion marker
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
-  - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
-  - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
+  - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
+  - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
   - tag-triggered runs upload to Google Play `internal` track by default
 - A successful `production` CD run writes two completion markers for the tag only when `track=production` and `release_status=completed`:
   - GitHub Deployment: environment `production`, status `success`
