@@ -1,0 +1,146 @@
+# 리뷰 프롬프트 post-release 재측정 런북
+
+이 문서는 GitHub issue #307 `리뷰 프롬프트 shown 0 지속 원인 재측정 및 14일 평점 추적`의 운영 런북이다.
+
+`docs/REVIEW_PROMPT_LIFECYCLE.md`가 코드 기준 eligibility/drain 계약의 source of truth라면, 이 문서는 **배포 후 지표를 어떻게 다시 읽고 다음 실행을 어떻게 나눌지**를 고정한다.
+
+## 현재 기준선
+
+2026-06-02 GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준:
+
+| 지표 | 최근 30일 사용자 수 | 해석 |
+| --- | ---: | --- |
+| `review_prompt_shown` | 0 | Play review sheet launch 성공이 아직 관측되지 않음 |
+| `review_prompt_skipped` | 27 | eligibility 또는 drain 단계에서 중단/보류가 발생 |
+| `app_block_intercepted` | 316 | 리뷰 요청 후보가 될 수 있는 성공 사용 신호는 존재 |
+| `lock_session_start` | 202 | 잠금 세션 시작 신호도 존재 |
+| `first_core_action_completed` | 309 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
+| `activeUsers` | 658 | 분모 기준 |
+| `newUsers` | 402 | 직전 30일 362 대비 +11.0% |
+| `Organic Search` 신규 사용자 | 172 | ASO/리뷰 후행 효과 판단 보조 지표 |
+| `Direct` 신규 사용자 | 230 | 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
+
+이 기준선은 PR #226 / tag `v1.7.7` 이후 흐름이 30일 합산 안에 충분히 반영되기 전의 혼합 지표다. 따라서 `shown = 0`만 보고 바로 eligibility 설계를 바꾸지 않는다. 먼저 버전별·배포 후 14일 창으로 다시 분해한다.
+
+## 관련 source of truth
+
+- 코드 계약: `docs/REVIEW_PROMPT_LIFECYCLE.md`
+- 이벤트/파라미터 사전: `docs/ANALYTICS_EVENT_DICTIONARY.md`
+- GA4 Admin 등록/metadata 증적: `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- 제품 지표 해석: `docs/METRICS_ANALYSIS.md`, `docs/PRODUCT_METRICS_DASHBOARD.md`
+- ASO/Play Console 후행 지표: `docs/PLAY_STORE_ASO.md`
+
+## 재측정 전제
+
+### 1. 버전 경계
+
+최소 두 집단으로 나눈다.
+
+| cohort | 기준 | 목적 |
+| --- | --- | --- |
+| pre-fix | `appVersion < v1.7.7` 또는 PR #226 미포함 버전 | 기존 `REVIEW_PENDING` 소거/launch 실패 문제가 섞인 기준선 |
+| post-fix | `appVersion >= v1.7.7` | pending 소거 방지 수정 포함 후 lifecycle 재측정 |
+| post-PR-308 | PR #308 포함 릴리즈가 배포된 뒤의 버전 | launch failure 후 재시도 계약까지 포함한 재측정 |
+
+PR #308이 아직 develop PR 상태이면 post-PR-308 cohort는 만들지 않는다. 이때는 issue #307을 닫지 않고 “runtime smoke gate / 배포 / 14일 관측 대기”를 외부 경계로 둔다.
+
+### 2. GA4 queryability 경계
+
+상위 이벤트 count는 조회 가능하더라도, 다음 breakdown은 GA4 Admin 등록 전에는 안정적으로 볼 수 없다.
+
+- `review_prompt_skipped` by `customEvent:reason`
+- `review_prompt_failed` by `customEvent:error`
+
+`customEvent:reason` 또는 `customEvent:error`가 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`로 실패하면 제품 결론이 아니라 #13 GA4 Admin 등록 경계로 기록한다.
+
+### 3. Play In-App Review 한계
+
+앱/GA4가 알 수 있는 것은 다음뿐이다.
+
+- `review_prompt_eligible`: 리뷰 요청이 arm 됨
+- `review_prompt_shown`: Play review sheet launch 성공
+- `review_prompt_skipped`: eligibility 또는 drain 단계에서 보류/중단
+- `review_prompt_failed`: API/launcher 실패
+
+사용자가 실제로 리뷰를 작성했는지, 취소했는지, 별점을 몇 점 줬는지는 앱 이벤트로 알 수 없다. 후행 결과는 Play Console의 rating count / 평균 평점 / 최근 리뷰 톤으로 본다.
+
+## 재측정 표준 표
+
+### 앱 내부 lifecycle 표
+
+| 기간 | cohort/version | activeUsers | eligible users / events | shown users / events | skipped users / events | failed users / events | shown / eligible | 비고 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| baseline | 전체 최근 30일 | 658 | TODO | 0 users / TODO | 27 users / TODO | TODO | TODO | 2026-06-02 snapshot |
+| D+14 | `v1.7.7+` | TODO | TODO | TODO | TODO | TODO | TODO | PR #226 포함 후 14일 |
+| D+14 | PR #308 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | launch failure 재시도 계약 포함 후 14일 |
+| D+30 | PR #308 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | 30일 후행 확인 |
+
+### skip/failure breakdown 표
+
+GA4 Admin 등록이 확인된 뒤에만 채운다.
+
+| 기간 | cohort/version | dimension | 값 | users | eventCount | 해석 |
+| --- | --- | --- | --- | ---: | ---: | --- |
+| D+14 | TODO | `customEvent:reason` | `NotHomeRoot` | TODO | TODO | 일시 보류. pending 유지가 기대값 |
+| D+14 | TODO | `customEvent:reason` | `NoActivity` | TODO | TODO | 일시 보류. pending 유지가 기대값 |
+| D+14 | TODO | `customEvent:reason` | `AccessibilityOff` | TODO | TODO | live eligibility 실패. pending 삭제가 기대값 |
+| D+14 | TODO | `customEvent:error` | TODO | TODO | TODO | 반복되면 launcher/API 실패 원인 조사 |
+
+### Play Console 후행 지표 표
+
+| 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| baseline | TODO | TODO | TODO | 172 | TODO | Play Console 수동 기록 필요 |
+| D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
+| D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
+
+## 판단 규칙
+
+### A. `eligible > 0`, `shown = 0`, `failed > 0`
+
+우선순위: code-lane follow-through.
+
+- `review_prompt_failed.error` breakdown이 가능하면 반복 error를 확인한다.
+- PR #308 포함 여부를 확인한다.
+- PR #308 미포함이면 먼저 배포 후 14일 재측정한다.
+- PR #308 포함 후에도 failure가 반복되면 `InAppReviewManager` / Play Core launcher 경로를 코드 이슈로 본다.
+
+### B. `eligible > 0`, `shown = 0`, `skipped`가 대부분
+
+우선순위: lifecycle/drain 해석.
+
+- `NotHomeRoot` / `NoActivity` 비중이 높으면 일시 보류가 pending을 유지하고 다음 홈 루트에서 재시도되는지 확인한다.
+- `AccessibilityOff` / `QuietHours` / `KillSwitch` 비중이 높으면 제품 조건상 노출이 막힌 것이므로 노출 UX를 강제로 완화하지 않는다.
+- `NoRecentSuccess`가 높으면 성공 세션 arm 타이밍을 다시 본다. 단, #17에서 “방금 끝난 성공 세션 포함” 계약이 이미 들어간 상태이므로 같은 버그로 되돌리지 않는다.
+
+### C. `eligible = 0`, 성공 사용 신호는 충분함
+
+우선순위: eligibility threshold/remote config 확인.
+
+- `SUCCESSFUL_SESSION_COUNT`, background 관측, 접근성 상태, quiet hours 조건을 코드/지표 기준으로 확인한다.
+- debug/dev flavor 지표가 섞였는지 확인한다.
+- remote config kill switch가 꺼져 있는지 확인한다.
+
+### D. `shown > 0`, Play rating/review 개선 없음
+
+우선순위: PM/ASO follow-through.
+
+- `shown`은 review 작성 완료가 아니므로 앱 코드 결론으로 과해석하지 않는다.
+- rating count / 평균 평점 / 최근 리뷰 톤이 유지 또는 악화되면 문구/타이밍/ASO 품질을 제품 실험 후보로 둔다.
+- 긴급해제/안전/핵심 차단 흐름에서 리뷰를 압박하는 실험은 금지한다.
+
+## GitHub Issue / PR handoff 규칙
+
+- repo 내부 문서/계약 정리만 완료되고 배포·14일 관측·Play Console 수동 기록이 남아 있으면 PR은 `Refs #307`을 사용한다.
+- PR #308 같은 code-lane 수정이 runtime smoke gate에 막혀 있으면, docs lane은 `Closes #307`을 쓰지 않는다.
+- `review_prompt_skipped.reason` / `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
+- PR #308 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
+
+## 다음 run 체크리스트
+
+- [ ] PR #308 상태와 head SHA를 확인한다.
+- [ ] PR #308 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다.
+- [ ] `review_prompt_eligible/shown/skipped/failed`를 version별로 재조회한다.
+- [ ] `customEvent:reason` / `customEvent:error` metadata 등록 여부를 확인한다.
+- [ ] Play Console rating count / 평균 평점 / 최근 리뷰 톤 baseline을 수동 기록한다.
+- [ ] D+14 / D+30 표를 갱신하고, code-lane/PM-lane 후속이 필요한지 판단한다.
