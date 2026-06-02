@@ -63,6 +63,7 @@
 
 - `database/keep-database`만 cloud backup / device transfer 대상으로 포함
 - DataStore 파일은 포함하지 않는다. Android lint의 `FullBackupContent` 규칙상 `database/keep-database`만 include하면 `file/datastore/keep-datastore.preferences_pb` exclude는 중복이므로 XML에는 두지 않는다.
+- 정적 회귀 가드는 `scripts/tests/test_android_manifest_contract.py`가 담당한다. 이 테스트는 `AndroidManifest.xml`이 `@xml/backup_rules` / `@xml/data_extraction_rules`를 가리키는지와 두 XML이 `database/keep-database`만 include하는지를 고정한다. 즉 DataStore 제외 효과는 명시적 exclude 태그가 아니라 **DB-only include scope**로 검증한다.
 
 즉, **Room DB는 복원되고 DataStore는 복원되지 않는다.** 루틴의 authoritative source of truth는 Room이며, `PreferencesKey.ROUTINES`는 boot/routine alarm/accessibility 호환성을 위한 비권위(runtime compatibility) 캐시로만 취급한다. 따라서 boot/routine alarm 경로에서는 필요 시 Room에 복원된 routine 목록으로 `PreferencesKey.ROUTINES` 캐시를 다시 채우되, 후속 스케줄링/차단 판단은 항상 Room 기준과 일치해야 한다.
 
