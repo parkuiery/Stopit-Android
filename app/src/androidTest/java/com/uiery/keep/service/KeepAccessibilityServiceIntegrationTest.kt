@@ -23,6 +23,7 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.regex.Pattern
 
 @RunWith(AndroidJUnit4::class)
 class KeepAccessibilityServiceIntegrationTest {
@@ -311,15 +312,37 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun waitForUninstallButton(): androidx.test.uiautomator.UiObject2 {
-        waitUntil("Expected app info screen to expose an uninstall button for $APP_PACKAGE", UI_TIMEOUT_MS) {
-            device.hasObject(By.text("Uninstall"))
+        waitUntil(
+            message = "Expected app info screen to expose an uninstall/delete action for $APP_PACKAGE. visibleTexts=${visibleSettingsTexts()}",
+            timeoutMs = UI_TIMEOUT_MS,
+        ) {
+            findUninstallButton() != null
         }
-        val uninstallButton = device.findObject(By.text("Uninstall"))
-        if (uninstallButton == null) {
-            fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
+        return findUninstallButton() ?: run {
+            fail("Could not find uninstall/delete action for $APP_PACKAGE from app info screen. visibleTexts=${visibleSettingsTexts()}")
+            throw AssertionError("unreachable")
         }
-        return uninstallButton
     }
+
+    private fun findUninstallButton(): androidx.test.uiautomator.UiObject2? {
+        val selectors = listOf(
+            By.text(UNINSTALL_ACTION_PATTERN),
+            By.desc(UNINSTALL_ACTION_PATTERN),
+            By.textContains("Uninstall"),
+            By.textContains("Delete"),
+            By.textContains("Remove"),
+        )
+        return selectors.firstNotNullOfOrNull { selector ->
+            device.findObject(selector)?.takeIf { it.isEnabled }
+        }
+    }
+
+    private fun visibleSettingsTexts(): String =
+        device.findObjects(By.pkg(SETTINGS_PACKAGE))
+            .mapNotNull { node -> node.text?.takeIf { it.isNotBlank() } }
+            .distinct()
+            .take(30)
+            .joinToString(" | ")
 
     private fun primeAppProcess() {
         launchPackage(APP_PACKAGE)
@@ -580,6 +603,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val SETTINGS_PACKAGE = "com.android.settings"
         const val MAIN_SWITCH_BAR_ID = "main_switch_bar"
         const val ALLOW_BUTTON_ID = "android:id/accessibility_permission_enable_allow_button"
+        val UNINSTALL_ACTION_PATTERN: Pattern = Pattern.compile("(?i)(uninstall|delete|remove)(\\s+app)?")
         val KNOWN_UNINSTALL_PACKAGES = setOf(
             "com.android.packageinstaller",
             "com.google.android.packageinstaller",
