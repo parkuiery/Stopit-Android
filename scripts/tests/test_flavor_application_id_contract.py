@@ -58,6 +58,14 @@ class FlavorApplicationIdContractTest(unittest.TestCase):
                 self.assertIn('printf \'%s\' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json', text)
                 self.assertNotIn('printf \'%s\' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json', text)
 
+    def test_release_qa_runs_flavor_application_id_contract(self):
+        release_qa = RELEASE_QA_WORKFLOW.read_text()
+
+        self.assertIn(
+            "scripts.tests.test_flavor_application_id_contract",
+            release_qa,
+        )
+
     def test_contract_doc_records_split_as_current_state(self):
         doc = FLAVOR_CONTRACT_DOC.read_text()
 
