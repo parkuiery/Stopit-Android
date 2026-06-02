@@ -260,7 +260,26 @@ class HomeAccessibilityPermissionIntegrationTest {
         } else {
             shell("settings put secure enabled_accessibility_services $enabledServices")
         }
+
+        waitUntil(
+            message = "Expected secure accessibility settings to settle to accessibility_enabled=$accessibilityEnabled " +
+                "and enabled_accessibility_services=$enabledServices; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                actualEnabledServices == enabledServices
+        }
     }
+
+    private fun accessibilitySettingsSnapshot(): String =
+        "accessibility_enabled=${shell("settings get secure accessibility_enabled").trim()}, " +
+            "enabled_accessibility_services=${normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))}"
+
+    private fun normalizeSecureSetting(value: String): String =
+        value.trim().takeUnless { it == "null" }.orEmpty()
 
     private fun waitForStopItForeground() {
         waitForPackageForeground(targetPackage)
