@@ -22,7 +22,7 @@ No direct source files; this directory organizes subdirectories listed below.
 
 ### Working In This Directory
 - Keep changes scoped to this directory’s responsibility and follow the neighboring file naming/style conventions.
-- `dev/`와 `prod/` source set의 `google-services.json`은 디렉터리 구조만 보고 상주 파일처럼 가정하지 않는다. Android CI / Release QA는 `GOOGLE_SERVICES_JSON_DEV`를 dev에, `GOOGLE_SERVICES_JSON`를 prod에 복원하고, Release Build / Play Deploy는 prod만 복원하므로 workflow별 restore matrix와 helper 범위는 `../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 기준으로 확인한다.
+- `dev/`와 `prod/` source set의 `google-services.json`은 디렉터리 구조만 보고 상주 파일처럼 가정하지 않는다. Android CI / Release QA는 `GOOGLE_SERVICES_JSON_DEV`를 dev에, `GOOGLE_SERVICES_JSON`를 prod에 복원하고, Release Build / Play Deploy non-production build/upload는 prod만 복원한다. Play Deploy production promotion은 기존 internal release를 승격하므로 `GOOGLE_SERVICES_JSON`/`ANDROID_*`를 복원하지 않는다. workflow별 restore matrix와 helper 범위는 `../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 기준으로 확인한다.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

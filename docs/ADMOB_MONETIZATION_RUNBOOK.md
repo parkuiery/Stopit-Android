@@ -334,11 +334,43 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 - `ad_impression`: total `21,159`, custom-covered `912`, coverage `4.31%`.
 - `ad_click`: total `11`, custom-covered `0`, coverage `0.00%`.
 - `ad_revenue`: total `8,602`, custom-covered `908`, coverage `10.56%`.
-- 판단: 이 값은 PR #293 이전 legacy 이벤트명 baseline이다. 새 `ad_banner_*` 이벤트명 배포 후 14일 재조회 전까지는 placement별 CTR/eCPM 결론을 내리지 않는다.
+- 판단: 이 값은 PR #293 이전 legacy 이벤트명 baseline이다. PR #293 포함 release/tag/Play deploy 후 새 `ad_banner_*` 이벤트명 14일 재조회 전까지는 placement별 CTR/eCPM 결론을 내리지 않는다.
+
+## release boundary snapshot: PR #293 이후 측정 창은 아직 시작되지 않음
+
+2026-06-02 docs-lane 확인 결과, #16의 code split은 develop에는 들어갔지만 최신 production tag에는 아직 포함되지 않았다.
+
+확인한 상태:
+
+| 항목 | 상태 | 증거 |
+| --- | --- | --- |
+| PR #293 split commit | develop 포함 | `afcb5c8efed7754ed57871defa30997d3b1612c4` is ancestor of `origin/develop` |
+| 최신 SemVer tag | `v1.7.7` | tag SHA `f49e7de9707fc8fd83b2da9b080f04bba7ebcfb6` |
+| 최신 production marker | 있음 | GitHub Release `v1.7.7` body: `<!-- stopit-production-deployed: v1.7.7 -->`, completed at `2026-06-01T14:39:19Z` |
+| PR #293 split commit in `origin/main` | 아님 | `git merge-base --is-ancestor afcb5c8e... origin/main` = no |
+| PR #293 split commit in `v1.7.7` | 아님 | `git merge-base --is-ancestor afcb5c8e... v1.7.7` = no |
+
+운영 해석:
+
+- `v1.7.7` production AdMob/GA4 데이터는 PR #293 이전 legacy 광고 이벤트명 baseline으로만 본다.
+- 새 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` coverage 14일 창은 **PR #293 포함 commit이 release PR → `main` → SemVer tag → Play deploy에 실제 포함된 뒤** 시작한다.
+- 따라서 #16을 “배포 후 14일 재조회 대기”라고 쓰더라도, 현재 정확한 표현은 “develop code split 완료, latest production 미포함, release 포함 대기”다.
+- 다음 release에 PR #293이 포함됐는지 확인하기 전에는 `ad_banner_*` 이벤트가 적거나 없어도 제품/광고 placement 결론으로 해석하지 않는다.
+
+다음 재조회 시작 조건:
+
+```bash
+# <release-tag>는 PR #293 이후 release tag로 교체한다.
+git merge-base --is-ancestor afcb5c8efed7754ed57871defa30997d3b1612c4 origin/main
+git merge-base --is-ancestor afcb5c8efed7754ed57871defa30997d3b1612c4 <release-tag>
+gh release view <release-tag> --json tagName,publishedAt,body,url
+```
+
+위 세 조건이 모두 충족된 뒤, 해당 release의 Play deploy/production marker 시각을 기준으로 14일 창을 잡는다. internal track만 배포된 경우에는 internal smoke/coverage 참고값으로 기록할 수 있지만, production 사용자 수익화 결론은 production rollout 기준으로 따로 표시한다.
 
 ## code-lane handoff 완료: 광고 custom event source 분리
 
-#16의 code-lane handoff는 PR #293에서 완료됐다. 아래 계약은 구현 후보가 아니라 **이미 선택된 이벤트명 분리 계약과 이후 측정 gate**로 본다.
+#16의 code-lane handoff는 PR #293에서 완료됐지만, 위 release boundary 때문에 아직 production 14일 measurement gate는 시작되지 않았다. 아래 계약은 구현 후보가 아니라 **이미 선택된 이벤트명 분리 계약과 이후 측정 gate**로 본다.
 
 ### 문제 계약
 
@@ -363,7 +395,7 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 - [x] `docs/ANALYTICS_EVENT_DICTIONARY.md`가 선택한 이벤트명/필터 계약을 source of truth로 설명한다.
 - [x] `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 새 이벤트명의 custom dimension 조회 방식을 설명한다.
 - [x] #16 PR/이슈에는 보정 배포 후 14일 재조회 기준이 남는다.
-- [ ] PR #293 포함 버전이 배포된 뒤 14일 창에서 `ad_banner_*` coverage와 placement별 CTR/eCPM을 재조회한다.
+- [ ] PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 창에서 `ad_banner_*` coverage와 placement별 CTR/eCPM을 재조회한다.
 - [ ] 14일 재조회와 guardrail 포함 단일 실험 선택까지 끝났을 때만 `Closes #16`를 사용한다.
 
 ### 검증 권장 명령

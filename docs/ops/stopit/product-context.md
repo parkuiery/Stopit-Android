@@ -47,10 +47,13 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - 트래픽보다 핵심 가치 전달을 우선한다.
 - 활성화 병목은 `first_open -> onboarding_step_view/onboarding_step_complete -> permission_outcome -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted`로 본다.
 - 첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리, 해석 guardrail은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
-- #14의 홈 첫 잠금 CTA는 PR #256 이후 구현됐고, 첫 차단 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 develop에 반영됐다. 이후 제품 판단은 CTA/피드백을 다시 만드는 것이 아니라, 배포 후 `first_lock_configured -> first_core_action_completed -> app_block_intercepted` 전환이 실제로 개선됐는지 14일 창으로 검증하는 쪽을 우선한다.
+- #14의 홈 첫 잠금 CTA는 PR #256 이후 구현됐고, 첫 차단 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 develop에 반영됐다. 다만 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 포함되지 않았으므로 live production activation 수치는 pre-#256/#279/#283 baseline으로만 본다. 이후 제품 판단은 CTA/피드백을 다시 만드는 것이 아니라, 해당 commit 포함 release/tag/Play deploy 후 `first_lock_configured -> first_core_action_completed -> app_block_intercepted` 전환이 실제로 개선됐는지 14일 창으로 검증하는 쪽을 우선한다.
 - #14 후속 문서/실행 후보를 고를 때는 `first_lock_configured`를 실제 차단 완료로 과장하지 않는다. 이미 들어간 안내/피드백 표면을 기준선으로 두고, 남은 repo-internal 후보는 release/metrics 템플릿과 GA4 queryability handoff 보강 정도다.
 - `customUser:routines_count`가 조회된다고 해서 activation/review/monetization의 `customEvent:*` queryability까지 해결됐다고 보지 않는다.
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 제품 신호 부재보다 **GA4 Admin registration gap** 가능성을 먼저 의심하고, 최종 해석은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 묶는다.
+- #65/#242 ASO 판단은 `docs/PLAY_STORE_ASO.md`의 attribution gate를 먼저 따른다. 2026-06-02 스냅샷처럼 `Direct` 신규 비중이 커졌을 때는 Play Console Search/Explore, external/campaign, UTM/Install Referrer 기록을 확인하기 전까지 ASO 회복으로 단정하지 않는다.
+- #307 리뷰 프롬프트 follow-through는 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태를 기준으로 본다. 다음 판단은 같은 코드 PR을 다시 만드는 것이 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review 14일·30일 관측이다.
+- #16 AdMob 수익화 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. PR #293의 `ad_banner_*` event-source split은 develop에 있지만 최신 production tag `v1.7.7`에는 없으므로, PR #293 포함 release/tag/Play deploy 전까지 `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline으로만 본다.
 - 민감한 행동 정보, 차단 앱 목록, 집중 실패/중독 뉘앙스는 노출하지 않는다.
 - 공유/성장 루프는 완전 선택형이어야 하며 사생활을 침해하면 안 된다.
 - 긴급해제와 안전 플로우는 광고나 수익화 뒤에 숨기지 않는다.
@@ -79,5 +82,9 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
+- `docs/PLAY_STORE_ASO.md`: #65/#242 Play Console ASO 반영 후 Search/Explore vs external/campaign attribution gate, 14일·30일 검증 런북.
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16 AdMob event-source split, `ad_banner_*` post-release coverage 재조회, 수익화 guardrail 런북.
+- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307 리뷰 프롬프트 shown 0 재측정, PR #308/#312 포함 버전 release/tag/Play deploy 및 14일·30일 후행 관측 런북.
+- `docs/REVIEW_PROMPT_LIFECYCLE.md`: 리뷰 프롬프트 arm/drain, skip reason, Play In-App Review 한계 계약.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 Usage Access 선택형 개인화 discovery gate. 구현 ready가 아니라 권한 UX, privacy guardrail, QA evidence, child issue 분리 기준을 관리한다.
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`

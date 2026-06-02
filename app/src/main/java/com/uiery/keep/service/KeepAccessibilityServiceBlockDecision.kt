@@ -1,11 +1,13 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import com.uiery.keep.util.isRoutineActiveNow
 import com.uiery.keep.util.toDayOfWeekList
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 data class AccessibilityBlockingPreferences(
     val isKeep: Boolean = false,
@@ -48,9 +50,10 @@ internal fun resolveForegroundBlockRequest(
 ): ForegroundBlockRequest? {
     if (isEmergencyUnlocked) return null
 
-    val isLockTime = prefs.lockTime?.let {
-        runCatching { now.isBefore(LocalDateTime.parse(it)) }.getOrDefault(false)
-    } ?: false
+    val isLockTime = ManualLockTimePolicy.isActiveAt(
+        storedDeadline = prefs.lockTime,
+        now = now.atZone(ZoneId.systemDefault()).toInstant(),
+    )
     val blockingRoutine = RoutineRuntimePolicy.findBlockingRoutine(
         packageName = packageName,
         routines = cachedRoutines,

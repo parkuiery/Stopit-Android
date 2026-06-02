@@ -13,6 +13,7 @@ class KeepApplication : Application() {
     lateinit var appLifecycleTracker: AppLifecycleTracker
 
     override fun onCreate() {
+        installBackgroundSdkCrashGuard()
         super.onCreate()
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleTracker)
     }

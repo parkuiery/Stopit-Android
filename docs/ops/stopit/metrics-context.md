@@ -65,7 +65,7 @@ ASO 판정 주의:
 
 ## 핵심 퍼널
 
-첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-02 기준 #14 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 develop에 반영됐으므로, 이후 활성화 분석은 “CTA 부재”나 “첫 가치 피드백 미정의”로 되돌리지 않는다. 다음 판단은 post-release 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 재측정하는 것이다.
+첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-02 기준 #14 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 develop에 반영됐으므로, 이후 활성화 분석은 “CTA 부재”나 “첫 가치 피드백 미정의”로 되돌리지 않는다. 단, 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 미포함이므로, live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 판단은 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 재측정하는 것이다.
 
 #14 측정 전제:
 - `first_lock_configured`는 준비 완료 신호이고, 실제 차단 완료가 아니다.
@@ -100,17 +100,17 @@ ASO 판정 주의:
 
 - 먼저 계기판을 의심한다. 화면명 `(not set)`이나 커스텀 차원 누락이 크면 제품 결론을 낮은 confidence로 둔다.
 - #13 계열 분석에서는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 보고, 실제 `customEvent:*` 등록/조회 가능 여부와 repo 문서 범위를 구분한다.
-- 2026-05-29 screen 품질 gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 보강 전 baseline으로 본다. 같은 화면에 대해 추가 code-lane 작업을 다시 열기 전에는 PR #296 포함 버전 배포 후 14일 창으로 재측정한다.
+- 2026-05-29 screen 품질 gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline으로 본다. 같은 화면에 대해 추가 code-lane 작업을 다시 열기 전에는 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 지표와 분리해서 해석한다.
 - `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
 - `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.
 - 전환율은 항상 분자/분모/기간을 같이 기록한다.
 - 지표 하나당 이슈 하나를 만들지 않는다. 실행 단위의 문제/기회로 묶는다.
 - 광고/수익화 개선은 activation, retention, trust guardrail과 함께 판단한다.
-- AdMob/광고 분석은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. 특히 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` + `adUnitName` 표와 앱 custom-event `eventCount` + `customEvent:ad_placement` coverage 표를 합산하지 않는다. 2026-06-01 기준 legacy `ad_impression` custom coverage가 `912 / 21,159 = 4.31%`에 그쳤으므로, 광고 placement 최적화나 새 수익화 실험 전에는 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`) 배포 후 14일 재조회로 SDK 자동 이벤트와 앱 custom 이벤트 source split을 확인한다.
+- AdMob/광고 분석은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. 특히 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` + `adUnitName` 표와 앱 custom-event `eventCount` + `customEvent:ad_placement` coverage 표를 합산하지 않는다. 2026-06-01 기준 legacy `ad_impression` custom coverage가 `912 / 21,159 = 4.31%`에 그쳤고, PR #293에서 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)가 SDK 자동 이벤트와 분리됐다. 다만 2026-06-02 확인 기준 PR #293 split commit은 `origin/develop`에는 포함됐지만 `origin/main`/최신 production tag `v1.7.7`에는 포함되지 않았다. 따라서 post-split 14일 재조회 창은 아직 시작되지 않았고, 다음 판단은 PR #293 포함 release/tag/Play deploy 확인 후 잡는다.
 - 광고 설정/운영 안전성 이슈(#250류)는 성과표와 별도로 본다. production AdMob application/ad unit id는 Manifest/UI call site에 흩어 두지 말고 flavor별 config source에서 관리해야 하며, dev/debug가 production 광고 ID를 쓰지 않는 정적 가드가 필요하다.
 - Play In-App Review API는 실제 리뷰 작성/취소 여부를 앱에 직접 알려주지 않는다. 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed` 수준이다.
-- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약이 develop에 merge된 상태로 본다. 다음 판단은 코드 PR 대기가 아니라 PR #308 포함 버전 배포 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review, 14일/30일 관측 경계다.
+- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태로 본다. 다음 판단은 코드 PR 대기가 아니라 PR #308/#312 포함 버전 배포 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review, 14일/30일 관측 경계다.
 - Usage Access 개인화(#119)는 구현 ready 신호가 아니라 discovery gate로 본다. 권한 허용률만 보지 말고 `first_core_action_completed`, `app_block_intercepted`, review/rating, crash-free users guardrail을 함께 보며, 앱 이름/package/raw usage history는 analytics payload로 보내지 않는다.
 
 ## 지표 기반 이슈 생성 기준

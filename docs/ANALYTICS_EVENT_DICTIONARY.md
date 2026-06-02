@@ -26,7 +26,7 @@
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -40,6 +40,7 @@
 | 차단 앱 상세 | `BlockedAppsScreen` | `BlockedAppsViewModel` |
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
 | 긴급해제 설정 | `EmergencyUnlockSettingsScreen` | `EmergencyUnlockSettingsViewModel` |
+| 개발자 도구(dev 전용) | `DevToolScreen` | `DevToolViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
 | 온보딩 소개 | `OnboardingIntroScreen` | `IntroViewModel.onStepViewed()` |
@@ -389,10 +390,10 @@ PY
 - 2026-05-29 metadata 기준 조회 가능한 custom dimension은 `customUser:routines_count`만 확인됐다.
 - 당시 activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`), monetization (`customEvent:ad_placement`) smoke query는 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패해, 병목이 no-data가 아니라 **미등록 쿼리 축**임을 확인했다.
 - 2026-06-01 #16 preflight에서는 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`이 metadata에 등록된 것으로 확인됐다.
-- 광고 쪽은 이제 “전체 미등록”이 아니라 PR #293 이후 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` 배포 후 14일 coverage와 placement별 성과를 다시 봐야 하는 상태로 해석한다. legacy `ad_impression` / `ad_click` / `ad_revenue` breakdown은 PR #293 이전 SDK 자동 이벤트와 앱 custom event source split baseline으로만 본다.
+- 광고 쪽은 이제 “전체 미등록”이 아니라 PR #293 이후 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` coverage와 placement별 성과를 다시 봐야 하는 상태로 해석한다. 단, 2026-06-02 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않으므로 post-split 14일 창은 아직 시작되지 않았다. legacy `ad_impression` / `ad_click` / `ad_revenue` breakdown과 `v1.7.7` production 광고 데이터는 PR #293 이전 SDK 자동 이벤트와 앱 custom event source split baseline으로만 본다.
 - 활성화/리뷰 축은 별도 metadata/runReport 확인 전까지 registration gap으로 유지한다.
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
-- 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 보강 전 값이다. 세 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296 포함 버전 배포 후 14일 창으로 재측정한다.
+- 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

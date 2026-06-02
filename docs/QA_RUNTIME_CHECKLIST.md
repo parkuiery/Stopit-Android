@@ -30,7 +30,7 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - 필요 flavor의 `google-services.json`이 현재 worktree에 복원되어 있음
 - 테스트 기기 또는 에뮬레이터 1대 이상 연결
 
-`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `공용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. Android CI / Release QA에서는 `GOOGLE_SERVICES_JSON_DEV`를 `app/src/dev`에, `GOOGLE_SERVICES_JSON`를 `app/src/prod`에 복원하고, Release Build / Play Deploy에서는 `app/src/prod`에만 `GOOGLE_SERVICES_JSON`를 복원한다.
+`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `공용 파일`이나 `prod 전용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only/production-promotion-unused restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. Android CI / Release QA에서는 `GOOGLE_SERVICES_JSON_DEV`를 `app/src/dev`에, `GOOGLE_SERVICES_JSON`를 `app/src/prod`에 복원하고, Release Build / Play Deploy non-production build/upload에서는 `app/src/prod`에만 `GOOGLE_SERVICES_JSON`를 복원한다. Play Deploy production promotion은 Firebase config와 Android signing을 복원하지 않고 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`로 matching internal release를 승격하는 경로다.
 
 `dev` / `prod` applicationId 분리 작업(#314) 또는 package identity와 관련된 runtime QA는 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다. dev package가 `com.uiery.keep.dev`로 분리되면 host-side `adb shell appops set ...` 명령도 dev runtime smoke는 `com.uiery.keep.dev`, production/release evidence는 `com.uiery.keep` 대상으로 분리해서 기록해야 한다.
 
@@ -156,20 +156,27 @@ cd <repo-root>
 - Notes:
 ```
 
-### Crashlytics startup ANR / AdMob 초기화 baseline
+### Crashlytics startup ANR / SDK background crash baseline
 
-Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77fafc0d6ce7c7a75c8b13d20ed2bb2c`, `4c1ed3a5d227234e314f386a5b9a1d97`)은 모두 `KeepApplication.onCreate`로 blame되지만 sample thread는 실제로 Chromium/System WebView 또는 Play services Ads 초기화가 main thread에서 binder/IO를 기다린 형태다. 앱 시작 critical path에 광고 SDK 초기화를 다시 inline으로 넣지 않도록 아래 JVM 계약을 PR evidence에 남긴다.
+Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77fafc0d6ce7c7a75c8b13d20ed2bb2c`, `4c1ed3a5d227234e314f386a5b9a1d97`, `0864599aefbd42499c770e81e4426ddf`)은 모두 `KeepApplication.onCreate` 또는 `BlockActivity` 시작 근처로 blame되지만 sample thread는 실제로 Chromium/System WebView 또는 Play services Ads 초기화가 main thread에서 binder/IO를 기다린 형태다. 앱 시작 critical path에 광고 SDK 초기화를 다시 inline으로 넣지 않도록 아래 JVM 계약을 PR evidence에 남긴다.
+
+Issue #101의 최근 fatal topIssues에는 앱 코드 직접 line이 아니라 Google/Firebase/AndroidX SDK background thread에서 플랫폼 API mismatch가 process fatal로 승격되는 샘플도 있다. 대표 케이스:
+- `d1369c1905b65f09a031309198552d10`: `ScionFrontendApi` background thread, `play-services-base@@18.9.0` / `Firebase measurement`, `getAttributionSource()` `NoSuchMethodError`, lastSeen `1.7.7`.
+- `8a2cfe07f945b5bcc4e7cbd4928d42a6`: `androidx.profileinstaller.ProfileVerifier$Api33Impl.getPackageInfo`, `PackageInfoFlags.of` `NoSuchMethodError`, lastSeen `1.7.7`.
+- `5c3f76729005f60fffa2beae30e770c7`: Compose font resolver `fontWeightAdjustment`, `NoSuchFieldError`, lastSeen `1.7.7`.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.MobileAdsStartupPolicyTest'
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.BackgroundSdkCrashPolicyTest'
 ```
 
 검증 기준:
 - `MainActivity.onCreate`에서 `MobileAds.initialize(...)`를 즉시 호출하지 않는다.
 - 광고 SDK 초기화는 첫 frame/post 이후 최소 1초 이상 지연된 lifecycle coroutine에서 실행한다.
 - Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
-- Crashlytics MCP/Console에서 같은 ANR issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
+- known SDK/platform mismatch는 main thread crash가 아닐 때만 containment 대상이다. 앱 코드 crash 또는 main thread crash는 기존 platform/Crashlytics handler로 위임한다.
+- Crashlytics MCP/Console에서 같은 ANR/fatal issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
 
 ### DevTool production graph baseline
 

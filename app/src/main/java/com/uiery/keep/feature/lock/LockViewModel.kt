@@ -15,6 +15,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -61,7 +62,7 @@ class LockViewModel
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
-                    lockTime = if (route.lockTime == null) LocalDateTime.now(clock) else LocalDateTime.parse(route.lockTime),
+                    lockTime = ManualLockTimePolicy.toLocalDateTime(route.lockTime, clock.zone) ?: LocalDateTime.now(clock),
                     isRoutine = route.isRoutine,
                     timerStartTime = clock.millis(),
                 ),

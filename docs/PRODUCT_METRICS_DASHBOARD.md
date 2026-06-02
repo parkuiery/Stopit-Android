@@ -102,10 +102,10 @@
 대표 해석:
 
 - 대시보드의 오래된 `screen views 23,191 / (not set) 19,003` 표만 보고 현재 screen 품질을 판단하면 안 된다.
-- 2026-05-29 `78.1%` screen 품질 gap은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 명시적 `screen_view` 보강 전 baseline이다. 같은 화면에 대한 추가 코드 작업은 PR #296 포함 버전 배포 후 14일 재측정으로 실제 잔여 gap을 확인한 뒤 판단한다.
+- 2026-05-29 `78.1%` screen 품질 gap은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 명시적 `screen_view` 보강 전 baseline이다. 같은 화면에 대한 추가 코드 작업은 PR #296/#318 포함 버전 배포 후 14일 재측정으로 실제 잔여 gap을 확인한 뒤 판단한다. `DevToolScreen`은 production 사용자 지표와 분리해서 해석한다.
 - 2026-05-29 live smoke 기준 현재 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
 - activation (`customEvent:permission_name`, `customEvent:source`)과 review (`customEvent:reason`) 분해 쿼리는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다.
-- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 새 이벤트명 포함 버전 배포 후 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다.
+- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다. 2026-06-02 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않으므로, `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline이다.
 
 주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
@@ -162,10 +162,10 @@
 - `광고 수익화`는 제품 신뢰/유지율 guardrail을 먼저 정해야 한다.
 - 현재 #13의 docs/ops scope는 이벤트 계약 정의만이 아니라, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger와 metadata 증적 포맷까지 포함한다.
 - 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata만 일부 복구 확인됐다. 따라서 현재 #14류 activation/review 세부 파라미터는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다.
-- 2026-05-29 `screen_view` gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 보강 전 baseline이다. #13의 다음 screen 품질 판단은 PR #296 포함 버전 배포 후 14일 재측정 결과로 한다.
+- 2026-05-29 `screen_view` gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. #13의 다음 screen 품질 판단은 PR #296/#318 포함 버전 배포 후 14일 재측정 결과로 한다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 - 2026-06-01/2026-06-02 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 2026-06-02 기준 전체 `newUsers`는 402명으로 직전 대비 +11.0%였지만 `Direct` 신규가 230명(57.2%)까지 증가했고 `Organic Search` 신규는 172명으로 #65 기준선 178명보다 낮다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
-- 현재 #14는 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 반영된 상태다. 다음 활성화 판단은 “CTA를 또 만드는 것”이나 “첫 가치 피드백 미정의”가 아니라, 배포 후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`가 같이 개선됐는지 확인하는 것이다. 세부 출처/차단앱/권한별 분해는 #13의 GA4 Admin registration/materialization 확인 전까지 낮은 confidence로 둔다.
+- 현재 #14는 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 `origin/develop`에 반영된 상태다. 다만 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 포함되지 않았으므로, `v1.7.7` live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 활성화 판단은 “CTA를 또 만드는 것”이나 “첫 가치 피드백 미정의”가 아니라, 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`가 같이 개선됐는지 확인하는 것이다. 세부 출처/차단앱/권한별 분해는 #13의 GA4 Admin registration/materialization 확인 전까지 낮은 confidence로 둔다.
 
 ## 성장 루프 후보
 
@@ -289,6 +289,7 @@
 - #65 Play Console ASO 시안 반영 및 14·30일 유입 회복 검증
 - #16 AdMob 성과 및 수익화 실험 (`docs/ADMOB_MONETIZATION_RUNBOOK.md` 참조)
 - #17 리뷰 프롬프트 생애주기 개선 (`docs/REVIEW_PROMPT_LIFECYCLE.md` 참조)
+- #307 리뷰 프롬프트 shown 0 post-release follow-through (`docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` 참조; PR #308/#312 포함 버전의 release/tag/Play deploy 후 14일·30일 관측 경계)
 - #119 Usage Access 선택형 개인화 discovery gate (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조; #82는 기존 아이디어 정리 이력)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
@@ -299,5 +300,5 @@
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 activation 퍼널 canonical 계약, CTA, queryability guardrail
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사, `(not set)` 점검, guardrail, 1차 수익화 실험 운영 기준
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, queryability guardrail
-- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 shown 0 post-release 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적. PR #308은 develop에 merge됐으므로 이제 코드 PR 대기가 아니라 배포 후 14일/30일 관측 경계로 본다.
+- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 shown 0 post-release 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적. PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐으므로, 이제 코드 PR 대기가 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 확인과 배포 후 14일/30일 관측 경계로 본다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일, QA evidence, child issue 분리 기준 포함.

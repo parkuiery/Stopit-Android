@@ -43,7 +43,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android Release Build passes and produces a signed AAB artifact.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
 - [ ] Play deploy secret/setup contract was reviewed against `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`; if Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed, attach `scripts/check-play-deploy-secret-contract.sh` evidence.
-- [ ] `GOOGLE_SERVICES_JSON` restore expectations are not restated ad hoc in the PR: Android CI / Release QA use the runbook's dev+prod restore matrix, while Release Build / Play Deploy use the prod-only restore path.
+- [ ] `GOOGLE_SERVICES_JSON` restore expectations are not restated ad hoc in the PR: Android CI / Release QA use the runbook's dev+prod restore matrix, Release Build / Play Deploy non-production build/upload use the prod-only restore path, and Play Deploy production promotion records that `GOOGLE_SERVICES_JSON`/`ANDROID_*` are unused.
 - [ ] If dev/prod `applicationId` or package identity changed, `docs/FLAVOR_APPLICATION_ID_CONTRACT.md` was reviewed; release evidence proves `prodRelease` / Play deploy still use production package `com.uiery.keep`, and any dev runtime appops evidence uses the dev package explicitly.
 - [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; release PR evidence distinguishes Android CI의 focused runtime smoke와 release exact alarm/runtime gate를 separate layers로 기록한다.
 - [ ] Automated runtime evidence is explicit in the PR body:
@@ -87,6 +87,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - live metadata / runReport reconfirmation status
   - post-release 14-day remeasurement still pending or completed
 - [ ] If first-lock activation, first-value feedback, or block-intercept UX changed, the PR body links `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` and records the post-release #14 measurement window:
+  - whether the release/tag includes the activation surface commits being measured (for the current #14 baseline: PR #256 `bce1cda`, PR #279 `5c6331d`, PR #283 `35c13eb`; latest production tag `v1.7.7` does not include them)
   - `first_lock_configured` users / `first_open` users
   - `first_core_action_completed` users / `first_lock_configured` users
   - `app_block_intercepted` users / `first_core_action_completed` users
