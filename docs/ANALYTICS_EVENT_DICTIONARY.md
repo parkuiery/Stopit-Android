@@ -393,7 +393,7 @@ PY
 - 광고 쪽은 이제 “전체 미등록”이 아니라 PR #293 이후 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` 배포 후 14일 coverage와 placement별 성과를 다시 봐야 하는 상태로 해석한다. legacy `ad_impression` / `ad_click` / `ad_revenue` breakdown은 PR #293 이전 SDK 자동 이벤트와 앱 custom event source split baseline으로만 본다.
 - 활성화/리뷰 축은 별도 metadata/runReport 확인 전까지 registration gap으로 유지한다.
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
-- 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 보강 전 값이다. 세 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296 포함 버전 배포 후 14일 창으로 재측정한다.
+- 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 
