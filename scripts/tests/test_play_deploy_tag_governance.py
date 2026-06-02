@@ -91,6 +91,46 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("production", workflow)
         self.assertIn("play-deploy-non-production", workflow)
 
+    def test_production_promotion_skips_android_build_setup_and_secret_bundle(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        for step_name in (
+            "Set up JDK 17",
+            "Set up Gradle",
+            "Make Gradle wrapper executable",
+            "Validate build/upload deployment secrets",
+            "Decode signing, Firebase, and Play credentials",
+            "Run release unit tests",
+            "Build signed prod release bundle",
+            "Upload signed AAB artifact",
+            "Upload to Google Play",
+        ):
+            step = workflow.split(f"- name: {step_name}", 1)[1]
+            step = step.split("- name:", 1)[0]
+            self.assertIn("if: env.DEPLOY_TRACK != 'production'", step, step_name)
+
+        production_secret_step = workflow.split("- name: Validate production promotion secrets", 1)[1]
+        production_secret_step = production_secret_step.split("- name:", 1)[0]
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", production_secret_step)
+        self.assertIn("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", production_secret_step)
+        self.assertNotIn("ANDROID_KEYSTORE_BASE64", production_secret_step)
+        self.assertNotIn("GOOGLE_SERVICES_JSON", production_secret_step)
+
+        production_decode_step = workflow.split("- name: Decode Play credentials for production promotion", 1)[1]
+        production_decode_step = production_decode_step.split("- name:", 1)[0]
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", production_decode_step)
+        self.assertIn("$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH", production_decode_step)
+        self.assertNotIn("$ANDROID_KEYSTORE_PATH", production_decode_step)
+        self.assertNotIn("app/src/prod/google-services.json", production_decode_step)
+
+    def test_docs_explain_production_promotion_minimal_secret_boundary(self):
+        doc = PLAY_DOC_PATH.read_text()
+
+        self.assertIn("production promotion path does not decode the Android keystore", doc)
+        self.assertIn("does not restore `GOOGLE_SERVICES_JSON`", doc)
+        self.assertIn("does not run `:app:bundleProdRelease`", doc)
+        self.assertIn("requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance", doc)
+
     def test_docs_explain_production_environment_required_reviewer_gate(self):
         docs = "\n--- docs/PLAY_DEPLOYMENT.md ---\n" + PLAY_DOC_PATH.read_text()
         docs += "\n--- docs/GIT_WORKFLOW.md ---\n" + GIT_WORKFLOW_DOC_PATH.read_text()

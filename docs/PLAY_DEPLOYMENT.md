@@ -9,7 +9,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
 | Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch | Signed `prodRelease` AAB artifact. No Play upload. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch are required. |
-| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build and Google Play upload. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks build/sign/upload the AAB. Production promotes the already-internal release that matches the selected SemVer tag `versionCode`. |
 
 ## What is automated
 
@@ -61,10 +61,9 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - tag must be reachable from `origin/main`
   - previous SemVer tag must already have the production completion marker
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
-  - release unit tests
-  - signed `prodRelease` AAB build
-  - artifact upload to GitHub Actions
-  - upload to Google Play `internal` track by default
+  - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
+  - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
+  - tag-triggered runs upload to Google Play `internal` track by default
 - A successful `production` CD run writes two completion markers for the tag only when `track=production` and `release_status=completed`:
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
@@ -81,22 +80,24 @@ Set Android / Play build-upload secrets in GitHub repository settings or run `sc
 
 | Secret | Used by | Description |
 | --- | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | Release Build, CD | Base64-encoded Play upload keystore (`.jks` or `.keystore`). |
-| `ANDROID_KEYSTORE_PASSWORD` | Release Build, CD | Keystore password. |
-| `ANDROID_KEY_ALIAS` | Release Build, CD | Upload key alias. |
-| `ANDROID_KEY_PASSWORD` | Release Build, CD | Upload key password. |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, CD | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. |
-| `GOOGLE_SERVICES_JSON` | CI, Release QA, Release Build, CD | Firebase `google-services.json` content restored per workflow: Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`, while Release Build / Play Deploy write it only to `app/src/prod`. |
+| `ANDROID_KEYSTORE_BASE64` | Release Build, Play Deploy non-production build/upload | Base64-encoded Play upload keystore (`.jks` or `.keystore`). Production promotion does not decode or require it. |
+| `ANDROID_KEYSTORE_PASSWORD` | Release Build, Play Deploy non-production build/upload | Keystore password. Production promotion does not require it. |
+| `ANDROID_KEY_ALIAS` | Release Build, Play Deploy non-production build/upload | Upload key alias. Production promotion does not require it. |
+| `ANDROID_KEY_PASSWORD` | Release Build, Play Deploy non-production build/upload | Upload key password. Production promotion does not require it. |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, Play Deploy | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. Production promotion still requires this secret because it calls the Play API to promote the matching internal release. |
+| `GOOGLE_SERVICES_JSON` | CI, Release QA, Release Build, Play Deploy non-production build/upload | Firebase `google-services.json` content restored per workflow: Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`, while Release Build / non-production Play Deploy write it only to `app/src/prod`. Production promotion does not restore it. |
 | `DISCORD_BOT_TOKEN` | CD | Discord bot token used by `scripts/notify-discord-deploy.py` to post deploy approval/status messages to the deploy channel. |
 | `DISCORD_DEPLOY_CHANNEL_ID` | CD, Firebase Functions | GitHub Actions uses this as the deploy notification channel, and Firebase Functions uses a separate secret of the same name to verify production-promotion interaction channel. Configure both stores when Discord production approval is enabled. |
 
 Operational failure boundary for `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`:
 - missing before `main`-target `release/*` or `hotfix/*` PR -> `Version Guard` cannot query Google Play visible max `versionCode`, so the release PR blocks before merge
-- missing during tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play, so CD blocks after release build
+- missing during non-production tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play after the signed AAB build
+- missing during production promotion -> `play-deploy.yml` cannot list/promote the matching internal release; this is the only Play/build secret required by the production promote path
 
 Operational failure boundary for `GOOGLE_SERVICES_JSON`:
 - missing during Android CI / Release QA -> the workflow can fail while restoring either `app/src/dev/google-services.json` or `app/src/prod/google-services.json`
-- missing during Release Build / Play Deploy -> the workflow fails on prod-only Firebase config restoration before building/uploading the signed artifact
+- missing during Release Build / non-production Play Deploy -> the workflow fails on prod-only Firebase config restoration before building/uploading the signed artifact
+- missing during production promotion -> no effect; production promotion skips Firebase restoration and AAB build
 
 Operational failure boundary for Discord deploy secrets:
 - missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload, but deploy notification / approval-card posting is skipped or fails depending on the workflow step
@@ -196,6 +197,7 @@ Production promotion safety contract:
 - `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.
 - `track=production` workflow runs enter the GitHub Environment named `production`; configure that Environment with required reviewer approval in GitHub repository settings. Direct GitHub `workflow_dispatch` and Discord-button dispatches therefore share the same final production approval gate.
 - Non-production Play deploys and tag-triggered internal uploads use the non-protected `play-deploy-non-production` environment so internal/alpha/beta evidence can still run without production reviewer approval.
+- The production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance before calling the Play promotion helper.
 - The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.
 - `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
 - The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.

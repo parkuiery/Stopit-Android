@@ -63,15 +63,18 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 17
+        if: env.DEPLOY_TRACK != 'production'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
+        if: env.DEPLOY_TRACK != 'production'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Make Gradle wrapper executable
+        if: env.DEPLOY_TRACK != 'production'
         run: chmod +x ./gradlew
 
       - name: Validate manual deploy ref is a SemVer tag
@@ -89,7 +92,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/validate-play-deploy-ref.sh
 
-      - name: Validate deployment secrets
+      - name: Validate build/upload deployment secrets
+        if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -106,7 +110,16 @@ jobs:
           test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
 
+      - name: Validate production promotion secrets
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
+
       - name: Decode signing, Firebase, and Play credentials
+        if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -119,7 +132,17 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
           chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH" app/src/prod/google-services.json
 
+      - name: Decode Play credentials for production promotion
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+          chmod 600 "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+
       - name: Run release unit tests
+        if: env.DEPLOY_TRACK != 'production'
         run: ./gradlew :app:testProdReleaseUnitTest
 
       - name: Resolve production promotion versionCode from selected tag
