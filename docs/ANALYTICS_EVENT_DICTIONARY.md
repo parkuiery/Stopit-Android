@@ -79,6 +79,7 @@
 - `first_lock_configured`는 차단 준비 완료 신호이며 실제 차단 완료가 아니다. 홈 CTA/타이머 안내 문구가 이 이벤트 직후에 “차단 완료”라고 과장하면 안 된다.
 - 홈 Keep 시작/타이머 예약 안내 snackbar는 `first_lock_configured`가 최초 기록될 때만 1회 노출한다. 이미 첫 잠금을 기록한 사용자는 `first_core_action_completed` / `app_block_intercepted` 흐름으로 해석하고 준비 안내를 반복하지 않는다.
 - 현재 block 화면 진입 경로는 `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록한 뒤, 최초 1회만 `first_core_action_completed`를 기록한다. #14 후속 피드백/문구/테스트는 이 순서를 유지해야 한다.
+- 루틴 차단의 `routine_id`는 Activity extra 경계에서 문자열로 정규화해 analytics payload까지 전달한다. `block_source=routine`일 때만 non-null이어야 하며, 수동 Keep/타이머 차단에서는 null/미전송 상태를 유지한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
 
