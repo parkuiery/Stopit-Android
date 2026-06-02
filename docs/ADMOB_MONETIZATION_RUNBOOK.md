@@ -360,12 +360,12 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 
 ### 2026-06-03 early `ad_banner_*` smoke: source-split queryability만 확인
 
-2026-06-03 GA4 `30daysAgo..yesterday` 재조회에서는 새 `ad_banner_*` 이벤트가 소량 보였다. 단, 모든 행이 `appVersion = 1.7.5`, `date = 20260602`이고 PR #293 split commit은 `origin/main`/`v1.7.7`에 없으므로, 이 값은 production 14일 measurement가 아니라 **source-split queryability smoke**로만 기록한다.
+2026-06-03 GA4 `30daysAgo..yesterday` 재조회에서는 새 `ad_banner_*` 이벤트가 소량 보였다. 최신 재조회(`2026-06-02T20:06:47Z` snapshot + placement query) 기준 모든 행이 `appVersion = 1.7.5`, `date = 20260602`이고 PR #293 split commit은 `origin/main`/`v1.7.7`에 없으므로, 이 값은 production 14일 measurement가 아니라 **source-split queryability smoke**로만 기록한다.
 
 | 이벤트 | placement | eventCount | totalUsers | 해석 |
 | --- | --- | ---: | ---: | --- |
-| `ad_banner_impression` | `home_bottom` | 41 | 16 | 새 이벤트명과 `customEvent:ad_placement` 조회 가능성 확인 |
-| `ad_banner_revenue` | `home_bottom` | 41 | 16 | revenue custom event도 같은 placement로 조회됨 |
+| `ad_banner_impression` | `home_bottom` | 46 | 21 | 새 이벤트명과 `customEvent:ad_placement` 조회 가능성 확인 |
+| `ad_banner_revenue` | `home_bottom` | 46 | 21 | revenue custom event도 같은 placement로 조회됨 |
 | `ad_banner_impression` | `block_top` | 6 | 6 | 신뢰 민감 위치라 post-release guardrail 우선 |
 | `ad_banner_revenue` | `block_top` | 6 | 6 | 표본이 너무 작아 placement 수익성 판단 불가 |
 
