@@ -254,23 +254,25 @@ class HomeAccessibilityPermissionIntegrationTest {
         accessibilityEnabled: String,
         enabledServices: String,
     ) {
+        val expectedEnabledServices = normalizeSecureSetting(enabledServices)
+
         shell("settings put secure accessibility_enabled $accessibilityEnabled")
-        if (enabledServices.isBlank()) {
+        if (expectedEnabledServices.isBlank()) {
             shell("settings delete secure enabled_accessibility_services")
         } else {
-            shell("settings put secure enabled_accessibility_services $enabledServices")
+            shell("settings put secure enabled_accessibility_services $expectedEnabledServices")
         }
 
         waitUntil(
             message = "Expected secure accessibility settings to settle to accessibility_enabled=$accessibilityEnabled " +
-                "and enabled_accessibility_services=$enabledServices; actual=${accessibilitySettingsSnapshot()}",
+                "and enabled_accessibility_services=$expectedEnabledServices; actual=${accessibilitySettingsSnapshot()}",
         ) {
             val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
             val actualEnabledServices = normalizeSecureSetting(
                 shell("settings get secure enabled_accessibility_services"),
             )
             actualAccessibilityEnabled == accessibilityEnabled &&
-                actualEnabledServices == enabledServices
+                actualEnabledServices == expectedEnabledServices
         }
     }
 
