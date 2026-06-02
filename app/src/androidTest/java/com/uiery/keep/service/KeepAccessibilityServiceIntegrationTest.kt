@@ -290,8 +290,19 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun launchSelfUninstallFlow() {
-        launchSelfAppInfoScreen()
-        waitForUninstallButton().click()
+        device.pressHome()
+        context.startActivity(
+            Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.fromParts("package", APP_PACKAGE, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            },
+        )
+        waitUntil(
+            message = "Expected package installer uninstall confirmation for $APP_PACKAGE to become visible",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            isUninstallSurfaceForeground()
+        }
     }
 
     private fun launchSelfAppInfoScreen() {
