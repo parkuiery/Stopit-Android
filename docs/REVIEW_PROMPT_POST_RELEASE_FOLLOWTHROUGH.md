@@ -40,17 +40,17 @@
 | --- | --- | --- |
 | pre-fix | `appVersion < v1.7.7` 또는 PR #226 미포함 버전 | 기존 `REVIEW_PENDING` 소거/launch 실패 문제가 섞인 기준선 |
 | post-fix | `appVersion >= v1.7.7` | pending 소거 방지 수정 포함 후 lifecycle 재측정 |
-| post-PR-308 | PR #308 포함 릴리즈가 배포된 뒤의 버전 | launch failure 후 재시도 계약까지 포함한 재측정 |
+| post-PR-308/#312 | PR #308과 PR #312가 모두 포함된 릴리즈가 배포된 뒤의 버전 | launch failure 후 재시도 계약과 Home `ContextWrapper` activity unwrap 계약까지 포함한 재측정 |
 
-2026-06-02 repo 기준 PR #308은 `develop`에 merge됐다.
+2026-06-02 repo 기준 PR #308과 PR #312는 모두 `develop`에 merge됐다.
 
 | PR | merge commit | repo 내부 의미 | 남은 경계 |
 | --- | --- | --- | --- |
 | #308 `fix: preserve review pending after launch failure` | `cfff411898fbaac43a5c5bbafb48651091e66be2` | launch 실패 또는 in-flight short-circuit 시 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 재시도하는 코드/테스트/문서 계약 반영 완료 | PR #308 포함 버전 release/internal/production 배포 후 14일·30일 재측정 |
 | #310 `test: stabilize home accessibility permission smoke` | `7ec28adc1355c59ee770fc6ec2cedb0275ab0a7d` | PR #308을 막던 runtime smoke gate blocker 해소 완료 | 없음. #307의 남은 blocker로 다시 취급하지 않는다. |
-| #312 `fix: unwrap home activity for review prompt drain` | PR #312 created | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | 포함 버전 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 재측정 |
+| #312 `fix: unwrap home activity for review prompt drain` | `e920ea3049bb0a3e192de29d0011298ae9b0a2b5` | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | PR #312 포함 버전 release/internal/production 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 14일·30일 재측정 |
 
-따라서 다음 docs/metrics run은 “PR #308 merge 여부”를 다시 묻지 말고, **PR #308 포함 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “배포 / 14일 관측 대기”를 외부 경계로 둔다.
+따라서 다음 docs/metrics run은 “PR #308/#312 merge 여부”를 다시 묻지 말고, **PR #308과 PR #312가 모두 포함된 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 2026-06-02 확인 기준 최신 SemVer tag `v1.7.7`와 `origin/main`에는 두 merge commit이 아직 포함되지 않았다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “release/main 반영 → internal/production 배포 → 14일 관측 대기”를 외부 경계로 둔다.
 
 ### 2. GA4 queryability 경계
 
@@ -80,8 +80,8 @@
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | baseline | 전체 최근 30일 | 658 | TODO | 0 users / TODO | 27 users / TODO | TODO | TODO | 2026-06-02 snapshot |
 | D+14 | `v1.7.7+` | TODO | TODO | TODO | TODO | TODO | TODO | PR #226 포함 후 14일 |
-| D+14 | PR #308 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | launch failure 재시도 계약 포함 후 14일 |
-| D+30 | PR #308 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | 30일 후행 확인 |
+| D+14 | PR #308/#312 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | launch failure 재시도 + Activity unwrap 계약 포함 후 14일 |
+| D+30 | PR #308/#312 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | 30일 후행 확인 |
 
 ### skip/failure breakdown 표
 
@@ -117,7 +117,7 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 
 우선순위: lifecycle/drain 해석.
 
-- `NotHomeRoot` / `NoActivity` 비중이 높으면 일시 보류가 pending을 유지하고 다음 홈 루트에서 재시도되는지 확인한다.
+- `NotHomeRoot` / `NoActivity` 비중이 높으면 일시 보류가 pending을 유지하고 다음 홈 루트에서 재시도되는지 확인한다. 특히 PR #312 포함 버전 이후에도 `NoActivity`가 높다면 정상 `ContextWrapper` Compose 경로가 아니라 실제 Activity 부재/수명주기 경계인지 다시 본다.
 - `AccessibilityOff` / `QuietHours` / `KillSwitch` 비중이 높으면 제품 조건상 노출이 막힌 것이므로 노출 UX를 강제로 완화하지 않는다.
 - `NoRecentSuccess`가 높으면 성공 세션 arm 타이밍을 다시 본다. 단, #17에서 “방금 끝난 성공 세션 포함” 계약이 이미 들어간 상태이므로 같은 버그로 되돌리지 않는다.
 
@@ -140,14 +140,15 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 ## GitHub Issue / PR handoff 규칙
 
 - repo 내부 문서/계약 정리만 완료되고 배포·14일 관측·Play Console 수동 기록이 남아 있으면 PR은 `Refs #307`을 사용한다.
-- PR #308은 이제 merge 완료 상태이므로, 이전 runtime-smoke blocker를 현재 blocker로 반복 보고하지 않는다.
+- PR #308과 PR #312는 이제 merge 완료 상태이므로, 이전 runtime-smoke blocker나 PR #312 merge 대기를 현재 blocker로 반복 보고하지 않는다.
 - `review_prompt_skipped.reason` / `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
-- PR #308 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
+- PR #308/#312 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
 
 ## 다음 run 체크리스트
 
 - [x] PR #308 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `cfff411898fbaac43a5c5bbafb48651091e66be2`.
-- [ ] PR #308 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다.
+- [x] PR #312 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `e920ea3049bb0a3e192de29d0011298ae9b0a2b5`.
+- [ ] PR #308/#312 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다.
 - [ ] `review_prompt_eligible/shown/skipped/failed`를 version별로 재조회한다.
 - [ ] `customEvent:reason` / `customEvent:error` metadata 등록 여부를 확인한다.
 - [ ] Play Console rating count / 평균 평점 / 최근 리뷰 톤 baseline을 수동 기록한다.

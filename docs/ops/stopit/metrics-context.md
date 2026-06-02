@@ -110,7 +110,7 @@ ASO 판정 주의:
 - AdMob/광고 분석은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. 특히 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` + `adUnitName` 표와 앱 custom-event `eventCount` + `customEvent:ad_placement` coverage 표를 합산하지 않는다. 2026-06-01 기준 legacy `ad_impression` custom coverage가 `912 / 21,159 = 4.31%`에 그쳤으므로, 광고 placement 최적화나 새 수익화 실험 전에는 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`) 배포 후 14일 재조회로 SDK 자동 이벤트와 앱 custom 이벤트 source split을 확인한다.
 - 광고 설정/운영 안전성 이슈(#250류)는 성과표와 별도로 본다. production AdMob application/ad unit id는 Manifest/UI call site에 흩어 두지 말고 flavor별 config source에서 관리해야 하며, dev/debug가 production 광고 ID를 쓰지 않는 정적 가드가 필요하다.
 - Play In-App Review API는 실제 리뷰 작성/취소 여부를 앱에 직접 알려주지 않는다. 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed` 수준이다.
-- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약이 develop에 merge된 상태로 본다. 다음 판단은 코드 PR 대기가 아니라 PR #308 포함 버전 배포 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review, 14일/30일 관측 경계다.
+- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태로 본다. 다음 판단은 코드 PR 대기가 아니라 PR #308/#312 포함 버전 배포 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review, 14일/30일 관측 경계다.
 - Usage Access 개인화(#119)는 구현 ready 신호가 아니라 discovery gate로 본다. 권한 허용률만 보지 말고 `first_core_action_completed`, `app_block_intercepted`, review/rating, crash-free users guardrail을 함께 보며, 앱 이름/package/raw usage history는 analytics payload로 보내지 않는다.
 
 ## 지표 기반 이슈 생성 기준
