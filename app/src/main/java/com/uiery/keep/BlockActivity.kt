@@ -16,10 +16,11 @@ import dagger.hilt.android.AndroidEntryPoint
 class BlockActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val packageName = intent.getStringExtra("package_name") ?: ""
-        val blockSource =
-            intent.getStringExtra(EXTRA_BLOCK_SOURCE).orDefaultBlockSource()
-        val routineId = intent.getStringExtra(EXTRA_ROUTINE_ID)
+        val args = createBlockActivityArgs(
+            packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME),
+            blockSource = intent.getStringExtra(EXTRA_BLOCK_SOURCE),
+            rawRoutineId = intent.extras?.getCompat(EXTRA_ROUTINE_ID),
+        )
         enableEdgeToEdge()
         setContent {
             KeepTheme {
@@ -29,9 +30,9 @@ class BlockActivity: ComponentActivity() {
                 ) { innerPadding ->
                     BlockScreen(
                         modifier = Modifier.padding(innerPadding),
-                        packageName = packageName,
-                        blockSource = blockSource,
-                        routineId = routineId,
+                        packageName = args.packageName,
+                        blockSource = args.blockSource,
+                        routineId = args.routineId,
                         onClose = {
                             val homeIntent = Intent(Intent.ACTION_MAIN)
                             homeIntent.addCategory(Intent.CATEGORY_HOME)
@@ -46,7 +47,34 @@ class BlockActivity: ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_PACKAGE_NAME = "package_name"
         const val EXTRA_BLOCK_SOURCE = "block_source"
         const val EXTRA_ROUTINE_ID = "routine_id"
     }
 }
+
+internal data class BlockActivityArgs(
+    val packageName: String,
+    val blockSource: String,
+    val routineId: String?,
+)
+
+internal fun createBlockActivityArgs(
+    packageName: String?,
+    blockSource: String?,
+    rawRoutineId: Any?,
+): BlockActivityArgs = BlockActivityArgs(
+    packageName = packageName ?: "",
+    blockSource = blockSource.orDefaultBlockSource(),
+    routineId = normalizeRoutineIdExtra(rawRoutineId),
+)
+
+internal fun normalizeRoutineIdExtra(rawRoutineId: Any?): String? =
+    when (rawRoutineId) {
+        is String -> rawRoutineId.trim().takeIf { it.isNotEmpty() }
+        is Number -> rawRoutineId.toLong().toString()
+        else -> null
+    }
+
+@Suppress("DEPRECATION")
+private fun Bundle.getCompat(key: String): Any? = get(key)
