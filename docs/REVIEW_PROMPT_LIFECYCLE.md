@@ -71,7 +71,8 @@
    - analytics: `review_prompt_skipped(reason=<SkipReason.name>)`
    - `REVIEW_PENDING = false`
 4. `activity == null`이면:
-   - analytics: `review_prompt_skipped(reason=NoActivity)`
+   - Home Compose `LocalContext.current`는 `ContextWrapper` 체인 안에 `Activity`가 들어올 수 있으므로, drain 전에 `Context.findActivity()`로 wrapper를 풀어 실제 Activity를 먼저 찾는다.
+   - wrapper chain에도 Activity가 없을 때만 analytics: `review_prompt_skipped(reason=NoActivity)`
    - `REVIEW_PENDING`을 유지한다.
    - 다음 홈 루트 진입에서 다시 시도한다.
 5. 위 조건을 모두 통과하면:

@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import android.app.Activity
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -75,6 +74,7 @@ import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 import com.uiery.keep.util.toPx
@@ -137,7 +137,7 @@ fun HomeScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activity = context as? Activity
+    val activity = context.findActivity()
     val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
     val firstLockKeepStartedMessage = stringResource(R.string.first_lock_keep_started_guidance)
     val firstLockTimerScheduledMessage = stringResource(R.string.first_lock_timer_scheduled_guidance)
