@@ -194,6 +194,7 @@ object KeepAnalyticsScreen {
     const val BLOCKED_APPS = "BlockedAppsScreen"
     const val ROUTINE = "RoutineScreen"
     const val EMERGENCY_UNLOCK_SETTINGS = "EmergencyUnlockSettingsScreen"
+    const val DEV_TOOL = "DevToolScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
 }
