@@ -58,6 +58,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.AppDisplayMetadataResolver
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
 import kotlinx.coroutines.delay
@@ -286,6 +287,9 @@ private fun AppSelectionStep(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
+    val appDisplayMetadataResolver = remember(pm) {
+        AppDisplayMetadataResolver(pm)
+    }
     val density = context.resources.displayMetrics.density
     val iconSizePx = (40 * density).toInt()
 
@@ -302,14 +306,8 @@ private fun AppSelectionStep(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(blockedApps.toList()) { packageName ->
-                val appInfo = remember(packageName) {
-                    runCatching { pm.getApplicationInfo(packageName, 0) }.getOrNull()
-                }
-                val appName = remember(appInfo) {
-                    appInfo?.let { pm.getApplicationLabel(it).toString() } ?: packageName
-                }
-                val appIcon = remember(appInfo) {
-                    appInfo?.let { pm.getApplicationIcon(it) }
+                val appMetadata = remember(packageName, appDisplayMetadataResolver) {
+                    appDisplayMetadataResolver.resolve(packageName)
                 }
                 val isSelected = selectedApps.contains(packageName)
                 Row(
@@ -334,10 +332,10 @@ private fun AppSelectionStep(
                         onCheckedChange = null,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    appIcon?.let {
+                    appMetadata.icon?.let {
                         Image(
                             bitmap = it.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
-                            contentDescription = appName,
+                            contentDescription = appMetadata.contentDescription,
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(8.dp)),
@@ -345,7 +343,7 @@ private fun AppSelectionStep(
                         Spacer(modifier = Modifier.width(12.dp))
                     }
                     Text(
-                        text = appName,
+                        text = appMetadata.label,
                         color = KeepTheme.colors.onSurfaceVariant,
                         fontSize = 15.sp,
                         fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,

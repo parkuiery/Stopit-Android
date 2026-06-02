@@ -2,7 +2,6 @@ package com.uiery.kds
 
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -10,16 +9,13 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetDefaults
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue.Hidden
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.uiery.kds.theme.KeepTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,25 +32,9 @@ fun KeepModalBottomSheet(
     scrimColor: Color = BottomSheetDefaults.ScrimColor,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle(color = KeepTheme.colors.tertiaryContainer) },
     contentWindowInsets: @Composable () -> WindowInsets = { BottomSheetDefaults.windowInsets },
-    properties: ModalBottomSheetProperties = ModalBottomSheetDefaults.properties(),
+    properties: ModalBottomSheetProperties = ModalBottomSheetProperties(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val systemUiController = rememberSystemUiController()
-    val navigationBarColor = KeepTheme.colors.onSecondary
-    val statusBarColor = BottomSheetDefaults.ScrimColor
-    val backgroundColor = KeepTheme.colors.background
-
-    LaunchedEffect(sheetState.targetValue) {
-        if(sheetState.targetValue != Hidden) {
-            with(systemUiController) {
-                setStatusBarColor(statusBarColor)
-                setNavigationBarColor(navigationBarColor)
-            }
-        } else {
-            systemUiController.setSystemBarsColor(backgroundColor)
-        }
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier.statusBarsPadding(),

@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.lockhistory.component
 
-import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.AppDisplayMetadataResolver
 
 @Composable
 internal fun LockHistoryTopApps(
@@ -76,21 +76,12 @@ private fun TopAppItem(
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
-
-    val appInfo = remember(packageName) {
-        try {
-            packageManager.getApplicationInfo(packageName, 0)
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
-        }
+    val appDisplayMetadataResolver = remember(packageManager) {
+        AppDisplayMetadataResolver(packageManager)
     }
 
-    val appName = remember(appInfo) {
-        appInfo?.let { packageManager.getApplicationLabel(it).toString() } ?: packageName
-    }
-
-    val appIcon = remember(appInfo) {
-        appInfo?.let { packageManager.getApplicationIcon(it) }
+    val appMetadata = remember(packageName, appDisplayMetadataResolver) {
+        appDisplayMetadataResolver.resolve(packageName)
     }
 
     Column(
@@ -104,7 +95,7 @@ private fun TopAppItem(
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
         )
-        appIcon?.let { icon ->
+        appMetadata.icon?.let { icon ->
             Image(
                 bitmap = icon.toBitmap().asImageBitmap(),
                 contentDescription = null,
@@ -114,7 +105,7 @@ private fun TopAppItem(
             )
         }
         Text(
-            text = appName,
+            text = appMetadata.label,
             color = KeepTheme.colors.onSurfaceVariant,
             fontSize = 11.sp,
             maxLines = 1,

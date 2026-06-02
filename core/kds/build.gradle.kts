@@ -40,8 +40,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation(libs.accompanist.systemuicontroller)
-
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.google.play.services.ads)

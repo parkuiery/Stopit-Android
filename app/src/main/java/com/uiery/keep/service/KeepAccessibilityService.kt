@@ -102,7 +102,7 @@ class KeepAccessibilityService :
         cleanupExpiredEmergencyUnlock()
         if (isEmergencyUnlocked(packageName)) return
 
-        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
+        if (prefs.preventUninstall && isUninstallAttempt(event = event, eventPackageName = packageName)) {
             dismissUninstallScreen()
             return
         }
@@ -155,7 +155,7 @@ class KeepAccessibilityService :
         cleanupExpiredEmergencyUnlock()
         if (isEmergencyUnlocked(packageName)) return
 
-        if (prefs.preventUninstall && isUninstallAttempt(packageName)) {
+        if (prefs.preventUninstall && isUninstallAttempt(eventPackageName = packageName)) {
             dismissUninstallScreen()
             return
         }
@@ -189,22 +189,37 @@ class KeepAccessibilityService :
         startActivity(intent)
     }
 
-    private fun isUninstallAttempt(eventPackageName: String): Boolean {
+    private fun isUninstallAttempt(
+        event: AccessibilityEvent? = null,
+        eventPackageName: String,
+    ): Boolean {
         if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
-        val rootNode = rootInActiveWindow ?: return false
+        val appName = getString(R.string.app_name)
+        val hasEventTextMatch = event?.text.orEmpty().any { text ->
+            val value = text?.toString().orEmpty()
+            value.contains(BuildConfig.APPLICATION_ID, ignoreCase = true) ||
+                value.contains(appName, ignoreCase = true)
+        }
+        val rootNode = rootInActiveWindow ?: return shouldInterceptUninstallAttempt(
+            eventPackageName = eventPackageName,
+            hasApplicationIdMatch = false,
+            hasAppNameMatch = false,
+            hasEventTextMatch = hasEventTextMatch,
+        )
         try {
             val idNodes = rootNode.findAccessibilityNodeInfosByText(BuildConfig.APPLICATION_ID)
             val hasApplicationIdMatch = !idNodes.isNullOrEmpty()
             idNodes?.forEach { it.recycle() }
             if (hasApplicationIdMatch) return true
 
-            val nameNodes = rootNode.findAccessibilityNodeInfosByText(getString(R.string.app_name))
+            val nameNodes = rootNode.findAccessibilityNodeInfosByText(appName)
             val hasAppNameMatch = !nameNodes.isNullOrEmpty()
             nameNodes?.forEach { it.recycle() }
             return shouldInterceptUninstallAttempt(
                 eventPackageName = eventPackageName,
                 hasApplicationIdMatch = hasApplicationIdMatch,
                 hasAppNameMatch = hasAppNameMatch,
+                hasEventTextMatch = hasEventTextMatch,
             )
         } finally {
             rootNode.recycle()

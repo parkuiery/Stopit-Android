@@ -291,11 +291,28 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun launchSelfUninstallFlow() {
-        launchSelfAppInfoScreen()
-        waitForUninstallButton().click()
+        KNOWN_UNINSTALL_PACKAGES.forEach { packageName -> shell("am force-stop $packageName") }
+        launchSelfAppInfoScreen(requireUninstallButton = false)
+        val uninstallButton = findUninstallButton()
+        if (uninstallButton != null) {
+            uninstallButton.click()
+        } else {
+            launchDirectSelfDeleteIntent()
+        }
+        waitUntil(
+            message = "Expected package installer uninstall confirmation for $APP_PACKAGE to become visible",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            isUninstallSurfaceForeground()
+        }
     }
 
-    private fun launchSelfAppInfoScreen() {
+    private fun launchDirectSelfDeleteIntent() {
+        device.pressHome()
+        shell("am start -W -a android.intent.action.DELETE -d package:$APP_PACKAGE")
+    }
+
+    private fun launchSelfAppInfoScreen(requireUninstallButton: Boolean = true) {
         shell("am force-stop $SETTINGS_PACKAGE")
         device.pressHome()
         context.startActivity(
@@ -308,7 +325,9 @@ class KeepAccessibilityServiceIntegrationTest {
             packageName = SETTINGS_PACKAGE,
             message = "Expected Settings app info screen to foreground for $APP_PACKAGE",
         )
-        waitForUninstallButton()
+        if (requireUninstallButton) {
+            waitForUninstallButton()
+        }
     }
 
     private fun waitForUninstallButton(): androidx.test.uiautomator.UiObject2 {
@@ -608,6 +627,7 @@ class KeepAccessibilityServiceIntegrationTest {
         val KNOWN_UNINSTALL_PACKAGES = setOf(
             "com.android.packageinstaller",
             "com.google.android.packageinstaller",
+            "com.google.android.permissioncontroller",
             "com.samsung.android.packageinstaller",
             "com.android.vending",
         )
