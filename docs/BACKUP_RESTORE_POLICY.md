@@ -73,6 +73,15 @@
 
 정의 위치: `app/src/main/java/com/uiery/keep/datastore/DataStore.kt`
 
+정적 분류 계약:
+
+- `app/src/main/java/com/uiery/keep/datastore/BackupRestoreDataStoreKeyPolicy.kt`가 모든 `PreferencesKey`를 아래 둘 중 하나로 분류한다.
+  - `resetOnlyKeys`: 복원 후 absent여야 하는 기기/런타임/리뷰/분석/알림 상태
+  - `rehydratedCompatibilityCacheKeys`: DataStore 파일에서는 복원하지 않지만 Room에서 다시 채울 수 있는 compatibility cache
+- 현재 `rehydratedCompatibilityCacheKeys`의 유일한 예외는 `PreferencesKey.ROUTINES`다. 이 값은 backup/transfer로 복원하지 않고, Boot/Routine alarm 진입에서 restored Room routine으로 재수화한다.
+- 새 `PreferencesKey`를 추가하면 반드시 이 정책 파일과 아래 표를 함께 갱신한다. 누락 시 `BackupRestoreDataStoreKeyPolicyTest.everyPreferencesKeyHasABackupRestoreClassification`가 실패해야 한다.
+- reset-only 키가 늘어나면 `BackupRestoreRuntimeResetIntegrationTest.assertRestoreResetOnlyStateAbsent()`도 같은 allowlist를 사용하므로 restored-device runtime baseline에서 자동으로 absent 검증 대상이 된다.
+
 아래 키들은 현재 모두 같은 파일에 있으므로 **이번 정책에서 전부 복원 제외**다.
 
 | 키 | 의미 | 이번 정책 |
@@ -100,6 +109,7 @@
 | `successful_session_count` | 누적 세션 카운트 | 복원 안 함 |
 | `last_backgrounded_at_ms` | 최근 백그라운드 시각 | 복원 안 함 |
 | `is_new` / `total_block_time` / `long_block_time` | UX/누적 상태 | 복원 안 함 |
+| `pending_routine_start_notice_message` | 루틴 시작 fallback notice 대기 메시지 | 복원 안 함 |
 
 ### Room (`keep-database`)
 
@@ -173,6 +183,10 @@
 
 ### 저장소 자동 baseline 범위
 
+- JVM static contract: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`
+  - 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있는지 확인
+  - `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
+  - reset-only key 목록이 runtime/device/review/analytics/notice 상태를 모두 포함하는지 확인
 - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - 복원된 Room routine을 Boot/Routine alarm 진입에서 `PreferencesKey.ROUTINES`로 재수화하는지 확인
   - DataStore가 비어 있는 restored-device shape에서 선택 앱/lock/emergency/review/analytics session/FCM token 키를 되살리지 않는지 확인
