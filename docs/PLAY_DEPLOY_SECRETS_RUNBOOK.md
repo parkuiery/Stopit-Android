@@ -54,6 +54,7 @@
 - `GOOGLE_SERVICES_JSON`을 “prod 전용 secret”으로 이해하면 Android CI / Release QA 실패 원인을 놓치기 쉽다.
 - 더 정확한 계약은 **하나의 secret 값을 workflow마다 다른 source set에 복원한다**이다.
 - 현재 steady-state에서는 Android CI / Release QA가 dev+prod 둘 다를 요구하고, Release Build / Play Deploy는 prod만 요구한다.
+- dev/prod `applicationId`를 분리하거나 분리하지 않는 결정을 바꿀 때는 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다. `dev` package가 `com.uiery.keep.dev`로 바뀌면 dev Firebase client도 그 package를 포함해야 하고, Release Build / Play Deploy는 계속 production package `com.uiery.keep`와 prod-only restore 경로를 사용해야 한다.
 
 ## 3. 권장 setup 순서
 

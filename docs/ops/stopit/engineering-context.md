@@ -92,6 +92,7 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
 Build/Release Maintenance Analyst가 우선 볼 신호:
 - Gradle/AGP/Kotlin/Firebase/Room 업데이트 리스크
 - flavorless command drift
+- dev/prod `applicationId` / package identity drift; #314 계열 작업은 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다.
 - Play deploy secret/config 문서와 workflow 일치 여부
 - helper 범위(`scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`)와 `GOOGLE_SERVICES_JSON` restore matrix가 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 어긋나지 않는지
 - versionCode/versionName guardrail
