@@ -62,7 +62,7 @@ class HomeAccessibilityPermissionIntegrationTest {
 
     @Test
     fun fakePackageSubstringStillShowsAccessibilityPermissionDialogOnHome() {
-        setAccessibilitySettings(
+        setInvalidAccessibilitySettings(
             accessibilityEnabled = "1",
             enabledServices = "com.uiery.keep.fake/com.fake.Service:com.other/.Helper",
         )
@@ -273,6 +273,26 @@ class HomeAccessibilityPermissionIntegrationTest {
             )
             actualAccessibilityEnabled == accessibilityEnabled &&
                 actualEnabledServices == expectedEnabledServices
+        }
+    }
+
+    private fun setInvalidAccessibilitySettings(
+        accessibilityEnabled: String,
+        enabledServices: String,
+    ) {
+        shell("settings put secure accessibility_enabled $accessibilityEnabled")
+        shell("settings put secure enabled_accessibility_services $enabledServices")
+
+        waitUntil(
+            message = "Expected invalid accessibility service setting to settle without granting " +
+                "KeepAccessibilityService; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                !actualEnabledServices.split(':').contains(keepServiceComponent)
         }
     }
 
