@@ -79,7 +79,7 @@
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
-- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐으므로, 다음 판단은 PR #308/#312 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인한다.
+- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐고, 2026-06-02T18:06:45Z live 재조회에서 skip reason용 `customEvent:reason`은 조회 가능해졌다. 다음 판단은 PR #308/#312 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인하되, failure 원인용 `customEvent:error`는 아직 GA4 Admin 미등록 경계로 둔다.
 
 ## 빠른 분석 명령
 
@@ -507,7 +507,7 @@ PY
 - 이 screen 품질 수치는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. 해당 네 화면은 develop에서 명시적 `screen_view`가 추가됐으므로, 동일 화면에 대한 추가 코드 작업은 PR #296/#318 포함 버전 배포 후 14일 재측정 결과를 보고 판단한다. 단, `DevToolScreen`은 dev/debug 내부 진단 route라 production 사용자 screen 품질 분모와 분리한다.
 - 2026-05-29 live 확인 기준 GA4 metadata에서 확인된 custom dimension은 `customUser:routines_count`뿐이었고 activation/review용 `customEvent:*` 차원/지표는 아직 확인되지 않았다.
 - 2026-06-01 #16 AdMob preflight 기준 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 것으로 보정 확인됐다.
-- activation (`customEvent:permission_name`, `customEvent:source`), review (`customEvent:reason`) runReport smoke query는 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. 즉 활성화/리뷰 병목은 최근 데이터 부족이 아니라 **GA4 Admin 미등록으로 인한 queryability 부재**다.
+- activation (`customEvent:permission_name`, `customEvent:source`) runReport smoke query는 당시 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`으로 실패했다. review `customEvent:reason`도 2026-05-29에는 실패했지만, 2026-06-02T18:06:45Z #307 live 재조회에서 등록/조회 가능해졌다. 따라서 현재 활성화 세부 축과 review `customEvent:error`는 **GA4 Admin 미등록으로 인한 queryability 부재**로 두고, review skip reason은 live breakdown으로 해석할 수 있다.
 - 2026-06-02 최신 acquisition snapshot에서는 `newUsers` 421 / 직전 366 = `+15.0%`, `activeUsers` 676 / 직전 613 = `+10.3%`였지만, `sessions`는 4,642 / 직전 6,401 = `-27.5%`이고 `Direct` 신규가 252 / 421 = `59.9%`까지 증가했다. #65/#242 판단은 신규 유저 반등보다 Play Console Search/Explore, external/campaign, Paid Search 집행 여부 확인을 우선한다.
 - monetization은 광고 metadata 일부가 복구됐고 PR #293에서 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 source split 구현이 끝났다. 다만 PR #293 포함 commit은 아직 `origin/main`/`v1.7.7`에 없으므로, PR #293 포함 production 배포 후 14일 재조회 전까지 placement별 결론은 보류한다. 2026-06-03 소량 `ad_banner_*` smoke는 queryability 확인용이다. 자세한 query template은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 따른다.
 - 실제 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 둔다.

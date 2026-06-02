@@ -6,21 +6,56 @@
 
 ## 현재 기준선
 
-2026-06-02 GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준:
+2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준:
 
 | 지표 | 최근 30일 사용자 수 | 해석 |
 | --- | ---: | --- |
 | `review_prompt_shown` | 0 | Play review sheet launch 성공이 아직 관측되지 않음 |
 | `review_prompt_skipped` | 27 | eligibility 또는 drain 단계에서 중단/보류가 발생 |
-| `app_block_intercepted` | 316 | 리뷰 요청 후보가 될 수 있는 성공 사용 신호는 존재 |
-| `lock_session_start` | 202 | 잠금 세션 시작 신호도 존재 |
-| `first_core_action_completed` | 309 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
-| `activeUsers` | 658 | 분모 기준 |
-| `newUsers` | 402 | 직전 30일 362 대비 +11.0% |
-| `Organic Search` 신규 사용자 | 172 | ASO/리뷰 후행 효과 판단 보조 지표 |
-| `Direct` 신규 사용자 | 230 | 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
+| `app_block_intercepted` | 343 | 리뷰 요청 후보가 될 수 있는 성공 사용 신호는 존재 |
+| `lock_session_start` | 209 | 잠금 세션 시작 신호도 존재 |
+| `first_core_action_completed` | 336 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
+| `activeUsers` | 681 | 분모 기준 |
+| `newUsers` | 425 | 직전 30일 366 대비 +16.1% |
+| `Organic Search` 신규 사용자 | 169 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178보다 낮음 |
+| `Direct` 신규 사용자 | 256 | `256 / 425 = 60.2%`라 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
 
 이 기준선은 PR #226 / tag `v1.7.7` 이후 흐름이 30일 합산 안에 충분히 반영되기 전의 혼합 지표다. 따라서 `shown = 0`만 보고 바로 eligibility 설계를 바꾸지 않는다. 먼저 버전별·배포 후 14일 창으로 다시 분해한다.
+
+### 2026-06-02T18:06:45Z live review lifecycle breakdown
+
+추가 GA4 `runReport`로 `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`를 `eventName × appVersion`으로 재조회했다.
+
+결과:
+
+| eventName | appVersion | users | eventCount | 해석 |
+| --- | --- | ---: | ---: | --- |
+| `review_prompt_skipped` | `1.7.0` | 18 | 25 | PR #308/#312 이전 cohort. 현재 blocker로 되살리지 않는다. |
+| `review_prompt_skipped` | `1.7.3` | 3 | 3 | PR #308/#312 이전 cohort. 현재 blocker로 되살리지 않는다. |
+| `review_prompt_skipped` | `1.7.6` | 7 | 12 | PR #308/#312 이전 또는 미포함 cohort로 본다. |
+| `review_prompt_eligible` | - | 0 | 0 | 최근 30일 재조회에서 행 없음 |
+| `review_prompt_shown` | - | 0 | 0 | 최근 30일 재조회에서 행 없음 |
+| `review_prompt_failed` | - | 0 | 0 | 최근 30일 재조회에서 행 없음 |
+
+`customEvent:reason`은 2026-06-02 재조회 기준 GA4 metadata에 등록되어 있고 breakdown도 가능했다. 반면 `customEvent:error`는 아직 metadata에 없으며 `Field customEvent:error is not a valid dimension`으로 실패한다.
+
+| reason | appVersion | users | eventCount | 해석 |
+| --- | --- | ---: | ---: | --- |
+| `(not set)` | `1.7.0` | 17 | 24 | pre-fix cohort의 주된 noise. 현재 PR #308/#312 후속 판단에 직접 쓰지 않는다. |
+| `BelowSessionThreshold` | `1.7.6` | 4 | 5 | 성공 세션 기준 미달. post-PR-308/#312 배포 후에도 지속되면 eligibility threshold를 본다. |
+| `RecentEmergencyUnlock` | `1.7.6` | 3 | 3 | 안전 guardrail에 의한 정상 보류 가능성. 완화 후보로 보지 않는다. |
+| `(not set)` | `1.7.3` | 2 | 2 | pre-fix cohort noise |
+| `(not set)` | `1.7.6` | 2 | 2 | post-release 재측정 때 source를 다시 확인 |
+| `AccessibilityOff` | `1.7.6` | 1 | 1 | 접근성 off guardrail |
+| `BelowSessionThreshold` | `1.7.0` | 1 | 1 | pre-fix cohort |
+| `BelowSessionThreshold` | `1.7.3` | 1 | 1 | pre-fix cohort |
+| `QuietHours` | `1.7.6` | 1 | 1 | quiet-hours guardrail |
+
+운영 해석:
+
+- `customEvent:reason`은 더 이상 무조건 GA4 Admin 미등록 경계로 반복 보고하지 않는다. 현재는 조회 가능하므로 #307의 skip reason 판단에는 이 축을 쓸 수 있다.
+- `customEvent:error`는 아직 GA4 Admin 등록/metadata 경계다. `review_prompt_failed`가 실제로 발생했을 때 failure 원인 breakdown은 #13 registration follow-through와 연결한다.
+- 현재 `review_prompt_skipped`는 모두 PR #308/#312 포함 release가 아닌 버전에서 관측됐다. 따라서 다음 실행은 같은 코드 수정을 다시 만드는 것이 아니라, PR #308/#312 포함 release/tag/track 배포 후 14일 창에서 `eligible/shown/skipped/failed`를 다시 채우는 것이다.
 
 ## 관련 source of truth
 
@@ -78,7 +113,7 @@
 
 | 기간 | cohort/version | activeUsers | eligible users / events | shown users / events | skipped users / events | failed users / events | shown / eligible | 비고 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| baseline | 전체 최근 30일 | 658 | TODO | 0 users / TODO | 27 users / TODO | TODO | TODO | 2026-06-02 snapshot |
+| baseline | 전체 최근 30일 | 681 | 0 users / 0 events | 0 users / 0 events | 27 users / 40 events | 0 users / 0 events | N/A | 2026-06-02T18:06:45Z snapshot; skip은 `1.7.0`, `1.7.3`, `1.7.6`에서만 관측 |
 | D+14 | `v1.7.7+` | TODO | TODO | TODO | TODO | TODO | TODO | PR #226 포함 후 14일 |
 | D+14 | PR #308/#312 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | launch failure 재시도 + Activity unwrap 계약 포함 후 14일 |
 | D+30 | PR #308/#312 포함 버전 | TODO | TODO | TODO | TODO | TODO | TODO | 30일 후행 확인 |
@@ -89,16 +124,18 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 
 | 기간 | cohort/version | dimension | 값 | users | eventCount | 해석 |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| D+14 | TODO | `customEvent:reason` | `NotHomeRoot` | TODO | TODO | 일시 보류. pending 유지가 기대값 |
-| D+14 | TODO | `customEvent:reason` | `NoActivity` | TODO | TODO | 일시 보류. pending 유지가 기대값 |
-| D+14 | TODO | `customEvent:reason` | `AccessibilityOff` | TODO | TODO | live eligibility 실패. pending 삭제가 기대값 |
-| D+14 | TODO | `customEvent:error` | TODO | TODO | TODO | 반복되면 launcher/API 실패 원인 조사 |
+| baseline | 전체 최근 30일 | `customEvent:reason` | `(not set)` | 21 | 28 | pre-fix cohort noise가 대부분. post-PR-308/#312 판단에 직접 쓰지 않음 |
+| baseline | 전체 최근 30일 | `customEvent:reason` | `BelowSessionThreshold` | 6 | 7 | 성공 세션 기준 미달. post-release 후에도 반복되면 threshold 확인 |
+| baseline | 전체 최근 30일 | `customEvent:reason` | `RecentEmergencyUnlock` | 3 | 3 | 안전 guardrail 정상 보류 가능성 |
+| baseline | 전체 최근 30일 | `customEvent:reason` | `AccessibilityOff` | 1 | 1 | 접근성 off guardrail |
+| baseline | 전체 최근 30일 | `customEvent:reason` | `QuietHours` | 1 | 1 | quiet-hours guardrail |
+| D+14 | TODO | `customEvent:error` | TODO | TODO | TODO | `customEvent:error`는 2026-06-02 기준 GA4 metadata 미등록. 반복되면 #13 registration 경계와 launcher/API 실패 원인 조사 |
 
 ### Play Console 후행 지표 표
 
 | 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
-| baseline | TODO | TODO | TODO | 172 | TODO | Play Console 수동 기록 필요 |
+| baseline | TODO | TODO | TODO | 169 | TODO | Play Console 수동 기록 필요. `Direct` 신규 256명(60.2%)이라 #242 attribution gate 적용 |
 | D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
 | D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
 
@@ -150,6 +187,7 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 - [x] PR #312 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `e920ea3049bb0a3e192de29d0011298ae9b0a2b5`.
 - [ ] PR #308/#312 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다.
 - [ ] `review_prompt_eligible/shown/skipped/failed`를 version별로 재조회한다.
-- [ ] `customEvent:reason` / `customEvent:error` metadata 등록 여부를 확인한다.
+- [x] `customEvent:reason` metadata 등록 여부를 확인한다. 2026-06-02T18:06:45Z 기준 등록/조회 가능.
+- [ ] `customEvent:error` metadata 등록 여부를 확인한다. 2026-06-02T18:06:45Z 기준 미등록 / `Field customEvent:error is not a valid dimension`.
 - [ ] Play Console rating count / 평균 평점 / 최근 리뷰 톤 baseline을 수동 기록한다.
 - [ ] D+14 / D+30 표를 갱신하고, code-lane/PM-lane 후속이 필요한지 판단한다.
