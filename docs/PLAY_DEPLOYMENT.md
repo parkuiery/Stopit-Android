@@ -202,6 +202,7 @@ Production promotion safety contract:
 - `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
 - The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.
 - Production completion markers are written only when the same run uses `release_status=completed`. If an operator intentionally dispatches production as `draft`, `inProgress`, or `halted`, the run must not create the GitHub Deployment success marker or GitHub Release `stopit-production-deployed` marker that unlocks the next release gate.
+- Discord production 알림도 이 경계를 그대로 보여준다. 알림에는 `release_status`가 포함되며, `completed`일 때만 production 완료 marker 작성과 다음 release gate unlock을 안내한다. `draft`, `inProgress`, `halted` 알림은 Google Play rollout/review 상태 확인 대상일 뿐, production 완료 marker나 다음 release gate unlock으로 해석하지 않는다.
 
 ## VersionCode guardrail before Play upload
 
