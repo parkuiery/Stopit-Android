@@ -369,7 +369,7 @@ PY
 
 - Play Store 평점과 리뷰 수
 - `review_prompt_eligible`, `review_prompt_shown`, `review_prompt_skipped`, `review_prompt_failed`
-- `review_prompt_skipped` reason 분포 (GA4 Admin에서 `customEvent:reason` 등록이 끝난 뒤에만 안정적으로 해석)
+- `review_prompt_skipped` reason 분포 (`customEvent:reason`은 2026-06-02T18:06:45Z 기준 등록/조회 가능. 단, pre-fix cohort noise와 PR #308/#312 포함 버전 이후 신호를 분리)
 - 성공적 사용 이벤트: `app_block_intercepted`, `lock_session_start`, `core_action_completed`
 
 판단 기준:
