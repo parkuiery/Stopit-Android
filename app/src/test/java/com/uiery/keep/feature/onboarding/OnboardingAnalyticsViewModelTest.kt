@@ -46,7 +46,7 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
-    fun notificationTracksSettingsOpenedBeforeGrantAndOnlyCompletesWhenGranted() {
+    fun notificationTracksSettingsOpenedAndOnlyCompletesWhenGrantedOrDeniedWithContinue() {
         val viewModel = NotificationSettingViewModel(analytics)
 
         viewModel.onStepViewed()
@@ -71,6 +71,25 @@ class OnboardingAnalyticsViewModelTest {
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
                     outcome = AnalyticsOutcome.GRANTED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
+    fun notificationPermissionDeniedWithContinueTracksDeniedAndCompletesStep() {
+        val viewModel = NotificationSettingViewModel(analytics)
+
+        viewModel.onPermissionDeniedAndContinue()
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.DENIED,
                     stepName = OnboardingStepName.NOTIFICATION,
                 ),
                 AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),

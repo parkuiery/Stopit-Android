@@ -51,12 +51,17 @@ fun NotificationSettingScreen(
     onNavigateSelectApp: () -> Unit,
 ) {
     val requestPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            if (it) {
-                viewModel.onPermissionGranted()
-                onNavigateSelectApp()
-            } else {
-                viewModel.onPermissionDenied()
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            when (resolvePostNotificationPermissionResultAction(isGranted)) {
+                PostNotificationPermissionResultAction.RecordGrantAndContinue -> {
+                    viewModel.onPermissionGranted()
+                    onNavigateSelectApp()
+                }
+
+                PostNotificationPermissionResultAction.RecordDenialAndContinue -> {
+                    viewModel.onPermissionDeniedAndContinue()
+                    onNavigateSelectApp()
+                }
             }
         }
     val composition by rememberLottieComposition(
