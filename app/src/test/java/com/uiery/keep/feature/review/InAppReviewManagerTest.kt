@@ -32,8 +32,9 @@ class InAppReviewManagerTest {
         val dataStore = FakeDataStore()
         val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
 
-        manager.launchIfReady(mockActivity())
+        val launched = manager.launchIfReady(mockActivity())
 
+        assertEquals(true, launched)
         assertEquals(1, launcher.launchCount)
         assertEquals(listOf(AnalyticsEventRecord.Shown), analytics.events)
         assertEquals(nowMs, dataStore.snapshot()[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])
@@ -46,8 +47,9 @@ class InAppReviewManagerTest {
         val dataStore = FakeDataStore()
         val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
 
-        manager.launchIfReady(mockActivity())
+        val launched = manager.launchIfReady(mockActivity())
 
+        assertEquals(false, launched)
         assertEquals(1, launcher.launchCount)
         assertEquals(listOf(AnalyticsEventRecord.Failed("no_play_services")), analytics.events)
         assertNull(dataStore.snapshot()[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])

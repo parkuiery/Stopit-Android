@@ -14,6 +14,7 @@ import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.RecordingKeepAnalytics
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.ReviewLaunchResult
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.Mockito
 
 class HomeViewModelReviewTest {
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-11T14:30:00Z"), ZoneId.of("UTC"))
@@ -159,6 +161,47 @@ class HomeViewModelReviewTest {
 
         assertEquals(listOf(AnalyticsEventRecord.Skipped("NoActivity")), analytics.events)
         assertEquals(0, launcher.launchCount)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
+    }
+
+    @Test
+    fun maybeDrainReviewFlagKeepsPendingWhenReviewLaunchFails() = runBlocking {
+        val analytics = RecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.REVIEW_PENDING to true,
+            ),
+        )
+        val launcher = FakeReviewLauncher(nextResult = ReviewLaunchResult.Failure("play_store_unavailable"))
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            emergencyUnlockDao = FakeEmergencyUnlockDao(),
+            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
+        )
+        val viewModel = HomeViewModel(
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            analytics = analytics,
+            lockHistoryDao = FakeLockHistoryDao(),
+            reviewEligibility = reviewEligibility,
+            inAppReviewManager = InAppReviewManager(
+                launcher = launcher,
+                analytics = analytics,
+                dataStore = dataStore,
+                clock = clock,
+            ),
+        )
+
+        viewModel.maybeDrainReviewFlag(activity = Mockito.mock(android.app.Activity::class.java))
+        delay(50)
+
+        assertEquals(listOf(AnalyticsEventRecord.Failed("play_store_unavailable")), analytics.events)
+        assertEquals(1, launcher.launchCount)
         assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
     }
 }
