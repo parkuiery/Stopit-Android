@@ -120,7 +120,7 @@
 | `review_prompt_failed` | `error` | API/launcher 실패 |
 
 세부 arm/drain 규칙과 `REVIEW_PENDING` / cooldown 상태 계약은 `docs/REVIEW_PROMPT_LIFECYCLE.md`를 source of truth로 본다.
-현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다. `NotHomeRoot`와 `NoActivity`는 일시적 노출 보류이므로 `REVIEW_PENDING`을 유지하고, `AccessibilityOff`/`QuietHours`/`KillSwitch` 같은 live eligibility 실패는 pending을 삭제하는 최종 skip으로 해석한다. `review_prompt_failed`도 Play review launch/API 실패이므로 cooldown을 기록하지 않고 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 재시도한다.
+현재 홈 drain 단계에서는 `NotHomeRoot`, `NoActivity`, live eligibility reason이 `review_prompt_skipped.reason`의 대표값이다. `NotHomeRoot`와 `NoActivity`는 일시적 노출 보류이므로 `REVIEW_PENDING`을 유지하고, `AccessibilityOff`/`QuietHours`/`KillSwitch` 같은 live eligibility 실패는 pending을 삭제하는 최종 skip으로 해석한다. `NoActivity`는 Home `LocalContext.current`의 `ContextWrapper` 체인에서도 Activity를 찾지 못한 경우에만 기록되어야 하므로, wrapper가 Activity를 감싼 정상 Compose 경로를 `NoActivity`로 해석하지 않는다. `review_prompt_failed`도 Play review launch/API 실패이므로 cooldown을 기록하지 않고 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 재시도한다.
 
 ### 집중 요약 공유
 
