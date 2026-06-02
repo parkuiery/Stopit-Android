@@ -15,6 +15,8 @@ on:
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '**/*.md'
   push:
     branches: [main, develop]
     paths:
@@ -29,18 +31,65 @@ on:
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ops-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  classify_ops_ci:
+    name: Classify Ops CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      functions: ${{ steps.filter.outputs.functions }}
+      release_helpers: ${{ steps.filter.outputs.release_helpers }}
+      docs_contract: ${{ steps.filter.outputs.docs_contract }}
+      workflow_syntax: ${{ steps.filter.outputs.workflow_syntax }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Classify changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            functions:
+              - 'functions/**'
+            release_helpers:
+              - 'scripts/promote-google-play-track.js'
+              - 'scripts/notify-discord-deploy.py'
+              - 'scripts/check-release-readiness.sh'
+              - 'scripts/check-latest-production-deployed.sh'
+              - 'scripts/release-start.sh'
+              - 'scripts/bump-version.sh'
+              - 'scripts/validate-play-deploy-ref.sh'
+              - 'scripts/play_version_code_guard.py'
+              - 'scripts/tests/**'
+            docs_contract:
+              - 'docs/**'
+              - '**/*.md'
+              - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
+              - 'scripts/tests/test_release_build_workflow_scope.py'
+              - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
+              - 'scripts/tests/test_ops_ci_workflow.py'
+              - 'scripts/tests/test_actionlint_gate.py'
+              - '.github/workflows/ops-ci.yml'
+            workflow_syntax:
+              - '.github/workflows/**'
+
   actionlint:
     name: Workflow syntax lint
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.workflow_syntax == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -56,8 +105,30 @@ jobs:
       - name: Run actionlint
         run: actionlint
 
+  docs-contract:
+    name: Docs/runbook contract tests
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.docs_contract == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run docs/runbook contract tests
+        run: >-
+          python3 -m unittest
+          scripts.tests.test_play_deploy_secret_contract_runbook
+          scripts.tests.test_release_build_workflow_scope
+          scripts.tests.test_release_qa_runtime_gate_docs
+          scripts.tests.test_ops_ci_workflow
+          scripts.tests.test_actionlint_gate
+
   functions:
     name: Firebase Functions verification
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.functions == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -87,6 +158,8 @@ jobs:
 
   release-helper-scripts:
     name: Release helper script verification
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.release_helpers == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
