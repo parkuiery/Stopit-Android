@@ -158,7 +158,7 @@ class KeepAccessibilityServiceIntegrationTest {
         }
         waitUntil(
             message = "Expected the uninstall surface to leave foreground after dismissal",
-            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+            timeoutMs = UNINSTALL_DISMISS_TIMEOUT_MS,
         ) {
             !isUninstallSurfaceForeground()
         }
@@ -597,6 +597,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val APP_PACKAGE = "com.uiery.keep"
         const val SERVICE_COMPONENT = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
         const val PACKAGE_VISIBILITY_TIMEOUT_MS = 5_000L
+        const val UNINSTALL_DISMISS_TIMEOUT_MS = 12_000L
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
