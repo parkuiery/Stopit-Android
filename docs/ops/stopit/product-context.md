@@ -51,7 +51,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - #14 후속 문서/실행 후보를 고를 때는 `first_lock_configured`를 실제 차단 완료로 과장하지 않는다. 이미 들어간 안내/피드백 표면을 기준선으로 두고, 남은 repo-internal 후보는 release/metrics 템플릿과 GA4 queryability handoff 보강 정도다.
 - `customUser:routines_count`가 조회된다고 해서 activation/review/monetization의 `customEvent:*` queryability까지 해결됐다고 보지 않는다.
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 제품 신호 부재보다 **GA4 Admin registration gap** 가능성을 먼저 의심하고, 최종 해석은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 묶는다.
-- #65/#242 ASO 판단은 `docs/PLAY_STORE_ASO.md`의 attribution gate를 먼저 따른다. 2026-06-02 스냅샷처럼 `Direct` 신규 비중이 커졌을 때는 Play Console Search/Explore, external/campaign, UTM/Install Referrer 기록을 확인하기 전까지 ASO 회복으로 단정하지 않는다.
+- #65/#242 ASO 판단은 `docs/PLAY_STORE_ASO.md`의 attribution gate를 먼저 따른다. 2026-06-02 최신 스냅샷처럼 `Direct` 신규 비중이 59.9%까지 커졌을 때는 Play Console Search/Explore, external/campaign, UTM/Install Referrer 기록을 확인하기 전까지 ASO 회복으로 단정하지 않는다.
 - #307 리뷰 프롬프트 follow-through는 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태를 기준으로 본다. 다음 판단은 같은 코드 PR을 다시 만드는 것이 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review 14일·30일 관측이다.
 - #16 AdMob 수익화 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. PR #293의 `ad_banner_*` event-source split은 develop에 있지만 최신 production tag `v1.7.7`과 현재 `origin/main`에는 없으므로, PR #293 포함 release/tag/Play deploy 전까지 `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline으로만 본다. GA4에 소량의 `ad_banner_*` 행이 먼저 보여도 source-split queryability smoke로만 보고, production 14일 placement/실험 판단으로 승격하지 않는다.
 - 민감한 행동 정보, 차단 앱 목록, 집중 실패/중독 뉘앙스는 노출하지 않는다.
