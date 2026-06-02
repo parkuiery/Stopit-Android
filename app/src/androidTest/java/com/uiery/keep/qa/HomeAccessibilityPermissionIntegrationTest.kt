@@ -62,7 +62,7 @@ class HomeAccessibilityPermissionIntegrationTest {
 
     @Test
     fun fakePackageSubstringStillShowsAccessibilityPermissionDialogOnHome() {
-        setAccessibilitySettings(
+        setInvalidAccessibilitySettings(
             accessibilityEnabled = "1",
             enabledServices = "com.uiery.keep.fake/com.fake.Service:com.other/.Helper",
         )
@@ -254,13 +254,54 @@ class HomeAccessibilityPermissionIntegrationTest {
         accessibilityEnabled: String,
         enabledServices: String,
     ) {
+        val expectedEnabledServices = normalizeSecureSetting(enabledServices)
+
         shell("settings put secure accessibility_enabled $accessibilityEnabled")
-        if (enabledServices.isBlank()) {
+        if (expectedEnabledServices.isBlank()) {
             shell("settings delete secure enabled_accessibility_services")
         } else {
-            shell("settings put secure enabled_accessibility_services $enabledServices")
+            shell("settings put secure enabled_accessibility_services $expectedEnabledServices")
+        }
+
+        waitUntil(
+            message = "Expected secure accessibility settings to settle to accessibility_enabled=$accessibilityEnabled " +
+                "and enabled_accessibility_services=$expectedEnabledServices; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                actualEnabledServices == expectedEnabledServices
         }
     }
+
+    private fun setInvalidAccessibilitySettings(
+        accessibilityEnabled: String,
+        enabledServices: String,
+    ) {
+        shell("settings put secure accessibility_enabled $accessibilityEnabled")
+        shell("settings put secure enabled_accessibility_services $enabledServices")
+
+        waitUntil(
+            message = "Expected invalid accessibility service setting to settle without granting " +
+                "KeepAccessibilityService; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                !actualEnabledServices.split(':').contains(keepServiceComponent)
+        }
+    }
+
+    private fun accessibilitySettingsSnapshot(): String =
+        "accessibility_enabled=${shell("settings get secure accessibility_enabled").trim()}, " +
+            "enabled_accessibility_services=${normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))}"
+
+    private fun normalizeSecureSetting(value: String): String =
+        value.trim().takeUnless { it == "null" }.orEmpty()
 
     private fun waitForStopItForeground() {
         waitForPackageForeground(targetPackage)
