@@ -25,6 +25,18 @@
 
 issue #14는 이제 “앱 선택 후 첫 잠금 CTA가 전혀 없는 상태”가 아니다. PR #256으로 홈 첫 잠금 CTA가 develop에 들어갔고, 선택 앱이 1개 이상이며 아직 첫 잠금이 기록되지 않은 사용자에게 Keep 토글로 이어지는 CTA를 보여주는 계약이 코드/테스트/문서에 반영됐다.
 
+### release/tag/Play deploy 경계
+
+2026-06-02 docs lane 확인 기준으로 #14의 세 repo-internal activation 표면은 모두 `origin/develop`에는 들어갔지만, 아직 `origin/main`과 최신 production tag `v1.7.7`에는 들어가지 않았다.
+
+| 표면 | PR / merge commit | `origin/develop` | `origin/main` | 최신 production tag `v1.7.7` | 해석 |
+| --- | --- | --- | --- | --- | --- |
+| 홈 첫 잠금 CTA | PR #256 / `bce1cda13effae9f166320a2442d3a9012438d7c` | 포함 | 미포함 | 미포함 | 앱 선택 후 Keep 토글 CTA의 production 14일 창은 아직 시작되지 않음 |
+| 차단 화면 첫 성공 피드백 | PR #279 / `5c6331da8cd517b62c5f484ef64640bf1d8e6bd8` | 포함 | 미포함 | 미포함 | `first_core_action_completed` 이후 첫 가치 피드백의 production 14일 창은 아직 시작되지 않음 |
+| 홈 Keep/타이머 시작 안내 | PR #283 / `35c13ebbe8f72d3810e98076c4626f65af25a4fe` | 포함 | 미포함 | 미포함 | `first_lock_configured`를 실제 차단 완료로 과장하지 않는 홈 안내의 production 14일 창은 아직 시작되지 않음 |
+
+따라서 현재 `v1.7.7` 또는 그 이전 production 데이터로 #14의 post-fix 효과를 판단하지 않는다. #14의 14일 재측정 창은 위 commit들을 포함한 release PR이 `main`에 merge되고, SemVer tag/Play deploy를 통해 사용자에게 배포된 뒤 시작한다. 그 전까지 live activation 수치는 **pre-#256/#279/#283 baseline**으로만 해석한다.
+
 따라서 이후 #14 follow-through의 repo 내부 우선순위는 아래처럼 이동했다.
 
 1. **첫 잠금 이후 첫 가치 경험 피드백**: `first_lock_configured` 이후 사용자가 “이제 언제/어떻게 차단이 작동하는지”를 이해하도록 안내한다. 2026-06-01 code lane에서 차단 화면 최초 진입 시 첫 차단 성공 피드백을 표시하는 경로를 추가했고, 2026-06-02 code lane에서 홈 Keep 시작/타이머 예약 직후 안내를 추가해 “준비 완료와 실제 차단 완료를 구분하는” 피드백 계약을 홈 표면까지 확장했다.
@@ -280,9 +292,10 @@ cd <repo-root>
 
 이번 docs lane 계약 정리만으로는 아직 다음이 남는다.
 
-- 앱 선택 후 미완료 사용자의 홈 첫 잠금 CTA는 PR #256 기준으로 구현됨. 이후 차단 화면 첫 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 반영됐으므로, 남은 repo-internal 문서 경계는 이 세 표면을 기준선으로 묶어 release/metrics handoff가 다시 과거 상태로 퇴행하지 않게 하는 일이다.
+- 앱 선택 후 미완료 사용자의 홈 첫 잠금 CTA는 PR #256 기준으로 구현됨. 이후 차단 화면 첫 성공 피드백(PR #279)과 홈 Keep/타이머 시작 직후 안내(PR #283)도 반영됐으므로, docs/metrics handoff는 이 세 표면과 release/tag 경계를 기준선으로 삼는다.
 - 첫 차단/첫 가치 경험 UI 피드백은 현재 “미정의”가 아니라 develop 반영 상태로 취급한다. 추가 정교화가 필요하면 새 UI 변경이 아니라 배포 후 14일 재측정과 실제 사용자 반응을 근거로 범위를 다시 잡는다.
 - 첫 가치 경험 피드백이 `first_lock_configured`를 실제 차단 완료로 과장하지 않는지 확인하는 문구/QA 검증은 PR #279/#283 기준으로 done 상태를 먼저 확인하고, 동일 문구를 반복 수정하지 않는다.
+- PR #256/#279/#283 포함 release PR이 `main`에 merge되고 SemVer tag/Play deploy가 완료되기 전까지, live production 데이터는 post-fix가 아니라 pre-#256/#279/#283 baseline으로 본다.
 - 배포 후 14일 기준 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed` 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
 - `permission_name` / `source` / `blocking_mode` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인

@@ -52,33 +52,37 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
 
 현재 `Release instrumentation QA` job은 GitHub-hosted Android emulator에서 아래 순서로 실행된다.
 
-1. Android testing skill 기반 focused release UI smoke
+1. static manifest/policy gate
+   - `python3 -m unittest scripts.tests.test_android_manifest_contract`
+   - 목적: emulator 기동 전에 `QUERY_ALL_PACKAGES` 목적 주석, notification/exact-alarm/boot permission, receiver/service/activity exported 계약, AccessibilityService binding/metadata, backup/data-extraction XML의 DB-only include scope를 고정한다.
+   - 책임 분리: 이 정적 테스트는 XML shape drift를 빠르게 막고, `ManifestContractIntegrationTest`는 PackageManager가 실제 설치 package에서 receiver/service를 resolve하는 runtime 계약만 확인한다.
+2. Android testing skill 기반 focused release UI smoke
    - `com.uiery.keep.qa.StopitReleaseSmokeTest`
    - 목적: 앱 기동과 Compose navigation host 기본 smoke 확인
-2. exact alarm deny gate 1
+3. exact alarm deny gate 1
    - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
    - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
    - 목적: 루틴 저장/enable 시 exact alarm 권한 부재를 조용한 성공 상태로 남기지 않는지 확인
-3. exact alarm deny gate 2
+4. exact alarm deny gate 2
    - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
    - 목적: boot 복구 경로가 권한 회수 상태에서도 enabled 루틴/알람 불일치를 남기지 않는지 확인
-4. exact alarm deny gate 3
+5. exact alarm deny gate 3
    - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
    - 목적: `MY_PACKAGE_REPLACED` 재진입 경로가 같은 fail-safe 계약을 지키는지 확인
-5. exact alarm deny gate 4
+6. exact alarm deny gate 4
    - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
    - 목적: 루틴 alarm 재예약 경로가 권한 부재를 조용히 성공으로 남기지 않는지 확인
-6. exact alarm allow gate
+7. exact alarm allow gate
    - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow`
    - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
    - 목적: 허용 상태에서는 같은 루틴이 실제 PendingIntent 예약까지 정상 복구되는지 확인
-7. remaining connected Android suite
+8. remaining connected Android suite
    - `:app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
    - 목적: release smoke, backup/restore runtime reset, receiver 재수화/재예약, emergency unlock expiry, FCM token wiring, AccessibilityService cross-app block safety를 한 묶음으로 검증
-8. notification-denied fallback gate
+9. notification-denied fallback gate
    - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
    - 목적: Android 13+에서 알림 권한이 꺼져 있어도 루틴 시작 안내가 앱 내 fallback notice로 이어지는지 분리 검증
 

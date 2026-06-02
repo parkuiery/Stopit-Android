@@ -78,9 +78,9 @@ class HomeAccessibilityPermissionIntegrationTest {
             it.moveToState(Lifecycle.State.RESUMED)
             waitForStopItForeground()
 
-            waitUntil("Expected home permission dialog when only a package substring matches") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            waitForPermissionDialog(
+                "Expected home permission dialog when only a package substring matches",
+            )
         }
     }
 
@@ -105,9 +105,9 @@ class HomeAccessibilityPermissionIntegrationTest {
                     hasAccessibilityPermission(activity),
                 )
             }
-            waitUntil("Expected home permission dialog after accessibility is disabled and the app resumes") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            waitForPermissionDialog(
+                "Expected home permission dialog after accessibility is disabled and the app resumes",
+            )
         }
     }
 
@@ -119,9 +119,9 @@ class HomeAccessibilityPermissionIntegrationTest {
         )
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForStopItForeground()
-            waitUntil("Expected home permission dialog before enabling accessibility from Settings") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            waitForPermissionDialog(
+                "Expected home permission dialog before enabling accessibility from Settings",
+            )
 
             enableAccessibilityServiceFromSettings()
             waitForStopItForeground()
@@ -307,6 +307,15 @@ class HomeAccessibilityPermissionIntegrationTest {
         waitForPackageForeground(targetPackage)
     }
 
+    private fun waitForPermissionDialog(message: String) {
+        waitUntil(
+            message = "$message; ${accessibilitySettingsSnapshot()}; foreground=${isTargetPackageForeground()}",
+            timeoutMs = HOME_PERMISSION_DIALOG_TIMEOUT_MS,
+        ) {
+            device.hasObject(By.text(permissionDialogTitle))
+        }
+    }
+
     private fun waitForPackageForeground(packageName: String) {
         waitUntil("Expected $packageName to be foreground") {
             isPackageForeground(packageName)
@@ -349,5 +358,6 @@ class HomeAccessibilityPermissionIntegrationTest {
         const val mainSwitchBarId = "main_switch_bar"
         const val androidButtonId = "android:id/button1"
         const val disableButtonId = "android:id/accessibility_permission_disable_stop_button"
+        const val HOME_PERMISSION_DIALOG_TIMEOUT_MS = 15_000L
     }
 }

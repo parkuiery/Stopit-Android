@@ -145,6 +145,25 @@ jobs:
         if: env.DEPLOY_TRACK != 'production'
         run: ./gradlew :app:testProdReleaseUnitTest
 
+      - name: Run prod release lint
+        if: env.DEPLOY_TRACK != 'production'
+        run: ./gradlew :app:lintProdRelease
+
+      - name: Verify Navigation/Compose lint registry coverage
+        if: env.DEPLOY_TRACK != 'production'
+        run: >-
+          python3 scripts/verify_lint_registry.py
+          --report app/build/reports/lint-results-prodRelease.html
+          --require-section "Included Additional Checks"
+          --require-identifier androidx.navigation.common
+          --require-identifier androidx.navigation.compose
+          --require-identifier androidx.navigation.runtime
+          --require-issue-id MissingSerializableAnnotation
+          --require-issue-id MissingKeepAnnotation
+          --require-issue-id WrongNavigateRouteType
+          --forbid-text "Requires newer lint; these checks will be skipped!"
+          --forbid-text ObsoleteLintCustomCheck
+
       - name: Resolve production promotion versionCode from selected tag
         if: env.DEPLOY_TRACK == 'production'
         run: |

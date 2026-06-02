@@ -100,9 +100,10 @@ cd <repo-root>
   - `adb shell appops set com.uiery.keep POST_NOTIFICATION ignore`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
 
-이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다.
+이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다. Backup/restore DataStore key 분류처럼 Android framework 없이 잡을 수 있는 정책 drift는 JVM static contract를 먼저 남긴다: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`.
 
 - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
+- `BackupRestoreDataStoreKeyPolicyTest`: 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있고, `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
@@ -177,6 +178,43 @@ cd <repo-root>
 - Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
 - known SDK/platform mismatch는 main thread crash가 아닐 때만 containment 대상이다. 앱 코드 crash 또는 main thread crash는 기존 platform/Crashlytics handler로 위임한다.
 - Crashlytics MCP/Console에서 같은 ANR/fatal issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
+
+#### #101 release 후 Crashlytics recurrence evidence template
+
+#101 계열 PR이 release 후보에 포함되면 release PR/이슈 코멘트에 아래 템플릿을 붙여 **코드 방어 완료**와 **live Crashlytics 재발 관측**을 분리한다. Crashlytics 이슈가 `OPEN`이어도 새 버전에서 event가 더 이상 늘지 않으면 코드 회귀와 운영 관측 상태를 다르게 해석한다.
+
+```md
+## Crashlytics #101 post-release recurrence evidence
+- Release/tag:
+- Version code/name:
+- Included fixes:
+  - PR #143 fatal analytics backend fallback:
+  - PR #304 MobileAds startup deferral:
+  - PR #320 FCM token fetch deferral:
+  - PR #322 background SDK crash containment:
+- Crashlytics source:
+  - Firebase Console / Crashlytics MCP / Discord alert payload:
+- Observation window:
+  - start:
+  - end:
+- Issue IDs checked:
+  - `d1369c1905b65f09a031309198552d10` (`getAttributionSource` fatal): last seen in this release? yes/no, events/users:
+  - `e14bf5e28f9983aebd0e3ef2601c691d` (startup ANR): last seen in this release? yes/no, events/users:
+  - `77fafc0d6ce7c7a75c8b13d20ed2bb2c` (startup ANR): last seen in this release? yes/no, events/users:
+  - `4c1ed3a5d227234e314f386a5b9a1d97` (startup ANR): last seen in this release? yes/no, events/users:
+  - `0864599aefbd42499c770e81e4426ddf` (BlockActivity/startup ANR): last seen in this release? yes/no, events/users:
+  - `8a2cfe07f945b5bcc4e7cbd4928d42a6` (`PackageInfoFlags` fatal): last seen in this release? yes/no, events/users:
+  - `5c3f76729005f60fffa2beae30e770c7` (`fontWeightAdjustment` fatal): last seen in this release? yes/no, events/users:
+- New fatal/ANR alerts during window:
+  - none / issue IDs:
+- Closure decision:
+  - close #101 / keep open because:
+```
+
+판단 기준:
+- 위 PR들이 포함된 release/tag가 실제 internal/production 배포되지 않았으면 #101을 닫지 않는다.
+- 새 버전에서 동일 issueId가 재발하면 해당 issueId, affected version, affected users/events, sample stack을 먼저 기록하고 root cause를 다시 분류한다.
+- 기존 issueId는 조용하지만 새로운 fatal/ANR alert가 생기면 #101에 무리하게 흡수하지 말고 Discord alert payload의 duplicate-search 링크로 기존/신규 작업 경계를 확인한다.
 
 ### DevTool production graph baseline
 

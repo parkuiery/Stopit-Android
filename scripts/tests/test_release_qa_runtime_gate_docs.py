@@ -9,6 +9,11 @@ DOCS = {
     "play deployment": REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md",
     "release context": REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md",
 }
+CRASHLYTICS_RECURRENCE_DOCS = {
+    "release checklist": REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md",
+    "runtime QA checklist": REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md",
+    "release context": REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md",
+}
 
 REQUIRED_RELEASE_QA_GATES = [
     "RoutineExactAlarmPermissionIntegrationTest#addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt",
@@ -43,6 +48,23 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             for gate in REQUIRED_RELEASE_QA_GATES:
                 with self.subTest(doc=doc_name, gate=gate):
                     self.assertIn(gate, text)
+
+    def test_crashlytics_recurrence_handoff_is_release_documented(self):
+        required_phrases = [
+            "Crashlytics #101 post-release recurrence evidence",
+            "PR #143",
+            "PR #304",
+            "PR #320",
+            "PR #322",
+            "d1369c1905b65f09a031309198552d10",
+            "release 후",
+            "#101",
+        ]
+        for doc_name, path in CRASHLYTICS_RECURRENCE_DOCS.items():
+            text = path.read_text()
+            for phrase in required_phrases:
+                with self.subTest(doc=doc_name, phrase=phrase):
+                    self.assertIn(phrase, text)
 
 
 if __name__ == "__main__":

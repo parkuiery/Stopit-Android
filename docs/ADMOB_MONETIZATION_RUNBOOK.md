@@ -336,9 +336,9 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 - `ad_revenue`: total `8,602`, custom-covered `908`, coverage `10.56%`.
 - 판단: 이 값은 PR #293 이전 legacy 이벤트명 baseline이다. PR #293 포함 release/tag/Play deploy 후 새 `ad_banner_*` 이벤트명 14일 재조회 전까지는 placement별 CTR/eCPM 결론을 내리지 않는다.
 
-## release boundary snapshot: PR #293 이후 측정 창은 아직 시작되지 않음
+## release boundary snapshot: PR #293 이후 production 측정 창은 아직 시작되지 않음
 
-2026-06-02 docs-lane 확인 결과, #16의 code split은 develop에는 들어갔지만 최신 production tag에는 아직 포함되지 않았다.
+2026-06-02/2026-06-03 docs-lane 확인 결과, #16의 code split은 develop에는 들어갔지만 최신 production tag에는 아직 포함되지 않았다.
 
 확인한 상태:
 
@@ -346,6 +346,7 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 | --- | --- | --- |
 | PR #293 split commit | develop 포함 | `afcb5c8efed7754ed57871defa30997d3b1612c4` is ancestor of `origin/develop` |
 | 최신 SemVer tag | `v1.7.7` | tag SHA `f49e7de9707fc8fd83b2da9b080f04bba7ebcfb6` |
+| 현재 `origin/main` | `20b8ff4` | `ci: remove obsolete Play review parameter (#282)`까지, PR #293 split commit은 아직 미포함 |
 | 최신 production marker | 있음 | GitHub Release `v1.7.7` body: `<!-- stopit-production-deployed: v1.7.7 -->`, completed at `2026-06-01T14:39:19Z` |
 | PR #293 split commit in `origin/main` | 아님 | `git merge-base --is-ancestor afcb5c8e... origin/main` = no |
 | PR #293 split commit in `v1.7.7` | 아님 | `git merge-base --is-ancestor afcb5c8e... v1.7.7` = no |
@@ -353,9 +354,22 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 운영 해석:
 
 - `v1.7.7` production AdMob/GA4 데이터는 PR #293 이전 legacy 광고 이벤트명 baseline으로만 본다.
-- 새 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` coverage 14일 창은 **PR #293 포함 commit이 release PR → `main` → SemVer tag → Play deploy에 실제 포함된 뒤** 시작한다.
+- 새 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` production coverage 14일 창은 **PR #293 포함 commit이 release PR → `main` → SemVer tag → Play deploy에 실제 포함된 뒤** 시작한다.
 - 따라서 #16을 “배포 후 14일 재조회 대기”라고 쓰더라도, 현재 정확한 표현은 “develop code split 완료, latest production 미포함, release 포함 대기”다.
 - 다음 release에 PR #293이 포함됐는지 확인하기 전에는 `ad_banner_*` 이벤트가 적거나 없어도 제품/광고 placement 결론으로 해석하지 않는다.
+
+### 2026-06-03 early `ad_banner_*` smoke: source-split queryability만 확인
+
+2026-06-03 GA4 `30daysAgo..yesterday` 재조회에서는 새 `ad_banner_*` 이벤트가 소량 보였다. 최신 재조회(`2026-06-02T20:06:47Z` snapshot + placement query) 기준 모든 행이 `appVersion = 1.7.5`, `date = 20260602`이고 PR #293 split commit은 `origin/main`/`v1.7.7`에 없으므로, 이 값은 production 14일 measurement가 아니라 **source-split queryability smoke**로만 기록한다.
+
+| 이벤트 | placement | eventCount | totalUsers | 해석 |
+| --- | --- | ---: | ---: | --- |
+| `ad_banner_impression` | `home_bottom` | 46 | 21 | 새 이벤트명과 `customEvent:ad_placement` 조회 가능성 확인 |
+| `ad_banner_revenue` | `home_bottom` | 46 | 21 | revenue custom event도 같은 placement로 조회됨 |
+| `ad_banner_impression` | `block_top` | 6 | 6 | 신뢰 민감 위치라 post-release guardrail 우선 |
+| `ad_banner_revenue` | `block_top` | 6 | 6 | 표본이 너무 작아 placement 수익성 판단 불가 |
+
+`ad_banner_click` 행은 없었다. 이 smoke는 “GA4 Admin/metadata 또는 event name이 완전히 막혀 있다”는 오래된 진단을 되살리지 않게 하는 증거로만 사용한다. placement별 CTR/eCPM, 광고 제거 관심도 실험, 저효율 placement 제거/확대 판단은 여전히 PR #293 포함 production release 이후 14일 창에서 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` 표와 앱 custom-event coverage를 분리 재조회한 뒤 결정한다.
 
 다음 재조회 시작 조건:
 
