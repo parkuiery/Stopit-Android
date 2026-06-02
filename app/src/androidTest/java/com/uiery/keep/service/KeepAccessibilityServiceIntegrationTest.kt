@@ -290,13 +290,14 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun launchSelfUninstallFlow() {
-        device.pressHome()
-        context.startActivity(
-            Intent(Intent.ACTION_DELETE).apply {
-                data = Uri.fromParts("package", APP_PACKAGE, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            },
-        )
+        KNOWN_UNINSTALL_PACKAGES.forEach { packageName -> shell("am force-stop $packageName") }
+        launchSelfAppInfoScreen(requireUninstallButton = false)
+        val uninstallButton = findUninstallButton()
+        if (uninstallButton != null) {
+            uninstallButton.click()
+        } else {
+            launchDirectSelfDeleteIntent()
+        }
         waitUntil(
             message = "Expected package installer uninstall confirmation for $APP_PACKAGE to become visible",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
@@ -305,7 +306,12 @@ class KeepAccessibilityServiceIntegrationTest {
         }
     }
 
-    private fun launchSelfAppInfoScreen() {
+    private fun launchDirectSelfDeleteIntent() {
+        device.pressHome()
+        shell("am start -W -a android.intent.action.DELETE -d package:$APP_PACKAGE")
+    }
+
+    private fun launchSelfAppInfoScreen(requireUninstallButton: Boolean = true) {
         shell("am force-stop $SETTINGS_PACKAGE")
         device.pressHome()
         context.startActivity(
@@ -318,18 +324,23 @@ class KeepAccessibilityServiceIntegrationTest {
             packageName = SETTINGS_PACKAGE,
             message = "Expected Settings app info screen to foreground for $APP_PACKAGE",
         )
-        waitForUninstallButton()
+        if (requireUninstallButton) {
+            waitForUninstallButton()
+        }
     }
+
+    private fun findUninstallButton(): androidx.test.uiautomator.UiObject2? =
+        device.findObject(By.text("Uninstall"))
 
     private fun waitForUninstallButton(): androidx.test.uiautomator.UiObject2 {
         waitUntil("Expected app info screen to expose an uninstall button for $APP_PACKAGE", UI_TIMEOUT_MS) {
-            device.hasObject(By.text("Uninstall"))
+            findUninstallButton() != null
         }
-        val uninstallButton = device.findObject(By.text("Uninstall"))
+        val uninstallButton = findUninstallButton()
         if (uninstallButton == null) {
             fail("Could not find uninstall button for $APP_PACKAGE from app info screen")
         }
-        return uninstallButton
+        return uninstallButton!!
     }
 
     private fun primeAppProcess() {
@@ -594,6 +605,7 @@ class KeepAccessibilityServiceIntegrationTest {
         val KNOWN_UNINSTALL_PACKAGES = setOf(
             "com.android.packageinstaller",
             "com.google.android.packageinstaller",
+            "com.google.android.permissioncontroller",
             "com.samsung.android.packageinstaller",
             "com.android.vending",
         )

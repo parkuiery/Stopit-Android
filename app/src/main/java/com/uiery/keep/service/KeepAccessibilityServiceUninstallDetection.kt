@@ -3,6 +3,7 @@ package com.uiery.keep.service
 internal val KNOWN_UNINSTALL_PACKAGES = setOf(
     "com.android.packageinstaller",
     "com.google.android.packageinstaller",
+    "com.google.android.permissioncontroller",
     "com.samsung.android.packageinstaller",
     "com.android.vending",
 )
