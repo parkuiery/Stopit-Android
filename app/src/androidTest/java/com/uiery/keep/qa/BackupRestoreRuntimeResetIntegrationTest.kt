@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
@@ -149,24 +150,9 @@ class BackupRestoreRuntimeResetIntegrationTest {
             runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
         }
 
-        assertNull(preferences[PreferencesKey.SELECTED_APP_PACKAGES])
-        assertNull(preferences[PreferencesKey.IS_KEEP])
-        assertNull(preferences[PreferencesKey.LOCK_TIME])
-        assertNull(preferences[PreferencesKey.FCM_TOKEN])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_ENABLED])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_OPEN])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
-        assertNull(preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION])
-        assertNull(preferences[PreferencesKey.REVIEW_PENDING])
-        assertNull(preferences[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])
-        assertNull(preferences[PreferencesKey.SUCCESSFUL_SESSION_COUNT])
-        assertNull(preferences[PreferencesKey.LAST_BACKGROUNDED_AT_MS])
+        BackupRestoreDataStoreKeyPolicy.resetOnlyKeys.forEach { key ->
+            assertNull("${key.name} should remain absent after restored-device runtime rehydration", preferences[key])
+        }
     }
 
     private fun clearAppState() = runBlocking {
