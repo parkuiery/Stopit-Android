@@ -87,6 +87,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - live metadata / runReport reconfirmation status
   - post-release 14-day remeasurement still pending or completed
 - [ ] If first-lock activation, first-value feedback, or block-intercept UX changed, the PR body links `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` and records the post-release #14 measurement window:
+  - whether the release/tag includes the activation surface commits being measured (for the current #14 baseline: PR #256 `bce1cda`, PR #279 `5c6331d`, PR #283 `35c13eb`; latest production tag `v1.7.7` does not include them)
   - `first_lock_configured` users / `first_open` users
   - `first_core_action_completed` users / `first_lock_configured` users
   - `app_block_intercepted` users / `first_core_action_completed` users
