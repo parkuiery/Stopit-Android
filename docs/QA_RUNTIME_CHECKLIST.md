@@ -30,7 +30,7 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - 필요 flavor의 `google-services.json`이 현재 worktree에 복원되어 있음
 - 테스트 기기 또는 에뮬레이터 1대 이상 연결
 
-`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `prod 전용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. 특히 같은 `GOOGLE_SERVICES_JSON` secret을 Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에, Release Build / Play Deploy에서는 `app/src/prod`에만 복원한다는 점을 먼저 맞춘다.
+`google-services.json` 준비를 수동으로 할 때도 secret 의미를 `prod 전용 파일`로 오해하지 말고, workflow별 dev+prod/prod-only/production-promotion-unused restore matrix는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`를 source of truth로 확인한다. 특히 같은 `GOOGLE_SERVICES_JSON` secret을 Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에, Release Build / Play Deploy non-production build/upload에서는 `app/src/prod`에만 복원한다는 점을 먼저 맞춘다. Play Deploy production promotion은 Firebase config와 Android signing을 복원하지 않고 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`로 matching internal release를 승격하는 경로다.
 
 `dev` / `prod` applicationId 분리 작업(#314) 또는 package identity와 관련된 runtime QA는 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다. dev package가 `com.uiery.keep.dev`로 분리되면 host-side `adb shell appops set ...` 명령도 dev runtime smoke는 `com.uiery.keep.dev`, production/release evidence는 `com.uiery.keep` 대상으로 분리해서 기록해야 한다.
 

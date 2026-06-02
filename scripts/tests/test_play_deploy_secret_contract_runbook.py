@@ -13,6 +13,7 @@ VERSION_GUARD = REPO_ROOT / ".github" / "workflows" / "version-guard.yml"
 PLAY_DEPLOYMENT = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
+RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 FUNCTIONS_README = REPO_ROOT / "functions" / "README.md"
 FUNCTIONS_AGENTS = REPO_ROOT / "functions" / "AGENTS.md"
 FUNCTIONS_SRC_AGENTS = REPO_ROOT / "functions" / "src" / "AGENTS.md"
@@ -66,7 +67,11 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
             runbook,
         )
         self.assertIn(
-            "| `play-deploy.yml` | `app/src/prod/google-services.json`만 복원 | `ANDROID_*`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID` |",
+            "| `play-deploy.yml` non-production build/upload (`internal`, `alpha`, `beta`) | `app/src/prod/google-services.json`만 복원 | `ANDROID_*`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID` |",
+            runbook,
+        )
+        self.assertIn(
+            "| `play-deploy.yml` production promotion | 사용 안 함 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` + SemVer tag / `versionCode` governance. `ANDROID_*`와 `GOOGLE_SERVICES_JSON`는 필요 없음 |",
             runbook,
         )
         self.assertIn(
@@ -85,12 +90,16 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", version_guard)
         self.assertIn("DISCORD_BOT_TOKEN", play_deploy)
         self.assertIn("DISCORD_DEPLOY_CHANNEL_ID", play_deploy)
+        self.assertIn("if: env.DEPLOY_TRACK != 'production'", play_deploy)
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", play_deploy)
+        self.assertIn("Promote internal release to production", play_deploy)
 
     def test_runbook_and_functions_readme_keep_secret_ownership_boundary_explicit(self):
         runbook = RUNBOOK.read_text(encoding="utf-8")
         play_deployment = PLAY_DEPLOYMENT.read_text(encoding="utf-8")
         git_workflow = GIT_WORKFLOW.read_text(encoding="utf-8")
         release_checklist = RELEASE_CHECKLIST.read_text(encoding="utf-8")
+        release_context = RELEASE_CONTEXT.read_text(encoding="utf-8")
         functions_readme = FUNCTIONS_README.read_text(encoding="utf-8")
         functions_agents = FUNCTIONS_AGENTS.read_text(encoding="utf-8")
         functions_src_agents = FUNCTIONS_SRC_AGENTS.read_text(encoding="utf-8")
@@ -137,11 +146,13 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", agent_roles)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", qa_runtime_checklist)
         self.assertIn("Android CI / Release QA에서는 `app/src/dev`+`app/src/prod` 둘 다에", qa_runtime_checklist)
-        self.assertIn("Release Build / Play Deploy에서는 `app/src/prod`에만", qa_runtime_checklist)
+        self.assertIn("Release Build / Play Deploy non-production build/upload에서는 `app/src/prod`에만", qa_runtime_checklist)
+        self.assertIn("Play Deploy production promotion은 Firebase config와 Android signing을 복원하지 않고", qa_runtime_checklist)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", engineering_context)
         self.assertIn("scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`", engineering_context)
         self.assertIn("../../docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", app_source_agents)
         self.assertIn("Android CI / Release QA는 같은 `GOOGLE_SERVICES_JSON` secret을 dev+prod 둘 다에 복원", app_source_agents)
+        self.assertIn("Play Deploy production promotion은 기존 internal release를 승격하므로 `GOOGLE_SERVICES_JSON`/`ANDROID_*`를 복원하지 않는다", app_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", dev_source_agents)
         self.assertIn("workflow-specific restore matrix", dev_source_agents)
         self.assertIn("docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md", prod_source_agents)
@@ -180,10 +191,14 @@ class PlayDeploySecretContractRunbookTest(unittest.TestCase):
         self.assertIn("Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`", play_deployment)
         self.assertIn("Release Build / non-production Play Deploy write it only to `app/src/prod`", play_deployment)
         self.assertIn("Production promotion does not restore it", play_deployment)
+        self.assertIn("Play Deploy production promotion records that `GOOGLE_SERVICES_JSON`/`ANDROID_*` are unused", release_checklist)
+        self.assertIn("Play Deploy production promotion은 unused", release_context)
+        self.assertIn("Production promotion 실패를 Firebase config/Android keystore 누락으로 오진하지 말고", release_context)
         self.assertIn("Firebase Functions secret", play_deployment)
         self.assertIn("DISCORD_DEPLOY_CHANNEL_ID` exists in two stores", git_workflow)
         self.assertIn("Firebase Functions secret for interaction channel verification", git_workflow)
         self.assertIn("workflow별 restore matrix", runbook)
+        self.assertIn("production promotion 예외", runbook)
         self.assertIn("Canonical 문서 동기화 상태", runbook)
 
         self.assertIn('env("DISCORD_BOT_TOKEN")', discord_notifier)
