@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.lockhistory.blockedapps
 
-import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.AppDisplayMetadataResolver
 import org.orbitmvi.orbit.compose.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,21 +123,12 @@ private fun BlockedAppItem(
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
-
-    val appInfo = remember(packageName) {
-        try {
-            packageManager.getApplicationInfo(packageName, 0)
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
-        }
+    val appDisplayMetadataResolver = remember(packageManager) {
+        AppDisplayMetadataResolver(packageManager)
     }
 
-    val appName = remember(appInfo) {
-        appInfo?.let { packageManager.getApplicationLabel(it).toString() } ?: packageName
-    }
-
-    val appIcon = remember(appInfo) {
-        appInfo?.let { packageManager.getApplicationIcon(it) }
+    val appMetadata = remember(packageName, appDisplayMetadataResolver) {
+        appDisplayMetadataResolver.resolve(packageName)
     }
 
     Row(
@@ -155,7 +146,7 @@ private fun BlockedAppItem(
             modifier = Modifier.size(32.dp),
         )
 
-        appIcon?.let { icon ->
+        appMetadata.icon?.let { icon ->
             Image(
                 bitmap = icon.toBitmap().asImageBitmap(),
                 contentDescription = null,
@@ -170,7 +161,7 @@ private fun BlockedAppItem(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = appName,
+                text = appMetadata.label,
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
