@@ -61,7 +61,7 @@ ASO 판정 주의:
 - `Direct` 비중 급증은 UTM/Install Referrer 누락, Discord/웹/QR 링크, redirect의 referrer 손실, 외부 캠페인 유입일 수 있으므로 먼저 분리한다.
 - 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 - Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
-- 2026-06-02 최신 스냅샷(`2026-06-02T17:06:49Z`)에서는 전체 `newUsers`가 421명으로 직전 30일 대비 +15.0%였지만 `Direct` 신규가 252명(59.9%)까지 올라갔고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
+- 2026-06-02 최신 스냅샷(`2026-06-02T19:39:19Z`)에서는 전체 `newUsers`가 431명으로 직전 30일 대비 +17.8%였지만 `Direct` 신규가 262명(60.8%)까지 올라갔고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
 
 ## 핵심 퍼널
 
@@ -110,7 +110,7 @@ ASO 판정 주의:
 - AdMob/광고 분석은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. 특히 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` + `adUnitName` 표와 앱 custom-event `eventCount` + `customEvent:ad_placement` coverage 표를 합산하지 않는다. 2026-06-01 기준 legacy `ad_impression` custom coverage가 `912 / 21,159 = 4.31%`에 그쳤고, PR #293에서 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)가 SDK 자동 이벤트와 분리됐다. 다만 2026-06-02/2026-06-03 확인 기준 PR #293 split commit은 `origin/develop`에는 포함됐지만 `origin/main`/최신 production tag `v1.7.7`에는 포함되지 않았다. 2026-06-03 GA4 smoke의 `appVersion=1.7.5` `ad_banner_*` 소량 행은 source-split queryability 확인용이며 production 14일 placement 판단으로 쓰지 않는다. 따라서 post-split 14일 재조회 창은 아직 시작되지 않았고, 다음 판단은 PR #293 포함 release/tag/Play deploy 확인 후 잡는다.
 - 광고 설정/운영 안전성 이슈(#250류)는 성과표와 별도로 본다. production AdMob application/ad unit id는 Manifest/UI call site에 흩어 두지 말고 flavor별 config source에서 관리해야 하며, dev/debug가 production 광고 ID를 쓰지 않는 정적 가드가 필요하다.
 - Play In-App Review API는 실제 리뷰 작성/취소 여부를 앱에 직접 알려주지 않는다. 신뢰 가능한 lifecycle 신호는 `eligible / shown / skipped / failed` 수준이다.
-- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태로 본다. 다음 판단은 코드 PR 대기가 아니라 PR #308/#312 포함 버전 배포 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review, 14일/30일 관측 경계다.
+- #307 리뷰 프롬프트 shown 0 follow-through는 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태로 본다. 2026-06-02T18:06:45Z live 재조회에서 `review_prompt_skipped`는 `1.7.0`/`1.7.3`/`1.7.6`에서만 관측됐고, PR #308/#312 포함 버전 cohort 행은 아직 없다. `customEvent:reason`은 metadata 등록/조회 가능하므로 skip reason 분석에는 사용할 수 있지만, `customEvent:error`는 아직 미등록이다. 다음 판단은 코드 PR 대기가 아니라 PR #308/#312 포함 버전 배포 여부, Play Console rating/review baseline, 14일/30일 관측 경계다.
 - Usage Access 개인화(#119)는 구현 ready 신호가 아니라 discovery gate로 본다. 권한 허용률만 보지 말고 `first_core_action_completed`, `app_block_intercepted`, review/rating, crash-free users guardrail을 함께 보며, 앱 이름/package/raw usage history는 analytics payload로 보내지 않는다.
 
 ## 지표 기반 이슈 생성 기준
