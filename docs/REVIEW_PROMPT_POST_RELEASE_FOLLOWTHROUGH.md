@@ -48,7 +48,7 @@
 | --- | --- | --- | --- |
 | #308 `fix: preserve review pending after launch failure` | `cfff411898fbaac43a5c5bbafb48651091e66be2` | launch 실패 또는 in-flight short-circuit 시 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 재시도하는 코드/테스트/문서 계약 반영 완료 | PR #308 포함 버전 release/internal/production 배포 후 14일·30일 재측정 |
 | #310 `test: stabilize home accessibility permission smoke` | `7ec28adc1355c59ee770fc6ec2cedb0275ab0a7d` | PR #308을 막던 runtime smoke gate blocker 해소 완료 | 없음. #307의 남은 blocker로 다시 취급하지 않는다. |
-| 이번 PR | PR 생성 후 URL은 PR/issue comment에 기록 | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | 포함 버전 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 재측정 |
+| #312 `fix: unwrap home activity for review prompt drain` | PR #312 created | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | 포함 버전 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 재측정 |
 
 따라서 다음 docs/metrics run은 “PR #308 merge 여부”를 다시 묻지 말고, **PR #308 포함 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “배포 / 14일 관측 대기”를 외부 경계로 둔다.
 
