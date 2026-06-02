@@ -29,6 +29,18 @@ class KeepAccessibilityServiceUninstallDetectionTest {
     }
 
     @Test
+    fun knownInstallerPackage_withEventTextMatch_returnsTrue() {
+        assertTrue(
+            shouldInterceptUninstallAttempt(
+                eventPackageName = "com.google.android.packageinstaller",
+                hasApplicationIdMatch = false,
+                hasAppNameMatch = false,
+                hasEventTextMatch = true,
+            ),
+        )
+    }
+
+    @Test
     fun knownInstallerPackage_withoutProtectedAppMarkers_returnsFalse() {
         assertFalse(
             shouldInterceptUninstallAttempt(

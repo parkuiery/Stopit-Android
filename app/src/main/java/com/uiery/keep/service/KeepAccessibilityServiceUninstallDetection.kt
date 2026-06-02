@@ -11,7 +11,8 @@ internal fun shouldInterceptUninstallAttempt(
     eventPackageName: String,
     hasApplicationIdMatch: Boolean,
     hasAppNameMatch: Boolean,
+    hasEventTextMatch: Boolean = false,
 ): Boolean {
     if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
-    return hasApplicationIdMatch || hasAppNameMatch
+    return hasApplicationIdMatch || hasAppNameMatch || hasEventTextMatch
 }
