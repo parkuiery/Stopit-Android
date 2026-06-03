@@ -145,6 +145,10 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 syncAccessibilityPermissionDialogState()
+                coroutineScope.launch {
+                    delay(300L)
+                    syncAccessibilityPermissionDialogState()
+                }
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
