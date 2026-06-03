@@ -61,11 +61,12 @@ ASO 판정 주의:
 - `Direct` 비중 급증은 UTM/Install Referrer 누락, Discord/웹/QR 링크, redirect의 referrer 손실, 외부 캠페인 유입일 수 있으므로 먼저 분리한다.
 - 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 - Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
-- 2026-06-03 live readback(`2026-06-03T06:12:47Z`)에서도 전체 `newUsers`가 432명으로 직전 30일 대비 +18.0%였지만 `Direct` 신규가 263명(60.9%)으로 유지됐고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮으며 `sessions`는 4,733회로 직전 6,401회 대비 -26.1%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
+- 2026-06-03 live readback(`2026-06-03T19:07:42Z`)에서도 전체 `newUsers`가 461명으로 직전 30일 대비 +28.1%였지만 `Direct` 신규가 284명(61.6%)으로 유지됐고 `Organic Search` 신규는 177명으로 #65 기준선 178명보다 낮으며 `sessions`는 4,804회로 직전 6,350회 대비 -24.3%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
+- 2026-06-03 루틴 반복 사용 기준선(#380)에서는 `customUser:routines_count >= 1` activeUsers 150명, `routines_count = 0` activeUsers 155명으로 규모가 비슷했지만, 루틴 보유자의 sessions / activeUsers가 `2,152 / 150 = 14.35`로 미보유자 `1,180 / 155 = 7.61`보다 높고 `app_block_intercepted` users / activeUsers도 `91 / 150 = 60.7%` vs `62 / 155 = 40.0%`였다. 단 `(not set)` activeUsers가 560명이라 전체 retention 결론은 보류하고 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 재측정/guardrail 표를 따른다.
 
 ## 핵심 퍼널
 
-첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-02 기준 #14 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 develop에 반영됐으므로, 이후 활성화 분석은 “CTA 부재”나 “첫 가치 피드백 미정의”로 되돌리지 않는다. 단, 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 미포함이므로, live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 판단은 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 재측정하는 것이다.
+첫 잠금 활성화 퍼널의 단계 의미/CTA/legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 2026-06-02 기준 #14 홈 첫 잠금 CTA(PR #256 `bce1cda`), 첫 차단 성공 피드백(PR #279 `5c6331d`), 홈 Keep/타이머 시작 직후 안내(PR #283 `35c13eb`)가 develop에 반영됐으므로, 이후 활성화 분석은 “CTA 부재”나 “첫 가치 피드백 미정의”로 되돌리지 않는다. 단, 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 미포함이므로, live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 판단은 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 같이 보는 것이다.
 
 #14 측정 전제:
 - `first_lock_configured`는 준비 완료 신호이고, 실제 차단 완료가 아니다.
@@ -102,6 +103,7 @@ ASO 판정 주의:
 - #13 계열 분석에서는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 보고, 실제 `customEvent:*` 등록/조회 가능 여부와 repo 문서 범위를 구분한다.
 - 2026-05-29 screen 품질 gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline으로 본다. 같은 화면에 대해 추가 code-lane 작업을 다시 열기 전에는 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 지표와 분리해서 해석한다.
 - 2026-06-03 09:12 KST screen quality smoke는 `13,780 / 22,584 = 61.0%`였지만, PR #296/#318이 아직 `origin/main`/production tag `v1.7.7`에 포함되지 않았으므로 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 본다. #13 closure 판단은 해당 PR 포함 release/tag/Play deploy 후 14일 재측정으로 한다.
+- 2026-06-03T10:21:55Z metrics snapshot의 30일 합산에서는 `screen_view` `33,136` 중 `(not set)`이 `22,593`(`68.2%`)였고, 최신 관측 version `1.7.7` active share도 `31 / 688 = 4.5%`로 `보류`다. 이 값은 위 14일 smoke와 직접 합산하지 않고, #13을 release/tag/Play deploy + D+14 재측정 전까지 닫지 않는 guardrail로만 둔다.
 - `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
 - `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.
@@ -139,3 +141,4 @@ ASO 판정 주의:
 - `docs/PLAY_STORE_ASO.md`
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`
+- `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`

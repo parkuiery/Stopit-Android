@@ -90,12 +90,12 @@
 
 ### 2. GA4 queryability 경계
 
-상위 이벤트 count는 조회 가능하더라도, 다음 breakdown은 GA4 Admin 등록 전에는 안정적으로 볼 수 없다.
+상위 이벤트 count와 breakdown queryability를 분리해서 기록한다. 2026-06-02T18:06:45Z live readback 이후에는 두 축의 상태가 다르다.
 
-- `review_prompt_skipped` by `customEvent:reason`
-- `review_prompt_failed` by `customEvent:error`
+- `review_prompt_skipped` by `customEvent:reason`: 조회 가능. #307 skip reason 표와 post-release D+14/D+30 재측정에 사용한다.
+- `review_prompt_failed` by `customEvent:error`: 아직 GA4 Admin/metadata 미등록 경계. 실패 이벤트가 생겨도 원인 breakdown은 #13 registration follow-through와 연결한다.
 
-`customEvent:reason` 또는 `customEvent:error`가 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`로 실패하면 제품 결론이 아니라 #13 GA4 Admin 등록 경계로 기록한다.
+`customEvent:reason`이 다시 `400 INVALID_ARGUMENT` / `Field customEvent:reason is not a valid dimension`로 실패하면 metadata 회귀로 기록한다. `customEvent:error` 실패는 현재 기준 expected external/manual boundary이므로 repo 코드 결론으로 과대해석하지 않는다.
 
 ### 3. Play In-App Review 한계
 
@@ -121,7 +121,7 @@
 
 ### skip/failure breakdown 표
 
-GA4 Admin 등록이 확인된 뒤에만 채운다.
+`customEvent:reason`은 2026-06-02T18:06:45Z 기준 조회 가능해 baseline을 채운다. `customEvent:error`는 GA4 Admin 등록이 확인된 뒤에만 failure 원인 표를 채운다.
 
 | 기간 | cohort/version | dimension | 값 | users | eventCount | 해석 |
 | --- | --- | --- | --- | ---: | ---: | --- |
@@ -181,6 +181,21 @@ GA4 Admin 등록이 확인된 뒤에만 채운다.
 - PR #308과 PR #312는 이제 merge 완료 상태이므로, 이전 runtime-smoke blocker나 PR #312 merge 대기를 현재 blocker로 반복 보고하지 않는다.
 - `review_prompt_skipped.reason`은 2026-06-02T18:06:45Z 기준 조회 가능하므로 #307 skip reason 분석에 사용한다. `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
 - PR #308/#312 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
+
+## 문서 계약 회귀 테스트
+
+#307 문서 lane이 이 런북을 다시 만질 때는 다음 review prompt post-release boundary regression을 먼저 실행한다.
+
+```bash
+python3 -m unittest scripts.tests.test_review_prompt_post_release_followthrough_docs -v
+```
+
+이 테스트는 다음 계약을 고정한다.
+
+- PR #308/#312가 이미 `develop`에 merge됐더라도 `origin/main`, SemVer tag, Play track 배포, D+14/D+30 관측 전에는 `shown = 0`을 최신 코드 회귀로 단정하지 않는다.
+- `customEvent:reason`은 `review_prompt_skipped` breakdown에 사용할 수 있지만, `customEvent:error`는 `review_prompt_failed` breakdown의 GA4 Admin/metadata 외부 경계로 유지한다.
+- Play In-App Review API는 사용자가 실제로 리뷰를 작성했는지 알려주지 않으므로, Play Console rating count / 평균 평점 / 최근 리뷰 톤을 후행 지표로 별도 기록한다.
+- repo 내부 문서/계약만 갱신한 PR은 `Refs #307`을 사용하고, 배포·14일 관측·Play Console 수동 기록까지 끝나기 전에는 `Closes #307`로 승격하지 않는다.
 
 ## 다음 run 체크리스트
 

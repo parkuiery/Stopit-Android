@@ -46,16 +46,28 @@ class ValidatePlayDeployRefScriptTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("previous production marker missing", result.stderr)
 
-    def test_manual_dispatch_is_not_validated_by_tag_push_guard(self):
+    def test_manual_dispatch_accepts_semver_tag_that_is_reachable_from_origin_main_and_checks_previous_production_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = pathlib.Path(tmp)
-            self._write_repo_fixture(repo, merge_base_exit=99, marker_exit=99)
+            self._write_repo_fixture(repo, merge_base_exit=0, marker_exit=0)
 
             result = self._run_script(repo, event_name="workflow_dispatch", ref="refs/tags/v1.7.4", ref_name="v1.7.4")
 
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-            self.assertIn("Skipping tag-push Play deploy guard for event workflow_dispatch", result.stdout)
-            self.assertFalse((repo / "git-calls.txt").exists())
+            self.assertIn("Validated Play deploy tag v1.7.4 on origin/main", result.stdout)
+            marker_env = (repo / "marker-env.txt").read_text()
+            self.assertIn("STOPIT_RELEASE_GATE_EXCLUDE_TAG=v1.7.4", marker_env)
+
+    def test_manual_dispatch_rejects_semver_tag_that_is_not_reachable_from_origin_main(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            self._write_repo_fixture(repo, merge_base_exit=1, marker_exit=0)
+
+            result = self._run_script(repo, event_name="workflow_dispatch", ref="refs/tags/v1.7.4", ref_name="v1.7.4")
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Play deploy tag v1.7.4 must point to a commit reachable from origin/main", result.stderr)
+            self.assertFalse((repo / "marker-env.txt").exists(), "marker gate should not run after ancestry failure")
 
     def _write_repo_fixture(self, repo: pathlib.Path, *, merge_base_exit: int, marker_exit: int) -> None:
         (repo / "scripts").mkdir(parents=True, exist_ok=True)

@@ -10,6 +10,7 @@ import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -84,6 +85,7 @@ class BlockViewModel
                     emergencyUnlockDailyLimit = availability.dailyLimit,
                     emergencyUnlockDurationOptions = availability.durationOptions,
                     emergencyUnlockReasonRequired = availability.reasonRequired,
+                    emergencyUnlockAvailabilityReason = availability.reason,
                     dailyLimitReached = availability.dailyLimitReached,
                     dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
@@ -134,6 +136,7 @@ data class BlockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val showFirstCoreActionFeedback: Boolean = false,
 )
 

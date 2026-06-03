@@ -89,6 +89,13 @@
     <string name="lock_history_block_count">%1$d fois</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="cd_navigate_back">Retour</string>
+    <string name="cd_open_menu">Ouvrir le menu</string>
+    <string name="cd_open_timer">Régler le minuteur de verrouillage</string>
+    <string name="cd_add_routine">Ajouter une routine</string>
+    <string name="cd_delete_routine">Supprimer la routine</string>
+    <string name="cd_previous_period">Période précédente</string>
+    <string name="cd_next_period">Période suivante</string>
     <string name="blocked_apps_title">Applications bloquées</string>
     <string name="routine_alarm_permission_title">Nous vous préviendrons pour ne pas manquer le début de votre routine.</string>
     <string name="routine_alarm_permission_description">Nous enverrons une notification à l\'heure définie pour vous aider à commencer votre routine naturellement.</string>
@@ -138,6 +145,8 @@
     <string name="emergency_unlock_cancel">Annuler</string>
     <string name="emergency_unlock_next">Suivant</string>
     <string name="emergency_unlock_daily_limit_reached">Vous avez utilisé tous les déverrouillages d\'urgence pour aujourd\'hui</string>
+    <string name="emergency_unlock_disabled">Le déverrouillage d\'urgence est désactivé</string>
+    <string name="emergency_unlock_daily_limit_zero">Les déverrouillages d\'urgence sont définis sur 0 par jour</string>
     <string name="emergency_unlock_banner">%1$d applications déverrouillées — %2$s restant</string>
     <string name="emergency_unlock_active">Déverrouillage d\'urgence actif</string>
     <string name="emergency_unlock_remaining_time">%1$s restant</string>

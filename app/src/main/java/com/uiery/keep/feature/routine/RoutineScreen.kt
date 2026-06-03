@@ -1,10 +1,5 @@
 package com.uiery.keep.feature.routine
 
-import android.app.AlarmManager
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,15 +63,6 @@ fun RoutineScreen(
     val context = LocalContext.current
     var showAlarmPermissionBottomSheet by remember { mutableStateOf(false) }
 
-    fun checkAndShowAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                showAlarmPermissionBottomSheet = true
-            }
-        }
-    }
-
     // Check alarm permission on entry if routines exist (show once ever, persisted)
     LaunchedEffect(state.routines) {
         if (state.routines.isNotEmpty()) {
@@ -91,13 +77,8 @@ fun RoutineScreen(
                 sideEffect.isRoutine
             )
             is RoutineSideEffect.ShowAlarmPermission -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val alarmManager = context.getSystemService(AlarmManager::class.java)
-                    if (!alarmManager.canScheduleExactAlarms()) {
-                        showAlarmPermissionBottomSheet = true
-                        viewModel.markAlarmPermissionShown()
-                    }
-                }
+                showAlarmPermissionBottomSheet = true
+                viewModel.markAlarmPermissionShown()
             }
         }
     }
@@ -138,10 +119,7 @@ fun RoutineScreen(
                         }.invokeOnCompletion {
                             if (!alarmPermissionBottomSheetState.isVisible) {
                                 showAlarmPermissionBottomSheet = false
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                        data = Uri.parse("package:${context.packageName}")
-                                    }
+                                createExactAlarmSettingsIntent(context.packageName)?.let { intent ->
                                     context.startActivity(intent)
                                 }
                             }
@@ -169,7 +147,7 @@ fun RoutineScreen(
                     }
                 },
                 onRequireAlarmPermission = {
-                    checkAndShowAlarmPermission()
+                    showAlarmPermissionBottomSheet = true
                     viewModel.markAlarmPermissionShown()
                 },
             )
@@ -206,7 +184,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.outline_delete_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_delete_routine),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -226,7 +204,7 @@ fun RoutineScreen(
                     }
                 },
                 onRequireAlarmPermission = {
-                    checkAndShowAlarmPermission()
+                    showAlarmPermissionBottomSheet = true
                     viewModel.markAlarmPermissionShown()
                 },
             )
@@ -252,7 +230,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -263,7 +241,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_add),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_add_routine),
                             tint = KeepTheme.colors.primary,
                         )
                     }

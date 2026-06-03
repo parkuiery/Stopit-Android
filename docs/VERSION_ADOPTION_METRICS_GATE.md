@@ -65,10 +65,10 @@
 
 | 관련 이슈 | 관련 PR/commit | main/tag/Play 포함 여부 | 최신 버전 active share | 판정 | 다음 액션 |
 | --- | --- | --- | ---: | --- | --- |
-| #13 | #296/#318/#358 |  |  | 충분/주의/보류 | GA4 Admin + D+14 screen quality 재조회 |
-| #14 | #256/#279/#283 |  |  | 충분/주의/보류 | activation funnel D+14 재측정 |
-| #16 | #293 |  |  | 충분/주의/보류 | `ad_banner_*` post-split 14일 coverage 재조회 |
-| #307 | #308/#312/#353 |  |  | 충분/주의/보류 | review lifecycle + Play rating D+14/D+30 관측 |
+| #13 | #296/#318/#358 (`47e43784`, `8d2ee10`, `6ceaecc4`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `31 / 688 = 4.5%` | 보류 | GA4 Admin + PR 포함 release/tag/Play deploy 후 D+14 screen quality 재조회 |
+| #14 | #256/#279/#283 (`bce1cda1`, `5c6331da`, `35c13ebb`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `31 / 688 = 4.5%` | 보류 | activation funnel D+14 재측정. CTA/첫 가치 피드백을 다시 만들지 않음 |
+| #16 | #293 (`afcb5c8e`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `31 / 688 = 4.5%` | 보류 | `ad_banner_*` post-split 14일 coverage 재조회. early smoke를 production placement 판단으로 승격하지 않음 |
+| #307 | #308/#312/#353 (`cfff4118`, `e920ea30`, `dc0978f`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `31 / 688 = 4.5%` | 보류 | review lifecycle + Play rating D+14/D+30 관측. `customEvent:reason`은 사용 가능, `customEvent:error`는 등록 경계 |
 
 ## GA4 query template
 

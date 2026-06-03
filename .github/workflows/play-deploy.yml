@@ -87,7 +87,7 @@ jobs:
             exit 1
           fi
 
-      - name: Validate tag-push release guardrails
+      - name: Validate Play deploy release guardrails
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/validate-play-deploy-ref.sh

@@ -12,6 +12,10 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/release-tag.sh'
+      - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/setup-play-deploy-secrets.sh'
+      - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
@@ -28,6 +32,10 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/release-tag.sh'
+      - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/setup-play-deploy-secrets.sh'
+      - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
@@ -72,6 +80,10 @@ jobs:
               - 'scripts/release-start.sh'
               - 'scripts/bump-version.sh'
               - 'scripts/validate-play-deploy-ref.sh'
+              - 'scripts/release-tag.sh'
+              - 'scripts/check-play-deploy-secret-contract.sh'
+              - 'scripts/setup-play-deploy-secrets.sh'
+              - 'scripts/setup-discord-deploy-secrets.sh'
               - 'scripts/play_version_code_guard.py'
               - 'scripts/tests/**'
             docs_contract:
@@ -126,6 +138,7 @@ jobs:
           scripts.tests.test_release_qa_runtime_gate_docs
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
+          scripts.tests.test_review_prompt_post_release_followthrough_docs
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
 
@@ -183,7 +196,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
       - name: Check release-helper shell syntax
-        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh
+        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh
 
       - name: Compile Discord deploy notification script
         run: python3 -m py_compile scripts/notify-discord-deploy.py

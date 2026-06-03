@@ -41,6 +41,7 @@ import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.util.AppDisplayMetadataResolver
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
@@ -186,24 +187,25 @@ fun BlockScreen(
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                 TextButton(
                     onClick = viewModel::showEmergencyUnlockSheet,
-                    enabled = !uiState.dailyLimitReached,
+                    enabled = emergencyUnlockAction.enabled,
                 ) {
                     Text(
-                        text = if (uiState.dailyLimitReached) {
-                            stringResource(R.string.emergency_unlock_daily_limit_reached)
-                        } else {
+                        text = if (emergencyUnlockAction.enabled) {
                             stringResource(
-                                R.string.emergency_unlock_with_count,
+                                emergencyUnlockAction.textRes,
                                 uiState.dailyUnlockRemaining,
                                 uiState.emergencyUnlockDailyLimit,
                             )
-                        },
-                        color = if (uiState.dailyLimitReached) {
-                            KeepTheme.colors.surfaceVariant
                         } else {
+                            stringResource(emergencyUnlockAction.textRes)
+                        },
+                        color = if (emergencyUnlockAction.enabled) {
                             KeepTheme.colors.primary
+                        } else {
+                            KeepTheme.colors.surfaceVariant
                         },
                         fontSize = 13.sp,
                     )

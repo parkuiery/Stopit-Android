@@ -65,7 +65,7 @@ fun EmergencyUnlockSettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
                             tint = KeepTheme.colors.primary,
                         )
                     }

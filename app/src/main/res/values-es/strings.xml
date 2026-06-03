@@ -88,6 +88,13 @@
     <string name="lock_history_block_count">%1$d veces</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="cd_navigate_back">Volver</string>
+    <string name="cd_open_menu">Abrir menú</string>
+    <string name="cd_open_timer">Configurar temporizador de bloqueo</string>
+    <string name="cd_add_routine">Agregar rutina</string>
+    <string name="cd_delete_routine">Eliminar rutina</string>
+    <string name="cd_previous_period">Periodo anterior</string>
+    <string name="cd_next_period">Periodo siguiente</string>
     <string name="blocked_apps_title">Apps bloqueadas</string>
     <string name="routine_alarm_permission_title">Te avisaremos para que no te pierdas el inicio de tu rutina.</string>
     <string name="routine_alarm_permission_description">Enviaremos una notificación a la hora establecida para ayudarte a empezar tu rutina de forma natural.</string>
@@ -137,6 +144,8 @@
     <string name="emergency_unlock_cancel">Cancelar</string>
     <string name="emergency_unlock_next">Siguiente</string>
     <string name="emergency_unlock_daily_limit_reached">Has usado todos los desbloqueos de emergencia de hoy</string>
+    <string name="emergency_unlock_disabled">El desbloqueo de emergencia está desactivado</string>
+    <string name="emergency_unlock_daily_limit_zero">Los desbloqueos de emergencia están configurados en 0 al día</string>
     <string name="emergency_unlock_banner">%1$d apps desbloqueadas — %2$s restante</string>
     <string name="emergency_unlock_active">Desbloqueo de emergencia activo</string>
     <string name="emergency_unlock_remaining_time">%1$s restante</string>

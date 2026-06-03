@@ -97,6 +97,25 @@ class BlockViewModelTest {
         )
     }
 
+    @Test
+    fun disabledEmergencyUnlockStateDoesNotLookLikeDailyLimitReached() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.EMERGENCY_UNLOCK_ENABLED to false,
+                PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT to 3,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = BlockRecordingKeepAnalytics())
+
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(false, state.emergencyUnlockEnabled)
+        assertEquals(com.uiery.keep.service.EmergencyUnlockAvailabilityReason.Disabled, state.emergencyUnlockAvailabilityReason)
+        assertEquals(false, state.dailyLimitReached)
+        assertEquals(3, state.dailyUnlockRemaining)
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: BlockRecordingKeepAnalytics,

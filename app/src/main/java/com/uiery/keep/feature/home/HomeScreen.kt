@@ -145,6 +145,10 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 syncAccessibilityPermissionDialogState()
+                coroutineScope.launch {
+                    delay(300L)
+                    syncAccessibilityPermissionDialogState()
+                }
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
@@ -231,7 +235,7 @@ fun HomeScreen(
                     IconButton(onClick = onNavigateMenu) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_open_menu),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -390,7 +394,7 @@ fun HomeScreen(
                                             enabled = !uiState.isKeep,
                                         ).padding(4.dp),
                                 painter = painterResource(id = R.drawable.timer_outline),
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.cd_open_timer),
                             )
                         }
                     }

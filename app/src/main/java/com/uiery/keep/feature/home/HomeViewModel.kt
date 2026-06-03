@@ -3,7 +3,6 @@ package com.uiery.keep.feature.home
 import android.app.Activity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
@@ -14,19 +13,17 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
-import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
-import com.uiery.keep.receiver.RoutineReceiverPolicy
 import com.uiery.keep.service.recordLockHistorySession
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalTime
@@ -46,6 +43,7 @@ class HomeViewModel
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
         private val reviewPromptStateStore: ReviewPromptStateStore,
+        private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -201,33 +199,23 @@ class HomeViewModel
             }
 
         private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
-            // Routine start notices are a receiver -> home UI handoff queue, not lock/session
-            // blocking state. Keep this compatibility key on the existing receiver policy boundary.
-            val pendingStoredValue = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
-            if (pendingStoredValue.isNullOrBlank()) return null
             if (sheetVisible) return null
-
-            val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(pendingStoredValue)
-            val pendingMessage = drain.message ?: return null
-            dataStore.edit { preferences ->
-                val remainingStoredValue = drain.remainingStoredValue
-                if (remainingStoredValue == null) {
-                    preferences.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
-                } else {
-                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = remainingStoredValue
-                }
-            }
-            return pendingMessage
+            return routineNoticeStore.drainNextPendingRoutineStartNotice()
         }
 
         internal fun moveToLock() =
             intent {
-                val targetDateTime = if (state.countdownDays > 0) {
-                    calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
-                } else {
-                    calculateTargetLockDateTime(state.blockTime)
+                val routeDeadline = state.pendingManualLockRouteDeadline ?: run {
+                    val targetDateTime = if (state.countdownDays > 0) {
+                        calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
+                    } else {
+                        calculateTargetLockDateTime(state.blockTime)
+                    }
+                    val targetInstant = targetDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                    ManualLockTimePolicy.encodeDeadline(targetInstant)
                 }
-                postSideEffect(HomeSideEffect.MoveToLock(targetDateTime.toString(), false))
+                postSideEffect(HomeSideEffect.MoveToLock(routeDeadline, false))
+                reduce { state.copy(pendingManualLockRouteDeadline = null) }
             }
 
         private fun getSelectedApp() =
@@ -357,7 +345,9 @@ class HomeViewModel
                     calculateTargetLockDateTime(state.blockTime)
                 }
                 val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
-                blockingStateStore.saveLockTime(ManualLockTimePolicy.encodeDeadline(targetLockInstant))
+                val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
+                blockingStateStore.saveLockTime(encodedDeadline)
+                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline) }
                 val lockedDuration =
                     Duration
                         .between(java.time.Instant.now(), targetLockInstant)
@@ -447,6 +437,7 @@ data class HomeUiState(
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
+    val pendingManualLockRouteDeadline: String? = null,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)

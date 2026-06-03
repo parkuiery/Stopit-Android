@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.keep.R
 import com.uiery.keep.feature.devtool.component.DevToolItem
@@ -36,7 +37,7 @@ fun DevToolScreen(
                     IconButton(onClick = { onNavigateBack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
                             tint = Color(0xFFFE9E0B),
                         )
                     }

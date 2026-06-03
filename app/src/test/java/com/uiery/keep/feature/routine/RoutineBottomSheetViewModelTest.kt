@@ -84,7 +84,7 @@ class RoutineBottomSheetViewModelTest {
         },
     ) = RoutineBottomSheetViewModel(
         routineDao = routineDao,
-        routineScheduler = routineScheduler,
+        exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(routineScheduler),
         analytics = NoOpKeepAnalytics(),
     )
 

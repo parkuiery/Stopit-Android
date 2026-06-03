@@ -24,6 +24,7 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRequestResult
@@ -194,6 +195,7 @@ class LockViewModel
                     emergencyUnlockDailyLimit = availability.dailyLimit,
                     emergencyUnlockDurationOptions = availability.durationOptions,
                     emergencyUnlockReasonRequired = availability.reasonRequired,
+                    emergencyUnlockAvailabilityReason = availability.reason,
                     dailyLimitReached = availability.dailyLimitReached,
                     dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
@@ -280,6 +282,7 @@ data class LockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val isEmergencyUnlockActive: Boolean = false,
     val emergencyUnlockRemainingSeconds: Int = 0,
     val emergencyUnlockedApps: Set<String> = emptySet(),

@@ -6,7 +6,6 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
-import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -26,7 +25,7 @@ class RoutineBottomSheetViewModel
     @Inject
     constructor(
         private val routineDao: RoutineDao,
-        private val routineScheduler: RoutineScheduler,
+        private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect> {
@@ -106,30 +105,21 @@ class RoutineBottomSheetViewModel
 
         internal fun addRoutine() =
             intent {
-                val routineModel = state.toRoutineModel()
-                val resolvedRoutine = resolveRoutineExactAlarmPermission(
-                    routine = routineModel,
-                    canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
-                )
+                val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel())
                 val insertedId = routineDao.insert(routineEntity = resolvedRoutine.routine.toEntity())
                 val routineWithId = resolvedRoutine.routine.copy(id = insertedId)
-                var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
-                if (routineWithId.isEnabled) {
-                    when (routineScheduler.scheduleRoutine(routineWithId)) {
-                        com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> {
-                            analytics.trackLockScheduled(
-                                scheduleType = AnalyticsScheduleType.ROUTINE,
-                                scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
-                            )
-                        }
-                        com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
-                            routineDao.update(routineWithId.copy(isEnabled = false).toEntity())
-                            shouldShowPermissionPrompt = true
-                        }
-                        com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
-                    }
+                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routineWithId)
+
+                if (scheduleDecision.routine != routineWithId) {
+                    routineDao.update(scheduleDecision.routine.toEntity())
                 }
-                if (shouldShowPermissionPrompt) {
+                if (scheduleDecision.shouldTrackLockScheduled) {
+                    analytics.trackLockScheduled(
+                        scheduleType = AnalyticsScheduleType.ROUTINE,
+                        scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
+                    )
+                }
+                if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                     postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                 }
             }
@@ -138,33 +128,23 @@ class RoutineBottomSheetViewModel
             intent {
                 id?.let {
                     runCatching {
-                        val routineModel = state.toRoutineModel(id = it)
-                        val resolvedRoutine = resolveRoutineExactAlarmPermission(
-                            routine = routineModel,
-                            canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
-                        )
+                        val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel(id = it))
                         routineDao.update(resolvedRoutine.routine.toEntity())
-                        routineScheduler.cancelRoutine(id)
-                        var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
-                        if (resolvedRoutine.routine.isEnabled) {
-                            when (routineScheduler.scheduleRoutine(resolvedRoutine.routine)) {
-                                com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> {
-                                    analytics.trackLockScheduled(
-                                        scheduleType = AnalyticsScheduleType.ROUTINE,
-                                        scheduledDurationMinutes = routineDurationMinutes(
-                                            resolvedRoutine.routine.startTime,
-                                            resolvedRoutine.routine.endTime,
-                                        ),
-                                    )
-                                }
-                                com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
-                                    routineDao.update(resolvedRoutine.routine.copy(isEnabled = false).toEntity())
-                                    shouldShowPermissionPrompt = true
-                                }
-                                com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
-                            }
+                        exactAlarmOrchestrator.cancelRoutine(id)
+                        val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
+                        if (scheduleDecision.routine != resolvedRoutine.routine) {
+                            routineDao.update(scheduleDecision.routine.toEntity())
                         }
-                        if (shouldShowPermissionPrompt) {
+                        if (scheduleDecision.shouldTrackLockScheduled) {
+                            analytics.trackLockScheduled(
+                                scheduleType = AnalyticsScheduleType.ROUTINE,
+                                scheduledDurationMinutes = routineDurationMinutes(
+                                    resolvedRoutine.routine.startTime,
+                                    resolvedRoutine.routine.endTime,
+                                ),
+                            )
+                        }
+                        if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                             postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                         }
                     }
