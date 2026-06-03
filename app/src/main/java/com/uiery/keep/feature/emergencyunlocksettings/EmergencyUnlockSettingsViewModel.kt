@@ -1,21 +1,15 @@
 package com.uiery.keep.feature.emergencyunlocksettings
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.MAX_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.MIN_EMERGENCY_UNLOCK_DAILY_LIMIT
-import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
-import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,21 +22,17 @@ import javax.inject.Inject
 class EmergencyUnlockSettingsViewModel
     @Inject
     constructor(
-        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val settingsStore: EmergencyUnlockSettingsStore,
         private val analytics: KeepAnalytics,
     ) : ViewModel() {
         val uiState: StateFlow<EmergencyUnlockSettingsUiState> =
-            dataStore.data
-                .map { preferences ->
+            settingsStore.settings
+                .map { settings ->
                     EmergencyUnlockSettingsUiState(
-                        enabled = preferences[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] ?: true,
-                        dailyLimit = sanitizeEmergencyUnlockDailyLimit(
-                            preferences[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT],
-                        ),
-                        durationOptions = sanitizeEmergencyUnlockDurationOptions(
-                            preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
-                        ).toSet(),
-                        reasonRequired = preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] ?: true,
+                        enabled = settings.enabled,
+                        dailyLimit = settings.dailyLimit,
+                        durationOptions = settings.durationOptions.toSet(),
+                        reasonRequired = settings.reasonRequired,
                     )
                 }
                 .stateIn(
@@ -57,39 +47,26 @@ class EmergencyUnlockSettingsViewModel
 
         fun setEnabled(enabled: Boolean) {
             viewModelScope.launch {
-                dataStore.edit { it[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = enabled }
+                settingsStore.setEnabled(enabled)
             }
         }
 
         fun setDailyLimit(limit: Int) {
             viewModelScope.launch {
-                dataStore.edit {
-                    it[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = sanitizeEmergencyUnlockDailyLimit(limit)
-                }
+                settingsStore.setDailyLimit(limit)
             }
         }
 
         fun toggleDuration(minutes: Int) {
             if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
             viewModelScope.launch {
-                dataStore.edit { preferences ->
-                    val current = sanitizeEmergencyUnlockDurationOptions(
-                        preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
-                    ).toSet()
-                    val next =
-                        if (minutes in current) {
-                            if (current.size == 1) current else current - minutes
-                        } else {
-                            current + minutes
-                        }
-                    preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = next.map { it.toString() }.toSet()
-                }
+                settingsStore.toggleDuration(minutes)
             }
         }
 
         fun setReasonRequired(required: Boolean) {
             viewModelScope.launch {
-                dataStore.edit { it[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = required }
+                settingsStore.setReasonRequired(required)
             }
         }
     }

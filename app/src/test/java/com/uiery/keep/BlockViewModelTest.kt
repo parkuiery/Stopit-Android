@@ -5,6 +5,7 @@ import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -104,7 +105,7 @@ class BlockViewModelTest {
             blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
-                dataStore = dataStore,
+                settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = FakeEmergencyUnlockDao(),
                 analytics = analytics,

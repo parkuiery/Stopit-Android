@@ -7,6 +7,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +32,7 @@ class EmergencyUnlockCoordinatorTest {
         val dao = RecordingEmergencyUnlockDao(todayCount = 2)
         val analytics = RecordingEmergencyUnlockAnalytics()
         val coordinator = EmergencyUnlockCoordinator(
-            dataStore = dataStore,
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockDao = dao,
             analytics = analytics,
@@ -73,7 +74,7 @@ class EmergencyUnlockCoordinatorTest {
         val dao = RecordingEmergencyUnlockDao(todayCount = 3)
         val analytics = RecordingEmergencyUnlockAnalytics()
         val coordinator = EmergencyUnlockCoordinator(
-            dataStore = dataStore,
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockDao = dao,
             analytics = analytics,
@@ -111,7 +112,7 @@ class EmergencyUnlockCoordinatorTest {
         val dao = RecordingEmergencyUnlockDao(todayCount = 0)
         val analytics = RecordingEmergencyUnlockAnalytics()
         val coordinator = EmergencyUnlockCoordinator(
-            dataStore = dataStore,
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockDao = dao,
             analytics = analytics,
