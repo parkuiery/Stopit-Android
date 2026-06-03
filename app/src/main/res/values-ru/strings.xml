@@ -64,6 +64,8 @@
     <string name="routine_no_content_message">Добавьте рутину, чтобы сделать блокировку приложений удобнее!\nStopIt автоматически заблокирует ваши приложения.</string>
     <string name="routine">Рутина</string>
     <string name="contact_us">Связаться с нами</string>
+    <string name="monetization_interest_menu_title">Хотите использовать StopIt без рекламы?</string>
+    <string name="monetization_interest_menu_message">Сообщите, полезна ли опция без рекламы. Покупка пока недоступна.</string>
     <string name="feedback_subject">[StopIt Android] Обратная связь</string>
     <string name="email_app_not_installed">Приложение для электронной почты не установлено.</string>
     <string name="feature_request_message">🚀 Мы создадим функции, которые вы хотите!</string>

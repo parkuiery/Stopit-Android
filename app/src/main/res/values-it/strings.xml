@@ -64,6 +64,8 @@
     <string name="routine_no_content_message">Aggiungi una routine per rendere il blocco delle app più comodo!\nStopIt bloccherà automaticamente le tue app.</string>
     <string name="routine">Routine</string>
     <string name="contact_us">Contattaci</string>
+    <string name="monetization_interest_menu_title">Vuoi usare StopIt senza annunci?</string>
+    <string name="monetization_interest_menu_message">Dicci se un’opzione senza annunci sarebbe utile. L’acquisto non è ancora disponibile.</string>
     <string name="feedback_subject">[StopIt Android] Feedback</string>
     <string name="email_app_not_installed">Nessuna app email installata.</string>
     <string name="feature_request_message">🚀 Creeremo le funzioni che desideri!</string>
