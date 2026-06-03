@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.AnalyticsEventRecord
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -128,6 +129,7 @@ class HomeViewModelReviewTest {
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
+            routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
             reviewEligibility = ReviewEligibilityEvaluator(

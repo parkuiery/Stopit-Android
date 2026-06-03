@@ -2,13 +2,12 @@ package com.uiery.keep.feature.routine
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
@@ -17,7 +16,6 @@ import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -31,6 +29,7 @@ class RoutineViewModel
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val analytics: KeepAnalytics,
         private val routineScheduler: RoutineScheduler,
+        private val routineNoticeStore: RoutineNoticeStore,
     ) : ViewModel(),
         ContainerHost<RoutineUiState, RoutineSideEffect> {
         override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
@@ -188,8 +187,7 @@ class RoutineViewModel
 
         internal fun checkAlarmPermissionNeeded() =
             intent {
-                val preferences = dataStore.data.first()
-                val hasShown = preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
+                val hasShown = routineNoticeStore.hasShownAlarmPermissionPrompt()
                 if (!hasShown && state.routines.isNotEmpty()) {
                     postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                 }
@@ -197,9 +195,7 @@ class RoutineViewModel
 
         internal fun markAlarmPermissionShown() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
-                }
+                routineNoticeStore.markAlarmPermissionPromptShown()
             }
     }
 
