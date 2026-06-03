@@ -335,7 +335,7 @@ private fun RoutineAppSelectionContent(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.cd_navigate_back),
                     tint = KeepTheme.colors.primary,
                 )
             }

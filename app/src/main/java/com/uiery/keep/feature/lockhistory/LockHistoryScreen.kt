@@ -96,7 +96,7 @@ internal fun LockHistoryScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -235,7 +235,7 @@ private fun PeriodSelector(
         IconButton(onClick = onPreviousPeriod) {
             Icon(
                 painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                contentDescription = null,
+                contentDescription = stringResource(R.string.cd_previous_period),
                 tint = KeepTheme.colors.onSurfaceVariant,
             )
         }
@@ -251,7 +251,7 @@ private fun PeriodSelector(
         IconButton(onClick = onNextPeriod) {
             Icon(
                 painter = painterResource(R.drawable.round_arrow_forward_ios_24),
-                contentDescription = null,
+                contentDescription = stringResource(R.string.cd_next_period),
                 tint = KeepTheme.colors.onSurfaceVariant,
             )
         }

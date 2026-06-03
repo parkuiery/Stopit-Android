@@ -92,6 +92,13 @@
     <string name="lock_history_block_count">%1$d회</string>
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
     <string name="lock_history_duration_short_min">%1$d분</string>
+    <string name="cd_navigate_back">뒤로 가기</string>
+    <string name="cd_open_menu">메뉴 열기</string>
+    <string name="cd_open_timer">잠금 타이머 설정</string>
+    <string name="cd_add_routine">루틴 추가</string>
+    <string name="cd_delete_routine">루틴 삭제</string>
+    <string name="cd_previous_period">이전 기간</string>
+    <string name="cd_next_period">다음 기간</string>
     <string name="blocked_apps_title">차단된 앱</string>
     <string name="notification_channel_routine_name">루틴 알림</string>
     <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>

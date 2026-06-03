@@ -127,12 +127,13 @@ class KeepAccessibilityServiceIntegrationTest {
         waitForServiceToObserveEmergencyUnlockPackage(bypassPackage)
 
         launchPackage(bypassPackage)
-        waitForWindowEvent(bypassPackage)
-
         waitForPackageForeground(
             packageName = bypassPackage,
             message = "Expected $bypassPackage to stay foreground while emergency unlock is active",
         )
+
+        Thread.sleep(1_000)
+
         val debugSnapshot = KeepAccessibilityServiceDebugState.read(context)
         val launchedBlockedPackage = debugSnapshot.lastLaunchedBlockPackage
         assertFalse(
