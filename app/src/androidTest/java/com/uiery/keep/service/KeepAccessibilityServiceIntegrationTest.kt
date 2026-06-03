@@ -156,10 +156,10 @@ class KeepAccessibilityServiceIntegrationTest {
             KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == APP_PACKAGE
         }
         waitUntil(
-            message = "Expected the uninstall surface to leave foreground after dismissal",
+            message = "Expected the uninstall surface to stop being visible after dismissal",
             timeoutMs = UNINSTALL_DISMISS_TIMEOUT_MS,
         ) {
-            !isUninstallSurfaceForeground()
+            !isUninstallSurfaceVisible()
         }
     }
 
@@ -199,7 +199,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected the uninstall surface to stay visible when prevent_uninstall is disabled",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
-            isUninstallSurfaceForeground()
+            isUninstallSurfaceVisible()
         }
         assertTrue(
             "Expected no uninstall dismissal record when prevent_uninstall is disabled",
@@ -302,7 +302,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected package installer uninstall confirmation for $APP_PACKAGE to become visible",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
-            isUninstallSurfaceForeground()
+            isUninstallSurfaceVisible()
         }
     }
 
@@ -571,8 +571,10 @@ class KeepAccessibilityServiceIntegrationTest {
             .contains(packageName)
     }
 
-    private fun isUninstallSurfaceForeground(): Boolean =
-        KNOWN_UNINSTALL_PACKAGES.any(::isPackageForeground)
+    private fun isUninstallSurfaceVisible(): Boolean =
+        KNOWN_UNINSTALL_PACKAGES.any { packageName ->
+            device.hasObject(By.pkg(packageName))
+        }
 
     private fun shell(command: String): String {
         return device.executeShellCommand(command)
