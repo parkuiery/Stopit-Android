@@ -55,6 +55,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_play_deploy_secret_contract_runbook", workflow)
         self.assertIn("scripts.tests.test_release_build_workflow_scope", workflow)
         self.assertIn("scripts.tests.test_release_qa_runtime_gate_docs", workflow)
+        self.assertIn("scripts.tests.test_release_guard_hotfix_sync", workflow)
         self.assertIn("scripts.tests.test_ops_ci_workflow", workflow)
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
         docs_contract_job = self._job_block(workflow, "docs-contract")

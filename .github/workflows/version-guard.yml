@@ -38,21 +38,63 @@ jobs:
               )
           PY
 
-      - name: Detect Android version file changes
-        id: version_changes
+      - name: Classify Version Guard scope
+        id: version_scope
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          if git diff --quiet "origin/$BASE_REF" -- app/build.gradle.kts; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "app/build.gradle.kts unchanged; skipping versionCode validation for this main-target governance hotfix."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+          python3 - <<'PY'
+          import fnmatch
+          import os
+          import subprocess
+
+          # Version Guard must materialize on every main-target PR, but only
+          # workflow/governance/docs-only hotfixes may skip Play API validation.
+          # app/runtime/build-critical changes require app/build.gradle.kts versionCode bump.
+          protected_patterns = (
+              "app/**",
+              "core/**",
+              "gradle/**",
+              "gradlew",
+              "gradlew.bat",
+              "build.gradle.kts",
+              "settings.gradle.kts",
+              "gradle.properties",
+          )
+          version_file = "app/build.gradle.kts"
+          base_ref = os.environ["BASE_REF"]
+          changed_files = subprocess.check_output(
+              ["git", "diff", "--name-only", f"origin/{base_ref}...HEAD"],
+              text=True,
+          ).splitlines()
+
+          def matches(path: str, pattern: str) -> bool:
+              return path == pattern or fnmatch.fnmatch(path, pattern)
+
+          version_file_changed = version_file in changed_files
+          protected_changes = [
+              path
+              for path in changed_files
+              if any(matches(path, pattern) for pattern in protected_patterns)
+          ]
+          version_validation_required = bool(protected_changes)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"version_file_changed={str(version_file_changed).lower()}", file=output)
+              print(f"version_validation_required={str(version_validation_required).lower()}", file=output)
+
+          if version_validation_required:
+              print("Version Guard: app/runtime/build-critical changes require app/build.gradle.kts versionCode bump.")
+              print("Version Guard protected changed files:")
+              for path in protected_changes:
+                  print(f"- {path}")
+          else:
+              print("Version Guard: workflow/governance/docs-only change; keeping job visible while skipping Play service account restore and versionCode API validation.")
+          PY
 
       - name: Restore Google Play service account for guardrail
-        if: steps.version_changes.outputs.changed == 'true'
+        if: steps.version_scope.outputs.version_validation_required == 'true'
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -64,7 +106,7 @@ jobs:
           echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH=$service_account_path" >> "$GITHUB_ENV"
 
       - name: Resolve base and Google Play versionCode maxima
-        if: steps.version_changes.outputs.changed == 'true'
+        if: steps.version_scope.outputs.version_validation_required == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -88,7 +130,7 @@ jobs:
           echo "play: maxUsedVersionCode=$play_max_version_code"
 
       - name: Validate versionName and versionCode
-        if: steps.version_changes.outputs.changed == 'true'
+        if: steps.version_scope.outputs.version_validation_required == 'true'
         run: |
           set -euo pipefail
           python3 scripts/play_version_code_guard.py validate-build \
