@@ -46,6 +46,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
@@ -73,7 +74,7 @@ issue #16에 기록된 최근 30일 기준선:
   - `ad_banner_impression`
   - `ad_banner_click`
   - `ad_banner_revenue`
-- 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **PR #293 포함 버전 배포 후 새 `ad_banner_*` 이벤트명 기준 14일 coverage 재조회와 단일 실험 선택**이다.
+- 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **PR #293 포함 버전 배포 후 새 `ad_banner_*` 이벤트명 기준 14일 coverage 재조회와 단일 실험 선택**이다. 단, PR #293 포함 버전의 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`이면 새 `ad_banner_*` 행은 production placement 성과가 아니라 queryability smoke로만 기록한다.
 
 이전 참고값:
 

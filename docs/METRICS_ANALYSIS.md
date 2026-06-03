@@ -80,6 +80,7 @@
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐고, 2026-06-02T18:06:45Z live 재조회에서 skip reason용 `customEvent:reason`은 조회 가능해졌다. 다음 판단은 PR #308/#312 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인하되, failure 원인용 `customEvent:error`는 아직 GA4 Admin 미등록 경계로 둔다.
+- `docs/VERSION_ADOPTION_METRICS_GATE.md`: #359용 버전 채택률/최신 버전 cohort 판독 게이트. #13/#14/#16/#307처럼 release/tag/Play 배포 후에야 의미가 생기는 지표는 전체 30일 합산과 최신 배포 버전 cohort를 분리해 confidence를 `충분/주의/보류`로 표시한다.
 
 ## 빠른 분석 명령
 
@@ -179,6 +180,31 @@ run_report(
 )
 
 run_report(
+    'core_events_by_version_30d',
+    body(['totalUsers', 'eventCount'], ['eventName', 'appVersion'], limit=500, order_metric='eventCount') | {
+        'dimensionFilter': {
+            'filter': {
+                'fieldName': 'eventName',
+                'inListFilter': {
+                    'values': [
+                        'first_open',
+                        'first_lock_configured',
+                        'first_core_action_completed',
+                        'app_block_intercepted',
+                        'review_prompt_eligible',
+                        'review_prompt_shown',
+                        'review_prompt_skipped',
+                        'review_prompt_failed',
+                        'ad_banner_impression',
+                        'ad_banner_revenue',
+                    ]
+                },
+            }
+        }
+    },
+)
+
+run_report(
     'acquisition_30d',
     body(['newUsers', 'sessions', 'activeUsers'], ['firstUserDefaultChannelGroup'], limit=20, order_metric='newUsers'),
 )
@@ -203,7 +229,7 @@ filter_payload = {
 }
 ```
 
-위 필터를 `dimensionFilter`에 넣고 `appVersion` 차원으로 보면 버전별 이벤트 의미 변화 여부를 확인할 수 있다.
+위 필터를 `dimensionFilter`에 넣고 `appVersion` 차원으로 보면 버전별 이벤트 의미 변화 여부를 확인할 수 있다. #359 버전 채택률 판독 게이트는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 표준 표와 confidence 기준을 따른다.
 
 ### 광고 단위별 수익
 
@@ -316,6 +342,7 @@ PY
 
 - 이벤트가 버전별로 새로 추가되었으면 전체 30일 합산 퍼널을 그대로 믿지 않는다.
 - `appVersion`별로 나눠 보고, 이벤트가 동일한 의미로 찍히는 기간만 비교한다.
+- 최신 배포 버전 active share가 10% 미만이면 #359 기준 `보류`다. 이때 전체 합산 activation 수치를 최신 코드/CTA/피드백 성과로 승격하지 않고 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 D+14/D+30 재측정 표를 먼저 채운다.
 - PR #256 이후 #14는 홈 첫 잠금 CTA가 구현된 상태이며, PR #279/#283 이후 첫 차단 성공 피드백과 홈 Keep/타이머 시작 직후 안내도 develop 반영 상태다. 이후 docs/metrics lane은 이 이슈를 다시 “앱 선택 후 CTA가 없음” 또는 “첫 가치 피드백 미정의”로 해석하지 않는다. 다만 2026-06-02 확인 기준 PR #256/#279/#283 commit은 `origin/main`과 최신 production tag `v1.7.7`에 아직 미포함이므로, live production 수치는 post-fix 효과가 아니라 pre-#256/#279/#283 baseline으로만 본다.
 - 다음 repo 내부 후보는 새 CTA/피드백을 또 만드는 것이 아니라, 준비 완료(`first_lock_configured`)를 실제 차단 완료로 과장하지 않는 현재 안내 계약과 실제 `BlockViewModel.trackBlockShown(...)`의 `app_block_intercepted` → 최초 `first_core_action_completed` 계측 계약을 release/metrics handoff에서 유지하는 것이다.
 - 측정은 `first_lock_configured / first_open`뿐 아니라 `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`를 함께 본다. 세부 `source`, `blocking_mode`, `block_source` 분해는 #13 GA4 Admin registration 상태를 먼저 확인한다.
