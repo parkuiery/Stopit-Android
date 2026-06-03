@@ -149,6 +149,8 @@
 
 지표 기반 이슈는 기본적으로 ICE로 점수화한다.
 
+> 아래 ICE 표는 2026-05-23/초기 지표 기반 historical prioritization이다. 현재 실행 상태는 각 issue runbook의 release/manual boundary를 우선한다. 특히 #65는 ASO 초안 부재가 아니라 Play Console 수동 반영 후 attribution/14일·30일 검증 단계이고, #16은 PR #293 포함 production release 후 14일 coverage 재조회와 PR #362 관심도 CTA의 GA4 Admin/metadata 확인 전까지 실험 결론을 보류한다.
+
 | 항목 | Impact | Confidence | Ease | ICE | 근거 |
 |---|---:|---:|---:|---:|---|
 | GA4 계측 품질 개선 | 9 | 9 | 7 | 567 | 화면명 대부분 `(not set)`, 커스텀 차원 부족 |

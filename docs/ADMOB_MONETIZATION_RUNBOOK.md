@@ -10,7 +10,7 @@
 
 > 이 문서만으로 issue #16이 닫히지는 않는다. 실제 광고 단위 계측 보정, 성과표 작성, 실험 구현/배포는 후속 code/product PR에서 수행한다.
 
-## 현재 기준선
+## issue #16 초기 기준선
 
 issue #16에 기록된 최근 30일 기준선:
 
@@ -28,6 +28,7 @@ issue #16에 기록된 최근 30일 기준선:
 - 전체 광고 수익 규모가 작다.
 - 노출 대비 클릭과 eCPM이 모두 낮아 **광고 위치 최적화, 광고 단위 계측 품질, 실험 우선순위**를 분리해서 봐야 한다.
 - 지금 단계에서 “광고를 더 붙인다”는 접근은 위험하고, 먼저 **무엇이 벌어지는지 보이는 상태**를 만드는 편이 안전하다.
+- 현재 운영 판단의 source of truth는 이 초기 수치가 아니라 아래 `현재 #13 / #16 queryability 경계`, `release boundary snapshot`, `GA4 query template`, `광고 제거 관심도 측정 handoff`다. 특히 PR #293 `ad_banner_*` source split은 production 포함 후 14일 창이 열려야 placement 성과 판단에 쓰고, PR #362의 `monetization_interest_*` 코드 계약은 CTA UI·GA4 Admin 등록·metadata 확인 전까지 관심도 실험 준비 신호로만 본다.
 
 ## 언제 이 문서를 쓰는가
 
@@ -657,6 +658,20 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 - 이 코드 계약은 “실험 계측 준비 완료”이지 “실험 시작”이 아니다. CTA UI가 실제로 배치되고 배포된 뒤에야 `monetization_interest_shown` users를 분모로 삼을 수 있으며, 그 전까지는 event 0을 수요 없음으로 해석하지 않는다.
 - 결제 구현 전에는 “구매 완료”나 “전환”으로 표현하지 않고, 관심 클릭률만 낮은 confidence의 demand signal로 본다.
 - 클릭률 계산은 `monetization_interest_clicked` users / `monetization_interest_shown` users를 기본 분자/분모로 사용한다.
+
+### 광고 제거 관심도 측정 handoff
+
+PR #362 이후 #16의 repo-internal 계약은 “관심도 이벤트 이름과 파라미터가 코드에 존재한다”까지 전진했다. 하지만 이 상태를 곧바로 수요 검증이나 구매 전환으로 해석하지 않는다. 다음 순서를 모두 충족한 뒤에만 실험 지표를 읽는다.
+
+| 단계 | 완료 조건 | 아직 남은 경계 |
+| --- | --- | --- |
+| 코드 계약 | `monetization_interest_shown` / `monetization_interest_clicked`와 `interest_context`, `interest_surface`, `interest_variant`, `purchase_available` 파라미터가 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 존재 | 완료됨(PR #362). 단, CTA UI는 아직 없음 |
+| GA4 Admin 등록 | `customEvent:interest_context`, `customEvent:interest_surface`가 metadata에 보임 | 수동 등록 필요. `interest_variant`, `purchase_available`은 variant 비교/결제 가능 상태 분리가 필요할 때 등록 |
+| CTA UI 배치 | `home_secondary`, `menu_settings`, `ad_management`처럼 핵심 차단/긴급해제 밖의 안전한 표면에만 노출 | UI/제품 결정 필요. 차단·긴급해제·권한 흐름은 기본 제외 |
+| 배포/관측 | CTA 포함 버전이 release/tag/Play deploy에 포함되고 14일 이상 데이터가 쌓임 | post-release 창 전에는 event 0을 수요 없음으로 해석 금지 |
+| 실험 판단 | `clicked users / shown users`와 activation/review/trust guardrail을 함께 기록 | 구매 전환/매출 전환 표현 금지. 결제 미구현이면 관심도 신호만 기록 |
+
+`Refs #16` PR/이슈 코멘트에는 위 표 중 어디까지 완료됐는지와 남은 외부/manual boundary를 함께 적는다. `Closes #16`는 AdMob post-split 14일 재조회와 관심도 CTA/GA4 Admin/guardrail 판단까지 끝난 뒤에만 사용한다.
 
 실험 성공 판단 예시:
 

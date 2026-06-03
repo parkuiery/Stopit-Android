@@ -47,6 +47,10 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("monetization_interest_*", docs_agents)
         self.assertIn("관심도 실험 준비", metrics_context)
         self.assertIn("실험 시작", admob_runbook)
+        self.assertIn("광고 제거 관심도 측정 handoff", admob_runbook)
+        self.assertIn("CTA UI 배치 전", ga4_runbook)
+        self.assertIn("post-release 창 전에는 event 0을 수요 없음으로 해석 금지", admob_runbook)
+        self.assertNotIn("| `interest_context` | Required dimension | `TODO`", ga4_runbook)
 
 
 if __name__ == "__main__":
