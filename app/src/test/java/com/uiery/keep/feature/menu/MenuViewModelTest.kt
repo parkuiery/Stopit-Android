@@ -66,6 +66,56 @@ class MenuViewModelTest {
             dataStore.snapshot()[PreferencesKey.PREVENT_UNINSTALL] ?: true,
         )
     }
+
+    @Test
+    fun monetizationInterestCardShownUsesMenuSettingsContext() {
+        val analytics = MenuRecordingKeepAnalytics()
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineDao = FakeMenuRoutineDao(),
+            analytics = analytics,
+        )
+
+        viewModel.onMonetizationInterestCardShown()
+
+        assertEquals(
+            listOf(
+                MonetizationInterestEvent(
+                    type = "shown",
+                    surface = "menu",
+                    context = "menu_settings",
+                    variant = "default",
+                    purchaseAvailable = false,
+                ),
+            ),
+            analytics.monetizationInterestEvents,
+        )
+    }
+
+    @Test
+    fun monetizationInterestCardClickedUsesMenuSettingsContext() {
+        val analytics = MenuRecordingKeepAnalytics()
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineDao = FakeMenuRoutineDao(),
+            analytics = analytics,
+        )
+
+        viewModel.onMonetizationInterestCardClicked()
+
+        assertEquals(
+            listOf(
+                MonetizationInterestEvent(
+                    type = "clicked",
+                    surface = "menu",
+                    context = "menu_settings",
+                    variant = "default",
+                    purchaseAvailable = false,
+                ),
+            ),
+            analytics.monetizationInterestEvents,
+        )
+    }
 }
 
 private class FakeMenuRoutineDao(
@@ -82,8 +132,17 @@ private class FakeMenuRoutineDao(
     override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
 }
 
+private data class MonetizationInterestEvent(
+    val type: String,
+    val surface: String,
+    val context: String,
+    val variant: String?,
+    val purchaseAvailable: Boolean?,
+)
+
 private class MenuRecordingKeepAnalytics : KeepAnalytics {
     val screenViews = mutableListOf<String>()
+    val monetizationInterestEvents = mutableListOf<MonetizationInterestEvent>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
@@ -100,4 +159,34 @@ private class MenuRecordingKeepAnalytics : KeepAnalytics {
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
+
+    override fun trackMonetizationInterestShown(
+        interestSurface: String,
+        interestContext: String,
+        interestVariant: String?,
+        purchaseAvailable: Boolean?,
+    ) {
+        monetizationInterestEvents += MonetizationInterestEvent(
+            type = "shown",
+            surface = interestSurface,
+            context = interestContext,
+            variant = interestVariant,
+            purchaseAvailable = purchaseAvailable,
+        )
+    }
+
+    override fun trackMonetizationInterestClicked(
+        interestSurface: String,
+        interestContext: String,
+        interestVariant: String?,
+        purchaseAvailable: Boolean?,
+    ) {
+        monetizationInterestEvents += MonetizationInterestEvent(
+            type = "clicked",
+            surface = interestSurface,
+            context = interestContext,
+            variant = interestVariant,
+            purchaseAvailable = purchaseAvailable,
+        )
+    }
 }

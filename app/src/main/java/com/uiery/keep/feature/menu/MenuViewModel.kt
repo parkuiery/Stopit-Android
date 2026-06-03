@@ -2,6 +2,8 @@ package com.uiery.keep.feature.menu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.uiery.keep.analytics.AnalyticsMonetizationInterestContext
+import com.uiery.keep.analytics.AnalyticsMonetizationInterestSurface
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
@@ -46,5 +48,27 @@ class MenuViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             blockingStateStore.setPreventUninstall(enabled)
         }
+    }
+
+    fun onMonetizationInterestCardShown() {
+        analytics.trackMonetizationInterestShown(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.MENU_SETTINGS,
+            interestVariant = MONETIZATION_INTEREST_VARIANT,
+            purchaseAvailable = false,
+        )
+    }
+
+    fun onMonetizationInterestCardClicked() {
+        analytics.trackMonetizationInterestClicked(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.MENU_SETTINGS,
+            interestVariant = MONETIZATION_INTEREST_VARIANT,
+            purchaseAvailable = false,
+        )
+    }
+
+    private companion object {
+        const val MONETIZATION_INTEREST_VARIANT = "default"
     }
 }

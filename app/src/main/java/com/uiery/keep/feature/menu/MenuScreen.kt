@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -61,6 +62,9 @@ fun MenuScreen(
     val context = LocalContext.current
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
+    LaunchedEffect(menuViewModel) {
+        menuViewModel.onMonetizationInterestCardShown()
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -140,6 +144,37 @@ fun MenuScreen(
                 title = stringResource(id = R.string.contact_us),
                 onClick = { sendCustomerEmail(context) }
             )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .clickable(onClick = {
+                        menuViewModel.onMonetizationInterestCardClicked()
+                        sendCustomerEmail(context)
+                    }),
+                colors = CardDefaults.cardColors(
+                    containerColor = KeepTheme.colors.onTertiary,
+                ),
+                border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 14.dp),
+                    text = stringResource(id = R.string.monetization_interest_menu_title),
+                    color = KeepTheme.colors.onSurface,
+                    textAlign = TextAlign.Start,
+                )
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
+                    text = stringResource(id = R.string.monetization_interest_menu_message),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    textAlign = TextAlign.Start,
+                )
+            }
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                 thickness = 1.dp,

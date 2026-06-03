@@ -64,6 +64,8 @@
     <string name="routine_no_content_message">ルーチンを追加してアプリロックをもっと便利に！\nStopItが自動でアプリをロックします。</string>
     <string name="routine">ルーチン</string>
     <string name="contact_us">お問い合わせ</string>
+    <string name="monetization_interest_menu_title">広告なしでStopItを使いたいですか？</string>
+    <string name="monetization_interest_menu_message">広告なしオプションが役立つか教えてください。まだ購入はできません。</string>
     <string name="feedback_subject">[StopIt Android] フィードバック</string>
     <string name="email_app_not_installed">メールアプリがインストールされていません。</string>
     <string name="feature_request_message">🚀 ご希望の機能を作成いたします！</string>
