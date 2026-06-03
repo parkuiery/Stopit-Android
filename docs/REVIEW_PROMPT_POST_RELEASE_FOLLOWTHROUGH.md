@@ -90,12 +90,12 @@
 
 ### 2. GA4 queryability 경계
 
-상위 이벤트 count는 조회 가능하더라도, 다음 breakdown은 GA4 Admin 등록 전에는 안정적으로 볼 수 없다.
+상위 이벤트 count와 breakdown queryability를 분리해서 기록한다. 2026-06-02T18:06:45Z live readback 이후에는 두 축의 상태가 다르다.
 
-- `review_prompt_skipped` by `customEvent:reason`
-- `review_prompt_failed` by `customEvent:error`
+- `review_prompt_skipped` by `customEvent:reason`: 조회 가능. #307 skip reason 표와 post-release D+14/D+30 재측정에 사용한다.
+- `review_prompt_failed` by `customEvent:error`: 아직 GA4 Admin/metadata 미등록 경계. 실패 이벤트가 생겨도 원인 breakdown은 #13 registration follow-through와 연결한다.
 
-`customEvent:reason` 또는 `customEvent:error`가 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`로 실패하면 제품 결론이 아니라 #13 GA4 Admin 등록 경계로 기록한다.
+`customEvent:reason`이 다시 `400 INVALID_ARGUMENT` / `Field customEvent:reason is not a valid dimension`로 실패하면 metadata 회귀로 기록한다. `customEvent:error` 실패는 현재 기준 expected external/manual boundary이므로 repo 코드 결론으로 과대해석하지 않는다.
 
 ### 3. Play In-App Review 한계
 
@@ -121,7 +121,7 @@
 
 ### skip/failure breakdown 표
 
-GA4 Admin 등록이 확인된 뒤에만 채운다.
+`customEvent:reason`은 2026-06-02T18:06:45Z 기준 조회 가능해 baseline을 채운다. `customEvent:error`는 GA4 Admin 등록이 확인된 뒤에만 failure 원인 표를 채운다.
 
 | 기간 | cohort/version | dimension | 값 | users | eventCount | 해석 |
 | --- | --- | --- | --- | ---: | ---: | --- |
