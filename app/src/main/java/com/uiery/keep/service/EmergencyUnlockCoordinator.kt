@@ -1,14 +1,11 @@
 package com.uiery.keep.service
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
-import com.uiery.keep.datastore.PreferencesKey
-import kotlinx.coroutines.flow.firstOrNull
+import com.uiery.keep.datastore.EmergencyUnlockSettingsSnapshot
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -44,7 +41,7 @@ internal sealed interface EmergencyUnlockRequestResult {
 class EmergencyUnlockCoordinator
     @Inject
     constructor(
-        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val settingsStore: EmergencyUnlockSettingsStore,
         private val blockingStateStore: BlockingStateStore,
         private val emergencyUnlockDao: EmergencyUnlockDao,
         private val analytics: KeepAnalytics,
@@ -66,7 +63,12 @@ class EmergencyUnlockCoordinator
             val settings = readSettings()
             val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
             if (!canCompleteEmergencyUnlockRequest(
-                    settings = settings,
+                    settings = EmergencyUnlockSettings(
+                        enabled = settings.enabled,
+                        dailyLimit = settings.dailyLimit,
+                        durationOptions = settings.durationOptions,
+                        reasonRequired = settings.reasonRequired,
+                    ),
                     todayUnlockCount = todayCount,
                     durationMinutes = durationMinutes,
                     reason = reason,
@@ -113,22 +115,10 @@ class EmergencyUnlockCoordinator
             )
         }
 
-        private suspend fun readSettings(): EmergencyUnlockSettings {
-            val preferences = dataStore.data.firstOrNull()
-            return EmergencyUnlockSettings(
-                enabled = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_ENABLED) ?: true,
-                dailyLimit = sanitizeEmergencyUnlockDailyLimit(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT),
-                ),
-                durationOptions = sanitizeEmergencyUnlockDurationOptions(
-                    preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS),
-                ),
-                reasonRequired = preferences?.get(PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED) ?: true,
-            )
-        }
+        private suspend fun readSettings(): EmergencyUnlockSettingsSnapshot = settingsStore.readSettings()
 
         private fun availability(
-            settings: EmergencyUnlockSettings,
+            settings: EmergencyUnlockSettingsSnapshot,
             todayUnlockCount: Int,
         ): EmergencyUnlockAvailability =
             EmergencyUnlockAvailability(

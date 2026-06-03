@@ -2,6 +2,7 @@ package com.uiery.keep.feature.emergencyunlocksettings
 
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.feature.review.FakeDataStore
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -12,7 +13,7 @@ class EmergencyUnlockSettingsViewModelAnalyticsTest {
         val analytics = RecordingEmergencyUnlockSettingsAnalytics()
 
         EmergencyUnlockSettingsViewModel(
-            dataStore = FakeDataStore(),
+            settingsStore = EmergencyUnlockSettingsStore(FakeDataStore()),
             analytics = analytics,
         )
 
