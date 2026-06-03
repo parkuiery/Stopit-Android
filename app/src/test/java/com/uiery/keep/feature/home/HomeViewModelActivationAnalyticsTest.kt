@@ -270,6 +270,35 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun moveToLockUsesTheSameDeadlinePersistedByLockTimeEvenIfTimerStateChangesBeforeNavigation() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.lockTime()
+        delay(50)
+        val persistedDeadline = dataStore.snapshot()[PreferencesKey.LOCK_TIME]
+
+        viewModel.updateTimerTime(LocalTime(hour = 22, minute = 10))
+        viewModel.moveToLock()
+        delay(50)
+
+        assertEquals(
+            HomeSideEffect.MoveToLock(lockTime = persistedDeadline, isRoutine = false),
+            sideEffects.filterIsInstance<HomeSideEffect.MoveToLock>().single(),
+        )
+        sideEffectJob.cancel()
+    }
+
+    @Test
     fun lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(

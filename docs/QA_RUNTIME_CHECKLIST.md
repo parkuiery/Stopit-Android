@@ -800,6 +800,7 @@ adb shell dumpsys accessibility | grep -n 'Enabled services\|Bound services' -A1
 
 확인:
 - [ ] 예약 직후에는 `lock_history`, `TOTAL_BLOCK_TIME`, `LONG_BLOCK_TIME`가 완료 세션처럼 선반영되지 않는다.
+- [ ] Home timer 예약 시 `LOCK_TIME`에 저장된 deadline과 Lock 화면 route/countdown deadline이 동일하다. Bottom sheet hide / navigation 지연 또는 timer state 변경 때문에 `moveToLock()`이 deadline을 재계산하지 않는다.
 - [ ] 잠금 시간 내에는 차단된다.
 - [ ] 잠금 만료 후에는 정상 진입된다.
 - [ ] 만료 직전/직후에 차단 상태가 뒤집히는 이상 동작이 없다.
@@ -810,6 +811,7 @@ adb shell dumpsys accessibility | grep -n 'Enabled services\|Bound services' -A1
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.moveToLockUsesTheSameDeadlinePersistedByLockTimeEvenIfTimerStateChangesBeforeNavigation" \
   --tests "com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.lockTimeDoesNotPreRecordFutureTimerSessionInHistoryLedger" \
   --tests "com.uiery.keep.feature.lock.LockViewModelTest.completedHomeTimerRecordsHistoryLedgerAtLockCompletion"
 ```

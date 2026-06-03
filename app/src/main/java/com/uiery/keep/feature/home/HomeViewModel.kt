@@ -222,12 +222,17 @@ class HomeViewModel
 
         internal fun moveToLock() =
             intent {
-                val targetDateTime = if (state.countdownDays > 0) {
-                    calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
-                } else {
-                    calculateTargetLockDateTime(state.blockTime)
+                val routeDeadline = state.pendingManualLockRouteDeadline ?: run {
+                    val targetDateTime = if (state.countdownDays > 0) {
+                        calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
+                    } else {
+                        calculateTargetLockDateTime(state.blockTime)
+                    }
+                    val targetInstant = targetDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                    ManualLockTimePolicy.encodeDeadline(targetInstant)
                 }
-                postSideEffect(HomeSideEffect.MoveToLock(targetDateTime.toString(), false))
+                postSideEffect(HomeSideEffect.MoveToLock(routeDeadline, false))
+                reduce { state.copy(pendingManualLockRouteDeadline = null) }
             }
 
         private fun getSelectedApp() =
@@ -357,7 +362,9 @@ class HomeViewModel
                     calculateTargetLockDateTime(state.blockTime)
                 }
                 val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
-                blockingStateStore.saveLockTime(ManualLockTimePolicy.encodeDeadline(targetLockInstant))
+                val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
+                blockingStateStore.saveLockTime(encodedDeadline)
+                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline) }
                 val lockedDuration =
                     Duration
                         .between(java.time.Instant.now(), targetLockInstant)
@@ -447,6 +454,7 @@ data class HomeUiState(
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
+    val pendingManualLockRouteDeadline: String? = null,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
