@@ -92,6 +92,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/validate-play-deploy-ref.sh
 
+      - name: Validate non-production staged rollout inputs
+        if: env.DEPLOY_TRACK != 'production'
+        run: node scripts/validate-play-rollout-inputs.js
+
       - name: Validate build/upload deployment secrets
         if: env.DEPLOY_TRACK != 'production'
         env:
