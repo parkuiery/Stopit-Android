@@ -5,6 +5,9 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 KEEP_ANALYTICS = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "KeepAnalytics.kt"
 FIREBASE_ANALYTICS = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "FirebaseKeepAnalytics.kt"
+MENU_VIEW_MODEL = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "menu" / "MenuViewModel.kt"
+MENU_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "menu" / "MenuScreen.kt"
+STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values" / "strings.xml"
 EVENT_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
 GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
 ADMOB_RUNBOOK = REPO_ROOT / "docs" / "ADMOB_MONETIZATION_RUNBOOK.md"
@@ -19,6 +22,9 @@ class MonetizationInterestContractTest(unittest.TestCase):
     def test_interest_events_are_implemented_and_documented_as_code_contract(self):
         keep_analytics = KEEP_ANALYTICS.read_text()
         firebase_analytics = FIREBASE_ANALYTICS.read_text()
+        menu_view_model = MENU_VIEW_MODEL.read_text()
+        menu_screen = MENU_SCREEN.read_text()
+        strings = STRINGS.read_text()
         event_dictionary = EVENT_DICTIONARY.read_text()
         ga4_runbook = GA4_RUNBOOK.read_text()
         admob_runbook = ADMOB_RUNBOOK.read_text()
@@ -45,10 +51,17 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("PR #362", metrics_analysis)
         self.assertIn("PR #362", product_dashboard)
         self.assertIn("monetization_interest_*", docs_agents)
+        self.assertIn("onMonetizationInterestCardShown", menu_view_model)
+        self.assertIn("onMonetizationInterestCardClicked", menu_view_model)
+        self.assertIn("monetization_interest_menu_title", menu_screen)
+        self.assertIn("monetization_interest_menu_message", strings)
+        self.assertIn("CTA UI | 완료됨", admob_runbook)
+        self.assertIn("MenuScreen.kt", admob_runbook)
+        self.assertIn("2026-06-04 메뉴/설정 CTA", ga4_runbook)
         self.assertIn("관심도 실험 준비", metrics_context)
         self.assertIn("실험 시작", admob_runbook)
         self.assertIn("광고 제거 관심도 측정 handoff", admob_runbook)
-        self.assertIn("CTA UI 배치 전", ga4_runbook)
+        self.assertIn("CTA 포함 버전 배포 전후", ga4_runbook)
         self.assertIn("post-release 창 전에는 event 0을 수요 없음으로 해석 금지", admob_runbook)
         self.assertNotIn("| `interest_context` | Required dimension | `TODO`", ga4_runbook)
 

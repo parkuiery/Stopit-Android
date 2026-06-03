@@ -63,7 +63,9 @@
     <string name="start_time">Heure de début</string>
     <string name="routine_no_content_message">Ajoutez une routine pour rendre le verrouillage d\'application plus pratique !\nStopIt verrouillera automatiquement vos applications.</string>
     <string name="routine">Routine</string>
-    <string name="contact_us">Nous contacter</string>
+    <string name="contact_us">Contactez-nous</string>
+    <string name="monetization_interest_menu_title">Utiliser StopIt sans publicité ?</string>
+    <string name="monetization_interest_menu_message">Dites-nous si une option sans publicité serait utile. Aucun achat n’est encore disponible.</string>
     <string name="feedback_subject">[StopIt Android] Commentaires</string>
     <string name="email_app_not_installed">Aucune application email installée.</string>
     <string name="feature_request_message">🚀 Nous créerons les fonctionnalités que vous souhaitez !</string>

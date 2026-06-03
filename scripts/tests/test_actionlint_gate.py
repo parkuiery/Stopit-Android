@@ -7,6 +7,16 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 OPS_CI = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
+GOVERNANCE_RELEASE_WORKFLOWS = (
+    "android-ci.yml",
+    "branch-hygiene.yml",
+    "ops-ci.yml",
+    "play-deploy.yml",
+    "release-build.yml",
+    "release-qa.yml",
+    "version-guard.yml",
+)
 
 
 class ActionlintGateContractTest(unittest.TestCase):
@@ -42,6 +52,32 @@ class ActionlintGateContractTest(unittest.TestCase):
                 self.assertIn("Workflow syntax lint", doc)
                 self.assertIn("actionlint", doc)
                 self.assertIn(".github/workflows/**", doc)
+
+    def test_governance_release_workflows_use_checkout_v6(self):
+        for workflow_name in GOVERNANCE_RELEASE_WORKFLOWS:
+            workflow = (WORKFLOW_DIR / workflow_name).read_text()
+            checkout_refs = re.findall(r"actions/checkout@v(\d+)", workflow)
+            with self.subTest(workflow=workflow_name):
+                self.assertTrue(checkout_refs, f"{workflow_name} should use actions/checkout")
+                self.assertEqual(
+                    {"6"},
+                    set(checkout_refs),
+                    f"{workflow_name} should stay on the repository checkout major standard v6",
+                )
+
+    def test_operator_docs_describe_checkout_major_standard_for_all_release_governance_workflows(self):
+        git_workflow = GIT_WORKFLOW.read_text()
+        release_context = RELEASE_CONTEXT.read_text()
+
+        for doc_name, doc in (
+            ("docs/GIT_WORKFLOW.md", git_workflow),
+            ("docs/ops/stopit/release-context.md", release_context),
+        ):
+            with self.subTest(doc=doc_name):
+                self.assertIn("actions/checkout", doc)
+                self.assertIn("v6", doc)
+                self.assertIn("Branch Hygiene", doc)
+                self.assertIn("Release QA", doc)
 
     def _trigger_block(self, workflow: str, trigger: str) -> str:
         pattern = rf"(?ms)^  {trigger}:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|^permissions:|^concurrency:|^jobs:|\Z)"
