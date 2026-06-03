@@ -89,6 +89,13 @@
     <string name="lock_history_block_count">%1$d Mal</string>
     <string name="lock_history_duration_short_hour">%1$d Std.%2$d Min.</string>
     <string name="lock_history_duration_short_min">%1$d Min.</string>
+    <string name="cd_navigate_back">Zurück</string>
+    <string name="cd_open_menu">Menü öffnen</string>
+    <string name="cd_open_timer">Sperr-Timer einstellen</string>
+    <string name="cd_add_routine">Routine hinzufügen</string>
+    <string name="cd_delete_routine">Routine löschen</string>
+    <string name="cd_previous_period">Vorheriger Zeitraum</string>
+    <string name="cd_next_period">Nächster Zeitraum</string>
     <string name="blocked_apps_title">Blockierte Apps</string>
     <string name="routine_alarm_permission_title">Wir erinnern dich, damit du den Start deiner Routine nicht verpasst.</string>
     <string name="routine_alarm_permission_description">Wir senden zur eingestellten Zeit eine Benachrichtigung, damit du deine Routine ganz natürlich beginnen kannst.</string>

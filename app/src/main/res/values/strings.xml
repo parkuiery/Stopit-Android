@@ -92,6 +92,13 @@
     <string name="lock_history_block_count">%1$d times</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="cd_navigate_back">Navigate back</string>
+    <string name="cd_open_menu">Open menu</string>
+    <string name="cd_open_timer">Set lock timer</string>
+    <string name="cd_add_routine">Add routine</string>
+    <string name="cd_delete_routine">Delete routine</string>
+    <string name="cd_previous_period">Previous period</string>
+    <string name="cd_next_period">Next period</string>
     <string name="blocked_apps_title">Blocked Apps</string>
     <!-- Routine Notifications -->
     <string name="notification_channel_routine_name">Routine Notifications</string>

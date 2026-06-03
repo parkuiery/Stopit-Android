@@ -89,6 +89,13 @@
     <string name="lock_history_block_count">%1$d回</string>
     <string name="lock_history_duration_short_hour">%1$d時間%2$d分</string>
     <string name="lock_history_duration_short_min">%1$d分</string>
+    <string name="cd_navigate_back">戻る</string>
+    <string name="cd_open_menu">メニューを開く</string>
+    <string name="cd_open_timer">ロックタイマーを設定</string>
+    <string name="cd_add_routine">ルーティンを追加</string>
+    <string name="cd_delete_routine">ルーティンを削除</string>
+    <string name="cd_previous_period">前の期間</string>
+    <string name="cd_next_period">次の期間</string>
     <string name="blocked_apps_title">ブロックされたアプリ</string>
     <string name="routine_alarm_permission_title">ルーティンの開始を逃さないようにお知らせします。</string>
     <string name="routine_alarm_permission_description">設定した時間に通知を送り、自然にルーティンを始められるようお手伝いします。</string>

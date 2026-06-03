@@ -89,6 +89,13 @@
     <string name="lock_history_block_count">%1$d keer</string>
     <string name="lock_history_duration_short_hour">%1$du%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="cd_navigate_back">Terug</string>
+    <string name="cd_open_menu">Menu openen</string>
+    <string name="cd_open_timer">Vergrendeltimer instellen</string>
+    <string name="cd_add_routine">Routine toevoegen</string>
+    <string name="cd_delete_routine">Routine verwijderen</string>
+    <string name="cd_previous_period">Vorige periode</string>
+    <string name="cd_next_period">Volgende periode</string>
     <string name="blocked_apps_title">Geblokkeerde apps</string>
     <string name="routine_alarm_permission_title">We laten het je weten zodat je het begin van je routine niet mist.</string>
     <string name="routine_alarm_permission_description">We sturen op het ingestelde tijdstip een melding om je te helpen je routine op een natuurlijke manier te starten.</string>

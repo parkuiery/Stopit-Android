@@ -206,7 +206,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.outline_delete_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_delete_routine),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -252,7 +252,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -263,7 +263,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_add),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_add_routine),
                             tint = KeepTheme.colors.primary,
                         )
                     }
