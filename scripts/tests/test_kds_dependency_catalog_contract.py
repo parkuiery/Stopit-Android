@@ -50,6 +50,23 @@ class KdsDependencyCatalogContractTest(unittest.TestCase):
                 self.assertNotIn("SystemUiController", contents)
                 self.assertNotIn("ModalBottomSheetDefaults.properties", contents)
 
+    def test_runtime_qa_checklist_tracks_bottom_sheet_visual_evidence_boundary(self):
+        checklist = (REPO_ROOT / "docs/QA_RUNTIME_CHECKLIST.md").read_text()
+
+        required_phrases = (
+            "KDS modal bottom sheet edge-to-edge visual QA",
+            "KeepModalBottomSheet",
+            "navigation bar",
+            "status bar",
+            "gesture navigation",
+            "3-button navigation",
+            "screenshot evidence",
+            "issue #325",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, checklist)
+
 
 if __name__ == "__main__":
     unittest.main()

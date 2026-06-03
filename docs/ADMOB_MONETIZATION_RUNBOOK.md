@@ -654,6 +654,7 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 
 - `monetization_interest_context`를 별도 이벤트처럼 만들지 않는다. 관심도 실험은 `shown`/`clicked` 두 이벤트에 `interest_context` 파라미터를 붙여 조회한다.
 - 2026-06-03 QA/code contract로 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 `monetization_interest_shown` / `monetization_interest_clicked` 기록 API가 추가됐다. 실제 CTA UI 배치 전에는 `interest_context` / `interest_surface`를 GA4 Admin에 등록하고 metadata 확인을 남긴다.
+- 이 코드 계약은 “실험 계측 준비 완료”이지 “실험 시작”이 아니다. CTA UI가 실제로 배치되고 배포된 뒤에야 `monetization_interest_shown` users를 분모로 삼을 수 있으며, 그 전까지는 event 0을 수요 없음으로 해석하지 않는다.
 - 결제 구현 전에는 “구매 완료”나 “전환”으로 표현하지 않고, 관심 클릭률만 낮은 confidence의 demand signal로 본다.
 - 클릭률 계산은 `monetization_interest_clicked` users / `monetization_interest_shown` users를 기본 분자/분모로 사용한다.
 
@@ -708,6 +709,7 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 - 광고 단위 감사 절차 문서화
 - 광고 application/ad unit id의 flavor별 config 계약과 code-lane handoff 정리
 - 수익화 실험 우선순위/guardrail 문서화
+- `monetization_interest_*` 코드 계약을 context pack / dashboard / GA4 registration runbook에 연결하고, CTA UI·GA4 Admin·metadata 확인 전후 경계를 분리
 - metrics 문서에서 광고 분석 문서를 발견 가능하게 연결
 
 이 lane에서 하지 않는 것:

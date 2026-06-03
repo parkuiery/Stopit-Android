@@ -53,7 +53,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 제품 신호 부재보다 **GA4 Admin registration gap** 가능성을 먼저 의심하고, 최종 해석은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 묶는다.
 - #65/#242 ASO 판단은 `docs/PLAY_STORE_ASO.md`의 attribution gate를 먼저 따른다. 2026-06-02 최신 스냅샷처럼 `Direct` 신규 비중이 60.9%까지 커졌을 때는 Play Console Search/Explore, external/campaign, UTM/Install Referrer 기록을 확인하기 전까지 ASO 회복으로 단정하지 않는다.
 - #307 리뷰 프롬프트 follow-through는 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태를 기준으로 본다. 다음 판단은 같은 코드 PR을 다시 만드는 것이 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 여부, GA4 `customEvent:reason/error` queryability, Play Console rating/review 14일·30일 관측이다.
-- #16 AdMob 수익화 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. PR #293의 `ad_banner_*` event-source split은 develop에 있지만 최신 production tag `v1.7.7`과 현재 `origin/main`에는 없으므로, PR #293 포함 release/tag/Play deploy 전까지 `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline으로만 본다. GA4에 소량의 `ad_banner_*` 행이 먼저 보여도 source-split queryability smoke로만 보고, production 14일 placement/실험 판단으로 승격하지 않는다.
+- #16 AdMob 수익화 판단은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 source of truth로 본다. PR #293의 `ad_banner_*` event-source split은 develop에 있지만 최신 production tag `v1.7.7`과 현재 `origin/main`에는 없으므로, PR #293 포함 release/tag/Play deploy 전까지 `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline으로만 본다. GA4에 소량의 `ad_banner_*` 행이 먼저 보여도 source-split queryability smoke로만 보고, production 14일 placement/실험 판단으로 승격하지 않는다. PR #362로 `monetization_interest_shown` / `monetization_interest_clicked` 코드 계약은 생겼지만, 실제 CTA UI 배치·GA4 `interest_context` / `interest_surface` 등록·metadata 확인 전까지 구매 전환이 아니라 관심도 실험 준비 상태로만 본다.
 - 민감한 행동 정보, 차단 앱 목록, 집중 실패/중독 뉘앙스는 노출하지 않는다.
 - 공유/성장 루프는 완전 선택형이어야 하며 사생활을 침해하면 안 된다.
 - 긴급해제와 안전 플로우는 광고나 수익화 뒤에 숨기지 않는다.
@@ -83,7 +83,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/PLAY_STORE_ASO.md`: #65/#242 Play Console ASO 반영 후 Search/Explore vs external/campaign attribution gate, 14일·30일 검증 런북.
-- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16 AdMob event-source split, `ad_banner_*` post-release coverage 재조회, 수익화 guardrail 런북.
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16 AdMob event-source split, `ad_banner_*` post-release coverage 재조회, `monetization_interest_*` 관심도 CTA 계약, 수익화 guardrail 런북.
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307 리뷰 프롬프트 shown 0 재측정, PR #308/#312 포함 버전 release/tag/Play deploy 및 14일·30일 후행 관측 런북.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: 리뷰 프롬프트 arm/drain, skip reason, Play In-App Review 한계 계약.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 Usage Access 선택형 개인화 discovery gate. 구현 ready가 아니라 권한 UX, privacy guardrail, QA evidence, child issue 분리 기준을 관리한다.
