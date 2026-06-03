@@ -1,14 +1,18 @@
+import os
 import pathlib
+import subprocess
 import unittest
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 PLAY_DOC_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
+PLAY_SECRETS_RUNBOOK_PATH = REPO_ROOT / "docs" / "PLAY_DEPLOY_SECRETS_RUNBOOK.md"
 GIT_WORKFLOW_DOC_PATH = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CHECKLIST_PATH = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT_PATH = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 FUNCTIONS_README_PATH = REPO_ROOT / "functions" / "README.md"
+ROLLOUT_VALIDATOR_PATH = REPO_ROOT / "scripts" / "validate-play-rollout-inputs.js"
 
 
 class PlayDeployTagGovernanceTest(unittest.TestCase):
@@ -97,6 +101,75 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("inputs.track == 'production'", workflow)
         self.assertIn("production", workflow)
         self.assertIn("play-deploy-non-production", workflow)
+
+    def test_non_production_staged_rollout_inputs_are_validated_before_secret_decode(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("- name: Validate non-production staged rollout inputs", workflow)
+        rollout_step = workflow.split("- name: Validate non-production staged rollout inputs", 1)[1].split("- name:", 1)[0]
+        secret_step_index = workflow.index("- name: Validate build/upload deployment secrets")
+        rollout_step_index = workflow.index("- name: Validate non-production staged rollout inputs")
+
+        self.assertLess(rollout_step_index, secret_step_index)
+        self.assertIn("if: env.DEPLOY_TRACK != 'production'", rollout_step)
+        self.assertIn("run: node scripts/validate-play-rollout-inputs.js", rollout_step)
+
+    def run_rollout_validator(self, release_status, rollout_fraction):
+        env = os.environ.copy()
+        env["RELEASE_STATUS"] = release_status
+        env["ROLLOUT_FRACTION"] = rollout_fraction
+        return subprocess.run(
+            ["node", str(ROLLOUT_VALIDATOR_PATH)],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def test_non_production_staged_rollout_validator_accepts_valid_contract(self):
+        valid_cases = [
+            ("inProgress", "0.05", "Validated staged rollout input"),
+            ("inProgress", "1", "Validated staged rollout input"),
+            ("completed", "", "rollout_fraction is empty"),
+            ("draft", "", "rollout_fraction is empty"),
+            ("halted", "", "rollout_fraction is empty"),
+        ]
+
+        for release_status, rollout_fraction, expected_output in valid_cases:
+            with self.subTest(release_status=release_status, rollout_fraction=rollout_fraction):
+                result = self.run_rollout_validator(release_status, rollout_fraction)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(expected_output, result.stdout)
+
+    def test_non_production_staged_rollout_validator_rejects_invalid_contract(self):
+        invalid_cases = [
+            ("inProgress", "", "RELEASE_STATUS=inProgress requires rollout_fraction"),
+            ("inProgress", "0", "0 < rollout_fraction <= 1"),
+            ("inProgress", "1.5", "0 < rollout_fraction <= 1"),
+            ("inProgress", "not-a-number", "0 < rollout_fraction <= 1"),
+            ("completed", "0.2", "Release statuses other than inProgress must leave rollout_fraction empty"),
+            ("draft", "0.2", "Release statuses other than inProgress must leave rollout_fraction empty"),
+            ("halted", "0.2", "Release statuses other than inProgress must leave rollout_fraction empty"),
+        ]
+
+        for release_status, rollout_fraction, expected_error in invalid_cases:
+            with self.subTest(release_status=release_status, rollout_fraction=rollout_fraction):
+                result = self.run_rollout_validator(release_status, rollout_fraction)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected_error, result.stderr)
+
+    def test_non_production_staged_rollout_docs_define_secret_decode_boundary(self):
+        docs = "\n--- docs/PLAY_DEPLOYMENT.md ---\n" + PLAY_DOC_PATH.read_text()
+        docs += "\n--- docs/RELEASE_CHECKLIST.md ---\n" + RELEASE_CHECKLIST_PATH.read_text()
+        docs += "\n--- docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md ---\n" + PLAY_SECRETS_RUNBOOK_PATH.read_text()
+        docs += "\n--- docs/ops/stopit/release-context.md ---\n" + RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("non-production staged rollout", docs)
+        self.assertIn("secret decode", docs)
+        self.assertIn("`release_status=inProgress`", docs)
+        self.assertIn("`0 < rollout_fraction <= 1`", docs)
+        self.assertIn("`completed`/`draft`/`halted`", docs)
 
     def test_production_promotion_skips_android_build_setup_and_secret_bundle(self):
         workflow = WORKFLOW_PATH.read_text()

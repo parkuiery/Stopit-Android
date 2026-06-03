@@ -1,8 +1,10 @@
 import pathlib
+import re
 import unittest
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+ANDROID_TEST_ROOT = REPO_ROOT / "app" / "src" / "androidTest" / "java"
 RELEASE_QA_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-qa.yml"
 DOCS = {
     "release checklist": REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md",
@@ -45,7 +47,37 @@ RELEASE_FACING_DOCS = {
 }
 
 
+def release_qa_instrumentation_selectors():
+    workflow = RELEASE_QA_WORKFLOW.read_text()
+    selectors = []
+    for match in re.finditer(r"android\.testInstrumentationRunnerArguments\.class=([^\s`\"]+)", workflow):
+        selectors.extend(selector.strip() for selector in match.group(1).split(","))
+    return [selector for selector in selectors if selector.startswith("com.uiery.keep.")]
+
+
+def android_test_source_for(class_name):
+    relative = pathlib.Path(*class_name.split(".")).with_suffix(".kt")
+    return ANDROID_TEST_ROOT / relative
+
+
+def kotlin_method_exists(source, method_name):
+    return re.search(rf"\bfun\s+{re.escape(method_name)}\s*\(", source) is not None
+
+
 class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
+    def test_release_qa_instrumentation_selectors_exist_in_android_test_sources(self):
+        missing = []
+        for selector in release_qa_instrumentation_selectors():
+            class_name, _, method_name = selector.partition("#")
+            source_path = android_test_source_for(class_name)
+            if not source_path.exists():
+                missing.append(f"{selector} (missing class source: {source_path.relative_to(REPO_ROOT)})")
+                continue
+            if method_name and not kotlin_method_exists(source_path.read_text(), method_name):
+                missing.append(f"{selector} (missing method in {source_path.relative_to(REPO_ROOT)})")
+
+        self.assertEqual([], missing)
+
     def test_guarded_release_qa_runtime_gates_exist_in_workflow(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         for gate in REQUIRED_RELEASE_QA_GATES:
