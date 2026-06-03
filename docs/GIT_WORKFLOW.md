@@ -107,7 +107,7 @@ Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 크고, Google Play tracks에서 보이는 최고 사용 `versionCode`보다도 커야 한다.
 4. 태그 형식은 `v{versionName}`이다. 예: `v1.7.1`
 
-자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다. workflow-only / governance-only main-target hotfix처럼 `app/build.gradle.kts`가 바뀌지 않은 PR은 `Version Guard` job을 계속 표시하되, `Detect Android version file changes` 결과로 Play service account 복원과 versionCode API 검증을 skip한다.
+자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다. app/runtime/build-critical main-target PR(`app/**`, `core/**`, Gradle wrapper/root Gradle 설정 등)은 `app/build.gradle.kts`가 직접 바뀌지 않았더라도 `Version Guard`가 Play service account 복원과 versionCode API 검증을 실행하므로, versionCode bump 누락 상태로 통과할 수 없다. workflow-only / governance-only / docs-only main-target hotfix는 `Version Guard` job을 계속 표시하되 `Classify Version Guard scope` 결과로 Play service account 복원과 versionCode API 검증을 skip한다.
 
 워크플로 유지보수 기준: `version-guard.yml`의 `actions/checkout` major version은 저장소의 다른 governance/release workflow와 같은 현재 표준(v6)으로 맞춘다. 그래야 릴리즈 안전장치만 오래된 checkout runtime에 머무르는 drift를 막을 수 있다. `play-deploy.yml`의 tag-push guard는 `scripts/validate-play-deploy-ref.sh`가 GitHub release/deployment state를 `gh`로 조회하므로 Actions 안에서 `GH_TOKEN: ${{ github.token }}`를 반드시 전달해야 한다. main에서 고친 이 계약은 다음 릴리즈 sync 전에 `develop`에도 유지되어야 한다.
 
