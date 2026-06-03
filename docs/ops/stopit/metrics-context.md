@@ -101,6 +101,7 @@ ASO 판정 주의:
 - 먼저 계기판을 의심한다. 화면명 `(not set)`이나 커스텀 차원 누락이 크면 제품 결론을 낮은 confidence로 둔다.
 - #13 계열 분석에서는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 같이 보고, 실제 `customEvent:*` 등록/조회 가능 여부와 repo 문서 범위를 구분한다.
 - 2026-05-29 screen 품질 gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline으로 본다. 같은 화면에 대해 추가 code-lane 작업을 다시 열기 전에는 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 지표와 분리해서 해석한다.
+- 2026-06-03 09:12 KST screen quality smoke는 `13,780 / 22,584 = 61.0%`였지만, PR #296/#318이 아직 `origin/main`/production tag `v1.7.7`에 포함되지 않았으므로 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 본다. #13 closure 판단은 해당 PR 포함 release/tag/Play deploy 후 14일 재측정으로 한다.
 - `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
 - `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.
