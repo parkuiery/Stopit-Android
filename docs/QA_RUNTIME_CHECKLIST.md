@@ -74,6 +74,60 @@ cd <repo-root>
 
 수동 QA가 필요하면 홈 → 시간 설정 → 타이머 탭에서 위 경계 시각을 맞춘 뒤 CTA 문구와 실제 잠금 종료 시각이 같은 duration을 가리키는지 기록한다.
 
+### KDS modal bottom sheet edge-to-edge visual QA
+
+issue #325 계열 PR은 `KeepModalBottomSheet`에서 deprecated Accompanist `SystemUiController` 의존성을 제거한 뒤에도 edge-to-edge 표시가 실제 기기에서 깨지지 않는지 별도 시각 증거를 남긴다. JVM/CI 계약은 재유입을 막지만, navigation bar / status bar의 색·scrim·inset 처리는 device/OEM 조합에서 screenshot evidence로 한 번 더 확인해야 한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
+./gradlew -q help --task :app:assembleProdDebug
+```
+
+수동 visual QA matrix:
+- Variant: `devDebug` 또는 release 후보에서 요구하는 prod-like artifact를 명시한다.
+- Device/OS: Android version, OEM skin, light/dark mode를 기록한다.
+- Navigation mode:
+  - gesture navigation
+  - 3-button navigation
+- Screen entry points:
+  - 홈 앱 선택 bottom sheet
+  - 홈 타이머/시간 설정 bottom sheet
+  - 루틴 생성/수정 bottom sheet
+  - 긴급해제 대상/설정 bottom sheet가 변경 범위와 관련 있으면 함께 확인한다.
+- Visual checks:
+  - sheet scrim이 system bar 뒤까지 자연스럽게 이어진다.
+  - navigation bar 영역이 과도하게 투명/검정/흰색으로 튀지 않는다.
+  - status bar icon contrast가 light/dark mode에서 읽힌다.
+  - sheet content와 CTA가 gesture handle 또는 3-button navigation bar에 가려지지 않는다.
+  - IME가 올라오는 입력형 sheet에서는 하단 CTA가 키보드/시스템 bar와 겹치지 않는다.
+
+```md
+## KDS modal bottom sheet visual QA evidence
+- Issue: issue #325
+- Build / variant:
+- Device / Android version / OEM:
+- Theme: light / dark
+- Navigation mode: gesture navigation / 3-button navigation
+- Entry point:
+- Commands:
+  - `python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v`
+  - `./gradlew -q help --task :app:assembleProdDebug`
+- Screenshot evidence:
+  - Home app selection bottom sheet:
+  - Home timer bottom sheet:
+  - Routine bottom sheet:
+- Observed navigation bar:
+- Observed status bar:
+- Insets/CTA overlap:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #325는 repo-internal dependency/test 계약이 완료됐더라도 manual visual QA 경계가 남은 상태로 본다.
+
 ### develop/main 기본 CI gate
 
 `Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.
