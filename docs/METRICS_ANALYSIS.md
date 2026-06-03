@@ -507,9 +507,9 @@ PY
 
 보고는 현재 대화에 먼저 정리한다. GitHub 댓글은 필요할 때만 보조 기록으로 사용한다.
 
-## 현재 기준선 예시
+## 과거 기준선 예시: 다음 분석 시 재조회 필요
 
-2026-05-23 기준 최근 30일 분석에서 확인한 주요 기준선:
+2026-05-23 기준 최근 30일 분석에서 확인한 주요 기준선이다. 현재 source of truth가 아니며, 다음 분석에서는 반드시 GA4에서 새로 조회한 값과 `docs/ops/stopit/metrics-context.md`의 최신 release/manual boundary를 함께 기록한다.
 
 - active users: 456
 - total users: 507
