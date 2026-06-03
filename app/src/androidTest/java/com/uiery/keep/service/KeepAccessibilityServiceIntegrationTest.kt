@@ -1,7 +1,6 @@
 package com.uiery.keep.service
 
 import android.content.Intent
-import android.net.Uri
 import android.app.UiAutomation
 import android.provider.Settings
 import androidx.datastore.preferences.core.edit
@@ -170,7 +169,7 @@ class KeepAccessibilityServiceIntegrationTest {
         waitForServiceStatePropagation()
         waitForPreventUninstallPropagation(expected = true)
 
-        launchSelfAppInfoScreen()
+        launchSelfAppInfoScreen(requireUninstallButton = false)
         waitForPackageForeground(
             packageName = SETTINGS_PACKAGE,
             message = "Expected the app info screen to stay foreground before uninstall confirmation",
@@ -315,15 +314,12 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun launchSelfAppInfoScreen(requireUninstallButton: Boolean = true) {
         shell("am force-stop $SETTINGS_PACKAGE")
         device.pressHome()
-        context.startActivity(
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", APP_PACKAGE, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            },
+        val launchResult = shell(
+            "am start -W -a ${Settings.ACTION_APPLICATION_DETAILS_SETTINGS} -d package:$APP_PACKAGE",
         )
         waitForPackageForeground(
             packageName = SETTINGS_PACKAGE,
-            message = "Expected Settings app info screen to foreground for $APP_PACKAGE",
+            message = "Expected Settings app info screen to foreground for $APP_PACKAGE. launchResult=$launchResult",
         )
         if (requireUninstallButton) {
             waitForUninstallButton()
