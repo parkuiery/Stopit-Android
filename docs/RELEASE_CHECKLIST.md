@@ -22,6 +22,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] `./gradlew :app:lintProdRelease` passes in Android Release Build and non-production Play Deploy build/upload before signed AAB creation.
 - [ ] `scripts/verify_lint_registry.py` verifies the prodRelease lint report before signed AAB creation/upload.
 - [ ] `./gradlew :app:bundleProdRelease` passes locally or in Android Release Build.
+- [ ] `prodRelease` R8 minification and resource shrinking remain enabled (`isMinifyEnabled=true`, `isShrinkResources=true`), and Crashlytics stack-trace context is preserved through `app/proguard-rules.pro`.
 - [ ] Branch Hygiene passes on the PR.
 - [ ] Version Guard runs and passes on the PR (it should appear on every `main`-target PR, not only when `app/build.gradle.kts` changed).
 - [ ] `version-guard.yml` uses the same current `actions/checkout` major version as the repository's other governance/release workflows.
