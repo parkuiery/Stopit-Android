@@ -13,7 +13,7 @@ class ReleaseGuardHotfixSyncTest(unittest.TestCase):
     def test_play_deploy_tag_guard_step_passes_github_token_to_gh_cli(self):
         workflow = PLAY_DEPLOY_WORKFLOW.read_text()
 
-        guard_step = workflow.split("- name: Validate tag-push release guardrails", 1)[1].split(
+        guard_step = workflow.split("- name: Validate Play deploy release guardrails", 1)[1].split(
             "- name:", 1
         )[0]
 

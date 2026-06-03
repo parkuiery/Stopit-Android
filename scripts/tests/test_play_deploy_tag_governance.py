@@ -12,12 +12,16 @@ FUNCTIONS_README_PATH = REPO_ROOT / "functions" / "README.md"
 
 
 class PlayDeployTagGovernanceTest(unittest.TestCase):
-    def test_workflow_dispatch_requires_semver_tag_ref_for_all_tracks(self):
+    def test_workflow_dispatch_requires_full_release_guard_for_all_tracks(self):
         workflow = WORKFLOW_PATH.read_text()
 
         self.assertIn("if: github.event_name == 'workflow_dispatch'", workflow)
         self.assertIn("Manual Play deploys require a SemVer tag ref", workflow)
         self.assertIn("internal, alpha, beta, and production", workflow)
+        self.assertIn("- name: Validate Play deploy release guardrails", workflow)
+        guard_step = workflow.split("- name: Validate Play deploy release guardrails", 1)[1].split("- name:", 1)[0]
+        self.assertIn("GH_TOKEN: ${{ github.token }}", guard_step)
+        self.assertIn("run: scripts/validate-play-deploy-ref.sh", guard_step)
 
     def test_production_completion_marker_requires_completed_release_status(self):
         workflow = WORKFLOW_PATH.read_text()
@@ -28,8 +32,10 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
     def test_play_deployment_doc_mentions_tag_governance_for_manual_dispatch(self):
         doc = PLAY_DOC_PATH.read_text()
 
-        self.assertIn("Manual CD `workflow_dispatch` still requires a SemVer tag ref", doc)
+        self.assertIn("Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard", doc)
         self.assertIn("branch refs are rejected for `internal`, `alpha`, `beta`, and `production`", doc)
+        self.assertIn("origin/main reachable", doc)
+        self.assertIn("previous SemVer production completion marker", doc)
 
     def test_play_deployment_doc_defines_completion_marker_as_completed_production_only(self):
         doc = PLAY_DOC_PATH.read_text()
@@ -55,7 +61,8 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
 
         self.assertIn(
             "# 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행\n"
-            "# branch ref로 internal/alpha/beta/production 업로드 우회 금지\n\n"
+            "# branch ref로 internal/alpha/beta/production 업로드 우회 금지\n"
+            "# 선택 tag도 origin/main reachable + 직전 production marker guard를 통과해야 함\n\n"
             "# 6. main -> develop 역머지\n"
             "git checkout develop\n"
             "git pull origin develop\n"
