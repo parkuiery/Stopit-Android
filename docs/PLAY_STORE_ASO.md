@@ -54,7 +54,7 @@
 
 #65의 14일/30일 ASO 판정 전에 #242의 획득 채널 기준을 먼저 고정한다. 2026-06-01 GA4 스냅샷에서는 전체 신규 유저가 회복된 것처럼 보이지만 `Direct` 비중이 크게 늘었고 `Paid Search`는 신규 유저 없이 활성/세션만 남아 있어, 이 상태로 ASO 효과를 `Organic Search` 변화만으로 판정하면 오판 가능성이 크다.
 
-2026-06-02 repo-observable 스냅샷에서도 같은 문제가 더 강해졌다. 최신 재조회(`2026-06-02T22:16:16Z`) 기준 전체 `newUsers`는 432명으로 직전 30일 366명 대비 `+18.0%`지만, `Direct` 신규 사용자가 263명으로 전체 신규의 `60.9%`까지 올라갔다. `Organic Search` 신규 사용자는 169명으로 #65 기준선 178명보다 아직 낮고, `Paid Search`는 활성 19명·세션 215회가 남아 있으면서 신규 사용자는 계속 0명이다. 따라서 현재 신규 유입 반등은 **ASO 회복 후보가 아니라 attribution 확인 없이는 판정 보류**로 둔다.
+2026-06-03 repo-observable 스냅샷에서도 같은 문제가 유지됐다. 최신 재조회(`2026-06-03T04:10:01Z`) 기준 전체 `newUsers`는 432명으로 직전 30일 366명 대비 `+18.0%`지만, `Direct` 신규 사용자가 263명으로 전체 신규의 `60.9%`까지 올라간 상태가 유지됐다. `Organic Search` 신규 사용자는 169명으로 #65 기준선 178명보다 아직 낮고, `Paid Search`는 활성 19명·세션 215회가 남아 있으면서 신규 사용자는 계속 0명이다. 따라서 현재 신규 유입 반등은 **ASO 회복 후보가 아니라 attribution 확인 없이는 판정 보류**로 둔다.
 
 | 항목 | 2026-06-01 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
 | --- | ---: | ---: | --- |
@@ -79,6 +79,20 @@
 | `Direct` 신규 사용자 | 263 | 263 / 432 = 60.9% | attribution 누락/외부 링크/캠페인 유입 가능성을 먼저 확인해야 함 |
 | `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 215회는 신규 획득 성과로 계산하지 않음 |
 
+#### 2026-06-03 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-03T04:10:01Z`
+
+| 항목 | 2026-06-03 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 432 | 직전 366 대비 +18.0% | 전일 최신값과 동일하게 신규 유저 반등은 유지 |
+| 전체 `activeUsers` | 688 | 직전 613 대비 +12.2% | 활성 사용자 반등은 유지되지만 세션 회복은 약함 |
+| 전체 `sessions` | 4,721 | 직전 6,401 대비 -26.2% | 세션은 여전히 직전 30일보다 크게 낮음 |
+| `Organic Search` 신규 사용자 | 169 | 169 / 432 = 39.1% | #65 기준선 178보다 낮아 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 263 | 263 / 432 = 60.9% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 215회는 신규 획득 성과로 계산하지 않음 |
+
 #### ASO 성과 판정 전 attribution 확인 순서
 
 1. Play Console `Store performance` / acquisition report에서 같은 최근 30일 창의 검색·탐색·외부/캠페인 유입을 확인한다.
@@ -93,6 +107,7 @@
 | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
 | 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 39.1%와 Paid Search 신규 0명 때문에 ASO 회복 판정 보류 |
 | 2026-06-02 중간 스냅샷 | 432 | 169 | 263 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 60.9%까지 상승. 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-03 live readback | 432 | 169 | 263 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 60.9% 유지. Play Console/external 확인 전까지 ASO 회복 판정 보류 |
 | +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 | +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 
@@ -426,6 +441,7 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | baseline | 203 | 178 | 25 | `TODO` | 457 | 4,636 | `TODO` | `TODO` | `TODO` | 반영 전 |
 | 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | 523 | 4,484 | `TODO` | `TODO` | `TODO` | 반영 전/후 혼합 30일 창. 전체 신규 유저는 반등했지만 Organic Search는 아직 기준선보다 낮고 Direct가 39.1%까지 커져 성과 판정 보류 |
 | 2026-06-02 중간 스냅샷 | 432 | 169 | 263 | 0 | 688 | 4,721 | `TODO` | `TODO` | `TODO` | 전체 신규/활성은 반등했지만 Organic Search는 기준선 178보다 낮고 Direct가 60.9%까지 커져 ASO 효과 판정 보류 |
+| 2026-06-03 live readback | 432 | 169 | 263 | 0 | 688 | 4,721 | `TODO` | `TODO` | `TODO` | 전일 최신값과 동일하게 Direct 60.9% 과다 상태가 유지되어 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
 | +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 | +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 
