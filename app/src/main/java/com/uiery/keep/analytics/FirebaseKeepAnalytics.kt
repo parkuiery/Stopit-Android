@@ -291,6 +291,40 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackMonetizationInterestShown(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.MONETIZATION_INTEREST_SHOWN,
+                params = monetizationInterestParams(
+                    interestSurface = interestSurface,
+                    interestContext = interestContext,
+                    interestVariant = interestVariant,
+                    purchaseAvailable = purchaseAvailable,
+                ),
+            )
+        }
+
+        override fun trackMonetizationInterestClicked(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.MONETIZATION_INTEREST_CLICKED,
+                params = monetizationInterestParams(
+                    interestSurface = interestSurface,
+                    interestContext = interestContext,
+                    interestVariant = interestVariant,
+                    purchaseAvailable = purchaseAvailable,
+                ),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,
@@ -300,6 +334,18 @@ class FirebaseKeepAnalytics
             KeepAnalyticsParam.SESSION_COUNT_BUCKET to sessionCountBucket,
             KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
         )
+
+        private fun monetizationInterestParams(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ): Map<String, Any?> = buildMap {
+            put(KeepAnalyticsParam.INTEREST_SURFACE, interestSurface)
+            put(KeepAnalyticsParam.INTEREST_CONTEXT, interestContext)
+            interestVariant?.let { put(KeepAnalyticsParam.INTEREST_VARIANT, it) }
+            purchaseAvailable?.let { put(KeepAnalyticsParam.PURCHASE_AVAILABLE, it) }
+        }
 
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,

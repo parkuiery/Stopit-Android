@@ -653,7 +653,7 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 운영 원칙:
 
 - `monetization_interest_context`를 별도 이벤트처럼 만들지 않는다. 관심도 실험은 `shown`/`clicked` 두 이벤트에 `interest_context` 파라미터를 붙여 조회한다.
-- `interest_context` / `interest_surface`는 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 등록 계약을 먼저 추가한 뒤 code-lane에서 구현한다.
+- 2026-06-03 QA/code contract로 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 `monetization_interest_shown` / `monetization_interest_clicked` 기록 API가 추가됐다. 실제 CTA UI 배치 전에는 `interest_context` / `interest_surface`를 GA4 Admin에 등록하고 metadata 확인을 남긴다.
 - 결제 구현 전에는 “구매 완료”나 “전환”으로 표현하지 않고, 관심 클릭률만 낮은 confidence의 demand signal로 본다.
 - 클릭률 계산은 `monetization_interest_clicked` users / `monetization_interest_shown` users를 기본 분자/분모로 사용한다.
 
