@@ -8,7 +8,7 @@
     <string name="accessibility_permission_description">Screen Time permission can block all apps that tempt us.</string>
     <string name="permission_usage_note">Permission is used only to block app usage</string>
     <string name="allow_permission">Allow permission</string>
-    <string name="notification_permission_request">Please allow notifications to help you StopIt your promises with StopIt.</string>
+    <string name="notification_permission_request">Permite las notificaciones para ayudarte a cumplir tus promesas con StopIt.</string>
     <string name="notification_habit_message">StopIt will notify you to help build good smartphone habits.</string>
     <string name="allow_notification_permission">Allow Notification Permission</string>
     <string name="intro_text">Protecting you from the temptations of your smartphone</string>
@@ -41,7 +41,7 @@
     <string name="keep_on_status">StopIt está activado</string>
     <string name="block_screen_title">StopIt está bloqueando el uso de la aplicación</string>
     <string name="block_screen_message">%1$s no se puede usar porque está restringido.</string>
-    <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras Keep esté activado.</string>
+    <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras StopIt esté activado.</string>
     <string name="block_screen_close">Cerrar</string>
     <string name="permission_dialog_title">Se requiere permiso de accesibilidad</string>
     <string name="permission_dialog_message">Este permiso ayuda a detectar el uso de la aplicación para bloquear aplicaciones específicas.\nLa información recopilada no se utiliza para ningún otro propósito que no sea el bloqueo de aplicaciones y no se transmite externamente.</string>

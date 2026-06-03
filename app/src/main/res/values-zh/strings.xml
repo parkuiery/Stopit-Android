@@ -42,7 +42,7 @@
     <string name="keep_turned_off">StopIt已关闭</string>
     <string name="block_screen_title">StopIt正在阻止应用使用</string>
     <string name="block_screen_message">%1$s因受限制而无法使用。</string>
-    <string name="block_screen_first_core_action_feedback">第一次拦截已生效。Keep 开启时，StopIt 会继续拦截已选择的应用。</string>
+    <string name="block_screen_first_core_action_feedback">第一次拦截已生效。StopIt 开启时，StopIt 会继续拦截已选择的应用。</string>
     <string name="block_screen_close">关闭</string>
     <string name="permission_dialog_title">要使用应用锁功能，需要辅助功能权限。</string>
     <string name="permission_dialog_message">StopIt会在用户尝试访问已锁定的应用时进行拦截，从而提供应用锁功能。为此，会收集和处理正在运行的应用的界面信息和交互数据。这些数据仅用于提供应用锁功能，不会用于其他目的，也不会外传。您愿意授予辅助功能权限吗？</string>

@@ -29,7 +29,7 @@
     <string name="keep_turned_off">StopIt wurde ausgeschaltet</string>
     <string name="block_screen_title">StopIt blockiert die App-Nutzung</string>
     <string name="block_screen_message">%1$s kann nicht verwendet werden, da es eingeschränkt ist.</string>
-    <string name="block_screen_first_core_action_feedback">Die erste Blockierung hat funktioniert. StopIt blockiert die ausgewählten Apps weiter, solange Keep eingeschaltet ist.</string>
+    <string name="block_screen_first_core_action_feedback">Die erste Blockierung hat funktioniert. StopIt blockiert die ausgewählten Apps weiter, solange StopIt eingeschaltet ist.</string>
     <string name="block_screen_close">Schließen</string>
     <string name="hour">Stunde</string>
     <string name="minute">Minute</string>

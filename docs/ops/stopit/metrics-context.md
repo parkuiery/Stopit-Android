@@ -63,6 +63,7 @@ ASO 판정 주의:
 - Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
 - 2026-06-03 live readback(`2026-06-03T19:07:42Z`)에서도 전체 `newUsers`가 461명으로 직전 30일 대비 +28.1%였지만 `Direct` 신규가 284명(61.6%)으로 유지됐고 `Organic Search` 신규는 177명으로 #65 기준선 178명보다 낮으며 `sessions`는 4,804회로 직전 6,350회 대비 -24.3%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
 - 2026-06-03 루틴 반복 사용 기준선(#380)에서는 `customUser:routines_count >= 1` activeUsers 150명, `routines_count = 0` activeUsers 155명으로 규모가 비슷했지만, 루틴 보유자의 sessions / activeUsers가 `2,152 / 150 = 14.35`로 미보유자 `1,180 / 155 = 7.61`보다 높고 `app_block_intercepted` users / activeUsers도 `91 / 150 = 60.7%` vs `62 / 155 = 40.0%`였다. 단 `(not set)` activeUsers가 560명이라 전체 retention 결론은 보류하고 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 재측정/guardrail 표를 따른다.
+- 루틴 템플릿 공유 루프(#407)는 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP 지표는 `routine_template_share_tapped` users / 루틴 보유 active users, `routine_template_share_sheet_opened` users / tapped users, 실패율, 루틴 보유 cohort retention이며, `lockApplications`, package name, 앱 이름, raw session history는 payload/analytics에서 금지한다. deep link/import는 별도 decision gate 전까지 구현-ready로 보지 않는다.
 
 ## 핵심 퍼널
 
@@ -142,3 +143,4 @@ ASO 판정 주의:
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`
 - `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`
+- `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`
