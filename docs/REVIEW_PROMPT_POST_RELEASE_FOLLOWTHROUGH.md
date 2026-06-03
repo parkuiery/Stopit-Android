@@ -182,6 +182,21 @@
 - `review_prompt_skipped.reason`은 2026-06-02T18:06:45Z 기준 조회 가능하므로 #307 skip reason 분석에 사용한다. `review_prompt_failed.error`가 GA4 Admin 미등록으로 조회 불가하면 #13 외부/manual boundary로 명시한다.
 - PR #308/#312 포함 버전 배포 후 14일 재측정에서 lifecycle 단계가 정상이고 Play Console 후행 지표까지 기록됐을 때만 issue #307 closure를 검토한다.
 
+## 문서 계약 회귀 테스트
+
+#307 문서 lane이 이 런북을 다시 만질 때는 다음 review prompt post-release boundary regression을 먼저 실행한다.
+
+```bash
+python3 -m unittest scripts.tests.test_review_prompt_post_release_followthrough_docs -v
+```
+
+이 테스트는 다음 계약을 고정한다.
+
+- PR #308/#312가 이미 `develop`에 merge됐더라도 `origin/main`, SemVer tag, Play track 배포, D+14/D+30 관측 전에는 `shown = 0`을 최신 코드 회귀로 단정하지 않는다.
+- `customEvent:reason`은 `review_prompt_skipped` breakdown에 사용할 수 있지만, `customEvent:error`는 `review_prompt_failed` breakdown의 GA4 Admin/metadata 외부 경계로 유지한다.
+- Play In-App Review API는 사용자가 실제로 리뷰를 작성했는지 알려주지 않으므로, Play Console rating count / 평균 평점 / 최근 리뷰 톤을 후행 지표로 별도 기록한다.
+- repo 내부 문서/계약만 갱신한 PR은 `Refs #307`을 사용하고, 배포·14일 관측·Play Console 수동 기록까지 끝나기 전에는 `Closes #307`로 승격하지 않는다.
+
 ## 다음 run 체크리스트
 
 - [x] PR #308 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `cfff411898fbaac43a5c5bbafb48651091e66be2`.
