@@ -128,6 +128,53 @@ python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
 
 이 증거가 없으면 #325는 repo-internal dependency/test 계약이 완료됐더라도 manual visual QA 경계가 남은 상태로 본다.
 
+### 루틴 템플릿 공유 privacy-safe QA baseline
+
+issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
+
+자동 baseline(구현 PR에서 추가될 테스트 예시):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'
+python3 -m unittest scripts.tests.test_routine_template_share_contract -v
+```
+
+검증 범위:
+- share payload에는 category/repeat/time window/Play Store 링크만 포함되고 `lockApplications`, package name, 앱 이름, raw session history, raw usage time은 포함되지 않는다.
+- 루틴 이름은 기본 제외이며, opt-in variant가 있더라도 analytics에는 원문 대신 `routine_name_included=true/false`만 남긴다.
+- `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed`는 `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` 같은 enum/bucket/boolean 파라미터만 사용한다.
+- invalid routine에서는 CTA가 숨겨지거나 payload 생성이 실패하고, 실패 reason은 `activity_not_found` / `invalid_template` 같은 enum으로만 기록된다.
+
+수동 QA evidence template:
+
+```md
+## Routine template share QA evidence
+- Issue: #407
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: routine list / routine detail
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_routine_template_share_contract -v`
+- Shared text preview:
+  - category / repeat / time window present:
+  - Play Store link present:
+  - app names / package names / lockApplications absent:
+  - raw history / raw usage time absent:
+- Share sheet behavior:
+  - share target available: pass / fail
+  - no target / failed intent fallback: pass / fail
+- Accessibility label:
+- Analytics payload spot-check:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #407은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록과 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`의 외부/manual 경계를 따른다.
+
 ### develop/main 기본 CI gate
 
 `Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.

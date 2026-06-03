@@ -14,6 +14,7 @@
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
+- `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
 
 ## 소스 오브 트루스
 
@@ -23,6 +24,7 @@
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
+- 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
@@ -142,6 +144,24 @@
 - `duration_minutes_bucket`: `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
 - `focus_summary_share_failed.reason`: `activity_not_found`
 
+### 루틴 템플릿 공유
+
+루틴 템플릿 공유 MVP의 제품/QA 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP는 Android share sheet 기반 텍스트 공유이며, deep link/import는 별도 결정 게이트 전까지 구현-ready로 보지 않는다. 공유문과 이벤트 파라미터에는 앱 이름/package/lockApplications/raw session history 금지 원칙을 적용하고 enum/bucket/boolean만 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `routine_template_share_tapped` | `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` | 루틴 템플릿 공유 CTA 탭 |
+| `routine_template_share_sheet_opened` | `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` | Android share sheet launch 시도/성공 |
+| `routine_template_share_failed` | `template_category`, `reason` | share sheet 또는 payload 생성 실패 |
+
+현재 bucket 계약:
+
+- `template_category`: `study`, `work`, `night_focus`, `custom`
+- `repeat_days_bucket`: `weekday`, `weekend`, `daily`, `custom_days`, `none`
+- `time_window_bucket`: `morning`, `afternoon`, `evening`, `night`, `overnight`, `custom_window`
+- `routine_name_included`: `true` / `false`; 이름 원문은 analytics에 넣지 않는다.
+- `routine_template_share_failed.reason`: `activity_not_found`, `invalid_template`
+
 ### 광고 / 수익화
 
 AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
@@ -183,6 +203,10 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `period_type` | 집중 요약 공유 대상 기간 (`week`) |
 | `session_count_bucket` | 집중 요약 공유 세션 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
 | `duration_minutes_bucket` | 집중 요약 공유 총 시간 bucket (`1_29`, `30_59`, `60_119`, `120_239`, `240_plus`) |
+| `template_category` | 루틴 템플릿 공유용 비민감 카테고리 (`study`, `work`, `night_focus`, `custom`) |
+| `repeat_days_bucket` | 루틴 템플릿 반복 요일 bucket (`weekday`, `weekend`, `daily`, `custom_days`, `none`) |
+| `time_window_bucket` | 루틴 템플릿 시간대 bucket (`morning`, `afternoon`, `evening`, `night`, `overnight`, `custom_window`) |
+| `routine_name_included` | 공유 payload에 루틴 이름을 사용자가 명시적으로 포함했는지 여부. 이름 원문은 기록하지 않는다. |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
@@ -234,6 +258,10 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `period_type` | `period_type` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `focus_summary_share_failed` | 공유 지표를 주간 요약 기준으로 해석 |
 | Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
 | Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 집중 시간대별 공유 의도 비교(privacy-safe bucket) |
+| Required | `template_category` | `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | 루틴 템플릿 카테고리별 공유 의도 비교(privacy-safe enum) |
+| Required | `repeat_days_bucket` | `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 요일 패턴별 공유 의도 비교(privacy-safe bucket) |
+| Required | `time_window_bucket` | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 시간대 패턴별 공유 의도 비교(privacy-safe bucket) |
+| Required | `routine_name_included` | `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 이름 opt-in 여부와 공유 전환 비교. 이름 원문은 금지 |
 | Required | `screen_context` | `screen_context` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 같은 화면 안 Stopit 앱 배너 광고 문맥별 성과 비교 |
 | Required | `ad_placement` | `ad_placement` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 제품 위치별 Stopit 앱 배너 CTR/eCPM 감사 |
 | Required | `ad_format` | `ad_format` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 광고 형식별 성과 분리 |
