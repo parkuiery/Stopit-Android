@@ -15,6 +15,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -44,6 +45,7 @@ class HomeViewModel
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
+        private val reviewPromptStateStore: ReviewPromptStateStore,
         private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -168,8 +170,7 @@ class HomeViewModel
 
         internal fun maybeDrainReviewFlag(activity: Activity?) =
             intent {
-                val pending = blockingStateStore.isReviewPending()
-                if (!pending) return@intent
+                if (!reviewPromptStateStore.readState().isPending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
                     return@intent
@@ -177,7 +178,7 @@ class HomeViewModel
                 val live = reviewEligibility.evaluateLive()
                 if (live is ReviewEligibilityDecision.Ineligible) {
                     analytics.reviewPromptSkipped(live.reason.name)
-                    blockingStateStore.clearReviewPending()
+                    reviewPromptStateStore.clearPending()
                     return@intent
                 }
                 if (activity == null) {
@@ -186,7 +187,7 @@ class HomeViewModel
                 }
                 val launched = inAppReviewManager.launchIfReady(activity)
                 if (launched) {
-                    blockingStateStore.clearReviewPending()
+                    reviewPromptStateStore.clearPending()
                 }
             }
 

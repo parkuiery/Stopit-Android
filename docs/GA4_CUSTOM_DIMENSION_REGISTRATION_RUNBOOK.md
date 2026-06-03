@@ -224,10 +224,10 @@
 | `ad_unit_id` | Required dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_unit_id` | 동일 |
 | `screen_name` | Recommended dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:screen_name` | 광고 성과와 screen drift를 같이 볼 때 사용 |
 | `ad_value_micros` | Recommended metric | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_value_micros` | placement/context별 수익 분포 재집계용 |
-| `interest_context` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | 광고 제거 관심도 실험 전 등록 |
-| `interest_surface` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | 광고 제거 관심도 실험 전 등록 |
-| `interest_variant` | Recommended dimension | `TODO` | `TODO` | `TODO` | `TODO` | copy/variant 비교 시 등록 |
-| `purchase_available` | Recommended dimension | `TODO` | `TODO` | `TODO` | `TODO` | 결제 미구현 관심도 측정과 실제 구매 가능 상태 분리 |
+| `interest_context` | Required dimension | 등록 필요 | CTA UI 배치 전 | GA4 Admin 수동 | `customEvent:interest_context` 확인 필요 | PR #362 코드 계약 완료. 관심도 CTA 노출 전 등록/metadata 확인 없이는 문맥별 클릭률 판단 금지 |
+| `interest_surface` | Required dimension | 등록 필요 | CTA UI 배치 전 | GA4 Admin 수동 | `customEvent:interest_surface` 확인 필요 | PR #362 코드 계약 완료. 안전한 surface별 관심 클릭률 판단의 필수 축 |
+| `interest_variant` | Recommended dimension | 필요 시 등록 | CTA copy/variant 비교 전 | GA4 Admin 수동 | `customEvent:interest_variant` 확인 필요 | A/B가 없으면 `default` payload만 남기고, 비교 실험 전 등록 |
+| `purchase_available` | Recommended dimension | 필요 시 등록 | 결제 가능 상태 분리 전 | GA4 Admin 수동 | `customEvent:purchase_available` 확인 필요 | 결제 미구현 관심도 측정(`false`)과 실제 구매 가능 상태를 분리할 때 등록 |
 
 ### metadata 확인 로그 템플릿
 

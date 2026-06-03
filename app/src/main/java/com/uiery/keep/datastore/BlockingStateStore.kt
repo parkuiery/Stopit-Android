@@ -112,21 +112,6 @@ class BlockingStateStore @Inject constructor(
     suspend fun readSuccessfulSessionCount(): Int =
         dataStore.data.first()[PreferencesKey.SUCCESSFUL_SESSION_COUNT] ?: 0
 
-    suspend fun markReviewPending() {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKey.REVIEW_PENDING] = true
-        }
-    }
-
-    suspend fun isReviewPending(): Boolean =
-        dataStore.data.first()[PreferencesKey.REVIEW_PENDING] == true
-
-    suspend fun clearReviewPending() {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKey.REVIEW_PENDING] = false
-        }
-    }
-
     suspend fun setIsKeep(isKeep: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.IS_KEEP] = isKeep

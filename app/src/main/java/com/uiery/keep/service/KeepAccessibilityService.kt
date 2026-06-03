@@ -56,7 +56,7 @@ class KeepAccessibilityService :
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
-        private const val FOREGROUND_REEVALUATION_RETRY_DELAY_MS = 300L
+        private val FOREGROUND_REEVALUATION_RETRY_DELAYS_MS = longArrayOf(300L, 900L, 1_500L)
     }
 
     override fun onServiceConnected() {
@@ -144,7 +144,9 @@ class KeepAccessibilityService :
     private fun reevaluateCurrentForegroundAfterStateUpdate() {
         handler.post {
             reevaluateCurrentForegroundOnce()
-            handler.postDelayed({ reevaluateCurrentForegroundOnce() }, FOREGROUND_REEVALUATION_RETRY_DELAY_MS)
+            FOREGROUND_REEVALUATION_RETRY_DELAYS_MS.forEach { delayMillis ->
+                handler.postDelayed({ reevaluateCurrentForegroundOnce() }, delayMillis)
+            }
         }
     }
 
@@ -231,8 +233,10 @@ class KeepAccessibilityService :
             it.copy(lastDismissedUninstallPackage = BuildConfig.APPLICATION_ID)
         }
         performGlobalAction(GLOBAL_ACTION_BACK)
+        launchHomeScreen()
 
         handler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_BACK)
             rootInActiveWindow?.recycle()
             launchHomeScreen()
         }, 500)
