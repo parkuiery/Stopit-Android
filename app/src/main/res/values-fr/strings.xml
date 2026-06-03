@@ -42,7 +42,7 @@
     <string name="keep_turned_off">StopIt a été désactivé</string>
     <string name="block_screen_title">StopIt bloque l\'utilisation de l\'application</string>
     <string name="block_screen_message">%1$s ne peut pas être utilisé car il est restreint.</string>
-    <string name="block_screen_first_core_action_feedback">Le premier blocage a fonctionné. StopIt continuera de bloquer les apps sélectionnées tant que Keep est activé.</string>
+    <string name="block_screen_first_core_action_feedback">Le premier blocage a fonctionné. StopIt continuera de bloquer les apps sélectionnées tant que StopIt est activé.</string>
     <string name="block_screen_close">Fermer</string>
     <string name="permission_dialog_title">L\'autorisation d\'accessibilité est requise pour utiliser la fonction de verrouillage d\'application.</string>
     <string name="permission_dialog_message">StopIt bloque l\'accès aux applications verrouillées pour fournir la fonction de verrouillage. Pour cela, il collecte et traite les informations d\'affichage et les données d\'interaction de l\'application en cours. Ces données ne sont utilisées qu\'à cette fin et ne sont pas transmises à l\'extérieur. Voulez-vous accorder l\'autorisation d\'accessibilité ?</string>

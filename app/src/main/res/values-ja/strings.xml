@@ -42,7 +42,7 @@
     <string name="keep_on_status">StopItがオンです</string>
     <string name="block_screen_title">StopItがアプリの使用を\nブロックしています</string>
     <string name="block_screen_message">%1$sは制限されているため使用できません。</string>
-    <string name="block_screen_first_core_action_feedback">最初のブロックが正常に動作しました。Keepがオンの間、選択したアプリをブロックし続けます。</string>
+    <string name="block_screen_first_core_action_feedback">最初のブロックが正常に動作しました。StopItがオンの間、選択したアプリをブロックし続けます。</string>
     <string name="block_screen_close">閉じる</string>
     <string name="permission_dialog_title">アプリロック機能を使用するには、アクセシビリティ権限が必要です。</string>
     <string name="permission_dialog_message">ジキジャは、ロック設定されたアプリへのアクセスをブロックしてアプリロック機能を提供します。そのために、実行中のアプリの画面構成情報やインタラクションデータを収集・処理します。これらのデータはアプリロック機能の提供以外の目的では使用されず、外部に送信されることもありません。アクセシビリティ権限を付与しますか？</string>
