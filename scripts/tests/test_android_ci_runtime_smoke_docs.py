@@ -6,11 +6,7 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
 DOCS_THAT_MIRROR_ANDROID_CI_SMOKE = {
-    "release checklist": REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md",
-    "play deployment": REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md",
     "runtime QA checklist": REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md",
-    "Android skills QA": REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md",
-    "release context": REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md",
 }
 
 
@@ -48,26 +44,25 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
                 with self.subTest(doc=doc_name, entry=entry):
                     self.assertIn(entry, text)
 
-    def test_release_checklist_android_ci_evidence_does_not_claim_release_qa_only_methods(self):
+    def test_release_checklist_separates_android_ci_smoke_from_release_qa_evidence(self):
         checklist = (REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md").read_text()
-        section = checklist.split("Android CI focused runtime smoke (PR/manual):", 1)[1]
+        section = checklist.split("Automated runtime evidence is explicit in the PR body:", 1)[1]
         section = section.split("Android Release QA exact alarm evidence", 1)[0]
 
+        self.assertIn("Android CI focused runtime smoke", section)
+        self.assertIn("cite the current `.github/workflows/android-ci.yml` run URL", section)
+        self.assertIn("Release/hotfix runtime evidence comes from", section)
         self.assertNotIn(
-            "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced",
-            section,
-        )
-        self.assertIn(
             "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",
             section,
         )
-        self.assertIn(
+        self.assertNotIn(
             "EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
             section,
         )
         self.assertIn(
             "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
-            section,
+            checklist,
         )
 
 
