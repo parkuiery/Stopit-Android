@@ -16,7 +16,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than the highest versionCode currently visible through Google Play tracks; `Version Guard` and `scripts/play_version_code_guard.py` are the source of truth for this check.
 - [ ] If the release/hotfix PR changes app/runtime/build-critical paths (`app/**`, `core/**`, Gradle wrapper/root Gradle files, or `gradle/**`), `Version Guard` must run Play/main max version validation even when `app/build.gradle.kts` was not edited; only workflow/governance/docs-only main-target hotfixes may skip that API validation.
-- [ ] Any manual `workflow_dispatch` follow-up still starts from the same SemVer tag ref as the release tag; branch ref uploads are not allowed for `internal`, `alpha`, `beta`, or `production`.
+- [ ] Any manual `workflow_dispatch` follow-up still starts from the same SemVer tag ref as the release tag; branch ref uploads are not allowed for `internal`, `alpha`, `beta`, or `production`, and the selected tag must pass the same `origin/main` ancestry + previous production marker guard as tag-push CD.
 - [ ] Any `track=production` follow-up is waiting on or has passed the GitHub Environment `production` required reviewer gate; direct GitHub dispatch and Discord-button dispatch must share this same approval boundary.
 - [ ] `./gradlew :app:testProdReleaseUnitTest` passes locally or in Android Release Build.
 - [ ] `./gradlew :app:lintProdRelease` passes in Android Release Build and non-production Play Deploy build/upload before signed AAB creation.

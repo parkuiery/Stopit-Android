@@ -59,9 +59,10 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `python3 scripts/verify_lint_registry.py --report app/build/reports/lint-results-prodRelease.html ...`
   - signed `prodRelease` AAB build
   - upload signed AAB artifact to GitHub Actions
-- Pushing a semver tag like `v1.7.1` runs Play deployment only after the tag-push guard passes:
-  - tag must be reachable from `origin/main`
-  - previous SemVer tag must already have the production completion marker
+- Pushing a semver tag like `v1.7.1` or manually dispatching Play Deploy from that tag runs Play deployment only after the Play deploy release guard passes:
+  - selected ref must be a SemVer tag
+  - tag must be origin/main reachable
+  - previous SemVer production completion marker must already exist
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
   - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
@@ -70,8 +71,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
 - `draft`, `inProgress`, or `halted` production runs must not write either production completion marker. They may represent a Play Console rollout state, but they are not the repo-side signal that the version fully reached production.
-- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires a SemVer tag ref.
-- Manual CD `workflow_dispatch` still requires a SemVer tag ref; branch refs are rejected for `internal`, `alpha`, `beta`, and `production`.
+- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires the same SemVer tag ref release guard as tag-triggered CD.
+- Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard: branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, and the selected tag must be origin/main reachable with the previous SemVer production completion marker present.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 
 ## Required GitHub secrets

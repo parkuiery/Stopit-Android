@@ -260,6 +260,7 @@ scripts/release-tag.sh 1.7.2
 
 # 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행
 # branch ref로 internal/alpha/beta/production 업로드 우회 금지
+# 선택 tag도 origin/main reachable + 직전 production marker guard를 통과해야 함
 
 # 6. main -> develop 역머지
 git checkout develop
@@ -294,9 +295,9 @@ gh pr create --base main --fill
 - 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
 - Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다. artifact 생성 전 `:app:lintProdRelease`와 `scripts/verify_lint_registry.py`로 prodRelease lint registry를 재확인한다. Manual dispatch는 `main`, `release/*`, `hotfix/*`, 또는 SemVer tag ref에서만 signing secrets와 signed release artifact 경로에 도달한다.
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다. non-production build/upload 경로는 signed AAB 업로드 전 같은 prod lint/registry gate를 실행하고, production promotion은 기존 internal release 승격만 하므로 `:app:lintProdRelease`를 실행하지 않는다.
-- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다.
+- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다. 선택한 tag 역시 `scripts/validate-play-deploy-ref.sh`로 `origin/main` ancestry와 직전 production marker gate를 통과해야 하므로 tag-push CD와 같은 release provenance/sequence guard를 공유한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
-- 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
+- tag-push와 manual dispatch 모두 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
 - secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
 - `versionCode`는 절대 재사용하지 않는다.
