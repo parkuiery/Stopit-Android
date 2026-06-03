@@ -345,6 +345,39 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun monetizationInterestEventsUseExperimentContextParams() {
+        analytics.trackMonetizationInterestShown(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+        )
+        analytics.trackMonetizationInterestClicked(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.MONETIZATION_INTEREST_SHOWN,
+                mapOf(
+                    KeepAnalyticsParam.INTEREST_SURFACE to AnalyticsMonetizationInterestSurface.MENU,
+                    KeepAnalyticsParam.INTEREST_CONTEXT to AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.MONETIZATION_INTEREST_CLICKED,
+                mapOf(
+                    KeepAnalyticsParam.INTEREST_SURFACE to AnalyticsMonetizationInterestSurface.MENU,
+                    KeepAnalyticsParam.INTEREST_CONTEXT to AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
