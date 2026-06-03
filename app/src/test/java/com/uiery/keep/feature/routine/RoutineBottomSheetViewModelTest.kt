@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.routine
 
+import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
@@ -7,9 +8,11 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.toRepeatDaysBinary
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -66,10 +69,7 @@ class RoutineBottomSheetViewModelTest {
             viewModel.resetEditState(validRoutine(id = 7L, isEnabled = false))
             awaitState(viewModel) { it.name == "Morning focus" }
             viewModel.editRoutine(7L)
-            repeat(20) {
-                if (routineDao.updatedEntity != null) return@repeat
-                delay(10)
-            }
+            awaitUntil { routineDao.updatedEntity != null }
 
             assertEquals(false, routineDao.updatedEntity?.isEnabled)
             Mockito.verify(routineScheduler).cancelRoutine(7L)
@@ -77,16 +77,100 @@ class RoutineBottomSheetViewModelTest {
         }
     }
 
+    @Test
+    fun editRoutinePersistsThroughBottomSheetPathAndTracksScheduledRoutine() = runBlocking {
+        val routineDao = RecordingRoutineDao()
+        val analytics = RecordingKeepAnalytics()
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
+            .thenReturn(RoutineScheduleResult.Scheduled)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+            analytics = analytics,
+        )
+
+        viewModel.resetEditState(validRoutine(id = 7L))
+        awaitState(viewModel) { it.name == "Morning focus" }
+        viewModel.editRoutine(7L)
+        awaitUntil { routineDao.updatedEntity != null }
+
+        assertEquals(7L, routineDao.updatedEntity?.id)
+        Mockito.verify(routineScheduler).cancelRoutine(7L)
+        Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+        assertEquals(
+            listOf(AnalyticsScheduleType.ROUTINE to 30L),
+            analytics.lockScheduledCalls,
+        )
+    }
+
+    @Test
+    fun addRoutinePersistsThroughBottomSheetPathAndTracksScheduledRoutine() = runBlocking {
+        val routineDao = RecordingRoutineDao(insertedId = 42L)
+        val analytics = RecordingKeepAnalytics()
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
+            .thenReturn(RoutineScheduleResult.Scheduled)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+            analytics = analytics,
+        )
+
+        fillValidRoutine(viewModel)
+        viewModel.addRoutine()
+        awaitUntil { routineDao.insertedEntity != null }
+
+        assertEquals("Morning focus", routineDao.insertedEntity?.name)
+        Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+        assertEquals(
+            listOf(AnalyticsScheduleType.ROUTINE to 30L),
+            analytics.lockScheduledCalls,
+        )
+    }
+
+    @Test
+    fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermission() = runBlocking {
+        val routineDao = RecordingRoutineDao(insertedId = 43L)
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(false)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+        )
+        val sideEffect = async { viewModel.container.sideEffectFlow.first() }
+
+        fillValidRoutine(viewModel)
+        viewModel.addRoutine()
+        awaitUntil { routineDao.insertedEntity != null }
+
+        assertEquals(false, routineDao.insertedEntity?.isEnabled)
+        Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
+        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect.await())
+    }
+
     private fun createViewModel(
         routineDao: RoutineDao = RecordingRoutineDao(),
         routineScheduler: RoutineScheduler = Mockito.mock(RoutineScheduler::class.java).also {
             Mockito.`when`(it.canScheduleExactAlarms()).thenReturn(true)
         },
+        analytics: KeepAnalytics = NoOpKeepAnalytics(),
     ) = RoutineBottomSheetViewModel(
         routineDao = routineDao,
         exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(routineScheduler),
-        analytics = NoOpKeepAnalytics(),
+        analytics = analytics,
     )
+
+    private suspend fun fillValidRoutine(viewModel: RoutineBottomSheetViewModel) {
+        viewModel.setName("Morning focus")
+        viewModel.setStartTime(LocalTime(hour = 9, minute = 0))
+        viewModel.setEndTime(LocalTime(hour = 9, minute = 30))
+        viewModel.setSelectDays(DayOfWeek.MONDAY)
+        viewModel.setSelectApps(setOf("com.example.blocked"))
+        awaitState(viewModel) { it.isButtonEnable }
+    }
 
     private suspend fun awaitState(
         viewModel: RoutineBottomSheetViewModel,
@@ -98,6 +182,13 @@ class RoutineBottomSheetViewModelTest {
             delay(10)
         }
         return viewModel.container.stateFlow.value
+    }
+
+    private suspend fun awaitUntil(predicate: () -> Boolean) {
+        repeat(20) {
+            if (predicate()) return
+            delay(10)
+        }
     }
 
     private fun anyRoutine(): RoutineModel =
@@ -119,13 +210,21 @@ class RoutineBottomSheetViewModelTest {
     )
 }
 
-private class RecordingRoutineDao : RoutineDao {
+private class RecordingRoutineDao(
+    private val insertedId: Long = 1L,
+) : RoutineDao {
+    var insertedEntity: RoutineEntity? = null
     var updatedEntity: RoutineEntity? = null
 
     override fun fetchAll(): Flow<List<RoutineEntity>> = emptyFlow()
     override fun fetchAllOnce(): List<RoutineEntity> = emptyList()
     override fun fetch(id: Long): RoutineEntity = throw UnsupportedOperationException()
-    override fun insert(routineEntity: RoutineEntity): Long = routineEntity.id
+
+    override fun insert(routineEntity: RoutineEntity): Long {
+        insertedEntity = routineEntity.copy(id = insertedId)
+        return insertedId
+    }
+
     override fun deleteById(id: Long) = Unit
 
     override fun update(routineEntity: RoutineEntity) {
@@ -135,7 +234,7 @@ private class RecordingRoutineDao : RoutineDao {
     override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
 }
 
-private class NoOpKeepAnalytics : KeepAnalytics {
+private open class NoOpKeepAnalytics : KeepAnalytics {
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
     override fun setUserProperty(name: String, value: String) = Unit
@@ -147,4 +246,12 @@ private class NoOpKeepAnalytics : KeepAnalytics {
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
+}
+
+private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
+    val lockScheduledCalls = mutableListOf<Pair<String, Long>>()
+
+    override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
+        lockScheduledCalls += scheduleType to scheduledDurationMinutes
+    }
 }

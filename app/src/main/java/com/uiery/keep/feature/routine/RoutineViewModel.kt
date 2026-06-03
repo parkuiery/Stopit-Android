@@ -10,7 +10,6 @@ import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
 import com.uiery.keep.model.toModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
@@ -90,45 +89,6 @@ class RoutineViewModel
                 }
             }
 
-        internal fun addRoutine(routineModel: RoutineModel) =
-            intent {
-                val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(routineModel)
-                val insertedId = routineDao.insert(resolvedRoutine.routine.toEntity())
-                val routineWithId = resolvedRoutine.routine.copy(id = insertedId)
-                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routineWithId)
-                if (scheduleDecision.routine != routineWithId) {
-                    routineDao.update(scheduleDecision.routine.toEntity())
-                }
-                if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
-                    postSideEffect(RoutineSideEffect.ShowAlarmPermission)
-                }
-                analyticsAddRoutine()
-
-                // Show the newly created routine in edit bottom sheet
-                if (!scheduleDecision.routine.isRunningNow()) {
-                    reduce {
-                        state.copy(
-                            isShowEditRoutineBottomSheet = true,
-                            selectedRoutine = scheduleDecision.routine,
-                        )
-                    }
-                }
-            }
-
-        internal fun updateRoutine(routineModel: RoutineModel) =
-            intent {
-                val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(routineModel)
-                routineDao.update(resolvedRoutine.routine.toEntity())
-                exactAlarmOrchestrator.cancelRoutine(routineModel.id)
-                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
-                if (scheduleDecision.routine != resolvedRoutine.routine) {
-                    routineDao.update(scheduleDecision.routine.toEntity())
-                }
-                if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
-                    postSideEffect(RoutineSideEffect.ShowAlarmPermission)
-                }
-            }
-
         internal fun deleteRoutine(id: Long) =
             intent {
                 val routine = state.routines.find { it.id == id }
@@ -178,11 +138,6 @@ class RoutineViewModel
         fun analyticsRoutineScreen() =
             intent {
                 analytics.logScreenView(KeepAnalyticsScreen.ROUTINE)
-            }
-
-        private fun analyticsAddRoutine() =
-            intent {
-                analytics.logEvent("add_routine")
             }
 
         internal fun checkAlarmPermissionNeeded() =
