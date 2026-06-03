@@ -52,6 +52,22 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             with self.subTest(gate=gate):
                 self.assertIn(gate, workflow)
 
+    def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
+        workflow = RELEASE_QA_WORKFLOW.read_text()
+        normal_batch, notification_denied_batch = workflow.split(
+            "adb shell appops set com.uiery.keep POST_NOTIFICATION ignore",
+            maxsplit=1,
+        )
+
+        self.assertNotIn(
+            "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,",
+            normal_batch,
+        )
+        self.assertIn(
+            "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
+            notification_denied_batch,
+        )
+
     def test_release_operator_docs_mirror_guarded_release_qa_runtime_gates(self):
         for doc_name, path in DOCS.items():
             text = path.read_text()

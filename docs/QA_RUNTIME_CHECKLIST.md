@@ -429,7 +429,7 @@ adb shell appops set com.uiery.keep POST_NOTIFICATION allow
 
 ### exact alarm permission baseline
 
-issue #77 / #137 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다.
+issue #77 / #137 / #394 계열 PR에서는 Android 12+ exact alarm 권한 거절/허용 경로를 각각 분리해서 남긴다. `appops set`은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 기록한다. 루틴 추가/수정/활성화의 권한 부족/스케줄 실패 해석은 `RoutineExactAlarmOrchestrator`가 단일 계약으로 소유하고, Compose 화면은 `ShowAlarmPermission` side effect 표시와 `createExactAlarmSettingsIntent(...)` 실행 경계만 맡는다.
 
 ```bash
 cd <repo-root>
@@ -463,9 +463,12 @@ adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow
 ```
 
 - 거절 경로 검증 범위:
+  - `RoutineExactAlarmOrchestrator.resolveBeforePersist(...)`가 저장 전 permission pre-check를 적용하고, scheduler가 race/거짓 양성으로 `MissingExactAlarmPermission`을 반환해도 동일하게 `enabled=false` + prompt 계약으로 수렴하는지
   - `RoutineBottomSheetViewModel` 저장 시 side effect로 권한 안내를 띄우는지
+  - `RoutineViewModel.addRoutine/updateRoutine/changeEnabled(...)`도 bottom-sheet 경로와 같은 orchestration을 사용해 권한 부족 시 enabled 상태를 조용히 유지하지 않는지
   - DB에 저장된 루틴이 `enabled=false`로 안전하게 내려가는지
   - 동일 루틴 ID의 `PendingIntent`가 남지 않는지
+  - 권한 부족/스케줄 실패 경로에서는 성공 예약 analytics인 `lock_scheduled(schedule_type=routine)`을 남기지 않는지
   - `BootReceiver`가 부팅/패키지 교체 복구 중 exact alarm 재예약 실패를 만나도 해당 루틴을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌리는지
   - `MY_PACKAGE_REPLACED` 경로에서도 동일한 downgrade/no-pending-intent 계약이 유지되는지
   - `RoutineAlarmReceiver`가 루틴 시작 알림은 현재 시점에 계속 보여주되, 다음 exact alarm 재예약 실패 시 루틴을 `enabled=false`로 내리고 다음 `PendingIntent`를 남기지 않는지
