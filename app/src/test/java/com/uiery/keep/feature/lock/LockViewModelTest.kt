@@ -19,6 +19,7 @@ import com.uiery.keep.feature.review.FakeLockHistoryDao
 import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import java.time.Clock
@@ -74,6 +75,25 @@ class LockViewModelTest {
         assertTrue(state.isEmergencyUnlockActive)
         assertEquals(180, state.emergencyUnlockRemainingSeconds)
         assertEquals(setOf("com.example.allowed"), state.emergencyUnlockedApps)
+    }
+
+    @Test
+    fun disabledEmergencyUnlockStateDoesNotLookLikeDailyLimitReached() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.EMERGENCY_UNLOCK_ENABLED to false,
+                PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT to 3,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore)
+
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(false, state.emergencyUnlockEnabled)
+        assertEquals(EmergencyUnlockAvailabilityReason.Disabled, state.emergencyUnlockAvailabilityReason)
+        assertEquals(false, state.dailyLimitReached)
+        assertEquals(3, state.dailyUnlockRemaining)
     }
 
     private fun createViewModel(

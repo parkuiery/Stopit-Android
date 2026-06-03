@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Abbrechen</string>
     <string name="emergency_unlock_next">Weiter</string>
     <string name="emergency_unlock_daily_limit_reached">Sie haben alle Notfall-Entsperrungen für heute aufgebraucht</string>
+    <string name="emergency_unlock_disabled">Notfall-Entsperrung ist deaktiviert</string>
+    <string name="emergency_unlock_daily_limit_zero">Notfall-Entsperrungen sind auf 0 pro Tag gesetzt</string>
     <string name="emergency_unlock_banner">%1$d Apps entsperrt — %2$s verbleibend</string>
     <string name="emergency_unlock_active">Notfall-Entsperrung aktiv</string>
     <string name="emergency_unlock_remaining_time">%1$s verbleibend</string>

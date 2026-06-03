@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">キャンセル</string>
     <string name="emergency_unlock_next">次へ</string>
     <string name="emergency_unlock_daily_limit_reached">本日の緊急解除回数をすべて使い切りました</string>
+    <string name="emergency_unlock_disabled">緊急解除はオフになっています</string>
+    <string name="emergency_unlock_daily_limit_zero">緊急解除は1日0回に設定されています</string>
     <string name="emergency_unlock_banner">%1$dアプリ解除中 — %2$s残り</string>
     <string name="emergency_unlock_active">緊急解除中</string>
     <string name="emergency_unlock_remaining_time">%1$s残り</string>

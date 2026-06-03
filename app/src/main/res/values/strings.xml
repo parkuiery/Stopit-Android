@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Cancel</string>
     <string name="emergency_unlock_next">Next</string>
     <string name="emergency_unlock_daily_limit_reached">You\'ve used all emergency unlocks for today</string>
+    <string name="emergency_unlock_disabled">Emergency unlock is turned off</string>
+    <string name="emergency_unlock_daily_limit_zero">Emergency unlocks are set to 0 per day</string>
     <string name="emergency_unlock_banner">%1$d apps unlocked — %2$s remaining</string>
     <string name="emergency_unlock_active">Emergency Unlock Active</string>
     <string name="emergency_unlock_remaining_time">%1$s remaining</string>

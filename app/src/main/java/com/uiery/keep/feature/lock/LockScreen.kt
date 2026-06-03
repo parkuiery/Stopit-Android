@@ -52,6 +52,7 @@ import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.lock.component.CountDownContent
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.util.formatLockEndTime
 import com.uiery.keep.util.formatMinuteSecondCountdown
 import kotlinx.coroutines.launch
@@ -241,24 +242,25 @@ fun LockScreen(
                     textAlign = TextAlign.Center,
                 )
                 if (!uiState.isEmergencyUnlockActive) {
+                    val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                     TextButton(
                         onClick = viewModel::showEmergencyUnlockSheet,
-                        enabled = !uiState.dailyLimitReached,
+                        enabled = emergencyUnlockAction.enabled,
                     ) {
                         Text(
-                            text = if (uiState.dailyLimitReached) {
-                                stringResource(R.string.emergency_unlock_daily_limit_reached)
-                            } else {
+                            text = if (emergencyUnlockAction.enabled) {
                                 stringResource(
-                                    R.string.emergency_unlock_with_count,
+                                    emergencyUnlockAction.textRes,
                                     uiState.dailyUnlockRemaining,
                                     uiState.emergencyUnlockDailyLimit,
                                 )
-                            },
-                            color = if (uiState.dailyLimitReached) {
-                                KeepTheme.colors.surfaceVariant
                             } else {
+                                stringResource(emergencyUnlockAction.textRes)
+                            },
+                            color = if (emergencyUnlockAction.enabled) {
                                 KeepTheme.colors.primary
+                            } else {
+                                KeepTheme.colors.surfaceVariant
                             },
                             fontSize = 13.sp,
                         )

@@ -69,6 +69,55 @@ class EmergencyUnlockCoordinatorTest {
     }
 
     @Test
+    fun disabledSettingIsNotReportedAsDailyLimitReached() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 0)
+
+        val availability = coordinator.readAvailability()
+
+        assertFalse(availability.enabled)
+        assertEquals(EmergencyUnlockAvailabilityReason.Disabled, availability.reason)
+        assertFalse(availability.dailyLimitReached)
+        assertEquals(3, availability.dailyUnlockRemaining)
+    }
+
+    @Test
+    fun zeroDailyLimitIsSeparateFromExhaustedDailyLimit() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 0
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 0)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitZero, availability.reason)
+        assertFalse(availability.dailyLimitReached)
+        assertEquals(0, availability.dailyUnlockRemaining)
+    }
+
+    @Test
+    fun exhaustedDailyLimitKeepsDailyLimitReachedReason() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 3)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, availability.reason)
+        assertTrue(availability.dailyLimitReached)
+        assertEquals(0, availability.dailyUnlockRemaining)
+    }
+
+    @Test
     fun invalidRequestReturnsRefreshedAvailabilityWithoutPersistence() = runBlocking {
         val dataStore = FakeDataStore()
         val dao = RecordingEmergencyUnlockDao(todayCount = 3)
@@ -92,6 +141,7 @@ class EmergencyUnlockCoordinatorTest {
 
         assertTrue(result is EmergencyUnlockRequestResult.Rejected)
         val rejected = result as EmergencyUnlockRequestResult.Rejected
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, rejected.availability.reason)
         assertTrue(rejected.availability.dailyLimitReached)
         assertEquals(0, rejected.availability.dailyUnlockRemaining)
         assertTrue(dao.inserted.isEmpty())
@@ -100,6 +150,18 @@ class EmergencyUnlockCoordinatorTest {
         assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS])
         assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
     }
+
+    private fun createCoordinator(
+        dataStore: FakeDataStore,
+        todayCount: Int,
+        analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
+    ): EmergencyUnlockCoordinator =
+        EmergencyUnlockCoordinator(
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
+            blockingStateStore = BlockingStateStore(dataStore),
+            emergencyUnlockDao = RecordingEmergencyUnlockDao(todayCount = todayCount),
+            analytics = analytics,
+        )
 
     private suspend fun completeUnlock(source: String): CompletedUnlockFixture {
         val dataStore =

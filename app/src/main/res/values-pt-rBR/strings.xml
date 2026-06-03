@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Cancelar</string>
     <string name="emergency_unlock_next">Próximo</string>
     <string name="emergency_unlock_daily_limit_reached">Você usou todos os desbloqueios de emergência de hoje</string>
+    <string name="emergency_unlock_disabled">O desbloqueio de emergência está desativado</string>
+    <string name="emergency_unlock_daily_limit_zero">Os desbloqueios de emergência estão definidos como 0 por dia</string>
     <string name="emergency_unlock_banner">%1$d apps desbloqueados — %2$s restante</string>
     <string name="emergency_unlock_active">Desbloqueio de emergência ativo</string>
     <string name="emergency_unlock_remaining_time">%1$s restante</string>
