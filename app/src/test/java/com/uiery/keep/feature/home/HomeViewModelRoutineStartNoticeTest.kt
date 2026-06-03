@@ -5,6 +5,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -128,15 +129,17 @@ class HomeViewModelRoutineStartNoticeTest {
         dataStore: FakeDataStore,
         analytics: KeepAnalytics = RecordingKeepAnalytics(),
         lockHistoryDao: LockHistoryDao = FakeLockHistoryDao(),
-    ): HomeViewModel =
-        HomeViewModel(
+    ): HomeViewModel {
+        val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
+        return HomeViewModel(
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
             reviewEligibility = ReviewEligibilityEvaluator(
-                dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
+                reviewPromptStateStore = reviewPromptStateStore,
                 remoteConfig = FakeReviewRemoteConfig(enabled = true),
                 accessibilityChecker = FakeAccessibilityChecker(enabled = true),
                 emergencyUnlockDao = FakeEmergencyUnlockDao(),
@@ -147,8 +150,9 @@ class HomeViewModelRoutineStartNoticeTest {
             inAppReviewManager = InAppReviewManager(
                 launcher = FakeReviewLauncher(),
                 analytics = analytics,
-                dataStore = dataStore,
+                reviewPromptStateStore = reviewPromptStateStore,
                 clock = clock,
             ),
         )
+    }
 }
