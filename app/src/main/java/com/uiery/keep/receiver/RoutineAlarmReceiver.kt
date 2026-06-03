@@ -5,11 +5,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.R
 import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
@@ -82,14 +81,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             notificationResult = notificationResult,
             fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
         )?.let { pendingNotice ->
-            dataStore.edit { preferences ->
-                RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
-                    storedValue = preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
-                    notice = pendingNotice,
-                )?.let { encodedNotices ->
-                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = encodedNotices
-                }
-            }
+            RoutineNoticeStore(dataStore).enqueuePendingRoutineStartNotice(pendingNotice)
         }
 
         val routineStore = RoutineStore(dataStore)
@@ -131,9 +123,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         }
 
         if (shouldResetAlarmPermissionPrompt) {
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
-            }
+            RoutineNoticeStore(dataStore).resetAlarmPermissionPrompt()
         }
     }
 

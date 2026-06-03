@@ -6,6 +6,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -135,6 +136,7 @@ class HomeViewModelRoutineStartNoticeTest {
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
+            routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
             reviewEligibility = ReviewEligibilityEvaluator(

@@ -11,6 +11,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
@@ -344,6 +345,7 @@ class HomeViewModelActivationAnalyticsTest {
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
+            routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
             reviewEligibility = ReviewEligibilityEvaluator(

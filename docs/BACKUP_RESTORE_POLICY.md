@@ -82,6 +82,14 @@
 - 새 `PreferencesKey`를 추가하면 반드시 이 정책 파일과 아래 표를 함께 갱신한다. 누락 시 `BackupRestoreDataStoreKeyPolicyTest.everyPreferencesKeyHasABackupRestoreClassification`가 실패해야 한다.
 - reset-only 키가 늘어나면 `BackupRestoreRuntimeResetIntegrationTest.assertRestoreResetOnlyStateAbsent()`도 같은 allowlist를 사용하므로 restored-device runtime baseline에서 자동으로 absent 검증 대상이 된다.
 
+Typed store 경계:
+
+- `BlockingStateStore`: lock/session/activation/reset-only runtime key의 read/write 경계.
+- `EmergencyUnlockSettingsStore`: 긴급해제 설정 key의 default/sanitize/read/write 경계.
+- `ReviewPromptStateStore`: 리뷰 pending/cooldown/background timestamp 경계.
+- `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다.
+- `RoutineNoticeStore`: `PENDING_ROUTINE_START_NOTICE_MESSAGE` receiver→Home fallback notice queue와 `HAS_SHOWN_ALARM_PERMISSION` prompt reset 경계. 이 둘은 restored-device에서 되살리지 않는 runtime/UI handoff state다.
+
 아래 키들은 현재 모두 같은 파일에 있으므로 **이번 정책에서 전부 복원 제외**다.
 
 | 키 | 의미 | 이번 정책 |
