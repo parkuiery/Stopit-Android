@@ -51,22 +51,9 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] If dev/prod `applicationId` or package identity changed, `docs/FLAVOR_APPLICATION_ID_CONTRACT.md` was reviewed; release evidence proves `prodRelease` / Play deploy still use production package `com.uiery.keep`, and any dev runtime appops evidence uses the dev package explicitly.
 - [ ] Receiver/service runtime QA was completed using `docs/QA_RUNTIME_CHECKLIST.md` and `docs/ANDROID_SKILLS_TESTING_QA.md`; release PR evidence distinguishes Android CI의 focused runtime smoke와 release exact alarm/runtime gate를 separate layers로 기록한다.
 - [ ] Automated runtime evidence is explicit in the PR body:
-  - Android CI focused runtime smoke (PR/manual):
-  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
-  - `com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
-  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`
-  - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
-  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
-  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification` (separate `POST_NOTIFICATION ignore` run)
+  - Android CI focused runtime smoke (PR/manual) is a separate, lower-risk PR gate; cite the current `.github/workflows/android-ci.yml` run URL instead of copying an old class list into the release PR.
+  - Release/hotfix runtime evidence comes from `Android Release QA / Release instrumentation QA` below; use that exact list when documenting main-target release readiness.
+  - If Android CI and Release QA differ, record them as different layers rather than treating the Android CI smoke list as the release instrumentation list.
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`

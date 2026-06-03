@@ -7,6 +7,8 @@ RELEASE_QA_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-qa.yml"
 DOCS = {
     "release checklist": REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md",
     "play deployment": REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md",
+    "runtime QA checklist": REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md",
+    "Android skills testing QA": REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md",
     "release context": REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md",
 }
 CRASHLYTICS_RECURRENCE_DOCS = {
@@ -29,6 +31,19 @@ REQUIRED_RELEASE_QA_GATES = [
     "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
 ]
 
+STALE_RELEASE_QA_GATES = [
+    "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",
+    "ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm",
+    "ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms",
+    "EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
+]
+
+RELEASE_FACING_DOCS = {
+    "release checklist": REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md",
+    "play deployment": REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md",
+    "Android skills testing QA": REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md",
+}
+
 
 class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
     def test_guarded_release_qa_runtime_gates_exist_in_workflow(self):
@@ -48,6 +63,16 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             for gate in REQUIRED_RELEASE_QA_GATES:
                 with self.subTest(doc=doc_name, gate=gate):
                     self.assertIn(gate, text)
+
+    def test_release_facing_docs_do_not_mix_stale_android_ci_smoke_as_release_qa(self):
+        for doc_name, path in RELEASE_FACING_DOCS.items():
+            text = path.read_text()
+            for gate in STALE_RELEASE_QA_GATES:
+                with self.subTest(doc=doc_name, gate=gate):
+                    self.assertNotIn(gate, text)
+        release_context = DOCS["release context"].read_text()
+        self.assertIn("Android CI PR gate is intentionally separate", release_context)
+        self.assertIn("use the exact Release QA list below", release_context)
 
     def test_crashlytics_recurrence_handoff_is_release_documented(self):
         required_phrases = [
