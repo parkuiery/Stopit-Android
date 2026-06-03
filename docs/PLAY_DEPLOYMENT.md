@@ -161,8 +161,8 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard (must appear on every `main`-target PR; normal `release/*` / `hotfix/*` version PRs must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
-- Workflow-only / governance-only main-target hotfixes that do not change `app/build.gradle.kts` still keep the `Version Guard` job visible, but the workflow skips the Play service-account restore and versionCode API lookup after `Detect Android version file changes` reports `changed=false`.
+- Version Guard (must appear on every `main`-target PR; normal `release/*` / `hotfix/*` version PRs and any app/runtime/build-critical release/hotfix PR must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
+- Workflow-only / governance-only / docs-only main-target hotfixes still keep the `Version Guard` job visible, but the workflow skips the Play service-account restore and versionCode API lookup only after `Classify Version Guard scope` confirms there are no app/runtime/build-critical changes. Changes under `app/**`, `core/**`, Gradle wrapper/root Gradle files, or `gradle/**` require version validation even if `app/build.gradle.kts` was not edited.
 - Android CI
 - Android Release QA
 - Android Release Build

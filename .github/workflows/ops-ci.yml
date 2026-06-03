@@ -80,6 +80,7 @@ jobs:
               - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
               - 'scripts/tests/test_release_build_workflow_scope.py'
               - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
+              - 'scripts/tests/test_release_guard_hotfix_sync.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
               - '.github/workflows/ops-ci.yml'
@@ -122,6 +123,7 @@ jobs:
           scripts.tests.test_play_deploy_secret_contract_runbook
           scripts.tests.test_release_build_workflow_scope
           scripts.tests.test_release_qa_runtime_gate_docs
+          scripts.tests.test_release_guard_hotfix_sync
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
 
