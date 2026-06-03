@@ -24,6 +24,10 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts/bump-version.sh", workflow)
         self.assertIn("scripts/validate-play-deploy-ref.sh", workflow)
         self.assertIn("scripts/play_version_code_guard.py", workflow)
+        self.assertIn("scripts/release-tag.sh", workflow)
+        self.assertIn("scripts/check-play-deploy-secret-contract.sh", workflow)
+        self.assertIn("scripts/setup-play-deploy-secrets.sh", workflow)
+        self.assertIn("scripts/setup-discord-deploy-secrets.sh", workflow)
         self.assertIn("scripts/tests/**", workflow)
         self.assertIn("actions/setup-node", workflow)
         self.assertIn("node-version: '22'", workflow)
@@ -33,7 +37,32 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("node --test scripts/tests/test_promote_google_play_track.js", workflow)
         self.assertIn("python3 -m py_compile scripts/notify-discord-deploy.py", workflow)
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
-        self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh", workflow)
+        self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh", workflow)
+
+    def test_release_helper_scope_includes_operator_helper_scripts(self):
+        workflow = OPS_CI_WORKFLOW.read_text()
+        helper_scripts = [
+            "scripts/release-tag.sh",
+            "scripts/check-play-deploy-secret-contract.sh",
+            "scripts/setup-play-deploy-secrets.sh",
+            "scripts/setup-discord-deploy-secrets.sh",
+        ]
+
+        for trigger in ("pull_request", "push"):
+            block = self._trigger_block(workflow, trigger)
+            with self.subTest(trigger=trigger):
+                for script in helper_scripts:
+                    self.assertIn(f"'{script}'", block)
+
+        release_helpers_filter = self._filter_block(workflow, "release_helpers")
+        for script in helper_scripts:
+            with self.subTest(filter="release_helpers", script=script):
+                self.assertIn(f"'{script}'", release_helpers_filter)
+
+        syntax_step = self._step_block(workflow, "Check release-helper shell syntax")
+        for script in helper_scripts:
+            with self.subTest(step="shell syntax", script=script):
+                self.assertIn(script, syntax_step)
 
     def test_docs_only_changes_materialize_docs_contract_gate_without_functions_or_android_builds(self):
         workflow = OPS_CI_WORKFLOW.read_text()
@@ -72,7 +101,9 @@ class OpsCiWorkflowTest(unittest.TestCase):
         )
 
     def test_operator_docs_name_ops_ci_responsibility(self):
-        docs = [GIT_WORKFLOW_DOC.read_text(), RELEASE_CONTEXT_DOC.read_text()]
+        git_workflow = GIT_WORKFLOW_DOC.read_text()
+        release_context = RELEASE_CONTEXT_DOC.read_text()
+        docs = [git_workflow, release_context]
         for doc in docs:
             self.assertIn("Ops CI", doc)
             self.assertIn("functions/", doc)
@@ -82,6 +113,17 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", doc)
             self.assertIn("Docs/runbook contract tests", doc)
             self.assertIn("docs-only", doc)
+
+        # The main operator workflow table should enumerate the full release-helper
+        # path surface so humans can predict which helper-only PRs materialize Ops CI.
+        for script in [
+            "scripts/release-tag.sh",
+            "scripts/check-play-deploy-secret-contract.sh",
+            "scripts/setup-play-deploy-secrets.sh",
+            "scripts/setup-discord-deploy-secrets.sh",
+        ]:
+            with self.subTest(doc="GIT_WORKFLOW", script=script):
+                self.assertIn(script, git_workflow)
 
     def _trigger_block(self, workflow: str, trigger: str) -> str:
         pattern = rf"(?ms)^  {trigger}:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|^permissions:|^concurrency:|^jobs:|\Z)"
@@ -97,6 +139,22 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIsNotNone(match, f"workflow should declare jobs.{job_id}")
         if match is None:
             self.fail(f"workflow should declare jobs.{job_id}")
+        return match.group("body")
+
+    def _filter_block(self, workflow: str, filter_name: str) -> str:
+        pattern = rf"(?ms)^            {re.escape(filter_name)}:\n(?P<body>.*?)(?=^            [A-Za-z0-9_-]+:|^\s{2,}\S|\Z)"
+        match = re.search(pattern, workflow)
+        self.assertIsNotNone(match, f"workflow should declare paths-filter entry {filter_name}")
+        if match is None:
+            self.fail(f"workflow should declare paths-filter entry {filter_name}")
+        return match.group("body")
+
+    def _step_block(self, workflow: str, step_name: str) -> str:
+        pattern = rf"(?ms)^      - name: {re.escape(step_name)}\n(?P<body>.*?)(?=^      - name:|^  [A-Za-z0-9_-]+:|\Z)"
+        match = re.search(pattern, workflow)
+        self.assertIsNotNone(match, f"workflow should declare step {step_name}")
+        if match is None:
+            self.fail(f"workflow should declare step {step_name}")
         return match.group("body")
 
 
