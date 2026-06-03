@@ -67,7 +67,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
             routineDao = database.routineDao(),
-            routineScheduler = RoutineScheduler(context),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
 
@@ -96,7 +96,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
             routineDao = database.routineDao(),
-            routineScheduler = RoutineScheduler(context),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
 
@@ -128,7 +128,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineDao = database.routineDao(),
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             routineNoticeStore = RoutineNoticeStore(dataStore),
         )
 
@@ -162,7 +162,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineDao = database.routineDao(),
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             routineNoticeStore = RoutineNoticeStore(dataStore),
         )
 
@@ -196,7 +196,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineDao = database.routineDao(),
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             routineNoticeStore = RoutineNoticeStore(dataStore),
         )
 
