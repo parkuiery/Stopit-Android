@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">取消</string>
     <string name="emergency_unlock_next">下一步</string>
     <string name="emergency_unlock_daily_limit_reached">今天的紧急解锁次数已用完</string>
+    <string name="emergency_unlock_disabled">紧急解锁已关闭</string>
+    <string name="emergency_unlock_daily_limit_zero">紧急解锁次数设置为每天 0 次</string>
     <string name="emergency_unlock_banner">%1$d个应用已解锁 — 剩余%2$s</string>
     <string name="emergency_unlock_active">紧急解锁进行中</string>
     <string name="emergency_unlock_remaining_time">剩余%1$s</string>

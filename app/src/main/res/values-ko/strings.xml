@@ -137,6 +137,8 @@
     <string name="emergency_unlock_cancel">취소</string>
     <string name="emergency_unlock_next">다음</string>
     <string name="emergency_unlock_daily_limit_reached">오늘 긴급 해제 횟수를 모두 사용했어요</string>
+    <string name="emergency_unlock_disabled">긴급 해제가 꺼져 있어요</string>
+    <string name="emergency_unlock_daily_limit_zero">긴급 해제 일일 횟수가 0회로 설정되어 있어요</string>
     <string name="emergency_unlock_banner">%1$d개 앱 해제 중 — %2$s 남음</string>
     <string name="emergency_unlock_active">긴급 해제 진행 중</string>
     <string name="emergency_unlock_remaining_time">%1$s 남음</string>

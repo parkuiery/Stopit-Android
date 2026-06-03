@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Annuler</string>
     <string name="emergency_unlock_next">Suivant</string>
     <string name="emergency_unlock_daily_limit_reached">Vous avez utilisé tous les déverrouillages d\'urgence pour aujourd\'hui</string>
+    <string name="emergency_unlock_disabled">Le déverrouillage d\'urgence est désactivé</string>
+    <string name="emergency_unlock_daily_limit_zero">Les déverrouillages d\'urgence sont définis sur 0 par jour</string>
     <string name="emergency_unlock_banner">%1$d applications déverrouillées — %2$s restant</string>
     <string name="emergency_unlock_active">Déverrouillage d\'urgence actif</string>
     <string name="emergency_unlock_remaining_time">%1$s restant</string>

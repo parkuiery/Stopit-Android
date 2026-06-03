@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Annulla</string>
     <string name="emergency_unlock_next">Avanti</string>
     <string name="emergency_unlock_daily_limit_reached">Hai esaurito tutti gli sblocchi di emergenza per oggi</string>
+    <string name="emergency_unlock_disabled">Lo sblocco di emergenza è disattivato</string>
+    <string name="emergency_unlock_daily_limit_zero">Gli sblocchi di emergenza sono impostati a 0 al giorno</string>
     <string name="emergency_unlock_banner">%1$d app sbloccate — %2$s rimanente</string>
     <string name="emergency_unlock_active">Sblocco di emergenza attivo</string>
     <string name="emergency_unlock_remaining_time">%1$s rimanente</string>

@@ -14,9 +14,17 @@ internal data class EmergencyUnlockAvailability(
     val dailyLimit: Int,
     val durationOptions: List<Int>,
     val reasonRequired: Boolean,
+    val reason: EmergencyUnlockAvailabilityReason,
     val dailyLimitReached: Boolean,
     val dailyUnlockRemaining: Int,
 )
+
+enum class EmergencyUnlockAvailabilityReason {
+    Available,
+    Disabled,
+    DailyLimitZero,
+    DailyLimitExhausted,
+}
 
 internal sealed interface EmergencyUnlockRequestResult {
     data class Completed(
@@ -120,22 +128,29 @@ class EmergencyUnlockCoordinator
         private fun availability(
             settings: EmergencyUnlockSettingsSnapshot,
             todayUnlockCount: Int,
-        ): EmergencyUnlockAvailability =
-            EmergencyUnlockAvailability(
+        ): EmergencyUnlockAvailability {
+            val reason = when {
+                !settings.enabled -> EmergencyUnlockAvailabilityReason.Disabled
+                settings.dailyLimit <= 0 -> EmergencyUnlockAvailabilityReason.DailyLimitZero
+                isEmergencyUnlockDailyLimitReached(
+                    dailyLimit = settings.dailyLimit,
+                    todayUnlockCount = todayUnlockCount,
+                ) -> EmergencyUnlockAvailabilityReason.DailyLimitExhausted
+                else -> EmergencyUnlockAvailabilityReason.Available
+            }
+            return EmergencyUnlockAvailability(
                 enabled = settings.enabled,
                 dailyLimit = settings.dailyLimit,
                 durationOptions = settings.durationOptions,
                 reasonRequired = settings.reasonRequired,
-                dailyLimitReached = !isEmergencyUnlockAvailable(
-                    enabled = settings.enabled,
-                    dailyLimit = settings.dailyLimit,
-                    todayUnlockCount = todayUnlockCount,
-                ),
+                reason = reason,
+                dailyLimitReached = reason == EmergencyUnlockAvailabilityReason.DailyLimitExhausted,
                 dailyUnlockRemaining = emergencyUnlockDailyRemaining(
                     dailyLimit = settings.dailyLimit,
                     todayUnlockCount = todayUnlockCount,
                 ),
             )
+        }
 
         private fun todayStartMillis(): Long {
             val calendar = Calendar.getInstance().apply {

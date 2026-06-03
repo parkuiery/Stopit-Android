@@ -138,6 +138,8 @@
     <string name="emergency_unlock_cancel">Annuleren</string>
     <string name="emergency_unlock_next">Volgende</string>
     <string name="emergency_unlock_daily_limit_reached">Je hebt alle noodontgrendelingen voor vandaag opgebruikt</string>
+    <string name="emergency_unlock_disabled">Noodontgrendeling is uitgeschakeld</string>
+    <string name="emergency_unlock_daily_limit_zero">Noodontgrendelingen zijn ingesteld op 0 per dag</string>
     <string name="emergency_unlock_banner">%1$d apps ontgrendeld — %2$s over</string>
     <string name="emergency_unlock_active">Noodontgrendeling actief</string>
     <string name="emergency_unlock_remaining_time">%1$s over</string>
