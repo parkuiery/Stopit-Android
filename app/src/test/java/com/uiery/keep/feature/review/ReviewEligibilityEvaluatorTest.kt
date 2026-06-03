@@ -3,6 +3,7 @@ package com.uiery.keep.feature.review
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -35,8 +36,8 @@ class ReviewEligibilityEvaluatorTest {
     ): ReviewEligibilityEvaluator {
         val dataStore = FakeDataStore(prefs)
         return ReviewEligibilityEvaluator(
-            dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(rcEnabled),
             accessibilityChecker = FakeAccessibilityChecker(accessibilityEnabled),
             emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),

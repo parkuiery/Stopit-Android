@@ -16,6 +16,7 @@ import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.datastore.ReviewPromptStateStore
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -48,6 +49,7 @@ class LockViewModel
         private val lockHistoryDao: LockHistoryDao,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
+        private val reviewPromptStateStore: ReviewPromptStateStore,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
@@ -149,7 +151,7 @@ class LockViewModel
             )
             when (decision) {
                 is ReviewEligibilityDecision.Eligible -> {
-                    blockingStateStore.markReviewPending()
+                    reviewPromptStateStore.markPending()
                     analytics.reviewPromptEligible()
                 }
                 is ReviewEligibilityDecision.Ineligible -> {

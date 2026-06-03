@@ -77,7 +77,7 @@ class BlockingStateStoreTest {
     }
 
     @Test
-    fun successfulSessionCountIncrementAndReviewPendingRoundTrip() = runBlocking {
+    fun successfulSessionCountIncrementsThroughBlockingBoundary() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
         val store = BlockingStateStore(dataStore)
 
@@ -85,12 +85,6 @@ class BlockingStateStoreTest {
         assertEquals(1, store.incrementSuccessfulSessionCount())
         assertEquals(2, store.incrementSuccessfulSessionCount())
         assertEquals(2, store.readSuccessfulSessionCount())
-
-        assertFalse(store.isReviewPending())
-        store.markReviewPending()
-        assertTrue(store.isReviewPending())
-        store.clearReviewPending()
-        assertFalse(store.isReviewPending())
     }
 
     @Test

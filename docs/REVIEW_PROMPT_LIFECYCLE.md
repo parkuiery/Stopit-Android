@@ -20,13 +20,16 @@
 - `app/src/main/java/com/uiery/keep/feature/review/AppLifecycleTracker.kt`
 - `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`
 - `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
-- `app/src/main/java/com/uiery/keep/datastore/DataStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/ReviewPromptStateStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/BlockingStateStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/DataStore.kt` (legacy key definition)
 
 테스트 기준 파일:
 
 - `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`
 - `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`
 - `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
+- `app/src/test/java/com/uiery/keep/datastore/ReviewPromptStateStoreTest.kt`
 - `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 
 운영/조회성 기준 문서:
@@ -132,6 +135,14 @@
 즉, 세션 수, cooldown, background 이력, 최근 성공 세션 수 같은 조건은 arm 시점에서 이미 통과했다고 보고 다시 확인하지 않는다.
 
 ## DataStore 상태 계약
+
+리뷰 prompt lifecycle 키의 read/write 경계는 `ReviewPromptStateStore`다. `ReviewEligibilityEvaluator`, `AppLifecycleTracker`, `InAppReviewManager`, `HomeViewModel`, `LockViewModel`은 raw `PreferencesKey.REVIEW_PENDING`, `LAST_REVIEW_PROMPT_AT_MS`, `LAST_BACKGROUNDED_AT_MS`를 직접 만지지 않고 이 typed store를 통해 읽고 쓴다. `SUCCESSFUL_SESSION_COUNT`는 기존 lock/session 경계인 `BlockingStateStore`에 남겨 둔다.
+
+허용되는 raw key 접근은 다음으로 제한한다.
+
+- `ReviewPromptStateStore`: review pending/cooldown/background timestamp의 legacy key 호환 read/write.
+- `BlockingStateStore`: successful session count의 lock/session 누적 read/write.
+- `BackupRestoreDataStoreKeyPolicy`: DataStore 전체 exclude 정책의 reset-only 분류.
 
 | Key | 역할 |
 | --- | --- |
@@ -256,6 +267,7 @@ Play Console에서 다음을 후행 지표로 본다.
 cd <repo-root>
 git diff -- docs/REVIEW_PROMPT_LIFECYCLE.md docs/ANALYTICS_EVENT_DICTIONARY.md docs/METRICS_ANALYSIS.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md
 ./gradlew :app:testDevDebugUnitTest \
+  --tests com.uiery.keep.datastore.ReviewPromptStateStoreTest \
   --tests com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest \
   --tests com.uiery.keep.feature.review.InAppReviewManagerTest \
   --tests com.uiery.keep.feature.home.HomeViewModelReviewTest \

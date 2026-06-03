@@ -3,6 +3,7 @@ package com.uiery.keep.feature.home
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.feature.review.AnalyticsEventRecord
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -30,34 +31,12 @@ class HomeViewModelReviewTest {
     @Test
     fun maybeDrainReviewFlagKeepsPendingWhenHomeSheetIsVisibleAndReevaluatesAfterDismiss() = runBlocking {
         val analytics = RecordingKeepAnalytics()
-        val dataStore = FakeDataStore(
-            mutablePreferencesOf(
-                PreferencesKey.REVIEW_PENDING to true,
-            ),
-        )
+        val dataStore = pendingReviewDataStore()
         val accessibilityChecker = FakeAccessibilityChecker(enabled = true)
-        val reviewEligibility = ReviewEligibilityEvaluator(
+        val viewModel = createViewModel(
             dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            remoteConfig = FakeReviewRemoteConfig(enabled = true),
-            accessibilityChecker = accessibilityChecker,
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
-            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
-            clock = clock,
-            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
-        )
-        val viewModel = HomeViewModel(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
-            lockHistoryDao = FakeLockHistoryDao(),
-            reviewEligibility = reviewEligibility,
-            inAppReviewManager = InAppReviewManager(
-                launcher = FakeReviewLauncher(),
-                analytics = analytics,
-                dataStore = dataStore,
-                clock = clock,
-            ),
+            accessibilityChecker = accessibilityChecker,
         )
 
         viewModel.showCategoryBottomSheet()
@@ -87,33 +66,11 @@ class HomeViewModelReviewTest {
     @Test
     fun maybeDrainReviewFlagClearsPendingWhenLiveEligibilityFails() = runBlocking {
         val analytics = RecordingKeepAnalytics()
-        val dataStore = FakeDataStore(
-            mutablePreferencesOf(
-                PreferencesKey.REVIEW_PENDING to true,
-            ),
-        )
-        val reviewEligibility = ReviewEligibilityEvaluator(
+        val dataStore = pendingReviewDataStore()
+        val viewModel = createViewModel(
             dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            remoteConfig = FakeReviewRemoteConfig(enabled = true),
-            accessibilityChecker = FakeAccessibilityChecker(enabled = false),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
-            lockHistoryDao = FakeLockHistoryDao(),
-            clock = clock,
-            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
-        )
-        val viewModel = HomeViewModel(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
-            lockHistoryDao = FakeLockHistoryDao(),
-            reviewEligibility = reviewEligibility,
-            inAppReviewManager = InAppReviewManager(
-                launcher = FakeReviewLauncher(),
-                analytics = analytics,
-                dataStore = dataStore,
-                clock = clock,
-            ),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = false),
         )
 
         viewModel.maybeDrainReviewFlag(activity = null)
@@ -126,35 +83,9 @@ class HomeViewModelReviewTest {
     @Test
     fun maybeDrainReviewFlagKeepsPendingWhenEligibleButActivityIsNull() = runBlocking {
         val analytics = RecordingKeepAnalytics()
-        val dataStore = FakeDataStore(
-            mutablePreferencesOf(
-                PreferencesKey.REVIEW_PENDING to true,
-            ),
-        )
+        val dataStore = pendingReviewDataStore()
         val launcher = FakeReviewLauncher()
-        val reviewEligibility = ReviewEligibilityEvaluator(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            remoteConfig = FakeReviewRemoteConfig(enabled = true),
-            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
-            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
-            clock = clock,
-            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
-        )
-        val viewModel = HomeViewModel(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            analytics = analytics,
-            lockHistoryDao = FakeLockHistoryDao(),
-            reviewEligibility = reviewEligibility,
-            inAppReviewManager = InAppReviewManager(
-                launcher = launcher,
-                analytics = analytics,
-                dataStore = dataStore,
-                clock = clock,
-            ),
-        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics, launcher = launcher)
 
         viewModel.maybeDrainReviewFlag(activity = null)
         delay(50)
@@ -167,35 +98,9 @@ class HomeViewModelReviewTest {
     @Test
     fun maybeDrainReviewFlagKeepsPendingWhenReviewLaunchFails() = runBlocking {
         val analytics = RecordingKeepAnalytics()
-        val dataStore = FakeDataStore(
-            mutablePreferencesOf(
-                PreferencesKey.REVIEW_PENDING to true,
-            ),
-        )
+        val dataStore = pendingReviewDataStore()
         val launcher = FakeReviewLauncher(nextResult = ReviewLaunchResult.Failure("play_store_unavailable"))
-        val reviewEligibility = ReviewEligibilityEvaluator(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            remoteConfig = FakeReviewRemoteConfig(enabled = true),
-            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(),
-            lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
-            clock = clock,
-            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
-        )
-        val viewModel = HomeViewModel(
-            dataStore = dataStore,
-            blockingStateStore = BlockingStateStore(dataStore),
-            analytics = analytics,
-            lockHistoryDao = FakeLockHistoryDao(),
-            reviewEligibility = reviewEligibility,
-            inAppReviewManager = InAppReviewManager(
-                launcher = launcher,
-                analytics = analytics,
-                dataStore = dataStore,
-                clock = clock,
-            ),
-        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics, launcher = launcher)
 
         viewModel.maybeDrainReviewFlag(activity = Mockito.mock(android.app.Activity::class.java))
         delay(50)
@@ -203,5 +108,44 @@ class HomeViewModelReviewTest {
         assertEquals(listOf(AnalyticsEventRecord.Failed("play_store_unavailable")), analytics.events)
         assertEquals(1, launcher.launchCount)
         assertEquals(true, dataStore.snapshot()[PreferencesKey.REVIEW_PENDING])
+    }
+
+    private fun pendingReviewDataStore(): FakeDataStore =
+        FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.REVIEW_PENDING to true,
+            ),
+        )
+
+    private fun createViewModel(
+        dataStore: FakeDataStore,
+        analytics: RecordingKeepAnalytics,
+        accessibilityChecker: FakeAccessibilityChecker = FakeAccessibilityChecker(enabled = true),
+        launcher: FakeReviewLauncher = FakeReviewLauncher(),
+    ): HomeViewModel {
+        val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
+        return HomeViewModel(
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            analytics = analytics,
+            lockHistoryDao = FakeLockHistoryDao(),
+            reviewEligibility = ReviewEligibilityEvaluator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                reviewPromptStateStore = reviewPromptStateStore,
+                remoteConfig = FakeReviewRemoteConfig(enabled = true),
+                accessibilityChecker = accessibilityChecker,
+                emergencyUnlockDao = FakeEmergencyUnlockDao(),
+                lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
+                clock = clock,
+                buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
+            ),
+            inAppReviewManager = InAppReviewManager(
+                launcher = launcher,
+                analytics = analytics,
+                reviewPromptStateStore = reviewPromptStateStore,
+                clock = clock,
+            ),
+        )
     }
 }
