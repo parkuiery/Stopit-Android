@@ -63,6 +63,7 @@
 - 이벤트/파라미터 사전: `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - GA4 Admin 등록/metadata 증적: `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - 제품 지표 해석: `docs/METRICS_ANALYSIS.md`, `docs/PRODUCT_METRICS_DASHBOARD.md`
+- 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - ASO/Play Console 후행 지표: `docs/PLAY_STORE_ASO.md`
 
 ## 재측정 전제
@@ -85,7 +86,7 @@
 | #310 `test: stabilize home accessibility permission smoke` | `7ec28adc1355c59ee770fc6ec2cedb0275ab0a7d` | PR #308을 막던 runtime smoke gate blocker 해소 완료 | 없음. #307의 남은 blocker로 다시 취급하지 않는다. |
 | #312 `fix: unwrap home activity for review prompt drain` | `e920ea3049bb0a3e192de29d0011298ae9b0a2b5` | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | PR #312 포함 버전 release/internal/production 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 14일·30일 재측정 |
 
-따라서 다음 docs/metrics run은 “PR #308/#312 merge 여부”를 다시 묻지 말고, **PR #308과 PR #312가 모두 포함된 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 2026-06-02 확인 기준 최신 SemVer tag `v1.7.7`와 `origin/main`에는 두 merge commit이 아직 포함되지 않았다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “release/main 반영 → internal/production 배포 → 14일 관측 대기”를 외부 경계로 둔다.
+따라서 다음 docs/metrics run은 “PR #308/#312 merge 여부”를 다시 묻지 말고, **PR #308과 PR #312가 모두 포함된 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 2026-06-02 확인 기준 최신 SemVer tag `v1.7.7`와 `origin/main`에는 두 merge commit이 아직 포함되지 않았다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “release/main 반영 → internal/production 배포 → 14일 관측 대기”를 외부 경계로 둔다. 배포 후에도 최신 버전 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`이면 `shown = 0`이나 skip reason을 최신 코드 회귀로 단정하지 않는다.
 
 ### 2. GA4 queryability 경계
 

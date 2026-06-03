@@ -114,6 +114,20 @@ interface KeepAnalytics {
         periodType: String,
         reason: String,
     ) = Unit
+
+    fun trackMonetizationInterestShown(
+        interestSurface: String,
+        interestContext: String,
+        interestVariant: String? = null,
+        purchaseAvailable: Boolean? = null,
+    ) = Unit
+
+    fun trackMonetizationInterestClicked(
+        interestSurface: String,
+        interestContext: String,
+        interestVariant: String? = null,
+        purchaseAvailable: Boolean? = null,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -146,6 +160,8 @@ object KeepAnalyticsEvent {
     const val FOCUS_SUMMARY_SHARE_TAPPED = "focus_summary_share_tapped"
     const val FOCUS_SUMMARY_SHARE_SHEET_OPENED = "focus_summary_share_sheet_opened"
     const val FOCUS_SUMMARY_SHARE_FAILED = "focus_summary_share_failed"
+    const val MONETIZATION_INTEREST_SHOWN = "monetization_interest_shown"
+    const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
 }
 
 object KeepAnalyticsParam {
@@ -173,6 +189,10 @@ object KeepAnalyticsParam {
     const val PERIOD_TYPE = "period_type"
     const val SESSION_COUNT_BUCKET = "session_count_bucket"
     const val DURATION_MINUTES_BUCKET = "duration_minutes_bucket"
+    const val INTEREST_SURFACE = "interest_surface"
+    const val INTEREST_CONTEXT = "interest_context"
+    const val INTEREST_VARIANT = "interest_variant"
+    const val PURCHASE_AVAILABLE = "purchase_available"
 }
 
 object OnboardingStepName {
@@ -241,4 +261,17 @@ object AnalyticsBlockSource {
 object AnalyticsDeviceRegistrationSkipReason {
     const val BACKEND_REMOVED = "backend_removed"
     const val MISSING_FCM_TOKEN = "missing_fcm_token"
+}
+
+object AnalyticsMonetizationInterestSurface {
+    const val MENU = "menu"
+    const val HOME = "home"
+    const val SETTINGS = "settings"
+}
+
+object AnalyticsMonetizationInterestContext {
+    const val POST_SPLIT_ADMOB_AUDIT = "post_split_admob_audit"
+    const val MENU_SETTINGS = "menu_settings"
+    const val HOME_SECONDARY = "home_secondary"
+    const val AD_MANAGEMENT = "ad_management"
 }

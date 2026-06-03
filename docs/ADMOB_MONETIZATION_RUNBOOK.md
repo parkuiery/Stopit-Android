@@ -46,6 +46,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
@@ -73,7 +74,7 @@ issue #16에 기록된 최근 30일 기준선:
   - `ad_banner_impression`
   - `ad_banner_click`
   - `ad_banner_revenue`
-- 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **PR #293 포함 버전 배포 후 새 `ad_banner_*` 이벤트명 기준 14일 coverage 재조회와 단일 실험 선택**이다.
+- 따라서 #16의 현재 경계는 “광고 파라미터 전부 미등록”이나 “이벤트명 분리 여부 결정”이 아니라, **PR #293 포함 버전 배포 후 새 `ad_banner_*` 이벤트명 기준 14일 coverage 재조회와 단일 실험 선택**이다. 단, PR #293 포함 버전의 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`이면 새 `ad_banner_*` 행은 production placement 성과가 아니라 queryability smoke로만 기록한다.
 
 이전 참고값:
 
@@ -652,7 +653,7 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 운영 원칙:
 
 - `monetization_interest_context`를 별도 이벤트처럼 만들지 않는다. 관심도 실험은 `shown`/`clicked` 두 이벤트에 `interest_context` 파라미터를 붙여 조회한다.
-- `interest_context` / `interest_surface`는 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 등록 계약을 먼저 추가한 뒤 code-lane에서 구현한다.
+- 2026-06-03 QA/code contract로 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 `monetization_interest_shown` / `monetization_interest_clicked` 기록 API가 추가됐다. 실제 CTA UI 배치 전에는 `interest_context` / `interest_surface`를 GA4 Admin에 등록하고 metadata 확인을 남긴다.
 - 결제 구현 전에는 “구매 완료”나 “전환”으로 표현하지 않고, 관심 클릭률만 낮은 confidence의 demand signal로 본다.
 - 클릭률 계산은 `monetization_interest_clicked` users / `monetization_interest_shown` users를 기본 분자/분모로 사용한다.
 
