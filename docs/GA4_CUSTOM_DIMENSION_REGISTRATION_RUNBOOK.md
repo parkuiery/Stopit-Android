@@ -14,6 +14,7 @@
 - 이벤트/파라미터 계약: `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - 분석/이슈화 절차: `docs/METRICS_ANALYSIS.md`
 - 제품 대시보드와 우선순위: `docs/PRODUCT_METRICS_DASHBOARD.md`
+- 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - open issue: `#13`
 - 앱 코드 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
 - Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
@@ -49,7 +50,7 @@
 
 - PR #296에서 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`의 명시적 `screen_view` 계측이 추가됐다.
 - PR #318에서 dev/debug 내부 진단 surface인 `DevToolScreen` 명시적 `screen_view` 계측도 추가됐다.
-- 따라서 2026-05-29 screen 품질 baseline은 위 네 화면 보강 전 기준선이다. 같은 화면에 대해 새 code-lane 작업을 다시 열기 전에, PR #296/#318 포함 버전 배포 후 14일 창에서 `(not set)` / blank `unifiedScreenName`가 실제로 남는지 먼저 재측정한다. `DevToolScreen`은 dev/debug 전용 route이므로 production 사용자 screen 품질 판정의 주요 분모로 과대해석하지 않는다.
+- 따라서 2026-05-29 screen 품질 baseline은 위 네 화면 보강 전 기준선이다. 같은 화면에 대해 새 code-lane 작업을 다시 열기 전에, PR #296/#318 포함 버전 배포 후 14일 창에서 `(not set)` / blank `unifiedScreenName`가 실제로 남는지 먼저 재측정한다. 이때 최신 버전 active share는 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준으로 함께 판정한다. `DevToolScreen`은 dev/debug 전용 route이므로 production 사용자 screen 품질 판정의 주요 분모로 과대해석하지 않는다.
 
 해석:
 

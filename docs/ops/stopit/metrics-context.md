@@ -105,6 +105,7 @@ ASO 판정 주의:
 - `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
 - `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.
+- 버전 채택률 판독은 `docs/VERSION_ADOPTION_METRICS_GATE.md`를 source of truth로 본다. 최신 배포 버전 active share가 10% 미만이면 `보류`, 10~30%면 `주의`, 30% 이상이면 `충분`으로 두고 #13/#14/#16/#307 같은 post-release 지표 결론을 전체 합산으로 과대해석하지 않는다.
 - 전환율은 항상 분자/분모/기간을 같이 기록한다.
 - 지표 하나당 이슈 하나를 만들지 않는다. 실행 단위의 문제/기회로 묶는다.
 - 광고/수익화 개선은 activation, retention, trust guardrail과 함께 판단한다.
