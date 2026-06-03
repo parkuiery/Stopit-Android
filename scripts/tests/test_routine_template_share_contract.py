@@ -6,10 +6,12 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RUNBOOK = REPO_ROOT / "docs" / "ROUTINE_TEMPLATE_SHARE_MVP.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 ANALYTICS_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
+GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
+QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 
 
 class RoutineTemplateShareContractTest(unittest.TestCase):
@@ -65,6 +67,8 @@ class RoutineTemplateShareContractTest(unittest.TestCase):
         documents = [
             PRODUCT_DASHBOARD.read_text(),
             METRICS_ANALYSIS.read_text(),
+            GA4_RUNBOOK.read_text(),
+            QA_RUNTIME_CHECKLIST.read_text(),
             METRICS_CONTEXT.read_text(),
             PRODUCT_CONTEXT.read_text(),
             DOCS_AGENTS.read_text(),
@@ -82,6 +86,30 @@ class RoutineTemplateShareContractTest(unittest.TestCase):
             runbook,
         )
         self.assertIn("routine-template share contract regression", runbook)
+
+    def test_ga4_registration_runbook_tracks_routine_template_parameters(self):
+        ga4_runbook = GA4_RUNBOOK.read_text()
+
+        for parameter in [
+            "customEvent:template_category",
+            "customEvent:repeat_days_bucket",
+            "customEvent:time_window_bucket",
+            "customEvent:routine_name_included",
+        ]:
+            self.assertIn(parameter, ga4_runbook)
+
+        self.assertIn("루틴 템플릿 공유 루프 조회성", ga4_runbook)
+        self.assertIn("routine template share check", ga4_runbook)
+        self.assertIn("앱 이름/package/lockApplications/raw session history", ga4_runbook)
+
+    def test_qa_checklist_defines_privacy_safe_routine_share_evidence(self):
+        qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
+
+        self.assertIn("루틴 템플릿 공유 privacy-safe QA baseline", qa_checklist)
+        self.assertIn("RoutineTemplateSharePayloadTest", qa_checklist)
+        self.assertIn("RoutineTemplateShareAnalyticsTest", qa_checklist)
+        self.assertIn("Routine template share QA evidence", qa_checklist)
+        self.assertIn("app names / package names / lockApplications absent", qa_checklist)
 
 
 if __name__ == "__main__":
