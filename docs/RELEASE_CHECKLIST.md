@@ -56,14 +56,17 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
   - `com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
   - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
-  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`
   - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
-  - `com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest` (홈 접근성 권한 경고 재동기화 + substring false positive 방지)
-  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest` (AccessibilityService bind 이후 cross-app foreground 차단 진입 + emergency unlock 우회 + self-uninstall interception safety)
+  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
+  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine` (separate `POST_NOTIFICATION ignore` run)
+  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification` (separate `POST_NOTIFICATION ignore` run)
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
   - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
