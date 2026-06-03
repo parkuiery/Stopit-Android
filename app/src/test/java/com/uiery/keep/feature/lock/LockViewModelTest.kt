@@ -9,6 +9,7 @@ import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -97,7 +98,7 @@ class LockViewModelTest {
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
-                dataStore = dataStore,
+                settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = emergencyUnlockDao,
                 analytics = analytics,
@@ -139,7 +140,7 @@ class LockViewModelTest {
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
-                dataStore = dataStore,
+                settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockDao = emergencyUnlockDao,
                 analytics = analytics,
@@ -201,7 +202,7 @@ class LockViewModelTest {
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
                 emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
-                    dataStore = dataStore,
+                    settingsStore = EmergencyUnlockSettingsStore(dataStore),
                     blockingStateStore = BlockingStateStore(dataStore),
                     emergencyUnlockDao = emergencyUnlockDao,
                     analytics = analytics,
