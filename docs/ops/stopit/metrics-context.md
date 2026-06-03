@@ -62,6 +62,7 @@ ASO 판정 주의:
 - 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 - Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
 - 2026-06-03 live readback(`2026-06-03T06:12:47Z`)에서도 전체 `newUsers`가 432명으로 직전 30일 대비 +18.0%였지만 `Direct` 신규가 263명(60.9%)으로 유지됐고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮으며 `sessions`는 4,733회로 직전 6,401회 대비 -26.1%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
+- 2026-06-03 루틴 반복 사용 기준선(#380)에서는 `customUser:routines_count >= 1` activeUsers 150명, `routines_count = 0` activeUsers 155명으로 규모가 비슷했지만, 루틴 보유자의 sessions / activeUsers가 `2,152 / 150 = 14.35`로 미보유자 `1,180 / 155 = 7.61`보다 높고 `app_block_intercepted` users / activeUsers도 `91 / 150 = 60.7%` vs `62 / 155 = 40.0%`였다. 단 `(not set)` activeUsers가 560명이라 전체 retention 결론은 보류하고 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 재측정/guardrail 표를 따른다.
 
 ## 핵심 퍼널
 
@@ -139,3 +140,4 @@ ASO 판정 주의:
 - `docs/PLAY_STORE_ASO.md`
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`
+- `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`

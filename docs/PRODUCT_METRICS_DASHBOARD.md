@@ -2,7 +2,7 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
-첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
 
 ## 목적
 
@@ -169,6 +169,7 @@
 - 2026-05-29 `screen_view` gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. #13의 다음 screen 품질 판단은 PR #296/#318 포함 버전 배포 후 14일 재측정 결과로 한다.
 - 2026-06-03 screen 품질 smoke는 `13,780 / 22,584 = 61.0%`로 개선처럼 보이지만, PR #296/#318이 아직 `origin/main`/`v1.7.7` production tag에 포함되지 않았으므로 #13의 post-fix 판정으로 쓰지 않는다. 이 값은 현재 live 상태 확인용 중간 smoke이며, release/tag/Play deploy 포함 후 14일 창을 별도로 채운다.
 - 2026-06-03 버전 채택률 smoke에서는 최신 관측 버전 `1.7.7` activeUsers가 31명, 전체 activeUsers가 688명으로 `31 / 688 = 4.5%`였다. #359 기준 `보류`이므로 #13/#14/#16/#307 관련 최신 PR 성과를 전체 30일 합산 지표로 판정하지 않는다.
+- 2026-06-03 루틴 반복 사용 기준선에서는 `customUser:routines_count >= 1` activeUsers가 150명, `routines_count = 0` activeUsers가 155명으로 규모가 비슷했지만, sessions / activeUsers는 루틴 보유자가 `2,152 / 150 = 14.35`, 루틴 미보유자가 `1,180 / 155 = 7.61`이었다. `app_block_intercepted` users / activeUsers도 루틴 보유자 `91 / 150 = 60.7%`, 루틴 미보유자 `62 / 155 = 40.0%`로 차이가 있다. 다만 `(not set)` activeUsers가 560명으로 가장 크므로, 루틴 CTA/템플릿 실험은 실행 후보로 두되 전체 retention 결론은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 queryability/버전 채택률 경계를 따른다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
 - 2026-06-01/2026-06-03 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 2026-06-03T06:12:47Z live readback 기준 전체 `newUsers`는 432명으로 직전 대비 +18.0%였지만 `Direct` 신규가 263명(60.9%)으로 유지됐고 `Organic Search` 신규는 169명으로 #65 기준선 178명보다 낮다. `sessions`도 4,733회로 직전 6,401회 대비 -26.1%다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
 - 현재 #14는 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 `origin/develop`에 반영된 상태다. 다만 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 포함되지 않았으므로, `v1.7.7` live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 활성화 판단은 “CTA를 또 만드는 것”이나 “첫 가치 피드백 미정의”가 아니라, 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`가 같이 개선됐는지 확인하는 것이다. 세부 출처/차단앱/권한별 분해는 #13의 GA4 Admin registration/materialization 확인 전까지 낮은 confidence로 둔다.
