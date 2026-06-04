@@ -68,10 +68,10 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
-import com.uiery.keep.feature.home.component.CategoryButton
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity

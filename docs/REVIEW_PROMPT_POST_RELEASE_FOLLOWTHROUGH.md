@@ -6,7 +6,7 @@
 
 ## 현재 기준선
 
-2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준:
+2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-04T09:17:03Z live readback으로 최신화한다.
 
 | 지표 | 최근 30일 사용자 수 | 해석 |
 | --- | ---: | --- |
@@ -16,9 +16,9 @@
 | `lock_session_start` | 209 | 잠금 세션 시작 신호도 존재 |
 | `first_core_action_completed` | 336 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
 | `activeUsers` | 681 | 분모 기준 |
-| `newUsers` | 425 | 직전 30일 366 대비 +16.1% |
-| `Organic Search` 신규 사용자 | 169 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178보다 낮음 |
-| `Direct` 신규 사용자 | 256 | `256 / 425 = 60.2%`라 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
+| `newUsers` | 464 | 2026-06-04T09:17:03Z acquisition readback 기준. 직전 30일 360 대비 +28.9% |
+| `Organic Search` 신규 사용자 | 179 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178을 간신히 넘었지만 단독 회복 근거로 승격하지 않음 |
+| `Direct` 신규 사용자 | 285 | `285 / 464 = 61.4%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
 
 이 기준선은 PR #226 / tag `v1.7.7` 이후 흐름이 30일 합산 안에 충분히 반영되기 전의 혼합 지표다. 따라서 `shown = 0`만 보고 바로 eligibility 설계를 바꾸지 않는다. 먼저 버전별·배포 후 14일 창으로 다시 분해한다.
 
@@ -136,7 +136,7 @@
 
 | 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
-| baseline | TODO | TODO | TODO | 169 | TODO | Play Console 수동 기록 필요. `Direct` 신규 256명(60.2%)이라 #242 attribution gate 적용 |
+| baseline | TODO | TODO | TODO | 179 | TODO | Play Console 수동 기록 필요. `Direct` 신규 285명(61.4%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 간신히 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
 | D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
 | D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
 

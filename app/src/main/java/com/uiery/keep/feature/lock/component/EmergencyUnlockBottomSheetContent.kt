@@ -58,7 +58,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.util.AppDisplayMetadataResolver
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.delay
 
 private data class UnlockReason(val stringRes: Int, val key: String)
@@ -281,10 +281,7 @@ private fun AppSelectionStep(
     onNext: () -> Unit,
 ) {
     val context = LocalContext.current
-    val pm = context.packageManager
-    val appDisplayMetadataResolver = remember(pm) {
-        AppDisplayMetadataResolver(pm)
-    }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val density = context.resources.displayMetrics.density
     val iconSizePx = (40 * density).toInt()
 
@@ -327,16 +324,14 @@ private fun AppSelectionStep(
                         onCheckedChange = null,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    appMetadata.icon?.let {
-                        Image(
-                            bitmap = it.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
-                            contentDescription = appMetadata.contentDescription,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
+                    Image(
+                        bitmap = appMetadata.icon.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
+                        contentDescription = appMetadata.contentDescription,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = appMetadata.label,
                         color = KeepTheme.colors.onSurfaceVariant,
