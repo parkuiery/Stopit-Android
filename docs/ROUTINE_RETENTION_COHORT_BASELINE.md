@@ -88,7 +88,8 @@
 
 | 후보 | 판정 | 이유 | 선행 조건 |
 | --- | --- | --- | --- |
-| 루틴 생성 CTA/템플릿 실험 | 실행 후보 | 루틴 보유자의 반복 차단 강도가 높음 | `routines_count=(not set)` 분해와 safety copy/QA guardrail |
+| 루틴 생성 CTA 실험(#455) | 실행 후보 | 루틴 보유자의 반복 차단 강도가 높음 | `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` 기준으로 post-first-core-action + 루틴 0개 사용자만 soft CTA 대상화. `routines_count=(not set)` 과대해석 금지 |
+| 루틴 템플릿 공유 실험(#407) | 실행 후보 | 루틴을 이미 만든 사용자의 공유/성장 루프 후보 | `docs/ROUTINE_TEMPLATE_SHARE_MVP.md` privacy-safe payload/QA guardrail |
 | Usage Access 기반 루틴 추천(#119) | 검증 필요 | 루틴 추천 가설과 맞지만 추가 권한/프라이버시 리스크가 큼 | #119 discovery gate, forbidden analytics payload 유지 |
 | 리뷰 프롬프트 eligibility에 루틴 사용 강화 | 보류 | 루틴 보유자는 긍정 경험 후보지만 긴급해제 부담도 높음 | #307 post-release shown/skip 재측정 뒤 판단 |
 
@@ -175,6 +176,7 @@ for event_name in EVENTS:
 - GitHub issue: #380
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star/Input/retention 해석
 - `docs/METRICS_ANALYSIS.md`: 유지/반복 사용 분석 절차
+- `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455 첫 차단 성공 후 루틴 생성 CTA 실험 계약
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: 루틴 추천/Usage Access discovery gate
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: GA4 Admin 등록/metadata 경계
 - `docs/VERSION_ADOPTION_METRICS_GATE.md`: 최신 버전 cohort confidence
