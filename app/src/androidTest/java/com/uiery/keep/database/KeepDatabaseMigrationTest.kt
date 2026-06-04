@@ -36,6 +36,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_1_2,
             KeepDatabase.MIGRATION_2_3,
             KeepDatabase.MIGRATION_3_4,
+            KeepDatabase.MIGRATION_4_5,
         )
 
         db.query("SELECT * FROM routine WHERE id = 1").use { cursor ->
@@ -65,6 +66,7 @@ class KeepDatabaseMigrationTest {
             true,
             KeepDatabase.MIGRATION_2_3,
             KeepDatabase.MIGRATION_3_4,
+            KeepDatabase.MIGRATION_4_5,
         )
 
         db.query("SELECT * FROM lock_history WHERE id = 10").use { cursor ->
@@ -91,6 +93,7 @@ class KeepDatabaseMigrationTest {
             LATEST_VERSION,
             true,
             KeepDatabase.MIGRATION_3_4,
+            KeepDatabase.MIGRATION_4_5,
         )
 
         db.query("SELECT * FROM routine WHERE id = 3").use { cursor ->
@@ -102,7 +105,7 @@ class KeepDatabaseMigrationTest {
     }
 
     @Test
-    fun validatesVersion4SchemaAndPreservesEmergencyUnlockData() {
+    fun migratesFromVersion4ToLatestAddingGoalLockTableAndPreservingEmergencyUnlockData() {
         helper.createDatabase(TEST_DB, 4).apply {
             insertRoutineV3(id = 4, changeLockHours = 3)
             insertLockHistory(id = 12)
@@ -110,7 +113,12 @@ class KeepDatabaseMigrationTest {
             close()
         }
 
-        val db = helper.runMigrationsAndValidate(TEST_DB, LATEST_VERSION, true)
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            LATEST_VERSION,
+            true,
+            KeepDatabase.MIGRATION_4_5,
+        )
 
         db.query("SELECT * FROM emergency_unlock WHERE id = 20").use { cursor ->
             cursor.moveToFirst()
@@ -119,6 +127,10 @@ class KeepDatabaseMigrationTest {
             assertEquals("custom note", cursor.stringValue("custom_reason"))
             assertEquals("com.chat,com.video", cursor.stringValue("unlocked_apps"))
             assertEquals(10, cursor.intValue("duration_minutes"))
+        }
+        db.query("SELECT COUNT(*) AS count FROM goal_lock").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.intValue("count"))
         }
         db.close()
     }
@@ -175,6 +187,6 @@ class KeepDatabaseMigrationTest {
 
     companion object {
         private const val TEST_DB = "keep-migration-test"
-        private const val LATEST_VERSION = 4
+        private const val LATEST_VERSION = 5
     }
 }

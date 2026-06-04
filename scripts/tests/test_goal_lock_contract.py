@@ -31,6 +31,9 @@ class GoalLockContractTest(unittest.TestCase):
             "MVP에서는 제외",
             "GoalLockPolicy",
             "app/src/main/java/com/uiery/keep/feature/goallock/GoalLockPolicy.kt",
+            "GoalLockDao",
+            "GoalLockEntity",
+            "MIGRATION_4_5",
             "이 정책 foothold PR은 `Refs #417`가 맞다",
             "Closes #417",
         ]

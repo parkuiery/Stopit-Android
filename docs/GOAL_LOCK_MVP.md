@@ -222,6 +222,12 @@ QA lane에서 첫 repo-internal 자동화 foothold로 `app/src/main/java/com/uie
 
 `Closes #417`는 위 구현+테스트+홈 노출+analytics+QA 문서까지 완료했을 때만 사용한다. 이 정책 foothold PR은 `Refs #417`가 맞다.
 
+### 2026-06-04 persistence foothold
+
+Code lane에서 다음 repo-internal foothold로 Room `goal_lock` 테이블(version 5), `GoalLockDao`, `GoalLockEntity` ↔ `GoalLock` mapper, schema export, `MIGRATION_4_5` migration contract를 추가했다. 현재 고정된 범위는 `all_day`/`scheduled` 저장 형식, 기간 날짜 문자열, 반복 요일/시간대, 선택 앱 목록, `active`/`ended_early` 상태 round-trip과 v4→v5 migration에서 기존 emergency-unlock 데이터를 보존하면서 빈 `goal_lock` 테이블을 생성하는 것이다.
+
+이 foothold도 생성 UI, Home card, Accessibility/blocking runtime wiring, completed/ended analytics runtime wiring을 대체하지 않는다. 다음 구현 package는 저장소/DAO를 기준으로 생성 ViewModel/UI state와 Home/runtime 연결을 계속 전진시킨다.
+
 ## 외부/manual 경계
 
 - GA4 Admin custom dimension 등록과 metadata readback.
