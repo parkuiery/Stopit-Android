@@ -221,6 +221,58 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 
 이 증거가 없으면 #407은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록과 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`의 외부/manual 경계를 따른다.
 
+### 루틴 생성 CTA soft experiment QA baseline
+
+issue #455 계열 구현 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 삼고, 첫 차단 성공 이후 + 루틴 0개 사용자에게만 루틴 생성 CTA가 부드럽게 노출되는지 자동/수동 증거를 함께 남긴다. 이 CTA는 Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음이 핵심 guardrail이며, onboarding / pre-first-lock 사용자에게 미노출되어야 한다.
+
+자동 baseline(구현 PR에서 추가/확장할 테스트):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineCreationCtaTest' \
+  --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'
+python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
+```
+
+검증 범위:
+- 첫 차단 성공 이후 + 루틴 0개 사용자에게만 노출된다.
+- onboarding / pre-first-lock 사용자에게 미노출된다.
+- 루틴 보유자(`has_routine=true` 또는 로컬 루틴 목록 1개 이상)에게 미노출된다.
+- `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`는 `surface`, `activation_stage`, `has_routine`, `cta_variant` 같은 enum/boolean 파라미터만 사용한다.
+- 앱 이름/package/lockApplications/raw session history/raw timestamp/routine_id가 CTA payload에 포함되지 않는다.
+- Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음이 화면 QA에서 확인된다.
+
+수동 QA evidence template:
+
+```md
+## Routine creation CTA QA evidence
+- Issue: #455
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: home / lock_history / post_block_success
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineCreationCtaTest' --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v`
+- Eligibility:
+  - first_core_action_completed or app_block_intercepted already happened: pass / fail
+  - routines_count/local routine list is 0: pass / fail
+  - onboarding / pre-first-lock user hidden: pass / fail
+  - routine owner hidden: pass / fail
+- UI conflict checks:
+  - Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음: pass / fail
+  - CTA tone is soft/non-punitive: pass / fail
+- Analytics payload spot-check:
+  - routine_creation_cta_shown:
+  - routine_creation_cta_clicked:
+  - routine_creation_cta_dismissed:
+  - app names / package names / lockApplications / raw session history absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #455는 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`의 외부/manual 경계를 따른다.
+
 ### 목표 잠금 runtime QA baseline
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.

@@ -76,6 +76,7 @@
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록 절차, registration ledger, metadata 증적, 14일 재측정 포맷. 2026-06-02 기준 PR #296으로 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`, PR #318로 dev/debug `DevToolScreen` screen_view 보강이 develop에 들어갔으므로, 2026-05-29 screen quality baseline은 pre-#296/#318 기준선으로 해석한다.
 - `docs/PLAY_STORE_ASO.md`: #65용 Play Console ASO 실행 런북. 최종 copy, 스크린샷 구성, baseline, 반영 로그, 14일/30일 검증 포맷, #242 acquisition attribution gate, UTM/Install Referrer 운영 기준 포함. 현재 기준으로는 **대표님 수동 반영 완료 후 사후 복원/성과 추적 문서**다. 2026-06-04T20:14:53Z live readback에서는 전체 `newUsers`가 506명으로 반등했지만 `Direct` 신규가 327명(64.6%)으로 유지됐고 `Organic Search` 신규는 179명으로 #65 기준선 178명을 간신히 넘은 정도이며 `sessions`도 직전 30일 대비 -21.9%라, Play Console Search/Explore 확인 전에는 ASO 회복으로 표현하지 않는다.
 - `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`: #380용 루틴 보유/미보유 반복 사용 코호트 기준선. `customUser:routines_count`로 `0` / `>=1` / `(not set)`을 분리하고, sessions, `app_block_intercepted`, `first_core_action_completed`, `emergency_unlock_completed`를 같은 분자/분모로 재조회한다.
+- `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약. `routine_creation_cta_*` 이벤트, privacy-safe 파라미터, Routine empty state/광고/#407 CTA 충돌 방지, 14일/30일 readback 경계를 정리한다.
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 첫 잠금 활성화 퍼널 source of truth. 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283) 이후에는 “CTA/피드백 부재”가 아니라 post-release 14일 재측정과 #13 queryability 경계를 기준으로 본다. 2026-06-02 확인 기준 이 세 PR은 `origin/develop`에는 포함됐지만 `origin/main`/최신 production tag `v1.7.7`에는 아직 미포함이므로, live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline으로 해석한다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준. PR #362 이후 `monetization_interest_*` 코드 계약이 생겼고 2026-06-04 code-lane에서 메뉴/설정 CTA UI까지 배치했다. GA4 `interest_context` / `interest_surface` 등록·metadata 확인, release/tag/Play 배포, 14일 관측 전까지는 관심도 실험 결과를 판단하지 않는다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
@@ -366,6 +367,7 @@ PY
 - 반복 사용 이벤트가 특정 소수에게 몰려 있으면 파워유저와 신규 유저 경험을 분리해서 본다.
 - 루틴 수가 있는 사용자의 세션/이벤트가 높다면 루틴 생성 유도를 활성화 개선 후보로 본다.
 - 루틴 보유/미보유 비교는 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 표준 코호트(`customUser:routines_count = 0`, `>=1`, `(not set)`)와 재측정 기준을 따른다. 2026-06-03 기준 루틴 보유자는 sessions / activeUsers와 `app_block_intercepted` users / activeUsers가 모두 높지만, `(not set)` activeUsers가 가장 커서 전체 retention 결론은 보류한다.
+- #455 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 보고, `first_core_action_completed` 또는 `app_block_intercepted` 이후 + 루틴 0개 사용자에게만 soft CTA를 제안한다. onboarding / pre-first-lock 사용자는 제외하고, Routine empty state / 광고 배너 / #407 루틴 템플릿 공유 CTA와 같은 slot에서 압박하지 않는다.
 - 루틴 실험을 실행 후보로 올릴 때는 guardrail로 `emergency_unlock_completed` users / blocked users, review/rating, crash-free users를 함께 본다. 루틴 보유자의 차단 강도가 높다는 신호가 사용자 부담 증가로 이어질 수 있기 때문이다.
 
 ### 5. 수익화
