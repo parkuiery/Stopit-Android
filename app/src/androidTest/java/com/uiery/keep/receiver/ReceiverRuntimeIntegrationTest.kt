@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -193,18 +192,10 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun manifestMarksBootReceiverNotExported() {
-        val receiverInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getReceiverInfo(
-                ComponentName(context, BootReceiver::class.java),
-                PackageManager.ComponentInfoFlags.of(0),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getReceiverInfo(
-                ComponentName(context, BootReceiver::class.java),
-                0,
-            )
-        }
+        val receiverInfo = context.packageManager.getReceiverInfo(
+            ComponentName(context, BootReceiver::class.java),
+            PackageManager.ComponentInfoFlags.of(0),
+        )
 
         assertFalse(receiverInfo.exported)
     }
@@ -578,15 +569,10 @@ class ReceiverRuntimeIntegrationTest {
 
     private fun matchingReceiverClassNames(action: String): Set<String> {
         val intent = Intent(action).setPackage(context.packageName)
-        val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.queryBroadcastReceivers(
-                intent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.queryBroadcastReceivers(intent, PackageManager.MATCH_ALL)
-        }
+        val receivers = context.packageManager.queryBroadcastReceivers(
+            intent,
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+        )
 
         return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
