@@ -10,7 +10,7 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-04T07:13:43Z"
+LATEST_TIMESTAMP = "2026-06-04T09:17:03Z"
 LATEST_VALUES = [
     "464",
     "285",
@@ -18,6 +18,12 @@ LATEST_VALUES = [
     "61.4%",
     "+28.9%",
     "-23.5%",
+]
+SCREEN_QUALITY_VALUES = [
+    "35,550",
+    "23,616",
+    "66.5%",
+    "75 / 715 = 10.5%",
 ]
 
 
@@ -52,6 +58,27 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("Play Console Search/Explore", review_prompt_followthrough)
         self.assertIn("external/campaign", review_prompt_followthrough)
         self.assertIn("ASO 회복으로 표현하지 않음", review_prompt_followthrough)
+
+    def test_screen_quality_and_version_guardrails_are_consistent_across_docs(self):
+        screen_quality_documents = [
+            (REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md").read_text(),
+            (REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md").read_text(),
+            METRICS_ANALYSIS.read_text(),
+            PRODUCT_DASHBOARD.read_text(),
+            METRICS_CONTEXT.read_text(),
+        ]
+        version_gate = (REPO_ROOT / "docs" / "VERSION_ADOPTION_METRICS_GATE.md").read_text()
+
+        for document in screen_quality_documents:
+            self.assertIn(LATEST_TIMESTAMP, document)
+            for value in SCREEN_QUALITY_VALUES:
+                self.assertIn(value, document)
+            self.assertIn("release/tag/Play deploy", document)
+
+        self.assertIn(LATEST_TIMESTAMP, version_gate)
+        self.assertIn("75 / 715 = 10.5%", version_gate)
+        self.assertIn("주의", version_gate)
+        self.assertIn("30% 미만", version_gate)
 
     def test_play_store_aso_keeps_manual_attribution_boundary_explicit(self):
         play_store_aso = PLAY_STORE_ASO.read_text()

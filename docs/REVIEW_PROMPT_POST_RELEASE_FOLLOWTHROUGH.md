@@ -6,7 +6,7 @@
 
 ## 현재 기준선
 
-2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-04T07:13:43Z live readback으로 최신화한다.
+2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-04T09:17:03Z live readback으로 최신화한다.
 
 | 지표 | 최근 30일 사용자 수 | 해석 |
 | --- | ---: | --- |
@@ -16,7 +16,7 @@
 | `lock_session_start` | 209 | 잠금 세션 시작 신호도 존재 |
 | `first_core_action_completed` | 336 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
 | `activeUsers` | 681 | 분모 기준 |
-| `newUsers` | 464 | 2026-06-04T07:13:43Z acquisition readback 기준. 직전 30일 360 대비 +28.9% |
+| `newUsers` | 464 | 2026-06-04T09:17:03Z acquisition readback 기준. 직전 30일 360 대비 +28.9% |
 | `Organic Search` 신규 사용자 | 179 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178을 간신히 넘었지만 단독 회복 근거로 승격하지 않음 |
 | `Direct` 신규 사용자 | 285 | `285 / 464 = 61.4%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
 
