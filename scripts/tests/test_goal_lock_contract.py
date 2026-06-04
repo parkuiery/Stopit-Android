@@ -37,6 +37,7 @@ class GoalLockContractTest(unittest.TestCase):
             "GoalLockCreationScreen",
             "GoalLockCreationRoute",
             "BlockingStateStore",
+            "목표별 선택 앱 편집",
             "직접 일수(`custom_days`) 입력",
             "ISO 종료 날짜(`end_date`) 입력",
             "Closes #417",
@@ -120,6 +121,7 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
+        self.assertIn("목표별 선택 앱 편집", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)

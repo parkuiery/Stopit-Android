@@ -173,6 +173,33 @@ class GoalLockCreationViewModelTest {
         assertEquals(AnalyticsGoalLockDurationSelectionType.END_DATE, analytics.goalLockCreatedCalls.single().durationSelectionType)
     }
 
+    @Test
+    fun creationSelectionEditorAddsTrimsDedupesAndRemovesAppsBeforePersisting() = runBlocking {
+        val dao = RecordingGoalLockDao(insertedId = 20L)
+        val viewModel = createViewModel(dao = dao)
+
+        viewModel.setGoalName("SNS 줄이기")
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 10))
+        viewModel.setSelectedApps(setOf("com.video.app", "com.social.app"))
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.removeSelectedApp("com.video.app")
+        viewModel.addSelectedAppPackage("  com.social.app  ")
+        viewModel.addSelectedAppPackage("  com.focus.app  ")
+        awaitUntil { viewModel.container.stateFlow.value.selectedApps == setOf("com.social.app", "com.focus.app") }
+
+        viewModel.removeSelectedApp("com.social.app")
+        viewModel.removeSelectedApp("com.focus.app")
+        awaitUntil { !viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.addSelectedAppPackage("com.focus.app")
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        assertEquals(setOf("com.focus.app"), requireNotNull(dao.insertedEntity).toDomain().selectedPackages)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return

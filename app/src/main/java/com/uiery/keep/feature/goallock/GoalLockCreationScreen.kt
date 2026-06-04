@@ -105,6 +105,9 @@ internal fun GoalLockCreationScreen(
                     endTime = LocalTime.of(23, 0),
                 )
             },
+            onReloadCurrentSelection = viewModel::loadSelectedAppsFromCurrentSelection,
+            onAddSelectedAppPackage = viewModel::addSelectedAppPackage,
+            onRemoveSelectedApp = viewModel::removeSelectedApp,
             onCreate = {
                 viewModel.createGoalLock()
             },
@@ -126,10 +129,14 @@ private fun GoalLockCreationContent(
     onEndDateChange: (LocalDate) -> Unit,
     onSetAllDay: () -> Unit,
     onSetWeekdayEvening: () -> Unit,
+    onReloadCurrentSelection: () -> Unit,
+    onAddSelectedAppPackage: (String) -> Unit,
+    onRemoveSelectedApp: (String) -> Unit,
     onCreate: () -> Unit,
 ) {
     var customDaysText by remember { mutableStateOf("") }
     var endDateText by remember { mutableStateOf("") }
+    var appPackageText by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier,
@@ -241,10 +248,47 @@ private fun GoalLockCreationContent(
                     fontSize = 13.sp,
                 )
                 Text(
-                    text = "현재 앱 선택 ${state.selectedApps.size}개를 목표 잠금에 사용합니다. 앱 목록은 홈의 앱 선택에서 바꿀 수 있어요.",
+                    text = "선택 앱 ${state.selectedApps.size}개가 목표 잠금에 사용됩니다. 홈 선택을 다시 불러오거나 이 목표에서만 뺄 앱을 조정할 수 있어요.",
                     color = KeepTheme.colors.surfaceVariant,
                     fontSize = 13.sp,
                 )
+                OutlinedButton(onClick = onReloadCurrentSelection) {
+                    Text("홈 선택 다시 불러오기")
+                }
+                state.selectedApps.sorted().forEach { packageName ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = packageName,
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontSize = 13.sp,
+                        )
+                        TextButton(onClick = { onRemoveSelectedApp(packageName) }) {
+                            Text("빼기")
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextField(
+                        modifier = Modifier.weight(1f),
+                        value = appPackageText,
+                        onValueChange = { appPackageText = it.trim() },
+                        placeholder = { Text("패키지 직접 추가") },
+                        singleLine = true,
+                    )
+                    OutlinedButton(
+                        enabled = appPackageText.isNotBlank(),
+                        onClick = {
+                            onAddSelectedAppPackage(appPackageText)
+                            appPackageText = ""
+                        },
+                    ) {
+                        Text("추가")
+                    }
+                }
             }
         }
 

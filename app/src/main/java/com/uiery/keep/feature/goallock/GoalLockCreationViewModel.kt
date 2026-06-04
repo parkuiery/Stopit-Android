@@ -109,7 +109,22 @@ class GoalLockCreationViewModel
 
         internal fun setSelectedApps(selectedApps: Set<String>) =
             intent {
-                reduce { state.copy(selectedApps = selectedApps) }
+                reduce { state.copy(selectedApps = selectedApps.normalizedPackages()) }
+                updateCreateEnabled()
+            }
+
+        internal fun addSelectedAppPackage(packageName: String) =
+            intent {
+                val normalizedPackage = packageName.trim()
+                if (normalizedPackage.isBlank()) return@intent
+
+                reduce { state.copy(selectedApps = state.selectedApps + normalizedPackage) }
+                updateCreateEnabled()
+            }
+
+        internal fun removeSelectedApp(packageName: String) =
+            intent {
+                reduce { state.copy(selectedApps = state.selectedApps - packageName.trim()) }
                 updateCreateEnabled()
             }
 
@@ -219,3 +234,8 @@ private val String.analyticsGoalNameType: String
         "수면 습관" -> AnalyticsGoalLockNameType.PRESET_SLEEP
         else -> AnalyticsGoalLockNameType.CUSTOM
     }
+
+private fun Set<String>.normalizedPackages(): Set<String> =
+    map { it.trim() }
+        .filter { it.isNotBlank() }
+        .toSet()
