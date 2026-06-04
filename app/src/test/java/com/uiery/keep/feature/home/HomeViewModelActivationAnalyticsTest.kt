@@ -5,15 +5,21 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -25,6 +31,7 @@ import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -326,6 +333,41 @@ class HomeViewModelActivationAnalyticsTest {
         assertEquals(4_000L, dataStore.snapshot()[PreferencesKey.LONG_BLOCK_TIME])
     }
 
+    @Test
+    fun activeGoalLockExposesHomeProgressCardState() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        goalName = "시험 준비",
+                        startDate = LocalDate.now().minusDays(1),
+                        endDate = LocalDate.now().plusDays(13),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.video.app", "com.social.app"),
+                    ),
+                ),
+            ),
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 7L,
+                goalName = "시험 준비",
+                status = HomeGoalLockStatus.Active,
+                daysRemaining = 14,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 2,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+    }
+
     private fun CoroutineScope.launchSideEffects(
         viewModel: HomeViewModel,
         sideEffects: MutableList<HomeSideEffect>,
@@ -339,6 +381,7 @@ class HomeViewModelActivationAnalyticsTest {
         dataStore: FakeDataStore,
         analytics: HomeRecordingKeepAnalytics,
         lockHistoryDao: LockHistoryDao = FakeLockHistoryDao(),
+        goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         return HomeViewModel(
@@ -348,6 +391,7 @@ class HomeViewModelActivationAnalyticsTest {
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
+            goalLockDao = goalLockDao,
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
@@ -367,6 +411,36 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 }
+
+private class FakeHomeGoalLockDao(
+    private val goalLocks: List<GoalLockEntity> = emptyList(),
+) : GoalLockDao {
+    override fun fetchAll(): Flow<List<GoalLockEntity>> = flowOf(goalLocks)
+
+    override fun fetch(id: Long): GoalLockEntity? = goalLocks.firstOrNull { it.id == id }
+
+    override fun insert(goalLock: GoalLockEntity): Long = goalLock.id
+
+    override fun update(goalLock: GoalLockEntity) = Unit
+}
+
+private fun goalLockEntity(
+    goalName: String,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    lockMode: GoalLockMode,
+    selectedPackages: Set<String>,
+): GoalLockEntity = GoalLockEntity.fromDomain(
+    GoalLock(
+        id = 7L,
+        goalName = goalName,
+        startDate = startDate,
+        endDate = endDate,
+        lockMode = lockMode,
+        selectedPackages = selectedPackages,
+        status = GoalLockStoredStatus.Active,
+    ),
+)
 
 private class HomeRecordingLockHistoryDao : LockHistoryDao {
     val inserted = mutableListOf<LockHistoryEntity>()

@@ -228,6 +228,12 @@ Code lane에서 다음 repo-internal foothold로 Room `goal_lock` 테이블(vers
 
 이 foothold도 생성 UI, Home card, Accessibility/blocking runtime wiring, completed/ended analytics runtime wiring을 대체하지 않는다. 다음 구현 package는 저장소/DAO를 기준으로 생성 ViewModel/UI state와 Home/runtime 연결을 계속 전진시킨다.
 
+### 2026-06-04 Home card foothold
+
+Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao.fetchAll()`을 구독하고 첫 active/pending/ended_early 목표 잠금을 `HomeGoalLockCardState`로 노출하도록 연결했다. 홈 UI에는 목표명, 남은 일수, 잠금 방식, 선택 앱 수를 보여주는 진행 카드가 추가됐다.
+
+이 foothold는 홈 표시 계약을 고정하지만, 목표 잠금 상세/설정 CTA navigation, Accessibility/blocking runtime wiring, 종료일 경과 시 completed 상태 persistence/analytics, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
+
 ## 외부/manual 경계
 
 - GA4 Admin custom dimension 등록과 metadata readback.
