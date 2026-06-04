@@ -179,19 +179,25 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.
 
-자동 baseline(구현 PR에서 추가될 테스트 예시):
+자동 baseline(현재 repo foothold + 구현 PR에서 계속 확장할 테스트):
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' \
-  --tests 'com.uiery.keep.feature.goallock.GoalLockAnalyticsTest'
+  --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' \
+  --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' \
+  --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState'
 python3 -m unittest scripts.tests.test_goal_lock_contract -v
 ```
 
 검증 범위:
 - `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
-- `GoalLockAnalyticsTest`는 `goal_lock_create_started`, `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated`가 enum/bucket 파라미터만 보내는지 검증한다.
+- `FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly`는 `goal_lock_created`가 enum/bucket 파라미터만 보내고 원문 목표명/app package/app label을 보내지 않는지 검증한다.
+- `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
+- `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
+- `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시한다.
 - Accessibility/blocking runtime은 all-day / scheduled / expiration 경계에서 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
 
@@ -204,7 +210,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Device / Android version / OEM:
 - Entry point: home / routine / menu
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.feature.goallock.GoalLockAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState'`
   - `python3 -m unittest scripts.tests.test_goal_lock_contract -v`
 - all-day / scheduled / expiration:
   - all-day blocks selected apps through date boundary: pass / fail
