@@ -91,12 +91,12 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
    - 목적: release smoke, backup/restore runtime reset, accessibility permission resume, receiver 단일·multi-day 재수화/재예약, manifest contract, emergency unlock expiry, FCM token wiring, AccessibilityService cross-app block safety를 한 묶음으로 검증
 9. notification-denied receiver fallback gate
    - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
-   - 목적: Android 13+에서 알림 권한이 꺼져 있어도 루틴 시작 안내가 앱 내 fallback notice로 이어지는지 분리 검증
+   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, 알림 권한이 꺼져 있어도 dev flavor package(`com.uiery.keep.dev`)에서 루틴 시작 안내가 앱 내 fallback notice로 이어지는지 분리 검증
 10. notification-denied emergency-unlock gate
    - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
-   - 목적: 긴급해제 만료 알림 helper가 permission-denied로 안전하게 종료되는지 분리 검증
+   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, dev flavor package(`com.uiery.keep.dev`)에서 긴급해제 만료 알림 helper가 permission-denied로 안전하게 종료되는지 분리 검증
 
-정리하면 release candidate runtime baseline은 `focused UI smoke -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. Android CI focused runtime smoke는 별도 PR gate이므로 release/hotfix 증거에는 `.github/workflows/release-qa.yml`의 Release instrumentation QA 목록을 기준으로 기록한다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서를 유지해야 한다.
+정리하면 release candidate runtime baseline은 `focused UI smoke -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. Android CI focused runtime smoke는 별도 PR gate이므로 release/hotfix 증거에는 `.github/workflows/release-qa.yml`의 Release instrumentation QA 목록을 기준으로 기록한다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서를 유지해야 한다. Android 12L 이하 legacy 설정 왕복과 `settings_opened` 기반 notification onboarding 검증은 historical / out of scope이며, minSdk를 다시 낮출 때만 현재 검증 대상으로 복원한다.
 
 `main` 대상 PR에서는 `Version Guard`가 항상 보여야 하며, 정상적인 release/hotfix PR은 `Full release QA`, `Release instrumentation QA`, `Android Release Build`, `Version Guard`, `Branch Hygiene`가 모두 green이 되기 전 `main`으로 merge하지 않는다.
 

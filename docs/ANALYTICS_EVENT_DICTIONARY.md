@@ -15,6 +15,7 @@
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
+- `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 
 ## 소스 오브 트루스
 
@@ -25,6 +26,7 @@
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
+- 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
@@ -67,10 +69,10 @@
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
 
 알림 권한 온보딩 계약:
-- `permission_outcome(permission_name=notifications, outcome=settings_opened)`는 Android 12L 이하 설정 진입을 기록한다.
-- Android 12L 이하 legacy 설정 왕복에서는 실제 권한 상태가 허용되었을 때만 `onboarding_step_complete(step_name=notification)`를 기록한다. 설정 재방문 뒤에도 알림이 비활성화되어 있으면 `permission_outcome(permission_name=notifications, outcome=denied)`만 남기고 재시도 UX를 유지한다.
+- 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이다. 따라서 현재 릴리즈/QA에서 검증해야 하는 canonical 흐름은 runtime dialog 허용/거절과 notification-denied fallback이다.
 - Android 13+ runtime permission dialog에서는 사용자가 `POST_NOTIFICATIONS`를 거절해도 온보딩을 막지 않는다. 이 경우 `permission_outcome(permission_name=notifications, outcome=denied)`와 `onboarding_step_complete(step_name=notification)`를 함께 남긴 뒤 앱 선택 단계로 진행한다.
 - notification-denied 사용자의 루틴 시작 안내는 `POST_NOTIFICATION ignore` receiver fallback baseline으로 별도 검증한다.
+- Historical / out of scope: `permission_outcome(permission_name=notifications, outcome=settings_opened)`와 Android 12L 이하 legacy 설정 왕복은 minSdk를 다시 낮출 때만 복원 검토한다. minSdk 33 유지 상태에서는 현재 검증 대상이 아니다.
 
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
@@ -162,6 +164,30 @@
 - `routine_name_included`: `true` / `false`; 이름 원문은 analytics에 넣지 않는다.
 - `routine_template_share_failed.reason`: `activity_not_found`, `invalid_template`
 
+### 목표 잠금
+
+목표 잠금 MVP의 제품/QA 계약은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP는 기간 기반 장기 잠금을 `all_day`와 `scheduled` 두 방식으로 지원하고, Home card/section에 진행 상태를 보여준다. 목표 이름 원문/app package/app label 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `goal_lock_create_started` | `entry_surface` | 목표 잠금 생성 플로우 진입 |
+| `goal_lock_created` | `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` | 유효한 목표 잠금 저장 완료 |
+| `goal_lock_completed` | `lock_mode`, `duration_days_bucket` | 종료일 경과 후 자동 완료 처리 |
+| `goal_lock_ended_early` | `lock_mode`, `elapsed_days_bucket`, `reason` | 사용자가 기간 전 종료 |
+| `goal_lock_updated` | `lock_mode`, `changed_field` | 기간/앱/시간대/이름/잠금 방식 수정 저장 |
+
+현재 bucket 계약:
+
+- `entry_surface`: `home`, `routine`, `menu`, `goal_lock_detail`
+- `duration_selection_type`: `preset_days`, `custom_days`, `end_date`
+- `lock_mode`: `all_day`, `scheduled`
+- `selected_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
+- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`; 목표 이름 원문은 analytics에 넣지 않는다.
+- `duration_days_bucket`: `1_6`, `7`, `8_14`, `15_30`, `31_plus`
+- `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
+- `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
+- `goal_lock_updated.changed_field`: `duration`, `apps`, `schedule`, `name`, `lock_mode`
+
 ### 광고 / 수익화
 
 AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
@@ -207,6 +233,14 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `repeat_days_bucket` | 루틴 템플릿 반복 요일 bucket (`weekday`, `weekend`, `daily`, `custom_days`, `none`) |
 | `time_window_bucket` | 루틴 템플릿 시간대 bucket (`morning`, `afternoon`, `evening`, `night`, `overnight`, `custom_window`) |
 | `routine_name_included` | 공유 payload에 루틴 이름을 사용자가 명시적으로 포함했는지 여부. 이름 원문은 기록하지 않는다. |
+| `entry_surface` | 목표 잠금 생성 플로우 진입 표면 (`home`, `routine`, `menu`, `goal_lock_detail`) |
+| `duration_selection_type` | 목표 잠금 기간 선택 방식 (`preset_days`, `custom_days`, `end_date`) |
+| `lock_mode` | 목표 잠금 방식 (`all_day`, `scheduled`) |
+| `selected_app_count_bucket` | 목표 잠금 선택 앱 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
+| `goal_name_type` | 목표 이름 preset/custom 분류. 목표 이름 원문은 기록하지 않는다. |
+| `duration_days_bucket` | 목표 잠금 총 기간 bucket (`1_6`, `7`, `8_14`, `15_30`, `31_plus`) |
+| `elapsed_days_bucket` | 조기 종료 시 경과일 bucket (`0`, `1_2`, `3_6`, `7_14`, `15_plus`) |
+| `changed_field` | 목표 잠금 수정 필드 enum (`duration`, `apps`, `schedule`, `name`, `lock_mode`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 | `screen_name` | 광고가 발생한 canonical 화면명 |

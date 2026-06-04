@@ -28,6 +28,8 @@ class EmergencyUnlockSettingsStoreTest {
         assertEquals(DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT, settings.dailyLimit)
         assertEquals(listOf(3, 15), settings.durationOptions)
         assertFalse(settings.reasonRequired)
+        assertTrue(settings.autoResetEnabled)
+        assertEquals(0L, settings.manualResetAtMillis)
     }
 
     @Test
@@ -42,12 +44,16 @@ class EmergencyUnlockSettingsStoreTest {
         store.toggleDuration(3)
         store.toggleDuration(99)
         store.setReasonRequired(false)
+        store.setAutoResetEnabled(false)
+        store.markManualReset(nowMillis = 123_456L)
 
         val snapshot = dataStore.snapshot()
         assertEquals(false, snapshot[PreferencesKey.EMERGENCY_UNLOCK_ENABLED])
         assertEquals(DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT, snapshot[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT])
         assertEquals(setOf("3", "5", "10", "15"), snapshot[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS])
         assertEquals(false, snapshot[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED])
+        assertEquals(false, snapshot[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED])
+        assertEquals(123_456L, snapshot[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT])
     }
 
     @Test

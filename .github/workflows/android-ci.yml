@@ -50,6 +50,7 @@ jobs:
               - 'settings.gradle.kts'
               - 'gradle.properties'
               - 'gradle/**'
+              - 'scripts/verify_lint_registry.py'
               - '.github/workflows/android-ci.yml'
             runtime_smoke:
               - 'app/src/main/**'

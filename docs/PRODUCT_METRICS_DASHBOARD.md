@@ -2,7 +2,7 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
-첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. 목표 잠금 MVP 계약은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 보고, 장기 잠금 지표는 구현/release/GA4 Admin 등록 이후에만 해석한다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
 
 ## 목적
 
@@ -107,7 +107,7 @@
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 `screen_view`가 `22,584`, `(not set)` `11,793`, blank `1,987`, combined `13,780 / 22,584 = 61.0%`로 재조회됐다. 단 PR #296(`47e43784...`)과 PR #318(`8d2ee10...`)은 `origin/develop`에는 있지만 `origin/main`/production tag `v1.7.7`에는 없으므로, 이 값은 post-fix 14일 성과가 아니라 **release boundary 전 중간 smoke**로만 본다.
 - 2026-05-29 live smoke 기준 당시 병목은 단순 no-data가 아니라 **GA4 Admin 미등록으로 인한 queryability gap**이었다.
 - activation (`customEvent:permission_name`, `customEvent:source`) 분해 쿼리는 아직 별도 metadata 확인 전까지 낮은 confidence로 둔다. review `customEvent:reason`은 2026-06-02T18:06:45Z #307 재조회에서 등록/조회 가능해졌으므로 `review_prompt_skipped` reason breakdown에 사용할 수 있다. 단, `customEvent:error`는 여전히 미등록이다.
-- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다. 2026-06-02/2026-06-03 확인 기준 최신 production tag `v1.7.7`과 현재 `origin/main`은 PR #293 split commit을 포함하지 않으므로, `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline이다. 2026-06-03 GA4 smoke에서 소량의 `ad_banner_*` 행이 보인 것은 source-split queryability 확인용이며, production 14일 placement 판단으로 승격하지 않는다.
+- 2026-06-01 #16 preflight에서 광고 custom metadata는 일부 복구 확인됐고, 이후 PR #293에서 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다. 다만 PR #293 포함 commit이 `main`/SemVer tag/Play deploy에 실제 포함된 뒤 14일 coverage 재조회 전까지 placement별 monetization 결론은 계속 낮은 confidence로 둔다. 2026-06-02/2026-06-03 확인 기준 최신 production tag `v1.7.7`과 현재 `origin/main`은 PR #293 split commit을 포함하지 않으므로, `v1.7.7` 광고 데이터는 post-split measurement가 아니라 legacy baseline이다. 2026-06-03 GA4 smoke에서 소량의 `ad_banner_*` 행이 보인 것은 source-split queryability 확인용이며, production 14일 placement 판단으로 승격하지 않는다. PR #402 CTA merge commit `de142bd34a2729bcbb1e932db70b34d6459ce3b0`도 2026-06-04 확인 기준 `origin/develop`에는 있지만 `origin/main`에는 없으므로, 수익화 관심도 CTA 이벤트 0건은 수요 없음이 아니라 release-boundary 전 상태로 해석한다.
 
 주의: 이 기준선은 고정값이 아니라 live snapshot이다. 다음 분석 시 GA4에서 다시 조회해 갱신한다.
 
@@ -301,6 +301,7 @@
 - #307 리뷰 프롬프트 shown 0 post-release follow-through (`docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` 참조; PR #308/#312 포함 버전의 release/tag/Play deploy 후 14일·30일 관측 경계)
 - #119 Usage Access 선택형 개인화 discovery gate (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조; #82는 기존 아이디어 정리 이력)
 - #407 루틴 템플릿 공유 discovery / privacy-safe MVP 계약 (`docs/ROUTINE_TEMPLATE_SHARE_MVP.md` 참조)
+- #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, enum/bucket analytics와 QA baseline)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
 ## 관련 실행 문서
@@ -313,3 +314,4 @@
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 shown 0 post-release 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적. PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐으므로, 이제 코드 PR 대기가 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 확인과 배포 후 14일/30일 관측 경계로 본다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일, QA evidence, child issue 분리 기준 포함.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP 계약. Android share sheet 텍스트 공유, privacy-safe payload, analytics event 초안, deep link/import decision gate, 14일/30일 측정 기준 포함.
+- `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, `goal_lock_*` analytics, runtime QA baseline, 구현 후 `Closes #417` 경계 포함.
