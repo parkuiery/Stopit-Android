@@ -45,6 +45,8 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT,
             PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS,
             PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED,
+            PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED,
+            PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT,
             PreferencesKey.HAS_TRACKED_FIRST_OPEN,
             PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED,
             PreferencesKey.FIRST_OPEN_TIMESTAMP,

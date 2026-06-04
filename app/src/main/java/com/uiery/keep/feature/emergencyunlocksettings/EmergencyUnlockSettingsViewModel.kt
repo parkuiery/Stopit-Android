@@ -33,6 +33,8 @@ class EmergencyUnlockSettingsViewModel
                         dailyLimit = settings.dailyLimit,
                         durationOptions = settings.durationOptions.toSet(),
                         reasonRequired = settings.reasonRequired,
+                        autoResetEnabled = settings.autoResetEnabled,
+                        manualResetAtMillis = settings.manualResetAtMillis,
                     )
                 }
                 .stateIn(
@@ -69,6 +71,18 @@ class EmergencyUnlockSettingsViewModel
                 settingsStore.setReasonRequired(required)
             }
         }
+
+        fun setAutoResetEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                settingsStore.setAutoResetEnabled(enabled)
+            }
+        }
+
+        fun markManualReset() {
+            viewModelScope.launch {
+                settingsStore.markManualReset()
+            }
+        }
     }
 
 data class EmergencyUnlockSettingsUiState(
@@ -76,6 +90,8 @@ data class EmergencyUnlockSettingsUiState(
     val dailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val durationOptions: Set<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS.toSet(),
     val reasonRequired: Boolean = true,
+    val autoResetEnabled: Boolean = true,
+    val manualResetAtMillis: Long = 0L,
     val allowedDailyLimits: IntRange = MIN_EMERGENCY_UNLOCK_DAILY_LIMIT..MAX_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val allowedDurations: List<Int> = ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS,
 )

@@ -56,8 +56,12 @@ class EmergencyUnlockCoordinator
     ) {
         internal suspend fun readAvailability(): EmergencyUnlockAvailability {
             val settings = readSettings()
-            val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
-            return availability(settings = settings, todayUnlockCount = todayCount)
+            val usedCount = readUnlockCount(settings)
+            return availability(settings = settings, usedUnlockCount = usedCount)
+        }
+
+        internal suspend fun markManualReset(nowMillis: Long = System.currentTimeMillis()) {
+            settingsStore.markManualReset(nowMillis = nowMillis)
         }
 
         internal suspend fun completeUnlock(
@@ -69,7 +73,7 @@ class EmergencyUnlockCoordinator
             nowMillis: Long = System.currentTimeMillis(),
         ): EmergencyUnlockRequestResult {
             val settings = readSettings()
-            val todayCount = emergencyUnlockDao.countToday(todayStartMillis())
+            val usedCount = readUnlockCount(settings)
             if (!canCompleteEmergencyUnlockRequest(
                     settings = EmergencyUnlockSettings(
                         enabled = settings.enabled,
@@ -77,20 +81,20 @@ class EmergencyUnlockCoordinator
                         durationOptions = settings.durationOptions,
                         reasonRequired = settings.reasonRequired,
                     ),
-                    todayUnlockCount = todayCount,
+                    todayUnlockCount = usedCount,
                     durationMinutes = durationMinutes,
                     reason = reason,
                 )
             ) {
                 return EmergencyUnlockRequestResult.Rejected(
-                    availability = availability(settings = settings, todayUnlockCount = todayCount),
+                    availability = availability(settings = settings, usedUnlockCount = usedCount),
                 )
             }
 
             val expireTime = nowMillis + durationMinutes * 60_000L
             val unlockCountRemaining = emergencyUnlockDailyRemaining(
                 dailyLimit = settings.dailyLimit,
-                todayUnlockCount = todayCount + 1,
+                todayUnlockCount = usedCount + 1,
             )
             val unlockData = EmergencyUnlockData(unlockedApps = apps, expireTimeMillis = expireTime)
 
@@ -125,16 +129,23 @@ class EmergencyUnlockCoordinator
 
         private suspend fun readSettings(): EmergencyUnlockSettingsSnapshot = settingsStore.readSettings()
 
+        private suspend fun readUnlockCount(settings: EmergencyUnlockSettingsSnapshot): Int =
+            if (settings.autoResetEnabled) {
+                emergencyUnlockDao.countToday(todayStartMillis())
+            } else {
+                emergencyUnlockDao.countSince(settings.manualResetAtMillis)
+            }
+
         private fun availability(
             settings: EmergencyUnlockSettingsSnapshot,
-            todayUnlockCount: Int,
+            usedUnlockCount: Int,
         ): EmergencyUnlockAvailability {
             val reason = when {
                 !settings.enabled -> EmergencyUnlockAvailabilityReason.Disabled
                 settings.dailyLimit <= 0 -> EmergencyUnlockAvailabilityReason.DailyLimitZero
                 isEmergencyUnlockDailyLimitReached(
                     dailyLimit = settings.dailyLimit,
-                    todayUnlockCount = todayUnlockCount,
+                    todayUnlockCount = usedUnlockCount,
                 ) -> EmergencyUnlockAvailabilityReason.DailyLimitExhausted
                 else -> EmergencyUnlockAvailabilityReason.Available
             }
@@ -147,7 +158,7 @@ class EmergencyUnlockCoordinator
                 dailyLimitReached = reason == EmergencyUnlockAvailabilityReason.DailyLimitExhausted,
                 dailyUnlockRemaining = emergencyUnlockDailyRemaining(
                     dailyLimit = settings.dailyLimit,
-                    todayUnlockCount = todayUnlockCount,
+                    todayUnlockCount = usedUnlockCount,
                 ),
             )
         }
