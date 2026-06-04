@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.appselection
+package com.uiery.keep.appselection
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

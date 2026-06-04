@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.appselection
+package com.uiery.keep.appselection
 
 /**
  * Pure policy for the app-selection picker.
