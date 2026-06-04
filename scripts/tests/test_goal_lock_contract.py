@@ -110,7 +110,10 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("목표 잠금 runtime QA baseline", qa_checklist)
         self.assertIn("GoalLockPolicyTest", qa_checklist)
-        self.assertIn("GoalLockAnalyticsTest", qa_checklist)
+        self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
+        self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
+        self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
 
