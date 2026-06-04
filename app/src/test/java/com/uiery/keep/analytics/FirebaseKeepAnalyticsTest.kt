@@ -433,6 +433,29 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun goalLockCreatedUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockCreated(
+            durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            selectedAppCountBucket = AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+            goalNameType = AnalyticsGoalLockNameType.PRESET_EXAM,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_SELECTION_TYPE to AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+                    KeepAnalyticsParam.GOAL_NAME_TYPE to AnalyticsGoalLockNameType.PRESET_EXAM,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)

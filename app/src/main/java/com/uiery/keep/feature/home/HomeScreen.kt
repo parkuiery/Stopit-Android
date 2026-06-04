@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -68,10 +70,10 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
-import com.uiery.keep.feature.home.component.CategoryButton
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity
@@ -299,6 +301,14 @@ fun HomeScreen(
                     onClick = { viewModel.changeIsKeep(firstLockStartedMessage = firstLockKeepStartedMessage) },
                 )
             }
+            uiState.goalLockCard?.let { goalLockCard ->
+                GoalLockProgressCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    cardState = goalLockCard,
+                )
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
@@ -428,6 +438,40 @@ fun HomeScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GoalLockProgressCard(
+    modifier: Modifier = Modifier,
+    cardState: HomeGoalLockCardState,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "목표 잠금 진행 중",
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = cardState.goalName,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 14.sp,
+            )
+            Text(
+                text = "${cardState.daysRemaining}일 남음 · ${cardState.lockModeLabel} · ${cardState.selectedAppCount}개 앱",
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
         }
     }
 }

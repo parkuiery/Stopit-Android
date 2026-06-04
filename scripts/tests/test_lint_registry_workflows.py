@@ -9,14 +9,14 @@ RELEASE_QA_WORKFLOW = REPO_ROOT / ".github/workflows/release-qa.yml"
 VERIFY_LINT_REGISTRY_SCRIPT = "scripts/verify_lint_registry.py"
 REQUIRED_STEP_NAME = "Verify Navigation/Compose lint registry coverage"
 REQUIRED_TEST_STEP_NAME = "Run static policy unit tests"
-REQUIRED_TEST_COMMAND = (
-    "python3 -m unittest "
-    "scripts.tests.test_compose_compiler_gradle_contract "
-    "scripts.tests.test_kds_dependency_catalog_contract "
-    "scripts.tests.test_sensitive_logging_policy "
-    "scripts.tests.test_android_manifest_contract "
-    "scripts.tests.test_verify_lint_registry "
-    "scripts.tests.test_lint_registry_workflows"
+REQUIRED_TEST_COMMAND_PREFIX = "python3 -m unittest"
+REQUIRED_STATIC_POLICY_MODULES = (
+    "scripts.tests.test_compose_compiler_gradle_contract",
+    "scripts.tests.test_kds_dependency_catalog_contract",
+    "scripts.tests.test_sensitive_logging_policy",
+    "scripts.tests.test_android_manifest_contract",
+    "scripts.tests.test_verify_lint_registry",
+    "scripts.tests.test_lint_registry_workflows",
 )
 REQUIRED_FLAGS = (
     '--require-section "Included Additional Checks"',
@@ -34,7 +34,10 @@ REQUIRED_FLAGS = (
 class LintRegistryWorkflowTest(unittest.TestCase):
     def assert_workflow_verifier_contract(self, workflow: str, report_path: str) -> None:
         self.assertIn(REQUIRED_TEST_STEP_NAME, workflow)
-        self.assertIn(REQUIRED_TEST_COMMAND, workflow)
+        self.assertIn(REQUIRED_TEST_COMMAND_PREFIX, workflow)
+        for required_module in REQUIRED_STATIC_POLICY_MODULES:
+            with self.subTest(required_module=required_module, report_path=report_path):
+                self.assertIn(required_module, workflow)
         self.assertIn(REQUIRED_STEP_NAME, workflow)
         self.assertIn(f"--report {report_path}", workflow)
 

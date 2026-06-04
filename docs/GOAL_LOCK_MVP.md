@@ -174,18 +174,31 @@ Guardrail:
 
 ## QA / 테스트 체크리스트
 
-### JVM 정책 테스트
+### JVM 정책/계측/상태 테스트
 
-- `GoalLockPolicyTest` 또는 equivalent:
+- `GoalLockPolicyTest`:
   - 기간 전/기간 내/기간 후 상태 판정.
   - all-day 차단 판단.
   - scheduled 요일/시간대 차단 판단.
   - overnight window.
   - 종료일 이후 자동 completed.
   - selected app count 0 validation.
-- `GoalLockAnalyticsTest` 또는 equivalent:
-  - 이벤트명/파라미터 enum/bucket 계약.
+- `FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly`:
+  - `goal_lock_created` 이벤트명/파라미터 enum/bucket 계약.
   - 목표 이름 원문, app package, app label이 payload에 들어가지 않음.
+- `GoalLockPersistenceMapperTest`:
+  - `GoalLockEntity` ↔ `GoalLock` round-trip.
+  - `all_day` / `scheduled`, 날짜 문자열, 반복 요일/시간대, 선택 앱 목록, `active` / `ended_early` 저장 계약.
+- `KeepDatabaseMigrationTest`:
+  - v4→v5 migration에서 기존 `emergency_unlock` 데이터 보존.
+  - 빈 `goal_lock` 테이블 생성.
+- `GoalLockCreationViewModelTest`:
+  - 유효한 all-day/scheduled 목표 잠금 저장.
+  - invalid date/app/name selection 거절.
+  - `Created(goalLockId)` side effect.
+  - `goal_lock_created` bucket-only analytics 호출.
+- `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`:
+  - active/pending/ended_early 목표 잠금이 Home card state로 노출됨.
 
 ### ViewModel/UI state 테스트
 
@@ -214,7 +227,31 @@ Guardrail:
 6. analytics 이벤트/테스트/event dictionary/GA4 ledger 동기화.
 7. QA runtime checklist에 all-day/scheduled/expiration evidence 추가.
 
-`Closes #417`는 위 구현+테스트+홈 노출+analytics+QA 문서까지 완료했을 때만 사용한다. 이 문서-only PR은 `Refs #417`가 맞다.
+### 2026-06-04 QA foothold
+
+QA lane에서 첫 repo-internal 자동화 foothold로 `app/src/main/java/com/uiery/keep/feature/goallock/GoalLockPolicy.kt`와 `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockPolicyTest.kt`를 추가했다. 현재 고정된 범위는 기간 전/기간 내/기간 후 상태, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 completed, selected app count 0 validation이다.
+
+이 foothold는 실제 저장소/DAO, 생성 UI, Home card, Accessibility/blocking runtime 연결, analytics 구현을 대체하지 않는다. 다음 구현 package는 이 정책 API를 source of truth로 삼되, 남은 항목을 계속 같은 #417 acceptance 안에서 전진시킨다.
+
+`Closes #417`는 위 구현+테스트+홈 노출+analytics+QA 문서까지 완료했을 때만 사용한다. 이 정책 foothold PR은 `Refs #417`가 맞다.
+
+### 2026-06-04 persistence foothold
+
+Code lane에서 다음 repo-internal foothold로 Room `goal_lock` 테이블(version 5), `GoalLockDao`, `GoalLockEntity` ↔ `GoalLock` mapper, schema export, `MIGRATION_4_5` migration contract를 추가했다. 현재 고정된 범위는 `all_day`/`scheduled` 저장 형식, 기간 날짜 문자열, 반복 요일/시간대, 선택 앱 목록, `active`/`ended_early` 상태 round-trip과 v4→v5 migration에서 기존 emergency-unlock 데이터를 보존하면서 빈 `goal_lock` 테이블을 생성하는 것이다.
+
+이 foothold도 생성 UI, Home card, Accessibility/blocking runtime wiring, completed/ended analytics runtime wiring을 대체하지 않는다. 다음 구현 package는 저장소/DAO를 기준으로 생성 ViewModel/UI state와 Home/runtime 연결을 계속 전진시킨다.
+
+### 2026-06-04 creation ViewModel foothold
+
+Code lane에서 다음 repo-internal foothold로 `GoalLockCreationViewModel`을 추가했다. 현재 고정된 범위는 유효한 `all_day` / `scheduled` 목표 잠금을 `GoalLockDao.insert()`로 저장하고, invalid date/app/name selection은 저장·계측 없이 거절하며, 성공 시 `Created(goalLockId)` side effect와 `goal_lock_created` bucket-only analytics를 발생시키는 것이다.
+
+이 foothold는 생성 상태/저장/계측 계약을 고정하지만, 실제 생성 UI/navigation entrypoint, 상세/설정 CTA navigation, Accessibility/blocking runtime wiring, 종료일 경과 completed persistence/analytics는 아직 대체하지 않는다.
+
+### 2026-06-04 Home card foothold
+
+Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao.fetchAll()`을 구독하고 첫 active/pending/ended_early 목표 잠금을 `HomeGoalLockCardState`로 노출하도록 연결했다. 홈 UI에는 목표명, 남은 일수, 잠금 방식, 선택 앱 수를 보여주는 진행 카드가 추가됐다.
+
+이 foothold는 홈 표시 계약을 고정하지만, 목표 잠금 상세/설정 CTA navigation, Accessibility/blocking runtime wiring, 종료일 경과 시 completed 상태 persistence/analytics, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
 
 ## 외부/manual 경계
 

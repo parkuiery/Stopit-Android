@@ -32,7 +32,7 @@
 
 - `first_open`은 30일 window에서 전부 `(not set)`로 잡힌다. 신규 사용자의 첫 방문 시점에는 루틴 수 user property가 아직 반영되지 않는 것이 자연스럽기 때문에, `first_open`을 루틴 보유/미보유 코호트 분모로 쓰지 않는다.
 - `customUser:routines_count`가 보인다고 해서 `customEvent:*` 파라미터 queryability가 모두 해결된 것은 아니다. activation 세부 `source`, `block_source`, `routine_id` 분해는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 GA4 Admin 등록 상태를 먼저 확인한다.
-- 최신 버전 `1.7.7` active share는 2026-06-03 기준 `31 / 688 = 4.5%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`다. 최신 develop PR의 효과로 과대해석하지 않는다.
+- 최신 버전 `1.7.7` active share는 2026-06-04T12:29:06Z 기준 `75 / 715 = 10.5%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `주의`다. 30% 미만이므로 최신 develop PR의 효과로 과대해석하지 않는다.
 
 ## 2026-06-03 기준선 표
 

@@ -32,7 +32,7 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.formatTwelveHourTime
 import com.uiery.keep.util.isChangeLocked

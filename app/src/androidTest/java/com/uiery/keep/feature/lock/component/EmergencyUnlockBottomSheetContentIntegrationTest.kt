@@ -1,0 +1,114 @@
+package com.uiery.keep.feature.lock.component
+
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.R
+import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class EmergencyUnlockBottomSheetContentIntegrationTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun reasonDisabledSheetCanSelectAppReachCountdownAndCancel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageName = context.packageName
+        val unlockedRequests = mutableListOf<EmergencyUnlockBottomSheetRequest>()
+        var dismissed = false
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onUnlock = { reason, customReason, apps, durationMinutes ->
+                        unlockedRequests += EmergencyUnlockBottomSheetRequest(
+                            reason = reason,
+                            customReason = customReason,
+                            apps = apps,
+                            durationMinutes = durationMinutes,
+                        )
+                    },
+                    onDismiss = { dismissed = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_apps)).assertExists()
+        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
+
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
+
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_waiting)).assertExists()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_cancel)).performClick()
+
+        assertTrue(dismissed)
+        assertEquals(emptyList<EmergencyUnlockBottomSheetRequest>(), unlockedRequests)
+    }
+
+    @Test
+    fun reasonDisabledSheetSubmitsExistingPayloadAfterCountdown() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageName = context.packageName
+        val unlockedRequests = mutableListOf<EmergencyUnlockBottomSheetRequest>()
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onUnlock = { reason, customReason, apps, durationMinutes ->
+                        unlockedRequests += EmergencyUnlockBottomSheetRequest(
+                            reason = reason,
+                            customReason = customReason,
+                            apps = apps,
+                            durationMinutes = durationMinutes,
+                        )
+                    },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_waiting)).assertExists()
+        composeRule.mainClock.autoAdvance = false
+
+        repeat(30) {
+            composeRule.mainClock.advanceTimeBy(1_000)
+            composeRule.waitForIdle()
+        }
+
+        assertEquals(
+            listOf(
+                EmergencyUnlockBottomSheetRequest(
+                    reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                    customReason = null,
+                    apps = setOf(packageName),
+                    durationMinutes = 5,
+                )
+            ),
+            unlockedRequests,
+        )
+    }
+}

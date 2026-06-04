@@ -5,6 +5,11 @@ import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 APP_BUILD_GRADLE = REPO_ROOT / "app" / "build.gradle.kts"
+NOTIFICATION_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "onboarding" / "notification" / "NotificationSettingScreen.kt"
+NOTIFICATION_HELPER = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "notification" / "NotificationHelper.kt"
+NOTIFICATION_VIEW_MODEL = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "onboarding" / "notification" / "NotificationSettingViewModel.kt"
+LEGACY_NOTIFICATION_ACTION = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "onboarding" / "notification" / "LegacyNotificationPermissionAction.kt"
+LEGACY_NOTIFICATION_ACTION_TEST = REPO_ROOT / "app" / "src" / "test" / "java" / "com" / "uiery" / "keep" / "feature" / "onboarding" / "notification" / "LegacyNotificationPermissionActionTest.kt"
 ANALYTICS_EVENT_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 ANDROID_SKILLS_TESTING_QA = REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md"
@@ -61,6 +66,46 @@ class NotificationMinSdkContractTest(unittest.TestCase):
                         any(marker in window for marker in historical_markers),
                         f"Legacy notification mention must be marked historical/out-of-scope: {window}",
                     )
+
+    def test_min_sdk_33_notification_code_has_no_active_legacy_settings_flow(self):
+        self.assertFalse(
+            LEGACY_NOTIFICATION_ACTION.exists(),
+            "minSdk 33 should not keep active Android 12L notification settings action code.",
+        )
+        self.assertFalse(
+            LEGACY_NOTIFICATION_ACTION_TEST.exists(),
+            "Legacy notification settings action tests should be removed or moved to historical docs.",
+        )
+
+        notification_screen = NOTIFICATION_SCREEN.read_text()
+        notification_view_model = NOTIFICATION_VIEW_MODEL.read_text()
+        forbidden_screen_terms = (
+            "Build.VERSION_CODES.TIRAMISU",
+            "Settings.ACTION_APP_NOTIFICATION_SETTINGS",
+            "NotificationManagerCompat",
+            "visitSetting",
+            "resolveLegacyNotificationPermissionAction",
+            "LegacyNotificationPermissionAction",
+            "onPermissionSettingsOpened",
+        )
+        for term in forbidden_screen_terms:
+            with self.subTest(term=term):
+                self.assertNotIn(term, notification_screen)
+        self.assertNotIn(
+            "onPermissionSettingsOpened",
+            notification_view_model,
+            "notification onboarding should not keep the historical settings_opened path as active ViewModel API.",
+        )
+
+    def test_runtime_notification_post_checks_are_unconditional_for_min_sdk_33(self):
+        notification_helper = NOTIFICATION_HELPER.read_text()
+        self.assertIn("Manifest.permission.POST_NOTIFICATIONS", notification_helper)
+        self.assertIn("PackageManager.PERMISSION_GRANTED", notification_helper)
+        self.assertNotIn(
+            "Build.VERSION_CODES.TIRAMISU",
+            notification_helper,
+            "minSdk 33 makes the Android 13+ notification branch unconditional in NotificationHelper.",
+        )
 
 
 if __name__ == "__main__":

@@ -38,9 +38,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -58,12 +59,8 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.util.AppDisplayMetadataResolver
-import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
-import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.delay
-
-private enum class UnlockStep { REASON, APPS, DURATION, COUNTDOWN }
 
 private data class UnlockReason(val stringRes: Int, val key: String)
 
@@ -76,7 +73,7 @@ private val REASONS = listOf(
     UnlockReason(R.string.emergency_unlock_reason_other, "other"),
 )
 
-private val STEPS = UnlockStep.entries.toList()
+private val STEPS = EmergencyUnlockBottomSheetStep.entries.toList()
 
 @Composable
 fun EmergencyUnlockBottomSheetContent(
@@ -86,24 +83,25 @@ fun EmergencyUnlockBottomSheetContent(
     onUnlock: (reason: String, customReason: String?, apps: Set<String>, durationMinutes: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val safeDurationOptions = remember(durationOptions) {
-        durationOptions.ifEmpty { DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS }
+    var state by remember(blockedApps, durationOptions, reasonStepEnabled) {
+        mutableStateOf(
+            EmergencyUnlockBottomSheetState.initial(
+                blockedApps = blockedApps,
+                durationOptions = durationOptions,
+                reasonStepEnabled = reasonStepEnabled,
+            )
+        )
     }
-    val visibleSteps = remember(reasonStepEnabled) {
-        if (reasonStepEnabled) {
-            listOf(UnlockStep.REASON, UnlockStep.APPS, UnlockStep.DURATION)
-        } else {
-            listOf(UnlockStep.APPS, UnlockStep.DURATION)
-        }
+
+    fun submitUnlock() {
+        val request = state.toUnlockRequest()
+        onUnlock(
+            request.reason,
+            request.customReason,
+            request.apps,
+            request.durationMinutes,
+        )
     }
-    var step by remember(reasonStepEnabled) {
-        mutableStateOf(if (reasonStepEnabled) UnlockStep.REASON else UnlockStep.APPS)
-    }
-    var selectedReason by remember { mutableStateOf<String?>(null) }
-    var customReason by remember { mutableStateOf("") }
-    var selectedApps by remember { mutableStateOf(emptySet<String>()) }
-    var selectedDuration by remember(safeDurationOptions) { mutableIntStateOf(safeDurationOptions.first()) }
-    var countdownSeconds by remember { mutableIntStateOf(30) }
 
     Column(
         modifier = Modifier
@@ -112,16 +110,16 @@ fun EmergencyUnlockBottomSheetContent(
             .padding(bottom = 20.dp),
     ) {
         // Step indicator
-        if (step != UnlockStep.COUNTDOWN) {
+        if (state.step != EmergencyUnlockBottomSheetStep.COUNTDOWN) {
             StepIndicator(
-                currentStep = visibleSteps.indexOf(step).coerceAtLeast(0),
-                totalSteps = visibleSteps.size,
+                currentStep = state.visibleSteps.indexOf(state.step).coerceAtLeast(0),
+                totalSteps = state.visibleSteps.size,
             )
             Spacer(modifier = Modifier.height(20.dp))
         }
 
         AnimatedContent(
-            targetState = step,
+            targetState = state.step,
             label = "unlock_step",
             transitionSpec = {
                 val forward = STEPS.indexOf(targetState) > STEPS.indexOf(initialState)
@@ -133,43 +131,41 @@ fun EmergencyUnlockBottomSheetContent(
             },
         ) { currentStep ->
             when (currentStep) {
-                UnlockStep.REASON -> ReasonStep(
-                    selectedReason = selectedReason,
-                    customReason = customReason,
-                    onReasonSelected = { selectedReason = it },
-                    onCustomReasonChanged = { customReason = it },
-                    onNext = { step = UnlockStep.APPS },
+                EmergencyUnlockBottomSheetStep.REASON -> ReasonStep(
+                    selectedReason = state.selectedReason,
+                    customReason = state.customReason,
+                    onReasonSelected = { state = state.selectReason(it) },
+                    onCustomReasonChanged = { state = state.changeCustomReason(it) },
+                    onNext = { state = state.goNext() },
                 )
-                UnlockStep.APPS -> AppSelectionStep(
-                    blockedApps = blockedApps,
-                    selectedApps = selectedApps,
-                    onSelectionChanged = { selectedApps = it },
-                    onNext = { step = UnlockStep.DURATION },
+                EmergencyUnlockBottomSheetStep.APPS -> AppSelectionStep(
+                    blockedApps = state.blockedApps,
+                    selectedApps = state.selectedApps,
+                    onSelectionChanged = { state = state.selectApps(it) },
+                    onNext = { state = state.goNext() },
                 )
-                UnlockStep.DURATION -> DurationStep(
-                    durationOptions = safeDurationOptions,
-                    selectedDuration = selectedDuration,
-                    onDurationSelected = { selectedDuration = it },
-                    onRequest = { step = UnlockStep.COUNTDOWN },
+                EmergencyUnlockBottomSheetStep.DURATION -> DurationStep(
+                    durationOptions = state.durationOptions,
+                    selectedDuration = state.selectedDurationMinutes,
+                    onDurationSelected = { state = state.selectDuration(it) },
+                    onRequest = { state = state.goNext() },
                 )
-                UnlockStep.COUNTDOWN -> CountdownStep(
-                    seconds = countdownSeconds,
-                    onTick = { countdownSeconds = it },
-                    onComplete = {
-                        val reason = if (reasonStepEnabled) {
-                            selectedReason.orEmpty()
-                        } else {
-                            EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
+                EmergencyUnlockBottomSheetStep.COUNTDOWN -> CountdownStep(
+                    seconds = state.countdownSeconds,
+                    onTick = {
+                        val transition = state.countdownTick()
+                        state = transition.state
+                        if (transition.effect == EmergencyUnlockBottomSheetEffect.SubmitUnlock) {
+                            submitUnlock()
                         }
-                        val custom = if (reasonStepEnabled && selectedReason == "other") customReason else null
-                        onUnlock(
-                            reason,
-                            custom,
-                            selectedApps,
-                            selectedDuration,
-                        )
                     },
-                    onCancel = onDismiss,
+                    onCancel = {
+                        val transition = state.cancelCountdown()
+                        state = transition.state
+                        if (transition.effect == EmergencyUnlockBottomSheetEffect.Dismiss) {
+                            onDismiss()
+                        }
+                    },
                 )
             }
         }
@@ -286,10 +282,7 @@ private fun AppSelectionStep(
     onNext: () -> Unit,
 ) {
     val context = LocalContext.current
-    val pm = context.packageManager
-    val appDisplayMetadataResolver = remember(pm) {
-        AppDisplayMetadataResolver(pm)
-    }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val density = context.resources.displayMetrics.density
     val iconSizePx = (40 * density).toInt()
 
@@ -313,6 +306,7 @@ private fun AppSelectionStep(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag("emergency_unlock_app_$packageName")
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
@@ -332,16 +326,14 @@ private fun AppSelectionStep(
                         onCheckedChange = null,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    appMetadata.icon?.let {
-                        Image(
-                            bitmap = it.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
-                            contentDescription = appMetadata.contentDescription,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
+                    Image(
+                        bitmap = appMetadata.icon.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
+                        contentDescription = appMetadata.contentDescription,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = appMetadata.label,
                         color = KeepTheme.colors.onSurfaceVariant,
@@ -418,18 +410,16 @@ private fun DurationStep(
 @Composable
 private fun CountdownStep(
     seconds: Int,
-    onTick: (Int) -> Unit,
-    onComplete: () -> Unit,
+    onTick: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val latestOnTick by rememberUpdatedState(onTick)
+
     LaunchedEffect(Unit) {
-        var remaining = seconds
-        while (remaining > 0) {
+        repeat(seconds) {
             delay(1000)
-            remaining--
-            onTick(remaining)
+            latestOnTick()
         }
-        onComplete()
     }
 
     val progress by animateFloatAsState(
