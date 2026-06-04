@@ -175,6 +175,56 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 
 이 증거가 없으면 #407은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록과 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`의 외부/manual 경계를 따른다.
 
+### 목표 잠금 runtime QA baseline
+
+issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.
+
+자동 baseline(구현 PR에서 추가될 테스트 예시):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' \
+  --tests 'com.uiery.keep.feature.goallock.GoalLockAnalyticsTest'
+python3 -m unittest scripts.tests.test_goal_lock_contract -v
+```
+
+검증 범위:
+- `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
+- `GoalLockAnalyticsTest`는 `goal_lock_create_started`, `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated`가 enum/bucket 파라미터만 보내는지 검증한다.
+- Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시한다.
+- Accessibility/blocking runtime은 all-day / scheduled / expiration 경계에서 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
+
+수동 QA evidence template:
+
+```md
+## Goal lock QA evidence
+- Issue: #417
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: home / routine / menu
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.feature.goallock.GoalLockAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_goal_lock_contract -v`
+- all-day / scheduled / expiration:
+  - all-day blocks selected apps through date boundary: pass / fail
+  - scheduled blocks only inside selected windows: pass / fail
+  - expiration stops blocking after end date: pass / fail
+- Home card/section:
+  - goal name / remaining period / lock mode / selected app count visible:
+  - active / completed / ended_early status correct:
+  - TalkBack label understandable:
+- End/update confirmation copy:
+  - non-punitive tone: pass / fail
+- Analytics payload spot-check:
+  - enum/bucket only:
+  - raw goal name / app package / app label / raw date absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #417은 `docs/GOAL_LOCK_MVP.md` 문서 계약이 있더라도 구현/runtime QA 경계가 남은 상태로 본다. GA4 Admin 등록과 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/GOAL_LOCK_MVP.md`의 외부/manual 경계를 따른다.
+
 ### develop/main 기본 CI gate
 
 `Android CI`는 release 전용 `release-qa.yml`보다 가벼운 기본 PR gate로 아래를 자동 실행한다.

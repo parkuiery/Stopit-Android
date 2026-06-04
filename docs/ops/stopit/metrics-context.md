@@ -64,6 +64,7 @@ ASO 판정 주의:
 - 2026-06-03 live readback(`2026-06-03T23:09:27Z`)에서도 전체 `newUsers`가 464명으로 직전 30일 대비 +28.9%였지만 `Direct` 신규가 285명(61.4%)으로 유지됐고 `Organic Search` 신규는 179명으로 #65 기준선 178명을 간신히 넘은 정도이며 `sessions`는 4,837회로 직전 6,350회 대비 -23.8%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.
 - 2026-06-03 루틴 반복 사용 기준선(#380)에서는 `customUser:routines_count >= 1` activeUsers 150명, `routines_count = 0` activeUsers 155명으로 규모가 비슷했지만, 루틴 보유자의 sessions / activeUsers가 `2,152 / 150 = 14.35`로 미보유자 `1,180 / 155 = 7.61`보다 높고 `app_block_intercepted` users / activeUsers도 `91 / 150 = 60.7%` vs `62 / 155 = 40.0%`였다. 단 `(not set)` activeUsers가 560명이라 전체 retention 결론은 보류하고 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 재측정/guardrail 표를 따른다.
 - 루틴 템플릿 공유 루프(#407)는 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP 지표는 `routine_template_share_tapped` users / 루틴 보유 active users, `routine_template_share_sheet_opened` users / tapped users, 실패율, 루틴 보유 cohort retention이며, `lockApplications`, package name, 앱 이름, raw session history는 payload/analytics에서 금지한다. deep link/import는 별도 decision gate 전까지 구현-ready로 보지 않는다.
+- 목표 잠금(#417)은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP 지표는 `goal_lock_created` users / active users, `goal_lock_created` users / `goal_lock_create_started` users, `goal_lock_completed` users / `goal_lock_created` users, `goal_lock_ended_early` users / `goal_lock_created` users이며, `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` 같은 enum/bucket만 사용한다. 목표 이름 원문, app package, app label, raw 날짜는 analytics/query 축으로 쓰지 않는다. #417 구현·GA4 Admin 등록·release/tag/Play deploy·14일 관측 전에는 live 결론을 보류한다.
 
 ## 핵심 퍼널
 
@@ -144,3 +145,4 @@ ASO 판정 주의:
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`
 - `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`
+- `docs/GOAL_LOCK_MVP.md` (#417 목표 잠금 MVP/analytics/QA 계약)
