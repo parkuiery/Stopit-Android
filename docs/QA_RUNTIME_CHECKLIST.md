@@ -272,6 +272,22 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 
 Receiver async 예외 containment는 JVM baseline `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.receiver.ReceiverCoroutineRunnerTest"`로 먼저 확인한다. 이 baseline은 `BootReceiver` / `RoutineAlarmReceiver`의 `goAsync()` 작업이 내부 dependency 예외를 만나도 `PendingResult.finish()`를 1회 호출하고 sibling receiver coroutine을 취소하지 않으며, 실패 receiver 이름과 원인 예외가 Crashlytics non-fatal 기록 경계(`receiver_name` custom key + `ReceiverCoroutineException`)로 전달되는 계약을 고정한다. Runtime smoke는 정상/권한/fallback 경로를 검증하고, dependency 예외 주입 경계는 이 JVM baseline을 PR evidence에 함께 남긴다.
 
+### clickable UI accessibility semantics baseline
+
+Issue #443 계열 PR에서는 IconButton 내부 아이콘 label만 보지 말고, non-IconButton `.clickable` 표면이 role/state semantics를 갖는지도 같이 확인한다.
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+./gradlew :app:compileDevDebugKotlin
+```
+
+검증 기준:
+- Lock History 주/월 tab은 `Role.Tab`, `selected`, `stateDescription`을 semantics tree에 노출한다.
+- Lock History 주간 날짜 cell은 날짜/요일/누적 시간 label과 오늘/선택 상태를 TalkBack이 읽을 수 있게 노출한다.
+- Menu row/card/toggle은 decorative icon의 `contentDescription = null`을 유지하되, 조작 가능한 컨테이너가 `Role.Button` 또는 `Role.Switch`와 상태 설명을 소유한다.
+- `scripts/check_compose_icon_button_accessibility.py`의 guarded path 목록은 이 핵심 표면에 대한 static regression gate이며, 새 핵심 clickable 표면이 추가되면 목록/정책을 함께 갱신한다.
+
 exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
 ### notification onboarding permission baseline
