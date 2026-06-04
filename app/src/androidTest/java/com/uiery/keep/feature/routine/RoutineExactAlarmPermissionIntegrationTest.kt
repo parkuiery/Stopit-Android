@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.routine
 
+import android.app.AlarmManager
+import android.app.AppOpsManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -117,6 +119,16 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertEquals(repeatDays.toSet(), savedRoutine.repeatDays.toSet())
         assertEquals(0, analytics.lockScheduledCalls)
         assertNoScheduledAlarms(TEST_ROUTINE_ID)
+    }
+
+    @Test
+    fun defaultExactAlarmAppOpsFollowsAlarmManagerAvailability() {
+        resetExactAlarmAppOpsToDefault()
+        val appOpsMode = exactAlarmAppOpsMode()
+        val alarmManagerAllowed = alarmManagerAllowsExactAlarms()
+
+        assertEquals(AppOpsManager.MODE_DEFAULT, appOpsMode)
+        assertEquals(alarmManagerAllowed, RoutineScheduler(context).canScheduleExactAlarms())
     }
 
     @Test
@@ -294,6 +306,27 @@ class RoutineExactAlarmPermissionIntegrationTest {
             ?.forEach(File::delete)
     }
 
+    private fun resetExactAlarmAppOpsToDefault() {
+        instrumentation.uiAutomation.executeShellCommand("cmd appops reset ${context.packageName}").close()
+        waitUntil("SCHEDULE_EXACT_ALARM should return to MODE_DEFAULT") {
+            exactAlarmAppOpsMode() == AppOpsManager.MODE_DEFAULT
+        }
+    }
+
+    private fun exactAlarmAppOpsMode(): Int {
+        val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        return appOpsManager.unsafeCheckOpNoThrow(
+            EXACT_ALARM_APP_OP,
+            context.applicationInfo.uid,
+            context.packageName,
+        )
+    }
+
+    private fun alarmManagerAllowsExactAlarms(): Boolean {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        return alarmManager.canScheduleExactAlarms()
+    }
+
     private fun createDataStore(): DataStore<Preferences> = PreferenceDataStoreFactory.create(
         produceFile = { dataStoreFile() },
     )
@@ -336,6 +369,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         private const val DATABASE_NAME = "keep-database"
         private const val DATASTORE_PREFIX = "routine-exact-alarm"
         private const val TEST_ROUTINE_ID = 77L
+        private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek
     }
 }
