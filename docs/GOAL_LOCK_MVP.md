@@ -214,7 +214,13 @@ Guardrail:
 6. analytics 이벤트/테스트/event dictionary/GA4 ledger 동기화.
 7. QA runtime checklist에 all-day/scheduled/expiration evidence 추가.
 
-`Closes #417`는 위 구현+테스트+홈 노출+analytics+QA 문서까지 완료했을 때만 사용한다. 이 문서-only PR은 `Refs #417`가 맞다.
+### 2026-06-04 QA foothold
+
+QA lane에서 첫 repo-internal 자동화 foothold로 `app/src/main/java/com/uiery/keep/feature/goallock/GoalLockPolicy.kt`와 `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockPolicyTest.kt`를 추가했다. 현재 고정된 범위는 기간 전/기간 내/기간 후 상태, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 completed, selected app count 0 validation이다.
+
+이 foothold는 실제 저장소/DAO, 생성 UI, Home card, Accessibility/blocking runtime 연결, analytics 구현을 대체하지 않는다. 다음 구현 package는 이 정책 API를 source of truth로 삼되, 남은 항목을 계속 같은 #417 acceptance 안에서 전진시킨다.
+
+`Closes #417`는 위 구현+테스트+홈 노출+analytics+QA 문서까지 완료했을 때만 사용한다. 이 정책 foothold PR은 `Refs #417`가 맞다.
 
 ## 외부/manual 경계
 

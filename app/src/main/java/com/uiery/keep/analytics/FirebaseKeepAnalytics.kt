@@ -325,6 +325,23 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockCreated(
+            durationSelectionType: String,
+            lockMode: String,
+            selectedAppCountBucket: String,
+            goalNameType: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_SELECTION_TYPE to durationSelectionType,
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to selectedAppCountBucket,
+                    KeepAnalyticsParam.GOAL_NAME_TYPE to goalNameType,
+                ),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,
