@@ -134,6 +134,9 @@ jobs:
             ./gradlew :app:installDevDebug
             ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
             ./gradlew :app:installDevDebug
+            adb shell cmd appops reset com.uiery.keep.dev
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability
+            ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
             ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
             ./gradlew :app:installDevDebug

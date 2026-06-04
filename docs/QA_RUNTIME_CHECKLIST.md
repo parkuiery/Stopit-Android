@@ -520,6 +520,10 @@ cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
 ./gradlew :app:installDevDebug
+adb shell cmd appops reset com.uiery.keep.dev
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability
+./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
@@ -567,7 +571,7 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
 ```
 
-즉, release candidate baseline은 `focused UI smoke -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 
 ## analytics / queryability handoff 경계

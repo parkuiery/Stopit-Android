@@ -40,16 +40,19 @@ class RoutineScheduler @Inject constructor(
             return true
         }
 
-        val appOpsAllowed = appOpsManager.unsafeCheckOpNoThrow(
+        val appOpsMode = appOpsManager.unsafeCheckOpNoThrow(
             EXACT_ALARM_APP_OP,
             context.applicationInfo.uid,
             context.packageName,
-        ) == AppOpsManager.MODE_ALLOWED
+        )
         val alarmManagerAllowed = alarmManager.canScheduleExactAlarms()
-        val canSchedule = appOpsAllowed && alarmManagerAllowed
+        val canSchedule = resolveExactAlarmAvailability(
+            appOpsMode = appOpsMode,
+            alarmManagerAllowed = alarmManagerAllowed,
+        )
         AppLogger.debug(
             "RoutineScheduler",
-            "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsAllowed=$appOpsAllowed alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
+            "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsMode=$appOpsMode alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
         )
 
         return canSchedule
@@ -158,5 +161,18 @@ class RoutineScheduler @Inject constructor(
 
     private companion object {
         private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
+    }
+}
+
+internal fun resolveExactAlarmAvailability(
+    appOpsMode: Int,
+    alarmManagerAllowed: Boolean,
+): Boolean {
+    if (!alarmManagerAllowed) return false
+
+    return when (appOpsMode) {
+        AppOpsManager.MODE_ALLOWED,
+        AppOpsManager.MODE_DEFAULT -> true
+        else -> false
     }
 }
