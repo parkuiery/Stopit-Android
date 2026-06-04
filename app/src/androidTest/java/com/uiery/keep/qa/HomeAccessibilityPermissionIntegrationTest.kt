@@ -140,14 +140,20 @@ class HomeAccessibilityPermissionIntegrationTest {
     private suspend fun configureReturningUserHomeState() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKey.IS_NEW] = false
+            preferences[PreferencesKey.IS_KEEP] = false
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
     private suspend fun clearHomeState() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKey.IS_NEW)
+            preferences.remove(PreferencesKey.IS_KEEP)
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
