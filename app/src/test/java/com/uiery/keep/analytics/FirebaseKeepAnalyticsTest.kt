@@ -438,6 +438,25 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun goalLockCompletedUsesSafeDurationBucketOnly() {
+        analytics.trackGoalLockCompleted(
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.DURATION_DAYS_BUCKET to AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
@@ -452,6 +471,9 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("EmergencyUnlockSettingsScreen", KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
+        assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)
+        assertEquals("duration_days_bucket", KeepAnalyticsParam.DURATION_DAYS_BUCKET)
+        assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
     }
 }
 

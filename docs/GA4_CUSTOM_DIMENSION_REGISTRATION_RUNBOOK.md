@@ -179,10 +179,10 @@
 | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 문서 계약 추가 / 구현 전 | 동일 | `customEvent:time_window_bucket` |
 | `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 문서 계약 추가 / 구현 전 | 동일 | `customEvent:routine_name_included` |
 | `duration_selection_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 잠금 포함 release/tag/Play deploy 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:duration_selection_type` |
-| `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, detail 종료 path의 early-end runtime call 추가, completion runtime call 미구현 | 동일 | `customEvent:lock_mode` |
+| `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, detail 종료 path의 early-end runtime call 추가, completion runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:lock_mode` |
 | `selected_app_count_bucket` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 동일 | `customEvent:selected_app_count_bucket` |
 | `goal_name_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 이름 원문을 보내지 않고 preset/custom enum만 확인 | `customEvent:goal_name_type` |
-| `duration_days_bucket` | `goal_lock_completed` | #417 문서 계약 추가 / completion runtime call 미구현 | 동일 | `customEvent:duration_days_bucket` |
+| `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
 | `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
 
 ### 2) Recommended 이벤트 차원

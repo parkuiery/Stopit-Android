@@ -39,6 +39,7 @@ data class GoalLockEntity(
         selectedPackages = selectedPackages.toSet(),
         status = when (status) {
             STATUS_ACTIVE -> GoalLockStoredStatus.Active
+            STATUS_COMPLETED -> GoalLockStoredStatus.Completed
             STATUS_ENDED_EARLY -> GoalLockStoredStatus.EndedEarly
             else -> error("Unknown goal lock status: $status")
         },
@@ -48,6 +49,7 @@ data class GoalLockEntity(
         internal const val LOCK_MODE_ALL_DAY = "all_day"
         internal const val LOCK_MODE_SCHEDULED = "scheduled"
         internal const val STATUS_ACTIVE = "active"
+        internal const val STATUS_COMPLETED = "completed"
         internal const val STATUS_ENDED_EARLY = "ended_early"
 
         internal fun fromDomain(goalLock: GoalLock): GoalLockEntity {
@@ -67,6 +69,7 @@ data class GoalLockEntity(
                 selectedPackages = goalLock.selectedPackages.toList(),
                 status = when (goalLock.status) {
                     GoalLockStoredStatus.Active -> STATUS_ACTIVE
+                    GoalLockStoredStatus.Completed -> STATUS_COMPLETED
                     GoalLockStoredStatus.EndedEarly -> STATUS_ENDED_EARLY
                 },
             )

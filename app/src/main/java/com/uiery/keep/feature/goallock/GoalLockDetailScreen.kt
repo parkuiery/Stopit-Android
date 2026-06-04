@@ -125,14 +125,18 @@ private fun GoalLockDetailContent(
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = if (state.isEnded) "종료된 목표 잠금입니다." else "진행 중인 목표 잠금입니다.",
+                    text = when {
+                        state.isCompleted -> "완료된 목표 잠금입니다."
+                        state.isEnded -> "종료된 목표 잠금입니다."
+                        else -> "진행 중인 목표 잠금입니다."
+                    },
                     color = KeepTheme.colors.surfaceVariant,
                     fontSize = 13.sp,
                 )
             }
         }
 
-        if (!state.isEnded) {
+        if (!state.isEnded && !state.isCompleted) {
             if (state.showEndConfirmation) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

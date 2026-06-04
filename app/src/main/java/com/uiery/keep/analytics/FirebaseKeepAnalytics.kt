@@ -363,6 +363,19 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockCompleted(
+            lockMode: String,
+            durationDaysBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.DURATION_DAYS_BUCKET to durationDaysBucket,
+                ),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,

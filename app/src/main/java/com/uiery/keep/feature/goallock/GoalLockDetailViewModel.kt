@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
@@ -34,19 +35,28 @@ internal class GoalLockDetailViewModel
         override val container: Container<GoalLockDetailUiState, GoalLockDetailSideEffect> =
             container(GoalLockDetailUiState())
 
-        fun loadGoalLock() =
+        fun loadGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
                 val goalLock = goalLockDao.fetch(goalLockId)?.toDomain()
                 if (goalLock == null) {
                     postSideEffect(GoalLockDetailSideEffect.NotFound)
                     return@intent
                 }
-                reduce { state.copy(goalLock = goalLock, showEndConfirmation = false, isEnded = goalLock.status == GoalLockStoredStatus.EndedEarly) }
+
+                val normalizedGoalLock = completeIfExpired(goalLock = goalLock, today = today)
+                reduce {
+                    state.copy(
+                        goalLock = normalizedGoalLock,
+                        showEndConfirmation = false,
+                        isEnded = normalizedGoalLock.status == GoalLockStoredStatus.EndedEarly,
+                        isCompleted = normalizedGoalLock.status == GoalLockStoredStatus.Completed,
+                    )
+                }
             }
 
         fun requestEndGoalLock() =
             intent {
-                if (state.goalLock == null || state.isEnded) return@intent
+                if (state.goalLock == null || state.isEnded || state.isCompleted) return@intent
                 reduce { state.copy(showEndConfirmation = true) }
             }
 
@@ -62,6 +72,10 @@ internal class GoalLockDetailViewModel
                     reduce { state.copy(showEndConfirmation = false, isEnded = true) }
                     return@intent
                 }
+                if (current.status == GoalLockStoredStatus.Completed) {
+                    reduce { state.copy(showEndConfirmation = false, isCompleted = true) }
+                    return@intent
+                }
 
                 val ended = current.copy(status = GoalLockStoredStatus.EndedEarly)
                 goalLockDao.update(GoalLockEntity.fromDomain(ended))
@@ -75,16 +89,36 @@ internal class GoalLockDetailViewModel
                         goalLock = ended,
                         showEndConfirmation = false,
                         isEnded = true,
+                        isCompleted = false,
                     )
                 }
                 postSideEffect(GoalLockDetailSideEffect.Ended)
             }
+
+        private fun completeIfExpired(
+            goalLock: GoalLock,
+            today: LocalDate,
+        ): GoalLock {
+            if (goalLock.status != GoalLockStoredStatus.Active) return goalLock
+            if (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay()) != GoalLockRuntimeStatus.Completed) {
+                return goalLock
+            }
+
+            val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
+            goalLockDao.update(GoalLockEntity.fromDomain(completed))
+            analytics.trackGoalLockCompleted(
+                lockMode = goalLock.lockMode.analyticsLockMode,
+                durationDaysBucket = durationDaysBucket(goalLock.startDate, goalLock.endDate),
+            )
+            return completed
+        }
     }
 
 internal data class GoalLockDetailUiState(
     val goalLock: GoalLock? = null,
     val showEndConfirmation: Boolean = false,
     val isEnded: Boolean = false,
+    val isCompleted: Boolean = false,
 ) {
     val goalName: String = goalLock?.goalName.orEmpty()
     val lockModeLabel: String = goalLock?.lockMode?.detailLabel.orEmpty()
@@ -117,4 +151,15 @@ private fun elapsedDaysBucket(
     in 3L..6L -> AnalyticsGoalLockElapsedDaysBucket.THREE_TO_SIX
     in 7L..14L -> AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN
     else -> AnalyticsGoalLockElapsedDaysBucket.FIFTEEN_PLUS
+}
+
+private fun durationDaysBucket(
+    startDate: LocalDate,
+    endDate: LocalDate,
+): String = when (ChronoUnit.DAYS.between(startDate, endDate).plus(1).coerceAtLeast(1)) {
+    in 1L..6L -> AnalyticsGoalLockDurationDaysBucket.ONE_TO_SIX
+    7L -> AnalyticsGoalLockDurationDaysBucket.SEVEN
+    in 8L..14L -> AnalyticsGoalLockDurationDaysBucket.EIGHT_TO_FOURTEEN
+    in 15L..30L -> AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY
+    else -> AnalyticsGoalLockDurationDaysBucket.THIRTY_ONE_PLUS
 }

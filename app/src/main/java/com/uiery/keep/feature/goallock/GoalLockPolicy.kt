@@ -27,6 +27,7 @@ internal sealed interface GoalLockMode {
 
 internal enum class GoalLockStoredStatus {
     Active,
+    Completed,
     EndedEarly,
 }
 
@@ -47,6 +48,9 @@ internal object GoalLockPolicy {
     ): GoalLockRuntimeStatus {
         if (goalLock.status == GoalLockStoredStatus.EndedEarly) {
             return GoalLockRuntimeStatus.EndedEarly
+        }
+        if (goalLock.status == GoalLockStoredStatus.Completed) {
+            return GoalLockRuntimeStatus.Completed
         }
 
         val today = now.toLocalDate()

@@ -144,6 +144,11 @@ interface KeepAnalytics {
         elapsedDaysBucket: String,
         reason: String,
     ) = Unit
+
+    fun trackGoalLockCompleted(
+        lockMode: String,
+        durationDaysBucket: String,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -180,6 +185,7 @@ object KeepAnalyticsEvent {
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
+    const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
 }
 
 object KeepAnalyticsParam {
@@ -217,6 +223,7 @@ object KeepAnalyticsParam {
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
+    const val DURATION_DAYS_BUCKET = "duration_days_bucket"
 }
 
 object OnboardingStepName {
@@ -333,6 +340,14 @@ object AnalyticsGoalLockElapsedDaysBucket {
     const val THREE_TO_SIX = "3_6"
     const val SEVEN_TO_FOURTEEN = "7_14"
     const val FIFTEEN_PLUS = "15_plus"
+}
+
+object AnalyticsGoalLockDurationDaysBucket {
+    const val ONE_TO_SIX = "1_6"
+    const val SEVEN = "7"
+    const val EIGHT_TO_FOURTEEN = "8_14"
+    const val FIFTEEN_TO_THIRTY = "15_30"
+    const val THIRTY_ONE_PLUS = "31_plus"
 }
 
 object AnalyticsGoalLockEndedEarlyReason {

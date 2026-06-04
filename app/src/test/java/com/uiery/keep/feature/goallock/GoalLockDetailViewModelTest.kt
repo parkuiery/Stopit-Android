@@ -79,6 +79,30 @@ class GoalLockDetailViewModelTest {
         )
     }
 
+    @Test
+    fun loadExpiredActiveGoalLockMarksCompletedAndTracksCompletionOnce() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = expiredActiveGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.isCompleted }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(GoalLockStoredStatus.Completed, updated.status)
+        assertFalse(viewModel.container.stateFlow.value.showEndConfirmation)
+        assertTrue(viewModel.container.stateFlow.value.isCompleted)
+        assertEquals(
+            listOf(
+                GoalLockCompletedCall(
+                    lockMode = AnalyticsGoalLockMode.SCHEDULED,
+                    durationDaysBucket = "7",
+                ),
+            ),
+            analytics.goalLockCompletedCalls,
+        )
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
@@ -126,6 +150,23 @@ private fun scheduledGoalLockEntity() =
         ),
     )
 
+private fun expiredActiveGoalLockEntity() =
+    GoalLockEntity.fromDomain(
+        GoalLock(
+            id = 42L,
+            goalName = "프로젝트 마감",
+            startDate = LocalDate.of(2026, 6, 2),
+            endDate = LocalDate.of(2026, 6, 8),
+            lockMode = GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+                startTime = LocalTime.of(19, 0),
+                endTime = LocalTime.of(23, 0),
+            ),
+            selectedPackages = setOf("com.video.app", "com.social.app"),
+            status = GoalLockStoredStatus.Active,
+        ),
+    )
+
 private class DetailRecordingGoalLockDao(
     private val existing: GoalLockEntity?,
 ) : GoalLockDao {
@@ -148,8 +189,14 @@ private data class GoalLockEndedEarlyCall(
     val reason: String,
 )
 
+private data class GoalLockCompletedCall(
+    val lockMode: String,
+    val durationDaysBucket: String,
+)
+
 private class DetailRecordingKeepAnalytics : KeepAnalytics {
     val goalLockEndedEarlyCalls = mutableListOf<GoalLockEndedEarlyCall>()
+    val goalLockCompletedCalls = mutableListOf<GoalLockCompletedCall>()
 
     override fun logEvent(
         name: String,
@@ -205,6 +252,16 @@ private class DetailRecordingKeepAnalytics : KeepAnalytics {
             lockMode = lockMode,
             elapsedDaysBucket = elapsedDaysBucket,
             reason = reason,
+        )
+    }
+
+    override fun trackGoalLockCompleted(
+        lockMode: String,
+        durationDaysBucket: String,
+    ) {
+        goalLockCompletedCalls += GoalLockCompletedCall(
+            lockMode = lockMode,
+            durationDaysBucket = durationDaysBucket,
         )
     }
 }
