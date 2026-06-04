@@ -53,7 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable

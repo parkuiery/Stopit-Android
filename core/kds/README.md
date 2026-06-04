@@ -123,6 +123,31 @@ KeepCheckbox(
 
 ---
 
+### KeepSwitch
+
+cross-feature 토글/설정 화면에서 쓰는 KDS 스위치.
+
+```kotlin
+KeepSwitch(
+    checked = enabled,
+    onCheckedChange = { enabled = it },
+)
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `checked` | Boolean | (필수) | 선택 상태 |
+| `onCheckedChange` | ((Boolean) -> Unit)? | (필수) | 상태 변경 콜백 |
+| `modifier` | Modifier | Modifier | 레이아웃 수정자 |
+| `thumbContent` | @Composable (() -> Unit)? | null | thumb 내부 콘텐츠 |
+| `enabled` | Boolean | true | 활성화 상태 |
+| `colors` | SwitchColors | KDS primary/onTertiary 색상 | 스위치 색상 |
+| `interactionSource` | MutableInteractionSource | 새 인스턴스 | 인터랙션 소스 |
+
+**소유권:** Home, Menu, Routine, Emergency Unlock Settings처럼 여러 feature에서 공유하는 switch는 home feature-private component가 아니라 KDS `com.uiery.kds.KeepSwitch`를 사용합니다.
+
+---
+
 ### KeepSnackBar
 
 앱 전용 스낵바.
