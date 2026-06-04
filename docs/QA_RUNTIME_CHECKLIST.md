@@ -128,6 +128,51 @@ python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
 
 이 증거가 없으면 #325는 repo-internal dependency/test 계약이 완료됐더라도 manual visual QA 경계가 남은 상태로 본다.
 
+### StopIt user-facing brand copy QA evidence
+
+issue #404 계열 PR은 사용자 노출 문자열에서 legacy `Keep` 브랜드가 다시 보이지 않는지 자동 계약과 실제 화면 evidence를 함께 남긴다. 리소스 key 이름(`keep_*`)은 내부 legacy identifier로 남을 수 있지만, 화면에 보이는 copy는 StopIt/스탑잇 기준으로 통일한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
+./gradlew -q help --task :app:assembleProdDebug
+```
+
+검증 범위:
+- `scripts.tests.test_user_facing_brand_strings`는 `app/src/main/res/values*/strings.xml`의 user-visible string value에 legacy `Keep` 브랜드가 남아 있지 않은지 확인한다.
+- `notification_permission_request`는 알림 권한 요청에서 StopIt/스탑잇 브랜드만 보여야 한다.
+- `block_screen_first_core_action_feedback`는 첫 차단 성공 피드백에서 StopIt/스탑잇 브랜드만 보여야 한다.
+- 신규 사용자-facing string이 의도적으로 `Keep`을 제품명/모드명으로 보여줘야 한다면 allowlist에 이유를 남겨야 하며, 기본값은 `legacy Keep brand absent`다.
+
+수동 QA evidence template:
+
+```md
+## StopIt user-facing brand copy QA evidence
+- Issue: #404
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): default / ko / ja / zh / other changed locale
+- Commands:
+  - `python3 -m unittest scripts.tests.test_user_facing_brand_strings -v`
+  - `./gradlew -q help --task :app:assembleProdDebug`
+- Screens / copy checked:
+  - notification_permission_request:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+  - block_screen_first_core_action_feedback:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+  - first-lock/home guidance if touched:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #404는 repo-internal string cleanup과 static regression이 완료됐더라도 실제 권한 요청/첫 차단 성공 화면의 device/manual QA 경계가 남은 상태로 본다.
+
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
 issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
