@@ -5,7 +5,6 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.test.core.app.ActivityScenario
 import androidx.datastore.preferences.core.edit
-import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.Configurator
@@ -68,15 +67,10 @@ class HomeAccessibilityPermissionIntegrationTest {
         )
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForStopItForeground()
-            it.onActivity { activity ->
-                assertFalse(
-                    "hasAccessibilityPermission should reject fake package substring services",
-                    hasAccessibilityPermission(activity),
-                )
-            }
-            it.moveToState(Lifecycle.State.STARTED)
-            it.moveToState(Lifecycle.State.RESUMED)
-            waitForStopItForeground()
+            assertFalse(
+                "hasAccessibilityPermission should reject fake package substring services",
+                hasAccessibilityPermission(context),
+            )
 
             waitForPermissionDialog(
                 "Expected home permission dialog when only a package substring matches",
@@ -99,15 +93,10 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             disableAccessibilityServiceFromSettings()
             waitForStopItForeground()
-            it.moveToState(Lifecycle.State.STARTED)
-            it.moveToState(Lifecycle.State.RESUMED)
-            waitForStopItForeground()
-            it.onActivity { activity ->
-                assertFalse(
-                    "hasAccessibilityPermission should be false after disabling the service from Settings",
-                    hasAccessibilityPermission(activity),
-                )
-            }
+            assertFalse(
+                "hasAccessibilityPermission should be false after disabling the service from Settings",
+                hasAccessibilityPermission(context),
+            )
             waitForPermissionDialog(
                 "Expected home permission dialog after accessibility is disabled and the app resumes",
             )
@@ -128,15 +117,10 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             enableAccessibilityServiceFromSettings()
             waitForStopItForeground()
-            it.moveToState(Lifecycle.State.STARTED)
-            it.moveToState(Lifecycle.State.RESUMED)
-            waitForStopItForeground()
-            it.onActivity { activity ->
-                assertTrue(
-                    "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
-                    hasAccessibilityPermission(activity),
-                )
-            }
+            assertTrue(
+                "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
+                hasAccessibilityPermission(context),
+            )
             waitUntil("Expected home permission dialog to disappear after accessibility is re-enabled and the app resumes") {
                 !device.hasObject(By.text(permissionDialogTitle))
             }
