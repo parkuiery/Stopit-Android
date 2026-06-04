@@ -10,11 +10,15 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -32,8 +36,10 @@ import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -46,6 +52,7 @@ class HomeViewModel
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
         private val lockHistoryDao: LockHistoryDao,
+        private val goalLockDao: GoalLockDao,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -55,6 +62,7 @@ class HomeViewModel
         init {
             getIsKeep()
             getSelectedApp()
+            getGoalLockCard()
         }
 
         internal fun changeIsKeep(
@@ -230,6 +238,28 @@ class HomeViewModel
                             isKeep = state.isKeep,
                         ),
                     )
+                }
+            }
+
+        private fun getGoalLockCard() =
+            intent {
+                goalLockDao.fetchAll().collect { goalLocks ->
+                    val today = LocalDate.now()
+                    val card = goalLocks
+                        .map { it.toDomain() }
+                        .firstOrNull { GoalLockPolicy.runtimeStatus(it) != GoalLockRuntimeStatus.Completed }
+                        ?.let { goalLock ->
+                            val runtimeStatus = GoalLockPolicy.runtimeStatus(goalLock)
+                            HomeGoalLockCardState(
+                                goalLockId = goalLock.id,
+                                goalName = goalLock.goalName,
+                                status = runtimeStatus.toHomeStatus(),
+                                daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
+                                lockModeLabel = goalLock.lockMode.homeLabel,
+                                selectedAppCount = goalLock.selectedPackages.size,
+                            )
+                        }
+                    reduce { state.copy(goalLockCard = card) }
                 }
             }
 
@@ -438,7 +468,36 @@ data class HomeUiState(
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
     val pendingManualLockRouteDeadline: String? = null,
+    val goalLockCard: HomeGoalLockCardState? = null,
 )
+
+data class HomeGoalLockCardState(
+    val goalLockId: Long,
+    val goalName: String,
+    val status: HomeGoalLockStatus,
+    val daysRemaining: Int,
+    val lockModeLabel: String,
+    val selectedAppCount: Int,
+)
+
+enum class HomeGoalLockStatus {
+    Pending,
+    Active,
+    EndedEarly,
+}
+
+private fun GoalLockRuntimeStatus.toHomeStatus(): HomeGoalLockStatus = when (this) {
+    GoalLockRuntimeStatus.Pending -> HomeGoalLockStatus.Pending
+    GoalLockRuntimeStatus.Active -> HomeGoalLockStatus.Active
+    GoalLockRuntimeStatus.EndedEarly -> HomeGoalLockStatus.EndedEarly
+    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.EndedEarly
+}
+
+private val GoalLockMode.homeLabel: String
+    get() = when (this) {
+        GoalLockMode.AllDay -> "하루종일 잠금"
+        is GoalLockMode.Scheduled -> "특정 시간 잠금"
+    }
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
 
