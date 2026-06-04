@@ -678,16 +678,18 @@ issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child is
 
 ### 긴급해제 완료/만료 scriptable baseline
 
-issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다.
+issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다. issue #424 계열처럼 bottom sheet 단계/선택 상태를 건드리는 PR은 같은 묶음에서 `EmergencyUnlockBottomSheetStateTest`를 먼저 실행해 UI state machine 계약을 고정한다.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetStateTest" \
   --tests "com.uiery.keep.feature.lock.LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect"
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest
 ```
 
+- `EmergencyUnlockBottomSheetStateTest`: reason enabled/disabled, custom reason, 앱 선택 없음, duration fallback, countdown cancel/complete가 Composable local state에 숨지 않고 순수 JVM 계약으로 유지되는지 고정한다.
 - `LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect`: LockScreen 진입점에서 긴급해제 완료 후 `UnlockCompleted` side effect가 발생해 화면 이탈 계약이 끊기지 않는지 고정한다.
 - `EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리며, 기존 ongoing 긴급해제 notification도 함께 정리하는지 검증한다.
 - 이 baseline은 실제 cross-app Accessibility 진입 전체를 대체하지는 않지만, 긴급해제 완료 후 Lock 화면 고착과 만료 후 우회 지속 회귀를 각각 JVM/device-emulator 레벨에서 반복 가능하게 고정한다.
