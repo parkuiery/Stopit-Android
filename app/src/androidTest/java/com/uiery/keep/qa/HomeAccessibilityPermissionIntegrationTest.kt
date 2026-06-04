@@ -99,6 +99,9 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             disableAccessibilityServiceFromSettings()
             waitForStopItForeground()
+            it.moveToState(Lifecycle.State.STARTED)
+            it.moveToState(Lifecycle.State.RESUMED)
+            waitForStopItForeground()
             it.onActivity { activity ->
                 assertFalse(
                     "hasAccessibilityPermission should be false after disabling the service from Settings",
@@ -124,6 +127,9 @@ class HomeAccessibilityPermissionIntegrationTest {
             )
 
             enableAccessibilityServiceFromSettings()
+            waitForStopItForeground()
+            it.moveToState(Lifecycle.State.STARTED)
+            it.moveToState(Lifecycle.State.RESUMED)
             waitForStopItForeground()
             it.onActivity { activity ->
                 assertTrue(
