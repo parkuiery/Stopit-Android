@@ -124,6 +124,7 @@ jobs:
         run: ./gradlew --console=plain :app:assembleProdDebug
 
       - name: Upload prod debug APK
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: stopit-prod-debug-apk

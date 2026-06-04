@@ -21,6 +21,12 @@ class AndroidCiArtifactRetentionTest(unittest.TestCase):
         self.assertIn("name: stopit-prod-debug-apk", upload_step)
         self.assertIn("retention-days: 7", upload_step)
 
+    def test_prod_debug_apk_upload_is_non_blocking_smoke_artifact(self):
+        workflow = ANDROID_CI_WORKFLOW.read_text()
+        upload_step = self._step_block(workflow, "Upload prod debug APK")
+
+        self.assertIn("continue-on-error: true", upload_step)
+
     def test_signed_release_artifacts_keep_longer_retention(self):
         release_build = RELEASE_BUILD_WORKFLOW.read_text()
         play_deploy = PLAY_DEPLOY_WORKFLOW.read_text()
@@ -39,6 +45,7 @@ class AndroidCiArtifactRetentionTest(unittest.TestCase):
             with self.subTest(doc=doc[:40]):
                 self.assertIn("stopit-prod-debug-apk", doc)
                 self.assertIn("retention-days: 7", doc)
+                self.assertIn("non-blocking", doc)
                 self.assertIn("Artifact storage quota has been hit", doc)
                 self.assertIn("6–12", doc)
 
