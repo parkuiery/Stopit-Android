@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -305,6 +306,7 @@ private fun AppSelectionStep(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag("emergency_unlock_app_$packageName")
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
