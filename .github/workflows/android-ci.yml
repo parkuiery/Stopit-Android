@@ -89,12 +89,14 @@ jobs:
 
       - name: Restore Firebase google-services.json for CI variants
         env:
+          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
+          test -n "$GOOGLE_SERVICES_JSON_DEV" || { echo 'GOOGLE_SERVICES_JSON_DEV secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
           mkdir -p app/src/dev app/src/prod
-          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
+          printf '%s' "$GOOGLE_SERVICES_JSON_DEV" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Run static policy unit tests
@@ -155,12 +157,14 @@ jobs:
 
       - name: Restore Firebase google-services.json for CI variants
         env:
+          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
+          test -n "$GOOGLE_SERVICES_JSON_DEV" || { echo 'GOOGLE_SERVICES_JSON_DEV secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
           mkdir -p app/src/dev app/src/prod
-          printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/dev/google-services.json
+          printf '%s' "$GOOGLE_SERVICES_JSON_DEV" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Enable KVM for Android emulator
@@ -181,5 +185,5 @@ jobs:
             set -eu
             ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
             ./gradlew --console=plain :app:installDevDebug
-            adb shell appops set com.uiery.keep POST_NOTIFICATION ignore
+            adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
             ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification

@@ -87,7 +87,7 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(
-            "adb shell appops set com.uiery.keep POST_NOTIFICATION ignore",
+            "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
             maxsplit=1,
         )
 
@@ -121,6 +121,19 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
         release_context = DOCS["release context"].read_text()
         self.assertIn("Android CI PR gate is intentionally separate", release_context)
         self.assertIn("use the exact Release QA list below", release_context)
+
+    def test_release_facing_docs_use_dev_package_for_dev_runtime_appops(self):
+        stale_appops = [
+            "adb shell appops set com.uiery.keep POST_NOTIFICATION",
+            "adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM",
+        ]
+        for doc_name, path in DOCS.items():
+            text = path.read_text()
+            with self.subTest(doc=doc_name):
+                self.assertIn("adb shell appops set com.uiery.keep.dev", text)
+            for stale in stale_appops:
+                with self.subTest(doc=doc_name, stale=stale):
+                    self.assertNotIn(stale, text)
 
     def test_crashlytics_recurrence_handoff_is_release_documented(self):
         required_phrases = [

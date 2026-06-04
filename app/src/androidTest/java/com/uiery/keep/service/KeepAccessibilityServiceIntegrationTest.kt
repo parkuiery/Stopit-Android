@@ -154,7 +154,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected KeepAccessibilityService to dismiss the self-uninstall surface when prevent_uninstall is enabled",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
-            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == APP_PACKAGE
+            KeepAccessibilityServiceDebugState.read(context).lastDismissedUninstallPackage == appPackage
         }
     }
 
@@ -294,7 +294,7 @@ class KeepAccessibilityServiceIntegrationTest {
             launchDirectSelfDeleteIntent()
         }
         waitUntil(
-            message = "Expected package installer uninstall confirmation for $APP_PACKAGE to become visible",
+            message = "Expected package installer uninstall confirmation for $appPackage to become visible",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
             isUninstallSurfaceForeground()
@@ -303,18 +303,18 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun launchDirectSelfDeleteIntent() {
         device.pressHome()
-        shell("am start -W -a android.intent.action.DELETE -d package:$APP_PACKAGE")
+        shell("am start -W -a android.intent.action.DELETE -d package:$appPackage")
     }
 
     private fun launchSelfAppInfoScreen(requireUninstallButton: Boolean = true) {
         shell("am force-stop $SETTINGS_PACKAGE")
         device.pressHome()
         val launchResult = shell(
-            "am start -W -a ${Settings.ACTION_APPLICATION_DETAILS_SETTINGS} -d package:$APP_PACKAGE",
+            "am start -W -a ${Settings.ACTION_APPLICATION_DETAILS_SETTINGS} -d package:$appPackage",
         )
         waitForPackageForeground(
             packageName = SETTINGS_PACKAGE,
-            message = "Expected Settings app info screen to foreground for $APP_PACKAGE. launchResult=$launchResult",
+            message = "Expected Settings app info screen to foreground for $appPackage. launchResult=$launchResult",
         )
         if (requireUninstallButton) {
             waitForUninstallButton()
@@ -323,13 +323,13 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun waitForUninstallButton(): androidx.test.uiautomator.UiObject2 {
         waitUntil(
-            message = "Expected app info screen to expose an uninstall/delete action for $APP_PACKAGE. visibleTexts=${visibleSettingsTexts()}",
+            message = "Expected app info screen to expose an uninstall/delete action for $appPackage. visibleTexts=${visibleSettingsTexts()}",
             timeoutMs = UI_TIMEOUT_MS,
         ) {
             findUninstallButton() != null
         }
         return findUninstallButton() ?: run {
-            fail("Could not find uninstall/delete action for $APP_PACKAGE from app info screen. visibleTexts=${visibleSettingsTexts()}")
+            fail("Could not find uninstall/delete action for $appPackage from app info screen. visibleTexts=${visibleSettingsTexts()}")
             throw AssertionError("unreachable")
         }
     }
@@ -355,9 +355,9 @@ class KeepAccessibilityServiceIntegrationTest {
             .joinToString(" | ")
 
     private fun primeAppProcess() {
-        launchPackage(APP_PACKAGE)
+        launchPackage(appPackage)
         waitUntil("StopIt app should leave the stopped state before Accessibility service setup") {
-            !shell("dumpsys package $APP_PACKAGE").contains("stopped=true")
+            !shell("dumpsys package $appPackage").contains("stopped=true")
         }
     }
 
@@ -401,11 +401,11 @@ class KeepAccessibilityServiceIntegrationTest {
         val currentServices = normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))
         val retainedServices = currentServices
             .split(':')
-            .filter { it.isNotBlank() && it != SERVICE_COMPONENT }
+            .filter { it.isNotBlank() && it != serviceComponent }
             .toMutableList()
 
         if (enabled) {
-            retainedServices += SERVICE_COMPONENT
+            retainedServices += serviceComponent
         }
 
         if (retainedServices.isEmpty()) {
@@ -467,7 +467,7 @@ class KeepAccessibilityServiceIntegrationTest {
         shell("am force-stop $SETTINGS_PACKAGE")
         shell(
             "am start -W -a android.settings.ACCESSIBILITY_DETAILS_SETTINGS " +
-                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $SERVICE_COMPONENT",
+                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $serviceComponent",
         )
         device.waitForIdle()
 
@@ -475,7 +475,7 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean =
-        shell("dumpsys accessibility").contains("Enabled services:{{$SERVICE_COMPONENT}}")
+        shell("dumpsys accessibility").contains("Enabled services:{{$serviceComponent}}")
 
     private fun waitForServiceStatePropagation() {
         val deadline = System.currentTimeMillis() + SERVICE_PROPAGATION_TIMEOUT_MS
@@ -489,7 +489,7 @@ class KeepAccessibilityServiceIntegrationTest {
         val snapshot = KeepAccessibilityServiceDebugState.read(context)
         val accessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
         val enabledServices = shell("settings get secure enabled_accessibility_services").trim()
-        val packageState = shell("dumpsys package $APP_PACKAGE | grep -n 'User 0:' -A2 | head -n 3").trim()
+        val packageState = shell("dumpsys package $appPackage | grep -n 'User 0:' -A2 | head -n 3").trim()
         val accessibilityDump = shell("""dumpsys accessibility | grep -n 'Bound services\|Enabled services\|Binding services\|Crashed services' -A1 -B1""").trim()
         fail(
             "KeepAccessibilityService should bind before runtime assertions. " +
@@ -576,6 +576,12 @@ class KeepAccessibilityServiceIntegrationTest {
     private val appName: String
         get() = context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 
+    private val appPackage: String
+        get() = context.packageName
+
+    private val serviceComponent: String
+        get() = "$appPackage/com.uiery.keep.service.KeepAccessibilityService"
+
     private fun resetDebugStateRetainingConnectionFlag() {
         val existingSnapshot = KeepAccessibilityServiceDebugState.read(context)
         KeepAccessibilityServiceDebugState.update(context) {
@@ -604,8 +610,6 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private companion object {
-        const val APP_PACKAGE = "com.uiery.keep"
-        const val SERVICE_COMPONENT = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
         const val PACKAGE_VISIBILITY_TIMEOUT_MS = 5_000L
         const val UNINSTALL_DISMISS_TIMEOUT_MS = 12_000L
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L

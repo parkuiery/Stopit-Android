@@ -60,27 +60,27 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
    - `com.uiery.keep.qa.StopitReleaseSmokeTest`
    - 목적: 앱 기동과 Compose navigation host 기본 smoke 확인
 3. exact alarm deny gate 1 — 루틴 생성
-   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
+   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
    - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
    - `RoutineExactAlarmPermissionIntegrationTest#addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
    - 목적: 단일·multi-day 루틴 저장/enable 시 exact alarm 권한 부재를 조용한 성공 상태로 남기지 않는지 확인
 4. exact alarm deny gate 2 — boot 복구
-   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
+   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
    - 목적: boot 복구 경로가 권한 회수 상태에서도 enabled 루틴/알람 불일치를 남기지 않는지 확인
 5. exact alarm deny gate 3 — package replaced
-   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
+   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
    - 목적: `MY_PACKAGE_REPLACED` 재진입 경로가 같은 fail-safe 계약을 지키는지 확인
 6. exact alarm deny gate 4 — routine alarm receiver
-   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny`
+   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
    - 목적: 루틴 alarm 재예약 경로가 권한 부재를 조용히 성공으로 남기지 않는지 확인
 7. exact alarm allow/cancel gate
-   - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow`
+   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow`
    - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
    - `RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm`
    - `RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent`
@@ -90,11 +90,11 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
    - `:app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.manifest.ManifestContractIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
    - 목적: release smoke, backup/restore runtime reset, accessibility permission resume, receiver 단일·multi-day 재수화/재예약, manifest contract, emergency unlock expiry, FCM token wiring, AccessibilityService cross-app block safety를 한 묶음으로 검증
 9. notification-denied receiver fallback gate
-   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
-   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, 알림 권한이 꺼져 있어도 루틴 시작 안내가 앱 내 fallback notice로 이어지는지 분리 검증
+   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
+   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, 알림 권한이 꺼져 있어도 dev flavor package(`com.uiery.keep.dev`)에서 루틴 시작 안내가 앱 내 fallback notice로 이어지는지 분리 검증
 10. notification-denied emergency-unlock gate
-   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
-   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, 긴급해제 만료 알림 helper가 permission-denied로 안전하게 종료되는지 분리 검증
+   - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
+   - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, dev flavor package(`com.uiery.keep.dev`)에서 긴급해제 만료 알림 helper가 permission-denied로 안전하게 종료되는지 분리 검증
 
 정리하면 release candidate runtime baseline은 `focused UI smoke -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. Android CI focused runtime smoke는 별도 PR gate이므로 release/hotfix 증거에는 `.github/workflows/release-qa.yml`의 Release instrumentation QA 목록을 기준으로 기록한다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서를 유지해야 한다. Android 12L 이하 legacy 설정 왕복과 `settings_opened` 기반 notification onboarding 검증은 historical / out of scope이며, minSdk를 다시 낮출 때만 현재 검증 대상으로 복원한다.
 

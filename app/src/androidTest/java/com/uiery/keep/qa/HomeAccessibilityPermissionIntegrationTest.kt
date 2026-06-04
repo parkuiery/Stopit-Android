@@ -355,10 +355,14 @@ class HomeAccessibilityPermissionIntegrationTest {
     private val appName: String
         get() = context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 
+    private val targetPackage: String
+        get() = context.packageName
+
+    private val keepServiceComponent: String
+        get() = "$targetPackage/com.uiery.keep.service.KeepAccessibilityService"
+
     private companion object {
-        const val targetPackage = "com.uiery.keep"
         const val settingsPackage = "com.android.settings"
-        const val keepServiceComponent = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
         const val mainSwitchBarId = "main_switch_bar"
         const val androidButtonId = "android:id/button1"
         const val disableButtonId = "android:id/accessibility_permission_disable_stop_button"
