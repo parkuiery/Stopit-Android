@@ -29,15 +29,16 @@ REQUIRED_RELEASE_QA_GATES = [
     "ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm",
     "ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm",
     "ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine",
+    "EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
     "ManifestContractIntegrationTest",
     "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
 ]
 
 STALE_RELEASE_QA_GATES = [
     "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",
+    "ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced",
     "ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm",
     "ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms",
-    "EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
 ]
 
 RELEASE_FACING_DOCS = {
@@ -47,12 +48,19 @@ RELEASE_FACING_DOCS = {
 }
 
 
-def release_qa_instrumentation_selectors():
-    workflow = RELEASE_QA_WORKFLOW.read_text()
+def instrumentation_selectors_from_text(text):
     selectors = []
-    for match in re.finditer(r"android\.testInstrumentationRunnerArguments\.class=([^\s`\"]+)", workflow):
+    for match in re.finditer(r"android\.testInstrumentationRunnerArguments\.class=([^\s`\"]+)", text):
         selectors.extend(selector.strip() for selector in match.group(1).split(","))
     return [selector for selector in selectors if selector.startswith("com.uiery.keep.")]
+
+
+def release_qa_instrumentation_selectors():
+    return instrumentation_selectors_from_text(RELEASE_QA_WORKFLOW.read_text())
+
+
+def release_context_instrumentation_selectors():
+    return instrumentation_selectors_from_text(DOCS["release context"].read_text())
 
 
 def android_test_source_for(class_name):
@@ -111,6 +119,17 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             for gate in REQUIRED_RELEASE_QA_GATES:
                 with self.subTest(doc=doc_name, gate=gate):
                     self.assertIn(gate, text)
+
+    def test_release_context_exactly_mirrors_release_qa_workflow_selectors(self):
+        workflow_selectors = release_qa_instrumentation_selectors()
+        release_context_selectors = release_context_instrumentation_selectors()
+
+        self.assertEqual(
+            sorted(set(workflow_selectors)),
+            sorted(set(release_context_selectors)),
+            "docs/ops/stopit/release-context.md must mirror .github/workflows/release-qa.yml "
+            "at selector granularity so release operators do not cite stale or broad runtime gates.",
+        )
 
     def test_release_facing_docs_do_not_mix_stale_android_ci_smoke_as_release_qa(self):
         for doc_name, path in RELEASE_FACING_DOCS.items():
