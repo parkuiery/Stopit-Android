@@ -128,17 +128,63 @@ python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
 
 이 증거가 없으면 #325는 repo-internal dependency/test 계약이 완료됐더라도 manual visual QA 경계가 남은 상태로 본다.
 
+### StopIt user-facing brand copy QA evidence
+
+issue #404 계열 PR은 사용자 노출 문자열에서 legacy `Keep` 브랜드가 다시 보이지 않는지 자동 계약과 실제 화면 evidence를 함께 남긴다. 리소스 key 이름(`keep_*`)은 내부 legacy identifier로 남을 수 있지만, 화면에 보이는 copy는 StopIt/스탑잇 기준으로 통일한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
+./gradlew -q help --task :app:assembleProdDebug
+```
+
+검증 범위:
+- `scripts.tests.test_user_facing_brand_strings`는 `app/src/main/res/values*/strings.xml`의 user-visible string value에 legacy `Keep` 브랜드가 남아 있지 않은지 확인한다.
+- `notification_permission_request`는 알림 권한 요청에서 StopIt/스탑잇 브랜드만 보여야 한다.
+- `block_screen_first_core_action_feedback`는 첫 차단 성공 피드백에서 StopIt/스탑잇 브랜드만 보여야 한다.
+- 신규 사용자-facing string이 의도적으로 `Keep`을 제품명/모드명으로 보여줘야 한다면 allowlist에 이유를 남겨야 하며, 기본값은 `legacy Keep brand absent`다.
+
+수동 QA evidence template:
+
+```md
+## StopIt user-facing brand copy QA evidence
+- Issue: #404
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): default / ko / ja / zh / other changed locale
+- Commands:
+  - `python3 -m unittest scripts.tests.test_user_facing_brand_strings -v`
+  - `./gradlew -q help --task :app:assembleProdDebug`
+- Screens / copy checked:
+  - notification_permission_request:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+  - block_screen_first_core_action_feedback:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+  - first-lock/home guidance if touched:
+    - screenshot/evidence:
+    - legacy Keep brand absent: pass / fail
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #404는 repo-internal string cleanup과 static regression이 완료됐더라도 실제 권한 요청/첫 차단 성공 화면의 device/manual QA 경계가 남은 상태로 본다.
+
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
 issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
 
-자동 baseline(구현 PR에서 추가될 테스트 예시):
+자동 baseline:
 
 ```bash
 cd <repo-root>
-./gradlew :app:testDevDebugUnitTest \
-  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \
-  --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'
+./gradlew :app:testDevDebugUnitTest \\
+  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \\
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' \\
+  --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'
 python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 ```
 
@@ -157,7 +203,7 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 - Device / Android version / OEM:
 - Entry point: routine list / routine detail
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_routine_template_share_contract -v`
 - Shared text preview:
   - category / repeat / time window present:
@@ -174,6 +220,58 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 ```
 
 이 증거가 없으면 #407은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록과 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`의 외부/manual 경계를 따른다.
+
+### 루틴 생성 CTA soft experiment QA baseline
+
+issue #455 계열 구현 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 삼고, 첫 차단 성공 이후 + 루틴 0개 사용자에게만 루틴 생성 CTA가 부드럽게 노출되는지 자동/수동 증거를 함께 남긴다. 이 CTA는 Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음이 핵심 guardrail이며, onboarding / pre-first-lock 사용자에게 미노출되어야 한다.
+
+자동 baseline(구현 PR에서 추가/확장할 테스트):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineCreationCtaTest' \
+  --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'
+python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
+```
+
+검증 범위:
+- 첫 차단 성공 이후 + 루틴 0개 사용자에게만 노출된다.
+- onboarding / pre-first-lock 사용자에게 미노출된다.
+- 루틴 보유자(`has_routine=true` 또는 로컬 루틴 목록 1개 이상)에게 미노출된다.
+- `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`는 `surface`, `activation_stage`, `has_routine`, `cta_variant` 같은 enum/boolean 파라미터만 사용한다.
+- 앱 이름/package/lockApplications/raw session history/raw timestamp/routine_id가 CTA payload에 포함되지 않는다.
+- Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음이 화면 QA에서 확인된다.
+
+수동 QA evidence template:
+
+```md
+## Routine creation CTA QA evidence
+- Issue: #455
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: home / lock_history / post_block_success
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineCreationCtaTest' --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v`
+- Eligibility:
+  - first_core_action_completed or app_block_intercepted already happened: pass / fail
+  - routines_count/local routine list is 0: pass / fail
+  - onboarding / pre-first-lock user hidden: pass / fail
+  - routine owner hidden: pass / fail
+- UI conflict checks:
+  - Routine empty state / 광고 배너 / 루틴 템플릿 공유 CTA 충돌 없음: pass / fail
+  - CTA tone is soft/non-punitive: pass / fail
+- Analytics payload spot-check:
+  - routine_creation_cta_shown:
+  - routine_creation_cta_clicked:
+  - routine_creation_cta_dismissed:
+  - app names / package names / lockApplications / raw session history absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #455는 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`의 외부/manual 경계를 따른다.
 
 ### 목표 잠금 runtime QA baseline
 
@@ -276,6 +374,22 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 후 cross-app foreground 전환, emergency unlock 우회, self-uninstall interception safety 계약
 
 Receiver async 예외 containment는 JVM baseline `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.receiver.ReceiverCoroutineRunnerTest"`로 먼저 확인한다. 이 baseline은 `BootReceiver` / `RoutineAlarmReceiver`의 `goAsync()` 작업이 내부 dependency 예외를 만나도 `PendingResult.finish()`를 1회 호출하고 sibling receiver coroutine을 취소하지 않으며, 실패 receiver 이름과 원인 예외가 Crashlytics non-fatal 기록 경계(`receiver_name` custom key + `ReceiverCoroutineException`)로 전달되는 계약을 고정한다. Runtime smoke는 정상/권한/fallback 경로를 검증하고, dependency 예외 주입 경계는 이 JVM baseline을 PR evidence에 함께 남긴다.
+
+### clickable UI accessibility semantics baseline
+
+Issue #443 계열 PR에서는 IconButton 내부 아이콘 label만 보지 말고, non-IconButton `.clickable` 표면이 role/state semantics를 갖는지도 같이 확인한다.
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+./gradlew :app:compileDevDebugKotlin
+```
+
+검증 기준:
+- Lock History 주/월 tab은 `Role.Tab`, `selected`, `stateDescription`을 semantics tree에 노출한다.
+- Lock History 주간 날짜 cell은 날짜/요일/누적 시간 label과 오늘/선택 상태를 TalkBack이 읽을 수 있게 노출한다.
+- Menu row/card/toggle은 decorative icon의 `contentDescription = null`을 유지하되, 조작 가능한 컨테이너가 `Role.Button` 또는 `Role.Switch`와 상태 설명을 소유한다.
+- `scripts/check_compose_icon_button_accessibility.py`의 guarded path 목록은 이 핵심 표면에 대한 static regression gate이며, 새 핵심 clickable 표면이 추가되면 목록/정책을 함께 갱신한다.
 
 exact alarm 권한 deny/allow 전환과 release-only remaining connected suite는 여전히 release/hotfix 대상 `Android Release QA`가 담당한다.
 
@@ -400,7 +514,7 @@ Issue #249 계열 PR은 `QUERY_ALL_PACKAGES`를 UI에서 직접 소비하지 않
 
 ```bash
 cd <repo-root>
-./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.appselection.SelectableAppPolicyTest'
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.appselection.SelectableAppPolicyTest'
 ./gradlew :app:assembleProdDebug
 ```
 
@@ -436,7 +550,7 @@ cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests "com.uiery.keep.AppDisplayMetadataBoundaryTest" \
   --tests "com.uiery.keep.util.AppDisplayMetadataResolverTest" \
-  --tests "com.uiery.keep.feature.home.appselection.InstalledAppRepositoryTest"
+  --tests "com.uiery.keep.appselection.InstalledAppRepositoryTest"
 ./gradlew :app:compileDevDebugKotlin
 ```
 
@@ -462,6 +576,10 @@ cd <repo-root>
 ./gradlew :app:installDevDebug
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+./gradlew :app:installDevDebug
+adb shell cmd appops reset com.uiery.keep.dev
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
@@ -510,7 +628,7 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
 ```
 
-즉, release candidate baseline은 `focused UI smoke -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 
 ## analytics / queryability handoff 경계

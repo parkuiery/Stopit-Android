@@ -175,4 +175,6 @@
     <string name="first_lock_activation_cta_action">开始</string>
     <string name="first_lock_keep_started_guidance">StopIt 已开启。打开一个已选择的应用即可确认首次拦截。</string>
     <string name="first_lock_timer_scheduled_guidance">首次锁定已预约。到时间后打开已选择的应用即可确认拦截。</string>
+    <string name="routine_template_share_chooser_title">分享例程模板</string>
+    <string name="cd_share_routine_template">分享例程模板</string>
 </resources>

@@ -175,4 +175,6 @@
     <string name="first_lock_activation_cta_action">Avvia</string>
     <string name="first_lock_keep_started_guidance">StopIt è attivo. Apri un’app selezionata per confermare il primo blocco.</string>
     <string name="first_lock_timer_scheduled_guidance">Il primo blocco è programmato. All’orario previsto, apri un’app selezionata per confermare il blocco.</string>
+    <string name="routine_template_share_chooser_title">Condividi modello di routine</string>
+    <string name="cd_share_routine_template">Condividi modello di routine</string>
 </resources>

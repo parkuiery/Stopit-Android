@@ -273,6 +273,61 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun routineTemplateShareEventsUseSafeBucketedParamsOnly() {
+        analytics.trackRoutineTemplateShareTapped(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareSheetOpened(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareFailed(
+            templateCategory = RoutineTemplateCategoryName.CUSTOM,
+            reason = RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
+                    KeepAnalyticsParam.REASON to RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+    }
+
+    @Test
     fun deviceRegistrationRuntimeEventsOnlyExposeCurrentBackendRemovedContract() {
         assertEquals(
             setOf(

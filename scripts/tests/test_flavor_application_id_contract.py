@@ -66,6 +66,39 @@ class FlavorApplicationIdContractTest(unittest.TestCase):
             release_qa,
         )
 
+    def test_android_test_sources_do_not_hardcode_prod_package_identity(self):
+        android_test_root = REPO_ROOT / "app" / "src" / "androidTest" / "java"
+        forbidden_patterns = [
+            re.compile(r'"com\.uiery\.keep"'),
+            re.compile(r'TARGET_PACKAGE\s*=\s*"com\.uiery\.keep"'),
+        ]
+        offenders = []
+
+        for path in android_test_root.rglob("*.kt"):
+            relative_path = path.relative_to(REPO_ROOT)
+            text = path.read_text()
+            for pattern in forbidden_patterns:
+                if pattern.search(text):
+                    offenders.append(str(relative_path))
+                    break
+
+        self.assertEqual(
+            [],
+            offenders,
+            "androidTest package identity assertions must use targetContext.packageName "
+            "or another flavor-aware source instead of hardcoding the prod package.",
+        )
+
+    def test_legacy_android_test_sample_uses_current_package_path(self):
+        legacy_path = REPO_ROOT / "app" / "src" / "androidTest" / "java" / "com" / "uiel" / "keep" / "ExampleInstrumentedTest.kt"
+        current_path = REPO_ROOT / "app" / "src" / "androidTest" / "java" / "com" / "uiery" / "keep" / "ExampleInstrumentedTest.kt"
+
+        self.assertFalse(
+            legacy_path.exists(),
+            "Legacy com/uiel androidTest sample path should not remain after the package rename.",
+        )
+        self.assertTrue(current_path.exists())
+
     def test_contract_doc_records_split_as_current_state(self):
         doc = FLAVOR_CONTRACT_DOC.read_text()
 

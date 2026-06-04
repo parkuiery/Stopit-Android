@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +67,8 @@ fun MenuScreen(
     val context = LocalContext.current
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
+    val monetizationInterestTitle = stringResource(id = R.string.monetization_interest_menu_title)
+    val monetizationInterestMessage = stringResource(id = R.string.monetization_interest_menu_message)
     LaunchedEffect(menuViewModel) {
         menuViewModel.onMonetizationInterestCardShown()
     }
@@ -154,6 +160,10 @@ fun MenuScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "$monetizationInterestTitle, $monetizationInterestMessage"
+                    }
                     .clickable(onClick = {
                         menuViewModel.onMonetizationInterestCardClicked()
                         sendCustomerEmail(context)
@@ -168,7 +178,7 @@ fun MenuScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, top = 14.dp),
-                    text = stringResource(id = R.string.monetization_interest_menu_title),
+                    text = monetizationInterestTitle,
                     color = KeepTheme.colors.onSurface,
                     textAlign = TextAlign.Start,
                 )
@@ -176,7 +186,7 @@ fun MenuScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
-                    text = stringResource(id = R.string.monetization_interest_menu_message),
+                    text = monetizationInterestMessage,
                     color = KeepTheme.colors.onSurfaceVariant,
                     textAlign = TextAlign.Start,
                 )

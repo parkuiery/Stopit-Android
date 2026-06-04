@@ -24,6 +24,7 @@ Application package root. It hosts app entry points, top-level Compose app wirin
 | Directory | Purpose |
 |-----------|---------|
 | `analytics/` | Analytics abstraction and Firebase-backed implementation. (see `analytics/AGENTS.md`) |
+| `appselection/` | App-level selectable-app repository and policy shared by onboarding, Home, and Routine app pickers. |
 | `database/` | Room persistence layer for routines, lock history, and emergency unlock records. (see `database/AGENTS.md`) |
 | `datastore/` | Preferences DataStore layer for local device/session state, selected routines, tokens, and lock-control flags. (see `datastore/AGENTS.md`) |
 | `feature/` | Compose feature packages. (see `feature/AGENTS.md`) |

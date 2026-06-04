@@ -14,6 +14,7 @@
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
+- `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 
@@ -26,6 +27,7 @@
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
+- 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
@@ -189,6 +191,24 @@
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
 - `goal_lock_updated.changed_field`: `duration`, `apps`, `schedule`, `name`, `lock_mode`
 
+### 루틴 생성 CTA
+
+첫 차단 성공 이후 루틴 생성 CTA 실험의 제품/QA 계약은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 본다. 이 CTA는 `first_core_action_completed` 또는 `app_block_intercepted` 이후의 루틴 0개 사용자에게만 노출되는 soft CTA이며, onboarding / pre-first-lock 사용자는 제외한다. Routine empty state, 광고 배너, #407 루틴 템플릿 공유 CTA와 같은 slot에서 압박하지 않는다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `routine_creation_cta_shown` | `surface`, `activation_stage`, `has_routine`, `cta_variant` | 루틴 생성 CTA 노출 |
+| `routine_creation_cta_clicked` | `surface`, `activation_stage`, `has_routine`, `cta_variant` | CTA 클릭 후 루틴 생성 흐름 이동 시도 |
+| `routine_creation_cta_dismissed` | `surface`, `activation_stage`, `has_routine`, `cta_variant` | 명시 닫기/나중에 보기 등 사용자의 비전환 |
+
+현재 enum 계약:
+
+- `surface`: `home`, `lock_history`, `post_block_success`
+- `activation_stage`: `post_first_core_action`, `returning_blocked_user`
+- `has_routine`: MVP에서는 `false`만 허용한다. 루틴 보유자에게 보이면 QA 실패다.
+- `cta_variant`: `default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
+- 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
+
 ### 광고 / 수익화
 
 AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
@@ -257,6 +277,10 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `interest_surface` | 수익화 관심도 CTA 노출 표면 (`menu`, `home`, `settings` 등) |
 | `interest_variant` | 수익화 관심도 CTA copy/실험 variant (`default` 등) |
 | `purchase_available` | 실제 결제 가능 여부. 결제 구현 전 관심도 측정은 `false` |
+| `surface` | 루틴 생성 CTA 노출 표면 (`home`, `lock_history`, `post_block_success`) |
+| `activation_stage` | 루틴 생성 CTA 대상 사용자의 활성화 단계 (`post_first_core_action`, `returning_blocked_user`) |
+| `has_routine` | 루틴 생성 CTA 대상자의 루틴 보유 여부. #455 MVP에서는 `false`만 허용 |
+| `cta_variant` | 루틴 생성 CTA copy/placement 실험 variant (`default` 등) |
 
 ## User property 계약
 
@@ -304,6 +328,9 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
+| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 첫 차단 후 루틴 생성 CTA의 안전한 노출 표면별 반응 비교 |
+| Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
+| Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
@@ -313,6 +340,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_banner_revenue` | 추정 수익 vs 정밀 수익 구분 |
 | Recommended | `interest_variant` | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | CTA copy/variant 비교가 필요할 때 |
 | Recommended | `purchase_available` | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리 |
+| Recommended | `cta_variant` | `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
 
 ### 필요 시 등록할 이벤트 지표
 
@@ -461,7 +489,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 기록한다.
-- 2026-06-04T12:29:06Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)`이 `23,616 / 35,550 = 66.5%`였고 최신 관측 production version `1.7.7` active share도 `75 / 715 = 10.5%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-04T20:14:53Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)`이 `23,074 / 36,707 = 62.9%`였고 최신 관측 production version `1.7.7` active share도 `107 / 757 = 14.1%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

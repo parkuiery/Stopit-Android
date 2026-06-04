@@ -331,6 +331,53 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackRoutineTemplateShareTapped(
+            templateCategory: String,
+            repeatDaysBucket: String,
+            timeWindowBucket: String,
+            routineNameIncluded: Boolean,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                params = routineTemplateShareParams(
+                    templateCategory = templateCategory,
+                    repeatDaysBucket = repeatDaysBucket,
+                    timeWindowBucket = timeWindowBucket,
+                    routineNameIncluded = routineNameIncluded,
+                ),
+            )
+        }
+
+        override fun trackRoutineTemplateShareSheetOpened(
+            templateCategory: String,
+            repeatDaysBucket: String,
+            timeWindowBucket: String,
+            routineNameIncluded: Boolean,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                params = routineTemplateShareParams(
+                    templateCategory = templateCategory,
+                    repeatDaysBucket = repeatDaysBucket,
+                    timeWindowBucket = timeWindowBucket,
+                    routineNameIncluded = routineNameIncluded,
+                ),
+            )
+        }
+
+        override fun trackRoutineTemplateShareFailed(
+            templateCategory: String,
+            reason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to templateCategory,
+                    KeepAnalyticsParam.REASON to reason,
+                ),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
@@ -397,6 +444,18 @@ class FirebaseKeepAnalytics
             interestVariant?.let { put(KeepAnalyticsParam.INTEREST_VARIANT, it) }
             purchaseAvailable?.let { put(KeepAnalyticsParam.PURCHASE_AVAILABLE, it) }
         }
+
+        private fun routineTemplateShareParams(
+            templateCategory: String,
+            repeatDaysBucket: String,
+            timeWindowBucket: String,
+            routineNameIncluded: Boolean,
+        ) = mapOf(
+            KeepAnalyticsParam.TEMPLATE_CATEGORY to templateCategory,
+            KeepAnalyticsParam.REPEAT_DAYS_BUCKET to repeatDaysBucket,
+            KeepAnalyticsParam.TIME_WINDOW_BUCKET to timeWindowBucket,
+            KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to routineNameIncluded,
+        )
 
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,

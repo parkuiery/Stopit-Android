@@ -175,4 +175,6 @@
     <string name="first_lock_activation_cta_action">Démarrer</string>
     <string name="first_lock_keep_started_guidance">StopIt est activé. Ouvrez une app sélectionnée pour confirmer le premier blocage.</string>
     <string name="first_lock_timer_scheduled_guidance">Votre premier verrouillage est planifié. À l’heure prévue, ouvrez une app sélectionnée pour confirmer le blocage.</string>
+    <string name="routine_template_share_chooser_title">Partager le modèle de routine</string>
+    <string name="cd_share_routine_template">Partager le modèle de routine</string>
 </resources>

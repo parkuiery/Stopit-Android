@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.appselection
+package com.uiery.keep.appselection
 
 import android.content.pm.PackageManager
 import com.uiery.keep.BuildConfig

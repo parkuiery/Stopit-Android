@@ -6,7 +6,9 @@
 
 ## 현재 기준선
 
-2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-04T12:29:06Z live readback으로 최신화한다.
+2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-04T20:14:53Z live readback으로 최신화한다.
+
+2026-06-04T21:24:42Z / 2026-06-05 06:24:42 KST repo ancestry 재확인 기준으로도 `origin/main` `20b8ff4a`와 최신 SemVer tag `v1.7.7` `f49e7de9`는 PR #308 merge commit `cfff411898fbaac43a5c5bbafb48651091e66be2`와 PR #312 merge commit `e920ea3049bb0a3e192de29d0011298ae9b0a2b5`를 포함하지 않는다. 따라서 이 문서의 현재 수치는 여전히 **PR #308/#312 포함 release 전 baseline**이며, 14일/30일 post-release 판단 창은 아직 시작하지 않는다.
 
 | 지표 | 최근 30일 사용자 수 | 해석 |
 | --- | ---: | --- |
@@ -16,9 +18,9 @@
 | `lock_session_start` | 209 | 잠금 세션 시작 신호도 존재 |
 | `first_core_action_completed` | 336 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
 | `activeUsers` | 681 | 분모 기준 |
-| `newUsers` | 464 | 2026-06-04T12:29:06Z acquisition readback 기준. 직전 30일 360 대비 +28.9% |
+| `newUsers` | 506 | 2026-06-04T20:14:53Z acquisition readback 기준. 직전 30일 349 대비 +45.0% |
 | `Organic Search` 신규 사용자 | 179 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178을 간신히 넘었지만 단독 회복 근거로 승격하지 않음 |
-| `Direct` 신규 사용자 | 285 | `285 / 464 = 61.4%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
+| `Direct` 신규 사용자 | 327 | `327 / 506 = 64.6%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
 
 이 기준선은 PR #226 / tag `v1.7.7` 이후 흐름이 30일 합산 안에 충분히 반영되기 전의 혼합 지표다. 따라서 `shown = 0`만 보고 바로 eligibility 설계를 바꾸지 않는다. 먼저 버전별·배포 후 14일 창으로 다시 분해한다.
 
@@ -86,7 +88,7 @@
 | #310 `test: stabilize home accessibility permission smoke` | `7ec28adc1355c59ee770fc6ec2cedb0275ab0a7d` | PR #308을 막던 runtime smoke gate blocker 해소 완료 | 없음. #307의 남은 blocker로 다시 취급하지 않는다. |
 | #312 `fix: unwrap home activity for review prompt drain` | `e920ea3049bb0a3e192de29d0011298ae9b0a2b5` | Home `LocalContext.current`가 `ContextWrapper`로 들어와도 Activity를 unwrap해 `NoActivity` skip이 과대 집계되지 않도록 방어 | PR #312 포함 버전 release/internal/production 배포 후 `NoActivity` 비중과 `shown/skipped/failed` 14일·30일 재측정 |
 
-따라서 다음 docs/metrics run은 “PR #308/#312 merge 여부”를 다시 묻지 말고, **PR #308과 PR #312가 모두 포함된 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 2026-06-02 확인 기준 최신 SemVer tag `v1.7.7`와 `origin/main`에는 두 merge commit이 아직 포함되지 않았다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “release/main 반영 → internal/production 배포 → 14일 관측 대기”를 외부 경계로 둔다. 배포 후에도 최신 버전 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`이면 `shown = 0`이나 skip reason을 최신 코드 회귀로 단정하지 않는다.
+따라서 다음 docs/metrics run은 “PR #308/#312 merge 여부”를 다시 묻지 말고, **PR #308과 PR #312가 모두 포함된 버전이 실제로 어느 release/tag/track에 배포됐는지**부터 확인한다. 2026-06-02 확인 기준 최신 SemVer tag `v1.7.7`와 `origin/main`에는 두 merge commit이 아직 포함되지 않았고, 2026-06-04T21:24:42Z 재확인에서도 `origin/main` `20b8ff4a`와 최신 tag `v1.7.7` `f49e7de9`는 여전히 두 merge commit을 포함하지 않았다. 아직 배포되지 않았거나 14일 창이 차지 않았으면 issue #307을 닫지 않고 “release/main 반영 → internal/production 배포 → 14일 관측 대기”를 외부 경계로 둔다. 배포 후에도 최신 버전 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `보류`이면 `shown = 0`이나 skip reason을 최신 코드 회귀로 단정하지 않는다.
 
 ### 2. GA4 queryability 경계
 
@@ -136,7 +138,7 @@
 
 | 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
-| baseline | TODO | TODO | TODO | 179 | TODO | Play Console 수동 기록 필요. `Direct` 신규 285명(61.4%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 간신히 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
+| baseline | TODO | TODO | TODO | 179 | TODO | Play Console 수동 기록 필요. `Direct` 신규 327명(64.6%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 간신히 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
 | D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
 | D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
 
@@ -193,6 +195,7 @@ python3 -m unittest scripts.tests.test_review_prompt_post_release_followthrough_
 이 테스트는 다음 계약을 고정한다.
 
 - PR #308/#312가 이미 `develop`에 merge됐더라도 `origin/main`, SemVer tag, Play track 배포, D+14/D+30 관측 전에는 `shown = 0`을 최신 코드 회귀로 단정하지 않는다.
+- 2026-06-04T21:24:42Z repo ancestry 재확인 기준 `origin/main` `20b8ff4a`와 `v1.7.7` `f49e7de9`는 PR #308/#312 merge commit을 포함하지 않으므로, 현재 baseline은 post-PR-308/#312 성과 판독 창이 아니다.
 - `customEvent:reason`은 `review_prompt_skipped` breakdown에 사용할 수 있지만, `customEvent:error`는 `review_prompt_failed` breakdown의 GA4 Admin/metadata 외부 경계로 유지한다.
 - Play In-App Review API는 사용자가 실제로 리뷰를 작성했는지 알려주지 않으므로, Play Console rating count / 평균 평점 / 최근 리뷰 톤을 후행 지표로 별도 기록한다.
 - repo 내부 문서/계약만 갱신한 PR은 `Refs #307`을 사용하고, 배포·14일 관측·Play Console 수동 기록까지 끝나기 전에는 `Closes #307`로 승격하지 않는다.
@@ -201,7 +204,8 @@ python3 -m unittest scripts.tests.test_review_prompt_post_release_followthrough_
 
 - [x] PR #308 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `cfff411898fbaac43a5c5bbafb48651091e66be2`.
 - [x] PR #312 상태와 head SHA를 확인한다. 2026-06-02 기준 merged: `e920ea3049bb0a3e192de29d0011298ae9b0a2b5`.
-- [ ] PR #308/#312 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다.
+- [x] PR #308/#312 포함 버전이 release/internal/production 어디까지 배포됐는지 확인한다. 2026-06-04T21:24:42Z 기준 `origin/main` `20b8ff4a`와 최신 SemVer tag `v1.7.7` `f49e7de9` 모두 두 merge commit을 포함하지 않아, release/main 반영 전 경계로 확인됨.
+- [ ] PR #308/#312 포함 버전이 `origin/main`/SemVer tag/Play internal 또는 production track에 실제 반영된 뒤 D+14 관측 시작일을 기록한다.
 - [ ] `review_prompt_eligible/shown/skipped/failed`를 version별로 재조회한다.
 - [x] `customEvent:reason` metadata 등록 여부를 확인한다. 2026-06-02T18:06:45Z 기준 등록/조회 가능.
 - [ ] `customEvent:error` metadata 등록 여부를 확인한다. 2026-06-02T18:06:45Z 기준 미등록 / `Field customEvent:error is not a valid dimension`.

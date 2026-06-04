@@ -175,4 +175,6 @@
     <string name="first_lock_activation_cta_action">Starten</string>
     <string name="first_lock_keep_started_guidance">StopIt ist aktiviert. Öffne eine ausgewählte App, um die erste Blockierung zu bestätigen.</string>
     <string name="first_lock_timer_scheduled_guidance">Deine erste Sperre ist geplant. Öffne zur geplanten Zeit eine ausgewählte App, um die Blockierung zu bestätigen.</string>
+    <string name="routine_template_share_chooser_title">Routinenvorlage teilen</string>
+    <string name="cd_share_routine_template">Routinenvorlage teilen</string>
 </resources>
