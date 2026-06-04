@@ -412,7 +412,7 @@ Issue #249 계열 PR은 `QUERY_ALL_PACKAGES`를 UI에서 직접 소비하지 않
 
 ```bash
 cd <repo-root>
-./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.appselection.SelectableAppPolicyTest'
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.appselection.SelectableAppPolicyTest'
 ./gradlew :app:assembleProdDebug
 ```
 
@@ -448,7 +448,7 @@ cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests "com.uiery.keep.AppDisplayMetadataBoundaryTest" \
   --tests "com.uiery.keep.util.AppDisplayMetadataResolverTest" \
-  --tests "com.uiery.keep.feature.home.appselection.InstalledAppRepositoryTest"
+  --tests "com.uiery.keep.appselection.InstalledAppRepositoryTest"
 ./gradlew :app:compileDevDebugKotlin
 ```
 

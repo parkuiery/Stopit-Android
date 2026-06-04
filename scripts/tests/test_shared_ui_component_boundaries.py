@@ -55,6 +55,44 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         ]
         self.assertEqual([], home_category_button_files)
 
+    def test_app_shared_ui_does_not_import_feature_private_packages(self):
+        offenders: list[str] = []
+        for path in self.kotlin_sources(APP_MAIN / "ui/component"):
+            relative = path.relative_to(REPO_ROOT)
+            text = path.read_text()
+            if "com.uiery.keep.feature." in text:
+                offenders.append(str(relative))
+
+        self.assertEqual(
+            [],
+            offenders,
+            "app shared UI must depend on app-level/domain boundaries, not feature-private packages",
+        )
+
+    def test_app_selection_repository_is_app_level_not_home_private(self):
+        home_app_selection_sources = [
+            path.relative_to(REPO_ROOT)
+            for path in self.kotlin_sources(APP_MAIN / "feature/home/appselection")
+        ]
+        self.assertEqual([], home_app_selection_sources)
+
+        app_selection_sources = "\n".join(
+            path.read_text()
+            for path in self.kotlin_sources(APP_MAIN / "appselection")
+        )
+        self.assertIn("class InstalledAppRepository", app_selection_sources)
+        self.assertIn("object SelectableAppPolicy", app_selection_sources)
+
+    def test_home_component_package_has_no_stale_shared_ui_copies_or_move_stubs(self):
+        stale_files = [
+            path.relative_to(REPO_ROOT)
+            for path in self.kotlin_sources(APP_MAIN / "feature/home/component")
+            if "moved to app shared UI" in path.read_text()
+            or "moved to KDS" in path.read_text()
+            or re.search(r"fun\s+(AppItem|CategoryBottomSheetContent|SearchTextField)\s*\(", path.read_text())
+        ]
+        self.assertEqual([], stale_files)
+
     def test_kds_readme_documents_keep_switch_shared_ownership(self):
         readme = KDS_README.read_text()
         self.assertIn("### KeepSwitch", readme)

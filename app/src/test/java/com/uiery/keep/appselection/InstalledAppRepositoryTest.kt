@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.appselection
+package com.uiery.keep.appselection
 
 import android.content.Intent
 import android.content.pm.ApplicationInfo
