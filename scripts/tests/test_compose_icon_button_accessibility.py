@@ -106,6 +106,72 @@ class ComposeIconButtonAccessibilityTest(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
+    def test_reports_clickable_surface_missing_role_or_state_semantics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source_dir = pathlib.Path(tmp)
+            screen = source_dir / "ClickableSurface.kt"
+            screen.write_text(
+                textwrap.dedent(
+                    """
+                    @Composable
+                    fun ClickableSurface(onClick: () -> Unit) {
+                        Box(
+                            modifier = Modifier
+                                .clickable(onClick = onClick)
+                        )
+                    }
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            violations = module.find_clickable_semantics_violations(source_dir)
+
+        self.assertEqual(
+            violations,
+            [
+                module.ClickableSemanticsViolation(
+                    path=screen,
+                    line=5,
+                    problem="clickable_missing_role_or_state_semantics",
+                )
+            ],
+        )
+
+    def test_allows_clickable_surface_with_role_and_selected_state_semantics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source_dir = pathlib.Path(tmp)
+            (source_dir / "AccessibleClickableSurface.kt").write_text(
+                textwrap.dedent(
+                    """
+                    @Composable
+                    fun AccessibleClickableSurface(onClick: () -> Unit, selected: Boolean) {
+                        Box(
+                            modifier = Modifier
+                                .semantics {
+                                    role = Role.Tab
+                                    this.selected = selected
+                                    stateDescription = if (selected) "Selected" else "Not selected"
+                                }
+                                .clickable(onClick = onClick)
+                        )
+                    }
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            violations = module.find_clickable_semantics_violations(source_dir)
+
+        self.assertEqual(violations, [])
+
+    def test_main_source_has_accessible_clickable_semantics_for_guarded_surfaces(self):
+        source_dir = REPO_ROOT / "app" / "src" / "main" / "java"
+
+        violations = module.find_clickable_semantics_violations(source_dir)
+
+        self.assertEqual(violations, [])
+
 
 if __name__ == "__main__":
     unittest.main()
