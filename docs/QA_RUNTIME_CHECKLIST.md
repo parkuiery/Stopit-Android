@@ -412,6 +412,28 @@ cd <repo-root>
 - 이미 `HAS_TRACKED_FIRST_CORE_ACTION=true`인 반복 차단은 `core_action_completed`만 기록하고 첫 성공 피드백을 반복 노출하지 않는다.
 - 수동 QA에서는 차단 화면의 긴급해제/닫기 동작이 첫 성공 피드백 카드에 가려지지 않는지 함께 확인한다.
 
+### 앱 표시 메타데이터 경계 QA baseline
+
+issue #432 계열 PR은 사용자에게 차단 대상 앱을 보여주는 화면이 동일한 `AppDisplayMetadataResolver` 계약을 쓰는지 증거를 남긴다. 삭제된 앱, package visibility 제한, label/icon 조회 실패가 섞여도 화면마다 다른 fallback을 만들지 않는 것이 목적이다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.AppDisplayMetadataBoundaryTest" \
+  --tests "com.uiery.keep.util.AppDisplayMetadataResolverTest" \
+  --tests "com.uiery.keep.feature.home.appselection.InstalledAppRepositoryTest"
+./gradlew :app:compileDevDebugKotlin
+```
+
+검증 범위:
+- `BlockScreen`, 긴급해제 앱 선택 sheet, 차단 앱 이력, Top Apps 카드가 Compose surface 안에서 `PackageManager` 또는 `AppDisplayMetadataResolver(...)`를 직접 소유하지 않고 shared `rememberAppDisplayMetadataResolver()` 경계를 쓴다.
+- `AppDisplayMetadataResolver`가 package lookup / label lookup / icon lookup 실패 시 package name label과 `PackageManager.defaultActivityIcon` placeholder를 일관되게 반환한다.
+- `InstalledAppRepository`의 설치 앱 스캔도 같은 resolver fallback을 사용하면서 자기 앱과 launch intent 없는 앱을 계속 제외한다.
+
+수동 QA가 필요하면 차단 화면, 긴급해제 대상 선택, 차단 앱 이력, Top Apps에서 같은 삭제/숨김 앱 package가 동일한 이름/placeholder로 보이는지만 추가로 기록한다.
+
 ### Android 공식 testing skill 기반 UI smoke baseline
 
 Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` skill을 먼저 읽고 QA 범위를 잡는다.

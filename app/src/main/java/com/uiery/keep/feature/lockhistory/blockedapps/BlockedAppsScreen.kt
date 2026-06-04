@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +36,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.util.AppDisplayMetadataResolver
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import org.orbitmvi.orbit.compose.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,11 +120,7 @@ private fun BlockedAppItem(
     packageName: String,
     blockCount: Int,
 ) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    val appDisplayMetadataResolver = remember(packageManager) {
-        AppDisplayMetadataResolver(packageManager)
-    }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
 
     val appMetadata = remember(packageName, appDisplayMetadataResolver) {
         appDisplayMetadataResolver.resolve(packageName)
@@ -146,15 +141,13 @@ private fun BlockedAppItem(
             modifier = Modifier.size(32.dp),
         )
 
-        appMetadata.icon?.let { icon ->
-            Image(
-                bitmap = icon.toBitmap().asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-            )
-        }
+        Image(
+            bitmap = appMetadata.icon.toBitmap().asImageBitmap(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(10.dp)),
+        )
 
         Column(
             modifier = Modifier.weight(1f),
