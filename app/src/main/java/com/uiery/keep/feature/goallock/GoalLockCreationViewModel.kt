@@ -1,7 +1,9 @@
 package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
+import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
@@ -30,7 +32,12 @@ class GoalLockCreationViewModel
 
         internal fun setGoalName(goalName: String) =
             intent {
-                reduce { state.copy(goalName = goalName) }
+                reduce {
+                    state.copy(
+                        goalName = goalName,
+                        goalNameType = goalName.analyticsGoalNameType,
+                    )
+                }
                 updateCreateEnabled()
             }
 
@@ -38,7 +45,42 @@ class GoalLockCreationViewModel
             startDate: LocalDate,
             endDate: LocalDate,
         ) = intent {
-            reduce { state.copy(startDate = startDate, endDate = endDate) }
+            reduce {
+                state.copy(
+                    startDate = startDate,
+                    endDate = endDate,
+                    durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+                )
+            }
+            updateCreateEnabled()
+        }
+
+        internal fun setCustomDurationDays(
+            today: LocalDate,
+            days: Int,
+        ) = intent {
+            val normalizedDays = days.coerceAtLeast(1)
+            reduce {
+                state.copy(
+                    startDate = today,
+                    endDate = today.plusDays((normalizedDays - 1).toLong()),
+                    durationSelectionType = AnalyticsGoalLockDurationSelectionType.CUSTOM_DAYS,
+                )
+            }
+            updateCreateEnabled()
+        }
+
+        internal fun setEndDateSelection(
+            today: LocalDate,
+            endDate: LocalDate,
+        ) = intent {
+            reduce {
+                state.copy(
+                    startDate = today,
+                    endDate = endDate,
+                    durationSelectionType = AnalyticsGoalLockDurationSelectionType.END_DATE,
+                )
+            }
             updateCreateEnabled()
         }
 
@@ -79,18 +121,18 @@ class GoalLockCreationViewModel
             }
 
         internal fun createGoalLock(
-            durationSelectionType: String,
-            goalNameType: String,
+            durationSelectionType: String? = null,
+            goalNameType: String? = null,
         ) = intent {
             val goalLock = state.toGoalLock()
             if (!state.isValidForCreation(goalLock)) return@intent
 
             val insertedId = goalLockDao.insert(GoalLockEntity.fromDomain(goalLock))
             analytics.trackGoalLockCreated(
-                durationSelectionType = durationSelectionType,
+                durationSelectionType = durationSelectionType ?: state.durationSelectionType,
                 lockMode = goalLock.lockMode.analyticsLockMode,
                 selectedAppCountBucket = selectedAppCountBucket(goalLock.selectedPackages.size),
-                goalNameType = goalNameType,
+                goalNameType = goalNameType ?: state.goalNameType,
             )
             postSideEffect(GoalLockCreationSideEffect.Created(insertedId))
         }
@@ -107,6 +149,8 @@ data class GoalLockCreationUiState(
     val endDate: LocalDate = LocalDate.now(),
     val lockMode: GoalLockCreationLockMode = GoalLockCreationLockMode.AllDay,
     val selectedApps: Set<String> = emptySet(),
+    val durationSelectionType: String = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+    val goalNameType: String = AnalyticsGoalLockNameType.CUSTOM,
     val isCreateEnabled: Boolean = false,
 )
 
@@ -165,4 +209,13 @@ private fun selectedAppCountBucket(selectedAppCount: Int): String =
         in 2..3 -> AnalyticsSelectedAppCountBucket.TWO_TO_THREE
         in 4..6 -> AnalyticsSelectedAppCountBucket.FOUR_TO_SIX
         else -> AnalyticsSelectedAppCountBucket.SEVEN_PLUS
+    }
+
+private val String.analyticsGoalNameType: String
+    get() = when (trim()) {
+        "시험 준비" -> AnalyticsGoalLockNameType.PRESET_EXAM
+        "SNS 줄이기" -> AnalyticsGoalLockNameType.PRESET_SNS
+        "게임 줄이기" -> AnalyticsGoalLockNameType.PRESET_GAME
+        "수면 습관" -> AnalyticsGoalLockNameType.PRESET_SLEEP
+        else -> AnalyticsGoalLockNameType.CUSTOM
     }

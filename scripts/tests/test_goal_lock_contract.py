@@ -37,6 +37,8 @@ class GoalLockContractTest(unittest.TestCase):
             "GoalLockCreationScreen",
             "GoalLockCreationRoute",
             "BlockingStateStore",
+            "직접 일수(`custom_days`) 입력",
+            "ISO 종료 날짜(`end_date`) 입력",
             "Closes #417",
         ]
         for phrase in required_phrases:
@@ -115,6 +117,7 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)

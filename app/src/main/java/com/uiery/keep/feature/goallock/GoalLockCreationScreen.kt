@@ -22,6 +22,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,8 +33,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
-import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.DayOfWeek
@@ -88,6 +89,8 @@ internal fun GoalLockCreationScreen(
             onSelectSevenDays = { viewModel.setDateRange(LocalDate.now(), LocalDate.now().plusDays(6)) },
             onSelectFourteenDays = { viewModel.setDateRange(LocalDate.now(), LocalDate.now().plusDays(13)) },
             onSelectThirtyDays = { viewModel.setDateRange(LocalDate.now(), LocalDate.now().plusDays(29)) },
+            onCustomDaysChange = { days -> viewModel.setCustomDurationDays(LocalDate.now(), days) },
+            onEndDateChange = { endDate -> viewModel.setEndDateSelection(LocalDate.now(), endDate) },
             onSetAllDay = viewModel::setAllDayMode,
             onSetWeekdayEvening = {
                 viewModel.setScheduledMode(
@@ -103,14 +106,7 @@ internal fun GoalLockCreationScreen(
                 )
             },
             onCreate = {
-                viewModel.createGoalLock(
-                    durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
-                    goalNameType = if (uiState.goalName == "시험 준비") {
-                        AnalyticsGoalLockNameType.PRESET_EXAM
-                    } else {
-                        AnalyticsGoalLockNameType.CUSTOM
-                    },
-                )
+                viewModel.createGoalLock()
             },
         )
     }
@@ -126,10 +122,15 @@ private fun GoalLockCreationContent(
     onSelectSevenDays: () -> Unit,
     onSelectFourteenDays: () -> Unit,
     onSelectThirtyDays: () -> Unit,
+    onCustomDaysChange: (Int) -> Unit,
+    onEndDateChange: (LocalDate) -> Unit,
     onSetAllDay: () -> Unit,
     onSetWeekdayEvening: () -> Unit,
     onCreate: () -> Unit,
 ) {
+    var customDaysText by remember { mutableStateOf("") }
+    var endDateText by remember { mutableStateOf("") }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -186,6 +187,26 @@ private fun GoalLockCreationContent(
                     OutlinedButton(onClick = onSelectFourteenDays) { Text("14일") }
                     OutlinedButton(onClick = onSelectThirtyDays) { Text("30일") }
                 }
+                TextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = customDaysText,
+                    onValueChange = { value ->
+                        customDaysText = value.filter { it.isDigit() }.take(3)
+                        customDaysText.toIntOrNull()?.let(onCustomDaysChange)
+                    },
+                    placeholder = { Text("직접 일수 입력: 예: 21") },
+                    singleLine = true,
+                )
+                TextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = endDateText,
+                    onValueChange = { value ->
+                        endDateText = value.take(10)
+                        runCatching { LocalDate.parse(endDateText) }.getOrNull()?.let(onEndDateChange)
+                    },
+                    placeholder = { Text("종료 날짜 입력: YYYY-MM-DD") },
+                    singleLine = true,
+                )
             }
         }
 

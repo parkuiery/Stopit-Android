@@ -138,6 +138,41 @@ class GoalLockCreationViewModelTest {
         )
     }
 
+    @Test
+    fun customDaysAndEndDateSelectionsPersistExpectedRangesAndAnalyticsTypes() = runBlocking {
+        val dao = RecordingGoalLockDao(insertedId = 19L)
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+        val today = LocalDate.of(2026, 6, 4)
+
+        viewModel.setGoalName("프로젝트 마감")
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        viewModel.setCustomDurationDays(today = today, days = 10)
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        val customDaysGoal = requireNotNull(dao.insertedEntity).toDomain()
+        assertEquals(today, customDaysGoal.startDate)
+        assertEquals(LocalDate.of(2026, 6, 13), customDaysGoal.endDate)
+        assertEquals(AnalyticsGoalLockDurationSelectionType.CUSTOM_DAYS, analytics.goalLockCreatedCalls.single().durationSelectionType)
+        assertEquals(AnalyticsGoalLockNameType.CUSTOM, analytics.goalLockCreatedCalls.single().goalNameType)
+
+        dao.insertedEntity = null
+        analytics.goalLockCreatedCalls.clear()
+        viewModel.setEndDateSelection(today = today, endDate = LocalDate.of(2026, 7, 1))
+        awaitUntil { viewModel.container.stateFlow.value.endDate == LocalDate.of(2026, 7, 1) }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        val endDateGoal = requireNotNull(dao.insertedEntity).toDomain()
+        assertEquals(today, endDateGoal.startDate)
+        assertEquals(LocalDate.of(2026, 7, 1), endDateGoal.endDate)
+        assertEquals(AnalyticsGoalLockDurationSelectionType.END_DATE, analytics.goalLockCreatedCalls.single().durationSelectionType)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
