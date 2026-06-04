@@ -427,6 +427,8 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|customEvent:ad_pla
 
 2026-05-31 문서 closure pass에서 main source의 `TrackedBannerAd` call site를 재확인한 코드 기준 계약이다. 이 표는 GA4/AdMob 결과의 `adUnitName`과 앱 코드의 `ad_placement`/`ad_unit_id`가 서로 같은 화면을 가리키는지 대조할 때 사용한다.
 
+2026-06-05 code-lane에서 placement/ad unit pair가 call site마다 수동으로 어긋나지 않도록 `AdPlacement.toMetadata(...)` helper를 추가했다. 각 배너 call site는 이제 `AdPlacement.*.toMetadata(screenName, screenContext)`로 `ad_placement`와 `ad_unit_id`를 같은 enum source에서 만든다. `AdPlacementContractTest`는 현재 placement inventory, lowercase snake_case key, non-empty ad unit id, helper metadata mapping을 회귀 방지한다.
+
 | 코드 위치 | `screen_name` | `screen_context` | `ad_placement` | `ad_unit_id` | 2026-05-31 GA4 표시명 | 운영 판단 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `BlockScreen.kt` | `block` | `blocked_app` | `block_top` | `ca-app-pub-1537867411423705/5467753282` | `블락 상단 배너` | 차단 경험과 가장 가까운 신뢰 민감 위치. 노출 확대 금지, 우선 guardrail 감사 대상. |

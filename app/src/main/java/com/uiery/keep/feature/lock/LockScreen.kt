@@ -46,7 +46,7 @@ import com.uiery.kds.RotatingCircleGradient
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.ui.component.CategoryButton
@@ -268,11 +268,9 @@ fun LockScreen(
                 }
                 TrackedBannerAd(
                     modifier = Modifier.padding(top = 16.dp),
-                    metadata = AdPlacementMetadata(
+                    metadata = AdPlacement.LockBottom.toMetadata(
                         screenName = KeepAnalyticsScreen.LOCK,
                         screenContext = if (uiState.isRoutine) "routine" else "manual",
-                        placement = AdPlacement.LockBottom.analyticsPlacement,
-                        adUnitId = AdPlacement.LockBottom.adUnitId,
                     ),
                 )
             }

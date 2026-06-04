@@ -72,6 +72,17 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("post-release 창 전에는 event 0을 수요 없음으로 해석 금지", admob_runbook)
         self.assertNotIn("| `interest_context` | Required dimension | `TODO`", ga4_runbook)
 
+    def test_banner_placement_contract_is_documented(self):
+        admob_runbook = ADMOB_RUNBOOK.read_text()
+        ad_placement = (REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "AdPlacement.kt").read_text()
+        contract_test = (REPO_ROOT / "app" / "src" / "test" / "java" / "com" / "uiery" / "keep" / "analytics" / "AdPlacementContractTest.kt").read_text()
+
+        self.assertIn("fun AdPlacement.toMetadata", ad_placement)
+        self.assertIn("ad placements have unique non-empty snake case analytics names", contract_test)
+        self.assertIn("`AdPlacement.toMetadata(...)`", admob_runbook)
+        self.assertIn("`AdPlacementContractTest`", admob_runbook)
+        self.assertIn("placement/ad unit pair", admob_runbook)
+
 
 if __name__ == "__main__":
     unittest.main()

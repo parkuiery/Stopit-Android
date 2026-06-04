@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.kds.KeepSwitch
@@ -80,11 +80,9 @@ internal fun RoutineListContent(
         }
         TrackedBannerAd(
             modifier = Modifier.fillMaxWidth(),
-            metadata = AdPlacementMetadata(
+            metadata = AdPlacement.RoutineListBottom.toMetadata(
                 screenName = KeepAnalyticsScreen.ROUTINE,
                 screenContext = "list",
-                placement = AdPlacement.RoutineListBottom.analyticsPlacement,
-                adUnitId = AdPlacement.RoutineListBottom.adUnitId,
             ),
         )
     }

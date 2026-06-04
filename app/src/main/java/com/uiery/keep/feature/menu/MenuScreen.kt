@@ -47,7 +47,7 @@ import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import java.util.Locale
@@ -210,11 +210,9 @@ fun MenuScreen(
             Spacer(modifier = Modifier.weight(1f))
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
-                metadata = AdPlacementMetadata(
+                metadata = AdPlacement.MenuBottom.toMetadata(
                     screenName = KeepAnalyticsScreen.MENU,
                     screenContext = "settings",
-                    placement = AdPlacement.MenuBottom.analyticsPlacement,
-                    adUnitId = AdPlacement.MenuBottom.adUnitId,
                 ),
             )
         }
