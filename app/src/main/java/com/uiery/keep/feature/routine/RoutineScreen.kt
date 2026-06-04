@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.routine
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +81,27 @@ fun RoutineScreen(
             is RoutineSideEffect.ShowAlarmPermission -> {
                 showAlarmPermissionBottomSheet = true
                 viewModel.markAlarmPermissionShown()
+            }
+            is RoutineSideEffect.ShareRoutineTemplate -> {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, sideEffect.payload.text)
+                }
+                val chooser = Intent.createChooser(
+                    shareIntent,
+                    context.getString(R.string.routine_template_share_chooser_title),
+                )
+                runCatching {
+                    context.startActivity(chooser)
+                }.onSuccess {
+                    viewModel.routineTemplateShareSheetOpened(sideEffect.payload)
+                }.onFailure { error ->
+                    if (error is ActivityNotFoundException) {
+                        viewModel.routineTemplateShareFailed(sideEffect.payload)
+                    } else {
+                        throw error
+                    }
+                }
             }
         }
     }
@@ -267,6 +290,7 @@ fun RoutineScreen(
                     routines = state.routines,
                     onEnabledChange = viewModel::changeEnabled,
                     onDetailClick = viewModel::getRoutineDetail,
+                    onShareClick = viewModel::shareRoutineTemplate,
                 )
             }
         }

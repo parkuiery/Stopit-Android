@@ -132,13 +132,14 @@ python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
 
 issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
 
-자동 baseline(구현 PR에서 추가될 테스트 예시):
+자동 baseline:
 
 ```bash
 cd <repo-root>
-./gradlew :app:testDevDebugUnitTest \
-  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \
-  --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'
+./gradlew :app:testDevDebugUnitTest \\
+  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \\
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' \\
+  --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'
 python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 ```
 
@@ -157,7 +158,7 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 - Device / Android version / OEM:
 - Entry point: routine list / routine detail
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineTemplateShareAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_routine_template_share_contract -v`
 - Shared text preview:
   - category / repeat / time window present:

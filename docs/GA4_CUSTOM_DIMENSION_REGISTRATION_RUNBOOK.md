@@ -174,10 +174,10 @@
 | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | PR #293 포함 release/tag/Play deploy 후 14일 재조회 | `customEvent:ad_unit_id` |
 | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가, 2026-06-04 메뉴/설정 CTA 연결 / GA4 등록 필요 | CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:interest_context` |
 | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가, 2026-06-04 메뉴/설정 CTA 연결 / GA4 등록 필요 | 동일 | `customEvent:interest_surface` |
-| `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | #407 문서 계약 추가 / 구현 전 | 루틴 템플릿 공유 CTA 구현·배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:template_category` |
-| `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 문서 계약 추가 / 구현 전 | 동일 | `customEvent:repeat_days_bucket` |
-| `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 문서 계약 추가 / 구현 전 | 동일 | `customEvent:time_window_bucket` |
-| `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 문서 계약 추가 / 구현 전 | 동일 | `customEvent:routine_name_included` |
+| `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | #407 코드 계약 추가 / GA4 등록 필요 | 루틴 템플릿 공유 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:template_category` |
+| `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:repeat_days_bucket` |
+| `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:time_window_bucket` |
+| `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:routine_name_included` |
 | `duration_selection_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 잠금 포함 release/tag/Play deploy 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:duration_selection_type` |
 | `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, completion/early-end runtime call 미구현 | 동일 | `customEvent:lock_mode` |
 | `selected_app_count_bucket` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 동일 | `customEvent:selected_app_count_bucket` |

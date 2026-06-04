@@ -174,4 +174,6 @@
     <string name="first_lock_activation_cta_action">開始</string>
     <string name="first_lock_keep_started_guidance">StopItがオンになりました。選択したアプリを開くと最初のブロックを確認できます。</string>
     <string name="first_lock_timer_scheduled_guidance">最初のロックが予約されました。時間になったら選択したアプリを開いてブロックを確認してください。</string>
+    <string name="routine_template_share_chooser_title">ルーティンテンプレートを共有</string>
+    <string name="cd_share_routine_template">ルーティンテンプレートを共有</string>
 </resources>

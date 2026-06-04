@@ -174,4 +174,6 @@
     <string name="first_lock_activation_cta_action">Начать</string>
     <string name="first_lock_keep_started_guidance">StopIt включен. Откройте выбранное приложение, чтобы проверить первую блокировку.</string>
     <string name="first_lock_timer_scheduled_guidance">Первая блокировка запланирована. Когда придет время, откройте выбранное приложение и проверьте блокировку.</string>
+    <string name="routine_template_share_chooser_title">Поделиться шаблоном рутины</string>
+    <string name="cd_share_routine_template">Поделиться шаблоном рутины</string>
 </resources>
