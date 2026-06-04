@@ -24,6 +24,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
@@ -89,16 +90,26 @@ class KeepAccessibilityService :
             }
         }
         launch {
-            entryPoint.routineDao().fetchAll().collect { routineEntities ->
-                cachedRoutines = routineEntities.map { it.toModel() }
-                reevaluateCurrentForegroundAfterStateUpdate()
-            }
+            entryPoint.routineDao().fetchAll()
+                .catch {
+                    cachedRoutines = emptyList()
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+                .collect { routineEntities ->
+                    cachedRoutines = routineEntities.map { it.toModel() }
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
         }
         launch {
-            entryPoint.goalLockDao().fetchAll().collect { goalLockEntities ->
-                cachedGoalLocks = goalLockEntities.map { it.toDomain() }
-                reevaluateCurrentForegroundAfterStateUpdate()
-            }
+            entryPoint.goalLockDao().fetchAll()
+                .catch {
+                    cachedGoalLocks = emptyList()
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+                .collect { goalLockEntities ->
+                    cachedGoalLocks = goalLockEntities.map { it.toDomain() }
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
         }
     }
 
