@@ -69,10 +69,10 @@
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
 
 알림 권한 온보딩 계약:
-- `permission_outcome(permission_name=notifications, outcome=settings_opened)`는 Android 12L 이하 설정 진입을 기록한다.
-- Android 12L 이하 legacy 설정 왕복에서는 실제 권한 상태가 허용되었을 때만 `onboarding_step_complete(step_name=notification)`를 기록한다. 설정 재방문 뒤에도 알림이 비활성화되어 있으면 `permission_outcome(permission_name=notifications, outcome=denied)`만 남기고 재시도 UX를 유지한다.
+- 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이다. 따라서 현재 릴리즈/QA에서 검증해야 하는 canonical 흐름은 runtime dialog 허용/거절과 notification-denied fallback이다.
 - Android 13+ runtime permission dialog에서는 사용자가 `POST_NOTIFICATIONS`를 거절해도 온보딩을 막지 않는다. 이 경우 `permission_outcome(permission_name=notifications, outcome=denied)`와 `onboarding_step_complete(step_name=notification)`를 함께 남긴 뒤 앱 선택 단계로 진행한다.
 - notification-denied 사용자의 루틴 시작 안내는 `POST_NOTIFICATION ignore` receiver fallback baseline으로 별도 검증한다.
+- Historical / out of scope: `permission_outcome(permission_name=notifications, outcome=settings_opened)`와 Android 12L 이하 legacy 설정 왕복은 minSdk를 다시 낮출 때만 복원 검토한다. minSdk 33 유지 상태에서는 현재 검증 대상이 아니다.
 
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |

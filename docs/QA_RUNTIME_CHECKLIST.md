@@ -269,23 +269,22 @@ exact alarm 권한 deny/allow 전환과 release-only remaining connected suite�
 
 ### notification onboarding permission baseline
 
-issue #172/#313 계열 PR에서는 알림 권한 온보딩이 **설정 화면 방문만으로 완료 처리되지 않는지**, 그리고 Android 13+ runtime permission 거절이 앱 선택 단계 진행을 막지 않는지 아래처럼 남긴다.
+issue #172/#313 계열 PR에서는 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission임을 전제로, 알림 권한 온보딩이 runtime permission 거절 후에도 앱 선택 단계 진행을 막지 않는지 아래처럼 남긴다. Android 12L 이하 legacy 설정 왕복은 historical / out of scope이며, minSdk를 다시 낮출 때만 현재 검증 대상으로 복원한다.
 
 - 자동 baseline
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
-  --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" \
   --tests "com.uiery.keep.feature.onboarding.notification.PostNotificationPermissionResultActionTest" \
   --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"
 ```
 
 - 검증 범위:
-  - Android 12L 이하 legacy 경로에서 첫 진입은 `settings_opened`, 재방문 + 미허용은 `denied`, 재방문 + 허용만 `granted + onboarding_step_complete(step_name=notification)`인지
   - Android 13+ runtime permission 경로에서 허용은 `granted + onboarding_step_complete(step_name=notification)` 후 앱 선택으로 이동하는지
   - Android 13+ runtime permission 경로에서 거절도 `denied + onboarding_step_complete(step_name=notification)`를 남기고 앱 선택으로 이동해 첫 잠금 설정을 계속할 수 있는지
   - notification-denied 상태의 루틴 시작 안내는 별도 `POST_NOTIFICATION ignore` receiver fallback baseline으로 계속 검증되는지
+  - Historical / out of scope: `settings_opened`와 Android 12L 이하 legacy 설정 왕복은 minSdk 33 유지 상태에서는 현재 검증 대상이 아니다.
 
 - 추가 manual evidence가 필요하면 아래 형식으로 남긴다.
 
@@ -294,18 +293,16 @@ cd <repo-root>
 - Device/Emulator:
 - Android version:
 - Variant:
-- Flow: Android 13+ runtime permission / Android 12L 이하 settings round-trip
+- Flow: Android 13+ runtime permission
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.onboarding.notification.LegacyNotificationPermissionActionTest" --tests "com.uiery.keep.feature.onboarding.notification.PostNotificationPermissionResultActionTest" --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"`
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.onboarding.notification.PostNotificationPermissionResultActionTest" --tests "com.uiery.keep.feature.onboarding.OnboardingAnalyticsViewModelTest"`
 - Observed analytics/order:
-  - `settings_opened` (legacy only, first settings launch)
-  - `denied` after returning without enabling notifications in legacy settings flow
-  - `granted` + `onboarding_step_complete(step_name=notification)` after notifications are enabled
+  - Android 13+ runtime allow: `granted` + `onboarding_step_complete(step_name=notification)` before continuing to app selection
   - Android 13+ runtime deny: `denied` + `onboarding_step_complete(step_name=notification)` before continuing to app selection
+  - Historical / out of scope: `settings_opened` and legacy settings return order are not current minSdk 33 QA targets; restore only if minSdk is lowered again.
 - Observed UI:
   - Android 13+ system dialog에서 거절해도 앱 선택 화면으로 이동하는지
   - Android 13+ system dialog에서 허용해도 앱 선택 화면으로 이동하는지
-  - Android 12L 이하 legacy 설정 왕복에서는 실제 허용 전까지 재시도 UX가 유지되는지
 - Notes:
 ```
 
