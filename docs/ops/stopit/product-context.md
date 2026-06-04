@@ -52,6 +52,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `customUser:routines_count`가 조회된다고 해서 activation/review/monetization의 `customEvent:*` queryability까지 해결됐다고 보지 않는다.
 - 루틴 보유/미보유 반복 사용 판단은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. 2026-06-03 기준 루틴 보유자는 sessions / activeUsers와 `app_block_intercepted` users / activeUsers가 더 높아 루틴 CTA/템플릿 실험은 실행 후보지만, `(not set)` activeUsers가 가장 커서 전체 retention 결론은 보류한다.
 - 루틴 템플릿 공유 루프는 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. MVP는 Android share sheet 텍스트 공유이며, deep link/import는 별도 decision gate다. `lockApplications`, package name, 앱 이름, raw session history는 payload/analytics에 넣지 않는다.
+- 목표 잠금은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 본다. MVP는 7/14/30일 또는 종료 날짜까지 `all_day`/`scheduled`로 앱을 잠그고 Home card/section에서 진행 상태를 보여주는 장기 자기통제 계약이다. 강력 목표 잠금/해제 제한/결제 연결은 MVP 밖 후속 판단이며, analytics는 목표 이름 원문·app package·app label·raw 날짜 없이 enum/bucket만 사용한다.
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 제품 신호 부재보다 **GA4 Admin registration gap** 가능성을 먼저 의심하고, 최종 해석은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 묶는다.
 - #65/#242 ASO 판단은 `docs/PLAY_STORE_ASO.md`의 attribution gate를 먼저 따른다. 2026-06-03 최신 live readback처럼 `Direct` 신규 비중이 61.4% 수준으로 유지되고 `Organic Search` 신규가 #65 기준선을 간신히 넘은 정도일 때는 Play Console Search/Explore, external/campaign, UTM/Install Referrer 기록을 확인하기 전까지 ASO 회복으로 단정하지 않는다.
 - #307 리뷰 프롬프트 follow-through는 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약이 develop에 merge된 상태를 기준으로 본다. 다음 판단은 같은 코드 PR을 다시 만드는 것이 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 여부, 조회 가능해진 GA4 `customEvent:reason` 기반 skip breakdown, 아직 미등록인 `customEvent:error` boundary, Play Console rating/review 14일·30일 관측이다.
@@ -90,4 +91,5 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: 리뷰 프롬프트 arm/drain, skip reason, Play In-App Review 한계 계약.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 Usage Access 선택형 개인화 discovery gate. 구현 ready가 아니라 권한 UX, privacy guardrail, QA evidence, child issue 분리 기준을 관리한다.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407 루틴 템플릿 공유 privacy-safe MVP 계약. 앱 목록/패키지/원시 이력 없이 루틴의 비민감 패턴만 공유한다.
+- `docs/GOAL_LOCK_MVP.md`: #417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff로 고정한다.
 - `docs/FOCUS_SUMMARY_SHARE_MVP.md`
