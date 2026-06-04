@@ -10,7 +10,7 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-04T09:17:03Z"
+LATEST_TIMESTAMP = "2026-06-04T12:29:06Z"
 LATEST_VALUES = [
     "464",
     "285",
