@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -31,22 +32,30 @@ class HomeAccessibilityRuntimeSmokeContractTest(unittest.TestCase):
             with self.subTest(path=doc_path.name):
                 self.assertIn(HOME_ACCESSIBILITY_CLASS, doc_path.read_text())
 
-    def test_home_accessibility_smoke_uses_device_relaunch_not_activityscenario_state_for_resume(self):
+    def test_settings_round_trip_smoke_uses_device_relaunch_not_activityscenario_state_for_resume(self):
         source = HOME_ACCESSIBILITY_TEST.read_text()
 
-        self.assertNotIn(
-            "moveToState(Lifecycle.State",
-            source,
-            "Home accessibility runtime smoke should not force ActivityScenario state after "
-            "Settings/device relaunch. Remote CI can leave the original scenario STOPPED while "
-            "the device relaunch already brought StopIt foreground; assert via foreground/dialog "
-            "state instead.",
-        )
-        self.assertNotIn(
-            "import androidx.lifecycle.Lifecycle",
-            source,
-            "Lifecycle import should stay absent when the smoke relies on device foreground state.",
-        )
+        for method_name in (
+            "returningFromAccessibilitySettingsResyncsHomePermissionDialogOnResume",
+            "returningFromAccessibilitySettingsClearsHomePermissionDialogAfterReEnablingService",
+        ):
+            with self.subTest(method=method_name):
+                method_source = self._method_source(source, method_name)
+                self.assertNotIn(
+                    "moveToState(Lifecycle.State",
+                    method_source,
+                    "Settings round-trip smoke should not force ActivityScenario state after "
+                    "device relaunch. Remote CI can leave the original scenario STOPPED while "
+                    "the device relaunch already brought StopIt foreground; assert via "
+                    "foreground/dialog/secure-setting state instead.",
+                )
+
+    def _method_source(self, source: str, method_name: str) -> str:
+        pattern = rf"fun {re.escape(method_name)}\(\) \{{(?P<body>.*?)(?=\n    @Test|\n    private suspend fun)"
+        match = re.search(pattern, source, flags=re.DOTALL)
+        if match is None:
+            self.fail(f"Could not find method {method_name}")
+        return match.group("body")
 
 
 if __name__ == "__main__":
