@@ -46,6 +46,69 @@ class EmergencyUnlockCoordinatorTest {
         assertFalse(availability.reasonRequired)
         assertFalse(availability.dailyLimitReached)
         assertEquals(1, availability.dailyUnlockRemaining)
+        assertEquals(1, dao.countTodayCalls.size)
+        assertTrue(dao.countSinceCalls.isEmpty())
+    }
+
+    @Test
+    fun manualResetModeUsesCountSinceManualResetTimestampForAvailability() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = 10_000L
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, sinceCount = 2)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.Available, availability.reason)
+        assertEquals(1, availability.dailyUnlockRemaining)
+        assertTrue(dao.countTodayCalls.isEmpty())
+        assertEquals(listOf(10_000L), dao.countSinceCalls)
+    }
+
+    @Test
+    fun manualResetModeRejectsUnlockWhenCountSinceManualResetExhaustsLimit() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = 20_000L
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("3")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, sinceCount = 3)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        val result = coordinator.completeUnlock(
+            source = AnalyticsSource.LOCK_SCREEN,
+            reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+            customReason = null,
+            apps = setOf("com.example.app"),
+            durationMinutes = 3,
+            nowMillis = 30_000L,
+        )
+
+        assertTrue(result is EmergencyUnlockRequestResult.Rejected)
+        val rejected = result as EmergencyUnlockRequestResult.Rejected
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, rejected.availability.reason)
+        assertTrue(dao.inserted.isEmpty())
+        assertTrue(dao.countTodayCalls.isEmpty())
+        assertEquals(listOf(20_000L), dao.countSinceCalls)
+    }
+
+    @Test
+    fun manualResetUpdatesTimestampWithoutDeletingUnlockHistory() = runBlocking {
+        val dataStore = FakeDataStore()
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        coordinator.markManualReset(nowMillis = 40_000L)
+
+        assertEquals(40_000L, dataStore.snapshot()[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT])
+        assertTrue(dao.inserted.isEmpty())
     }
 
     @Test
@@ -156,10 +219,21 @@ class EmergencyUnlockCoordinatorTest {
         todayCount: Int,
         analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
     ): EmergencyUnlockCoordinator =
+        createCoordinator(
+            dataStore = dataStore,
+            dao = RecordingEmergencyUnlockDao(todayCount = todayCount),
+            analytics = analytics,
+        )
+
+    private fun createCoordinator(
+        dataStore: FakeDataStore,
+        dao: RecordingEmergencyUnlockDao,
+        analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
+    ): EmergencyUnlockCoordinator =
         EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
-            emergencyUnlockDao = RecordingEmergencyUnlockDao(todayCount = todayCount),
+            emergencyUnlockDao = dao,
             analytics = analytics,
         )
 
@@ -213,8 +287,11 @@ private data class CompletedUnlockFixture(
 
 private class RecordingEmergencyUnlockDao(
     private val todayCount: Int,
+    private val sinceCount: Int = 0,
 ) : EmergencyUnlockDao {
     val inserted = mutableListOf<EmergencyUnlockEntity>()
+    val countTodayCalls = mutableListOf<Long>()
+    val countSinceCalls = mutableListOf<Long>()
 
     override suspend fun insert(entity: EmergencyUnlockEntity) {
         inserted += entity
@@ -222,9 +299,15 @@ private class RecordingEmergencyUnlockDao(
 
     override fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>> = emptyFlow()
 
-    override suspend fun countToday(todayStart: Long): Int = todayCount
+    override suspend fun countToday(todayStart: Long): Int {
+        countTodayCalls += todayStart
+        return todayCount
+    }
 
-    override suspend fun countSince(timestampMillis: Long): Int = 0
+    override suspend fun countSince(timestampMillis: Long): Int {
+        countSinceCalls += timestampMillis
+        return sinceCount
+    }
 }
 
 private class RecordingEmergencyUnlockAnalytics : KeepAnalytics {

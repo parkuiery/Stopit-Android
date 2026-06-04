@@ -66,6 +66,18 @@ class EmergencyUnlockSettingsStore
             }
         }
 
+        suspend fun setAutoResetEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = enabled
+            }
+        }
+
+        suspend fun markManualReset(nowMillis: Long = System.currentTimeMillis()) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = nowMillis
+            }
+        }
+
         private fun Preferences.toEmergencyUnlockSettingsSnapshot(): EmergencyUnlockSettingsSnapshot =
             EmergencyUnlockSettingsSnapshot(
                 enabled = this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] ?: true,
@@ -76,6 +88,8 @@ class EmergencyUnlockSettingsStore
                     this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
                 ),
                 reasonRequired = this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] ?: true,
+                autoResetEnabled = this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] ?: true,
+                manualResetAtMillis = this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] ?: 0L,
             )
     }
 
@@ -84,4 +98,6 @@ data class EmergencyUnlockSettingsSnapshot(
     val dailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val durationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val reasonRequired: Boolean = true,
+    val autoResetEnabled: Boolean = true,
+    val manualResetAtMillis: Long = 0L,
 )

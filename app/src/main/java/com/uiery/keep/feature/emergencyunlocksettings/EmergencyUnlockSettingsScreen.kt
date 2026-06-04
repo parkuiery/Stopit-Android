@@ -26,12 +26,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,6 +44,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +63,36 @@ fun EmergencyUnlockSettingsScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showDisableAutoResetDialog by remember { mutableStateOf(false) }
+    var showManualResetDialog by remember { mutableStateOf(false) }
+
+    if (showDisableAutoResetDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_title),
+            message = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_message),
+            confirmLabel = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_confirm),
+            dismissLabel = stringResource(R.string.emergency_unlock_cancel),
+            onDismiss = { showDisableAutoResetDialog = false },
+            onConfirm = {
+                showDisableAutoResetDialog = false
+                viewModel.setAutoResetEnabled(false)
+            },
+        )
+    }
+
+    if (showManualResetDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.emergency_unlock_manual_reset_dialog_title),
+            message = stringResource(R.string.emergency_unlock_manual_reset_dialog_message),
+            confirmLabel = stringResource(R.string.emergency_unlock_manual_reset_dialog_confirm),
+            dismissLabel = stringResource(R.string.emergency_unlock_cancel),
+            onDismiss = { showManualResetDialog = false },
+            onConfirm = {
+                showManualResetDialog = false
+                viewModel.markManualReset()
+            },
+        )
+    }
 
     Scaffold(
         modifier = modifier,
@@ -146,8 +183,66 @@ fun EmergencyUnlockSettingsScreen(
                     onCheckedChange = viewModel::setReasonRequired,
                 )
             }
+
+            SettingsGroupCard(modifier = Modifier.dimWhen(!uiState.enabled)) {
+                SwitchRow(
+                    title = stringResource(R.string.emergency_unlock_settings_auto_reset),
+                    subtitle = stringResource(R.string.emergency_unlock_settings_auto_reset_subtitle),
+                    checked = uiState.autoResetEnabled,
+                    enabled = uiState.enabled,
+                    contentDescription = stringResource(R.string.cd_emergency_unlock_auto_reset_switch),
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            viewModel.setAutoResetEnabled(true)
+                        } else {
+                            showDisableAutoResetDialog = true
+                        }
+                    },
+                )
+                if (!uiState.autoResetEnabled) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.emergency_unlock_settings_auto_reset_off_helper),
+                        color = KeepTheme.colors.onTertiaryContainer,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ManualResetButton(
+                        enabled = uiState.enabled,
+                        contentDescription = stringResource(R.string.cd_emergency_unlock_manual_reset_button),
+                        onClick = { showManualResetDialog = true },
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun ConfirmationDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = { Text(text = message) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = confirmLabel)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = dismissLabel)
+            }
+        },
+    )
 }
 
 @Composable
@@ -294,6 +389,7 @@ private fun SwitchRow(
     subtitle: String,
     checked: Boolean,
     enabled: Boolean,
+    contentDescription: String? = null,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
@@ -301,6 +397,13 @@ private fun SwitchRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .then(
+                if (contentDescription != null) {
+                    Modifier.semantics { this.contentDescription = contentDescription }
+                } else {
+                    Modifier
+                },
+            )
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -321,6 +424,31 @@ private fun SwitchRow(
         }
         Spacer(modifier = Modifier.width(12.dp))
         KeepSwitch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun ManualResetButton(
+    enabled: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(KeepTheme.colors.background)
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.emergency_unlock_settings_manual_reset_button),
+            color = KeepTheme.colors.primary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
