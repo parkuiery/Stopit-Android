@@ -49,7 +49,7 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.CategoryButton
+import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.feature.lock.component.CountDownContent
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState

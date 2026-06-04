@@ -18,7 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 
 @Composable
 fun MenuToggleItem(

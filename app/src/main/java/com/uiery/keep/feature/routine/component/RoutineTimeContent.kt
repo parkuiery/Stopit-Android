@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.feature.home.component.TimerPicker
+import com.uiery.keep.ui.component.TimerPicker
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.toTimeString
 import kotlinx.datetime.LocalTime
