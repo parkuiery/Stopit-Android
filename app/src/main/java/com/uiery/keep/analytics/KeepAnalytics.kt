@@ -138,6 +138,12 @@ interface KeepAnalytics {
         selectedAppCountBucket: String,
         goalNameType: String,
     ) = Unit
+
+    fun trackGoalLockEndedEarly(
+        lockMode: String,
+        elapsedDaysBucket: String,
+        reason: String,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -173,6 +179,7 @@ object KeepAnalyticsEvent {
     const val MONETIZATION_INTEREST_SHOWN = "monetization_interest_shown"
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
+    const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
 }
 
 object KeepAnalyticsParam {
@@ -209,6 +216,7 @@ object KeepAnalyticsParam {
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
+    const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
 }
 
 object OnboardingStepName {
@@ -317,4 +325,18 @@ object AnalyticsGoalLockNameType {
     const val PRESET_GAME = "preset_game"
     const val PRESET_SLEEP = "preset_sleep"
     const val CUSTOM = "custom"
+}
+
+object AnalyticsGoalLockElapsedDaysBucket {
+    const val ZERO = "0"
+    const val ONE_TO_TWO = "1_2"
+    const val THREE_TO_SIX = "3_6"
+    const val SEVEN_TO_FOURTEEN = "7_14"
+    const val FIFTEEN_PLUS = "15_plus"
+}
+
+object AnalyticsGoalLockEndedEarlyReason {
+    const val USER_CONFIRMED = "user_confirmed"
+    const val VALIDATION_RESET = "validation_reset"
+    const val UNKNOWN = "unknown"
 }

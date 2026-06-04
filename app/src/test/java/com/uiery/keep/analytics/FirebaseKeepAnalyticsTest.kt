@@ -417,6 +417,27 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun goalLockEndedEarlyUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockEndedEarly(
+            lockMode = AnalyticsGoalLockMode.SCHEDULED,
+            elapsedDaysBucket = AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+            reason = AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_ENDED_EARLY,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.SCHEDULED,
+                    KeepAnalyticsParam.ELAPSED_DAYS_BUCKET to AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+                    KeepAnalyticsParam.REASON to AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)

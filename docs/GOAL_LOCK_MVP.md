@@ -199,6 +199,12 @@ Guardrail:
   - `goal_lock_created` bucket-only analytics 호출.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`:
   - active/pending/ended_early 목표 잠금이 Home card state로 노출됨.
+- `GoalLockDetailViewModelTest`:
+  - 상세 화면 상태가 목표 이름/잠금 방식/선택 앱 수를 노출함.
+  - 종료 요청/취소가 확인 상태만 바꿈.
+  - 사용자 확인 종료가 `ended_early`로 저장되고 `goal_lock_ended_early`를 enum/bucket만으로 기록함.
+- `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`:
+  - `goal_lock_ended_early` 이벤트가 `lock_mode`, `elapsed_days_bucket`, `reason`만 기록함.
 
 ### ViewModel/UI state 테스트
 
@@ -247,11 +253,15 @@ Code lane에서 다음 repo-internal foothold로 `GoalLockCreationViewModel`을 
 
 이 foothold는 생성 상태/저장/계측 계약을 고정하지만, 실제 생성 UI/navigation entrypoint, 상세/설정 CTA navigation, Accessibility/blocking runtime wiring, 종료일 경과 completed persistence/analytics는 아직 대체하지 않는다.
 
-### 2026-06-04 Home card foothold
+### 2026-06-04 Home card / runtime blocking foothold
 
-Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao.fetchAll()`을 구독하고 첫 active/pending/ended_early 목표 잠금을 `HomeGoalLockCardState`로 노출하도록 연결했다. 홈 UI에는 목표명, 남은 일수, 잠금 방식, 선택 앱 수를 보여주는 진행 카드가 추가됐다.
+Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao.fetchAll()`을 구독하고 첫 active/pending/ended_early 목표 잠금을 `HomeGoalLockCardState`로 노출하도록 연결했다. 홈 UI에는 목표명, 남은 일수, 잠금 방식, 선택 앱 수를 보여주는 진행 카드가 추가됐다. 이어서 Accessibility/blocking runtime도 `GoalLockDao.fetchAll()` 캐시를 구독하고 `GoalLockPolicy.isBlocking(...)` 결과를 `block_source=goal_lock` / `goal_lock_id`와 함께 차단 판단에 반영하도록 연결했다.
 
-이 foothold는 홈 표시 계약을 고정하지만, 목표 잠금 상세/설정 CTA navigation, Accessibility/blocking runtime wiring, 종료일 경과 시 completed 상태 persistence/analytics, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
+### 2026-06-05 detail / early-end foothold
+
+Code lane에서 홈 목표 잠금 카드를 상세 화면으로 연결하고, `GoalLockDetailViewModel` / `GoalLockDetailScreen` / `GoalLockDetailRoute`를 추가했다. 현재 고정된 범위는 목표 이름·잠금 방식·선택 앱 수 상세 상태, 비난하지 않는 조기 종료 확인, 사용자 확인 시 `ended_early` 저장, `goal_lock_ended_early` bucket-only analytics 호출이다.
+
+이 foothold는 상세/종료 CTA와 early-end analytics runtime call을 고정하지만, 목표 잠금 생성 UI entrypoint, 수정 UX, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 UI/runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
 
 ## 외부/manual 경계
 

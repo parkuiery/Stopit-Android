@@ -348,6 +348,21 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockEndedEarly(
+            lockMode: String,
+            elapsedDaysBucket: String,
+            reason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_ENDED_EARLY,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.ELAPSED_DAYS_BUCKET to elapsedDaysBucket,
+                    KeepAnalyticsParam.REASON to reason,
+                ),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,

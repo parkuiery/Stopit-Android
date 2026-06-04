@@ -91,6 +91,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
+    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -307,6 +308,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     cardState = goalLockCard,
+                    onClick = { onNavigateGoalLockDetail(goalLockCard.goalLockId) },
                 )
             }
             Box(
@@ -446,9 +448,10 @@ fun HomeScreen(
 private fun GoalLockProgressCard(
     modifier: Modifier = Modifier,
     cardState: HomeGoalLockCardState,
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {

@@ -17,6 +17,8 @@ import com.uiery.keep.feature.lockhistory.lockHistoryScreen
 import com.uiery.keep.feature.lockhistory.navigateToLockHistory
 import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
+import com.uiery.keep.feature.goallock.goalLockDetailScreen
+import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
 import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
@@ -61,6 +63,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,
             onNavigateLock = navController::navigateToLock,
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
         )
         menuScreen(
             onNavigateDevTool = if (isDevToolEnabled) {
@@ -87,6 +90,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
+        goalLockDetailScreen(onNavigateBack = navController::navigateUp)
     }
 }
 

@@ -21,11 +21,13 @@ fun NavController.navigateToHome(
 fun NavGraphBuilder.homeScreen(
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?,Boolean) -> Unit,
+    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
 ) {
     composable<HomeRoute> {
         HomeScreen(
             onNavigateMenu = onNavigateMenu,
             onNavigateLock = onNavigateLock,
+            onNavigateGoalLockDetail = onNavigateGoalLockDetail,
         )
     }
 }
