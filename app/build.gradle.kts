@@ -180,8 +180,6 @@ dependencies {
 
     implementation(libs.play.review.ktx)
 
-    implementation(libs.utilcodex)
-
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     androidTestImplementation(libs.androidx.room.testing)
