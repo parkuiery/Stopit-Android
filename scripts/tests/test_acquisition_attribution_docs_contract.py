@@ -8,6 +8,7 @@ METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
+REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
 LATEST_TIMESTAMP = "2026-06-04T05:23:00Z"
 LATEST_VALUES = [
@@ -29,6 +30,7 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             METRICS_CONTEXT.read_text(),
         ]
         product_context = PRODUCT_CONTEXT.read_text()
+        review_prompt_followthrough = REVIEW_PROMPT_FOLLOWTHROUGH.read_text()
 
         for document in detailed_documents:
             self.assertIn(LATEST_TIMESTAMP, document)
@@ -42,6 +44,14 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("Play Console Search/Explore", product_context)
         self.assertIn("external/campaign", product_context)
         self.assertIn("ASO 회복", product_context)
+
+        self.assertIn(LATEST_TIMESTAMP, review_prompt_followthrough)
+        self.assertIn("Organic Search` 신규 사용자 | 179", review_prompt_followthrough)
+        self.assertIn("Direct` 신규 사용자 | 285", review_prompt_followthrough)
+        self.assertIn("61.4%", review_prompt_followthrough)
+        self.assertIn("Play Console Search/Explore", review_prompt_followthrough)
+        self.assertIn("external/campaign", review_prompt_followthrough)
+        self.assertIn("ASO 회복으로 표현하지 않음", review_prompt_followthrough)
 
     def test_play_store_aso_keeps_manual_attribution_boundary_explicit(self):
         play_store_aso = PLAY_STORE_ASO.read_text()
