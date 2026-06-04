@@ -129,6 +129,7 @@ jobs:
           name: stopit-prod-debug-apk
           path: app/build/outputs/apk/prod/debug/*.apk
           if-no-files-found: error
+          retention-days: 7
 
   runtime-smoke:
     name: Runtime smoke gate
