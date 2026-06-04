@@ -4,11 +4,18 @@ import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.PreferencesKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -25,7 +32,7 @@ class GoalLockCreationViewModelTest {
     fun createAllDayGoalLockPersistsActiveGoalAndTracksBucketedAnalytics() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 17L)
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
 
         viewModel.setGoalName("시험 준비")
         viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 7, 3))
@@ -64,7 +71,7 @@ class GoalLockCreationViewModelTest {
     fun createScheduledGoalLockPersistsScheduleAndSevenPlusAppBucket() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 18L)
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
         val selectedApps = (1..7).map { "com.example.app$it" }.toSet()
 
         viewModel.setGoalName("SNS 줄이기")
@@ -97,7 +104,7 @@ class GoalLockCreationViewModelTest {
     fun invalidGoalLockDoesNotPersistOrTrack() = runBlocking {
         val dao = RecordingGoalLockDao()
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
 
         viewModel.setGoalName("시험 준비")
         viewModel.setDateRange(LocalDate.of(2026, 7, 3), LocalDate.of(2026, 6, 4))
@@ -115,10 +122,56 @@ class GoalLockCreationViewModelTest {
         assertTrue(analytics.goalLockCreatedCalls.isEmpty())
     }
 
+    @Test
+    fun loadSelectedAppsSeedsGoalLockCreationFromCurrentBlockingSelection() = runBlocking {
+        val dataStore = FakeDataStore.withPrefs {
+            this[PreferencesKey.SELECTED_APP_PACKAGES] = setOf("com.video.app", "com.social.app")
+        }
+        val viewModel = createViewModel(blockingStateStore = BlockingStateStore(dataStore))
+
+        viewModel.loadSelectedAppsFromCurrentSelection()
+        awaitUntil { viewModel.container.stateFlow.value.selectedApps.isNotEmpty() }
+
+        assertEquals(
+            setOf("com.video.app", "com.social.app"),
+            viewModel.container.stateFlow.value.selectedApps,
+        )
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
             delay(10)
+        }
+    }
+}
+
+private fun createViewModel(
+    dao: GoalLockDao = RecordingGoalLockDao(),
+    analytics: KeepAnalytics = RecordingKeepAnalytics(),
+    blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
+): GoalLockCreationViewModel =
+    GoalLockCreationViewModel(
+        goalLockDao = dao,
+        analytics = analytics,
+        blockingStateStore = blockingStateStore,
+    )
+
+private class FakeDataStore(initial: Preferences = emptyPreferences()) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+        val next = transform(state.value)
+        state.value = next
+        return next
+    }
+
+    companion object {
+        fun withPrefs(block: androidx.datastore.preferences.core.MutablePreferences.() -> Unit): FakeDataStore {
+            val preferences = mutablePreferencesOf()
+            preferences.block()
+            return FakeDataStore(preferences)
         }
     }
 }

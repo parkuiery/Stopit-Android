@@ -6,6 +6,7 @@ import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.datastore.BlockingStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
@@ -21,6 +22,7 @@ class GoalLockCreationViewModel
     constructor(
         private val goalLockDao: GoalLockDao,
         private val analytics: KeepAnalytics,
+        private val blockingStateStore: BlockingStateStore,
     ) : ViewModel(),
         ContainerHost<GoalLockCreationUiState, GoalLockCreationSideEffect> {
         override val container: Container<GoalLockCreationUiState, GoalLockCreationSideEffect> =
@@ -65,6 +67,13 @@ class GoalLockCreationViewModel
 
         internal fun setSelectedApps(selectedApps: Set<String>) =
             intent {
+                reduce { state.copy(selectedApps = selectedApps) }
+                updateCreateEnabled()
+            }
+
+        internal fun loadSelectedAppsFromCurrentSelection() =
+            intent {
+                val selectedApps = blockingStateStore.readSelectedAppPackages()
                 reduce { state.copy(selectedApps = selectedApps) }
                 updateCreateEnabled()
             }

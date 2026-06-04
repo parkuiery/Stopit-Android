@@ -34,7 +34,9 @@ class GoalLockContractTest(unittest.TestCase):
             "GoalLockDao",
             "GoalLockEntity",
             "MIGRATION_4_5",
-            "이 정책 foothold PR은 `Refs #417`가 맞다",
+            "GoalLockCreationScreen",
+            "GoalLockCreationRoute",
+            "BlockingStateStore",
             "Closes #417",
         ]
         for phrase in required_phrases:
@@ -113,6 +115,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
+        self.assertIn("GoalLockCreationRoute", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)

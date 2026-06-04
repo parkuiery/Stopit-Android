@@ -12,12 +12,15 @@ import com.uiery.keep.feature.emergencyunlocksettings.emergencyUnlockSettingsScr
 import com.uiery.keep.feature.emergencyunlocksettings.navigateToEmergencyUnlockSettings
 import com.uiery.keep.feature.lockhistory.blockedapps.blockedAppsScreen
 import com.uiery.keep.feature.lockhistory.blockedapps.navigateToBlockedApps
+import com.uiery.keep.feature.goallock.GoalLockCreationRoute
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import com.uiery.keep.feature.lockhistory.lockHistoryScreen
 import com.uiery.keep.feature.lockhistory.navigateToLockHistory
 import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
+import com.uiery.keep.feature.goallock.goalLockCreationScreen
 import com.uiery.keep.feature.goallock.goalLockDetailScreen
+import com.uiery.keep.feature.goallock.navigateToGoalLockCreation
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
 import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
@@ -73,6 +76,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             },
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
+            onNavigateGoalLockCreation = navController::navigateToGoalLockCreation,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
@@ -90,6 +94,10 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
+        goalLockCreationScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
+        )
         goalLockDetailScreen(onNavigateBack = navController::navigateUp)
     }
 }
@@ -102,3 +110,7 @@ internal fun shouldRegisterDevToolRoute(
 internal fun canonicalHistoryRoute() = LockHistoryRoute
 
 internal fun shouldRegisterLegacyHistoryRoute(): Boolean = false
+
+internal fun canonicalGoalLockCreationRoute() = GoalLockCreationRoute
+
+internal fun shouldRegisterGoalLockCreationEntryRoute(): Boolean = true

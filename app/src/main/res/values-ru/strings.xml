@@ -63,6 +63,7 @@
     <string name="start_time">Время начала</string>
     <string name="routine_no_content_message">Добавьте рутину, чтобы сделать блокировку приложений удобнее!\nStopIt автоматически заблокирует ваши приложения.</string>
     <string name="routine">Рутина</string>
+    <string name="goal_lock_menu_title">Блокировка цели</string>
     <string name="contact_us">Связаться с нами</string>
     <string name="monetization_interest_menu_title">Хотите использовать StopIt без рекламы?</string>
     <string name="monetization_interest_menu_message">Сообщите, полезна ли опция без рекламы. Покупка пока недоступна.</string>

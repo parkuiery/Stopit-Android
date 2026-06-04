@@ -63,6 +63,7 @@
     <string name="start_time">Startzeit</string>
     <string name="routine_no_content_message">Fügen Sie eine Routine hinzu, um die App-Sperre bequemer zu machen!\nStopIt sperrt Ihre Apps automatisch.</string>
     <string name="routine">Routine</string>
+    <string name="goal_lock_menu_title">Zielsperre</string>
     <string name="contact_us">Kontakt</string>
     <string name="monetization_interest_menu_title">StopIt ohne Werbung nutzen?</string>
     <string name="monetization_interest_menu_message">Sag uns, ob eine werbefreie Option hilfreich wäre. Ein Kauf ist noch nicht verfügbar.</string>

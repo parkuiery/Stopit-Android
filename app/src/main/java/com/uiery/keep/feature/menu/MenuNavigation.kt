@@ -17,6 +17,7 @@ fun NavGraphBuilder.menuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
+    onNavigateGoalLockCreation: () -> Unit,
     onNavigateLockHistory: () -> Unit,
     onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
@@ -25,6 +26,7 @@ fun NavGraphBuilder.menuScreen(
             onNavigateDevTool = onNavigateDevTool,
             onNavigateBack = onNavigateBack,
             onNavigateRoutine = onNavigateRoutine,
+            onNavigateGoalLockCreation = onNavigateGoalLockCreation,
             onNavigateLockHistory = onNavigateLockHistory,
             onNavigateEmergencyUnlockSettings = onNavigateEmergencyUnlockSettings,
         )
