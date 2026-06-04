@@ -1,9 +1,6 @@
 package com.uiery.keep.feature.onboarding.notification
 
 import android.Manifest
-import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,17 +15,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -39,9 +31,7 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 
 private fun ManagedActivityResultLauncher<String, Boolean>.requestNotificationPermission() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        launch(Manifest.permission.POST_NOTIFICATIONS)
-    }
+    launch(Manifest.permission.POST_NOTIFICATIONS)
 }
 
 @Composable
@@ -67,9 +57,6 @@ fun NotificationSettingScreen(
     val composition by rememberLottieComposition(
         LottieCompositionSpec.RawRes(R.raw.notification_bell)
     )
-    val context = LocalContext.current
-    var visitSetting by remember { mutableStateOf(false) }
-
     LaunchedEffect(Unit) {
         viewModel.onStepViewed()
     }
@@ -110,40 +97,7 @@ fun NotificationSettingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_notification_permission),
                 onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        requestPermissionLauncher.requestNotificationPermission()
-                        return@KeepButton
-                    }
-
-                    when (
-                        resolveLegacyNotificationPermissionAction(
-                            hasVisitedSettings = visitSetting,
-                            notificationsEnabled =
-                                NotificationManagerCompat.from(context).areNotificationsEnabled(),
-                        )
-                    ) {
-                        LegacyNotificationPermissionAction.OpenSettingsFirstTime -> {
-                            viewModel.onPermissionSettingsOpened()
-                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                            }
-                            context.startActivity(intent)
-                            visitSetting = true
-                        }
-
-                        LegacyNotificationPermissionAction.ReopenSettingsAfterDenied -> {
-                            viewModel.onPermissionDenied()
-                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                            }
-                            context.startActivity(intent)
-                        }
-
-                        LegacyNotificationPermissionAction.GrantAndContinue -> {
-                            viewModel.onPermissionGranted()
-                            onNavigateSelectApp()
-                        }
-                    }
+                    requestPermissionLauncher.requestNotificationPermission()
                 },
             )
         }

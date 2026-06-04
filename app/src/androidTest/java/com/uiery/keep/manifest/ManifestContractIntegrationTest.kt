@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.R
@@ -69,45 +68,30 @@ class ManifestContractIntegrationTest {
 
     private fun matchingReceiverClassNames(action: String): Set<String> {
         val intent = Intent(action).setPackage(context.packageName)
-        val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.queryBroadcastReceivers(
-                intent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.queryBroadcastReceivers(intent, PackageManager.MATCH_ALL)
-        }
+        val receivers = context.packageManager.queryBroadcastReceivers(
+            intent,
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+        )
 
         return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
 
     private fun matchingServiceClassNames(action: String): Set<String> {
         val intent = Intent(action).setPackage(context.packageName)
-        val services = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.queryIntentServices(
-                intent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.queryIntentServices(intent, PackageManager.MATCH_ALL)
-        }
+        val services = context.packageManager.queryIntentServices(
+            intent,
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+        )
 
         return services.mapNotNull { it.serviceInfo?.name }.toSet()
     }
 
     private fun serviceInfo(serviceClass: Class<*>): ServiceInfo {
         val componentName = ComponentName(context, serviceClass)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getServiceInfo(
-                componentName,
-                PackageManager.ComponentInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getServiceInfo(componentName, PackageManager.GET_META_DATA)
-        }
+        return context.packageManager.getServiceInfo(
+            componentName,
+            PackageManager.ComponentInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+        )
     }
 
     private companion object {

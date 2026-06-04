@@ -99,6 +99,9 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             disableAccessibilityServiceFromSettings()
             waitForStopItForeground()
+            it.moveToState(Lifecycle.State.STARTED)
+            it.moveToState(Lifecycle.State.RESUMED)
+            waitForStopItForeground()
             it.onActivity { activity ->
                 assertFalse(
                     "hasAccessibilityPermission should be false after disabling the service from Settings",
@@ -125,6 +128,9 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             enableAccessibilityServiceFromSettings()
             waitForStopItForeground()
+            it.moveToState(Lifecycle.State.STARTED)
+            it.moveToState(Lifecycle.State.RESUMED)
+            waitForStopItForeground()
             it.onActivity { activity ->
                 assertTrue(
                     "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
@@ -140,14 +146,20 @@ class HomeAccessibilityPermissionIntegrationTest {
     private suspend fun configureReturningUserHomeState() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKey.IS_NEW] = false
+            preferences[PreferencesKey.IS_KEEP] = false
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
     private suspend fun clearHomeState() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKey.IS_NEW)
+            preferences.remove(PreferencesKey.IS_KEEP)
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
