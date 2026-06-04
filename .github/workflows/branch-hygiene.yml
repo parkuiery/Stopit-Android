@@ -44,10 +44,4 @@ jobs:
           fi
 
       - name: Reject flavorless app Gradle tasks in workflows
-        run: |
-          set -euo pipefail
-          if find .github/workflows -name '*.yml' ! -name 'branch-hygiene.yml' -print0 \
-            | xargs -0 grep -nE 'run:[[:space:]]*\./gradlew([[:space:]]+--console=plain)?[[:space:]]+(testDebugUnitTest|assembleDebug|lintDebug|testProdReleaseUnitTest|bundleProdRelease)\b'; then
-            echo 'Unqualified app Gradle task found in workflow. Use variant-specific :app tasks instead.'
-            exit 1
-          fi
+        run: python3 scripts/check_workflow_gradle_tasks.py
