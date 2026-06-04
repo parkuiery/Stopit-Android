@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.database.dao.GoalLockDao
+import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -21,6 +23,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -132,6 +136,7 @@ class HomeViewModelReviewTest {
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
+            goalLockDao = EmptyGoalLockDao(),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
@@ -150,4 +155,14 @@ class HomeViewModelReviewTest {
             ),
         )
     }
+}
+
+private class EmptyGoalLockDao : GoalLockDao {
+    override fun fetchAll(): Flow<List<GoalLockEntity>> = flowOf(emptyList())
+
+    override fun fetch(id: Long): GoalLockEntity? = null
+
+    override fun insert(goalLock: GoalLockEntity): Long = goalLock.id
+
+    override fun update(goalLock: GoalLockEntity) = Unit
 }

@@ -25,7 +25,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,7 +41,7 @@ import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
-import com.uiery.keep.util.AppDisplayMetadataResolver
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
@@ -57,11 +56,7 @@ fun BlockScreen(
     viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    val appDisplayMetadataResolver = remember(packageManager) {
-        AppDisplayMetadataResolver(packageManager)
-    }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val uiState by viewModel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.RoutineTemplateShareFailureReason
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
@@ -152,7 +153,51 @@ class RoutineViewModel
             intent {
                 routineNoticeStore.markAlarmPermissionPromptShown()
             }
+
+        internal fun routineTemplateShareSheetOpened(payload: RoutineTemplateSharePayload) =
+            intent {
+                analytics.trackRoutineTemplateShareSheetOpened(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    repeatDaysBucket = payload.repeatDaysBucket.analyticsValue,
+                    timeWindowBucket = payload.timeWindowBucket.analyticsValue,
+                    routineNameIncluded = payload.routineNameIncluded,
+                )
+            }
+
+        internal fun routineTemplateShareFailed(payload: RoutineTemplateSharePayload) =
+            intent {
+                analytics.trackRoutineTemplateShareFailed(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    reason = RoutineTemplateShareFailureReason.ACTIVITY_NOT_FOUND,
+                )
+            }
+
+        internal fun shareRoutineTemplate(routineId: Long) =
+            intent {
+                val routine = state.routines.find { it.id == routineId }
+                val payload = routine?.let { buildRoutineTemplateSharePayload(it) }
+                if (payload == null) {
+                    analytics.trackRoutineTemplateShareFailed(
+                        templateCategory = routine?.let { buildRoutineTemplateSharePayloadForFailure(it) }
+                            ?: RoutineTemplateCategory.CUSTOM.analyticsValue,
+                        reason = RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+                    )
+                    return@intent
+                }
+
+                analytics.trackRoutineTemplateShareTapped(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    repeatDaysBucket = payload.repeatDaysBucket.analyticsValue,
+                    timeWindowBucket = payload.timeWindowBucket.analyticsValue,
+                    routineNameIncluded = payload.routineNameIncluded,
+                )
+                postSideEffect(RoutineSideEffect.ShareRoutineTemplate(payload))
+            }
     }
+
+private fun buildRoutineTemplateSharePayloadForFailure(routine: RoutineModel): String =
+    buildRoutineTemplateSharePayload(routine)?.templateCategory?.analyticsValue
+        ?: RoutineTemplateCategory.CUSTOM.analyticsValue
 
 data class RoutineUiState(
     val isShowRoutineBottomSheet: Boolean = false,
@@ -168,4 +213,8 @@ sealed class RoutineSideEffect {
     ) : RoutineSideEffect()
 
     data object ShowAlarmPermission : RoutineSideEffect()
+
+    data class ShareRoutineTemplate(
+        val payload: RoutineTemplateSharePayload,
+    ) : RoutineSideEffect()
 }

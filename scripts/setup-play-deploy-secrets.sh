@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/setup-play-deploy-secrets.sh --keystore <upload-key.jks> --service-account <play-service-account.json> --alias <key-alias> [--google-services app/src/prod/google-services.json]
+  scripts/setup-play-deploy-secrets.sh --keystore <upload-key.jks> --service-account <play-service-account.json> --alias <key-alias> [--google-services app/src/prod/google-services.json] [--google-services-dev app/src/dev/google-services.json]
 
 Required environment variables or prompts:
   ANDROID_KEYSTORE_PASSWORD
@@ -17,6 +17,7 @@ This script stores required Android/Play deployment credentials as GitHub Action
   ANDROID_KEY_PASSWORD
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
   GOOGLE_SERVICES_JSON
+  GOOGLE_SERVICES_JSON_DEV
 
 Scope notes:
 - configures build/upload secrets only
@@ -31,6 +32,7 @@ USAGE
 KEYSTORE=""
 SERVICE_ACCOUNT=""
 GOOGLE_SERVICES="app/src/prod/google-services.json"
+GOOGLE_SERVICES_DEV="app/src/dev/google-services.json"
 KEY_ALIAS=""
 
 while [[ $# -gt 0 ]]; do
@@ -45,6 +47,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --google-services)
       GOOGLE_SERVICES="${2:-}"
+      shift 2
+      ;;
+    --google-services-dev)
+      GOOGLE_SERVICES_DEV="${2:-}"
       shift 2
       ;;
     --alias)
@@ -83,6 +89,11 @@ if [[ ! -f "$GOOGLE_SERVICES" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$GOOGLE_SERVICES_DEV" ]]; then
+  echo "dev google-services.json file not found: $GOOGLE_SERVICES_DEV" >&2
+  exit 1
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required." >&2
   exit 1
@@ -110,6 +121,7 @@ printf '%s' "$KEY_ALIAS" | gh secret set ANDROID_KEY_ALIAS
 printf '%s' "$ANDROID_KEY_PASSWORD" | gh secret set ANDROID_KEY_PASSWORD
 gh secret set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON < "$SERVICE_ACCOUNT"
 gh secret set GOOGLE_SERVICES_JSON < "$GOOGLE_SERVICES"
+gh secret set GOOGLE_SERVICES_JSON_DEV < "$GOOGLE_SERVICES_DEV"
 
 echo "Deployment secrets configured for $(gh repo view --json nameWithOwner -q .nameWithOwner)."
 echo "Discord deploy notification secrets are managed separately via scripts/setup-discord-deploy-secrets.sh."

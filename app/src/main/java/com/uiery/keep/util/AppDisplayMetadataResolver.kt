@@ -25,6 +25,7 @@ class AppDisplayMetadataResolver(
 
         val icon = appInfo
             ?.let { info -> runCatching { packageManager.getApplicationIcon(info) }.getOrNull() }
+            ?: packageManager.defaultActivityIcon
 
         return AppDisplayMetadata(
             packageName = packageName,
@@ -38,6 +39,6 @@ class AppDisplayMetadataResolver(
 data class AppDisplayMetadata(
     val packageName: String,
     val label: String,
-    val icon: Drawable?,
+    val icon: Drawable,
     val contentDescription: String,
 )

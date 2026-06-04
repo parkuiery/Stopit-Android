@@ -257,6 +257,61 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun routineTemplateShareEventsUseSafeBucketedParamsOnly() {
+        analytics.trackRoutineTemplateShareTapped(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareSheetOpened(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareFailed(
+            templateCategory = RoutineTemplateCategoryName.CUSTOM,
+            reason = RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                params = mapOf(
+                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
+                    KeepAnalyticsParam.REASON to RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+    }
+
+    @Test
     fun deviceRegistrationRuntimeEventsOnlyExposeCurrentBackendRemovedContract() {
         assertEquals(
             setOf(
@@ -374,6 +429,29 @@ class FirebaseKeepAnalyticsTest {
                 ),
             ),
             backend.loggedEvents[1],
+        )
+    }
+
+    @Test
+    fun goalLockCreatedUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockCreated(
+            durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            selectedAppCountBucket = AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+            goalNameType = AnalyticsGoalLockNameType.PRESET_EXAM,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_SELECTION_TYPE to AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+                    KeepAnalyticsParam.GOAL_NAME_TYPE to AnalyticsGoalLockNameType.PRESET_EXAM,
+                ),
+            ),
+            backend.loggedEvents.single(),
         )
     }
 

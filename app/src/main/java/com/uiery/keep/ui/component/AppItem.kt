@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.component
+package com.uiery.keep.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,7 +32,7 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.KeepSwitch
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.formatTwelveHourTime
 import com.uiery.keep.util.isChangeLocked
@@ -44,6 +45,7 @@ internal fun RoutineListContent(
     routines: List<RoutineModel>,
     onEnabledChange: (Long, Boolean) -> Unit,
     onDetailClick: (Long) -> Unit,
+    onShareClick: (Long) -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -72,6 +74,7 @@ internal fun RoutineListContent(
                     changeLockHours = routine.changeLockHours,
                     onEnabledChange = { if (!isBlocked) onEnabledChange(routine.id, it) },
                     onClick = { if (!isBlocked) onDetailClick(routine.id) },
+                    onShareClick = { onShareClick(routine.id) },
                 )
             }
         }
@@ -98,6 +101,7 @@ private fun RoutineItem(
     changeLockHours: Int?,
     onEnabledChange: (Boolean) -> Unit,
     onClick: () -> Unit,
+    onShareClick: () -> Unit,
 ) {
     val isBlocked = isRunning || isLocked
     Row(
@@ -177,6 +181,16 @@ private fun RoutineItem(
             )
         }
         Spacer(modifier = Modifier.weight(1f))
+        IconButton(
+            enabled = !isBlocked,
+            onClick = onShareClick,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_share),
+                contentDescription = stringResource(R.string.cd_share_routine_template),
+                tint = if (isBlocked) KeepTheme.colors.surfaceVariant else KeepTheme.colors.primary,
+            )
+        }
         KeepSwitch(
             checked = isEnabled,
             enabled = !isBlocked,

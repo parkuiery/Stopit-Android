@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RES_DIR = REPO_ROOT / "app" / "src" / "main" / "res"
+QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 LEGACY_BRAND_PATTERN = re.compile(r"(?<![A-Za-z])Keep(?![A-Za-z])")
 
 # String resource names are allowed to keep historical keep_* identifiers; this
@@ -49,6 +50,22 @@ class UserFacingBrandStringsTest(unittest.TestCase):
                     violations.append(f"{path}:{name}: {text}")
 
             self.assertEqual(violations, [])
+
+    def test_runtime_qa_checklist_tracks_brand_copy_evidence_boundary(self):
+        checklist = QA_RUNTIME_CHECKLIST.read_text(encoding="utf-8")
+
+        required_phrases = [
+            "StopIt user-facing brand copy QA evidence",
+            "Issue: #404",
+            "notification_permission_request",
+            "block_screen_first_core_action_feedback",
+            "legacy Keep brand absent",
+            "scripts.tests.test_user_facing_brand_strings",
+        ]
+
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, checklist)
 
 
 if __name__ == "__main__":

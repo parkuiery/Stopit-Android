@@ -128,6 +128,32 @@ interface KeepAnalytics {
         interestVariant: String? = null,
         purchaseAvailable: Boolean? = null,
     ) = Unit
+
+    fun trackRoutineTemplateShareTapped(
+        templateCategory: String,
+        repeatDaysBucket: String,
+        timeWindowBucket: String,
+        routineNameIncluded: Boolean,
+    ) = Unit
+
+    fun trackRoutineTemplateShareSheetOpened(
+        templateCategory: String,
+        repeatDaysBucket: String,
+        timeWindowBucket: String,
+        routineNameIncluded: Boolean,
+    ) = Unit
+
+    fun trackRoutineTemplateShareFailed(
+        templateCategory: String,
+        reason: String,
+    ) = Unit
+
+    fun trackGoalLockCreated(
+        durationSelectionType: String,
+        lockMode: String,
+        selectedAppCountBucket: String,
+        goalNameType: String,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -162,6 +188,10 @@ object KeepAnalyticsEvent {
     const val FOCUS_SUMMARY_SHARE_FAILED = "focus_summary_share_failed"
     const val MONETIZATION_INTEREST_SHOWN = "monetization_interest_shown"
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
+    const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
+    const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
+    const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
+    const val GOAL_LOCK_CREATED = "goal_lock_created"
 }
 
 object KeepAnalyticsParam {
@@ -193,6 +223,14 @@ object KeepAnalyticsParam {
     const val INTEREST_CONTEXT = "interest_context"
     const val INTEREST_VARIANT = "interest_variant"
     const val PURCHASE_AVAILABLE = "purchase_available"
+    const val TEMPLATE_CATEGORY = "template_category"
+    const val REPEAT_DAYS_BUCKET = "repeat_days_bucket"
+    const val TIME_WINDOW_BUCKET = "time_window_bucket"
+    const val ROUTINE_NAME_INCLUDED = "routine_name_included"
+    const val DURATION_SELECTION_TYPE = "duration_selection_type"
+    const val LOCK_MODE = "lock_mode"
+    const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
+    const val GOAL_NAME_TYPE = "goal_name_type"
 }
 
 object OnboardingStepName {
@@ -274,4 +312,59 @@ object AnalyticsMonetizationInterestContext {
     const val MENU_SETTINGS = "menu_settings"
     const val HOME_SECONDARY = "home_secondary"
     const val AD_MANAGEMENT = "ad_management"
+}
+
+object RoutineTemplateCategoryName {
+    const val STUDY = "study"
+    const val WORK = "work"
+    const val NIGHT_FOCUS = "night_focus"
+    const val CUSTOM = "custom"
+}
+
+object RoutineTemplateRepeatDaysBucketName {
+    const val WEEKDAY = "weekday"
+    const val WEEKEND = "weekend"
+    const val DAILY = "daily"
+    const val CUSTOM_DAYS = "custom_days"
+    const val NONE = "none"
+}
+
+object RoutineTemplateTimeWindowBucketName {
+    const val MORNING = "morning"
+    const val AFTERNOON = "afternoon"
+    const val EVENING = "evening"
+    const val NIGHT = "night"
+    const val OVERNIGHT = "overnight"
+    const val CUSTOM_WINDOW = "custom_window"
+}
+
+object RoutineTemplateShareFailureReason {
+    const val ACTIVITY_NOT_FOUND = "activity_not_found"
+    const val INVALID_TEMPLATE = "invalid_template"
+}
+
+object AnalyticsGoalLockDurationSelectionType {
+    const val PRESET_DAYS = "preset_days"
+    const val CUSTOM_DAYS = "custom_days"
+    const val END_DATE = "end_date"
+}
+
+object AnalyticsGoalLockMode {
+    const val ALL_DAY = "all_day"
+    const val SCHEDULED = "scheduled"
+}
+
+object AnalyticsSelectedAppCountBucket {
+    const val ONE = "1"
+    const val TWO_TO_THREE = "2_3"
+    const val FOUR_TO_SIX = "4_6"
+    const val SEVEN_PLUS = "7_plus"
+}
+
+object AnalyticsGoalLockNameType {
+    const val PRESET_EXAM = "preset_exam"
+    const val PRESET_SNS = "preset_sns"
+    const val PRESET_GAME = "preset_game"
+    const val PRESET_SLEEP = "preset_sleep"
+    const val CUSTOM = "custom"
 }

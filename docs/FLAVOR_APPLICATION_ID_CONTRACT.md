@@ -2,7 +2,7 @@
 
 Issue: [#314](https://github.com/parkuiery/Stopit-Android/issues/314)
 
-이 문서는 `dev` / `prod` flavor의 앱 identity를 분리하거나, 분리하지 않는 결정을 유지할 때 반드시 같이 확인해야 하는 운영 계약이다. Stopit은 접근성 서비스, 알림 권한, exact alarm, 루틴 알람, Room/DataStore, backup/restore 정책을 모두 쓰기 때문에 `applicationId` 변경은 단순 Gradle suffix 변경이 아니라 QA/runtime/release identity 변경이다.
+이 문서는 `dev` / `prod` flavor의 앱 identity 분리 상태와, 이후 관련 운영 표면을 변경할 때 반드시 같이 확인해야 하는 계약이다. Stopit은 접근성 서비스, 알림 권한, exact alarm, 루틴 알람, Room/DataStore, backup/restore 정책을 모두 쓰기 때문에 `applicationId` 변경은 단순 Gradle suffix 변경이 아니라 QA/runtime/release identity 변경이다.
 
 ## 현재 상태
 
@@ -11,10 +11,10 @@ Issue: [#314](https://github.com/parkuiery/Stopit-Android/issues/314)
 - `namespace = "com.uiery.keep"`
 - `defaultConfig.applicationId = "com.uiery.keep"`
 - `flavorDimensions += "server"`
-- `dev` flavor에는 `applicationIdSuffix = ".dev"`가 주석 처리되어 있다.
+- `dev` flavor는 `applicationIdSuffix = ".dev"`를 활성화한다.
 - `prod` flavor는 production package id `com.uiery.keep`을 사용한다.
 
-따라서 현재 `devDebug`와 `prodDebug` / `prodRelease`는 같은 앱 package identity를 공유할 수 있다. 이 상태에서는 로컬 dev 설치, CI smoke, release QA, production 설치본이 같은 권한·데이터·알람·접근성 component identity를 공유하거나 덮어쓸 위험이 있다.
+따라서 `devDebug` 설치 identity는 `com.uiery.keep.dev`, `prodDebug` / `prodRelease` 설치 identity는 `com.uiery.keep`이다. 로컬 dev 설치, CI smoke, release QA, production 설치본은 서로 다른 권한·데이터·알람·접근성 component identity를 사용해야 한다.
 
 ## 목표 계약
 
@@ -28,26 +28,26 @@ com.uiery.keep
 
 이 값은 Play Console, 기존 사용자 설치본, 권한 상태, backup/restore identity, Firebase/Crashlytics/Analytics 운영 데이터와 연결되어 있으므로 release 경로에서 바꾸면 안 된다.
 
-### Dev identity 후보
+### Dev identity
 
-`dev` flavor를 분리할 경우 기본 후보는 아래와 같다.
+`dev` flavor는 아래 identity를 사용한다.
 
 ```text
 com.uiery.keep.dev
 ```
 
-이 후보는 `applicationIdSuffix = ".dev"`를 활성화했을 때 `defaultConfig.applicationId`에서 파생되는 값이다. 실제 적용 PR에서는 Gradle 설정뿐 아니라 Firebase client package, CI restore, runtime QA evidence가 모두 일치해야 한다.
+이 값은 `applicationIdSuffix = ".dev"`를 활성화했을 때 `defaultConfig.applicationId`에서 파생된다. 이후 Firebase client package, CI restore, runtime QA evidence는 이 identity와 일치해야 한다.
 
 ## 왜 단순 suffix 변경으로 끝내면 안 되는가
 
 `applicationId`는 Kotlin package / Android `namespace`와 다르다. `namespace`는 코드/R class/manifest package 생성에 관여하지만, runtime 설치 identity와 Android framework 권한·데이터 경계는 `applicationId`가 결정한다.
 
-`dev` applicationId를 바꾸면 최소한 아래 표면이 함께 바뀐다.
+`dev` applicationId가 분리되어 있으므로 최소한 아래 표면은 계속 이 계약과 함께 관리한다.
 
 | 표면 | 확인해야 하는 계약 |
 | --- | --- |
 | Firebase `google-services.json` | `app/src/dev/google-services.json` 안에 `com.uiery.keep.dev` client가 있어야 `processDevDebugGoogleServices`가 성공한다. `prod` source set은 계속 `com.uiery.keep` client를 사용한다. |
-| GitHub Actions restore matrix | Android CI / Release QA는 dev+prod source set을 모두 복원한다. Release Build / Play Deploy는 prod-only 복원이다. Source of truth는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`다. |
+| GitHub Actions restore matrix | Android CI / Release QA는 `GOOGLE_SERVICES_JSON_DEV`를 dev source set에, `GOOGLE_SERVICES_JSON`를 prod source set에 복원한다. Release Build / Play Deploy는 prod-only 복원이다. Source of truth는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`다. |
 | Android CI smoke | `:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`, focused runtime smoke가 dev/prod identity 차이를 전제로 해석되어야 한다. |
 | Runtime permissions | AccessibilityService, `POST_NOTIFICATION`, `SCHEDULE_EXACT_ALARM`, appops, notification channel state가 dev/prod 별개 package로 분리되는지 확인해야 한다. |
 | DataStore / Room | dev 설치본이 production 설치본의 DataStore/Room/backup identity를 덮어쓰거나 공유하지 않는지 확인해야 한다. |
@@ -56,11 +56,11 @@ com.uiery.keep.dev
 | Play deploy | `bundleProdRelease` / `play-deploy.yml`은 오직 `com.uiery.keep` artifact만 업로드해야 한다. |
 | Test commands | host-side `adb shell appops set ...` 명령은 대상 package를 명시하므로 dev split 이후 `com.uiery.keep.dev`와 `com.uiery.keep`를 혼동하면 QA evidence가 무효가 된다. |
 
-## 적용 전 체크리스트
+## 변경/회귀 체크리스트
 
-Dev/prod identity split PR은 다음을 하나의 패키지로 다룬다.
+Dev/prod identity를 변경하거나 관련 CI/QA surface를 고칠 때는 다음을 하나의 패키지로 다룬다.
 
-- [ ] `app/build.gradle.kts`의 dev flavor identity가 명시되어 있고, prod/release identity가 `com.uiery.keep`으로 유지된다.
+- [ ] `app/build.gradle.kts`의 dev flavor identity가 `com.uiery.keep.dev`로 분리되어 있고, prod/release identity가 `com.uiery.keep`으로 유지된다.
 - [ ] dev Firebase config가 `com.uiery.keep.dev` client를 포함한다는 증거가 있다. secret 값은 출력하지 않는다.
 - [ ] `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`의 restore matrix와 실제 workflow가 일치한다.
 - [ ] Android CI / Release QA에서 dev package 대상 appops 명령과 prod package 대상 release/Play 계약이 섞이지 않는다.
@@ -71,7 +71,7 @@ Dev/prod identity split PR은 다음을 하나의 패키지로 다룬다.
 
 ## 적용 후 QA evidence
 
-Dev split을 실제로 적용한 PR은 최소 아래 evidence를 PR body에 적는다.
+Dev/prod identity 계약을 변경하거나 검증한 PR은 최소 아래 evidence를 PR body에 적는다.
 
 ```bash
 ./gradlew :app:testDevDebugUnitTest

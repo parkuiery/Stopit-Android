@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.component
+package com.uiery.keep.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement

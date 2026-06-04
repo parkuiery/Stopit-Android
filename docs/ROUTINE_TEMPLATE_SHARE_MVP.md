@@ -2,7 +2,7 @@
 
 Issue: #407
 
-이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 만들기 전, 제품/analytics/QA/implementation handoff 계약을 고정한다. 구현 PR의 source of truth는 코드와 `docs/ANALYTICS_EVENT_DICTIONARY.md`가 되지만, 구현 전 discovery/기획 판단은 이 문서를 따른다.
+이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. 구현 PR의 source of truth는 코드와 `docs/ANALYTICS_EVENT_DICTIONARY.md`이며, GA4 Admin 등록·배포 후 측정 전까지는 이 문서의 외부/manual 경계를 따른다.
 
 ## 한 줄 목표
 

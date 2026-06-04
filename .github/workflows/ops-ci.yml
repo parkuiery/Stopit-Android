@@ -12,6 +12,7 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/validate-play-rollout-inputs.js'
       - 'scripts/release-tag.sh'
       - 'scripts/check-play-deploy-secret-contract.sh'
       - 'scripts/setup-play-deploy-secrets.sh'
@@ -33,6 +34,7 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/validate-play-rollout-inputs.js'
       - 'scripts/release-tag.sh'
       - 'scripts/check-play-deploy-secret-contract.sh'
       - 'scripts/setup-play-deploy-secrets.sh'
@@ -82,6 +84,7 @@ jobs:
               - 'scripts/release-start.sh'
               - 'scripts/bump-version.sh'
               - 'scripts/validate-play-deploy-ref.sh'
+              - 'scripts/validate-play-rollout-inputs.js'
               - 'scripts/release-tag.sh'
               - 'scripts/check-play-deploy-secret-contract.sh'
               - 'scripts/setup-play-deploy-secrets.sh'
@@ -194,6 +197,9 @@ jobs:
 
       - name: Run Google Play promotion helper tests
         run: node --test scripts/tests/test_promote_google_play_track.js
+
+      - name: Check staged rollout validator syntax
+        run: node --check scripts/validate-play-rollout-inputs.js
 
       - name: Run release-helper guardrail Python tests
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'

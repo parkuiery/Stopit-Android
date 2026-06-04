@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.component
+package com.uiery.keep.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -43,7 +43,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.feature.home.appselection.InstalledAppRepository
+import com.uiery.keep.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

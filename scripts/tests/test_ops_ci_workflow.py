@@ -23,6 +23,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts/release-start.sh", workflow)
         self.assertIn("scripts/bump-version.sh", workflow)
         self.assertIn("scripts/validate-play-deploy-ref.sh", workflow)
+        self.assertIn("scripts/validate-play-rollout-inputs.js", workflow)
         self.assertIn("scripts/play_version_code_guard.py", workflow)
         self.assertIn("scripts/release-tag.sh", workflow)
         self.assertIn("scripts/check-play-deploy-secret-contract.sh", workflow)
@@ -35,6 +36,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("npm run lint", workflow)
         self.assertIn("npm test", workflow)
         self.assertIn("node --test scripts/tests/test_promote_google_play_track.js", workflow)
+        self.assertIn("node --check scripts/validate-play-rollout-inputs.js", workflow)
         self.assertIn("python3 -m py_compile scripts/notify-discord-deploy.py", workflow)
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
         self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh", workflow)
@@ -46,6 +48,10 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts/check-play-deploy-secret-contract.sh",
             "scripts/setup-play-deploy-secrets.sh",
             "scripts/setup-discord-deploy-secrets.sh",
+            "scripts/validate-play-rollout-inputs.js",
+        ]
+        shell_helper_scripts = [
+            script for script in helper_scripts if script.endswith(".sh")
         ]
 
         for trigger in ("pull_request", "push"):
@@ -60,9 +66,12 @@ class OpsCiWorkflowTest(unittest.TestCase):
                 self.assertIn(f"'{script}'", release_helpers_filter)
 
         syntax_step = self._step_block(workflow, "Check release-helper shell syntax")
-        for script in helper_scripts:
+        for script in shell_helper_scripts:
             with self.subTest(step="shell syntax", script=script):
                 self.assertIn(script, syntax_step)
+
+        rollout_syntax_step = self._step_block(workflow, "Check staged rollout validator syntax")
+        self.assertIn("node --check scripts/validate-play-rollout-inputs.js", rollout_syntax_step)
 
     def test_docs_only_changes_materialize_docs_contract_gate_without_functions_or_android_builds(self):
         workflow = OPS_CI_WORKFLOW.read_text()
@@ -121,6 +130,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts/check-play-deploy-secret-contract.sh",
             "scripts/setup-play-deploy-secrets.sh",
             "scripts/setup-discord-deploy-secrets.sh",
+            "scripts/validate-play-rollout-inputs.js",
         ]:
             with self.subTest(doc="GIT_WORKFLOW", script=script):
                 self.assertIn(script, git_workflow)

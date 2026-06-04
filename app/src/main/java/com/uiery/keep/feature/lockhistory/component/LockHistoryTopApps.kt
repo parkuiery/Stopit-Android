@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.util.AppDisplayMetadataResolver
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 
 @Composable
 internal fun LockHistoryTopApps(
@@ -74,11 +73,7 @@ private fun TopAppItem(
     packageName: String,
     blockCount: Int,
 ) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    val appDisplayMetadataResolver = remember(packageManager) {
-        AppDisplayMetadataResolver(packageManager)
-    }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
 
     val appMetadata = remember(packageName, appDisplayMetadataResolver) {
         appDisplayMetadataResolver.resolve(packageName)
@@ -95,15 +90,13 @@ private fun TopAppItem(
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
         )
-        appMetadata.icon?.let { icon ->
-            Image(
-                bitmap = icon.toBitmap().asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-            )
-        }
+        Image(
+            bitmap = appMetadata.icon.toBitmap().asImageBitmap(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        )
         Text(
             text = appMetadata.label,
             color = KeepTheme.colors.onSurfaceVariant,

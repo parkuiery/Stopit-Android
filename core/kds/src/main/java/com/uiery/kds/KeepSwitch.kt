@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.home.component
+package com.uiery.kds
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Switch
