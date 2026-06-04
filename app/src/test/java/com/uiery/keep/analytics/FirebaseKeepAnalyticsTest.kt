@@ -137,6 +137,11 @@ class FirebaseKeepAnalyticsTest {
             blockedAppPackage = "com.example.routine",
             routineId = "42",
         )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.GOAL_LOCK,
+            blockedAppPackage = "com.example.goal",
+            goalLockId = "77",
+        )
         analytics.trackEmergencyUnlockCompleted(
             reason = "work",
             durationMinutes = 15,
@@ -193,6 +198,17 @@ class FirebaseKeepAnalyticsTest {
         )
         assertEquals(
             LoggedEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.goal",
+                    KeepAnalyticsParam.GOAL_LOCK_ID to "77",
+                ),
+            ),
+            backend.loggedEvents[5],
+        )
+        assertEquals(
+            LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.REASON to "work",
@@ -200,7 +216,7 @@ class FirebaseKeepAnalyticsTest {
                     KeepAnalyticsParam.REMAINING_UNLOCKS to 1,
                 ),
             ),
-            backend.loggedEvents[5],
+            backend.loggedEvents[6],
         )
     }
 

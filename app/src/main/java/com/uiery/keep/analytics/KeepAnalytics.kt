@@ -62,6 +62,7 @@ interface KeepAnalytics {
         blockSource: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
@@ -75,6 +76,7 @@ interface KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackCoreActionCompleted(
@@ -82,6 +84,7 @@ interface KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackFcmTokenCaptured() = Unit
@@ -193,6 +196,7 @@ object KeepAnalyticsParam {
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
     const val BLOCKING_MODE = "blocking_mode"
     const val ROUTINE_ID = "routine_id"
+    const val GOAL_LOCK_ID = "goal_lock_id"
     const val ERROR = "error"
     const val PERIOD_TYPE = "period_type"
     const val SESSION_COUNT_BUCKET = "session_count_bucket"
@@ -268,6 +272,7 @@ object AnalyticsBlockSource {
     const val MANUAL_KEEP = "manual_keep"
     const val TIMED_LOCK = "timed_lock"
     const val ROUTINE = "routine"
+    const val GOAL_LOCK = "goal_lock"
 }
 
 object AnalyticsDeviceRegistrationSkipReason {

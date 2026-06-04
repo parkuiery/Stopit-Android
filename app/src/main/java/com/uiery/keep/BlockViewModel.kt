@@ -41,7 +41,9 @@ class BlockViewModel
             packageName: String,
             blockSource: String,
             routineId: String?,
+            goalLockId: String? = null,
         ) = intent {
+            val normalizedGoalLockId = goalLockId?.trim()?.takeIf { it.isNotEmpty() }
             val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
                 fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
             )
@@ -56,6 +58,7 @@ class BlockViewModel
                 blockSource = blockSource,
                 blockedAppPackage = packageName,
                 routineId = routineId,
+                goalLockId = normalizedGoalLockId,
             )
             if (hasTrackedFirstCoreAction) {
                 reduce { state.copy(showFirstCoreActionFeedback = false) }
@@ -64,6 +67,7 @@ class BlockViewModel
                     blockingMode = blockSource,
                     blockedAppPackage = packageName,
                     routineId = routineId,
+                    goalLockId = normalizedGoalLockId,
                 )
             } else {
                 reduce { state.copy(showFirstCoreActionFeedback = true) }
@@ -72,6 +76,7 @@ class BlockViewModel
                     blockingMode = blockSource,
                     blockedAppPackage = packageName,
                     routineId = routineId,
+                    goalLockId = normalizedGoalLockId,
                 )
                 blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
             }
@@ -148,6 +153,7 @@ internal fun String?.orDefaultBlockSource(): String =
     when (this) {
         AnalyticsBlockSource.MANUAL_KEEP,
         AnalyticsBlockSource.TIMED_LOCK,
-        AnalyticsBlockSource.ROUTINE -> this
+        AnalyticsBlockSource.ROUTINE,
+        AnalyticsBlockSource.GOAL_LOCK -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }

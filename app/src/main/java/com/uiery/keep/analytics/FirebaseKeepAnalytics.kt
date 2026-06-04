@@ -151,6 +151,7 @@ class FirebaseKeepAnalytics
             blockSource: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
@@ -158,6 +159,7 @@ class FirebaseKeepAnalytics
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
                     put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
                     routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+                    goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
                 },
             )
         }
@@ -182,6 +184,7 @@ class FirebaseKeepAnalytics
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
@@ -190,6 +193,7 @@ class FirebaseKeepAnalytics
                     blockingMode = blockingMode,
                     blockedAppPackage = blockedAppPackage,
                     routineId = routineId,
+                    goalLockId = goalLockId,
                 ),
             )
         }
@@ -199,6 +203,7 @@ class FirebaseKeepAnalytics
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
@@ -207,6 +212,7 @@ class FirebaseKeepAnalytics
                     blockingMode = blockingMode,
                     blockedAppPackage = blockedAppPackage,
                     routineId = routineId,
+                    goalLockId = goalLockId,
                 ),
             )
         }
@@ -369,10 +375,12 @@ class FirebaseKeepAnalytics
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
             put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
             routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+            goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
         }
     }

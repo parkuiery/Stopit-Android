@@ -2,13 +2,18 @@ package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime as JavaLocalTime
 import java.time.ZoneId
 
 class KeepAccessibilityServiceBlockDecisionTest {
@@ -129,6 +134,59 @@ class KeepAccessibilityServiceBlockDecisionTest {
     }
 
     @Test
+    fun activeGoalLockTargetUsesGoalLockSourceWithoutManualSelection() {
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.uiery.keep.target",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            cachedGoalLocks = listOf(
+                activeGoalLock(
+                    id = 77L,
+                    targetPackage = "com.uiery.keep.target",
+                    mode = GoalLockMode.AllDay,
+                ),
+            ),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.uiery.keep.target",
+                blockSource = AnalyticsBlockSource.GOAL_LOCK,
+                goalLockId = "77",
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun inactiveGoalLockDoesNotBlockSelectedTarget() {
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.uiery.keep.target",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            cachedGoalLocks = listOf(
+                activeGoalLock(
+                    id = 77L,
+                    targetPackage = "com.uiery.keep.target",
+                    mode = GoalLockMode.Scheduled(
+                        repeatDays = setOf(DayOfWeek.WEDNESDAY),
+                        startTime = JavaLocalTime.of(19, 0),
+                        endTime = JavaLocalTime.of(23, 0),
+                    ),
+                ),
+            ),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
     fun duplicateBlockSuppressesBlockRequest() {
         val request = resolveForegroundBlockRequest(
             packageName = "com.uiery.keep",
@@ -230,6 +288,20 @@ class KeepAccessibilityServiceBlockDecisionTest {
         repeatDays = repeatDayBinary(DayOfWeek.WEDNESDAY),
         lockApplications = listOf(targetPackage),
         isEnabled = true,
+    )
+
+    private fun activeGoalLock(
+        id: Long = 1L,
+        targetPackage: String,
+        mode: GoalLockMode,
+    ): GoalLock = GoalLock(
+        id = id,
+        goalName = "시험 준비",
+        startDate = LocalDate.of(2026, 5, 1),
+        endDate = LocalDate.of(2026, 5, 31),
+        lockMode = mode,
+        selectedPackages = setOf(targetPackage),
+        status = GoalLockStoredStatus.Active,
     )
 
     private fun repeatDayBinary(dayOfWeek: DayOfWeek): String = buildString {
