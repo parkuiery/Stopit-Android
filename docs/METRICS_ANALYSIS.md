@@ -82,7 +82,7 @@
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 privacy-safe MVP 계약. `lockApplications`, package name, 앱 이름, raw session history를 payload/analytics에서 제외하고, `routine_template_share_*` 이벤트와 14일/30일 측정 기준을 정리한다.
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, `goal_lock_*` 이벤트, enum/bucket privacy guardrail, 구현·GA4 Admin·release·14일/30일 측정 경계를 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.
-- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐고, 2026-06-02T18:06:45Z live 재조회에서 skip reason용 `customEvent:reason`은 조회 가능해졌다. 다음 판단은 PR #308/#312 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인하되, failure 원인용 `customEvent:error`는 아직 GA4 Admin 미등록 경계로 둔다.
+- `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 `review_prompt_shown = 0` 재측정, 버전별 lifecycle 표, Play Console 14일/30일 후행 지표 런북. 2026-06-02 기준 PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐고, 2026-06-02T18:06:45Z live 재조회에서 skip reason용 `customEvent:reason`은 조회 가능해졌다. 2026-06-04T21:24:42Z 재확인 기준 `origin/main` `20b8ff4a`와 최신 tag `v1.7.7` `f49e7de9`는 아직 PR #308/#312 merge commit을 포함하지 않으므로, 다음 판단은 PR #308/#312 포함 버전 배포 여부와 배포 후 14일 관측 창을 먼저 확인하되, failure 원인용 `customEvent:error`는 아직 GA4 Admin 미등록 경계로 둔다.
 - `docs/VERSION_ADOPTION_METRICS_GATE.md`: #359용 버전 채택률/최신 버전 cohort 판독 게이트. #13/#14/#16/#307처럼 release/tag/Play 배포 후에야 의미가 생기는 지표는 전체 30일 합산과 최신 배포 버전 cohort를 분리해 confidence를 `충분/주의/보류`로 표시한다.
 
 ## 빠른 분석 명령
