@@ -34,6 +34,7 @@ This separation keeps code quality failures, release artifact failures, and Play
 Android CI path gating contract:
 - `gradlew` / `gradlew.bat`, root Gradle config files, `scripts/verify_lint_registry.py`, and `.github/workflows/android-ci.yml` are treated as **build-critical** root/script inputs.
 - wrapper-only, Gradle-launcher-only, or lint-registry-verifier-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
+- `stopit-prod-debug-apk` is a short-lived PR/smoke artifact. Android CI keeps it at `retention-days: 7`, while signed release artifacts remain longer-lived (`30` days in Release Build / non-production Play Deploy). The upload step is `non-blocking` (`continue-on-error: true`) because the artifact is optional after build/test success. If a run reports `Upload prod debug APK` with `Artifact storage quota has been hit`, treat it as GitHub Actions storage/quota exhaustion rather than an app/test regression; clean or wait for artifact expiry and GitHub's 6–12 hour quota recalculation, then rerun the same current-head checks when artifact readback is needed.
 
 Play deploy secret/setup contract:
 - `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` is the source of truth for Play deploy secret ownership, helper scope, and the `GOOGLE_SERVICES_JSON` restore matrix.

@@ -17,7 +17,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:testDevDebugUnitTest`
   - `./gradlew :app:lintDevDebug`
   - `./gradlew :app:assembleProdDebug`
-  - upload prod debug APK artifact
+  - upload prod debug APK artifact with short 7-day retention
+- Android CI `stopit-prod-debug-apk` is a PR/smoke inspection artifact, not a release artifact. Keep its `retention-days: 7` shorter than signed release AAB artifacts (`30` days in Release Build / non-production Play Deploy) so repeated PR runs do not exhaust GitHub Actions artifact storage. The upload step is intentionally `non-blocking` (`continue-on-error: true`): if `Upload prod debug APK` fails with `Artifact storage quota has been hit`, classify it as an external GitHub Actions storage/quota boundary after the preceding build/test steps have passed; delete or let old artifacts expire, wait for GitHub's 6–12 hour quota recalculation window, then rerun the current-head Android CI check to restore the optional artifact.
 - Android CI path gating treats `gradlew` / `gradlew.bat`, Gradle config files, and `.github/workflows/android-ci.yml` as **build-critical** root inputs, so wrapper launcher-only PRs still materialize `Fast verification` instead of looking green through skipped checks.
 - Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
   - source of truth for this class list is `.github/workflows/android-ci.yml`; release-facing docs should cite the current Android CI run URL instead of copying this PR-gate list into the Release QA evidence section

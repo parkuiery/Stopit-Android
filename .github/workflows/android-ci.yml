@@ -126,11 +126,13 @@ jobs:
         run: ./gradlew --console=plain :app:assembleProdDebug
 
       - name: Upload prod debug APK
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: stopit-prod-debug-apk
           path: app/build/outputs/apk/prod/debug/*.apk
           if-no-files-found: error
+          retention-days: 7
 
   runtime-smoke:
     name: Runtime smoke gate
