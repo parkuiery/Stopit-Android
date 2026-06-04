@@ -1,8 +1,9 @@
 # 루틴 템플릿 공유 MVP
 
 Issue: #407
+상태: **repo-internal 구현/검증 완료, 외부·post-release 경계 대기**
 
-이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. 구현 PR의 source of truth는 코드와 `docs/ANALYTICS_EVENT_DICTIONARY.md`이며, GA4 Admin 등록·배포 후 측정 전까지는 이 문서의 외부/manual 경계를 따른다.
+이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. PR #428에서 Android share sheet MVP가 `origin/develop`에 구현·검증됐으므로, 현재 source of truth는 코드, `docs/ANALYTICS_EVENT_DICTIONARY.md`, 이 runbook이다. 다만 GA4 Admin 등록·metadata readback·release/tag/Play deploy 포함 여부 확인·배포 후 14/30일 측정 전까지는 효과 판정을 외부/manual 경계로 둔다.
 
 ## 한 줄 목표
 
@@ -103,9 +104,9 @@ https://play.google.com/store/apps/details?id=com.uiery.keep
 - Play Store 링크가 포함된다.
 - 유효하지 않은 루틴 입력에서는 payload 생성이 실패하거나 CTA가 숨겨진다.
 
-## Analytics 계약 초안
+## Analytics 계약
 
-구현 PR에서 `KeepAnalytics.kt`, Firebase 구현, 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`를 함께 업데이트한다.
+PR #428에서 `KeepAnalytics.kt`, `FirebaseKeepAnalytics.kt`, `RoutineViewModel`, focused tests, `docs/ANALYTICS_EVENT_DICTIONARY.md`, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`가 아래 이벤트/파라미터 계약에 맞춰 동기화됐다. GA4 Admin custom dimension 등록과 metadata readback은 아직 수동 운영 경계다.
 
 | 이벤트 | 트리거 | 파라미터 | 민감 정보 정책 |
 | --- | --- | --- | --- |
@@ -180,19 +181,46 @@ GA4 custom dimension 등록은 구현 완료 후 별도 수동/운영 단계가 
 - 잠금/긴급해제/safety flow 화면에서 공유 CTA가 사용자를 압박하지 않는다.
 - 공유 preview가 있다면 민감 정보가 없는지 수동으로 확인한다.
 
-## 구현 패키지 추천 범위
+## 구현 상태 / 남은 경계
 
-이 문서 PR은 discovery/contract 산출물이다. 구현 착수 시에는 #407을 바로 닫기보다 아래 패키지를 한 PR에서 끝까지 처리한다.
+### 2026-06-04 구현 foothold
 
-1. `RoutineTemplateSharePayload` 같은 작은 formatter/helper 추가.
-2. helper 단위 테스트로 privacy guardrail RED/GREEN.
-3. `RoutineViewModel` 또는 루틴 UI state에 공유 가능 여부/summary payload 연결.
-4. 루틴 상세/목록 화면에 선택형 CTA와 share sheet side effect 추가.
-5. `KeepAnalytics` 이벤트/구현/테스트 추가.
-6. `docs/ANALYTICS_EVENT_DICTIONARY.md` 이벤트 반영.
-7. `docs/QA_RUNTIME_CHECKLIST.md` 또는 관련 QA 문서에 수동 share sheet 확인 추가.
+PR #428(`40b174b1`)에서 Android share sheet MVP가 `origin/develop`에 들어갔다.
 
-`Closes #407`는 위 구현+테스트+event dictionary+QA 문서+GA4 Admin handoff까지 완료했을 때만 사용한다. 이 문서-only PR은 `Refs #407`가 맞다.
+완료된 repo-internal 범위:
+
+1. `RoutineTemplateSharePayload` formatter/helper와 privacy guardrail 테스트.
+2. `RoutineViewModel` 공유 가능 여부/side effect/analytics wiring.
+3. 루틴 목록의 선택형 `루틴 템플릿 공유` CTA와 Android share sheet launch/failure 처리.
+4. `KeepAnalytics` / `FirebaseKeepAnalytics` / analytics regression.
+5. `docs/ANALYTICS_EVENT_DICTIONARY.md`, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`, `docs/QA_RUNTIME_CHECKLIST.md` 동기화.
+6. `scripts.tests.test_routine_template_share_contract` regression 유지.
+
+검증된 명령/원격 증거:
+
+```bash
+python3 -m unittest scripts.tests.test_routine_template_share_contract -v
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' \
+  --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest' \
+  --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest'
+./gradlew --console=plain :app:assembleProdDebug :app:lintProdRelease
+git diff --check
+```
+
+PR #428 merge 전 remote Branch Hygiene, Docs/runbook contract tests, Fast verification, Runtime smoke gate가 green이었다.
+
+### 아직 닫지 않는 이유
+
+`Closes #407`는 위 repo-internal 구현만으로는 아직 이르다. 다음 외부/manual/post-release 경계가 남아 있다.
+
+- GA4 Admin custom dimension 등록과 metadata readback.
+- 루틴 템플릿 공유 포함 commit의 `origin/main` / SemVer tag / Play deploy 포함 여부 확인.
+- 배포 후 14일/30일 share/retention/acquisition readback.
+- deep link/import는 UX/보안/중복 루틴 처리 결정을 먼저 해야 한다.
+
+따라서 현재 후속 PR/issue comment는 `Refs #407`를 유지하고, 위 외부 경계가 충족된 뒤 closure pass에서 #407을 닫는다.
 
 ## 외부/manual 경계
 

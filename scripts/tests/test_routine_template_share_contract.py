@@ -20,6 +20,8 @@ class RoutineTemplateShareContractTest(unittest.TestCase):
 
         required_phrases = [
             "Issue: #407",
+            "repo-internal 구현/검증 완료",
+            "PR #428",
             "Android share sheet",
             "deep link/import는 별도 결정 게이트",
             "lockApplications",
