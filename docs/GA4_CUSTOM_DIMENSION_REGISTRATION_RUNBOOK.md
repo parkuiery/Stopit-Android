@@ -118,6 +118,7 @@
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 1차 실험인 광고 제거 관심도 측정은 `monetization_interest_shown` / `monetization_interest_clicked`에 이 파라미터를 붙여야 문맥별 클릭률을 계산할 수 있다.
 - 단, 실제 결제 구현 전에는 구매 전환이 아니라 관심도 신호로만 해석한다. `purchase_available=false` 상태의 클릭을 매출 전환으로 표현하지 않는다.
 - 1·2순위 활성화/신뢰 축과 3순위 광고 source split이 해석 가능한 상태가 된 뒤에 구현/등록하는 것이 기본이다.
+- PR #402 merge commit `de142bd34a2729bcbb1e932db70b34d6459ce3b0`으로 메뉴/설정 CTA UI는 `origin/develop`에 연결됐지만, 2026-06-04 확인 기준 `origin/main`에는 없다. 따라서 `customEvent:interest_context` / `customEvent:interest_surface` 등록과 CTA 포함 release/tag/Play deploy 전에는 event 0을 수요 없음으로 해석하지 않는다.
 
 ### 5순위: 루틴 템플릿 공유 루프 조회성
 

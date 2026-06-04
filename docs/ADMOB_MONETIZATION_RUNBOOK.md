@@ -662,15 +662,43 @@ rg -n 'com.google.android.gms.ads.APPLICATION_ID|manifestPlaceholders|adMob' app
 
 ### 광고 제거 관심도 측정 handoff
 
-PR #362 이후 #16의 repo-internal 계약은 “관심도 이벤트 이름과 파라미터가 코드에 존재한다”까지 전진했다. 하지만 이 상태를 곧바로 수요 검증이나 구매 전환으로 해석하지 않는다. 다음 순서를 모두 충족한 뒤에만 실험 지표를 읽는다.
+PR #362 이후 #16의 repo-internal 계약은 “관심도 이벤트 이름과 파라미터가 코드에 존재한다”까지 전진했고, PR #402에서 첫 CTA UI까지 연결됐다. 하지만 이 상태를 곧바로 수요 검증이나 구매 전환으로 해석하지 않는다. 다음 순서를 모두 충족한 뒤에만 실험 지표를 읽는다.
 
 | 단계 | 완료 조건 | 아직 남은 경계 |
 | --- | --- | --- |
 | 코드 계약 | `monetization_interest_shown` / `monetization_interest_clicked`와 `interest_context`, `interest_surface`, `interest_variant`, `purchase_available` 파라미터가 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 존재 | 완료됨(PR #362) |
-| CTA UI | 완료됨: `MenuScreen.kt` 메뉴/설정 표면에 결제 미구현 안내 CTA가 노출되고 클릭 시 문의 메일 흐름으로 연결됨 | code-lane 2026-06-04. 핵심 차단·긴급해제·권한 흐름은 계속 제외 |
+| CTA UI | 완료됨: `MenuScreen.kt` 메뉴/설정 표면에 결제 미구현 안내 CTA가 노출되고 클릭 시 문의 메일 흐름으로 연결됨 | 완료됨(PR #402, merge commit `de142bd34a2729bcbb1e932db70b34d6459ce3b0`). 핵심 차단·긴급해제·권한 흐름은 계속 제외 |
 | GA4 Admin 등록 | `customEvent:interest_context`, `customEvent:interest_surface`가 metadata에 보임 | 수동 등록 필요. `interest_variant`, `purchase_available`은 variant 비교/결제 가능 상태 분리가 필요할 때 등록 |
 | 배포/관측 | CTA 포함 버전이 release/tag/Play deploy에 포함되고 14일 이상 데이터가 쌓임 | post-release 창 전에는 event 0을 수요 없음으로 해석 금지 |
 | 실험 판단 | `clicked users / shown users`와 activation/review/trust guardrail을 함께 기록 | 구매 전환/매출 전환 표현 금지. 결제 미구현이면 관심도 신호만 기록 |
+
+#### PR #402 release boundary snapshot
+
+2026-06-04 docs-lane 확인 기준:
+
+| 항목 | 상태 | 증거 |
+| --- | --- | --- |
+| PR #402 CTA merge commit | develop 포함 | `de142bd34a2729bcbb1e932db70b34d6459ce3b0` is ancestor of `origin/develop` |
+| PR #402 in `origin/main` | 아님 | `git merge-base --is-ancestor de142bd34a2729bcbb1e932db70b34d6459ce3b0 origin/main` = no |
+| 최신 production tag | `v1.7.7` | PR #402 이전 production marker 기준. CTA 포함 버전 아님 |
+| PR #402 PR checks | 통과 | Branch Hygiene, Android CI Fast verification, Runtime smoke gate, Docs/runbook contract tests, Release helper script verification success |
+
+운영 해석:
+
+- “CTA UI 연결 완료”는 repo-internal 구현 완료를 뜻한다. **관심도 실험 결과 해석 가능**을 뜻하지 않는다.
+- PR #402가 `main`/SemVer tag/Play deploy에 포함되기 전에는 `monetization_interest_shown` 또는 `monetization_interest_clicked`가 0건이어도 “수요 없음”으로 해석하지 않는다.
+- GA4 Admin에서 `customEvent:interest_context`와 `customEvent:interest_surface`가 metadata에 보이기 전에는 문맥별 클릭률을 계산하지 않는다.
+- CTA 포함 production deploy 후 14일 창에서만 `clicked users / shown users`를 demand signal로 기록한다. 이때도 `purchase_available=false`이면 구매 전환이 아니라 관심도 신호다.
+- 같은 창에서 activation, review/rating, crash-free users, trust-sensitive flow complaint를 같이 확인한다. guardrail 악화가 있으면 클릭률이 있어도 실험 확대를 보류한다.
+
+다음 재조회 시작 조건:
+
+```bash
+# PR #402 CTA merge commit이 release boundary를 넘었는지 먼저 확인한다.
+git merge-base --is-ancestor de142bd34a2729bcbb1e932db70b34d6459ce3b0 origin/main
+git merge-base --is-ancestor de142bd34a2729bcbb1e932db70b34d6459ce3b0 <release-tag>
+gh release view <release-tag> --json tagName,publishedAt,body,url
+```
 
 `Refs #16` PR/이슈 코멘트에는 위 표 중 어디까지 완료됐는지와 남은 외부/manual boundary를 함께 적는다. `Closes #16`는 AdMob post-split 14일 재조회와 관심도 CTA/GA4 Admin/guardrail 판단까지 끝난 뒤에만 사용한다.
 
