@@ -9,14 +9,14 @@ PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 
-LATEST_TIMESTAMP = "2026-06-03T23:09:27Z"
+LATEST_TIMESTAMP = "2026-06-04T05:23:00Z"
 LATEST_VALUES = [
     "464",
     "285",
     "179",
     "61.4%",
     "+28.9%",
-    "-23.8%",
+    "-23.5%",
 ]
 
 
@@ -46,7 +46,7 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
     def test_play_store_aso_keeps_manual_attribution_boundary_explicit(self):
         play_store_aso = PLAY_STORE_ASO.read_text()
 
-        self.assertIn("2026-06-03 fourth live readback", play_store_aso)
+        self.assertIn("2026-06-04 live readback", play_store_aso)
         self.assertIn("Direct 61.4% 유지", play_store_aso)
         self.assertIn("신규 유입 반등을 ASO 효과로 표현 금지", play_store_aso)
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
