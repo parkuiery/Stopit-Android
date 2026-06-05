@@ -39,10 +39,10 @@
     <string name="pm">PM</string>
     <string name="category_selected">%1$d apps &amp; web categories selected</string>
     <string name="keep_on_status">StopIt está activado</string>
-    <string name="block_screen_title">StopIt está bloqueando el uso de la aplicación</string>
-    <string name="block_screen_message">%1$s no se puede usar porque está restringido.</string>
+    <string name="block_screen_title">Pausa un momento: estás cumpliendo tu promesa</string>
+    <string name="block_screen_message">%1$s está en pausa ahora. Cierra esta pantalla y vuelve a lo que estabas haciendo.</string>
     <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras StopIt esté activado.</string>
-    <string name="block_screen_close">Cerrar</string>
+    <string name="block_screen_close">Volver a lo que estaba haciendo</string>
     <string name="permission_dialog_title">Se requiere permiso de accesibilidad</string>
     <string name="permission_dialog_message">Este permiso ayuda a detectar el uso de la aplicación para bloquear aplicaciones específicas.\nLa información recopilada no se utiliza para ningún otro propósito que no sea el bloqueo de aplicaciones y no se transmite externamente.</string>
     <string name="permission_dialog_confirm">Ir a configuración</string>
@@ -180,7 +180,11 @@
     <string name="emergency_unlock_next">Siguiente</string>
     <string name="emergency_unlock_daily_limit_reached">Has usado todos los desbloqueos de emergencia de hoy</string>
     <string name="emergency_unlock_disabled">El desbloqueo de emergencia está desactivado</string>
-    <string name="emergency_unlock_daily_limit_zero">Los desbloqueos de emergencia están configurados en 0 al día</string>
+    <string name="emergency_unlock_daily_limit_zero">El desbloqueo de emergencia está configurado en 0 veces al día</string>
+    <string name="emergency_unlock_available_helper">Úsalo solo si realmente necesitas una pausa breve de este bloqueo.</string>
+    <string name="emergency_unlock_disabled_helper">Puedes volver a activarlo desde los ajustes de desbloqueo de emergencia.</string>
+    <string name="emergency_unlock_daily_limit_zero_helper">El límite diario es 0, así que este bloqueo no tiene salida de emergencia.</string>
+    <string name="emergency_unlock_daily_limit_reached_helper">Tu promesa queda protegida hasta que se recargue el contador diario.</string>
     <string name="emergency_unlock_banner">%1$d apps desbloqueadas — %2$s restante</string>
     <string name="emergency_unlock_active">Desbloqueo de emergencia activo</string>
     <string name="emergency_unlock_remaining_time">%1$s restante</string>

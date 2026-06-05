@@ -75,6 +75,25 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)
 
+    def test_block_screen_runtime_copy_uses_coaching_tone_and_primary_return_action(self):
+        strings = read("app/src/main/res/values/strings.xml")
+        ko_strings = read("app/src/main/res/values-ko/strings.xml")
+        block_screen = read("app/src/main/java/com/uiery/keep/BlockScreen.kt")
+
+        forbidden_default_copy = [
+            "StopIt is blocking app usage",
+            "cannot be used because it is restricted",
+            ">Close<",
+        ]
+        for phrase in forbidden_default_copy:
+            self.assertNotIn(phrase, strings)
+
+        self.assertIn("Pause for a moment", strings)
+        self.assertIn("Return to what you were doing", strings)
+        self.assertIn("잠깐", ko_strings)
+        self.assertIn("하던 일로 돌아가기", ko_strings)
+        self.assertIn("emergencyUnlockAction.helperTextRes", block_screen)
+
     def test_contract_does_not_claim_docs_lane_implemented_ui(self):
         source = read("docs/BLOCK_SCREEN_COPY_HIERARCHY.md")
         high_traffic = "\n".join(

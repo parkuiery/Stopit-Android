@@ -40,10 +40,10 @@
     <string name="keep_on_status">StopIt已开启</string>
     <string name="keep_turned_on">StopIt已开启</string>
     <string name="keep_turned_off">StopIt已关闭</string>
-    <string name="block_screen_title">StopIt正在阻止应用使用</string>
-    <string name="block_screen_message">%1$s因受限制而无法使用。</string>
+    <string name="block_screen_title">先停一下——你正在守住自己的约定</string>
+    <string name="block_screen_message">%1$s现在已暂停。关闭此页面，回到你正在做的事。</string>
     <string name="block_screen_first_core_action_feedback">第一次拦截已生效。StopIt 开启时，StopIt 会继续拦截已选择的应用。</string>
-    <string name="block_screen_close">关闭</string>
+    <string name="block_screen_close">回到正在做的事</string>
     <string name="permission_dialog_title">要使用应用锁功能，需要辅助功能权限。</string>
     <string name="permission_dialog_message">StopIt会在用户尝试访问已锁定的应用时进行拦截，从而提供应用锁功能。为此，会收集和处理正在运行的应用的界面信息和交互数据。这些数据仅用于提供应用锁功能，不会用于其他目的，也不会外传。您愿意授予辅助功能权限吗？</string>
     <string name="permission_dialog_confirm">同意并继续</string>
@@ -181,7 +181,11 @@
     <string name="emergency_unlock_next">下一步</string>
     <string name="emergency_unlock_daily_limit_reached">今天的紧急解锁次数已用完</string>
     <string name="emergency_unlock_disabled">紧急解锁已关闭</string>
-    <string name="emergency_unlock_daily_limit_zero">紧急解锁次数设置为每天 0 次</string>
+    <string name="emergency_unlock_daily_limit_zero">紧急解锁设置为每天 0 次</string>
+    <string name="emergency_unlock_available_helper">仅在你真的需要短暂离开此阻止时使用。</string>
+    <string name="emergency_unlock_disabled_helper">你可以在紧急解锁设置中重新开启。</string>
+    <string name="emergency_unlock_daily_limit_zero_helper">每日次数为 0，因此此阻止没有紧急出口。</string>
+    <string name="emergency_unlock_daily_limit_reached_helper">在每日次数恢复之前，我们会继续守住你的约定。</string>
     <string name="emergency_unlock_banner">%1$d个应用已解锁 — 剩余%2$s</string>
     <string name="emergency_unlock_active">紧急解锁进行中</string>
     <string name="emergency_unlock_remaining_time">剩余%1$s</string>
