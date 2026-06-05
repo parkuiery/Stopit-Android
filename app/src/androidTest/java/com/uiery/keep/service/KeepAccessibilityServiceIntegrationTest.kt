@@ -12,7 +12,6 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
-import com.uiery.keep.testing.AccessibilitySettingsDetailNavigator
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -309,6 +308,20 @@ class KeepAccessibilityServiceIntegrationTest {
         waitUntil("POST_NOTIFICATIONS should be enabled for countdown notification test setup") {
             NotificationManagerCompat.from(context).areNotificationsEnabled()
         }
+
+        // Runtime permission changes can restart or unbind the target process on emulator images.
+        // Rebind the AccessibilityService before asserting service-owned notification sync.
+        primeAppProcess()
+        setAccessibilityServiceEnabled(enabled = false)
+        waitUntil("KeepAccessibilityService should be disabled before notification-permission rebind") {
+            !isAccessibilityServiceEnabled()
+        }
+        KeepAccessibilityServiceDebugState.reset(context)
+        setAccessibilityServiceEnabled(enabled = true)
+        waitUntil("KeepAccessibilityService should be enabled after notification-permission rebind") {
+            isAccessibilityServiceEnabled()
+        }
+        waitForServiceStatePropagation()
     }
 
     private fun resolveLaunchablePackages(): List<String> {
@@ -411,18 +424,13 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun enableAccessibilityServiceIfNeeded() {
         if (isAccessibilityServiceEnabled()) return
 
-        openAccessibilityServiceDetails()
-        waitUntil("Could not find Accessibility main switch for StopIt service", UI_TIMEOUT_MS) {
-            device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))
+        setAccessibilityServiceEnabled(enabled = true)
+        waitUntil(
+            message = "Expected secure-settings setup to enable KeepAccessibilityService. ${accessibilityDiagnostics()}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            isAccessibilityServiceEnabled()
         }
-        device.findObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))?.click()
-            ?: fail("Could not find Accessibility main switch for StopIt service")
-
-        waitUntil("Could not find Allow button for Accessibility permission dialog", UI_TIMEOUT_MS) {
-            device.hasObject(By.res(ALLOW_BUTTON_ID))
-        }
-        device.findObject(By.res(ALLOW_BUTTON_ID))?.click()
-            ?: fail("Could not find Allow button for Accessibility permission dialog")
     }
 
     private fun disableAccessibilityServiceIfEnabled() {
@@ -474,15 +482,6 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun normalizeSecureSetting(rawValue: String): String =
         rawValue.trim().takeUnless { it == "null" } ?: ""
-    private fun openAccessibilityServiceDetails() {
-        AccessibilitySettingsDetailNavigator(
-            device = AccessibilitySettingsDetailNavigator.UiAutomatorDevice(device, ::shell),
-            settingsPackage = SETTINGS_PACKAGE,
-            serviceComponent = serviceComponent,
-            appName = appName,
-        ).requireDetailsOpen()
-    }
-
     private fun isAccessibilityServiceEnabled(): Boolean =
         shell("dumpsys accessibility").contains("Enabled services:{{$serviceComponent}}")
 
@@ -618,8 +617,6 @@ class KeepAccessibilityServiceIntegrationTest {
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
         const val SETTINGS_PACKAGE = "com.android.settings"
-        const val MAIN_SWITCH_BAR_ID = "main_switch_bar"
-        const val ALLOW_BUTTON_ID = "android:id/accessibility_permission_enable_allow_button"
         val UNINSTALL_ACTION_PATTERN: Pattern = Pattern.compile("(?i)(uninstall|delete|remove)(\\s+app)?")
         val KNOWN_UNINSTALL_PACKAGES = setOf(
             "com.android.packageinstaller",
