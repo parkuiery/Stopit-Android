@@ -14,6 +14,9 @@ object KeepAccessibilityServiceDebugState {
         val observedPreventUninstall: Boolean = true,
         val observedSelectedAppPackages: Set<String> = emptySet(),
         val observedEmergencyUnlockApps: Set<String> = emptySet(),
+        val observedEmergencyUnlockExpireTimeMillis: Long = 0L,
+        val lastCountdownNotificationExpireTimeMillis: Long = 0L,
+        val lastCountdownNotificationPostResult: String? = null,
         val lastWindowStateChangedPackage: String? = null,
         val lastLaunchedBlockPackage: String? = null,
         val lastDismissedUninstallPackage: String? = null,
@@ -40,15 +43,19 @@ object KeepAccessibilityServiceDebugState {
         if (!file.exists()) return Snapshot()
         val parts = file.readText().split('\n')
         if (parts.size < 8) return Snapshot()
+        val hasNotificationFields = parts.size >= 11
         return Snapshot(
             isServiceConnected = parts[0].toBoolean(),
             observedIsKeep = parts[1].toBoolean(),
             observedPreventUninstall = parts[2].toBoolean(),
             observedSelectedAppPackages = decodeSet(parts[3]),
             observedEmergencyUnlockApps = decodeSet(parts[4]),
-            lastWindowStateChangedPackage = parts[5].ifBlank { null },
-            lastLaunchedBlockPackage = parts[6].ifBlank { null },
-            lastDismissedUninstallPackage = parts[7].ifBlank { null },
+            observedEmergencyUnlockExpireTimeMillis = if (hasNotificationFields) parts[5].toLongOrNull() ?: 0L else 0L,
+            lastCountdownNotificationExpireTimeMillis = if (hasNotificationFields) parts[6].toLongOrNull() ?: 0L else 0L,
+            lastCountdownNotificationPostResult = if (hasNotificationFields) parts[7].ifBlank { null } else null,
+            lastWindowStateChangedPackage = parts[if (hasNotificationFields) 8 else 5].ifBlank { null },
+            lastLaunchedBlockPackage = parts[if (hasNotificationFields) 9 else 6].ifBlank { null },
+            lastDismissedUninstallPackage = parts[if (hasNotificationFields) 10 else 7].ifBlank { null },
         )
     }
 
@@ -63,6 +70,9 @@ object KeepAccessibilityServiceDebugState {
                 appendLine(snapshot.observedPreventUninstall)
                 appendLine(encodeSet(snapshot.observedSelectedAppPackages))
                 appendLine(encodeSet(snapshot.observedEmergencyUnlockApps))
+                appendLine(snapshot.observedEmergencyUnlockExpireTimeMillis)
+                appendLine(snapshot.lastCountdownNotificationExpireTimeMillis)
+                appendLine(snapshot.lastCountdownNotificationPostResult.orEmpty())
                 appendLine(snapshot.lastWindowStateChangedPackage.orEmpty())
                 appendLine(snapshot.lastLaunchedBlockPackage.orEmpty())
                 append(snapshot.lastDismissedUninstallPackage.orEmpty())
