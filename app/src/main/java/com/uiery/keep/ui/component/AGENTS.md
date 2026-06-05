@@ -20,6 +20,7 @@ Use this package for UI that depends on app resources, app domain models, reposi
 - Promote reusable app/domain/resource-bound UI here under `com.uiery.keep.ui.component`.
 - Promote reusable app-agnostic primitives to `core:kds` instead. Example: shared switches use `com.uiery.kds.KeepSwitch`.
 - Keep feature-specific selection controls private when they are not reused. For example, the emergency-unlock duration chip remains feature-private unless another feature needs the same contract.
+- Use `docs/SHARED_UI_OWNERSHIP_BOUNDARY.md` as the #492 source of truth when deciding whether a feature-private component should move here, move to KDS, or stay private with an explicit reason.
 
 ## Verification
 

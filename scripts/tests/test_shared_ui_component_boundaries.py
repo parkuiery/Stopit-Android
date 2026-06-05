@@ -7,6 +7,7 @@ APP_MAIN = REPO_ROOT / "app/src/main/java/com/uiery/keep"
 KDS_MAIN = REPO_ROOT / "core/kds/src/main/java/com/uiery/kds"
 KDS_README = REPO_ROOT / "core/kds/README.md"
 APP_SHARED_UI_AGENTS = APP_MAIN / "ui/component/AGENTS.md"
+SHARED_UI_RUNBOOK = REPO_ROOT / "docs/SHARED_UI_OWNERSHIP_BOUNDARY.md"
 
 
 class SharedUiComponentBoundariesTest(unittest.TestCase):
@@ -112,6 +113,24 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertNotIn("FilterChip", text)
         self.assertNotIn("RadioButton", text)
         self.assertIn("private fun DurationChip", text)
+
+    def test_shared_ui_runbook_documents_issue_492_handoff(self):
+        runbook = SHARED_UI_RUNBOOK.read_text()
+        for expected in (
+            "Issue: #492",
+            "PermissionSettingDialog",
+            "TimerPicker",
+            "feature A → feature B",
+            "Refs #492",
+            "Closes #492",
+            "python3 -m unittest scripts.tests.test_shared_ui_component_boundaries -v",
+        ):
+            self.assertIn(expected, runbook)
+
+    def test_app_shared_ui_agents_links_issue_492_source_of_truth(self):
+        doc = APP_SHARED_UI_AGENTS.read_text()
+        self.assertIn("SHARED_UI_OWNERSHIP_BOUNDARY.md", doc)
+        self.assertIn("#492", doc)
 
 
 if __name__ == "__main__":
