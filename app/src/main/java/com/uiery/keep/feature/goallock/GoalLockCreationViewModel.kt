@@ -2,7 +2,6 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
-import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
@@ -201,12 +200,6 @@ private fun GoalLockCreationLockMode.toDomain(): GoalLockMode =
             startTime = startTime,
             endTime = endTime,
         )
-    }
-
-private val GoalLockMode.analyticsLockMode: String
-    get() = when (this) {
-        GoalLockMode.AllDay -> AnalyticsGoalLockMode.ALL_DAY
-        is GoalLockMode.Scheduled -> AnalyticsGoalLockMode.SCHEDULED
     }
 
 private fun selectedAppCountBucket(selectedAppCount: Int): String =
