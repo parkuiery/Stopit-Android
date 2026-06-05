@@ -203,8 +203,10 @@ fun HomeScreen(
                 blockTime = uiState.blockTime,
                 countdownDays = uiState.countdownDays,
                 countdownTime = uiState.countdownTime,
+                manualLockMode = uiState.manualLockMode,
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
+                onChangeManualLockMode = viewModel::updateManualLockMode,
                 onLockClick = {
                     if (uiState.selectedAppPackage.isEmpty()) {
                         viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)

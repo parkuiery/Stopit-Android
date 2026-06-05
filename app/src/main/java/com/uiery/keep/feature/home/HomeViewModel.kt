@@ -219,7 +219,7 @@ class HomeViewModel
         internal fun moveToLock() =
             intent {
                 val routeDeadline = state.pendingManualLockRouteDeadline ?: run {
-                    val targetDateTime = if (state.countdownDays > 0) {
+                    val targetDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                         calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                     } else {
                         calculateTargetLockDateTime(state.blockTime)
@@ -361,6 +361,7 @@ class HomeViewModel
                         .toKotlinLocalTime()
                 reduce {
                     state.copy(
+                        manualLockMode = ManualLockMode.COUNTDOWN,
                         countdownTime = LocalTime(duration.hour, duration.minute),
                         countdownDays = duration.day,
                         blockTime = blockTime,
@@ -370,7 +371,30 @@ class HomeViewModel
 
         internal fun updateTimerTime(timerTime: LocalTime) =
             intent {
-                reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
+                reduce {
+                    state.copy(
+                        manualLockMode = ManualLockMode.TIMER,
+                        timerTime = timerTime,
+                        blockTime = timerTime,
+                    )
+                }
+            }
+
+        internal fun updateManualLockMode(mode: ManualLockMode) =
+            intent {
+                reduce {
+                    state.copy(
+                        manualLockMode = mode,
+                        blockTime = when (mode) {
+                            ManualLockMode.COUNTDOWN -> timeNow
+                                .toJavaLocalTime()
+                                .plusHours(state.countdownTime.hour.toLong())
+                                .plusMinutes(state.countdownTime.minute.toLong())
+                                .toKotlinLocalTime()
+                            ManualLockMode.TIMER -> state.timerTime
+                        },
+                    )
+                }
             }
 
         internal fun lockTime(
@@ -391,7 +415,7 @@ class HomeViewModel
                     }
                     return@intent
                 }
-                val targetLockDateTime = if (state.countdownDays > 0) {
+                val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
@@ -419,7 +443,7 @@ class HomeViewModel
                     }
                 }
                 analytics.trackLockScheduled(
-                    scheduleType = if (state.countdownDays > 0) {
+                    scheduleType = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                         AnalyticsScheduleType.COUNTDOWN
                     } else {
                         AnalyticsScheduleType.TIMER
@@ -486,6 +510,7 @@ data class HomeUiState(
     val blockTime: LocalTime = timeNow,
     val countdownTime: LocalTime = timeNow,
     val timerTime: LocalTime = timeNow,
+    val manualLockMode: ManualLockMode = ManualLockMode.COUNTDOWN,
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
@@ -523,6 +548,11 @@ private val GoalLockMode.homeLabel: String
     }
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
+
+enum class ManualLockMode {
+    COUNTDOWN,
+    TIMER,
+}
 
 sealed class HomeSideEffect {
     data class ShowSnackBar(

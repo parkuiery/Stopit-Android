@@ -141,6 +141,45 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun lockTimeUsesTimerScheduleAfterCountdownValueWhenTimerModeIsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 0, minute = 0))
+        viewModel.updateManualLockMode(ManualLockMode.TIMER)
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals(ManualLockMode.TIMER, viewModel.container.stateFlow.value.manualLockMode)
+        assertEquals(HomeAnalyticsCall.LockScheduled(AnalyticsScheduleType.TIMER), analytics.calls[0])
+        assertEquals(true, ManualLockTimePolicy.isActiveAt(dataStore.snapshot()[PreferencesKey.LOCK_TIME]))
+    }
+
+    @Test
+    fun switchingToTimerModeDoesNotClearCountdownValueButExposesTimerModeForUiDecisions() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 0, minute = 0))
+        viewModel.updateManualLockMode(ManualLockMode.TIMER)
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(1, state.countdownDays)
+        assertEquals(ManualLockMode.TIMER, state.manualLockMode)
+    }
+
+    @Test
     fun lockTimeShowsScheduledFirstLockGuidanceOnlyWhenFirstLockIsConfigured() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
