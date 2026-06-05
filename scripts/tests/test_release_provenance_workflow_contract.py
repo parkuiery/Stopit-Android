@@ -19,7 +19,7 @@ def step_block(text: str, step_name: str) -> str:
 
 
 class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
-    def test_release_build_generates_and_uploads_provenance_with_signed_aab(self):
+    def test_release_build_generates_verifies_and_uploads_provenance_with_signed_aab(self):
         workflow = RELEASE_BUILD.read_text(encoding="utf-8")
         self.assertLess(
             workflow.index("- name: Build signed prod release bundle"),
@@ -27,6 +27,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         )
         self.assertLess(
             workflow.index("- name: Generate release provenance manifest"),
+            workflow.index("- name: Verify release provenance manifest"),
+        )
+        self.assertLess(
+            workflow.index("- name: Verify release provenance manifest"),
             workflow.index("- name: Upload signed AAB artifact"),
         )
 
@@ -36,6 +40,16 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("--output app/build/outputs/bundle/prodRelease/release-provenance.json", generate_step)
         self.assertIn("--artifact-name stopit-prod-release-signed-aab", generate_step)
         self.assertIn("--upload-mode none", generate_step)
+
+        verify_step = step_block(workflow, "Verify release provenance manifest")
+        self.assertIn("python3 scripts/release_provenance_manifest.py verify", verify_step)
+        self.assertIn("--aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'", verify_step)
+        self.assertIn("--manifest app/build/outputs/bundle/prodRelease/release-provenance.json", verify_step)
+        self.assertIn("--package-name com.uiery.keep", verify_step)
+        self.assertIn("--upload-mode none", verify_step)
+        self.assertIn("--track ''", verify_step)
+        self.assertIn("--release-status ''", verify_step)
+        self.assertIn("--rollout-fraction ''", verify_step)
 
         upload_step = step_block(workflow, "Upload signed AAB artifact")
         self.assertIn("app/build/outputs/bundle/prodRelease/*.aab", upload_step)

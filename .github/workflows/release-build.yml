@@ -135,6 +135,17 @@ jobs:
           --release-status ''
           --rollout-fraction ''
 
+      - name: Verify release provenance manifest
+        run: >-
+          python3 scripts/release_provenance_manifest.py verify
+          --aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'
+          --manifest app/build/outputs/bundle/prodRelease/release-provenance.json
+          --package-name com.uiery.keep
+          --upload-mode none
+          --track ''
+          --release-status ''
+          --rollout-fraction ''
+
       - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v7
         with:
