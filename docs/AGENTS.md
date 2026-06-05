@@ -27,6 +27,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. |
 | `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. |
+| `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계, TopAppBar/icon tint audit, KDS/DESIGN.md 후속 구현 기준. |
 
 ## Subdirectories
 | Directory | Purpose |
