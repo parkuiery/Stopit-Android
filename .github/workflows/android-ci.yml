@@ -192,11 +192,7 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            for selector in $(python3 scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke); do
-              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
-            done
+            python3 scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke | xargs -I{} ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class={}
             ./gradlew --console=plain :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
-            for selector in $(python3 scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock); do
-              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
-            done
+            python3 scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock | xargs -I{} ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class={}
