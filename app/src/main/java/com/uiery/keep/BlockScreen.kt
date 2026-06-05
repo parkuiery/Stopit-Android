@@ -53,6 +53,7 @@ fun BlockScreen(
     packageName: String,
     blockSource: String,
     routineId: String?,
+    goalLockId: String?,
     viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
 ) {
@@ -61,8 +62,8 @@ fun BlockScreen(
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(packageName, blockSource, routineId) {
-        viewModel.trackBlockShown(packageName, blockSource, routineId)
+    LaunchedEffect(packageName, blockSource, routineId, goalLockId) {
+        viewModel.trackBlockShown(packageName, blockSource, routineId, goalLockId)
     }
 
     viewModel.collectSideEffect { effect ->

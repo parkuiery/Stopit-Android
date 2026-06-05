@@ -10,9 +10,11 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import dagger.hilt.EntryPoint
@@ -22,6 +24,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
@@ -38,6 +41,8 @@ class KeepAccessibilityService :
     interface RoutineRuntimeEntryPoint {
         fun routineDao(): RoutineDao
 
+        fun goalLockDao(): GoalLockDao
+
         fun blockingStateStore(): BlockingStateStore
     }
 
@@ -46,6 +51,9 @@ class KeepAccessibilityService :
 
     @Volatile
     private var cachedRoutines: List<RoutineModel> = emptyList()
+
+    @Volatile
+    private var cachedGoalLocks: List<GoalLock> = emptyList()
 
     private val handler = Handler(Looper.getMainLooper())
     private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -82,10 +90,26 @@ class KeepAccessibilityService :
             }
         }
         launch {
-            entryPoint.routineDao().fetchAll().collect { routineEntities ->
-                cachedRoutines = routineEntities.map { it.toModel() }
-                reevaluateCurrentForegroundAfterStateUpdate()
-            }
+            entryPoint.routineDao().fetchAll()
+                .catch {
+                    cachedRoutines = emptyList()
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+                .collect { routineEntities ->
+                    cachedRoutines = routineEntities.map { it.toModel() }
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+        }
+        launch {
+            entryPoint.goalLockDao().fetchAll()
+                .catch {
+                    cachedGoalLocks = emptyList()
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+                .collect { goalLockEntities ->
+                    cachedGoalLocks = goalLockEntities.map { it.toDomain() }
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
         }
     }
 
@@ -132,6 +156,7 @@ class KeepAccessibilityService :
                 selectedAppPackages = prefs.selectedAppPackages,
             ),
             cachedRoutines = cachedRoutines,
+            cachedGoalLocks = cachedGoalLocks,
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
         ) ?: return
@@ -170,6 +195,7 @@ class KeepAccessibilityService :
                 selectedAppPackages = prefs.selectedAppPackages,
             ),
             cachedRoutines = cachedRoutines,
+            cachedGoalLocks = cachedGoalLocks,
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
         ) ?: return
@@ -187,6 +213,7 @@ class KeepAccessibilityService :
         intent.putExtra(BlockActivity.EXTRA_PACKAGE_NAME, blockRequest.packageName)
         intent.putExtra(BlockActivity.EXTRA_BLOCK_SOURCE, blockRequest.blockSource)
         blockRequest.routineId?.let { intent.putExtra(BlockActivity.EXTRA_ROUTINE_ID, it) }
+        blockRequest.goalLockId?.let { intent.putExtra(BlockActivity.EXTRA_GOAL_LOCK_ID, it) }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }

@@ -63,6 +63,7 @@
     <string name="start_time">開始時間</string>
     <string name="routine_no_content_message">ルーチンを追加してアプリロックをもっと便利に！\nStopItが自動でアプリをロックします。</string>
     <string name="routine">ルーチン</string>
+    <string name="goal_lock_menu_title">目標ロック</string>
     <string name="contact_us">お問い合わせ</string>
     <string name="monetization_interest_menu_title">広告なしでStopItを使いたいですか？</string>
     <string name="monetization_interest_menu_message">広告なしオプションが役立つか教えてください。まだ購入はできません。</string>

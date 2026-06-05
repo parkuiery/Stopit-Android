@@ -20,6 +20,7 @@ class BlockActivity: ComponentActivity() {
             packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME),
             blockSource = intent.getStringExtra(EXTRA_BLOCK_SOURCE),
             rawRoutineId = intent.extras?.getCompat(EXTRA_ROUTINE_ID),
+            rawGoalLockId = intent.extras?.getCompat(EXTRA_GOAL_LOCK_ID),
         )
         enableEdgeToEdge()
         setContent {
@@ -33,6 +34,7 @@ class BlockActivity: ComponentActivity() {
                         packageName = args.packageName,
                         blockSource = args.blockSource,
                         routineId = args.routineId,
+                        goalLockId = args.goalLockId,
                         onClose = {
                             val homeIntent = Intent(Intent.ACTION_MAIN)
                             homeIntent.addCategory(Intent.CATEGORY_HOME)
@@ -50,6 +52,7 @@ class BlockActivity: ComponentActivity() {
         const val EXTRA_PACKAGE_NAME = "package_name"
         const val EXTRA_BLOCK_SOURCE = "block_source"
         const val EXTRA_ROUTINE_ID = "routine_id"
+        const val EXTRA_GOAL_LOCK_ID = "goal_lock_id"
     }
 }
 
@@ -57,16 +60,19 @@ internal data class BlockActivityArgs(
     val packageName: String,
     val blockSource: String,
     val routineId: String?,
+    val goalLockId: String?,
 )
 
 internal fun createBlockActivityArgs(
     packageName: String?,
     blockSource: String?,
     rawRoutineId: Any?,
+    rawGoalLockId: Any?,
 ): BlockActivityArgs = BlockActivityArgs(
     packageName = packageName ?: "",
     blockSource = blockSource.orDefaultBlockSource(),
     routineId = normalizeRoutineIdExtra(rawRoutineId),
+    goalLockId = normalizeRoutineIdExtra(rawGoalLockId),
 )
 
 internal fun normalizeRoutineIdExtra(rawRoutineId: Any?): String? =

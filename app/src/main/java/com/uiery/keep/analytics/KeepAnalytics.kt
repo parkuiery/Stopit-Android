@@ -62,6 +62,7 @@ interface KeepAnalytics {
         blockSource: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
@@ -75,6 +76,7 @@ interface KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackCoreActionCompleted(
@@ -82,6 +84,7 @@ interface KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String? = null,
+        goalLockId: String? = null,
     ) = Unit
 
     fun trackFcmTokenCaptured() = Unit
@@ -154,6 +157,17 @@ interface KeepAnalytics {
         selectedAppCountBucket: String,
         goalNameType: String,
     ) = Unit
+
+    fun trackGoalLockEndedEarly(
+        lockMode: String,
+        elapsedDaysBucket: String,
+        reason: String,
+    ) = Unit
+
+    fun trackGoalLockCompleted(
+        lockMode: String,
+        durationDaysBucket: String,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -192,6 +206,8 @@ object KeepAnalyticsEvent {
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
     const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
+    const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
+    const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
 }
 
 object KeepAnalyticsParam {
@@ -215,6 +231,7 @@ object KeepAnalyticsParam {
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
     const val BLOCKING_MODE = "blocking_mode"
     const val ROUTINE_ID = "routine_id"
+    const val GOAL_LOCK_ID = "goal_lock_id"
     const val ERROR = "error"
     const val PERIOD_TYPE = "period_type"
     const val SESSION_COUNT_BUCKET = "session_count_bucket"
@@ -231,6 +248,8 @@ object KeepAnalyticsParam {
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
+    const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
+    const val DURATION_DAYS_BUCKET = "duration_days_bucket"
 }
 
 object OnboardingStepName {
@@ -294,6 +313,7 @@ object AnalyticsBlockSource {
     const val MANUAL_KEEP = "manual_keep"
     const val TIMED_LOCK = "timed_lock"
     const val ROUTINE = "routine"
+    const val GOAL_LOCK = "goal_lock"
 }
 
 object AnalyticsDeviceRegistrationSkipReason {
@@ -367,4 +387,26 @@ object AnalyticsGoalLockNameType {
     const val PRESET_GAME = "preset_game"
     const val PRESET_SLEEP = "preset_sleep"
     const val CUSTOM = "custom"
+}
+
+object AnalyticsGoalLockElapsedDaysBucket {
+    const val ZERO = "0"
+    const val ONE_TO_TWO = "1_2"
+    const val THREE_TO_SIX = "3_6"
+    const val SEVEN_TO_FOURTEEN = "7_14"
+    const val FIFTEEN_PLUS = "15_plus"
+}
+
+object AnalyticsGoalLockDurationDaysBucket {
+    const val ONE_TO_SIX = "1_6"
+    const val SEVEN = "7"
+    const val EIGHT_TO_FOURTEEN = "8_14"
+    const val FIFTEEN_TO_THIRTY = "15_30"
+    const val THIRTY_ONE_PLUS = "31_plus"
+}
+
+object AnalyticsGoalLockEndedEarlyReason {
+    const val USER_CONFIRMED = "user_confirmed"
+    const val VALIDATION_RESET = "validation_reset"
+    const val UNKNOWN = "unknown"
 }

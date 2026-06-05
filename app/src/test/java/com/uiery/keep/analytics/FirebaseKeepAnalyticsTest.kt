@@ -137,6 +137,11 @@ class FirebaseKeepAnalyticsTest {
             blockedAppPackage = "com.example.routine",
             routineId = "42",
         )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.GOAL_LOCK,
+            blockedAppPackage = "com.example.goal",
+            goalLockId = "77",
+        )
         analytics.trackEmergencyUnlockCompleted(
             reason = "work",
             durationMinutes = 15,
@@ -193,6 +198,17 @@ class FirebaseKeepAnalyticsTest {
         )
         assertEquals(
             LoggedEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.goal",
+                    KeepAnalyticsParam.GOAL_LOCK_ID to "77",
+                ),
+            ),
+            backend.loggedEvents[5],
+        )
+        assertEquals(
+            LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.REASON to "work",
@@ -200,7 +216,7 @@ class FirebaseKeepAnalyticsTest {
                     KeepAnalyticsParam.REMAINING_UNLOCKS to 1,
                 ),
             ),
-            backend.loggedEvents[5],
+            backend.loggedEvents[6],
         )
     }
 
@@ -456,6 +472,46 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun goalLockEndedEarlyUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockEndedEarly(
+            lockMode = AnalyticsGoalLockMode.SCHEDULED,
+            elapsedDaysBucket = AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+            reason = AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_ENDED_EARLY,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.SCHEDULED,
+                    KeepAnalyticsParam.ELAPSED_DAYS_BUCKET to AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+                    KeepAnalyticsParam.REASON to AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockCompletedUsesSafeDurationBucketOnly() {
+        analytics.trackGoalLockCompleted(
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.DURATION_DAYS_BUCKET to AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
@@ -470,6 +526,9 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("EmergencyUnlockSettingsScreen", KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
+        assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)
+        assertEquals("duration_days_bucket", KeepAnalyticsParam.DURATION_DAYS_BUCKET)
+        assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
     }
 }
 

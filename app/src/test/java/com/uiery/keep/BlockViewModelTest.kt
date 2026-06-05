@@ -98,6 +98,43 @@ class BlockViewModelTest {
     }
 
     @Test
+    fun goalLockBlockTracksGoalLockSourceAndId() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        viewModel.trackBlockShown(
+            packageName = "com.example.goal",
+            blockSource = AnalyticsBlockSource.GOAL_LOCK,
+            routineId = null,
+            goalLockId = "77",
+        )
+        delay(50)
+
+        assertEquals(
+            listOf(
+                BlockAnalyticsCall.AppBlockIntercepted(
+                    blockSource = AnalyticsBlockSource.GOAL_LOCK,
+                    blockedAppPackage = "com.example.goal",
+                    routineId = null,
+                    goalLockId = "77",
+                ),
+                BlockAnalyticsCall.CoreActionCompleted(
+                    blockingMode = AnalyticsBlockSource.GOAL_LOCK,
+                    blockedAppPackage = "com.example.goal",
+                    routineId = null,
+                    goalLockId = "77",
+                ),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
     fun disabledEmergencyUnlockStateDoesNotLookLikeDailyLimitReached() = runBlocking {
         val dataStore = FakeDataStore(
             mutablePreferencesOf(
@@ -137,18 +174,21 @@ private sealed interface BlockAnalyticsCall {
         val blockSource: String,
         val blockedAppPackage: String,
         val routineId: String?,
+        val goalLockId: String? = null,
     ) : BlockAnalyticsCall
 
     data class FirstCoreActionCompleted(
         val blockingMode: String,
         val blockedAppPackage: String,
         val routineId: String?,
+        val goalLockId: String? = null,
     ) : BlockAnalyticsCall
 
     data class CoreActionCompleted(
         val blockingMode: String,
         val blockedAppPackage: String,
         val routineId: String?,
+        val goalLockId: String? = null,
     ) : BlockAnalyticsCall
 }
 
@@ -176,11 +216,13 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         blockSource: String,
         blockedAppPackage: String,
         routineId: String?,
+        goalLockId: String?,
     ) {
         calls += BlockAnalyticsCall.AppBlockIntercepted(
             blockSource = blockSource,
             blockedAppPackage = blockedAppPackage,
             routineId = routineId,
+            goalLockId = goalLockId,
         )
     }
 
@@ -189,11 +231,13 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String?,
+        goalLockId: String?,
     ) {
         calls += BlockAnalyticsCall.FirstCoreActionCompleted(
             blockingMode = blockingMode,
             blockedAppPackage = blockedAppPackage,
             routineId = routineId,
+            goalLockId = goalLockId,
         )
     }
 
@@ -202,11 +246,13 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         blockingMode: String,
         blockedAppPackage: String,
         routineId: String?,
+        goalLockId: String?,
     ) {
         calls += BlockAnalyticsCall.CoreActionCompleted(
             blockingMode = blockingMode,
             blockedAppPackage = blockedAppPackage,
             routineId = routineId,
+            goalLockId = goalLockId,
         )
     }
 }

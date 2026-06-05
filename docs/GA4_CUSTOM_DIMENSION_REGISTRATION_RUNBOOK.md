@@ -207,11 +207,11 @@
 | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:time_window_bucket` |
 | `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:routine_name_included` |
 | `duration_selection_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 잠금 포함 release/tag/Play deploy 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:duration_selection_type` |
-| `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, completion/early-end runtime call 미구현 | 동일 | `customEvent:lock_mode` |
+| `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, detail 종료 path의 early-end runtime call 추가, completion runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:lock_mode` |
 | `selected_app_count_bucket` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 동일 | `customEvent:selected_app_count_bucket` |
 | `goal_name_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 이름 원문을 보내지 않고 preset/custom enum만 확인 | `customEvent:goal_name_type` |
-| `duration_days_bucket` | `goal_lock_completed` | #417 문서 계약 추가 / completion runtime call 미구현 | 동일 | `customEvent:duration_days_bucket` |
-| `elapsed_days_bucket` | `goal_lock_ended_early` | #417 문서 계약 추가 / early-end runtime call 미구현 | 동일 | `customEvent:elapsed_days_bucket` |
+| `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
+| `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
 | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 생성 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
 | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 동일 | `customEvent:activation_stage` |
 | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
@@ -228,6 +228,7 @@
 | `error` | `review_prompt_failed` | 2026-06-02T18:06:45Z 미등록 확인 (`customEvent:error` invalid dimension) | review 실패 원인 추적이 실제로 필요할 때 GA4 Admin 등록 |
 | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 미확인 | 첫 가치 경험 비교를 appVersion별로 재분석할 때 |
 | `routine_id` | `first_core_action_completed`, `core_action_completed` | 미확인 | 루틴별 성과/문제 추적이 필요할 때. 앱 내부 계약은 문자열이며 `block_source=routine`인 차단 경로에서만 non-null이다. |
+| `goal_lock_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #417 code-lane 계약 추가 / 미확인 | 목표 잠금별 차단성과/문제 추적이 필요할 때. 앱 내부 계약은 문자열이며 `block_source=goal_lock`인 차단 경로에서만 non-null이다. 목표 이름/app label 원문은 등록·전송하지 않는다. |
 | `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
 | `ad_currency` | `ad_banner_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
 | `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |

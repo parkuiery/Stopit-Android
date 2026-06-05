@@ -1,5 +1,6 @@
 package com.uiery.keep
 
+import com.uiery.keep.feature.goallock.GoalLockCreationRoute
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -11,6 +12,12 @@ class KeepAppNavigationPolicyTest {
     fun historyDomainUsesLockHistoryAsCanonicalTopLevelRoute() {
         assertEquals(LockHistoryRoute, canonicalHistoryRoute())
         assertFalse(shouldRegisterLegacyHistoryRoute())
+    }
+
+    @Test
+    fun goalLockCreationUsesDedicatedTopLevelEntryRoute() {
+        assertEquals(GoalLockCreationRoute, canonicalGoalLockCreationRoute())
+        assertTrue(shouldRegisterGoalLockCreationEntryRoute())
     }
 
     @Test

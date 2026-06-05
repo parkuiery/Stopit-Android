@@ -4,11 +4,18 @@ import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.PreferencesKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -25,7 +32,7 @@ class GoalLockCreationViewModelTest {
     fun createAllDayGoalLockPersistsActiveGoalAndTracksBucketedAnalytics() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 17L)
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
 
         viewModel.setGoalName("시험 준비")
         viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 7, 3))
@@ -64,7 +71,7 @@ class GoalLockCreationViewModelTest {
     fun createScheduledGoalLockPersistsScheduleAndSevenPlusAppBucket() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 18L)
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
         val selectedApps = (1..7).map { "com.example.app$it" }.toSet()
 
         viewModel.setGoalName("SNS 줄이기")
@@ -97,7 +104,7 @@ class GoalLockCreationViewModelTest {
     fun invalidGoalLockDoesNotPersistOrTrack() = runBlocking {
         val dao = RecordingGoalLockDao()
         val analytics = RecordingKeepAnalytics()
-        val viewModel = GoalLockCreationViewModel(goalLockDao = dao, analytics = analytics)
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
 
         viewModel.setGoalName("시험 준비")
         viewModel.setDateRange(LocalDate.of(2026, 7, 3), LocalDate.of(2026, 6, 4))
@@ -115,10 +122,118 @@ class GoalLockCreationViewModelTest {
         assertTrue(analytics.goalLockCreatedCalls.isEmpty())
     }
 
+    @Test
+    fun loadSelectedAppsSeedsGoalLockCreationFromCurrentBlockingSelection() = runBlocking {
+        val dataStore = FakeDataStore.withPrefs {
+            this[PreferencesKey.SELECTED_APP_PACKAGES] = setOf("com.video.app", "com.social.app")
+        }
+        val viewModel = createViewModel(blockingStateStore = BlockingStateStore(dataStore))
+
+        viewModel.loadSelectedAppsFromCurrentSelection()
+        awaitUntil { viewModel.container.stateFlow.value.selectedApps.isNotEmpty() }
+
+        assertEquals(
+            setOf("com.video.app", "com.social.app"),
+            viewModel.container.stateFlow.value.selectedApps,
+        )
+    }
+
+    @Test
+    fun customDaysAndEndDateSelectionsPersistExpectedRangesAndAnalyticsTypes() = runBlocking {
+        val dao = RecordingGoalLockDao(insertedId = 19L)
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+        val today = LocalDate.of(2026, 6, 4)
+
+        viewModel.setGoalName("프로젝트 마감")
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        viewModel.setCustomDurationDays(today = today, days = 10)
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        val customDaysGoal = requireNotNull(dao.insertedEntity).toDomain()
+        assertEquals(today, customDaysGoal.startDate)
+        assertEquals(LocalDate.of(2026, 6, 13), customDaysGoal.endDate)
+        assertEquals(AnalyticsGoalLockDurationSelectionType.CUSTOM_DAYS, analytics.goalLockCreatedCalls.single().durationSelectionType)
+        assertEquals(AnalyticsGoalLockNameType.CUSTOM, analytics.goalLockCreatedCalls.single().goalNameType)
+
+        dao.insertedEntity = null
+        analytics.goalLockCreatedCalls.clear()
+        viewModel.setEndDateSelection(today = today, endDate = LocalDate.of(2026, 7, 1))
+        awaitUntil { viewModel.container.stateFlow.value.endDate == LocalDate.of(2026, 7, 1) }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        val endDateGoal = requireNotNull(dao.insertedEntity).toDomain()
+        assertEquals(today, endDateGoal.startDate)
+        assertEquals(LocalDate.of(2026, 7, 1), endDateGoal.endDate)
+        assertEquals(AnalyticsGoalLockDurationSelectionType.END_DATE, analytics.goalLockCreatedCalls.single().durationSelectionType)
+    }
+
+    @Test
+    fun pickerSelectionReplacesSeededAppsAndEmptySelectionDisablesCreation() = runBlocking {
+        val dao = RecordingGoalLockDao(insertedId = 20L)
+        val viewModel = createViewModel(dao = dao)
+
+        viewModel.setGoalName("SNS 줄이기")
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 10))
+        viewModel.setSelectedApps(setOf("com.video.app", "com.social.app"))
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.setSelectedApps(setOf("  com.social.app  ", "com.social.app", "  com.focus.app  "))
+        awaitUntil { viewModel.container.stateFlow.value.selectedApps == setOf("com.social.app", "com.focus.app") }
+
+        viewModel.setSelectedApps(emptySet())
+        awaitUntil { !viewModel.container.stateFlow.value.isCreateEnabled }
+        viewModel.createGoalLock()
+        delay(50)
+        assertEquals(null, dao.insertedEntity)
+
+        viewModel.setSelectedApps(setOf("com.focus.app"))
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        assertEquals(setOf("com.focus.app"), requireNotNull(dao.insertedEntity).toDomain().selectedPackages)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
             delay(10)
+        }
+    }
+}
+
+private fun createViewModel(
+    dao: GoalLockDao = RecordingGoalLockDao(),
+    analytics: KeepAnalytics = RecordingKeepAnalytics(),
+    blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
+): GoalLockCreationViewModel =
+    GoalLockCreationViewModel(
+        goalLockDao = dao,
+        analytics = analytics,
+        blockingStateStore = blockingStateStore,
+    )
+
+private class FakeDataStore(initial: Preferences = emptyPreferences()) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+        val next = transform(state.value)
+        state.value = next
+        return next
+    }
+
+    companion object {
+        fun withPrefs(block: androidx.datastore.preferences.core.MutablePreferences.() -> Unit): FakeDataStore {
+            val preferences = mutablePreferencesOf()
+            preferences.block()
+            return FakeDataStore(preferences)
         }
     }
 }

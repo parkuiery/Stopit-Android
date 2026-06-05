@@ -63,6 +63,7 @@
     <string name="start_time">开始时间</string>
     <string name="routine_no_content_message">添加例程让应用锁更方便！\nStopIt会自动帮你锁定应用。</string>
     <string name="routine">例程</string>
+    <string name="goal_lock_menu_title">目标锁定</string>
     <string name="contact_us">联系我们</string>
     <string name="monetization_interest_menu_title">想无广告使用 StopIt 吗？</string>
     <string name="monetization_interest_menu_message">如果无广告选项对你有帮助，请告诉我们。目前尚未提供购买。</string>

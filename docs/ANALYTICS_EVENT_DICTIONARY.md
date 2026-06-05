@@ -80,14 +80,15 @@
 
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
-| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 첫 핵심 행동 완료 |
-| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?` | 반복 핵심 행동 완료 |
+| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?`, `goal_lock_id?` | 첫 핵심 행동 완료 |
+| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_package`, `routine_id?`, `goal_lock_id?` | 반복 핵심 행동 완료 |
 
 첫 가치 경험 해석:
 - `first_lock_configured`는 차단 준비 완료 신호이며 실제 차단 완료가 아니다. 홈 CTA/타이머 안내 문구가 이 이벤트 직후에 “차단 완료”라고 과장하면 안 된다.
 - 홈 Keep 시작/타이머 예약 안내 snackbar는 `first_lock_configured`가 최초 기록될 때만 1회 노출한다. 이미 첫 잠금을 기록한 사용자는 `first_core_action_completed` / `app_block_intercepted` 흐름으로 해석하고 준비 안내를 반복하지 않는다.
 - 현재 block 화면 진입 경로는 `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록한 뒤, 최초 1회만 `first_core_action_completed`를 기록한다. #14 후속 피드백/문구/테스트는 이 순서를 유지해야 한다.
-- 루틴 차단의 `routine_id`는 Activity extra 경계에서 문자열로 정규화해 analytics payload까지 전달한다. `block_source=routine`일 때만 non-null이어야 하며, 수동 Keep/타이머 차단에서는 null/미전송 상태를 유지한다.
+- 루틴 차단의 `routine_id`는 Activity extra 경계에서 문자열로 정규화해 analytics payload까지 전달한다. `block_source=routine`일 때만 non-null이어야 하며, 수동 Keep/타이머/목표 잠금 차단에서는 null/미전송 상태를 유지한다.
+- 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel analytics payload 경계에서 문자열로 정규화해 전달한다. `block_source=goal_lock`일 때만 non-null이어야 하며, 수동 Keep/타이머/루틴 차단에서는 null/미전송 상태를 유지한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
 
@@ -99,7 +100,7 @@
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약 |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_package`, `routine_id?` | 실제 차단 발생 |
+| `app_block_intercepted` | `block_source`, `blocked_app_package`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
@@ -265,7 +266,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `permission_name` | 권한 종류 (`accessibility`, `notifications`) |
 | `outcome` | 권한 결과 (`granted`, `denied`, `settings_opened`) |
 | `source` | 이벤트 발생 출처 (`onboarding`, `home`, `home_timer`, `routine` 등) |
-| `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`) |
+| `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`) |
 | `blocked_app_package` | 차단된 앱 패키지명 |
 | `selected_app_count` | 선택된 앱 개수 |
 | `is_onboarding` | 온보딩 컨텍스트 여부 |
@@ -294,6 +295,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `changed_field` | 목표 잠금 수정 필드 enum (`duration`, `apps`, `schedule`, `name`, `lock_mode`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
+| `goal_lock_id` | 목표 잠금 식별자. 목표 이름/app package/app label 원문이 아니라 내부 id만 전달하며, goal-lock source 차단성과 디버깅에만 사용한다. |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
 | `screen_context` | 같은 화면 안에서의 광고 문맥 (`empty_state`, `inline`, `footer` 등) |
 | `ad_placement` | 제품 관점에서의 광고 위치 식별자 |
@@ -337,7 +339,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `permission_name` | `permission_name` | `permission_outcome` | 접근성/알림 권한 병목 분리 |
 | Required | `outcome` | `outcome` | `permission_outcome` | granted / denied / settings_opened 비교 |
 | Required | `source` | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 온보딩/홈/루틴 출처별 행동 비교 |
-| Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine 차단 성공 비교 |
+| Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine / goal_lock 차단 성공 비교 |
 | Required | `blocked_app_package` | `blocked_app_package` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 실제 차단 가치가 어느 앱에서 발생하는지 확인 |
 | Required | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 앱 선택량과 활성화 상관관계 확인 |
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
@@ -366,6 +368,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
+| Recommended | `goal_lock_id` | `goal_lock_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 목표 잠금 차단성과/문제 추적. 목표 이름·앱 label 원문은 금지 |
 | Recommended | `screen_name` | `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
 | Recommended | `ad_currency` | `ad_currency` | `ad_banner_revenue` | 통화 코드 확인 |
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_banner_revenue` | 추정 수익 vs 정밀 수익 구분 |

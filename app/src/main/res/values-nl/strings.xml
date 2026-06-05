@@ -63,6 +63,7 @@
     <string name="start_time">Starttijd</string>
     <string name="routine_no_content_message">Voeg een routine toe om app-vergrendeling handiger te maken!\nStopIt vergrendelt je apps automatisch.</string>
     <string name="routine">Routine</string>
+    <string name="goal_lock_menu_title">Doelvergrendeling</string>
     <string name="contact_us">Neem contact op</string>
     <string name="monetization_interest_menu_title">StopIt zonder advertenties gebruiken?</string>
     <string name="monetization_interest_menu_message">Laat ons weten of een advertentievrije optie nuttig is. Kopen is nog niet beschikbaar.</string>
