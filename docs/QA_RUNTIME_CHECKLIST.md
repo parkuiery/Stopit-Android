@@ -260,7 +260,7 @@ Use this after the code-lane changes `BlockScreen.kt` / `block_screen_*` / `emer
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after the code-lane changes `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+Use this after PR #517(`572eb559`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -290,6 +290,7 @@ Use this after the code-lane changes `EmergencyUnlockBottomSheetContent.kt`, `Em
 - Accessibility/TalkBack:
   - reason/app/duration selection and disabled helper are understandable: pass / fail
 - Verification:
+  - PR #517 merge commit included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
   - `./gradlew --console=plain :app:lintProdRelease`
 - Decision: pass / fail / needs follow-up
