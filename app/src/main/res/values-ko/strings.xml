@@ -194,13 +194,13 @@
     <string name="emergency_unlock_remaining_count">%1$d/%2$d 남음</string>
     <string name="emergency_unlock_waiting_seconds_label">초</string>
     <string name="home_status_no_selected_apps_title">차단할 앱을 먼저 선택해 주세요</string>
-    <string name="home_status_no_selected_apps_description">StopIt을 시작하려면 최소 1개 앱을 선택해야 해요.</string>
+    <string name="home_status_no_selected_apps_description">스탑잇을 시작하려면 최소 1개 앱을 선택해야 해요.</string>
     <string name="home_status_first_lock_ready_title">%1$d개 앱을 막을 준비가 됐어요</string>
     <string name="home_status_first_lock_ready_description">지금 시작하면 첫 실제 차단을 확인할 수 있고, 나중을 위해 타이머를 설정할 수도 있어요.</string>
     <string name="home_status_ready_title">%1$d개 앱을 선택했어요</string>
     <string name="home_status_ready_description">지금 바로 차단을 시작하거나 앱을 바꾸고, 계획된 시간에는 타이머를 설정하세요.</string>
     <string name="home_status_keep_active_title">%1$d개 앱을 막고 있어요</string>
-    <string name="home_status_keep_active_description">StopIt이 지금 시간을 지켜주고 있어요. 세션 조정이 필요할 때만 보조 행동을 사용하세요.</string>
+    <string name="home_status_keep_active_description">스탑잇이 지금 시간을 지켜주고 있어요. 세션 조정이 필요할 때만 보조 행동을 사용하세요.</string>
     <string name="home_primary_cta_select_apps">차단 앱 선택</string>
     <string name="home_primary_cta_start_now">지금 차단 시작</string>
     <string name="home_primary_status_keep_active">보호 중</string>
@@ -208,7 +208,7 @@
     <string name="home_secondary_timer">타이머 설정</string>
     <string name="home_secondary_lock_history">지킨 기록 보기</string>
     <string name="first_lock_activation_cta_title">첫 잠금을 바로 시작해볼까요?</string>
-    <string name="first_lock_activation_cta_description">앱 선택은 끝났어요. StopIt을 켜서 실제 차단을 경험해보세요.</string>
+    <string name="first_lock_activation_cta_description">앱 선택은 끝났어요. 스탑잇을 켜서 실제 차단을 경험해보세요.</string>
     <string name="first_lock_activation_cta_action">시작</string>
     <string name="first_lock_keep_started_guidance">스탑잇이 켜졌어요. 선택한 앱을 열면 첫 차단을 확인할 수 있어요.</string>
     <string name="first_lock_timer_scheduled_guidance">첫 잠금이 예약됐어요. 시간이 되면 선택한 앱을 열어 차단을 확인해보세요.</string>
