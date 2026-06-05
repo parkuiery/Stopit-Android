@@ -1,7 +1,7 @@
 # 잠금 기록 성과 리포트 UX 계약
 
 Issue: #465
-상태: **docs-lane 제품/analytics/QA 계약 고정 / code-lane 구현 전**
+상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / release·GA4·14일·30일 readback 전**
 
 이 문서는 Stopit의 `LockHistory` 화면을 단순 로그가 아니라 사용자가 “내가 지킨 기록”을 이해하는 성과 리포트 경험으로 개선하기 위한 source of truth다. #211 집중 요약 공유와 같은 화면을 쓰지만, 이 이슈의 1차 목표는 외부 공유가 아니라 **개인 성과 해석과 재방문 동기 강화**다.
 
@@ -142,29 +142,30 @@ Issue: #465
 - TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다.
 - 한국어/영어 string resource parity를 확인한다.
 
-## 구현 패키지 추천 범위
+## 구현 상태와 남은 패키지 경계
 
-code-lane 구현 PR은 아래를 한 package로 처리한다.
+PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b6bb3b369e20c693964d8490f829a148312bc448`)로 아래 repo-internal 구현이 `develop`에 반영됐다.
 
-1. `LockHistoryPerformanceReportReadModel` 같은 작은 formatter/helper를 추가한다.
-2. helper 단위 테스트로 empty / low-data / has-history / week-month / top-apps copy 계약을 먼저 고정한다.
-3. `LockHistoryViewModel` 또는 UI state에 summary read model을 연결한다.
-4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy를 적용한다.
-5. 한국어/영어 string parity와 TalkBack label을 확인한다.
-6. analytics event를 추가한다면 `KeepAnalytics`/Firebase/test/event dictionary/GA4 runbook을 같은 PR에서 갱신한다.
-7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template을 채운다.
+1. `LockHistoryPerformanceReportReadModel` helper와 focused JVM regression이 추가됐다.
+2. empty / low-data / has-history / week-month / top-apps copy 계약이 read model 테스트로 고정됐다.
+3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다.
+4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy가 성취형/긍정 프레이밍으로 바뀌었다.
+5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
+6. 이번 code-lane PR은 UI/read model 개선이며 새 `lock_history_*` analytics event를 추가하지 않았다. 따라서 GA4 runbook의 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`는 **후속 instrumentation 후보**로 남긴다.
+7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
 
-권장 검증 명령:
+현재 구현/문서 계약 검증 명령:
 
 ```bash
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ./gradlew --console=plain :app:assembleProdDebug
+./gradlew --console=plain :app:lintProdRelease
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 git diff --check
 ```
 
-정확한 test class 이름은 구현 PR에서 만든 계약 테스트 이름에 맞춘다. flavorless `testDebugUnitTest`는 사용하지 않는다.
+정확한 test class 이름은 구현 PR에서 만든 계약 테스트 이름에 맞춘다. flavorless `testDebugUnitTest`는 사용하지 않는다. PR #485 이후 문서/ops lane은 “구현 전”으로 되돌리지 말고, `develop` 구현 완료와 release/GA4/readback 미완료 경계를 분리해서 기록한다.
 
 ## 외부/manual 경계
 
@@ -181,7 +182,7 @@ git diff --check
 
 ## PR/이슈 연결 규칙
 
-이 docs-lane 문서 패키지는 구현 전 계약을 고정하므로 PR body는 `Refs #465`를 사용한다. `Closes #465`는 LockHistory summary/top apps UI, string parity, focused tests/build, QA evidence, 필요 시 privacy-safe analytics까지 구현·검증된 PR에서만 사용한다.
+PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐지만 #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인(후속 analytics event를 추가하는 경우), 14일/30일 readback, 실제 QA evidence 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
 
 ## 계약 회귀 테스트
 

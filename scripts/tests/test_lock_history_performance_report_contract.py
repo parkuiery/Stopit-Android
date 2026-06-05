@@ -30,6 +30,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "session_count_bucket",
             "duration_minutes_bucket",
             "top_apps_count_bucket",
+            "PR #485 read-model·UI 구현 develop 반영",
+            "후속 instrumentation 후보",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -62,6 +64,10 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("LockHistory 성과 리포트 조회성", ga4)
         self.assertIn("GA4 Admin 등록", ga4)
         self.assertIn("14일 관측 전", ga4)
+        self.assertIn("PR #485", dictionary)
+        self.assertIn("PR #485", ga4)
+        self.assertIn("후속 instrumentation 후보", dictionary)
+        self.assertIn("후속 후보", ga4)
 
     def test_high_traffic_product_metrics_docs_link_the_contract(self):
         files = [
@@ -99,7 +105,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)
 
-    def test_contract_does_not_make_docs_lane_claim_implementation_or_measurement_done(self):
+    def test_contract_records_implementation_without_claiming_release_or_measurement_done(self):
         source = read("docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md")
         high_traffic = "\n".join(
             read(path)
@@ -111,10 +117,15 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             ]
         )
 
-        self.assertIn("code-lane 구현 전", source)
-        self.assertIn("구현·GA4 Admin 등록·release/tag/Play deploy·14일 관측 전", high_traffic)
+        self.assertIn("PR #485", source)
+        self.assertIn("develop`에 반영", source)
+        self.assertIn("release/tag/Play deploy", source)
+        self.assertIn("14일/30일 readback", source)
+        self.assertIn("후속 instrumentation 후보", high_traffic)
+        self.assertNotIn("code-lane 구현 전", source)
+        self.assertNotIn("#465 문서 계약 추가 / 코드 구현 전", high_traffic)
         self.assertNotIn("Closes #465를 사용한다", source)
-        self.assertIn("PR body는 `Refs #465`를 사용한다", source)
+        self.assertIn("문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다", source)
 
 
 if __name__ == "__main__":
