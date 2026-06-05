@@ -171,6 +171,13 @@
     <string name="emergency_unlock_reason_boredom">Je m\'ennuie ou je veux me détendre</string>
     <string name="emergency_unlock_reason_other">Autre</string>
     <string name="emergency_unlock_reason_other_hint">Veuillez entrer votre raison</string>
+    <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
+    <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
+    <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
+    <string name="emergency_unlock_apps_helper">Unlock only the apps needed for this exception.</string>
+    <string name="emergency_unlock_apps_no_reason_helper">Emergency unlock is a limited exception. Choose only the apps you need for a short time.</string>
+    <string name="emergency_unlock_apps_required_helper">Select at least one app to continue.</string>
+    <string name="emergency_unlock_duration_helper">You can cancel before the countdown ends if you do not need it anymore.</string>
     <string name="emergency_unlock_select_apps">Sélectionnez les applications à déverrouiller</string>
     <string name="emergency_unlock_select_duration">Combien de temps avez-vous besoin ?</string>
     <string name="emergency_unlock_duration_minutes">%d min</string>
