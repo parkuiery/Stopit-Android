@@ -10,6 +10,7 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
@@ -56,6 +57,7 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val lockHistoryDao: LockHistoryDao,
         private val goalLockDao: GoalLockDao,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -67,6 +69,7 @@ class HomeViewModel
         init {
             getIsKeep()
             getSelectedApp()
+            syncRoutinesCount()
             getGoalLockCard()
         }
 
@@ -244,6 +247,11 @@ class HomeViewModel
                         ),
                     )
                 }
+            }
+
+        private fun syncRoutinesCount() =
+            intent {
+                routineCountAnalyticsSync.syncFromRoom()
             }
 
         private fun getGoalLockCard() =

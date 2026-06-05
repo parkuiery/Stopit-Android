@@ -2,6 +2,7 @@ package com.uiery.keep.feature.splash
 
 import androidx.datastore.preferences.core.emptyPreferences
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsUserProperty
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
@@ -33,13 +34,14 @@ class SplashViewModelRestoreSchedulingTest {
         val routineDao = SplashRestoreRoutineDao(listOf(routine))
         val dataStore = FakeDataStore(emptyPreferences())
         val scheduler = Mockito.mock(RoutineScheduler::class.java)
+        val analytics = RecordingSplashRoutineCountAnalytics()
         Mockito.`when`(scheduler.canScheduleExactAlarms()).thenReturn(true)
         Mockito.`when`(scheduler.scheduleRoutine(routine.toModel()))
             .thenReturn(RoutineScheduleResult.Scheduled)
 
         val viewModel = SplashViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
-            analytics = NoopSplashAnalytics,
+            analytics = analytics,
             routineRestoreAftercare = RoutineRestoreAftercare(
                 routineDao = routineDao,
                 dataStore = dataStore,
@@ -48,9 +50,13 @@ class SplashViewModelRestoreSchedulingTest {
             ),
         )
 
-        waitFor { routineDao.fetchAllOnceCalled }
+        waitFor { analytics.userProperties.isNotEmpty() }
 
         Mockito.verify(scheduler, Mockito.timeout(1_000)).scheduleRoutine(routine.toModel())
+        assertEquals(
+            listOf(KeepAnalyticsUserProperty.ROUTINES_COUNT to "1"),
+            analytics.userProperties,
+        )
         assertEquals(SplashSideEffect.MoveToOnboarding, viewModel.container.sideEffectFlow.first())
     }
 
@@ -96,10 +102,14 @@ private class SplashRestoreRoutineDao(
     }
 }
 
-private object NoopSplashAnalytics : KeepAnalytics {
+private class RecordingSplashRoutineCountAnalytics : KeepAnalytics {
+    val userProperties = mutableListOf<Pair<String, String>>()
+
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
-    override fun setUserProperty(name: String, value: String) = Unit
+    override fun setUserProperty(name: String, value: String) {
+        userProperties += name to value
+    }
     override fun trackFirstOpen() = Unit
     override fun trackOnboardingStepView(stepName: String) = Unit
     override fun trackOnboardingStepComplete(stepName: String) = Unit

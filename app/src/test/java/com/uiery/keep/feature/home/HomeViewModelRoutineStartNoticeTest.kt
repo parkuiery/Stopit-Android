@@ -2,6 +2,7 @@ package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
@@ -142,6 +143,7 @@ class HomeViewModelRoutineStartNoticeTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
             lockHistoryDao = lockHistoryDao,
             goalLockDao = EmptyRoutineNoticeGoalLockDao(),
             reviewEligibility = ReviewEligibilityEvaluator(

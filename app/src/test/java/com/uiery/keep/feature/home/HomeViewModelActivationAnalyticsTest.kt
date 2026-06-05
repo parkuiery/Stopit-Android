@@ -7,10 +7,13 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsUserProperty
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
@@ -47,6 +50,20 @@ import org.junit.Test
 
 class HomeViewModelActivationAnalyticsTest {
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-11T14:30:00Z"), ZoneId.of("UTC"))
+
+    @Test
+    fun homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+
+        createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            routines = listOf(homeRoutineEntity(id = 1L), homeRoutineEntity(id = 2L)),
+        )
+        delay(50)
+
+        assertEquals(listOf(KeepAnalyticsUserProperty.ROUTINES_COUNT to "2"), analytics.userProperties)
+    }
 
     @Test
     fun changeIsKeepTracksFirstLockConfiguredFromHomeOnce() = runBlocking {
@@ -468,6 +485,7 @@ class HomeViewModelActivationAnalyticsTest {
         analytics: HomeRecordingKeepAnalytics,
         lockHistoryDao: LockHistoryDao = FakeLockHistoryDao(),
         goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
+        routines: List<RoutineEntity> = emptyList(),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         return HomeViewModel(
@@ -476,6 +494,7 @@ class HomeViewModelActivationAnalyticsTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(routines), analytics),
             lockHistoryDao = lockHistoryDao,
             goalLockDao = goalLockDao,
             reviewEligibility = ReviewEligibilityEvaluator(
@@ -549,6 +568,16 @@ private class HomeRecordingLockHistoryDao : LockHistoryDao {
         inserted.count { it.startTimestamp >= timestampMillis }
 }
 
+private fun homeRoutineEntity(id: Long): RoutineEntity = RoutineEntity(
+    id = id,
+    name = "Routine $id",
+    startTime = LocalTime(hour = 8, minute = 0),
+    endTime = LocalTime(hour = 9, minute = 0),
+    repeatDays = listOf(java.time.DayOfWeek.MONDAY),
+    lockApplications = listOf("com.example.blocked"),
+    isEnabled = true,
+)
+
 private sealed interface HomeAnalyticsCall {
     data class FirstLockConfigured(
         val source: String,
@@ -582,12 +611,15 @@ private sealed interface HomeAnalyticsCall {
 
 private class HomeRecordingKeepAnalytics : KeepAnalytics {
     val calls = mutableListOf<HomeAnalyticsCall>()
+    val userProperties = mutableListOf<Pair<String, String>>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
     override fun logScreenView(screenName: String) = Unit
 
-    override fun setUserProperty(name: String, value: String) = Unit
+    override fun setUserProperty(name: String, value: String) {
+        userProperties += name to value
+    }
 
     override fun trackFirstOpen() = Unit
 

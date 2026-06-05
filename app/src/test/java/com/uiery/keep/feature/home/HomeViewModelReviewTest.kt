@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.BlockingStateStore
@@ -135,6 +136,7 @@ class HomeViewModelReviewTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
             lockHistoryDao = FakeLockHistoryDao(),
             goalLockDao = EmptyGoalLockDao(),
             reviewEligibility = ReviewEligibilityEvaluator(
