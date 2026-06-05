@@ -25,6 +25,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts/validate-play-deploy-ref.sh", workflow)
         self.assertIn("scripts/validate-play-rollout-inputs.js", workflow)
         self.assertIn("scripts/play_version_code_guard.py", workflow)
+        self.assertIn("scripts/release_provenance_manifest.py", workflow)
         self.assertIn("scripts/check_workflow_gradle_tasks.py", workflow)
         self.assertIn("scripts/release-tag.sh", workflow)
         self.assertIn("scripts/check-play-deploy-secret-contract.sh", workflow)
@@ -39,6 +40,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("node --test scripts/tests/test_promote_google_play_track.js", workflow)
         self.assertIn("node --check scripts/validate-play-rollout-inputs.js", workflow)
         self.assertIn("python3 -m py_compile scripts/notify-discord-deploy.py", workflow)
+        self.assertIn("python3 -m py_compile scripts/release_provenance_manifest.py", workflow)
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
         self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh", workflow)
 
@@ -51,6 +53,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts/setup-discord-deploy-secrets.sh",
             "scripts/validate-play-rollout-inputs.js",
             "scripts/check_workflow_gradle_tasks.py",
+            "scripts/release_provenance_manifest.py",
         ]
         shell_helper_scripts = [
             script for script in helper_scripts if script.endswith(".sh")
@@ -97,6 +100,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_release_qa_runtime_gate_docs", workflow)
         self.assertIn("scripts.tests.test_android_ci_runtime_smoke_docs", workflow)
         self.assertIn("scripts.tests.test_release_guard_hotfix_sync", workflow)
+        self.assertIn("scripts.tests.test_release_provenance_workflow_contract", workflow)
         self.assertIn("scripts.tests.test_ops_ci_workflow", workflow)
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
         docs_contract_job = self._job_block(workflow, "docs-contract")
