@@ -19,6 +19,7 @@ import com.uiery.keep.feature.review.FakeLockHistoryDao
 import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
@@ -107,8 +108,7 @@ class LockViewModelTest {
             reviewPromptStateStore = reviewPromptStateStore,
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = emergencyUnlockDao,
-            lockHistoryDao = FakeLockHistoryDao(),
+            repository = fakeReviewEligibilityRepository(),
             clock = clock,
             buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
         )
@@ -151,8 +151,7 @@ class LockViewModelTest {
             reviewPromptStateStore = reviewPromptStateStore,
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = emergencyUnlockDao,
-            lockHistoryDao = FakeLockHistoryDao(),
+            repository = fakeReviewEligibilityRepository(),
             clock = clock,
             buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
         )
@@ -202,8 +201,7 @@ class LockViewModelTest {
             reviewPromptStateStore = reviewPromptStateStore,
             remoteConfig = FakeReviewRemoteConfig(enabled = true),
             accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-            emergencyUnlockDao = emergencyUnlockDao,
-            lockHistoryDao = FakeLockHistoryDao(),
+            repository = fakeReviewEligibilityRepository(),
             clock = clock,
             buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
         )

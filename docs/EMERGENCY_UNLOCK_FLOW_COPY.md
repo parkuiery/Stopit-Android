@@ -6,7 +6,7 @@ Issue: #467
 
 긴급 해제 플로우는 StopIt의 안전장치이면서도 사용자가 습관적 해제를 한 번 멈춰 생각하게 만드는 자기통제 장치다. 이 문서는 `EmergencyUnlockBottomSheetContent`의 reason → app selection → duration → countdown 흐름을 **짧게 스캔 가능한 선택 + 신중히 쓰는 예외 기능** 경험으로 다듬기 위한 copy, 단계, analytics, locale, QA 계약을 고정한다.
 
-이 문서는 구현 전 source of truth다. 코드 변경은 `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, `strings.xml` locale parity, 관련 Compose/runtime 검증을 포함해야 하며 PR body는 구현·검증·release/readback이 모두 끝나기 전까지 `Refs #467`를 사용한다.
+이 문서는 #467의 source of truth다. PR #488은 문서/QA 계약을 고정했고, code-lane follow-up은 `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, `strings.xml` locale parity, 관련 JVM/UI/build 검증으로 copy·step 구현을 진행한다. release/tag/Play deploy와 14일 readback이 끝나기 전까지 PR body는 `Refs #467`를 사용한다.
 
 ## 현재 관찰한 표면
 

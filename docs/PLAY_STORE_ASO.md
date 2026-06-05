@@ -54,7 +54,7 @@
 
 #65의 14일/30일 ASO 판정 전에 #242의 획득 채널 기준을 먼저 고정한다. 2026-06-01 GA4 스냅샷에서는 전체 신규 유저가 회복된 것처럼 보이지만 `Direct` 비중이 크게 늘었고 `Paid Search`는 신규 유저 없이 활성/세션만 남아 있어, 이 상태로 ASO 효과를 `Organic Search` 변화만으로 판정하면 오판 가능성이 크다.
 
-2026-06-05 repo-observable 스냅샷에서도 같은 문제가 유지됐다. 최신 재조회(`2026-06-05T14:26:22Z`) 기준 전체 `newUsers`는 511명으로 직전 30일 349명 대비 `+46.4%`지만, `Direct` 신규 사용자가 332명으로 전체 신규의 `65.0%`까지 올라간 상태가 유지됐다. `Organic Search` 신규 사용자는 179명으로 #65 기준선 178명을 간신히 넘었지만 Direct 과다/Play Console 미확인 상태라 ASO 회복으로 승격하지 않는다. `sessions`는 4,934회로 직전 6,269회 대비 `-21.3%`이며, `Paid Search`는 활성 18명·세션 194회가 남아 있으면서 신규 사용자는 계속 0명이다. 따라서 현재 신규 유입 반등은 **ASO 회복 후보가 아니라 attribution 확인 없이는 판정 보류**로 둔다.
+2026-06-05 repo-observable 스냅샷에서도 같은 문제가 유지됐다. 최신 재조회(`2026-06-05T21:24:54Z`) 기준 전체 `newUsers`는 520명으로 직전 30일 346명 대비 `+50.3%`지만, `Direct` 신규 사용자가 333명으로 전체 신규의 `64.0%`로 과다 상태를 유지했다. `Organic Search` 신규 사용자는 187명으로 #65 기준선 178명을 넘었지만 Direct 과다/Play Console 미확인 상태라 ASO 회복으로 승격하지 않는다. `sessions`는 4,924회로 직전 6,297회 대비 `-21.8%`이며, `Paid Search`는 활성 18명·세션 180회가 남아 있으면서 신규 사용자는 계속 0명이다. 따라서 현재 신규 유입 반등은 **ASO 회복 후보가 아니라 attribution 확인 없이는 판정 보류**로 둔다.
 
 | 항목 | 2026-06-01 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
 | --- | ---: | ---: | --- |
@@ -124,22 +124,22 @@
 #### 2026-06-05 live readback
 
 명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
-확인 시각: `2026-06-05T14:26:22Z`
+확인 시각: `2026-06-05T21:24:54Z`
 
 | 항목 | 2026-06-05 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
 | --- | ---: | ---: | --- |
-| 전체 `newUsers` | 511 | 직전 349 대비 +46.4% | 신규 유저 반등 폭은 더 커졌지만 channel mix 불안정은 유지 |
-| 전체 `activeUsers` | 762 | 직전 601 대비 +26.8% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
-| 전체 `sessions` | 4,934 | 직전 6,269 대비 -21.3% | 세션은 여전히 직전 30일보다 낮아 참여 회복으로 단정 불가 |
-| `Organic Search` 신규 사용자 | 179 | 179 / 511 = 35.0% | #65 기준선 178을 간신히 넘었지만 Play Console 확인 전까지 ASO 회복으로 승격 불가 |
-| `Direct` 신규 사용자 | 332 | 332 / 511 = 65.0% | Direct 과다 상태가 더 커져 Play Console/external/campaign 확인이 선행 |
-| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 18명·세션 194회는 신규 획득 성과로 계산하지 않음 |
+| 전체 `newUsers` | 520 | 직전 346 대비 +50.3% | 신규 유저 반등 폭은 더 커졌지만 channel mix 불안정은 유지 |
+| 전체 `activeUsers` | 766 | 직전 594 대비 +29.0% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 4,924 | 직전 6,297 대비 -21.8% | 세션은 여전히 직전 30일보다 낮아 참여 회복으로 단정 불가 |
+| `Organic Search` 신규 사용자 | 187 | 187 / 520 = 36.0% | #65 기준선 178을 넘었지만 Direct 과다/Play Console 미확인 전까지 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 333 | 333 / 520 = 64.0% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 18명·세션 180회는 신규 획득 성과로 계산하지 않음 |
 
 #### ASO 성과 판정 전 attribution 확인 순서
 
 1. Play Console `Store performance` / acquisition report에서 같은 최근 30일 창의 검색·탐색·외부/캠페인 유입을 확인한다.
 2. GA4 `firstUserDefaultChannelGroup`의 `Organic Search`, `Direct`, `Paid Search`와 Play Console acquisition source가 같은 방향인지 표로 비교한다.
-3. 실제 Paid Search 캠페인이 집행 중인지 확인한다. 집행 중이 아니라면 최신 스냅샷의 `Paid Search` 활성 18명·세션 194회는 신규 유입 성과가 아니라 과거 사용자/재방문/분류 잔상으로 분리한다.
+3. 실제 Paid Search 캠페인이 집행 중인지 확인한다. 집행 중이 아니라면 최신 스냅샷의 `Paid Search` 활성 18명·세션 180회는 신규 유입 성과가 아니라 과거 사용자/재방문/분류 잔상으로 분리한다.
 4. Discord, 웹, 문서, QR, 캠페인 링크가 Play Store로 유입을 만들고 있다면 UTM 또는 Play Install Referrer 적용 여부를 점검한다.
 5. #65의 14일/30일 판정은 아래 `획득 채널 판정 표`가 채워진 뒤에만 “ASO 효과”로 표현한다. 표가 비어 있으면 `newUsers`/`Organic Search` 변화는 중간 신호로만 둔다.
 
@@ -152,7 +152,7 @@
 | 2026-06-03 live readback | 432 | 169 | 263 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 60.9% 유지. Play Console/external 확인 전까지 ASO 회복 판정 보류 |
 | 2026-06-03 second live readback | 457 | 176 | 281 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 61.5%까지 상승. 신규 유입 반등을 ASO 효과로 표현 금지 |
 | 2026-06-04 late live readback | 506 | 179 | 327 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 64.6%까지 상승. Organic Search는 기준선을 간신히 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
-| 2026-06-05 live readback | 511 | 179 | 332 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 65.0%까지 상승. Organic Search는 기준선을 간신히 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-05 live readback | 520 | 187 | 333 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 64.0% 과다 상태 유지. Organic Search는 기준선을 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
 | +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 | +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 
@@ -489,8 +489,8 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | 2026-06-02 중간 스냅샷 | 432 | 169 | 263 | 0 | 688 | 4,721 | `TODO` | `TODO` | `TODO` | 전체 신규/활성은 반등했지만 Organic Search는 기준선 178보다 낮고 Direct가 60.9%까지 커져 ASO 효과 판정 보류 |
 | 2026-06-03 live readback | 432 | 169 | 263 | 0 | 688 | 4,733 | `TODO` | `TODO` | `TODO` | Direct 60.9% 과다 상태가 유지되고 세션은 직전 30일 대비 -26.1%라 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
 | 2026-06-03 second live readback | 457 | 176 | 281 | 0 | 707 | 4,744 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌지만 Direct 61.5% 과다와 Organic Search 기준선 미회복 때문에 ASO 효과 판정 보류 |
-| 2026-06-04 late live readback | 506 | 179 | 327 | 0 | 757 | 4,897 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 간신히 넘었지만 Direct 64.6% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
-| 2026-06-05 live readback | 511 | 179 | 332 | 0 | 762 | 4,934 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 간신히 넘었지만 Direct 65.0% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-04 late live readback | 506 | 179 | 327 | 0 | 757 | 4,897 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 넘었지만 Direct 64.6% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-05 live readback | 520 | 187 | 333 | 0 | 766 | 4,924 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 넘었지만 Direct 64.0% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
 | +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 | +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
 

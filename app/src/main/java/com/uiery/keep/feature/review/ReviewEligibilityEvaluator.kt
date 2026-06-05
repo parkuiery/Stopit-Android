@@ -1,7 +1,5 @@
 package com.uiery.keep.feature.review
 
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import java.time.Clock
@@ -25,8 +23,7 @@ class ReviewEligibilityEvaluator @Inject constructor(
     private val reviewPromptStateStore: ReviewPromptStateStore,
     private val remoteConfig: ReviewRemoteConfig,
     private val accessibilityChecker: AccessibilityChecker,
-    private val emergencyUnlockDao: EmergencyUnlockDao,
-    private val lockHistoryDao: LockHistoryDao,
+    private val repository: ReviewEligibilityRepository,
     private val clock: Clock,
     private val buildConfig: ReviewBuildConfig,
 ) {
@@ -58,11 +55,11 @@ class ReviewEligibilityEvaluator @Inject constructor(
             return ineligible(SkipReason.WithinSameSession)
         }
 
-        val emergencyCount = emergencyUnlockDao.countSince(nowMs - EMERGENCY_UNLOCK_WINDOW_MILLIS)
+        val emergencyCount = repository.countRecentEmergencyUnlocks(nowMs - EMERGENCY_UNLOCK_WINDOW_MILLIS)
         if (emergencyCount >= EMERGENCY_UNLOCK_MAX_COUNT) return ineligible(SkipReason.RecentEmergencyUnlock)
 
         val recentSuccess =
-            lockHistoryDao.countSuccessfulSessionsSince(nowMs - RECENT_SUCCESS_WINDOW_MILLIS) +
+            repository.countRecentSuccessfulSessions(nowMs - RECENT_SUCCESS_WINDOW_MILLIS) +
                 if (includeCurrentSuccessfulSession) 1 else 0
         if (recentSuccess < 1) return ineligible(SkipReason.NoRecentSuccess)
 
