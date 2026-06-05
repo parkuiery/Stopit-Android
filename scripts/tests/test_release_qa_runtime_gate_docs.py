@@ -50,15 +50,13 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(
-            "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+            "run-connected notification_denied_receiver notification_denied_emergency_unlock",
             maxsplit=1,
         )
 
         self.assertNotIn("notification_denied_emergency_unlock", normal_batch)
-        self.assertIn("notification_denied_receiver", notification_denied_batch)
-        self.assertIn("notification_denied_emergency_unlock", notification_denied_batch)
-        self.assertIn("selector notification_denied_receiver 0", notification_denied_batch)
-        self.assertIn("selector notification_denied_emergency_unlock 0", notification_denied_batch)
+        self.assertIn("POST_NOTIFICATION ignore", notification_denied_batch)
+        self.assertIn("run-connected notification_denied_receiver notification_denied_emergency_unlock", workflow)
 
     def test_release_operator_docs_reference_manifest_suites_instead_of_workflow_mirror(self):
         for doc_name, path in DOCS.items():

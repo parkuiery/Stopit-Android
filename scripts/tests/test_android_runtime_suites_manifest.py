@@ -1,5 +1,6 @@
 import pathlib
 import unittest
+from unittest import mock
 
 from scripts import android_runtime_suites
 
@@ -51,13 +52,37 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         release_qa = RELEASE_QA_WORKFLOW.read_text()
 
-        self.assertIn("scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py lines release_exact_alarm_denied", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py lines release_exact_alarm_allowed", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py lines release_remaining_runtime", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py selector notification_denied_receiver 0", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py selector notification_denied_emergency_unlock 0", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", release_qa)
+
+    def test_run_connected_executes_each_selector_with_before_commands(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            result = android_runtime_suites.run_connected_tests(
+                ["notification_denied_receiver", "notification_denied_emergency_unlock"],
+                before=[
+                    "./gradlew --console=plain :app:installDevDebug",
+                    "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+                ],
+            )
+
+        self.assertEqual(0, result)
+        self.assertEqual(6, run.call_count)
+        self.assertEqual(["./gradlew", "--console=plain", ":app:installDevDebug"], run.call_args_list[0].args[0])
+        self.assertEqual(["adb", "shell", "appops", "set", "com.uiery.keep.dev", "POST_NOTIFICATION", "ignore"], run.call_args_list[1].args[0])
+        self.assertEqual(
+            [
+                "./gradlew",
+                "--console=plain",
+                ":app:connectedDevDebugAndroidTest",
+                "-Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine",
+            ],
+            run.call_args_list[2].args[0],
+        )
 
     def test_runtime_suite_manifest_changes_materialize_ci_scopes(self):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
@@ -73,7 +98,8 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         for name, content in workflows.items():
             with self.subTest(workflow=name):
                 self.assertNotIn("xargs", content)
-                self.assertIn("while IFS= read -r selector", content)
+                self.assertNotIn("while IFS= read -r selector", content)
+                self.assertIn("scripts/android_runtime_suites.py run-connected", content)
 
 
 if __name__ == "__main__":

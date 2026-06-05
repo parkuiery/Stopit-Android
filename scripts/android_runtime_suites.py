@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
+import shlex
+import subprocess
 import sys
 from collections.abc import Iterable
 
@@ -141,6 +143,28 @@ def render_markdown(suite_names: Iterable[str]) -> str:
     return "\n".join(lines).rstrip()
 
 
+def run_connected_tests(suite_names: Iterable[str], before: Iterable[str] = ()) -> int:
+    selectors = selectors_for(suite_names)
+    before_commands = [shlex.split(command) for command in before]
+    for selector in selectors:
+        for command in before_commands:
+            completed = subprocess.run(command, cwd=REPO_ROOT)
+            if completed.returncode:
+                return completed.returncode
+        completed = subprocess.run(
+            [
+                "./gradlew",
+                "--console=plain",
+                ":app:connectedDevDebugAndroidTest",
+                f"-Pandroid.testInstrumentationRunnerArguments.class={selector}",
+            ],
+            cwd=REPO_ROOT,
+        )
+        if completed.returncode:
+            return completed.returncode
+    return 0
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -157,6 +181,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
     markdown_parser = subparsers.add_parser("markdown", help="Print Markdown list for suites")
     markdown_parser.add_argument("suite", nargs="+")
+
+    run_parser = subparsers.add_parser("run-connected", help="Run each selector as a separate connectedDevDebugAndroidTest Gradle invocation")
+    run_parser.add_argument("suite", nargs="+")
+    run_parser.add_argument("--before", action="append", default=[], help="Command to run before each selector; may be supplied multiple times")
 
     subparsers.add_parser("list-suites", help="Print known suite names")
     subparsers.add_parser("validate-sources", help="Verify selectors point to existing androidTest classes/methods")
@@ -178,6 +206,8 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     elif args.command == "markdown":
         print(render_markdown(args.suite))
+    elif args.command == "run-connected":
+        return run_connected_tests(args.suite, before=args.before)
     elif args.command == "list-suites":
         print("\n".join(SUITES.keys()))
     elif args.command == "validate-sources":
