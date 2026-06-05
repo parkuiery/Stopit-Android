@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.onboarding.permission.component
+package com.uiery.keep.ui.component
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -9,7 +9,7 @@ import androidx.compose.ui.res.stringResource
 import com.uiery.keep.R
 
 @Composable
-internal fun PermissionSettingDialog(
+fun PermissionSettingDialog(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
@@ -32,6 +32,6 @@ internal fun PermissionSettingDialog(
             TextButton(onClick = onDismissRequest) {
                 Text(text = stringResource(R.string.permission_dialog_cancel))
             }
-        }
+        },
     )
 }

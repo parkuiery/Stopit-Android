@@ -70,6 +70,47 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
             "app shared UI must depend on app-level/domain boundaries, not feature-private packages",
         )
 
+    def test_features_do_not_import_other_feature_private_components(self):
+        offenders: list[str] = []
+        feature_root = APP_MAIN / "feature"
+        import_pattern = re.compile(r"^import\s+com\.uiery\.keep\.feature\.([^.]+)\..*\.component\.", re.MULTILINE)
+
+        for source in self.kotlin_sources(feature_root):
+            relative = source.relative_to(REPO_ROOT)
+            parts = source.relative_to(feature_root).parts
+            if not parts:
+                continue
+            owning_feature = parts[0]
+            imported_features = sorted(
+                match.group(1)
+                for match in import_pattern.finditer(source.read_text())
+                if match.group(1) != owning_feature
+            )
+            if imported_features:
+                offenders.append(f"{relative}: {', '.join(imported_features)}")
+
+        self.assertEqual(
+            [],
+            offenders,
+            "feature-private component packages must not be imported across feature boundaries; promote reusable UI to app shared UI or KDS",
+        )
+
+    def test_permission_setting_dialog_lives_in_app_shared_ui(self):
+        shared_source = APP_MAIN / "ui/component/PermissionSettingDialog.kt"
+        private_source = APP_MAIN / "feature/onboarding/permission/component/PermissionSettingDialog.kt"
+
+        self.assertTrue(shared_source.exists(), "PermissionSettingDialog should be app shared UI")
+        self.assertFalse(private_source.exists(), "onboarding-private PermissionSettingDialog duplicate must be removed")
+        self.assertIn("fun PermissionSettingDialog(", shared_source.read_text())
+
+    def test_timer_picker_has_no_home_private_duplicate(self):
+        shared_source = APP_MAIN / "ui/component/TimerPicker.kt"
+        private_source = APP_MAIN / "feature/home/component/TimerPicker.kt"
+
+        self.assertTrue(shared_source.exists(), "TimerPicker should be owned by app shared UI")
+        self.assertFalse(private_source.exists(), "home-private TimerPicker duplicate must be removed")
+        self.assertIn("fun TimerPicker(", shared_source.read_text())
+
     def test_app_selection_repository_is_app_level_not_home_private(self):
         home_app_selection_sources = [
             path.relative_to(REPO_ROOT)

@@ -76,7 +76,7 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
-import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
