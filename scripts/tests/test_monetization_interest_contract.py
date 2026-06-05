@@ -58,7 +58,7 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("CTA UI | 완료됨", admob_runbook)
         self.assertIn("MenuScreen.kt", admob_runbook)
         self.assertIn("2026-06-04 메뉴/설정 CTA", ga4_runbook)
-        self.assertIn("관심도 실험 준비", metrics_context)
+        self.assertIn("관심도 실험/placement measurement 준비", metrics_context)
         self.assertIn("실험 시작", admob_runbook)
         self.assertIn("광고 제거 관심도 측정 handoff", admob_runbook)
         self.assertIn("PR #402 release boundary snapshot", admob_runbook)
@@ -82,6 +82,12 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("`AdPlacement.toMetadata(...)`", admob_runbook)
         self.assertIn("`AdPlacementContractTest`", admob_runbook)
         self.assertIn("placement/ad unit pair", admob_runbook)
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", PRODUCT_DASHBOARD.read_text())
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", PRODUCT_CONTEXT.read_text())
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", METRICS_CONTEXT.read_text())
+        self.assertIn("AdPlacement.toMetadata(...)", METRICS_ANALYSIS.read_text())
+        self.assertIn("CTA/placement helper 포함 release/tag/Play deploy", PRODUCT_CONTEXT.read_text())
+        self.assertIn("CTA/placement helper 포함 release/tag/Play deploy", METRICS_CONTEXT.read_text())
 
 
 if __name__ == "__main__":
