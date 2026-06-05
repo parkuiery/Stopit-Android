@@ -43,9 +43,9 @@ class RoutineViewModelRestoreSchedulingTest {
             dataStore = dataStore,
             scheduler = scheduler,
         )
-        waitFor { routineDao.fetchAllCollected }
+        waitFor { RoutineStore(dataStore).readCachedRoutines() == listOf(routine.toModel()) }
 
-        Mockito.verify(scheduler).scheduleRoutine(routine.toModel())
+        Mockito.verify(scheduler, Mockito.timeout(1_000)).scheduleRoutine(routine.toModel())
         assertEquals(listOf(routine.toModel()), RoutineStore(dataStore).readCachedRoutines())
         assertEquals(emptyList<Long>(), routineDao.disabledRoutineIds)
     }
