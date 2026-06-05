@@ -2,7 +2,7 @@
 
 Issue: #417
 
-이 문서는 기간 기반 장기 앱 잠금 기능인 **목표 잠금**의 제품/analytics/QA/implementation handoff 계약을 고정한다. #417은 `ready` 상태지만, 코드 lane이 바로 들어가기 전에 “타이머/루틴을 조금 늘리는 기능”으로 축소되거나 “강력 제한 모드”까지 섞이지 않도록 MVP 범위와 외부 경계를 분리한다.
+이 문서는 기간 기반 장기 앱 잠금 기능인 **목표 잠금**의 제품/analytics/QA/implementation handoff 계약을 고정한다. #417은 `ready` 상태에서 여러 code-lane foothold가 `develop`에 반영된 상태이므로, 이미 구현된 정책/저장/생성/홈/상세/차단/완료 계층을 “구현 전”으로 되돌리지 않고 남은 외부·manual 경계를 분리한다. 동시에 후속 lane이 이 기능을 “타이머/루틴을 조금 늘리는 기능”으로 축소하거나 “강력 제한 모드”까지 섞지 않도록 MVP 범위를 유지한다.
 
 ## 한 줄 목표
 
@@ -263,18 +263,25 @@ Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao
 
 Code lane에서 홈 목표 잠금 카드를 상세 화면으로 연결하고, `GoalLockDetailViewModel` / `GoalLockDetailScreen` / `GoalLockDetailRoute`를 추가했다. 현재 고정된 범위는 목표 이름·잠금 방식·선택 앱 수 상세 상태, 비난하지 않는 조기 종료 확인, 사용자 확인 시 `ended_early` 저장, `goal_lock_ended_early` bucket-only analytics 호출이다.
 
-이 foothold는 상세/종료 CTA와 early-end analytics runtime call을 고정하지만, 목표 잠금 생성 UI entrypoint, 수정 UX, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 UI/runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
+이 foothold는 상세/종료 CTA와 early-end analytics runtime call을 고정하지만, 생성 UI/navigation entrypoint와 Home 만료 완료 정규화는 이후 foothold에서 별도로 들어왔다. 이 단락을 읽을 때 `goal_lock_ended_early` 상세 path의 현재 구현 범위로만 해석하고, #417 전체 남은 경계는 아래 최신 foothold와 외부/manual 경계를 따른다.
 
 ### 2026-06-05 creation UI / navigation foothold
 
 Code lane에서 같은 #417 package를 이어서 `GoalLockCreationRoute`, `GoalLockCreationScreen`, Menu의 `목표 잠금` entrypoint, 그리고 생성 성공 후 `GoalLockDetailRoute`로 이동하는 navigation을 추가했다. 생성 화면은 현재 홈의 앱 선택 상태를 `BlockingStateStore`에서 읽어 seed로 사용하고, 목표별 선택 앱 편집(홈 선택 재불러오기, `CategoryBottomSheetContent` 기반 full picker UX, picker selection replace, 개별 제거, 0개 validation), 목표 이름 preset/직접 입력, 7/14/30일 preset 기간, 직접 일수(`custom_days`) 입력, ISO 종료 날짜(`end_date`) 입력, `all_day`와 평일 저녁 `scheduled` 선택, 생성 가능 validation, `goal_lock_created` 호출 후 상세 화면 진입을 고정한다.
 
-이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint 및 기존 앱 선택 picker 재사용까지 연결하지만, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 계속 `Refs #417`로 유지한다.
+이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint 및 기존 앱 선택 picker 재사용까지 연결했다. 이 시점 이후 “full picker-style 앱 선택 UX”를 남은 구현 경계로 반복하지 않는다.
+
+### 2026-06-05 Home expiration completion foothold
+
+Code lane에서 PR #489로 Home progress card load 경로가 종료일이 지난 active 목표 잠금을 `completed`로 정규화하고, 상세 path와 동일한 bucketed `goal_lock_completed` analytics를 1회 기록하도록 보강했다. 또한 생성/상세/Home 완료 경로가 같은 `lock_mode` / duration bucket mapping을 쓰도록 목표 잠금 analytics helper를 공유화했다.
+
+이 foothold는 Home에서 만료 목표 잠금이 조용히 사라지거나 active처럼 남는 해석 drift를 막지만, 실제 device/emulator runtime QA evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. #417 이슈는 repo-internal 주요 구현 foothold가 들어왔더라도 이 외부/manual 경계가 확인될 때까지 `Refs #417` 상태가 맞다.
 
 ## 외부/manual 경계
 
 - GA4 Admin custom dimension 등록과 metadata readback.
 - 목표 잠금 포함 버전의 release/tag/Play deploy.
+- 실제 device/emulator runtime QA evidence: all-day/scheduled 차단, 종료일 경과 후 차단 중지, Home card 상태, 상세/조기 종료 copy, TalkBack label.
 - 배포 후 14일/30일 측정.
 - 강력 제한 모드나 결제/프리미엄 연결 여부는 대표님 제품 판단이 필요하다.
 
