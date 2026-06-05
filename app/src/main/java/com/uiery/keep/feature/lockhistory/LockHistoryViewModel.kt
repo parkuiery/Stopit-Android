@@ -82,6 +82,12 @@ class LockHistoryViewModel @Inject constructor(
             ?: emptyList()
 
         val summary = summarizeLockHistoryLedger(sessions)
+        val performanceReport = buildLockHistoryPerformanceReport(
+            periodType = state.periodType,
+            totalDurationMillis = summary.totalDurationMillis,
+            sessionCount = summary.sessionCount,
+            topApps = summary.topApps.map { it to 1 },
+        )
 
         reduce {
             state.copy(
@@ -93,17 +99,28 @@ class LockHistoryViewModel @Inject constructor(
                 topApps = summary.topApps,
                 durationByDate = summary.durationByDate,
                 selectedDate = null,
-                performanceReport = buildLockHistoryPerformanceReport(
-                    periodType = state.periodType,
-                    totalDurationMillis = summary.totalDurationMillis,
-                    sessionCount = summary.sessionCount,
-                    topApps = summary.topApps.map { it to 1 },
-                ),
+                performanceReport = performanceReport,
                 focusSummarySharePayload = buildFocusSummarySharePayload(
                     periodType = state.periodType,
                     sessionCount = summary.sessionCount,
                     totalDurationMillis = summary.totalDurationMillis,
                 ),
+            )
+        }
+        trackPerformanceReportViewed(performanceReport)
+    }
+
+    private fun trackPerformanceReportViewed(performanceReport: LockHistoryPerformanceReportReadModel) {
+        analytics.trackLockHistoryPerformanceSummaryViewed(
+            periodType = performanceReport.periodTypeAnalyticsValue,
+            reportState = performanceReport.state.analyticsValue,
+            sessionCountBucket = performanceReport.sessionCountBucket,
+            durationMinutesBucket = performanceReport.durationMinutesBucket,
+        )
+        if (performanceReport.shouldShowTopApps) {
+            analytics.trackLockHistoryTopAppsViewed(
+                periodType = performanceReport.periodTypeAnalyticsValue,
+                topAppsCountBucket = performanceReport.topAppsCountBucket,
             )
         }
     }
@@ -172,3 +189,10 @@ data class LockHistoryUiState(
 sealed class LockHistorySideEffect {
     data class ShareFocusSummary(val payload: FocusSummarySharePayload) : LockHistorySideEffect()
 }
+
+private val LockHistoryPerformanceReportState.analyticsValue: String
+    get() = when (this) {
+        LockHistoryPerformanceReportState.EMPTY -> "empty"
+        LockHistoryPerformanceReportState.LOW_DATA -> "low_data"
+        LockHistoryPerformanceReportState.HAS_HISTORY -> "has_history"
+    }

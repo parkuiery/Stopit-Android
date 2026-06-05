@@ -31,7 +31,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "duration_minutes_bucket",
             "top_apps_count_bucket",
             "PR #485 read-model·UI 구현 develop 반영",
-            "후속 instrumentation 후보",
+            "code-lane instrumentation 추가",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -66,8 +66,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("14일 관측 전", ga4)
         self.assertIn("PR #485", dictionary)
         self.assertIn("PR #485", ga4)
-        self.assertIn("후속 instrumentation 후보", dictionary)
-        self.assertIn("후속 후보", ga4)
+        self.assertIn("code-lane instrumentation", dictionary)
+        self.assertIn("code-lane instrumentation", ga4)
 
     def test_high_traffic_product_metrics_docs_link_the_contract(self):
         files = [
@@ -121,7 +121,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("develop`에 반영", source)
         self.assertIn("release/tag/Play deploy", source)
         self.assertIn("14일/30일 readback", source)
-        self.assertIn("후속 instrumentation 후보", high_traffic)
+        self.assertIn("code-lane instrumentation", high_traffic)
         self.assertNotIn("code-lane 구현 전", source)
         self.assertNotIn("#465 문서 계약 추가 / 코드 구현 전", high_traffic)
         self.assertNotIn("Closes #465를 사용한다", source)

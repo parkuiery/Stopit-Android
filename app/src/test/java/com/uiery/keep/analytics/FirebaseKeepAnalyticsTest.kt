@@ -416,6 +416,43 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun lockHistoryPerformanceEventsUsePrivacySafeBuckets() {
+        analytics.trackLockHistoryPerformanceSummaryViewed(
+            periodType = "month",
+            reportState = "has_history",
+            sessionCountBucket = "4_6",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackLockHistoryTopAppsViewed(
+            periodType = "month",
+            topAppsCountBucket = "2_3",
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.REPORT_STATE to "has_history",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "4_6",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to "2_3",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+    }
+
+    @Test
     fun monetizationInterestEventsUseExperimentContextParams() {
         analytics.trackMonetizationInterestShown(
             interestSurface = AnalyticsMonetizationInterestSurface.MENU,
@@ -515,7 +552,11 @@ class FirebaseKeepAnalyticsTest {
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
+        assertEquals("lock_history_performance_summary_viewed", KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED)
+        assertEquals("lock_history_top_apps_viewed", KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED)
         assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
+        assertEquals("report_state", KeepAnalyticsParam.REPORT_STATE)
+        assertEquals("top_apps_count_bucket", KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
         assertEquals("SplashScreen", KeepAnalyticsScreen.SPLASH)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)

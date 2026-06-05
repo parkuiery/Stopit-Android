@@ -297,6 +297,36 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackLockHistoryPerformanceSummaryViewed(
+            periodType: String,
+            reportState: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.REPORT_STATE to reportState,
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to sessionCountBucket,
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                ),
+            )
+        }
+
+        override fun trackLockHistoryTopAppsViewed(
+            periodType: String,
+            topAppsCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to topAppsCountBucket,
+                ),
+            )
+        }
+
         override fun trackMonetizationInterestShown(
             interestSurface: String,
             interestContext: String,
