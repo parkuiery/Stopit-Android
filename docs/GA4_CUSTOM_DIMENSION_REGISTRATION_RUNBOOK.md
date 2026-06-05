@@ -14,6 +14,7 @@
 - 이벤트/파라미터 계약: `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - 분석/이슈화 절차: `docs/METRICS_ANALYSIS.md`
 - 제품 대시보드와 우선순위: `docs/PRODUCT_METRICS_DASHBOARD.md`
+- `routines_count` user property coverage 계약: `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` (#479)
 - 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - open issue: `#13`
 - 앱 코드 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
@@ -35,7 +36,7 @@
 
 2026-05-29 live 점검 메모 기준:
 
-- `customUser:routines_count`만 metadata에서 확인됨
+- `customUser:routines_count`만 metadata에서 확인됨. 단 #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 기준으로 metadata 조회 가능성과 active user coverage는 분리한다.
 - 활성화/리뷰용 `customEvent:*` 차원/지표는 아직 보이지 않음
 - 광고용 `customEvent:*`는 아래 2026-06-01 #16 AdMob preflight에서 일부 등록 확인으로 보정됨
 - 최근 14일 `screen_view` 총량 `13,154`
@@ -56,6 +57,7 @@
 
 - 현재 #13은 단순 문서 부재 문제가 아니라 **GA4 Admin 등록, 이벤트 source split, 배포 후 계측 품질 회복이 아직 모두 끝나지 않은 상태**다.
 - 활성화/리뷰 세부 파라미터 결론은 계속 낮은 confidence로 둔다.
+- 루틴 보유/미보유 retention 결론도 `routines_count=(not set)` coverage가 큰 동안에는 낮은 confidence로 두고, #479 coverage 개선 포함 버전의 release/tag/Play deploy + D+14/D+30 readback을 기다린다.
 - 광고/수익화 결론은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 AdMob event-source split 계약을 먼저 적용한 뒤 판단한다.
 
 ## 권장 등록 순서

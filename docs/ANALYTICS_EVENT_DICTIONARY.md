@@ -15,6 +15,7 @@
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
+- `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`: #479용 `routines_count` user property coverage 보강 계약. `customUser:routines_count` 조회 가능성과 실제 active user 커버리지를 분리한다.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP, 보호자 PIN, privacy-safe analytics/QA 계약
@@ -319,11 +320,12 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 | user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
 | --- | --- | --- | --- |
-| `routines_count` | `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt` | 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때 | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. |
+| `routines_count` | 현재 구현은 `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`; #479 목표 source of truth는 `KeepAnalytics` 계층의 중앙 API/상수 + 앱/Home/restore 공통 sync 경로 | 현재는 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때. #479 이후에는 앱 실행/Home 진입, 루틴 생성/수정/삭제, backup/restore 또는 boot rehydrate 이후에도 `0` 또는 실제 Room count를 명시적으로 설정해야 한다. | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. #479 완료 전에는 `routines_count=(not set)` coverage gap을 별도 cohort로 유지한다. |
 
 운영 원칙:
 
 - `routines_count`는 #13에서 **이미 조회 가능한 customUser 축**이므로, `customEvent:*` 등록이 비어 있어도 루틴 보유 분포 해석에는 사용할 수 있다.
+- 단, #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`가 정의한 것처럼 조회 가능성과 커버리지는 다르다. 2026-06-03 기준 `(not set)` activeUsers가 `560 / 865 = 64.7%`였으므로, coverage 개선 포함 버전의 release/tag/Play deploy + D+14/D+30 readback 전에는 `0`/`>=1` cohort만 전체 retention 결론으로 일반화하지 않는다.
 - 다만 user property 특성상 과거 시점 복원이 어렵기 때문에, 코호트/퍼널 결론은 `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 이벤트와 함께 본다.
 - product/metrics 문서에서 `루틴 생성 사용자 비율`을 언급할 때는 이 계약을 source of truth로 본다.
 
