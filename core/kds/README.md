@@ -19,7 +19,7 @@ KeepTheme {
 
 | 토큰 | Light | Dark | 용도 |
 |------|-------|------|------|
-| `primary` | `#FFA927` | `#FFA927` | 주요 액션, 강조 |
+| `primary` | `#FFA927` | `#FFA927` | 주요 CTA, 선택/활성 상태, 중요한 진행/성과 강조 |
 | `error` | `#F04452` | `#F04452` | 에러, 경고 |
 | `background` | `#FFFFFF` | `#17171C` | 화면 배경 |
 | `onBackground` | `#17171C` | `#8E000000` | 딤 배경 |
@@ -48,6 +48,25 @@ KeepTheme {
 | gray700 | `#4E5968` | `#C3C3C6` |
 | gray800 | `#333D4B` | `#E4E4E5` |
 | gray900 | `#191F28` | `#FFFFFF` |
+
+### Primary color 사용 위계
+
+`primary`는 브랜드 강조색이지만 기본 icon/text 색이 아닙니다. 화면의 모든 action을 같은 orange로 칠하면 primary CTA, 현재 선택 상태, navigation icon의 위계가 무너집니다.
+
+권장 사용:
+
+- 화면/시트의 단일 primary CTA (`KeepButton`, 저장/시작/확인/선택 완료)
+- 선택된 tab/day/chip/filter 같은 현재 선택 상태
+- 활성 잠금/루틴/집중 상태, 카운트다운, 중요한 진행/성과 강조
+
+낮은 위계 색상으로 처리할 후보:
+
+- TopAppBar 뒤로가기/메뉴/닫기 icon
+- 일반 추가/삭제/편집 icon-only action
+- 보조 설명, caption, metadata
+- 파괴/긴급 동작: `error` 또는 confirmation pattern 사용
+
+선택/활성 상태는 색상만으로 전달하지 말고 텍스트, badge/chip shape, border/background, contentDescription/semantics 중 하나 이상을 함께 사용합니다. 앱 화면별 audit와 후속 체크리스트는 루트 `docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md`를 기준으로 합니다.
 
 ### 타이포그래피
 
