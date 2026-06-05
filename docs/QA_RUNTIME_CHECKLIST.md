@@ -463,7 +463,8 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' \
   --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' \
   --tests 'com.uiery.keep.KeepAppNavigationPolicyTest' \
-  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState'
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'
 python3 -m unittest scripts.tests.test_goal_lock_contract -v
 ```
 

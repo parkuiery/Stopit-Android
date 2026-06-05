@@ -43,6 +43,9 @@ class GoalLockContractTest(unittest.TestCase):
             "full picker UX",
             "직접 일수(`custom_days`) 입력",
             "ISO 종료 날짜(`end_date`) 입력",
+            "Home expiration completion foothold",
+            "PR #489",
+            "goal_lock_completed",
             "Closes #417",
         ]
         for phrase in required_phrases:
@@ -127,8 +130,23 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("목표별 선택 앱 편집", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce", qa_checklist)
+        self.assertIn("GoalLockDetailViewModelTest", qa_checklist)
+        self.assertIn("FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
+
+    def test_context_pack_does_not_describe_goal_lock_as_pre_implementation_only(self):
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        for document in [product_context, metrics_context]:
+            self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion foothold", document)
+            self.assertIn("device/emulator runtime QA evidence", document)
+            self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
+
+        dashboard = PRODUCT_DASHBOARD.read_text()
+        self.assertIn("Home completion foothold", dashboard)
+        self.assertIn("`develop` 반영 상태", dashboard)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()
