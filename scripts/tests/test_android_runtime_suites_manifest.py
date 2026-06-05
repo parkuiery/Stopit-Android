@@ -64,6 +64,17 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         self.assertIn("scripts/android_runtime_suites.py", android_ci)
         self.assertIn("scripts/tests/test_android_runtime_suites_manifest.py", android_ci)
 
+    def test_workflow_selector_loops_do_not_use_xargs(self):
+        workflows = {
+            "Android CI": ANDROID_CI_WORKFLOW.read_text(),
+            "Release QA": RELEASE_QA_WORKFLOW.read_text(),
+        }
+
+        for name, content in workflows.items():
+            with self.subTest(workflow=name):
+                self.assertNotIn("xargs", content)
+                self.assertIn("while IFS= read -r selector", content)
+
 
 if __name__ == "__main__":
     unittest.main()
