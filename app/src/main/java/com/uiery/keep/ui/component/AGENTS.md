@@ -11,6 +11,7 @@ Use this package for UI that depends on app resources, app domain models, reposi
 - `CategoryBottomSheetContent`: app-selection bottom sheet shared by onboarding, Home, and Routine surfaces; depends on app-level `appselection.InstalledAppRepository`, `AppInfo`, app strings, app icons, and KDS checkbox styling.
 - `AppItem`: app-selection row used by the shared category bottom sheet.
 - `SearchTextField`: app resource-backed search input used by the shared category bottom sheet.
+- `PermissionSettingDialog`: app permission handoff dialog shared by onboarding and Home accessibility-permission recovery; depends on app strings and Material dialog primitives.
 - `TimerPicker`: app timer picker shared by Home and Routine; depends on app string resources and app-level picker utilities.
 
 ## Ownership rules
