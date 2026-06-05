@@ -66,6 +66,7 @@ ASO 판정 주의:
 - 첫 차단 성공 이후 루틴 생성 CTA(#455)는 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 본다. 대상은 `first_core_action_completed` 또는 `app_block_intercepted` 이후 + 루틴 0개 사용자이며, onboarding / pre-first-lock / 루틴 보유자는 제외한다. `routine_creation_cta_*` 이벤트는 `surface`, `activation_stage`, `has_routine`, `cta_variant` 같은 privacy-safe enum만 쓰고, GA4 Admin 등록·CTA 포함 release/tag/Play deploy·14일/30일 readback 전에는 retention 효과를 낮은 confidence로 둔다.
 - 루틴 템플릿 공유 루프(#407)는 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP 지표는 `routine_template_share_tapped` users / 루틴 보유 active users, `routine_template_share_sheet_opened` users / tapped users, 실패율, 루틴 보유 cohort retention이며, `lockApplications`, package name, 앱 이름, raw session history는 payload/analytics에서 금지한다. deep link/import는 별도 decision gate 전까지 구현-ready로 보지 않는다.
 - 목표 잠금(#417)은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP 지표는 `goal_lock_created` users / active users, `goal_lock_created` users / `goal_lock_create_started` users, `goal_lock_completed` users / `goal_lock_created` users, `goal_lock_ended_early` users / `goal_lock_created` users이며, `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` 같은 enum/bucket만 사용한다. 목표 이름 원문, app package, app label, raw 날짜는 analytics/query 축으로 쓰지 않는다. #417 구현·GA4 Admin 등록·release/tag/Play deploy·14일 관측 전에는 live 결론을 보류한다.
+- 부모 모드(#471)는 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP 지표는 `parent_mode_started` users / `parent_mode_duration_selected` users, `parent_mode_started` users / `parent_mode_allowed_apps_selected` users, `parent_mode_completed(end_reason=time_expired)` users / `parent_mode_started` users, `parent_mode_unlocked_by_pin` users / `parent_mode_started` users이며, `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `block_context` 같은 enum/bucket만 사용한다. 아이 이름, 앱 이름/package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 analytics/query 축으로 쓰지 않는다. #471 구현·GA4 Admin 등록·release/tag/Play deploy·14일 관측 전에는 live 결론을 보류한다.
 
 ## 핵심 퍼널
 
@@ -147,3 +148,4 @@ ASO 판정 주의:
 - `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`
 - `docs/GOAL_LOCK_MVP.md` (#417 목표 잠금 MVP/analytics/QA 계약)
+- `docs/PARENT_MODE_MVP.md` (#471 부모 모드 / 아이에게 폰 주기 same-device MVP/analytics/QA 계약)
