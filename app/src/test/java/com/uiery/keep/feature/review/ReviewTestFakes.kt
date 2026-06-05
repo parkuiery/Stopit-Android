@@ -108,3 +108,11 @@ class FakeLockHistoryDao(var recentSuccessCount: Int = 1, var totalCount: Int = 
     override suspend fun countSuccessfulSessions(): Int = totalCount
     override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int = recentSuccessCount
 }
+
+fun fakeReviewEligibilityRepository(
+    emergencyCount: Int = 0,
+    recentSuccessCount: Int = 1,
+): ReviewEligibilityRepository = ReviewEligibilityRepository(
+    emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),
+    lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = recentSuccessCount),
+)
