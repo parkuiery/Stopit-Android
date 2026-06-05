@@ -53,7 +53,7 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Run static policy unit tests
-        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_android_manifest_contract scripts.tests.test_flavor_application_id_contract scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
+        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_android_manifest_contract scripts.tests.test_flavor_application_id_contract scripts.tests.test_android_runtime_suites_manifest scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
 
       - name: Run full release JVM and build QA
         run: |
@@ -132,41 +132,28 @@ jobs:
           script: |
             set -eu
             ./gradlew :app:installDevDebug
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+            RELEASE_FOCUSED_UI_SMOKE="$(python3 scripts/android_runtime_suites.py class-arg release_focused_ui_smoke)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_FOCUSED_UI_SMOKE"
             ./gradlew :app:installDevDebug
             adb shell cmd appops reset com.uiery.keep.dev
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent
-            ./gradlew :app:installDevDebug
-            adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm
+            RELEASE_EXACT_ALARM_DEFAULT="$(python3 scripts/android_runtime_suites.py class-arg release_exact_alarm_default)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_EXACT_ALARM_DEFAULT"
+            for selector in $(python3 scripts/android_runtime_suites.py lines release_exact_alarm_denied); do
+              ./gradlew :app:installDevDebug
+              adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
+              ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.manifest.ManifestContractIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
+            RELEASE_EXACT_ALARM_ALLOWED="$(python3 scripts/android_runtime_suites.py class-arg release_exact_alarm_allowed)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_EXACT_ALARM_ALLOWED"
+            RELEASE_REMAINING_RUNTIME="$(python3 scripts/android_runtime_suites.py class-arg release_remaining_runtime)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_REMAINING_RUNTIME"
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
+            NOTIFICATION_DENIED_RECEIVER="$(python3 scripts/android_runtime_suites.py selector notification_denied_receiver 0)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$NOTIFICATION_DENIED_RECEIVER"
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
+            NOTIFICATION_DENIED_EMERGENCY_UNLOCK="$(python3 scripts/android_runtime_suites.py selector notification_denied_emergency_unlock 0)"
+            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$NOTIFICATION_DENIED_EMERGENCY_UNLOCK"
