@@ -1,7 +1,7 @@
 # 잠금 기록 성과 리포트 UX 계약
 
 Issue: #465
-상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / release·GA4·14일·30일 readback 전**
+상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / release·GA4·14일·30일 readback 전**
 
 이 문서는 Stopit의 `LockHistory` 화면을 단순 로그가 아니라 사용자가 “내가 지킨 기록”을 이해하는 성과 리포트 경험으로 개선하기 위한 source of truth다. #211 집중 요약 공유와 같은 화면을 쓰지만, 이 이슈의 1차 목표는 외부 공유가 아니라 **개인 성과 해석과 재방문 동기 강화**다.
 
@@ -86,7 +86,7 @@ Issue: #465
 - `duration_minutes_bucket`: `0`, `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
 - `top_apps_count_bucket`: `0`, `1`, `2_3`, `4_plus`
 
-이벤트를 추가하지 않는 code-lane PR도 유효할 수 있다. 그 경우 PR body에 “UI/read model 개선만 수행, 새 analytics event 없음”을 명시하고, 지표 판단은 기존 `screen_view=LockHistoryScreen`, `app_block_intercepted`, `lock_session_end`, retention cohort로 낮은 confidence에서 해석한다.
+이벤트를 추가하지 않는 code-lane PR도 유효할 수 있다. 다만 2026-06-05 code-lane instrumentation 이후에는 `LockHistoryViewModel`이 표시 중인 성과 리포트 read model을 기준으로 `lock_history_performance_summary_viewed`와 `lock_history_top_apps_viewed`를 privacy-safe enum/bucket만 전송한다. GA4 Admin 등록·metadata 확인·release/tag/Play deploy 전에는 이 이벤트의 0건을 UX 실패나 수요 없음으로 해석하지 않는다.
 
 ## 측정 계획
 
@@ -151,13 +151,14 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다.
 4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy가 성취형/긍정 프레이밍으로 바뀌었다.
 5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
-6. 이번 code-lane PR은 UI/read model 개선이며 새 `lock_history_*` analytics event를 추가하지 않았다. 따라서 GA4 runbook의 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`는 **후속 instrumentation 후보**로 남긴다.
+6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
 7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
 
 현재 구현/문서 계약 검증 명령:
 
 ```bash
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.lockHistoryPerformanceEventsUsePrivacySafeBuckets' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest.weeklyHistoryBuildsSharePayloadAndTracksTappedEventWithBuckets' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest.emptyHistoryTracksOnlySummaryPerformanceEventWithoutTopApps'
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ./gradlew --console=plain :app:assembleProdDebug
 ./gradlew --console=plain :app:lintProdRelease
@@ -182,7 +183,7 @@ git diff --check
 
 ## PR/이슈 연결 규칙
 
-PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐지만 #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인(후속 analytics event를 추가하는 경우), 14일/30일 readback, 실제 QA evidence 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
+PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 14일/30일 readback, 실제 QA evidence 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
 
 ## 계약 회귀 테스트
 

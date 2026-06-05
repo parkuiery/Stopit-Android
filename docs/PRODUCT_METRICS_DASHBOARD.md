@@ -218,7 +218,7 @@
 - guardrail:
   - `중독`, `실패`, `못 참음`, `위험 사용자` 같은 shame/friction copy 금지.
   - 성취 copy가 과장되거나 압박으로 읽히는지 Play review/rating, 긴급해제 사용률, crash-free users와 함께 본다.
-- PR #485로 read model/UI copy는 `develop`에 반영됐지만, release/tag/Play deploy와 14일/30일 readback 전에는 성과 결론을 보류한다. 새 `lock_history_*` 이벤트는 PR #485에 포함되지 않은 후속 instrumentation 후보이므로, instrumentation/GA4 Admin 등록 전에는 이벤트 0건을 수요 없음으로 해석하지 않는다.
+- PR #485로 read model/UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_*` 이벤트 코드 계약도 추가됐다. 다만 release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일/30일 readback 전에는 성과 결론을 보류한다. instrumentation 포함 버전이 배포되기 전의 이벤트 0건은 수요 없음으로 해석하지 않는다.
 
 ### Usage Access 기반 개인화 리포트
 

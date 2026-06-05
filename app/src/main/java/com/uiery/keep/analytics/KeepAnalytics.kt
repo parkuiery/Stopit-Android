@@ -118,6 +118,18 @@ interface KeepAnalytics {
         reason: String,
     ) = Unit
 
+    fun trackLockHistoryPerformanceSummaryViewed(
+        periodType: String,
+        reportState: String,
+        sessionCountBucket: String,
+        durationMinutesBucket: String,
+    ) = Unit
+
+    fun trackLockHistoryTopAppsViewed(
+        periodType: String,
+        topAppsCountBucket: String,
+    ) = Unit
+
     fun trackMonetizationInterestShown(
         interestSurface: String,
         interestContext: String,
@@ -200,6 +212,8 @@ object KeepAnalyticsEvent {
     const val FOCUS_SUMMARY_SHARE_TAPPED = "focus_summary_share_tapped"
     const val FOCUS_SUMMARY_SHARE_SHEET_OPENED = "focus_summary_share_sheet_opened"
     const val FOCUS_SUMMARY_SHARE_FAILED = "focus_summary_share_failed"
+    const val LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED = "lock_history_performance_summary_viewed"
+    const val LOCK_HISTORY_TOP_APPS_VIEWED = "lock_history_top_apps_viewed"
     const val MONETIZATION_INTEREST_SHOWN = "monetization_interest_shown"
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
@@ -234,8 +248,10 @@ object KeepAnalyticsParam {
     const val GOAL_LOCK_ID = "goal_lock_id"
     const val ERROR = "error"
     const val PERIOD_TYPE = "period_type"
+    const val REPORT_STATE = "report_state"
     const val SESSION_COUNT_BUCKET = "session_count_bucket"
     const val DURATION_MINUTES_BUCKET = "duration_minutes_bucket"
+    const val TOP_APPS_COUNT_BUCKET = "top_apps_count_bucket"
     const val INTEREST_SURFACE = "interest_surface"
     const val INTEREST_CONTEXT = "interest_context"
     const val INTEREST_VARIANT = "interest_variant"
