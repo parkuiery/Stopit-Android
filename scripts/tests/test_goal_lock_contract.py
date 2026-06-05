@@ -126,6 +126,7 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationRoute", qa_checklist)
         self.assertIn("목표별 선택 앱 편집", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
+        self.assertIn("HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
 

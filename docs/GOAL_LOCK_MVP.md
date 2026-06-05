@@ -198,8 +198,9 @@ Guardrail:
   - 목표별 선택 앱 편집에서 picker selection replace, package trim/dedupe, remove와 0개 validation을 검증.
   - `Created(goalLockId)` side effect.
   - `goal_lock_created` bucket-only analytics 호출.
-- `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`:
+- `HomeViewModelActivationAnalyticsTest`:
   - active/pending/ended_early 목표 잠금이 Home card state로 노출됨.
+  - 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회 기록함.
 - `GoalLockDetailViewModelTest`:
   - 상세 화면 상태가 목표 이름/잠금 방식/선택 앱 수를 노출함.
   - 종료 요청/취소가 확인 상태만 바꿈.
