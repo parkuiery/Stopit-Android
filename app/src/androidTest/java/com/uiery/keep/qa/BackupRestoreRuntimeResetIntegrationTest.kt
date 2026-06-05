@@ -12,10 +12,15 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.feature.routine.RoutineRestoreAftercare
+import com.uiery.keep.feature.routine.RoutineViewModel
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduler
@@ -133,6 +138,38 @@ class BackupRestoreRuntimeResetIntegrationTest {
         assertRestoreResetOnlyStateAbsent()
     }
 
+    @Test
+    fun appOpenRoutineEntryRehydratesRoomRoutineCacheAndSchedulesAlarmWithoutRevivingResetOnlyDataStoreState() = runBlocking {
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore app-open routine"))
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+
+        RoutineViewModel(
+            routineDao = database.routineDao(),
+            dataStore = dataStore,
+            analytics = NoopBackupRestoreAnalytics,
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineDao = database.routineDao(),
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
+        )
+
+        waitUntil("Routine screen app-open path should persist restored routines into DataStore") {
+            storedRoutineNames() == listOf("Restore app-open routine")
+        }
+        waitUntil("Routine screen app-open path should schedule restored routine PendingIntent") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(listOf("Restore app-open routine"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        assertRestoreResetOnlyStateAbsent()
+    }
+
     private fun grantPostNotificationsPermission() {
         instrumentation.uiAutomation.executeShellCommand(
             "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
@@ -238,4 +275,18 @@ class BackupRestoreRuntimeResetIntegrationTest {
         private const val TEST_ROUTINE_ID = 103L
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek
     }
+}
+
+private object NoopBackupRestoreAnalytics : KeepAnalytics {
+    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    override fun logScreenView(screenName: String) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun trackFirstOpen() = Unit
+    override fun trackOnboardingStepView(stepName: String) = Unit
+    override fun trackOnboardingStepComplete(stepName: String) = Unit
+    override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
+    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) = Unit
+    override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
+    override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
+    override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
 }
