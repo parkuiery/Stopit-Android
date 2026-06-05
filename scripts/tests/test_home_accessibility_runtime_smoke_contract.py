@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import unittest
 
+from scripts import android_runtime_suites
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ANDROID_CI = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
@@ -16,13 +18,21 @@ HOME_ACCESSIBILITY_CLASS = "com.uiery.keep.qa.HomeAccessibilityPermissionIntegra
 
 
 class HomeAccessibilityRuntimeSmokeContractTest(unittest.TestCase):
-    def test_android_ci_runtime_smoke_includes_home_accessibility_regression(self):
-        self.assertIn(HOME_ACCESSIBILITY_CLASS, ANDROID_CI.read_text())
+    def test_android_ci_runtime_smoke_manifest_includes_home_accessibility_regression(self):
+        self.assertIn(
+            HOME_ACCESSIBILITY_CLASS,
+            android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
+        )
+        self.assertIn("android_ci_focused_runtime_smoke", ANDROID_CI.read_text())
 
-    def test_release_qa_remaining_runtime_gate_includes_home_accessibility_regression(self):
-        self.assertIn(HOME_ACCESSIBILITY_CLASS, RELEASE_QA.read_text())
+    def test_release_qa_remaining_runtime_manifest_includes_home_accessibility_regression(self):
+        self.assertIn(
+            HOME_ACCESSIBILITY_CLASS,
+            android_runtime_suites.SUITES["release_remaining_runtime"],
+        )
+        self.assertIn("release_remaining_runtime", RELEASE_QA.read_text())
 
-    def test_operator_docs_list_home_accessibility_runtime_smoke(self):
+    def test_operator_docs_list_home_accessibility_runtime_smoke_or_manifest_boundary(self):
         for doc_path in (
             PLAY_DEPLOYMENT,
             RELEASE_CHECKLIST,
@@ -30,7 +40,12 @@ class HomeAccessibilityRuntimeSmokeContractTest(unittest.TestCase):
             RELEASE_CONTEXT,
         ):
             with self.subTest(path=doc_path.name):
-                self.assertIn(HOME_ACCESSIBILITY_CLASS, doc_path.read_text())
+                text = doc_path.read_text()
+                self.assertIn("scripts/android_runtime_suites.py", text)
+                self.assertTrue(
+                    HOME_ACCESSIBILITY_CLASS in text or "release_remaining_runtime" in text,
+                    f"{doc_path} should either name the Home accessibility test or the manifest suite that owns it",
+                )
 
     def test_settings_round_trip_smoke_uses_device_relaunch_not_activityscenario_state_for_resume(self):
         source = HOME_ACCESSIBILITY_TEST.read_text()

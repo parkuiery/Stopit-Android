@@ -192,9 +192,11 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            ANDROID_CI_SMOKE="$(python3 scripts/android_runtime_suites.py class-arg android_ci_focused_runtime_smoke)"
-            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$ANDROID_CI_SMOKE"
+            for selector in $(python3 scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke); do
+              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done
             ./gradlew --console=plain :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
-            ANDROID_CI_NOTIFICATION_DENIED="$(python3 scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock)"
-            ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$ANDROID_CI_NOTIFICATION_DENIED"
+            for selector in $(python3 scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock); do
+              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done
