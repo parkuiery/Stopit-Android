@@ -30,6 +30,8 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android CI passes on the PR.
 - [ ] Android Release QA passes on the PR:
   - `Full release QA` runs `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, and `:app:assembleProdDebug`.
+  - `Release instrumentation QA` selector source of truth is `scripts/android_runtime_suites.py`; workflow YAML owns install/appops sequencing only.
+  - Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
   - `Release instrumentation QA` runs single-day and multi-day exact-alarm/runtime gates, in order, on a GitHub-hosted Android emulator:
     1. `com.uiery.keep.qa.StopitReleaseSmokeTest`
     2. `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability` after `adb shell cmd appops reset com.uiery.keep.dev`

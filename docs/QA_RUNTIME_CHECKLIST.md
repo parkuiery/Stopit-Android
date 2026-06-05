@@ -517,26 +517,16 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `./gradlew :app:testDevDebugUnitTest`
 - `./gradlew :app:lintDevDebug`
 - `./gradlew :app:assembleProdDebug`
-- focused runtime smoke class/method set:
-  - `com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
-  - `com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest`
-  - `com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm`
-  - `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine`
-  - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`
-  - `com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
-  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
-  - `com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#emergencyUnlockStoredExpiry_syncsCountdownNotificationAfterServiceSnapshot`
+- focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
+  - `android_ci_focused_runtime_smoke`
+  - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
+  - 현재 selector 출력:
+    - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
+    - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock`
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock)"`
 
 이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다. Backup/restore DataStore key 분류처럼 Android framework 없이 잡을 수 있는 정책 drift는 JVM static contract를 먼저 남긴다: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`.
 
@@ -747,7 +737,9 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 - `/Users/uiel/.agents/skills/android-cli/SKILL.md`
 - 운영 문서: `docs/ANDROID_SKILLS_TESTING_QA.md`
 
-release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다. 세부 단계 source of truth는 `.github/workflows/release-qa.yml`과 `docs/ops/stopit/release-context.md`이며, 이 문서는 그 순서를 사람이 반복 실행하기 쉬운 checklist 형태로 풀어쓴 것이다. Android CI의 focused runtime smoke 목록과 섞지 말고, main-target release evidence에는 아래 Release QA 목록을 그대로 기록한다.
+release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다. 세부 단계 source of truth는 `.github/workflows/release-qa.yml`, `scripts/android_runtime_suites.py`, `docs/ops/stopit/release-context.md`이며, 이 문서는 그 순서를 사람이 반복 실행하기 쉬운 checklist 형태로 풀어쓴 것이다. Android CI의 focused runtime smoke 목록과 섞지 말고, main-target release evidence에는 아래 Release QA 목록을 그대로 기록한다.
+
+Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
 
 ```bash
 cd <repo-root>
