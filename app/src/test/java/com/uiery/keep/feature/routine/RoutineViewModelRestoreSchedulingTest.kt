@@ -88,6 +88,12 @@ class RoutineViewModelRestoreSchedulingTest {
         analytics = NoopRoutineAnalytics,
         exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
         routineNoticeStore = routineNoticeStore,
+        routineRestoreAftercare = RoutineRestoreAftercare(
+            routineDao = routineDao,
+            dataStore = dataStore,
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = routineNoticeStore,
+        ),
     )
 
     private suspend fun waitFor(predicate: suspend () -> Boolean) {

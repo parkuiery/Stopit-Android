@@ -850,16 +850,19 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION allow
 
 ### backup/restore app-open routine reschedule baseline
 
-issue #490 계열 PR에서는 BootReceiver/package-replaced/routine-alarm 이벤트 없이 사용자가 복원 직후 앱을 열고 Routine 화면에 진입하는 경로도 별도 evidence로 남긴다. 이 경로의 owner는 `RoutineViewModel`이며, Room enabled routine을 즉시 재스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 다시 쓴다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 같이 `enabled=false` downgrade + 권한 prompt reset/side effect가 발생해야 한다.
+issue #490 계열 PR에서는 BootReceiver/package-replaced/routine-alarm 이벤트 없이 사용자가 복원 직후 앱을 여는 경로도 별도 evidence로 남긴다. 이 경로의 owner는 공통 `RoutineRestoreAftercare`이며, `SplashViewModel` 앱 시작 경로와 `RoutineViewModel` 루틴 화면 진입 경로가 모두 Room enabled routine을 즉시 재스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 다시 쓴다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 같이 `enabled=false` downgrade + 권한 prompt reset/side effect가 발생해야 한다.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
-  --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest'
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest' \
+  --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest#appOpenRoutineEntryRehydratesRoomRoutineCacheAndSchedulesAlarmWithoutRevivingResetOnlyDataStoreState
 ```
 
 검증 범위:
-- restored-device shape처럼 DataStore runtime key가 비어 있어도 Room enabled routine이 Routine 화면 진입 시 `scheduleRoutine(...)`으로 재예약된다.
+- restored-device shape처럼 DataStore runtime key가 비어 있어도 Room enabled routine이 앱 시작/Splash 및 Routine 화면 진입 시 `scheduleRoutine(...)`으로 재예약된다.
 - 같은 진입에서 `PreferencesKey.ROUTINES` compatibility cache가 Room 목록 기준으로 다시 채워진다.
 - scheduler가 `MissingExactAlarmPermission`을 반환하면 해당 routine은 `enabled=false`로 내려가고 `HAS_SHOWN_ALARM_PERMISSION=false` reset과 `ShowAlarmPermission` side effect가 함께 남는다.
 - 실제 `PendingIntent` 존재 여부는 receiver/runtime instrumentation 또는 수동 `dumpsys alarm` evidence로 별도 확인한다.

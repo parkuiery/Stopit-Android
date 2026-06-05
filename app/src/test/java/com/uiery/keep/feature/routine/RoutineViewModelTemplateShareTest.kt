@@ -90,6 +90,12 @@ class RoutineViewModelTemplateShareTest {
             analytics = analytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = RoutineNoticeStore(dataStore),
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineDao = routineDao,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = RoutineNoticeStore(dataStore),
+            ),
         )
     }
 
