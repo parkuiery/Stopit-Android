@@ -82,6 +82,7 @@
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16용 광고 단위 감사 절차, guardrail, 안전한 수익화 실험 운영 기준. PR #362 이후 `monetization_interest_*` 코드 계약이 생겼고 2026-06-04 code-lane에서 메뉴/설정 CTA UI까지 배치했다. GA4 `interest_context` / `interest_surface` 등록·metadata 확인, release/tag/Play 배포, 14일 관측 전까지는 관심도 실험 결과를 판단하지 않는다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. #82 아이디어를 이어받아 권한 UX, MVP 리포트 4종, 규칙 기반 추천, analytics 금지 파라미터, child issue 분리 기준을 정리한다.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 privacy-safe MVP 계약. `lockApplications`, package name, 앱 이름, raw session history를 payload/analytics에서 제외하고, `routine_template_share_*` 이벤트와 14일/30일 측정 기준을 정리한다.
+- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`: #465용 LockHistory 성과 리포트 UX 계약. 개인 성과 해석/재방문 동기를 #211 공유 루프와 분리하고, empty/low-data 카피, top apps positive framing, privacy-safe `lock_history_*` analytics bucket, 14일/30일 readback 경계를 정리한다.
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, `goal_lock_*` 이벤트, enum/bucket privacy guardrail, 구현·GA4 Admin·release·14일/30일 측정 경계를 정리한다.
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약. 보호자 PIN, 허용 앱, 시간 만료, `parent_mode_*` 이벤트, privacy-safe enum/bucket, runtime QA baseline, 원격 자녀 기기 관리 후속 gate를 정리한다.
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, Play In-App Review 한계 문서.

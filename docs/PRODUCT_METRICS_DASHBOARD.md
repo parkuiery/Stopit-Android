@@ -2,7 +2,7 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
-첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. `routines_count` user property coverage 보강 계약은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`(#479)를 source of truth로 보고, `(not set)` coverage가 큰 동안에는 루틴 보유/미보유 retention 결론을 낮은 confidence로 둔다. 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`(#455)를 source of truth로 본다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. 목표 잠금 MVP 계약은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 보고, 장기 잠금 지표는 구현/release/GA4 Admin 등록 이후에만 해석한다. 부모 모드 / 아이에게 폰 주기 MVP 계약은 `docs/PARENT_MODE_MVP.md`(#471)를 source of truth로 보고, same-device 부모 PIN flow와 privacy-safe analytics/QA 경계를 구현 전 handoff로 고정한다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. `routines_count` user property coverage 보강 계약은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`(#479)를 source of truth로 보고, `(not set)` coverage가 큰 동안에는 루틴 보유/미보유 retention 결론을 낮은 confidence로 둔다. 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`(#455)를 source of truth로 본다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. LockHistory 성과 리포트 UX 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)를 source of truth로 보고, 개인 성과 해석/재방문 동기는 공유·리뷰·광고 CTA와 분리해 판단한다. 목표 잠금 MVP 계약은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 보고, 장기 잠금 지표는 구현/release/GA4 Admin 등록 이후에만 해석한다. 부모 모드 / 아이에게 폰 주기 MVP 계약은 `docs/PARENT_MODE_MVP.md`(#471)를 source of truth로 보고, same-device 부모 PIN flow와 privacy-safe analytics/QA 경계를 구현 전 handoff로 고정한다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
 
 ## 목적
 
@@ -206,6 +206,19 @@
 - 지표: prompt eligible/shown/skipped/failed, rating count, Organic Search 신규 사용자.
 
 ## 개인화 리포트 / 추천 후보
+
+### LockHistory 성과 리포트
+
+- 문제: `LockHistory`가 총 시간/세션/top apps를 보여도, 사용자가 “내가 무엇을 지켰는지”를 긍정적으로 해석하는 경험은 아직 약하다.
+- 기회: 기존 기록 화면을 유지하면서 summary card, empty/low-data copy, top apps heading을 성취형으로 정리하면 반복 방문과 자기효능감을 강화할 수 있다.
+- 기본 원칙:
+  - #465의 source of truth는 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`다.
+  - #211 공유 CTA와 같은 화면을 쓰더라도, #465의 1차 지표는 외부 공유가 아니라 `LockHistoryScreen` 재방문과 반복 차단/세션이다.
+  - 앱 이름/package/raw session/raw timestamp를 analytics로 보내지 않고, `period_type`, `report_state`, count/duration bucket만 사용한다.
+- guardrail:
+  - `중독`, `실패`, `못 참음`, `위험 사용자` 같은 shame/friction copy 금지.
+  - 성취 copy가 과장되거나 압박으로 읽히는지 Play review/rating, 긴급해제 사용률, crash-free users와 함께 본다.
+- 구현/release/GA4 Admin 등록 전에는 새 이벤트 0건을 수요 없음으로 해석하지 않는다.
 
 ### Usage Access 기반 개인화 리포트
 
