@@ -13,6 +13,7 @@ RELEASE_WORKFLOWS = [
     REPO_ROOT / ".github" / "workflows" / "play-deploy.yml",
 ]
 BRANCH_HYGIENE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "branch-hygiene.yml"
+WORKFLOW_GRADLE_TASK_GUARD = REPO_ROOT / "scripts" / "check_workflow_gradle_tasks.py"
 
 
 class ReleaseGradleTaskContractTest(unittest.TestCase):
@@ -43,9 +44,12 @@ class ReleaseGradleTaskContractTest(unittest.TestCase):
                 )
 
     def test_branch_hygiene_rejects_unqualified_release_workflow_tasks(self):
-        text = BRANCH_HYGIENE_WORKFLOW.read_text()
-        self.assertRegex(text, r"testProdReleaseUnitTest")
-        self.assertRegex(text, r"bundleProdRelease")
+        workflow = BRANCH_HYGIENE_WORKFLOW.read_text()
+        guard = WORKFLOW_GRADLE_TASK_GUARD.read_text()
+
+        self.assertIn("python3 scripts/check_workflow_gradle_tasks.py", workflow)
+        self.assertRegex(guard, r"testProdReleaseUnitTest")
+        self.assertRegex(guard, r"bundleProdRelease")
 
 
 if __name__ == "__main__":

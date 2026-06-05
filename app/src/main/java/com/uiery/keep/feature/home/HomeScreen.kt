@@ -67,7 +67,7 @@ import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
@@ -431,11 +431,9 @@ fun HomeScreen(
                         startTime = uiState.startTime,
                     )
                     TrackedBannerAd(
-                        metadata = AdPlacementMetadata(
+                        metadata = AdPlacement.HomeBottom.toMetadata(
                             screenName = KeepAnalyticsScreen.HOME,
                             screenContext = "main",
-                            placement = AdPlacement.HomeBottom.analyticsPlacement,
-                            adUnitId = AdPlacement.HomeBottom.adUnitId,
                         ),
                     )
                 }

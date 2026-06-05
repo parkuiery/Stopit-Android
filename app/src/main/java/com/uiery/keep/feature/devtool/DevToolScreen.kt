@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -28,6 +29,7 @@ fun DevToolScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -51,7 +53,7 @@ fun DevToolScreen(
         ) {
             DevToolItem(
                 title = "Device ID",
-                content = deviceId(),
+                content = deviceId(context),
             )
             DevToolItem(
                 title = "FCM Token",

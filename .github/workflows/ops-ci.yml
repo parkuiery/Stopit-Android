@@ -19,6 +19,7 @@ on:
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/verify_lint_registry.py'
+      - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
       - 'docs/**'
@@ -41,6 +42,7 @@ on:
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
       - 'scripts/verify_lint_registry.py'
+      - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
       - '.github/workflows/**'
       - 'docs/**'
@@ -91,6 +93,7 @@ jobs:
               - 'scripts/setup-discord-deploy-secrets.sh'
               - 'scripts/play_version_code_guard.py'
               - 'scripts/verify_lint_registry.py'
+              - 'scripts/check_workflow_gradle_tasks.py'
               - 'scripts/tests/**'
             docs_contract:
               - 'docs/**'

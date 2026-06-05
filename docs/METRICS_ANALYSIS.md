@@ -239,7 +239,7 @@ filter_payload = {
 
 전제 확인:
 
-- `TrackedBannerAd.kt`와 `TrackedBannerAdTest.kt` 기준으로 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다.
+- `TrackedBannerAd.kt`, `AdPlacement.kt`, `AdPlacementContractTest.kt` 기준으로 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)와 `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_value_micros` 계약이 현재 코드와 일치하는지 먼저 본다. PR #461 이후 active banner call site는 `AdPlacement.toMetadata(...)`로 `ad_placement`와 `ad_unit_id`를 같은 enum source에서 생성해야 한다.
 - 운영 가드레일과 해석 순서는 `docs/ADMOB_MONETIZATION_RUNBOOK.md`를 같이 본다.
 - PR #293 이전 legacy `ad_impression` / `ad_click` / `ad_revenue` coverage는 source-split baseline으로만 사용한다. 새 판단은 PR #293 포함 버전 배포 후 14일 창에서 `ad_banner_*` 이벤트를 재조회한 뒤 한다.
 

@@ -36,7 +36,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
@@ -112,11 +112,9 @@ fun BlockScreen(
     ) {
         TrackedBannerAd(
             modifier = Modifier.align(Alignment.TopCenter),
-            metadata = AdPlacementMetadata(
+            metadata = AdPlacement.BlockTop.toMetadata(
                 screenName = KeepAnalyticsScreen.BLOCK,
                 screenContext = "blocked_app",
-                placement = AdPlacement.BlockTop.analyticsPlacement,
-                adUnitId = AdPlacement.BlockTop.adUnitId,
             ),
         )
         Column(

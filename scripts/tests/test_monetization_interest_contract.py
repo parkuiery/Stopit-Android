@@ -58,7 +58,7 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("CTA UI | 완료됨", admob_runbook)
         self.assertIn("MenuScreen.kt", admob_runbook)
         self.assertIn("2026-06-04 메뉴/설정 CTA", ga4_runbook)
-        self.assertIn("관심도 실험 준비", metrics_context)
+        self.assertIn("관심도 실험/placement measurement 준비", metrics_context)
         self.assertIn("실험 시작", admob_runbook)
         self.assertIn("광고 제거 관심도 측정 handoff", admob_runbook)
         self.assertIn("PR #402 release boundary snapshot", admob_runbook)
@@ -71,6 +71,23 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("CTA 포함 버전 배포 전후", ga4_runbook)
         self.assertIn("post-release 창 전에는 event 0을 수요 없음으로 해석 금지", admob_runbook)
         self.assertNotIn("| `interest_context` | Required dimension | `TODO`", ga4_runbook)
+
+    def test_banner_placement_contract_is_documented(self):
+        admob_runbook = ADMOB_RUNBOOK.read_text()
+        ad_placement = (REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "AdPlacement.kt").read_text()
+        contract_test = (REPO_ROOT / "app" / "src" / "test" / "java" / "com" / "uiery" / "keep" / "analytics" / "AdPlacementContractTest.kt").read_text()
+
+        self.assertIn("fun AdPlacement.toMetadata", ad_placement)
+        self.assertIn("ad placements have unique non-empty snake case analytics names", contract_test)
+        self.assertIn("`AdPlacement.toMetadata(...)`", admob_runbook)
+        self.assertIn("`AdPlacementContractTest`", admob_runbook)
+        self.assertIn("placement/ad unit pair", admob_runbook)
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", PRODUCT_DASHBOARD.read_text())
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", PRODUCT_CONTEXT.read_text())
+        self.assertIn("e6d4d70ada739c545672e95950fb6f82409fd10f", METRICS_CONTEXT.read_text())
+        self.assertIn("AdPlacement.toMetadata(...)", METRICS_ANALYSIS.read_text())
+        self.assertIn("CTA/placement helper 포함 release/tag/Play deploy", PRODUCT_CONTEXT.read_text())
+        self.assertIn("CTA/placement helper 포함 release/tag/Play deploy", METRICS_CONTEXT.read_text())
 
 
 if __name__ == "__main__":

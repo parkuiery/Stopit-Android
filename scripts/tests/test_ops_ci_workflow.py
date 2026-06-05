@@ -25,6 +25,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts/validate-play-deploy-ref.sh", workflow)
         self.assertIn("scripts/validate-play-rollout-inputs.js", workflow)
         self.assertIn("scripts/play_version_code_guard.py", workflow)
+        self.assertIn("scripts/check_workflow_gradle_tasks.py", workflow)
         self.assertIn("scripts/release-tag.sh", workflow)
         self.assertIn("scripts/check-play-deploy-secret-contract.sh", workflow)
         self.assertIn("scripts/setup-play-deploy-secrets.sh", workflow)
@@ -49,6 +50,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts/setup-play-deploy-secrets.sh",
             "scripts/setup-discord-deploy-secrets.sh",
             "scripts/validate-play-rollout-inputs.js",
+            "scripts/check_workflow_gradle_tasks.py",
         ]
         shell_helper_scripts = [
             script for script in helper_scripts if script.endswith(".sh")
@@ -119,6 +121,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts/promote-google-play-track.js", doc)
             self.assertIn("scripts/notify-discord-deploy.py", doc)
             self.assertIn("release-helper guardrail", doc)
+            self.assertIn("scripts/check_workflow_gradle_tasks.py", doc)
             self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", doc)
             self.assertIn("Docs/runbook contract tests", doc)
             self.assertIn("docs-only", doc)
