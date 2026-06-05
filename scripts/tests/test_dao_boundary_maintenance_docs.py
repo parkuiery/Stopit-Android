@@ -14,6 +14,8 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "LockHistoryRepository",
             "LockHistoryViewModel",
             "BlockedAppsViewModel",
+            "ReviewEligibilityRepository",
+            "ReviewEligibilityEvaluator",
             "Room DAO 직접 import",
             "허용 경계",
             "남은 인벤토리",

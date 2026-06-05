@@ -40,8 +40,10 @@ class ReviewEligibilityEvaluatorTest {
             reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             remoteConfig = FakeReviewRemoteConfig(rcEnabled),
             accessibilityChecker = FakeAccessibilityChecker(accessibilityEnabled),
-            emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),
-            lockHistoryDao = FakeLockHistoryDao(recentSuccess),
+            repository = fakeReviewEligibilityRepository(
+                emergencyCount = emergencyCount,
+                recentSuccessCount = recentSuccess,
+            ),
             clock = clock,
             buildConfig = ReviewBuildConfig(isDebug = isDebug, flavor = flavor),
         )

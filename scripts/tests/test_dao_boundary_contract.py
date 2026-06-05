@@ -36,3 +36,18 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", text)
         self.assertIn("fun sessionsInRange", text)
         self.assertIn("fun blockedAppsByFrequency", text)
+
+    def test_review_eligibility_evaluator_uses_repository_boundary(self):
+        evaluator = APP_MAIN / "feature/review/ReviewEligibilityEvaluator.kt"
+        repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+        self.assertTrue(repository.exists(), "ReviewEligibilityRepository owns review DAO access")
+        evaluator_text = evaluator.read_text()
+        repository_text = repository.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", evaluator_text)
+        self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", evaluator_text)
+        self.assertIn("private val repository: ReviewEligibilityRepository", evaluator_text)
+        self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", repository_text)
+        self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", repository_text)
+        self.assertIn("fun countRecentEmergencyUnlocks", repository_text)
+        self.assertIn("fun countRecentSuccessfulSessions", repository_text)
