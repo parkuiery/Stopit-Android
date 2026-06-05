@@ -34,6 +34,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계, TopAppBar/icon tint audit, KDS/DESIGN.md 후속 구현 기준. |
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy 계약, emergency unlock 보조 액션, 광고 간섭 guardrail, QA evidence template. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, QA evidence template. |
+| `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
 
 ## Subdirectories
 | Directory | Purpose |

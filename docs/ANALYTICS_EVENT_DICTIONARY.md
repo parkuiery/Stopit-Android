@@ -200,7 +200,7 @@
 
 ### 목표 잠금
 
-목표 잠금 MVP의 제품/QA 계약은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP는 기간 기반 장기 잠금을 `all_day`와 `scheduled` 두 방식으로 지원하고, Home card/section에 진행 상태를 보여준다. 목표 이름 원문/app package/app label 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 2026-06-04 QA foothold에서 `goal_lock_created` 코드 계약은 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 추가됐고, code-lane 생성 ViewModel 계약은 유효한 저장 완료 시에만 `goal_lock_created`를 호출하도록 고정한다.
+목표 잠금 MVP의 제품/QA 계약은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP는 기간 기반 장기 잠금을 `all_day`와 `scheduled` 두 방식으로 지원하고, Home card/section에 진행 상태를 보여준다. 목표 이름 원문/app package/app label 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 2026-06-05 기준 `goal_lock_created`, `goal_lock_ended_early`, `goal_lock_completed`, goal-lock source의 `goal_lock_id` attribution 코드 계약은 `develop`에 반영됐으며, 생성/상세/Home 완료 경로는 유효한 상태 전환에서만 bucket-only payload를 기록하도록 고정한다. GA4 Admin 등록, release/tag/Play deploy, live metadata/readback 전에는 이벤트 0건이나 breakdown 부재를 제품 실패로 해석하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

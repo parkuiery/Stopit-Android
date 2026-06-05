@@ -85,6 +85,7 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
 - 중복된 ViewModel/UI state pattern
 - feature boundary 위반
 - KDS로 내려갈 수 있는 반복 UI
+- 공유 UI 소유권 drift: feature A가 feature B의 `component` package를 직접 import하거나, app shared UI/KDS로 승격된 component가 feature-private duplicate로 남는 경우. #492 source of truth는 `docs/SHARED_UI_OWNERSHIP_BOUNDARY.md`이며, `PermissionSettingDialog`와 `TimerPicker` 현 정리 대상은 code-lane에서 shared boundary + static guard로 닫아야 한다.
 - 오래된 dependency/lint baseline drift
 - DataStore/Room/analytics contract drift
 - 너무 큰 리팩터링은 작은 실행 단위로 쪼갠다.
