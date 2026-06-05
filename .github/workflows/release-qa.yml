@@ -145,10 +145,12 @@ jobs:
             done
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow
-            RELEASE_EXACT_ALARM_ALLOWED="$(python3 scripts/android_runtime_suites.py class-arg release_exact_alarm_allowed)"
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_EXACT_ALARM_ALLOWED"
-            RELEASE_REMAINING_RUNTIME="$(python3 scripts/android_runtime_suites.py class-arg release_remaining_runtime)"
-            ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$RELEASE_REMAINING_RUNTIME"
+            for selector in $(python3 scripts/android_runtime_suites.py lines release_exact_alarm_allowed); do
+              ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done
+            for selector in $(python3 scripts/android_runtime_suites.py lines release_remaining_runtime); do
+              ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done
             ./gradlew :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
             NOTIFICATION_DENIED_RECEIVER="$(python3 scripts/android_runtime_suites.py selector notification_denied_receiver 0)"

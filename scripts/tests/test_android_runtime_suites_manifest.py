@@ -51,10 +51,11 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         release_qa = RELEASE_QA_WORKFLOW.read_text()
 
-        self.assertIn("scripts/android_runtime_suites.py class-arg android_ci_focused_runtime_smoke", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock", android_ci)
         self.assertIn("scripts/android_runtime_suites.py lines release_exact_alarm_denied", release_qa)
-        self.assertIn("scripts/android_runtime_suites.py class-arg release_remaining_runtime", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py lines release_exact_alarm_allowed", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py lines release_remaining_runtime", release_qa)
         self.assertIn("scripts/android_runtime_suites.py selector notification_denied_receiver 0", release_qa)
         self.assertIn("scripts/android_runtime_suites.py selector notification_denied_emergency_unlock 0", release_qa)
 
