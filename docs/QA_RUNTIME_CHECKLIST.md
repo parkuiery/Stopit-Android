@@ -74,6 +74,49 @@ cd <repo-root>
 
 수동 QA가 필요하면 홈 → 시간 설정 → 타이머 탭에서 위 경계 시각을 맞춘 뒤 CTA 문구와 실제 잠금 종료 시각이 같은 duration을 가리키는지 기록한다.
 
+### Home status / CTA hierarchy QA evidence
+
+issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth로 보고, 홈 화면이 텍스트만으로도 현재 상태와 다음 행동을 구분하는지 확인한다. 이 docs-lane 계약 자체는 구현 완료가 아니며, Home code/resource/locale/test/visual QA가 들어가기 전에는 PR body에 `Refs #463`를 사용한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
+./gradlew -q help --task :app:testDevDebugUnitTest
+```
+
+수동 QA matrix:
+- 꺼짐 + 선택 앱 없음: `차단 앱 선택`이 primary action이고 Keep/타이머 성공처럼 보이지 않는다.
+- 꺼짐 + 선택 앱 있음 + 첫 잠금 전: 선택 앱 수와 `지금 차단 시작` 계열 primary CTA가 가장 강하다.
+- 켜짐: `N개 앱을 막고 있어요`처럼 현재 보호 상태가 텍스트로 보인다.
+- 타이머 예약/실행 중: 즉시 차단과 타이머의 역할이 문구로 구분된다.
+- 목표 잠금 진행 중: `GoalLockProgressCard`류 상태 표면이 Home primary status와 충돌하지 않는다.
+
+```md
+## Home status/CTA QA evidence
+- Issue: #463
+- Build / variant:
+- Device / Android version:
+- Theme: light / dark
+- User state:
+  - selected app count: 0 / 1 / many
+  - first lock recorded: yes / no
+  - keep mode: on / off
+  - timer: none / scheduled / running
+  - goal lock: none / active / completed
+- Text-only state clarity: pass / fail
+- Primary CTA is visually strongest: pass / fail
+- App selection/change entry visible: pass / fail
+- Timer vs immediate lock copy separated: pass / fail
+- Primary color not overused: pass / fail
+- Commands:
+  - `python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v`
+  - `<focused Home test or :app:testDevDebugUnitTest>`
+- Screenshot/video evidence:
+- Notes:
+```
+
 ### KDS modal bottom sheet edge-to-edge visual QA
 
 issue #325 계열 PR은 `KeepModalBottomSheet`에서 deprecated Accompanist `SystemUiController` 의존성을 제거한 뒤에도 edge-to-edge 표시가 실제 기기에서 깨지지 않는지 별도 시각 증거를 남긴다. JVM/CI 계약은 재유입을 막지만, navigation bar / status bar의 색·scrim·inset 처리는 device/OEM 조합에서 screenshot evidence로 한 번 더 확인해야 한다.

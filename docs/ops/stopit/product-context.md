@@ -49,6 +49,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - 첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리, 해석 guardrail은 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다.
 - #14의 홈 첫 잠금 CTA는 PR #256(`bce1cda`) 이후 구현됐고, 첫 차단 성공 피드백(PR #279 `5c6331d`)과 홈 Keep/타이머 시작 직후 안내(PR #283 `35c13eb`)도 develop에 반영됐다. 다만 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 포함되지 않았으므로 live production activation 수치는 pre-#256/#279/#283 baseline으로만 본다. 이후 제품 판단은 CTA/피드백을 다시 만드는 것이 아니라, 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured -> first_core_action_completed -> app_block_intercepted` 전환이 실제로 개선됐는지 검증하는 쪽을 우선한다.
 - #14 후속 문서/실행 후보를 고를 때는 `first_lock_configured`를 실제 차단 완료로 과장하지 않는다. 이미 들어간 안내/피드백 표면을 기준선으로 두고, 남은 repo-internal 후보는 release/metrics 템플릿과 GA4 queryability handoff 보강 정도다.
+- 홈 화면 상태/CTA 구조 개선은 `docs/HOME_STATUS_CTA_STRUCTURE.md`(#463)를 source of truth로 본다. Home은 `상태 확인 + 다음 행동` 표면이며, 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태를 텍스트로 구분하고 primary CTA는 한 화면에서 하나만 가장 강해야 한다. 이 문서는 구현 완료가 아니라 code-lane Home read-model/UI/resource/locale/QA evidence handoff이며, #14 CTA/피드백을 다시 만드는 작업으로 되돌리지 않는다.
 - `customUser:routines_count`가 조회된다고 해서 activation/review/monetization의 `customEvent:*` queryability까지 해결됐다고 보지 않는다.
 - 루틴 보유/미보유 반복 사용 판단은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. 2026-06-03 기준 루틴 보유자는 sessions / activeUsers와 `app_block_intercepted` users / activeUsers가 더 높아 루틴 CTA/템플릿 실험은 실행 후보지만, `(not set)` activeUsers가 가장 커서 전체 retention 결론은 보류한다.
 - `routines_count` coverage 보강(#479)은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`를 source of truth로 본다. `customUser:routines_count`가 metadata에 보인다고 해서 모든 active user의 루틴 상태가 안정적으로 반영된 것은 아니며, code-lane 구현/release/D+14·D+30 readback 전에는 `(not set)`을 무루틴 cohort로 합산하지 않는다.
@@ -91,6 +92,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
+- `docs/HOME_STATUS_CTA_STRUCTURE.md`: #463 Home 상태/CTA 구조 계약. `first_lock_configured`를 실제 차단 완료로 과장하지 않고, 선택 앱 수/즉시 차단/타이머/루틴/목표 잠금 진입 위계를 code-lane 구현 전 source of truth로 고정한다.
 - `docs/PLAY_STORE_ASO.md`: #65/#242 Play Console ASO 반영 후 Search/Explore vs external/campaign attribution gate, 14일·30일 검증 런북.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: #16 AdMob event-source split, `ad_banner_*` post-release coverage 재조회, `monetization_interest_*` 관심도 CTA 계약, 수익화 guardrail 런북.
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307 리뷰 프롬프트 shown 0 재측정, PR #308/#312 포함 버전 release/tag/Play deploy 및 14일·30일 후행 관측 런북.

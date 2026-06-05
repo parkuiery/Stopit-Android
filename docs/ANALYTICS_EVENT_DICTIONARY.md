@@ -13,6 +13,7 @@
 
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
+- `docs/HOME_STATUS_CTA_STRUCTURE.md`: #463용 Home 상태/CTA 구조 계약. 새 이벤트를 요구하지 않고 기존 `first_lock_configured` / `first_core_action_completed` / `app_block_intercepted` 의미를 보존한다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
 - `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`: #479용 `routines_count` user property coverage 보강 계약. `customUser:routines_count` 조회 가능성과 실제 active user 커버리지를 분리한다.
@@ -94,6 +95,7 @@
 - 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel analytics payload 경계에서 문자열로 정규화해 전달한다. `block_source=goal_lock`일 때만 non-null이어야 하며, 수동 Keep/타이머/루틴 차단에서는 null/미전송 상태를 유지한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
+- 홈 화면 상태/CTA 구조 개선(#463)의 source of truth는 `docs/HOME_STATUS_CTA_STRUCTURE.md`다. Home copy/CTA를 바꾸더라도 `first_lock_configured`는 준비 완료, `first_core_action_completed`는 첫 가치 경험, `app_block_intercepted`는 실제 차단이라는 의미를 유지한다. #463은 새 이벤트를 필수 요구하지 않으며, 새 Home CTA 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다.
 - 차단 화면 카피/액션 위계 개선(#464)의 source of truth는 `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. `BlockScreen` copy/CTA/emergency unlock 상태를 바꾸더라도 기존 `app_block_intercepted` → 최초 1회 `first_core_action_completed` → 반복 `core_action_completed` 순서와 `emergency_unlock_used` / `emergency_unlock_completed` 의미를 유지한다.
 - #464에서 별도 copy 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용하고, 앱 이름/package/raw history/raw timestamp를 payload나 query 축으로 쓰지 않는다.
 
