@@ -99,7 +99,7 @@ Stopit / Keep Android는 선택한 앱 사용을 막아 사용자가 집중, 공
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: 리뷰 프롬프트 arm/drain, skip reason, Play In-App Review 한계 계약.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119 Usage Access 선택형 개인화 discovery gate. 구현 ready가 아니라 권한 UX, privacy guardrail, QA evidence, child issue 분리 기준을 관리한다.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407 루틴 템플릿 공유 privacy-safe MVP 계약. 앱 목록/패키지/원시 이력 없이 루틴의 비민감 패턴만 공유한다.
-- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`: #465 LockHistory 성과 리포트 UX 계약. 개인 성과 해석, empty/low-data copy, top apps positive framing, privacy-safe analytics/QA handoff를 구현 전 source of truth로 고정한다.
+- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`: #465 LockHistory 성과 리포트 UX 계약. 개인 성과 해석, empty/low-data copy, top apps positive framing, privacy-safe analytics/QA handoff를 source of truth로 고정한다. PR #485로 read model/UI/string/test slice는 `develop`에 반영됐고, 남은 경계는 release/tag/Play deploy, QA evidence, 필요 시 후속 analytics instrumentation/GA4 Admin, 14일·30일 readback이다.
 - `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`: #464 차단 화면 카피/액션 위계 계약. 코칭 톤, `하던 일로 돌아가기` primary CTA, emergency unlock 남은 횟수/disabled reason, 광고 간섭 제한, locale parity와 QA evidence를 code-lane 구현 전 source of truth로 고정한다.
 - `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`: #467 긴급해제 reason/app/duration/countdown copy·step 계약. 짧은 reason label, disabled/helper copy, reason-required-off guardrail, enum compatibility, privacy-safe analytics와 QA evidence를 code-lane 구현 전 source of truth로 고정한다.
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 실험 계약. Privacy-safe analytics와 release/GA4/14일·30일 readback 경계를 관리한다.

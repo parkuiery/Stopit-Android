@@ -17,18 +17,22 @@ Issue: #463 `[UX] 홈 화면 상태/CTA 구조 개선`
 
 현재 Home 구현 기준선은 아래 파일에서 확인한다.
 
+- `app/src/main/java/com/uiery/keep/feature/home/HomeStatusCtaReadModel.kt`
+  - `HomeStatusKind`: 선택 앱 없음, 첫 잠금 준비, 반복 사용자 준비, 보호 중 상태를 분리한다.
+  - `buildHomeStatusCtaModel(...)`: 선택 앱 수, `showFirstLockActivationCta`, 목표 잠금 card 존재 여부를 하나의 primary/secondary CTA 계약으로 만든다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeScreen.kt`
-  - `CategoryButton`: 선택 앱 수와 앱 선택/변경 진입점.
-  - `FirstLockActivationCta`: 앱을 1개 이상 선택했고 아직 첫 잠금을 기록하지 않은 사용자에게 Keep 시작 CTA를 제안하는 #14 표면.
-  - `GoalLockProgressCard`: 목표 잠금이 있을 때 Home 진행 상태를 보여주는 #417 표면.
+  - `HomeStatusCtaCard`: 기존 `CategoryButton`/`FirstLockActivationCta` 의미를 하나의 상태 카드로 통합해 선택 앱 수, primary CTA, 보조 진입점을 함께 보여준다.
+  - `GoalLockProgressCard`: 목표 잠금이 있을 때 Home 진행 상태를 보여주는 #417 표면으로 유지한다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`
   - `changeIsKeep(...)`: 선택 앱이 없으면 Keep 시작 대신 앱 선택 안내를 먼저 보여준다.
   - `showFirstLockActivationCta`: 첫 잠금 CTA 노출 조건.
   - `goalLockCard`: 목표 잠금 Home card read model.
+- `app/src/test/java/com/uiery/keep/feature/home/HomeStatusCtaReadModelTest.kt`
+  - 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 목표 잠금 동시 노출 read-model 계약을 고정한다.
 - `DESIGN.md`
   - KDS token, primary color 제한, 상태를 색상만으로 전달하지 않는 접근성 규칙.
 
-이 문서는 위 표면을 삭제하거나 의미를 바꾸라는 요청이 아니다. 같은 MVI/navigation side effect를 보존하면서 홈의 **상태 확인 + 다음 행동** 위계를 명확히 하라는 handoff다.
+이 문서는 기존 MVI/navigation side effect를 보존하면서 홈의 **상태 확인 + 다음 행동** 위계를 명확히 하는 계약이다. `CategoryButton`과 `FirstLockActivationCta`의 접근성 의미는 Home 상태 카드 안에서 동등하게 제공되어야 한다.
 
 ## 상태 모델
 

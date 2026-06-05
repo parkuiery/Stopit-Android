@@ -18,6 +18,7 @@ on:
       - 'scripts/setup-play-deploy-secrets.sh'
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
+      - 'scripts/release_provenance_manifest.py'
       - 'scripts/verify_lint_registry.py'
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
@@ -41,6 +42,7 @@ on:
       - 'scripts/setup-play-deploy-secrets.sh'
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
+      - 'scripts/release_provenance_manifest.py'
       - 'scripts/verify_lint_registry.py'
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
@@ -92,6 +94,7 @@ jobs:
               - 'scripts/setup-play-deploy-secrets.sh'
               - 'scripts/setup-discord-deploy-secrets.sh'
               - 'scripts/play_version_code_guard.py'
+              - 'scripts/release_provenance_manifest.py'
               - 'scripts/verify_lint_registry.py'
               - 'scripts/check_workflow_gradle_tasks.py'
               - 'scripts/tests/**'
@@ -103,6 +106,7 @@ jobs:
               - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
+              - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
               - '.github/workflows/ops-ci.yml'
@@ -147,6 +151,7 @@ jobs:
           scripts.tests.test_release_qa_runtime_gate_docs
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
+          scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_review_prompt_post_release_followthrough_docs
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
@@ -212,3 +217,6 @@ jobs:
 
       - name: Compile Discord deploy notification script
         run: python3 -m py_compile scripts/notify-discord-deploy.py
+
+      - name: Compile release provenance manifest script
+        run: python3 -m py_compile scripts/release_provenance_manifest.py

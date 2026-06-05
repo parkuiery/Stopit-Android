@@ -29,6 +29,7 @@ class RoutineViewModel
         private val analytics: KeepAnalytics,
         private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val routineNoticeStore: RoutineNoticeStore,
+        private val routineRestoreAftercare: RoutineRestoreAftercare,
     ) : ViewModel(),
         ContainerHost<RoutineUiState, RoutineSideEffect> {
         override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
@@ -84,8 +85,12 @@ class RoutineViewModel
             intent {
                 routineDao.fetchAll().collect { routines ->
                     val routinesModel = routines.map { it.toModel() }
-                    reduce { state.copy(routines = routinesModel) }
-                    storeRoutine(routines.map { it.toModel() })
+                    val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutines(routinesModel)
+                    reduce { state.copy(routines = restoreResult.routines) }
+                    storeRoutine(restoreResult.routines)
+                    if (restoreResult.shouldShowAlarmPermissionPrompt) {
+                        postSideEffect(RoutineSideEffect.ShowAlarmPermission)
+                    }
                     analytics.setUserProperty("routines_count", routines.size.toString())
                 }
             }

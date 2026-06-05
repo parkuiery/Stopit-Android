@@ -83,7 +83,8 @@ issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth�
 ```bash
 cd <repo-root>
 python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
-./gradlew -q help --task :app:testDevDebugUnitTest
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest'
+./gradlew --console=plain :app:lintProdRelease
 ```
 
 수동 QA matrix:
@@ -474,6 +475,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`와 `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`는 상세 화면 상태, 종료 확인/취소, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
+- `HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce`는 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회만 기록하는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시하고 상세 화면으로 이동한다.
 - Accessibility/blocking runtime은 all-day / scheduled / expiration 경계에서 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
 
@@ -486,7 +488,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Device / Android version / OEM:
 - Entry point: home / routine / menu
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
   - `python3 -m unittest scripts.tests.test_goal_lock_contract -v`
 - all-day / scheduled / expiration:
   - all-day blocks selected apps through date boundary: pass / fail
@@ -847,6 +849,25 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine
 adb shell appops set com.uiery.keep.dev POST_NOTIFICATION allow
 ```
+
+### backup/restore app-open routine reschedule baseline
+
+issue #490 계열 PR에서는 BootReceiver/package-replaced/routine-alarm 이벤트 없이 사용자가 복원 직후 앱을 여는 경로도 별도 evidence로 남긴다. 이 경로의 owner는 공통 `RoutineRestoreAftercare`이며, `SplashViewModel` 앱 시작 경로와 `RoutineViewModel` 루틴 화면 진입 경로가 모두 Room enabled routine을 즉시 재스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 다시 쓴다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 같이 `enabled=false` downgrade + 권한 prompt reset/side effect가 발생해야 한다.
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest' \
+  --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest'
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest#appOpenRoutineEntryRehydratesRoomRoutineCacheAndSchedulesAlarmWithoutRevivingResetOnlyDataStoreState
+```
+
+검증 범위:
+- restored-device shape처럼 DataStore runtime key가 비어 있어도 Room enabled routine이 앱 시작/Splash 및 Routine 화면 진입 시 `scheduleRoutine(...)`으로 재예약된다.
+- 같은 진입에서 `PreferencesKey.ROUTINES` compatibility cache가 Room 목록 기준으로 다시 채워진다.
+- scheduler가 `MissingExactAlarmPermission`을 반환하면 해당 routine은 `enabled=false`로 내려가고 `HAS_SHOWN_ALARM_PERMISSION=false` reset과 `ShowAlarmPermission` side effect가 함께 남는다.
+- 실제 `PendingIntent` 존재 여부는 receiver/runtime instrumentation 또는 수동 `dumpsys alarm` evidence로 별도 확인한다.
 
 ### exact alarm permission baseline
 

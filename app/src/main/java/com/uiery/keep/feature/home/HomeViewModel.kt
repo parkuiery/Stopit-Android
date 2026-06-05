@@ -12,13 +12,18 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockPolicy
 import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.feature.goallock.analyticsLockMode
+import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -247,21 +252,38 @@ class HomeViewModel
                     val today = LocalDate.now()
                     val card = goalLocks
                         .map { it.toDomain() }
-                        .firstOrNull { GoalLockPolicy.runtimeStatus(it) != GoalLockRuntimeStatus.Completed }
+                        .firstOrNull { it.status != GoalLockStoredStatus.EndedEarly }
                         ?.let { goalLock ->
-                            val runtimeStatus = GoalLockPolicy.runtimeStatus(goalLock)
+                            val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
+                            val runtimeStatus = GoalLockPolicy.runtimeStatus(normalizedGoalLock, today.atStartOfDay())
                             HomeGoalLockCardState(
-                                goalLockId = goalLock.id,
-                                goalName = goalLock.goalName,
+                                goalLockId = normalizedGoalLock.id,
+                                goalName = normalizedGoalLock.goalName,
                                 status = runtimeStatus.toHomeStatus(),
-                                daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
-                                lockModeLabel = goalLock.lockMode.homeLabel,
-                                selectedAppCount = goalLock.selectedPackages.size,
+                                daysRemaining = ChronoUnit.DAYS.between(today, normalizedGoalLock.endDate).toInt().plus(1).coerceAtLeast(0),
+                                lockModeLabel = normalizedGoalLock.lockMode.homeLabel,
+                                selectedAppCount = normalizedGoalLock.selectedPackages.size,
                             )
                         }
                     reduce { state.copy(goalLockCard = card) }
                 }
             }
+
+        private fun completeExpiredGoalLockIfNeeded(
+            goalLock: GoalLock,
+            today: LocalDate,
+        ): GoalLock {
+            if (goalLock.status != GoalLockStoredStatus.Active) return goalLock
+            if (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay()) != GoalLockRuntimeStatus.Completed) return goalLock
+
+            val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
+            goalLockDao.update(GoalLockEntity.fromDomain(completed))
+            analytics.trackGoalLockCompleted(
+                lockMode = goalLock.lockMode.analyticsLockMode,
+                durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
+            )
+            return completed
+        }
 
         private fun storeSelectedApp(selectedAppPackage: Set<String>) =
             intent {
@@ -483,6 +505,7 @@ data class HomeGoalLockCardState(
 enum class HomeGoalLockStatus {
     Pending,
     Active,
+    Completed,
     EndedEarly,
 }
 
@@ -490,7 +513,7 @@ private fun GoalLockRuntimeStatus.toHomeStatus(): HomeGoalLockStatus = when (thi
     GoalLockRuntimeStatus.Pending -> HomeGoalLockStatus.Pending
     GoalLockRuntimeStatus.Active -> HomeGoalLockStatus.Active
     GoalLockRuntimeStatus.EndedEarly -> HomeGoalLockStatus.EndedEarly
-    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.EndedEarly
+    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.Completed
 }
 
 private val GoalLockMode.homeLabel: String

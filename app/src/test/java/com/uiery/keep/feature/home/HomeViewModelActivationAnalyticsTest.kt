@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
+import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
@@ -368,6 +370,51 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 
+    @Test
+    fun expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val goalLockDao = FakeHomeGoalLockDao(
+            listOf(
+                goalLockEntity(
+                    goalName = "30일 SNS 줄이기",
+                    startDate = LocalDate.now().minusDays(30),
+                    endDate = LocalDate.now().minusDays(1),
+                    lockMode = GoalLockMode.AllDay,
+                    selectedPackages = setOf("com.social.app"),
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = goalLockDao,
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 7L,
+                goalName = "30일 SNS 줄이기",
+                status = HomeGoalLockStatus.Completed,
+                daysRemaining = 0,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 1,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+        assertEquals(GoalLockStoredStatus.Completed, goalLockDao.updated.single().toDomain().status)
+        assertEquals(
+            listOf(
+                HomeAnalyticsCall.GoalLockCompleted(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+                ),
+            ),
+            analytics.calls,
+        )
+    }
+
     private fun CoroutineScope.launchSideEffects(
         viewModel: HomeViewModel,
         sideEffects: MutableList<HomeSideEffect>,
@@ -415,13 +462,17 @@ class HomeViewModelActivationAnalyticsTest {
 private class FakeHomeGoalLockDao(
     private val goalLocks: List<GoalLockEntity> = emptyList(),
 ) : GoalLockDao {
+    val updated = mutableListOf<GoalLockEntity>()
+
     override fun fetchAll(): Flow<List<GoalLockEntity>> = flowOf(goalLocks)
 
     override fun fetch(id: Long): GoalLockEntity? = goalLocks.firstOrNull { it.id == id }
 
     override fun insert(goalLock: GoalLockEntity): Long = goalLock.id
 
-    override fun update(goalLock: GoalLockEntity) = Unit
+    override fun update(goalLock: GoalLockEntity) {
+        updated += goalLock
+    }
 }
 
 private fun goalLockEntity(
@@ -483,6 +534,11 @@ private sealed interface HomeAnalyticsCall {
     data class LockScheduled(
         val scheduleType: String,
     ) : HomeAnalyticsCall
+
+    data class GoalLockCompleted(
+        val lockMode: String,
+        val durationDaysBucket: String,
+    ) : HomeAnalyticsCall
 }
 
 private class HomeRecordingKeepAnalytics : KeepAnalytics {
@@ -526,5 +582,12 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         calls += HomeAnalyticsCall.LockScheduled(scheduleType = scheduleType)
+    }
+
+    override fun trackGoalLockCompleted(lockMode: String, durationDaysBucket: String) {
+        calls += HomeAnalyticsCall.GoalLockCompleted(
+            lockMode = lockMode,
+            durationDaysBucket = durationDaysBucket,
+        )
     }
 }
