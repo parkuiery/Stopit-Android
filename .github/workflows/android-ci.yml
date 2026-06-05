@@ -87,6 +87,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Run KDS module-local verification
+        run: ./gradlew --console=plain :core:kds:testDebugUnitTest :core:kds:lintDebug :core:kds:assembleDebug
+
       - name: Restore Firebase google-services.json for CI variants
         env:
           GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
