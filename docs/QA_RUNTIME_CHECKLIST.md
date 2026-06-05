@@ -173,6 +173,58 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 
 이 증거가 없으면 #404는 repo-internal string cleanup과 static regression이 완료됐더라도 실제 권한 요청/첫 차단 성공 화면의 device/manual QA 경계가 남은 상태로 본다.
 
+### LockHistory 성과 리포트 QA baseline
+
+issue #465 계열 구현 PR은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 삼고, `LockHistory`가 단순 로그가 아니라 긍정적인 성과 리포트로 읽히는지 자동/수동 증거를 함께 남긴다. 이 기능은 #211 공유 CTA와 같은 화면을 쓰더라도 1차 목표가 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \\
+  --tests '*LockHistory*Performance*' \\
+  --tests '*LockHistoryViewModel*'
+python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
+```
+
+검증 범위:
+- 기록 없음은 `empty` 상태로 시작 격려/다음 행동 안내를 보여주고 실패·중독·질책 copy를 쓰지 않는다.
+- 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
+- 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
+- top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
+- 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
+
+수동 QA evidence template:
+
+```md
+## LockHistory performance report QA evidence
+- Issue: #465
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / en / other changed locale
+- Commands:
+  - `./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'`
+  - `python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v`
+- Empty state:
+  - copy:
+  - shame/friction wording absent: pass / fail
+- Low-data state:
+  - seed/session condition:
+  - copy:
+- Has-history weekly/monthly state:
+  - summary headline:
+  - week/month period correct: pass / fail
+- Top apps section:
+  - positive framing: pass / fail
+  - app package/raw history absent from analytics spot-check: pass / fail
+- TalkBack summary/top apps meaning:
+- #211 share CTA remains optional and not pressured: pass / fail / not applicable
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #465는 repo-internal 문서/계약이 완료됐더라도 실제 UI copy, locale/TalkBack, analytics payload spot-check, release 후 14일·30일 성과 판단 경계가 남은 상태로 본다.
+
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
 issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.

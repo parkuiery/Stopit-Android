@@ -15,6 +15,7 @@
 - 분석/이슈화 절차: `docs/METRICS_ANALYSIS.md`
 - 제품 대시보드와 우선순위: `docs/PRODUCT_METRICS_DASHBOARD.md`
 - `routines_count` user property coverage 계약: `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` (#479)
+- LockHistory 성과 리포트 UX/analytics 계약: `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` (#465)
 - 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - open issue: `#13`
 - 앱 코드 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
@@ -135,7 +136,21 @@
 - `lockApplications`, package name, 앱 이름, raw session history, 루틴 이름 원문은 GA4 payload와 registration ledger 모두에서 금지한다.
 - #407 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 루틴 템플릿 공유의 획득/retention 효과를 낮은 confidence로 둔다.
 
-### 6순위: 목표 잠금 조회성
+### 6순위: LockHistory 성과 리포트 조회성
+
+- `period_type`
+- `report_state`
+- `session_count_bucket`
+- `duration_minutes_bucket`
+- `top_apps_count_bucket`
+
+이 묶음이 필요한 이유:
+
+- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)의 성과 리포트 UX가 구현된 뒤, empty/low-data/has-history 상태별 summary card 노출과 top apps 성과 섹션 조회를 privacy-safe bucket 기준으로 비교하기 위한 최소 집합이다.
+- 앱 이름, package name, raw session history, raw timestamp, raw duration은 GA4 payload와 registration ledger 모두에서 금지한다.
+- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다.
+
+### 7순위: 목표 잠금 조회성
 
 - `duration_selection_type`
 - `lock_mode`
@@ -150,7 +165,7 @@
 - 목표 이름 원문/app package/app label/raw 날짜는 GA4 payload와 registration ledger 모두에서 금지한다.
 - #417 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 목표 잠금 유지/완료율과 장기 retention 효과를 낮은 confidence로 둔다.
 
-### 7순위: 루틴 생성 CTA 조회성
+### 8순위: 루틴 생성 CTA 조회성
 
 - `surface`
 - `activation_stage`
@@ -163,7 +178,7 @@
 - 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, `routine_id`는 CTA 이벤트 payload와 registration ledger 모두에서 금지한다.
 - #455 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·CTA 포함 release/tag/Play deploy·14일 관측 전에는 루틴 CTA의 retention 효과를 낮은 confidence로 둔다.
 
-### 8순위: 부모 모드 조회성
+### 9순위: 부모 모드 조회성
 
 - `duration_minutes_bucket`
 - `allowed_app_count_bucket`
@@ -208,6 +223,11 @@
 | `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:repeat_days_bucket` |
 | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:time_window_bucket` |
 | `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:routine_name_included` |
+| `period_type` | `lock_history_performance_summary_viewed`, `lock_history_top_apps_viewed` | #465 문서 계약 추가 / 코드 구현 전 | LockHistory 성과 리포트 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:period_type` |
+| `report_state` | `lock_history_performance_summary_viewed` | #465 문서 계약 추가 / 코드 구현 전 | empty/low-data/has-history 상태별 summary 노출 비교. 실패/중독 상태값 금지 | `customEvent:report_state` |
+| `session_count_bucket` | `lock_history_performance_summary_viewed` | #465 문서 계약 추가 / 코드 구현 전 | raw session 목록/개별 timestamp 없이 count bucket만 사용 | `customEvent:session_count_bucket` |
+| `duration_minutes_bucket` | `lock_history_performance_summary_viewed` | #465 문서 계약 추가 / 코드 구현 전 | raw duration 값 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
+| `top_apps_count_bucket` | `lock_history_top_apps_viewed` | #465 문서 계약 추가 / 코드 구현 전 | top app 이름/package 원문 금지. 표시 개수 bucket만 사용 | `customEvent:top_apps_count_bucket` |
 | `duration_selection_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 잠금 포함 release/tag/Play deploy 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:duration_selection_type` |
 | `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` 코드 계약 추가, detail 종료 path의 early-end runtime call 추가, completion runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:lock_mode` |
 | `selected_app_count_bucket` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 동일 | `customEvent:selected_app_count_bucket` |

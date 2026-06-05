@@ -17,6 +17,7 @@
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
 - `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`: #479용 `routines_count` user property coverage 보강 계약. `customUser:routines_count` 조회 가능성과 실제 active user 커버리지를 분리한다.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
+- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`: #465용 LockHistory 성과 리포트 UX, empty/low-data 카피, top apps positive framing, privacy-safe analytics/QA 계약
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP, 보호자 PIN, privacy-safe analytics/QA 계약
 
@@ -28,6 +29,7 @@
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
 - 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
+- 잠금 기록 성과 리포트 구현 후보: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt`, `LockHistoryPerformanceReportReadModel` helper(구현 시 추가)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
@@ -138,6 +140,24 @@
 ### 집중 요약 공유
 
 `LockHistory` 주간 요약 공유 MVP의 제품/QA 계약은 `docs/FOCUS_SUMMARY_SHARE_MVP.md`를 source of truth로 본다. 공유문과 이벤트 파라미터에는 앱 이름, package name, raw session 목록, raw duration을 넣지 않고 bucket/기간 타입만 남긴다.
+
+### 잠금 기록 성과 리포트
+
+`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. 새 analytics를 추가할 때도 앱 이름/package/raw session/raw timestamp/raw duration은 보내지 않고 enum/bucket만 남긴다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `lock_history_performance_summary_viewed` | `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket` | LockHistory summary card가 성과 리포트 read model로 표시됨 |
+| `lock_history_top_apps_viewed` | `period_type`, `top_apps_count_bucket` | top apps 성과 섹션 표시 |
+
+현재 bucket 계약:
+
+- `period_type`: `week`, `month`
+- `report_state`: `empty`, `low_data`, `has_history`
+- `session_count_bucket`: `0`, `1`, `2_3`, `4_6`, `7_plus`
+- `duration_minutes_bucket`: `0`, `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
+- `top_apps_count_bucket`: `0`, `1`, `2_3`, `4_plus`
+- 이벤트를 추가하지 않는 UI/read model PR도 가능하지만, 그 경우 PR body에 새 analytics 없음과 낮은 confidence 해석 경계를 명시한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
