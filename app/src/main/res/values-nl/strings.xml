@@ -134,7 +134,17 @@
     <string name="emergency_unlock_settings_auto_reset">Automatisch herstel van noodontgrendelingen</string>
     <string name="emergency_unlock_settings_auto_reset_subtitle">Herstel het aantal noodontgrendelingen elke dag om middernacht</string>
     <string name="emergency_unlock_settings_auto_reset_off_helper">Sterke-limietmodus is ingeschakeld. Het aantal herstelt niet automatisch na een datumwisseling en blijft zo tot je het handmatig reset.</string>
-    <string name="emergency_unlock_settings_manual_reset_button">Aantal noodontgrendelingen resetten</string>
+    <string name="emergency_unlock_settings_manual_reset_button">Refill emergency unlock count</string>
+    <string name="emergency_unlock_settings_count_management">Emergency unlock count management</string>
+    <string name="emergency_unlock_settings_count_management_subtitle">Choose when to refill your emergency unlock count.</string>
+    <string name="emergency_unlock_settings_daily_refill_title">Refill every day</string>
+    <string name="emergency_unlock_settings_daily_refill_subtitle">The emergency unlock count refills every day at midnight.</string>
+    <string name="emergency_unlock_settings_daily_refill_badge">Recommended for most users.</string>
+    <string name="emergency_unlock_settings_manual_refill_title">Refill manually</string>
+    <string name="emergency_unlock_settings_manual_refill_subtitle">The count will not be refilled automatically after the date changes. Use this when you want a stronger self-limit.</string>
+    <string name="emergency_unlock_settings_remaining_count">Current remaining count %1$d/%2$d</string>
+    <string name="cd_emergency_unlock_daily_refill_mode">daily_refill_mode</string>
+    <string name="cd_emergency_unlock_manual_refill_mode">manual_refill_mode</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_title">Sterke-limietmodus inschakelen?</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_message">Als je automatisch herstel uitschakelt, wordt het aantal noodontgrendelingen niet hersteld bij een datumwisseling. Zijn alle ontgrendelingen gebruikt, dan blijft noodontgrendeling onbeschikbaar tot je handmatig reset.</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_confirm">Sterke limiet inschakelen</string>
@@ -142,7 +152,7 @@
     <string name="emergency_unlock_manual_reset_dialog_message">Bestaande gebruiksgeschiedenis wordt niet verwijderd. Het aantal wordt vanaf nu opnieuw berekend.</string>
     <string name="emergency_unlock_manual_reset_dialog_confirm">Resetten</string>
     <string name="cd_emergency_unlock_auto_reset_switch">emergency_unlock_auto_reset_switch</string>
-    <string name="cd_emergency_unlock_manual_reset_button">emergency_unlock_manual_reset_button</string>
+    <string name="cd_emergency_unlock_manual_reset_button">refill_emergency_unlock_count_button</string>
     <string name="emergency_unlock_reason_title">Waarom moet je ontgrendelen?</string>
     <string name="emergency_unlock_reason_work">Ik heb het nodig voor werk of studie</string>
     <string name="emergency_unlock_reason_contact">Ik heb een dringend bericht te controleren</string>

@@ -63,19 +63,19 @@ fun EmergencyUnlockSettingsScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showDisableAutoResetDialog by remember { mutableStateOf(false) }
+    var showManualRefillModeDialog by remember { mutableStateOf(false) }
     var showManualResetDialog by remember { mutableStateOf(false) }
 
-    if (showDisableAutoResetDialog) {
+    if (showManualRefillModeDialog) {
         ConfirmationDialog(
             title = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_title),
             message = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_message),
             confirmLabel = stringResource(R.string.emergency_unlock_auto_reset_disable_dialog_confirm),
             dismissLabel = stringResource(R.string.emergency_unlock_cancel),
-            onDismiss = { showDisableAutoResetDialog = false },
+            onDismiss = { showManualRefillModeDialog = false },
             onConfirm = {
-                showDisableAutoResetDialog = false
-                viewModel.setAutoResetEnabled(false)
+                showManualRefillModeDialog = false
+                viewModel.setRefillMode(EmergencyUnlockRefillMode.Manual)
             },
         )
     }
@@ -157,6 +157,15 @@ fun EmergencyUnlockSettingsScreen(
 
                 GroupDivider()
 
+                RefillModeSection(
+                    uiState = uiState,
+                    onDailySelected = { viewModel.setRefillMode(EmergencyUnlockRefillMode.Daily) },
+                    onManualSelected = { showManualRefillModeDialog = true },
+                    onManualResetClick = { showManualResetDialog = true },
+                )
+
+                GroupDivider()
+
                 val durationValueLabel = uiState.durationOptions
                     .sorted()
                     .map { stringResource(R.string.emergency_unlock_duration_minutes, it) }
@@ -182,38 +191,6 @@ fun EmergencyUnlockSettingsScreen(
                     enabled = uiState.enabled,
                     onCheckedChange = viewModel::setReasonRequired,
                 )
-            }
-
-            SettingsGroupCard(modifier = Modifier.dimWhen(!uiState.enabled)) {
-                SwitchRow(
-                    title = stringResource(R.string.emergency_unlock_settings_auto_reset),
-                    subtitle = stringResource(R.string.emergency_unlock_settings_auto_reset_subtitle),
-                    checked = uiState.autoResetEnabled,
-                    enabled = uiState.enabled,
-                    contentDescription = stringResource(R.string.cd_emergency_unlock_auto_reset_switch),
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            viewModel.setAutoResetEnabled(true)
-                        } else {
-                            showDisableAutoResetDialog = true
-                        }
-                    },
-                )
-                if (!uiState.autoResetEnabled) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.emergency_unlock_settings_auto_reset_off_helper),
-                        color = KeepTheme.colors.onTertiaryContainer,
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ManualResetButton(
-                        enabled = uiState.enabled,
-                        contentDescription = stringResource(R.string.cd_emergency_unlock_manual_reset_button),
-                        onClick = { showManualResetDialog = true },
-                    )
-                }
             }
         }
     }
@@ -424,6 +401,139 @@ private fun SwitchRow(
         }
         Spacer(modifier = Modifier.width(12.dp))
         KeepSwitch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun RefillModeSection(
+    uiState: EmergencyUnlockSettingsUiState,
+    onDailySelected: () -> Unit,
+    onManualSelected: () -> Unit,
+    onManualResetClick: () -> Unit,
+) {
+    SectionHeader(
+        title = stringResource(R.string.emergency_unlock_settings_count_management),
+        valueLabel = stringResource(
+            R.string.emergency_unlock_settings_remaining_count,
+            uiState.remainingUnlockCount,
+            uiState.dailyLimit,
+        ),
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = stringResource(R.string.emergency_unlock_settings_count_management_subtitle),
+        color = KeepTheme.colors.onTertiaryContainer,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    RefillModeOption(
+        title = stringResource(R.string.emergency_unlock_settings_daily_refill_title),
+        subtitle = stringResource(R.string.emergency_unlock_settings_daily_refill_subtitle),
+        badge = stringResource(R.string.emergency_unlock_settings_daily_refill_badge),
+        selected = uiState.refillMode == EmergencyUnlockRefillMode.Daily,
+        enabled = uiState.enabled,
+        contentDescription = stringResource(R.string.cd_emergency_unlock_daily_refill_mode),
+        onClick = onDailySelected,
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    RefillModeOption(
+        title = stringResource(R.string.emergency_unlock_settings_manual_refill_title),
+        subtitle = stringResource(R.string.emergency_unlock_settings_manual_refill_subtitle),
+        badge = if (uiState.refillMode == EmergencyUnlockRefillMode.Manual) {
+            stringResource(
+                R.string.emergency_unlock_settings_remaining_count,
+                uiState.remainingUnlockCount,
+                uiState.dailyLimit,
+            )
+        } else {
+            null
+        },
+        selected = uiState.refillMode == EmergencyUnlockRefillMode.Manual,
+        enabled = uiState.enabled,
+        contentDescription = stringResource(R.string.cd_emergency_unlock_manual_refill_mode),
+        onClick = onManualSelected,
+    )
+    if (uiState.refillMode == EmergencyUnlockRefillMode.Manual) {
+        Spacer(modifier = Modifier.height(12.dp))
+        ManualResetButton(
+            enabled = uiState.enabled,
+            contentDescription = stringResource(R.string.cd_emergency_unlock_manual_reset_button),
+            onClick = onManualResetClick,
+        )
+    }
+}
+
+@Composable
+private fun RefillModeOption(
+    title: String,
+    subtitle: String,
+    badge: String?,
+    selected: Boolean,
+    enabled: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val borderColor = if (selected) KeepTheme.colors.primary else KeepTheme.colors.tertiary.copy(alpha = 0.5f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(KeepTheme.colors.background)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .border(width = 2.dp, color = borderColor, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(KeepTheme.colors.primary),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                color = KeepTheme.colors.onTertiaryContainer,
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
+            )
+            if (badge != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(KeepTheme.colors.primary.copy(alpha = 0.10f))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        text = badge,
+                        color = KeepTheme.colors.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
     }
 }
 
