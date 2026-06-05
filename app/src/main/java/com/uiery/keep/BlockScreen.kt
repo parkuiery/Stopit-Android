@@ -204,6 +204,17 @@ fun BlockScreen(
                         fontSize = 13.sp,
                     )
                 }
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    text = stringResource(emergencyUnlockAction.helperTextRes),
+                    textAlign = TextAlign.Center,
+                    color = KeepTheme.colors.surfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 KeepButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(id = R.string.block_screen_close),

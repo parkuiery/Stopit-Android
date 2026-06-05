@@ -6,21 +6,21 @@ Issue: #464
 
 차단 화면은 사용자가 습관적으로 차단된 앱을 열었을 때 가장 자주 보는 핵심 가치 화면이다. 이 문서는 `BlockScreen`을 처벌/제한 화면이 아니라 **잠깐 멈춤 + 자기 통제 보조** 경험으로 다듬기 위한 copy, action hierarchy, QA 계약을 고정한다.
 
-이 문서는 구현 전 source of truth다. 코드 변경은 `BlockScreen.kt`, `BlockViewModel`, `EmergencyUnlockBottomSheetContent`, `strings.xml` locale parity, screenshot/runtime QA를 포함해야 하며 PR body는 구현·검증·release/readback이 모두 끝나기 전까지 `Refs #464`를 사용한다.
+이 문서는 #464의 source of truth다. 코드 변경은 `BlockScreen.kt`, `BlockViewModel`, `EmergencyUnlockBottomSheetContent`, `strings.xml` locale parity, screenshot/runtime QA를 포함해야 하며 PR body는 구현·검증·release/readback이 모두 끝나기 전까지 `Refs #464`를 사용한다.
 
-## 현재 관찰한 표면
+## 현재 표면과 구현 상태
 
 - 화면 파일: `app/src/main/java/com/uiery/keep/BlockScreen.kt`
 - 주요 strings: `block_screen_title`, `block_screen_message`, `block_screen_close`, `block_screen_first_core_action_feedback`, `emergency_unlock_*`
-- 현재 화면 구조:
+- 화면 구조:
   - 상단 `TrackedBannerAd(AdPlacement.BlockTop)`
   - 중앙 app icon + title/message + 최초 차단 성공 feedback
-  - 하단 `TextButton` emergency unlock + primary `KeepButton` close
-- 현재 카피 리스크:
-  - `StopIt이 앱 사용을 막고 있음` 중심의 기능 설명 톤이 강하다.
-  - close CTA가 `닫기`에 가까워 사용자가 무엇으로 돌아가야 하는지 덜 명확하다.
-  - emergency unlock은 safety/exception action인데 상태·남은 횟수·불가 사유가 보조 카피로 충분히 설명되지 않으면 사용자가 혼란을 느낄 수 있다.
-  - 광고 영역은 본문/CTA보다 우선되어 보이면 신뢰 리스크가 있다.
+  - 하단 `TextButton` emergency unlock + helper reason/status + primary `KeepButton` close
+- code-lane 구현 기준:
+  - title/message/primary CTA는 `잠깐 멈춤 + 하던 일로 돌아가기` 계열 코칭 톤이어야 한다.
+  - emergency unlock은 기존 action label에 더해 helper reason/status string을 함께 노출해 색상 비활성만으로 상태를 설명하지 않는다.
+  - `EmergencyUnlockBottomSheetContent`, unlock side effect, analytics event order는 변경하지 않는다.
+  - 광고 영역은 본문/CTA보다 우선되어 보이면 신뢰 리스크다.
 
 ## 제품 원칙
 
