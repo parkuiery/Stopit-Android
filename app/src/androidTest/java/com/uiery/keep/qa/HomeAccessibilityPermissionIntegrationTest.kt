@@ -273,13 +273,32 @@ class HomeAccessibilityPermissionIntegrationTest {
     }
 
     private fun waitForPermissionDialog(message: String) {
-        waitUntil(
-            message = "$message; ${accessibilitySettingsSnapshot()}; foreground=${isTargetPackageForeground()}",
-            timeoutMs = HOME_PERMISSION_DIALOG_TIMEOUT_MS,
-        ) {
-            device.hasObject(By.text(permissionDialogTitle))
+        val deadline = System.currentTimeMillis() + HOME_PERMISSION_DIALOG_TIMEOUT_MS
+        var relaunchedAfterInitialMiss = false
+        while (System.currentTimeMillis() < deadline) {
+            if (device.hasObject(By.text(permissionDialogTitle))) {
+                return
+            }
+            if (!relaunchedAfterInitialMiss && System.currentTimeMillis() > deadline - HOME_PERMISSION_DIALOG_TIMEOUT_MS / 2) {
+                relaunchedAfterInitialMiss = true
+                device.pressHome()
+                launchStopIt()
+            }
+            Thread.sleep(100)
         }
+        assertTrue(
+            "$message; ${accessibilitySettingsSnapshot()}; foreground=${isTargetPackageForeground()}; " +
+                "visibleText=${visibleTargetPackageTextSnapshot()}",
+            device.hasObject(By.text(permissionDialogTitle)),
+        )
     }
+
+    private fun visibleTargetPackageTextSnapshot(): String =
+        device.findObjects(By.pkg(targetPackage))
+            .mapNotNull { node -> node.text?.takeIf { it.isNotBlank() } }
+            .distinct()
+            .take(30)
+            .joinToString(" | ")
 
     private fun waitForPackageForeground(packageName: String) {
         waitUntil("Expected $packageName to be foreground") {
