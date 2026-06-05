@@ -97,6 +97,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        grantExactAlarmPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -140,6 +141,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Clock changed restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
@@ -162,6 +164,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(
             enabledRoutineEntity(
                 id = TEST_ROUTINE_ID,
@@ -281,6 +284,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        grantExactAlarmPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -344,6 +348,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine() = runBlocking {
+        grantExactAlarmPermission()
         grantPostNotificationsPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(

@@ -36,6 +36,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Release candidates targeting `main` also run Android Release QA before merge:
   - `Full release QA`: `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
   - `Release instrumentation QA`: single-day and multi-day exact-alarm/runtime gates below run on a GitHub-hosted Android emulator.
+  - Selector source of truth: `scripts/android_runtime_suites.py` owns selector fragments; workflow YAML owns install/appops sequencing.
+  - Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `adb shell cmd appops reset com.uiery.keep.dev` 후 기본 상태 경로를 실행
     - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
