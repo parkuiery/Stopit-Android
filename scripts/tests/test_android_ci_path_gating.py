@@ -69,6 +69,22 @@ class AndroidCiPathGatingTest(unittest.TestCase):
 
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
 
+    def test_android_ci_fast_verification_runs_kds_module_local_checks(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("Run KDS module-local verification", workflow)
+        self.assertIn(":core:kds:assembleDebug", workflow)
+        self.assertIn(":core:kds:lintDebug", workflow)
+        self.assertIn(":core:kds:testDebugUnitTest", workflow)
+
+    def test_release_context_documents_kds_module_local_ci_gate(self):
+        doc = RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("KDS module-local", doc)
+        self.assertIn(":core:kds:assembleDebug", doc)
+        self.assertIn(":core:kds:lintDebug", doc)
+        self.assertIn(":core:kds:testDebugUnitTest", doc)
+
 
 if __name__ == "__main__":
     unittest.main()
