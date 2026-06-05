@@ -134,7 +134,17 @@
     <string name="emergency_unlock_settings_auto_reset">Автовосстановление экстренных разблокировок</string>
     <string name="emergency_unlock_settings_auto_reset_subtitle">Восстанавливать количество каждый день в полночь</string>
     <string name="emergency_unlock_settings_auto_reset_off_helper">Включён режим строгого ограничения. Количество не восстановится автоматически после смены даты и сохранится до ручного сброса.</string>
-    <string name="emergency_unlock_settings_manual_reset_button">Сбросить количество разблокировок</string>
+    <string name="emergency_unlock_settings_manual_reset_button">Refill emergency unlock count</string>
+    <string name="emergency_unlock_settings_count_management">Emergency unlock count management</string>
+    <string name="emergency_unlock_settings_count_management_subtitle">Choose when to refill your emergency unlock count.</string>
+    <string name="emergency_unlock_settings_daily_refill_title">Refill every day</string>
+    <string name="emergency_unlock_settings_daily_refill_subtitle">The emergency unlock count refills every day at midnight.</string>
+    <string name="emergency_unlock_settings_daily_refill_badge">Recommended for most users.</string>
+    <string name="emergency_unlock_settings_manual_refill_title">Refill manually</string>
+    <string name="emergency_unlock_settings_manual_refill_subtitle">The count will not be refilled automatically after the date changes. Use this when you want a stronger self-limit.</string>
+    <string name="emergency_unlock_settings_remaining_count">Current remaining count %1$d/%2$d</string>
+    <string name="cd_emergency_unlock_daily_refill_mode">daily_refill_mode</string>
+    <string name="cd_emergency_unlock_manual_refill_mode">manual_refill_mode</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_title">Включить режим строгого ограничения?</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_message">Если отключить автовосстановление, количество экстренных разблокировок не восстановится при смене даты. Когда все разблокировки будут использованы, экстренная разблокировка будет недоступна до ручного сброса.</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_confirm">Включить строгий лимит</string>
@@ -142,7 +152,7 @@
     <string name="emergency_unlock_manual_reset_dialog_message">Существующая история использования не будет удалена. Количество будет рассчитываться заново с этого момента.</string>
     <string name="emergency_unlock_manual_reset_dialog_confirm">Сбросить</string>
     <string name="cd_emergency_unlock_auto_reset_switch">emergency_unlock_auto_reset_switch</string>
-    <string name="cd_emergency_unlock_manual_reset_button">emergency_unlock_manual_reset_button</string>
+    <string name="cd_emergency_unlock_manual_reset_button">refill_emergency_unlock_count_button</string>
     <string name="emergency_unlock_reason_title">Почему нужно разблокировать?</string>
     <string name="emergency_unlock_reason_work">Нужно для работы или учёбы</string>
     <string name="emergency_unlock_reason_contact">Нужно проверить срочное сообщение</string>

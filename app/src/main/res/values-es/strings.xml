@@ -133,7 +133,17 @@
     <string name="emergency_unlock_settings_auto_reset">Recuperación automática de desbloqueos de emergencia</string>
     <string name="emergency_unlock_settings_auto_reset_subtitle">Recupera el conteo de desbloqueos cada día a medianoche</string>
     <string name="emergency_unlock_settings_auto_reset_off_helper">El modo de límite fuerte está activado. El conteo no se recuperará automáticamente al cambiar la fecha y se mantendrá hasta que lo restablezcas manualmente.</string>
-    <string name="emergency_unlock_settings_manual_reset_button">Restablecer conteo de desbloqueos</string>
+    <string name="emergency_unlock_settings_manual_reset_button">Refill emergency unlock count</string>
+    <string name="emergency_unlock_settings_count_management">Emergency unlock count management</string>
+    <string name="emergency_unlock_settings_count_management_subtitle">Choose when to refill your emergency unlock count.</string>
+    <string name="emergency_unlock_settings_daily_refill_title">Refill every day</string>
+    <string name="emergency_unlock_settings_daily_refill_subtitle">The emergency unlock count refills every day at midnight.</string>
+    <string name="emergency_unlock_settings_daily_refill_badge">Recommended for most users.</string>
+    <string name="emergency_unlock_settings_manual_refill_title">Refill manually</string>
+    <string name="emergency_unlock_settings_manual_refill_subtitle">The count will not be refilled automatically after the date changes. Use this when you want a stronger self-limit.</string>
+    <string name="emergency_unlock_settings_remaining_count">Current remaining count %1$d/%2$d</string>
+    <string name="cd_emergency_unlock_daily_refill_mode">daily_refill_mode</string>
+    <string name="cd_emergency_unlock_manual_refill_mode">manual_refill_mode</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_title">¿Activar el modo de límite fuerte?</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_message">Si desactivas la recuperación automática, el conteo de desbloqueos no se recuperará al cambiar la fecha. Cuando uses todos, el desbloqueo de emergencia no estará disponible hasta que lo restablezcas manualmente.</string>
     <string name="emergency_unlock_auto_reset_disable_dialog_confirm">Activar límite fuerte</string>
@@ -141,7 +151,7 @@
     <string name="emergency_unlock_manual_reset_dialog_message">El historial de uso existente no se eliminará. El conteo se calculará de nuevo desde ahora.</string>
     <string name="emergency_unlock_manual_reset_dialog_confirm">Restablecer</string>
     <string name="cd_emergency_unlock_auto_reset_switch">emergency_unlock_auto_reset_switch</string>
-    <string name="cd_emergency_unlock_manual_reset_button">emergency_unlock_manual_reset_button</string>
+    <string name="cd_emergency_unlock_manual_reset_button">refill_emergency_unlock_count_button</string>
     <string name="emergency_unlock_reason_title">¿Por qué necesitas desbloquear?</string>
     <string name="emergency_unlock_reason_work">Lo necesito para trabajo o estudio</string>
     <string name="emergency_unlock_reason_contact">Tengo un mensaje urgente que revisar</string>
