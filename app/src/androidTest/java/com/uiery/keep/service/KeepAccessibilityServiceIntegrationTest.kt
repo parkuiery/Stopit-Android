@@ -1,8 +1,9 @@
 package com.uiery.keep.service
 
-import android.content.Intent
 import android.app.UiAutomation
+import android.content.Intent
 import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -14,6 +15,7 @@ import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.testing.AccessibilitySettingsDetailNavigator
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -142,6 +144,34 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun emergencyUnlockStoredExpiry_syncsCountdownNotificationAfterServiceSnapshot() = runBlocking {
+        val bypassPackage = resolveLaunchablePackages().last()
+        grantPostNotificationsPermission()
+        configureManualKeepBlock(bypassPackage)
+        val expireTimeMillis = configureEmergencyUnlock(bypassPackage)
+
+        waitForServiceStatePropagation()
+        waitForServiceToObserveEmergencyUnlockPackage(bypassPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to recreate the emergency-unlock countdown notification from stored expireTimeMillis after service snapshot",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastCountdownNotificationExpireTimeMillis == expireTimeMillis &&
+                snapshot.lastCountdownNotificationPostResult == EmergencyUnlockNotificationPostResult.Posted.name
+        }
+
+        val snapshot = KeepAccessibilityServiceDebugState.read(context)
+        assertEquals(expireTimeMillis, snapshot.observedEmergencyUnlockExpireTimeMillis)
+        assertEquals(expireTimeMillis, snapshot.lastCountdownNotificationExpireTimeMillis)
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.Posted.name,
+            snapshot.lastCountdownNotificationPostResult,
+        )
+    }
+
+    @Test
     fun uninstallAttemptWithPreventUninstallEnabled_dismissesDeleteSurface() = runBlocking {
         configurePreventUninstall(enabled = true)
         waitForServiceStatePropagation()
@@ -233,7 +263,7 @@ class KeepAccessibilityServiceIntegrationTest {
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
-    private suspend fun configureEmergencyUnlock(packageName: String) {
+    private suspend fun configureEmergencyUnlock(packageName: String): Long {
         val expireTimeMillis = System.currentTimeMillis() + EMERGENCY_UNLOCK_WINDOW_MS
         context.dataStore.edit { preferences ->
             preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = setOf(packageName)
@@ -243,6 +273,7 @@ class KeepAccessibilityServiceIntegrationTest {
             unlockedApps = setOf(packageName),
             expireTimeMillis = expireTimeMillis,
         )
+        return expireTimeMillis
     }
 
     private suspend fun configurePreventUninstall(enabled: Boolean) {
@@ -261,6 +292,23 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        EmergencyUnlockNotificationHelper(context).cancel()
+        KeepAccessibilityServiceDebugState.reset(context)
+    }
+
+    private fun grantPostNotificationsPermission() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "pm grant $appPackage android.permission.POST_NOTIFICATIONS",
+        ).close()
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set $appPackage POST_NOTIFICATION allow",
+        ).close()
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set --uid $appPackage POST_NOTIFICATION allow",
+        ).close()
+        waitUntil("POST_NOTIFICATIONS should be enabled for countdown notification test setup") {
+            NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
     }
 
     private fun resolveLaunchablePackages(): List<String> {

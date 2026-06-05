@@ -87,6 +87,7 @@ class KeepAccessibilityService :
                         observedPreventUninstall = cachedPrefs.preventUninstall,
                         observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
                         observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
+                        observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
                     )
                 }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
@@ -372,7 +373,13 @@ class KeepAccessibilityService :
                         return
                     }
 
-                    notificationHelper.syncWithStoredExpireTime(expireTimeMillis)
+                    val postResult = notificationHelper.syncWithStoredExpireTime(expireTimeMillis)
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            lastCountdownNotificationExpireTimeMillis = expireTimeMillis,
+                            lastCountdownNotificationPostResult = postResult?.name,
+                        )
+                    }
                     handler.postDelayed(this, delayMillis)
                 }
             }
