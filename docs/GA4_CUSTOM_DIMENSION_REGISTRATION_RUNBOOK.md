@@ -237,11 +237,11 @@
 | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 생성 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
 | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 동일 | `customEvent:activation_stage` |
 | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
-| `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
-| `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
-| `pin_result` | `parent_mode_unlocked_by_pin` | #471 문서 계약 추가 / 코드 구현 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
-| `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | #471 문서 계약 추가 / 코드 구현 전 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
-| `block_context` | `parent_mode_block_intercepted` | #471 문서 계약 추가 / 코드 구현 전 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
+| `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | 2026-06-06 code-lane 코드 계약 추가 / GA4 등록 필요 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
+| `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | 2026-06-06 code-lane 코드 계약 추가 / GA4 등록 필요 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
+| `pin_result` | `parent_mode_unlocked_by_pin` | 2026-06-06 code-lane 코드 계약 추가 / GA4 등록 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
+| `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | 2026-06-06 code-lane 코드 계약 추가 / GA4 등록 필요 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
+| `block_context` | `parent_mode_block_intercepted` | 2026-06-06 code-lane 코드 계약 추가 / GA4 등록 필요 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
 
 ### 2) Recommended 이벤트 차원
 
@@ -335,11 +335,11 @@
 | `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
 | `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
 | `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | MVP는 `default` 단일 variant로 시작 |
-| `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 구현·배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
+| `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 코드 계약 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
 | `duration_minutes_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_minutes_bucket` 확인 필요 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 |
 | `pin_result` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:pin_result` 확인 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 |
 | `block_context` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:block_context` 확인 필요 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
-| `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
+| `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 코드 계약 포함 버전의 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
 
 ### metadata 확인 로그 템플릿
 

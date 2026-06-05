@@ -408,6 +408,80 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackParentModeDurationSelected(durationMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_DURATION_SELECTED,
+                params = mapOf(KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_ALLOWED_APPS_SELECTED,
+                params = mapOf(KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket),
+            )
+        }
+
+        override fun trackParentModeStarted(
+            durationMinutesBucket: String,
+            allowedAppCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket,
+                ),
+            )
+        }
+
+        override fun trackParentModeCompleted(
+            durationMinutesBucket: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeUnlockedByPin(
+            pinResult: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_UNLOCKED_BY_PIN,
+                params = mapOf(
+                    KeepAnalyticsParam.PIN_RESULT to pinResult,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeExtended(extensionMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_EXTENDED,
+                params = mapOf(KeepAnalyticsParam.EXTENSION_MINUTES_BUCKET to extensionMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeBlockIntercepted(blockContext: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                params = mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to blockContext),
+            )
+        }
+
+        override fun trackParentModeCancelled(endReason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_CANCELLED,
+                params = mapOf(KeepAnalyticsParam.END_REASON to endReason),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
