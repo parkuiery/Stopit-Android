@@ -19,14 +19,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
 
 @Composable
 internal fun LockHistorySummaryCard(
     modifier: Modifier = Modifier,
     totalDuration: Long,
     sessionCount: Int,
+    report: LockHistoryPerformanceReportReadModel,
 ) {
     val context = LocalContext.current
+    val durationText = formatDuration(context, totalDuration)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -35,6 +38,17 @@ internal fun LockHistorySummaryCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Text(
+            text = stringResource(report.headlineResId, durationText),
+            color = KeepTheme.colors.onSurfaceVariant,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(report.supportingResId, sessionCount),
+            color = KeepTheme.colors.surface,
+            fontSize = 13.sp,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -45,7 +59,7 @@ internal fun LockHistorySummaryCard(
                 fontSize = 14.sp,
             )
             Text(
-                text = formatDuration(context, totalDuration),
+                text = durationText,
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,

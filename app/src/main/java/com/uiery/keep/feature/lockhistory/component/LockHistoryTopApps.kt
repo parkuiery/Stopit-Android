@@ -25,12 +25,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 
 @Composable
 internal fun LockHistoryTopApps(
     modifier: Modifier = Modifier,
     topApps: List<Pair<String, Int>>,
+    report: LockHistoryPerformanceReportReadModel,
     onClick: () -> Unit,
 ) {
     if (topApps.isEmpty()) return
@@ -45,10 +47,15 @@ internal fun LockHistoryTopApps(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = stringResource(R.string.lock_history_top_apps_title),
+            text = stringResource(report.topAppsTitleResId),
             color = KeepTheme.colors.onSurfaceVariant,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = stringResource(report.topAppsSupportingResId),
+            color = KeepTheme.colors.onTertiaryContainer,
+            fontSize = 12.sp,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
