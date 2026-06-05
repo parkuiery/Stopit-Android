@@ -25,7 +25,7 @@ Preferences DataStore layer for local device/session state, selected routines, t
 ### Working In This Directory
 - Keep preference keys centralized and preserve backwards compatibility for stored values.
 - Expose typed operations through the DataStore abstraction rather than scattering raw key access across features.
-- For routines, Room is the authoritative source of truth; `PreferencesKey.ROUTINES` is only a compatibility cache and should be touched via `RoutineStore`, not directly from receivers/ViewModels.
+- For routines, Room is the authoritative source of truth; `PreferencesKey.ROUTINES` is only a compatibility cache and should be touched via `RoutineStore`, not directly from receivers/ViewModels. Follow `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md` (#511) for Room-vs-cache conflict-winner, rehydrate triggers, and cache retirement criteria.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

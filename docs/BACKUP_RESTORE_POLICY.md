@@ -87,7 +87,7 @@ Typed store 경계:
 - `BlockingStateStore`: lock/session/activation/reset-only runtime key의 read/write 경계.
 - `EmergencyUnlockSettingsStore`: 긴급해제 설정 key의 default/sanitize/read/write 경계.
 - `ReviewPromptStateStore`: 리뷰 pending/cooldown/background timestamp 경계.
-- `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다.
+- `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다. 유지/퇴역 정책, Room-vs-cache conflict-winner, code-lane handoff는 `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`(#511)를 따른다.
 - `RoutineRestoreAftercare`: 복원 직후 앱 실행/Splash 또는 Routine 화면 진입에서 Room enabled routine을 다시 스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 채우는 공통 aftercare 경계다.
 - `SplashViewModel`: 앱 시작 직후 BootReceiver/package-replaced/routine-alarm 이벤트를 기다리지 않고 `RoutineRestoreAftercare`를 호출해 restored Room routine 알람을 복구한다.
 - `RoutineViewModel`: 사용자가 루틴 화면에 진입했을 때도 같은 aftercare를 재실행해 cache/알람 복구를 보강한다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 동일하게 해당 루틴을 `enabled=false`로 내리고 권한 안내 prompt를 다시 보여줄 수 있도록 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌린다.
@@ -207,6 +207,10 @@ Typed store 경계:
 - `RoutineViewModelRestoreSchedulingTest`
   - 복원 직후 앱 실행 후 Routine 화면 진입 경로에서 Room enabled routine을 재스케줄하고 `RoutineStore` cache를 Room 기준으로 재작성하는지 확인
   - exact alarm 권한/스케줄 실패 시 enabled routine을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false` reset + `ShowAlarmPermission` side effect를 유지하는지 확인
+- `RoutineStore` compatibility cache 계약(#511)
+  - source of truth: `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`
+  - Room과 `PreferencesKey.ROUTINES` cache가 불일치할 때 Room이 이기는지, malformed/blank cache가 crash 없이 empty cache로 취급되는지, exact-alarm 실패 후 Room/cache rewrite 결과가 같은지 확인
+  - cache 제거를 선택하는 PR은 backup/restore policy의 `rehydratedCompatibilityCacheKeys` 예외 제거와 receiver/restore runtime evidence를 같은 package에서 증명해야 한다.
 - focused `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest` 7종
   - Boot/package-replaced/routine-start 재수화·재예약 contract와 multi-day repeat-day pending-intent coverage 확인
 - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`

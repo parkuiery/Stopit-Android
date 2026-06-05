@@ -856,6 +856,8 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION allow
 
 issue #490 계열 PR에서는 BootReceiver/package-replaced/routine-alarm 이벤트 없이 사용자가 복원 직후 앱을 여는 경로도 별도 evidence로 남긴다. 이 경로의 owner는 공통 `RoutineRestoreAftercare`이며, `SplashViewModel` 앱 시작 경로와 `RoutineViewModel` 루틴 화면 진입 경로가 모두 Room enabled routine을 즉시 재스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 다시 쓴다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 같이 `enabled=false` downgrade + 권한 prompt reset/side effect가 발생해야 한다.
 
+issue #511 계열 PR에서는 `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`를 source of truth로 보고, `PreferencesKey.ROUTINES` cache가 Room 루틴보다 우선하지 않는다는 증적을 남긴다. 최소 evidence는 Room-vs-cache 불일치 시 Room wins, blank/malformed cache decode safe, boot/package-replaced/routine alarm/restore-aftercare 후 cache rewrite, exact alarm 실패 시 Room `enabled=false`와 cache 결과 일치 여부를 포함한다. cache를 제거하는 PR은 `BackupRestoreDataStoreKeyPolicy.rehydratedCompatibilityCacheKeys` 예외 변경과 focused receiver/restore runtime command를 같은 PR body에 기록한다.
+
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
