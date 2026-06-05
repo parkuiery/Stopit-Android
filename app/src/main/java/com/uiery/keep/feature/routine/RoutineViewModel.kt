@@ -84,11 +84,40 @@ class RoutineViewModel
             intent {
                 routineDao.fetchAll().collect { routines ->
                     val routinesModel = routines.map { it.toModel() }
-                    reduce { state.copy(routines = routinesModel) }
-                    storeRoutine(routines.map { it.toModel() })
+                    val restoreResult = rescheduleRestoredEnabledRoutines(routinesModel)
+                    reduce { state.copy(routines = restoreResult.routines) }
+                    storeRoutine(restoreResult.routines)
+                    if (restoreResult.shouldShowAlarmPermissionPrompt) {
+                        postSideEffect(RoutineSideEffect.ShowAlarmPermission)
+                    }
                     analytics.setUserProperty("routines_count", routines.size.toString())
                 }
             }
+
+        private suspend fun rescheduleRestoredEnabledRoutines(routines: List<RoutineModel>): RoutineRestoreRescheduleResult {
+            var restoredRoutines = routines
+            var shouldShowAlarmPermissionPrompt = false
+            routines.filter { it.isEnabled }.forEach { routine ->
+                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routine)
+                if (scheduleDecision.routine.isEnabled != routine.isEnabled) {
+                    routineDao.updateIsEnabledById(routine.id, scheduleDecision.routine.isEnabled)
+                    restoredRoutines = restoredRoutines.map { current ->
+                        if (current.id == routine.id) scheduleDecision.routine else current
+                    }
+                }
+                shouldShowAlarmPermissionPrompt =
+                    shouldShowAlarmPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt
+            }
+
+            if (shouldShowAlarmPermissionPrompt) {
+                routineNoticeStore.resetAlarmPermissionPrompt()
+            }
+
+            return RoutineRestoreRescheduleResult(
+                routines = restoredRoutines,
+                shouldShowAlarmPermissionPrompt = shouldShowAlarmPermissionPrompt,
+            )
+        }
 
         internal fun deleteRoutine(id: Long) =
             intent {
@@ -198,6 +227,11 @@ class RoutineViewModel
 private fun buildRoutineTemplateSharePayloadForFailure(routine: RoutineModel): String =
     buildRoutineTemplateSharePayload(routine)?.templateCategory?.analyticsValue
         ?: RoutineTemplateCategory.CUSTOM.analyticsValue
+
+private data class RoutineRestoreRescheduleResult(
+    val routines: List<RoutineModel>,
+    val shouldShowAlarmPermissionPrompt: Boolean,
+)
 
 data class RoutineUiState(
     val isShowRoutineBottomSheet: Boolean = false,

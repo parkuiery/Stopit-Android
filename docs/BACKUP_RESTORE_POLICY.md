@@ -88,6 +88,7 @@ Typed store 경계:
 - `EmergencyUnlockSettingsStore`: 긴급해제 설정 key의 default/sanitize/read/write 경계.
 - `ReviewPromptStateStore`: 리뷰 pending/cooldown/background timestamp 경계.
 - `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다.
+- `RoutineViewModel`: 복원 직후 사용자가 앱에서 루틴 화면에 진입했을 때 Room enabled routine을 다시 스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 채우는 앱 실행 aftercare 경계다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 동일하게 해당 루틴을 `enabled=false`로 내리고 권한 안내 prompt를 다시 보여줄 수 있도록 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌린다.
 - `RoutineNoticeStore`: `PENDING_ROUTINE_START_NOTICE_MESSAGE` receiver→Home fallback notice queue와 `HAS_SHOWN_ALARM_PERMISSION` prompt reset 경계. 이 둘은 restored-device에서 되살리지 않는 runtime/UI handoff state다.
 
 아래 키들은 현재 모두 같은 파일에 있으므로 **이번 정책에서 전부 복원 제외**다.
@@ -161,7 +162,10 @@ Typed store 경계:
 확인:
 - [ ] 루틴 목록이 유지된다.
 - [ ] 루틴 활성 여부가 비정상적으로 초기화되지 않는다.
-- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+- [ ] 앱 실행 후 Routine 화면 진입만으로 Room의 enabled routine이 다시 스케줄되고 `PreferencesKey.ROUTINES` compatibility cache가 Room 기준으로 재작성된다.
+- [ ] exact alarm 권한/스케줄 실패 상태에서는 enabled routine이 조용히 성공 상태로 남지 않고 `enabled=false`로 내려가며 권한 안내 prompt가 다시 노출될 수 있다.
+- [ ] 자동 JVM baseline: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest'`
+- [ ] 자동 Android baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
 
 ### 시나리오 B — DataStore 상태 미복원
 1. 기존 기기에서 차단 앱 선택, 수동 잠금 또는 timed lock 활성화
@@ -195,9 +199,12 @@ Typed store 경계:
   - 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있는지 확인
   - `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
   - reset-only key 목록이 runtime/device/review/analytics/notice 상태를 모두 포함하는지 확인
-- `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+- `BackupRestoreRuntimeResetIntegrationTest`
   - 복원된 Room routine을 Boot/Routine alarm 진입에서 `PreferencesKey.ROUTINES`로 재수화하는지 확인
   - DataStore가 비어 있는 restored-device shape에서 선택 앱/lock/emergency/review/analytics session/FCM token 키를 되살리지 않는지 확인
+- `RoutineViewModelRestoreSchedulingTest`
+  - 복원 직후 앱 실행 후 Routine 화면 진입 경로에서 Room enabled routine을 재스케줄하고 `RoutineStore` cache를 Room 기준으로 재작성하는지 확인
+  - exact alarm 권한/스케줄 실패 시 enabled routine을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false` reset + `ShowAlarmPermission` side effect를 유지하는지 확인
 - focused `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest` 7종
   - Boot/package-replaced/routine-start 재수화·재예약 contract와 multi-day repeat-day pending-intent coverage 확인
 - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
