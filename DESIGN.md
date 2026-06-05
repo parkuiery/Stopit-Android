@@ -27,8 +27,30 @@ Use `KeepTheme.colors` instead of raw colors in app UI.
 
 ### Brand And Status
 
-- `primary`: `#FFA927` in light and dark. Use for primary actions, selected states, active indicators, emphasis, and progress.
+- `primary`: `#FFA927` in light and dark. Use deliberately for primary actions, selected states, active lock/routine/focus indicators, important progress, and product-value emphasis.
 - `error`: `#F04452` in light and dark. Use for destructive, warning, or emergency states.
+
+### Primary Color Hierarchy
+
+Primary is a scarce emphasis token, not the default icon color. A screen should make the highest-value action or active state obvious without making every orange element look equally important.
+
+Use `primary` for:
+
+- the single primary CTA on a screen or sheet, such as start, save, continue, confirm, or selection complete;
+- current selection states, such as selected tab, selected day, selected chip, or active filter;
+- active lock/focus/routine state, countdown/progress, and status that tells the user Stopit is currently protecting their intent;
+- important achievement/progress numbers when they represent product value delivered, not generic metadata.
+
+Avoid `primary` for:
+
+- TopAppBar back, menu, close, and other navigation icons;
+- secondary icon-only actions such as generic edit/delete unless the screen has deliberately promoted that action as its primary action;
+- helper text, captions, metadata, or decorative emphasis;
+- destructive or emergency meanings, which should use `error` or a confirmation pattern instead of orange.
+
+If a selected/active state uses `primary`, do not rely on color alone. Pair it with at least one non-color cue: text, badge, chip/container shape, border, content description, or clear layout position.
+
+The detailed #468 audit and follow-up checklist live in `docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md`.
 
 ### Backgrounds
 
