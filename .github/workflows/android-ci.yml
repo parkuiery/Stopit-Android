@@ -192,7 +192,17 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            python3 scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke | xargs -I{} ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class={}
+            python3 scripts/android_runtime_suites.py lines android_ci_focused_runtime_smoke > /tmp/android-ci-runtime-selectors.txt
+            while IFS= read -r selector; do
+              [ -n "$selector" ] || continue
+              echo "Running Android CI runtime selector: $selector"
+              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done < /tmp/android-ci-runtime-selectors.txt
             ./gradlew --console=plain :app:installDevDebug
             adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
-            python3 scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock | xargs -I{} ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class={}
+            python3 scripts/android_runtime_suites.py lines notification_denied_receiver notification_denied_emergency_unlock > /tmp/android-ci-notification-denied-selectors.txt
+            while IFS= read -r selector; do
+              [ -n "$selector" ] || continue
+              echo "Running Android CI notification-denied selector: $selector"
+              ./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$selector"
+            done < /tmp/android-ci-notification-denied-selectors.txt
