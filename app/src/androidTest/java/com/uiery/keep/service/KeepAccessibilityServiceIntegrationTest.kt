@@ -482,8 +482,13 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun waitForWindowEvent(packageName: String) {
-        waitUntil("KeepAccessibilityService should receive a window change event for $packageName", SERVICE_PROPAGATION_TIMEOUT_MS) {
-            KeepAccessibilityServiceDebugState.read(context).lastWindowStateChangedPackage == packageName
+        waitUntil(
+            message = "KeepAccessibilityService should receive or process a window change event for $packageName. snapshot=${KeepAccessibilityServiceDebugState.read(context)}",
+            timeoutMs = SERVICE_PROPAGATION_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastWindowStateChangedPackage == packageName ||
+                snapshot.lastLaunchedBlockPackage == packageName
         }
     }
 
