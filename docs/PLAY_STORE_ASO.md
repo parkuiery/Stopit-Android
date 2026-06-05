@@ -496,15 +496,17 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 
 ## 브랜딩 점검 메모
 
-현재 repo에는 `StopIt`과 `Keep` 흔적이 혼재해 있다.
+현재 repo에는 내부 코드명/리소스 key의 `Keep` 흔적과 사용자 노출 브랜드명이 함께 남아 있다. #510 기준으로 사용자에게 보이는 표기는 아래처럼 분리한다.
 
-- 사용자 노출 앱명은 `StopIt / 스탑잇`
-- 일부 영문 문자열에 `Keep` 표현이 남아 있음
+- Play listing copy와 영문/다국어 locale은 `StopIt` 기준을 유지한다.
+- 인앱 한국어 사용자 노출 문자열은 `values-ko/strings.xml`에서 `스탑잇` 기준으로 통일한다.
+- 내부 코드명, resource key, theme/class/package name의 `Keep`/`StopIt`은 사용자 노출 copy가 아니므로 #510 범위에서 제외한다.
+- 회귀 방지: `python3 -m unittest scripts.tests.test_korean_brand_copy_contract -v`로 `values-ko/strings.xml`의 사용자 노출 문자열에 `StopIt`/`Keep`이 재유입되지 않는지 확인한다.
 
 ASO 반영 후 후속 체크:
 
 - Play listing copy는 전부 `StopIt` 기준으로 통일
-- 인앱 사용자 노출 문자열의 `Keep` 잔재는 별도 UI 카피 정리 이슈로 분리 검토
+- 인앱 한국어 사용자 노출 문자열은 `스탑잇` 기준으로 유지
 
 ## 키워드/카피 가드
 
