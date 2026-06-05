@@ -76,6 +76,12 @@ object RoutineReceiverPolicy {
         databaseRoutines: List<RoutineModel>,
     ): Boolean = storedRoutines != databaseRoutines
 
+    fun shouldRewriteCompatibilityCache(
+        storedRoutines: List<RoutineModel>,
+        databaseRoutines: List<RoutineModel>,
+        updatedRoutines: List<RoutineModel>,
+    ): Boolean = storedRoutines != updatedRoutines || databaseRoutines != updatedRoutines
+
     fun findEnabledRoutineToReschedule(
         routines: List<RoutineModel>,
         routineId: Long,
