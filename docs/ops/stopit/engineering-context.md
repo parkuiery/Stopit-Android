@@ -107,6 +107,7 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 - 권한 요청/권한 거절 흐름
 - Room migration and schemas
 - DataStore에 저장되는 lock/emergency/runtime state
+- RoutineStore / `PreferencesKey.ROUTINES` legacy compatibility cache drift. Room is the authoritative routine source; #511 source of truth is `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`.
 - backup/restore policy (`allowBackup`, `backup_rules.xml`, `data_extraction_rules.xml`)
 - analytics event names/parameters used by dashboard
 - release signing and Play upload workflows
@@ -130,3 +131,4 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 - `docs/PLAY_DEPLOYMENT.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`

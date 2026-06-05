@@ -17,6 +17,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `PRODUCT_METRICS_DASHBOARD.md` | 스탑잇 North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의. |
 | `ROUTINE_RETENTION_COHORT_BASELINE.md` | #380용 루틴 보유/미보유 반복 사용 코호트 기준선, GA4 query template, 14일/30일 재측정 계약. |
 | `ROUTINES_COUNT_COVERAGE_CONTRACT.md` | #479용 `routines_count` user property coverage 보강 계약, code-lane 구현 handoff, release/readback 경계. |
+| `ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md` | #511용 `RoutineStore` / `PreferencesKey.ROUTINES` legacy compatibility cache 유지·퇴역 계약, Room 우선 conflict-winner, receiver/restore QA handoff. |
 | `ROUTINE_CREATION_CTA_EXPERIMENT.md` | #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 실험 계약, analytics/QA/14일·30일 readback 경계. |
 | `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. `monetization_interest_*` 관심도 CTA 계약과 #250류 AdMob application/ad unit id config handoff도 여기서 추적한다. |
 | `PLAY_DEPLOY_SECRETS_RUNBOOK.md` | Play 배포 secret ownership, helper 범위, workflow restore matrix, Firebase Functions 경계 런북. |
