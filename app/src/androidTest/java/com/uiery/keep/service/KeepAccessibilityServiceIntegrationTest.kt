@@ -9,10 +9,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.UiScrollable
-import androidx.test.uiautomator.UiSelector
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
+import com.uiery.keep.testing.AccessibilitySettingsDetailNavigator
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -428,50 +427,12 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun normalizeSecureSetting(rawValue: String): String =
         rawValue.trim().takeUnless { it == "null" } ?: ""
     private fun openAccessibilityServiceDetails() {
-        repeat(3) { attempt ->
-            if (openAccessibilityServiceDetailsViaIntent()) {
-                return
-            }
-            if (openAccessibilityServiceDetailsFromList()) {
-                return
-            }
-            if (attempt < 2) {
-                device.pressBack()
-                device.waitForIdle()
-                Thread.sleep(500)
-            }
-        }
-
-        fail("StopIt Accessibility detail screen should open")
-    }
-
-    private fun openAccessibilityServiceDetailsFromList(): Boolean {
-        shell("am force-stop $SETTINGS_PACKAGE")
-        shell("am start -W -a android.settings.ACCESSIBILITY_SETTINGS")
-        device.waitForIdle()
-        val scrollable = UiScrollable(UiSelector().scrollable(true)).apply {
-            setAsVerticalList()
-        }
-        if (!device.hasObject(By.text(appName))) {
-            scrollable.scrollTextIntoView(appName)
-        }
-        val serviceEntry = device.findObject(UiSelector().text(appName))
-        if (!serviceEntry.exists()) {
-            return false
-        }
-        serviceEntry.click()
-        return waitForAccessibilityDetailScreen()
-    }
-
-    private fun openAccessibilityServiceDetailsViaIntent(): Boolean {
-        shell("am force-stop $SETTINGS_PACKAGE")
-        shell(
-            "am start -W -a android.settings.ACCESSIBILITY_DETAILS_SETTINGS " +
-                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $serviceComponent",
-        )
-        device.waitForIdle()
-
-        return waitForAccessibilityDetailScreen(timeoutMs = UI_TIMEOUT_MS)
+        AccessibilitySettingsDetailNavigator(
+            device = AccessibilitySettingsDetailNavigator.UiAutomatorDevice(device, ::shell),
+            settingsPackage = SETTINGS_PACKAGE,
+            serviceComponent = serviceComponent,
+            appName = appName,
+        ).requireDetailsOpen()
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean =
@@ -524,18 +485,6 @@ class KeepAccessibilityServiceIntegrationTest {
         waitUntil("KeepAccessibilityService should receive a window change event for $packageName", SERVICE_PROPAGATION_TIMEOUT_MS) {
             KeepAccessibilityServiceDebugState.read(context).lastWindowStateChangedPackage == packageName
         }
-    }
-
-    private fun waitForAccessibilityDetailScreen(timeoutMs: Long = UI_TIMEOUT_MS): Boolean {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            if (device.hasObject(By.res(SETTINGS_PACKAGE, MAIN_SWITCH_BAR_ID))) {
-                return true
-            }
-            Thread.sleep(250)
-        }
-
-        return false
     }
 
     private fun waitForPackageVisible(
