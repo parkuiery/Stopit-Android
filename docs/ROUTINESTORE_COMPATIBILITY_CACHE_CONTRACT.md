@@ -1,7 +1,7 @@
 # RoutineStore legacy compatibility cache 계약
 
 Issue: #511
-상태: **docs-lane 계약 고정 / code-lane 구현 전**
+상태: **docs-lane 계약 고정 / code-lane cache 유지 hardening 진행**
 
 이 문서는 `PreferencesKey.ROUTINES`와 `RoutineStore`를 언제 유지하고 언제 퇴역시킬지 판단하기 위한 source of truth다. 현재 Stopit의 루틴 정의는 Room `routine` 테이블이 authoritative source이고, DataStore의 `routines` 값은 boot / package-replaced / routine alarm / restore-aftercare 경로에서 오래된 receiver 호환성을 보강하기 위한 legacy compatibility cache다.
 
@@ -11,6 +11,7 @@ Issue: #511
 | --- | --- | --- |
 | `RoutineStore` | `PreferencesKey.ROUTINES` JSON cache의 typed read/write wrapper | 새 코드가 raw `PreferencesKey.ROUTINES`를 직접 만지지 않도록 중앙화한다. |
 | `RoutineReceiverPolicy.resolveRoutines(...)` | stored cache와 Room routine이 동시에 있을 때 사용할 루틴 집합 결정 | 현재는 **항상 Room routine이 이긴다**. cache는 primary read path가 아니다. |
+| `RoutineReceiverPolicy.shouldRewriteCompatibilityCache(...)` | Room 기준 결과와 스케줄링 후 `updatedRoutines`를 비교해 cache rewrite 여부 결정 | stored-only stale cache를 Room empty 결과로 지우고, exact-alarm 실패로 `enabled=false`가 된 결과도 Room/cache가 같은 값으로 남도록 한다. |
 | `BootReceiver.restoreRoutinesForBoot(...)` | boot / package-replaced / time 변경 후 Room 루틴을 읽고 enabled routine을 재스케줄 | Room 기준으로 스케줄하고, cache가 Room과 다르거나 exact-alarm 실패로 enabled 상태가 바뀌면 cache를 Room/result 기준으로 다시 쓴다. |
 | `RoutineAlarmReceiver.handleRoutineAlarm(...)` | routine alarm 진입 시 notification, reschedule, fallback notice 처리 | trigger 자체는 intent extra를 쓰지만, 후속 reschedule 대상은 Room 기준으로 resolve한다. |
 | `RoutineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom()` | 복원 직후 앱 실행/Splash/Routine 화면 진입에서 Room 루틴 재스케줄 | restored Room routine을 재스케줄하고 `RoutineStore` cache를 Room/result 기준으로 채운다. |
@@ -27,7 +28,7 @@ Issue: #511
 3. exact alarm permission 실패 시 enabled routine을 `enabled=false`로 내리는 결과도 receiver/aftercare가 cache에 반영해 runtime 호환성을 유지한다.
 4. 제거하려면 receiver/alarm/startup 경로가 Room-only로 동작한다는 device/emulator evidence와 fallback notice/notification side effect 검증이 먼저 필요하다.
 
-따라서 code-lane 구현 전까지 `RoutineStore`는 아래처럼 해석한다.
+따라서 현재 code-lane hardening 기준에서 `RoutineStore`는 아래처럼 해석한다.
 
 - **authoritative source:** Room `routine` table
 - **compatibility cache:** `PreferencesKey.ROUTINES`

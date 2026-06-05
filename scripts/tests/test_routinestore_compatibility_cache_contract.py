@@ -22,7 +22,7 @@ class RoutineStoreCompatibilityCacheContractTest(unittest.TestCase):
 
         for phrase in [
             "Issue: #511",
-            "docs-lane 계약 고정 / code-lane 구현 전",
+            "docs-lane 계약 고정 / code-lane cache 유지 hardening 진행",
             "legacy compatibility cache",
             "**authoritative source:** Room `routine` table",
             "**compatibility cache:** `PreferencesKey.ROUTINES`",
@@ -52,6 +52,7 @@ class RoutineStoreCompatibilityCacheContractTest(unittest.TestCase):
         for phrase in [
             "RoutineStore",
             "RoutineReceiverPolicy.resolveRoutines",
+            "RoutineReceiverPolicy.shouldRewriteCompatibilityCache",
             "BootReceiver.restoreRoutinesForBoot",
             "RoutineAlarmReceiver.handleRoutineAlarm",
             "RoutineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom",
@@ -69,12 +70,13 @@ class RoutineStoreCompatibilityCacheContractTest(unittest.TestCase):
         self.assertIn("fun resolveRoutines", receiver_policy)
         self.assertIn("databaseRoutines", receiver_policy)
         self.assertIn("fun shouldRehydrateStoredRoutines", receiver_policy)
+        self.assertIn("fun shouldRewriteCompatibilityCache", receiver_policy)
         self.assertIn("fun decodeStoredRoutines", receiver_policy)
 
         for source in [BOOT_RECEIVER.read_text(), ROUTINE_ALARM_RECEIVER.read_text()]:
             self.assertIn("RoutineStore", source)
             self.assertIn("resolveRoutines", source)
-            self.assertIn("shouldRehydrateStoredRoutines", source)
+            self.assertIn("shouldRewriteCompatibilityCache", source)
             self.assertIn("writeCachedRoutines", source)
 
         self.assertIn("rescheduleRestoredEnabledRoutinesFromRoom", RESTORE_AFTERCARE.read_text())

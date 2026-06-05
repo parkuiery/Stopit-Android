@@ -190,6 +190,49 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun shouldRewriteCompatibilityCacheReturnsTrueWhenStoredOnlyCacheMustBeClearedToRoomSourceOfTruth() {
+        val stored = listOf(routine(id = 6L, name = "Stored stale", isEnabled = true))
+
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = stored,
+                databaseRoutines = emptyList(),
+                updatedRoutines = emptyList(),
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRewriteCompatibilityCacheReturnsTrueWhenExactAlarmResultChangesUpdatedRoutineState() {
+        val database = listOf(routine(id = 7L, name = "Database", isEnabled = true))
+        val disabled = listOf(routine(id = 7L, name = "Database", isEnabled = false))
+
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = database,
+                databaseRoutines = database,
+                updatedRoutines = disabled,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRewriteCompatibilityCacheReturnsFalseWhenCacheAlreadyMatchesUpdatedRoomResult() {
+        val updated = listOf(routine(id = 8L, name = "Database", isEnabled = false))
+
+        assertEquals(
+            false,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = updated,
+                databaseRoutines = updated,
+                updatedRoutines = updated,
+            ),
+        )
+    }
+
+    @Test
     fun applyScheduleResultDisablesMatchingRoutineWhenExactAlarmPermissionMissing() {
         val routines = listOf(
             routine(id = 10L, name = "Morning", isEnabled = true),

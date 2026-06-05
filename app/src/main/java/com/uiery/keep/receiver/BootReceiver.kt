@@ -74,9 +74,11 @@ class BootReceiver : BroadcastReceiver() {
             routineDao.updateIsEnabledById(routineId, false)
         }
 
-        if (
-            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
-            disabledRoutineIds.isNotEmpty()
+        if (RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = storedRoutines,
+                databaseRoutines = databaseRoutines,
+                updatedRoutines = updatedRoutines,
+            )
         ) {
             routineStore.writeCachedRoutines(updatedRoutines)
         }
