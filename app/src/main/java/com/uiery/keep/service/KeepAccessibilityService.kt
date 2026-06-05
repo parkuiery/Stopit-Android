@@ -44,6 +44,8 @@ class KeepAccessibilityService :
         fun goalLockDao(): GoalLockDao
 
         fun blockingStateStore(): BlockingStateStore
+
+        fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
     }
 
     @Volatile
@@ -61,6 +63,8 @@ class KeepAccessibilityService :
     private var lastBlockElapsedRealtime: Long = 0L
     private var scheduledEmergencyUnlockExpireTime: Long = 0L
     private var emergencyUnlockExpiryRunnable: Runnable? = null
+    private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
+    private var emergencyUnlockCountdownRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -86,6 +90,10 @@ class KeepAccessibilityService :
                     )
                 }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
+                syncEmergencyUnlockCountdownNotification(
+                    expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                    notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+                )
                 reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
@@ -338,6 +346,48 @@ class KeepAccessibilityService :
         emergencyUnlockExpiryRunnable?.let(handler::removeCallbacks)
         emergencyUnlockExpiryRunnable = null
         scheduledEmergencyUnlockExpireTime = 0L
+    }
+
+    private fun syncEmergencyUnlockCountdownNotification(
+        expireTimeMillis: Long,
+        notificationHelper: EmergencyUnlockNotificationHelper,
+    ) {
+        handler.post {
+            if (expireTimeMillis <= 0L) {
+                cancelEmergencyUnlockCountdownNotification(notificationHelper)
+                return@post
+            }
+            if (scheduledEmergencyUnlockCountdownExpireTime == expireTimeMillis) return@post
+
+            cancelEmergencyUnlockCountdownNotification(notificationHelper)
+            scheduledEmergencyUnlockCountdownExpireTime = expireTimeMillis
+            val countdownRunnable = object : Runnable {
+                override fun run() {
+                    val currentExpireTime = scheduledEmergencyUnlockCountdownExpireTime
+                    if (currentExpireTime != expireTimeMillis) return
+
+                    val delayMillis = emergencyUnlockNotificationTickDelayMillis(expireTimeMillis)
+                    if (delayMillis == null) {
+                        cancelEmergencyUnlockCountdownNotification(notificationHelper)
+                        return
+                    }
+
+                    notificationHelper.syncWithStoredExpireTime(expireTimeMillis)
+                    handler.postDelayed(this, delayMillis)
+                }
+            }
+            emergencyUnlockCountdownRunnable = countdownRunnable
+            countdownRunnable.run()
+        }
+    }
+
+    private fun cancelEmergencyUnlockCountdownNotification(
+        notificationHelper: EmergencyUnlockNotificationHelper,
+    ) {
+        emergencyUnlockCountdownRunnable?.let(handler::removeCallbacks)
+        emergencyUnlockCountdownRunnable = null
+        scheduledEmergencyUnlockCountdownExpireTime = 0L
+        notificationHelper.cancel()
     }
 
     private fun handleEmergencyUnlockExpired(expectedExpireTimeMillis: Long) {
