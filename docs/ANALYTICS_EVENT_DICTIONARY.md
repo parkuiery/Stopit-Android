@@ -94,6 +94,8 @@
 - 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel analytics payload 경계에서 문자열로 정규화해 전달한다. `block_source=goal_lock`일 때만 non-null이어야 하며, 수동 Keep/타이머/루틴 차단에서는 null/미전송 상태를 유지한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
+- 차단 화면 카피/액션 위계 개선(#464)의 source of truth는 `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. `BlockScreen` copy/CTA/emergency unlock 상태를 바꾸더라도 기존 `app_block_intercepted` → 최초 1회 `first_core_action_completed` → 반복 `core_action_completed` 순서와 `emergency_unlock_used` / `emergency_unlock_completed` 의미를 유지한다.
+- #464에서 별도 copy 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용하고, 앱 이름/package/raw history/raw timestamp를 payload나 query 축으로 쓰지 않는다.
 
 ### 차단/세션/긴급해제
 
@@ -106,6 +108,10 @@
 | `app_block_intercepted` | `block_source`, `blocked_app_package`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
+
+긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. Reason/app/duration/countdown copy를 바꾸더라도 `emergency_unlock_completed.reason`은 existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지하고, display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
+
+#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp.
 
 ### 디바이스 등록/푸시
 

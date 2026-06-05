@@ -93,6 +93,12 @@ class LockHistoryViewModel @Inject constructor(
                 topApps = summary.topApps,
                 durationByDate = summary.durationByDate,
                 selectedDate = null,
+                performanceReport = buildLockHistoryPerformanceReport(
+                    periodType = state.periodType,
+                    totalDurationMillis = summary.totalDurationMillis,
+                    sessionCount = summary.sessionCount,
+                    topApps = summary.topApps.map { it to 1 },
+                ),
                 focusSummarySharePayload = buildFocusSummarySharePayload(
                     periodType = state.periodType,
                     sessionCount = summary.sessionCount,
@@ -154,6 +160,12 @@ data class LockHistoryUiState(
     val topApps: List<String> = emptyList(),
     val durationByDate: Map<LocalDate, Long> = emptyMap(),
     val selectedDate: LocalDate? = null,
+    val performanceReport: LockHistoryPerformanceReportReadModel = buildLockHistoryPerformanceReport(
+        periodType = PeriodType.WEEK,
+        totalDurationMillis = 0L,
+        sessionCount = 0,
+        topApps = emptyList(),
+    ),
     val focusSummarySharePayload: FocusSummarySharePayload? = null,
 )
 

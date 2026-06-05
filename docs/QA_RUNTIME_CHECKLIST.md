@@ -173,6 +173,84 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 
 이 증거가 없으면 #404는 repo-internal string cleanup과 static regression이 완료됐더라도 실제 권한 요청/첫 차단 성공 화면의 device/manual QA 경계가 남은 상태로 본다.
 
+### Block screen copy/action hierarchy QA baseline
+
+Source of truth: `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`
+Issue: #464
+
+Use this after the code-lane changes `BlockScreen.kt` / `block_screen_*` / `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+
+```md
+## Block screen copy/action hierarchy QA evidence
+- Issue: #464
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / en / changed locales:
+- Entry path:
+  - manual Keep block / timer block / routine block / goal lock block:
+- Commands:
+  - `python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v`
+  - `./gradlew --console=plain :app:lintProdRelease`
+  - `./gradlew --console=plain :app:assembleProdDebug`
+- Normal blocked state:
+  - title/message coaching tone: pass / fail
+  - primary CTA means return to previous work: pass / fail
+  - banner ad does not outrank CTA/emergency status: pass / fail
+- First core action state:
+  - first success feedback appears once: pass / fail
+  - repeated block does not repeat first-success copy: pass / fail
+- Emergency unlock available:
+  - remaining count visible: pass / fail
+  - action is secondary, not hidden: pass / fail
+- Emergency unlock disabled/limit reached:
+  - disabled reason understandable: pass / fail
+  - color-only state avoided: pass / fail
+- Accessibility/TalkBack:
+  - blocked app and main action meaning understandable: pass / fail
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+### Emergency unlock flow copy/step QA baseline
+
+Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
+Issue: #467
+
+Use this after the code-lane changes `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+
+```md
+## Emergency unlock flow copy QA evidence
+- Issue: #467
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / en / changed locales:
+- Settings state:
+  - reason required: on / off
+  - daily limit / remaining:
+  - duration options:
+- Reason required ON:
+  - short reason labels scan quickly: pass / fail
+  - disabled Next explains missing reason/custom reason: pass / fail
+  - selected reason maps to existing enum key: pass / fail
+- Reason required OFF:
+  - app selection starts naturally without reason step: pass / fail
+  - helper copy still limits scope to needed apps only: pass / fail
+- App selection/duration/countdown:
+  - selected apps are explicit and zero-selection helper is visible: pass / fail
+  - duration options are clear and bounded: pass / fail
+  - countdown copy feels like a short reconsideration window, not punishment: pass / fail
+  - cancel path remains visible: pass / fail
+- Analytics/privacy:
+  - `emergency_unlock_completed.reason` keeps enum key, not display label/custom text: pass / fail
+  - no app name/package/custom reason/raw history added to analytics: pass / fail
+- Accessibility/TalkBack:
+  - reason/app/duration selection and disabled helper are understandable: pass / fail
+- Verification:
+  - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
+  - `./gradlew --console=plain :app:lintProdRelease`
+- Decision: pass / fail / needs follow-up
+```
+
 ### LockHistory 성과 리포트 QA baseline
 
 issue #465 계열 구현 PR은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 삼고, `LockHistory`가 단순 로그가 아니라 긍정적인 성과 리포트로 읽히는지 자동/수동 증거를 함께 남긴다. 이 기능은 #211 공유 CTA와 같은 화면을 쓰더라도 1차 목표가 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다.

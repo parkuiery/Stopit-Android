@@ -127,6 +127,16 @@ internal fun LockHistoryScreen(
             .sortedByDescending { it.value }
             .take(3)
             .map { it.key to it.value }
+        val displayPerformanceReport = if (uiState.selectedDate == null) {
+            uiState.performanceReport
+        } else {
+            buildLockHistoryPerformanceReport(
+                periodType = uiState.periodType,
+                totalDurationMillis = displayTotalDuration,
+                sessionCount = displaySessionCount,
+                topApps = displayTopApps,
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -154,6 +164,7 @@ internal fun LockHistoryScreen(
             LockHistorySummaryCard(
                 totalDuration = displayTotalDuration,
                 sessionCount = displaySessionCount,
+                report = displayPerformanceReport,
             )
 
             uiState.focusSummarySharePayload?.let {
@@ -179,9 +190,10 @@ internal fun LockHistoryScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (displayTopApps.isNotEmpty()) {
+            if (displayPerformanceReport.shouldShowTopApps) {
                 LockHistoryTopApps(
                     topApps = displayTopApps,
+                    report = displayPerformanceReport,
                     onClick = onNavigateBlockedApps,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -189,7 +201,7 @@ internal fun LockHistoryScreen(
 
             if (sessionsToShow.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.lock_history_no_records),
+                    text = stringResource(displayPerformanceReport.topAppsSupportingResId),
                     color = KeepTheme.colors.onTertiaryContainer,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
