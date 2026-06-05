@@ -83,7 +83,8 @@ issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth�
 ```bash
 cd <repo-root>
 python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
-./gradlew -q help --task :app:testDevDebugUnitTest
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest'
+./gradlew --console=plain :app:lintProdRelease
 ```
 
 수동 QA matrix:

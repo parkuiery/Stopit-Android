@@ -46,6 +46,9 @@ class HomeStatusCtaStructureContractTest(unittest.TestCase):
         for term in [
             "HomeScreen.kt",
             "HomeViewModel.kt",
+            "HomeStatusCtaReadModel.kt",
+            "HomeStatusCtaCard",
+            "HomeStatusCtaReadModelTest.kt",
             "CategoryButton",
             "FirstLockActivationCta",
             "GoalLockProgressCard",
