@@ -174,7 +174,7 @@ class GoalLockCreationViewModelTest {
     }
 
     @Test
-    fun creationSelectionEditorAddsTrimsDedupesAndRemovesAppsBeforePersisting() = runBlocking {
+    fun pickerSelectionReplacesSeededAppsAndEmptySelectionDisablesCreation() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 20L)
         val viewModel = createViewModel(dao = dao)
 
@@ -183,16 +183,16 @@ class GoalLockCreationViewModelTest {
         viewModel.setSelectedApps(setOf("com.video.app", "com.social.app"))
         awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
 
-        viewModel.removeSelectedApp("com.video.app")
-        viewModel.addSelectedAppPackage("  com.social.app  ")
-        viewModel.addSelectedAppPackage("  com.focus.app  ")
+        viewModel.setSelectedApps(setOf("  com.social.app  ", "com.social.app", "  com.focus.app  "))
         awaitUntil { viewModel.container.stateFlow.value.selectedApps == setOf("com.social.app", "com.focus.app") }
 
-        viewModel.removeSelectedApp("com.social.app")
-        viewModel.removeSelectedApp("com.focus.app")
+        viewModel.setSelectedApps(emptySet())
         awaitUntil { !viewModel.container.stateFlow.value.isCreateEnabled }
+        viewModel.createGoalLock()
+        delay(50)
+        assertEquals(null, dao.insertedEntity)
 
-        viewModel.addSelectedAppPackage("com.focus.app")
+        viewModel.setSelectedApps(setOf("com.focus.app"))
         awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
         viewModel.createGoalLock()
         awaitUntil { dao.insertedEntity != null }

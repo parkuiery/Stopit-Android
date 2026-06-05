@@ -195,7 +195,7 @@ Guardrail:
 - `GoalLockCreationViewModelTest`:
   - 유효한 all-day/scheduled 목표 잠금 저장.
   - invalid date/app/name selection 거절.
-  - 목표별 선택 앱 편집에서 package trim/dedupe/remove와 0개 validation을 검증.
+  - 목표별 선택 앱 편집에서 picker selection replace, package trim/dedupe, remove와 0개 validation을 검증.
   - `Created(goalLockId)` side effect.
   - `goal_lock_created` bucket-only analytics 호출.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`:
@@ -266,9 +266,9 @@ Code lane에서 홈 목표 잠금 카드를 상세 화면으로 연결하고, `G
 
 ### 2026-06-05 creation UI / navigation foothold
 
-Code lane에서 같은 #417 package를 이어서 `GoalLockCreationRoute`, `GoalLockCreationScreen`, Menu의 `목표 잠금` entrypoint, 그리고 생성 성공 후 `GoalLockDetailRoute`로 이동하는 navigation을 추가했다. 생성 화면은 현재 홈의 앱 선택 상태를 `BlockingStateStore`에서 읽어 seed로 사용하고, 목표별 선택 앱 편집(홈 선택 재불러오기, package trim/dedupe 추가, 개별 제거, 0개 validation), 목표 이름 preset/직접 입력, 7/14/30일 preset 기간, 직접 일수(`custom_days`) 입력, ISO 종료 날짜(`end_date`) 입력, `all_day`와 평일 저녁 `scheduled` 선택, 생성 가능 validation, `goal_lock_created` 호출 후 상세 화면 진입을 고정한다.
+Code lane에서 같은 #417 package를 이어서 `GoalLockCreationRoute`, `GoalLockCreationScreen`, Menu의 `목표 잠금` entrypoint, 그리고 생성 성공 후 `GoalLockDetailRoute`로 이동하는 navigation을 추가했다. 생성 화면은 현재 홈의 앱 선택 상태를 `BlockingStateStore`에서 읽어 seed로 사용하고, 목표별 선택 앱 편집(홈 선택 재불러오기, `CategoryBottomSheetContent` 기반 full picker UX, picker selection replace, 개별 제거, 0개 validation), 목표 이름 preset/직접 입력, 7/14/30일 preset 기간, 직접 일수(`custom_days`) 입력, ISO 종료 날짜(`end_date`) 입력, `all_day`와 평일 저녁 `scheduled` 선택, 생성 가능 validation, `goal_lock_created` 호출 후 상세 화면 진입을 고정한다.
 
-이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint까지 연결하지만, 기존 앱 선택 화면을 그대로 재사용하는 full picker UX, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 계속 `Refs #417`로 유지한다.
+이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint 및 기존 앱 선택 picker 재사용까지 연결하지만, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 계속 `Refs #417`로 유지한다.
 
 ## 외부/manual 경계
 

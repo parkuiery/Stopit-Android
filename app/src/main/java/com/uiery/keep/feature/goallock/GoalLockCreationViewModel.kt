@@ -113,15 +113,6 @@ class GoalLockCreationViewModel
                 updateCreateEnabled()
             }
 
-        internal fun addSelectedAppPackage(packageName: String) =
-            intent {
-                val normalizedPackage = packageName.trim()
-                if (normalizedPackage.isBlank()) return@intent
-
-                reduce { state.copy(selectedApps = state.selectedApps + normalizedPackage) }
-                updateCreateEnabled()
-            }
-
         internal fun removeSelectedApp(packageName: String) =
             intent {
                 reduce { state.copy(selectedApps = state.selectedApps - packageName.trim()) }

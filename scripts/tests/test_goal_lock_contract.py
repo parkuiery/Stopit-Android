@@ -9,6 +9,7 @@ METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
 ANALYTICS_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
 GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
+GOAL_LOCK_CREATION_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockCreationScreen.kt"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
@@ -38,6 +39,8 @@ class GoalLockContractTest(unittest.TestCase):
             "GoalLockCreationRoute",
             "BlockingStateStore",
             "목표별 선택 앱 편집",
+            "CategoryBottomSheetContent",
+            "full picker UX",
             "직접 일수(`custom_days`) 입력",
             "ISO 종료 날짜(`end_date`) 입력",
             "Closes #417",
@@ -125,6 +128,16 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
+
+    def test_goal_lock_creation_uses_picker_style_app_selection(self):
+        screen = GOAL_LOCK_CREATION_SCREEN.read_text()
+
+        self.assertIn("CategoryBottomSheetContent", screen)
+        self.assertIn("ModalBottomSheet", screen)
+        self.assertIn("onSelectApps", screen)
+        self.assertIn("viewModel.setSelectedApps(selectedApps)", screen)
+        self.assertNotIn("패키지 직접 추가", screen)
+        self.assertNotIn("onAddSelectedAppPackage", screen)
 
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()

@@ -12,6 +12,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.DayOfWeek
@@ -47,6 +50,8 @@ internal fun GoalLockCreationScreen(
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
+    val appSelectionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isAppSelectionSheetVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadSelectedAppsFromCurrentSelection()
@@ -55,6 +60,21 @@ internal fun GoalLockCreationScreen(
     viewModel.collectSideEffect { effect ->
         when (effect) {
             is GoalLockCreationSideEffect.Created -> onNavigateGoalLockDetail(effect.goalLockId)
+        }
+    }
+
+    if (isAppSelectionSheetVisible) {
+        ModalBottomSheet(
+            sheetState = appSelectionSheetState,
+            onDismissRequest = { isAppSelectionSheetVisible = false },
+        ) {
+            CategoryBottomSheetContent(
+                storeSelectApps = uiState.selectedApps,
+                onComplete = { selectedApps ->
+                    viewModel.setSelectedApps(selectedApps)
+                    isAppSelectionSheetVisible = false
+                },
+            )
         }
     }
 
@@ -106,7 +126,7 @@ internal fun GoalLockCreationScreen(
                 )
             },
             onReloadCurrentSelection = viewModel::loadSelectedAppsFromCurrentSelection,
-            onAddSelectedAppPackage = viewModel::addSelectedAppPackage,
+            onSelectApps = { isAppSelectionSheetVisible = true },
             onRemoveSelectedApp = viewModel::removeSelectedApp,
             onCreate = {
                 viewModel.createGoalLock()
@@ -130,13 +150,12 @@ private fun GoalLockCreationContent(
     onSetAllDay: () -> Unit,
     onSetWeekdayEvening: () -> Unit,
     onReloadCurrentSelection: () -> Unit,
-    onAddSelectedAppPackage: (String) -> Unit,
+    onSelectApps: () -> Unit,
     onRemoveSelectedApp: (String) -> Unit,
     onCreate: () -> Unit,
 ) {
     var customDaysText by remember { mutableStateOf("") }
     var endDateText by remember { mutableStateOf("") }
-    var appPackageText by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier,
@@ -255,6 +274,9 @@ private fun GoalLockCreationContent(
                 OutlinedButton(onClick = onReloadCurrentSelection) {
                     Text("홈 선택 다시 불러오기")
                 }
+                OutlinedButton(onClick = onSelectApps) {
+                    Text("앱 선택 화면에서 조정")
+                }
                 state.selectedApps.sorted().forEach { packageName ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -269,24 +291,6 @@ private fun GoalLockCreationContent(
                         TextButton(onClick = { onRemoveSelectedApp(packageName) }) {
                             Text("빼기")
                         }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextField(
-                        modifier = Modifier.weight(1f),
-                        value = appPackageText,
-                        onValueChange = { appPackageText = it.trim() },
-                        placeholder = { Text("패키지 직접 추가") },
-                        singleLine = true,
-                    )
-                    OutlinedButton(
-                        enabled = appPackageText.isNotBlank(),
-                        onClick = {
-                            onAddSelectedAppPackage(appPackageText)
-                            appPackageText = ""
-                        },
-                    ) {
-                        Text("추가")
                     }
                 }
             }
