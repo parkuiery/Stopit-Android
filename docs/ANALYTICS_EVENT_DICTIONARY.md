@@ -109,6 +109,10 @@
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
+긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. Reason/app/duration/countdown copy를 바꾸더라도 `emergency_unlock_completed.reason`은 existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지하고, display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
+
+#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp.
+
 ### 디바이스 등록/푸시
 
 현재 앱의 production 책임은 **FCM token 로컬 저장**이다. 백엔드 device registration 파이프라인은 제거되어 있으며, `DeviceTokenManager.saveDeviceToken(...)`은 토큰 저장 후 registration 성공/실패가 아니라 skip reason으로 현재 상태를 남긴다.
