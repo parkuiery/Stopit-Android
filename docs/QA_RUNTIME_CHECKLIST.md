@@ -753,6 +753,71 @@ cd <repo-root>
 - 검증 범위: `KeepMessagingService -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
 - 이 baseline은 실제 FCM 서버 콜백을 대체하지 않지만, 새 기기/복원 후 토큰 재생성 시 앱 내부 저장 경로가 끊기지 않았는지 release 전에 반복 검증할 수 있게 한다.
 
+### 부모 모드 runtime QA baseline
+
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+
+권장 JVM/policy baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" \
+  --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" \
+  --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly"
+```
+
+권장 runtime baseline:
+
+```bash
+cd <repo-root>
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeAccessibilityIntegrationTest
+```
+
+검증 범위:
+
+- duration preset/custom validation
+- 허용 앱 1개 이상 선택 validation
+- 보호자 PIN 미설정/성공/실패 policy
+- 부모 모드 active/expired/extended/cancelled state transition
+- `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
+- 접근성 차단 판단이 허용 앱과 비허용 앱을 구분하고, 시간이 끝난 뒤 허용 앱도 계속 사용할 수 없게 하는지
+
+### Parent mode QA evidence
+
+```md
+## Parent mode QA evidence
+- Device/Emulator:
+- Android version:
+- Variant:
+- Entry point: home / menu
+- Duration preset/custom:
+- Allowed app count bucket: 1 / 2_3 / 4_6 / 7_plus
+- PIN state before start: not_configured / configured
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly"`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeAccessibilityIntegrationTest`
+- same-device / PIN / bypass checks:
+  - [ ] 보호자 PIN 확인 후에만 부모 모드가 시작된다.
+  - [ ] 선택한 허용 앱은 시간 안에서 열 수 있다.
+  - [ ] 허용되지 않은 앱은 차단된다.
+  - [ ] 시간이 끝나면 허용 앱도 계속 사용할 수 없다.
+  - [ ] PIN 없이 시간 연장/종료가 되지 않는다.
+  - [ ] PIN 성공 시 즉시 종료/연장이 된다.
+  - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.
+  - [ ] 긴급 전화/필수 시스템 safety path를 부적절하게 막지 않는다.
+- Privacy checks:
+  - 아이 이름, 앱 이름/package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값이 analytics/log/share payload에 없음
+- Notes / screenshots:
+```
+
+검증 원칙:
+
+- 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
+- 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
+- GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
+
 ### Usage Access 개인화 discovery QA baseline
 
 issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child issue 또는 MVP implementation child issue가 생기면 아래 evidence를 PR 본문에 남긴다.

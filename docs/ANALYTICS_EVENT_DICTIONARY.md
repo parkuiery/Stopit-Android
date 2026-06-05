@@ -17,6 +17,7 @@
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계약
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
+- `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP, 보호자 PIN, privacy-safe analytics/QA 계약
 
 ## 소스 오브 트루스
 
@@ -29,6 +30,7 @@
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
+- 부모 모드 구현 후보: `ParentModePolicy` / 보호자 PIN policy / same-device parent mode setup·active screen·AccessibilityService integration(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
@@ -208,6 +210,31 @@
 - `cta_variant`: `default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
 
+### 부모 모드
+
+부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `parent_mode_duration_selected` | `duration_minutes_bucket` | 부모 모드 setup에서 사용 시간 선택 |
+| `parent_mode_allowed_apps_selected` | `allowed_app_count_bucket` | 허용 앱 1개 이상 선택 완료 |
+| `parent_mode_started` | `duration_minutes_bucket`, `allowed_app_count_bucket` | 보호자 PIN 확인 후 부모 모드 시작 |
+| `parent_mode_completed` | `duration_minutes_bucket`, `end_reason` | 시간 만료 또는 정상 종료로 session 완료 |
+| `parent_mode_unlocked_by_pin` | `pin_result`, `end_reason` | 보호자 PIN으로 해제/연장 흐름 통과 |
+| `parent_mode_extended` | `extension_minutes_bucket` | 보호자 PIN 확인 후 시간 연장 |
+| `parent_mode_block_intercepted` | `block_context` | 부모 모드 중 허용되지 않은 앱/우회 surface 차단 |
+| `parent_mode_cancelled` | `end_reason` | 시작 전 또는 active 중 취소 |
+
+현재 enum/bucket 계약:
+
+- `duration_minutes_bucket`: `1_9`, `10`, `11_20`, `21_30`, `31_60`, `61_plus`
+- `extension_minutes_bucket`: `1_9`, `10`, `11_20`, `21_30`, `31_plus`
+- `allowed_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
+- `pin_result`: `success`, `failure`, `not_configured`
+- `end_reason`: `time_expired`, `pin_unlocked`, `cancelled_before_start`, `cancelled_by_parent`, `system_interrupted`, `unknown`
+- `block_context`: `disallowed_app`, `settings_surface`, `recent_apps`, `notification_surface`, `unknown`
+- 아이 이름, 앱 이름, package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 부모 모드 payload에 넣지 않는다.
+
 ### 광고 / 수익화
 
 AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
@@ -248,7 +275,11 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `error` | 리뷰 프롬프트 실패 이유 |
 | `period_type` | 집중 요약 공유 대상 기간 (`week`) |
 | `session_count_bucket` | 집중 요약 공유 세션 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
-| `duration_minutes_bucket` | 집중 요약 공유 총 시간 bucket (`1_29`, `30_59`, `60_119`, `120_239`, `240_plus`) |
+| `duration_minutes_bucket` | 집중 요약 공유 총 시간 bucket (`1_29`, `30_59`, `60_119`, `120_239`, `240_plus`) 및 부모 모드 시간 선택 bucket (`1_9`, `10`, `11_20`, `21_30`, `31_60`, `61_plus`). 이벤트별 문맥에 맞는 bucket 계약을 따른다. |
+| `allowed_app_count_bucket` | 부모 모드 허용 앱 수 bucket (`1`, `2_3`, `4_6`, `7_plus`) |
+| `pin_result` | 부모 모드 보호자 PIN 결과 enum (`success`, `failure`, `not_configured`) |
+| `extension_minutes_bucket` | 부모 모드 연장 시간 bucket (`1_9`, `10`, `11_20`, `21_30`, `31_plus`) |
+| `block_context` | 부모 모드 차단/우회 surface enum (`disallowed_app`, `settings_surface`, `recent_apps`, `notification_surface`, `unknown`) |
 | `template_category` | 루틴 템플릿 공유용 비민감 카테고리 (`study`, `work`, `night_focus`, `custom`) |
 | `repeat_days_bucket` | 루틴 템플릿 반복 요일 bucket (`weekday`, `weekend`, `daily`, `custom_days`, `none`) |
 | `time_window_bucket` | 루틴 템플릿 시간대 bucket (`morning`, `afternoon`, `evening`, `night`, `overnight`, `custom_window`) |
@@ -315,7 +346,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `reason` | `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 긴급해제/스킵/리뷰 보류 이유 분석. `device_registration_failed`는 제거된 legacy 이벤트이므로 backend registration 재도입 전에는 지표 축으로 해석하지 않는다. |
 | Required | `period_type` | `period_type` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `focus_summary_share_failed` | 공유 지표를 주간 요약 기준으로 해석 |
 | Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
-| Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 집중 시간대별 공유 의도 비교(privacy-safe bucket) |
+| Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | 집중 요약/부모 모드 duration bucket 비교. 각 이벤트별 bucket 계약을 따른다 |
 | Required | `template_category` | `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | 루틴 템플릿 카테고리별 공유 의도 비교(privacy-safe enum) |
 | Required | `repeat_days_bucket` | `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 요일 패턴별 공유 의도 비교(privacy-safe bucket) |
 | Required | `time_window_bucket` | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 시간대 패턴별 공유 의도 비교(privacy-safe bucket) |
@@ -329,6 +360,9 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 첫 차단 후 루틴 생성 CTA의 안전한 노출 표면별 반응 비교 |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
+| Required | `allowed_app_count_bucket` | `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
+| Required | `pin_result` | `pin_result` | `parent_mode_unlocked_by_pin` | 보호자 PIN 해제/연장 성공·실패 UX guardrail 확인. PIN 원문/길이/세부값 금지 |
+| Required | `block_context` | `block_context` | `parent_mode_block_intercepted` | 부모 모드 중 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
 | Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
@@ -338,6 +372,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `interest_variant` | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | CTA copy/variant 비교가 필요할 때 |
 | Recommended | `purchase_available` | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리 |
 | Recommended | `cta_variant` | `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
+| Recommended | `extension_minutes_bucket` | `extension_minutes_bucket` | `parent_mode_extended` | 보호자 PIN 확인 후 연장 시간 분포가 필요할 때 |
 
 ### 필요 시 등록할 이벤트 지표
 
