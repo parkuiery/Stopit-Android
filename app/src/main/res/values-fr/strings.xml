@@ -107,6 +107,10 @@
     <string name="notification_routine_start_message">L\'utilisation des applications a été bloquée pour vous aider à vous concentrer.</string>
     <string name="routine_notification_permission_fallback_message">La routine %1$s a commencé, mais l\'autorisation de notification est désactivée, donc StopIt vous avertira dans l\'application à la place.</string>
     <string name="routine_running_tag">En cours</string>
+    <string name="routine_enabled_tag">Actif</string>
+    <string name="routine_disabled_tag">Désactivé</string>
+    <string name="routine_repeat_days_empty">Aucun jour de répétition</string>
+    <string name="routine_next_run_label">Prochaine exécution : %1$s</string>
     <string name="prevent_uninstall">Protection contre la désinstallation</string>
     <string name="prevent_uninstall_subtitle">Protège StopIt contre la désinstallation</string>
     <string name="prevent_uninstall_enabled">La protection contre la désinstallation est active</string>
