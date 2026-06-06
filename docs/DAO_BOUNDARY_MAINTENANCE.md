@@ -70,6 +70,17 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `LockViewModel`은 repository가 제공하는 `RoutineModel` list로 현재 활성 루틴 잠금 상태, 차단 앱 집합, 세션 anchor time만 계산한다.
 - `LockViewModelTest`는 DAO fake 대신 repository fake에 결합해 Lock 화면 테스트가 Room entity mapping 세부사항을 다시 끌어오지 않도록 한다.
 
+### Routine ViewModel persistence boundary
+
+#520의 일곱 번째 repo-internal QA 패키지는 루틴 생성/수정/목록 ViewModel의 `RoutineDao` 직접 접근을 `RoutineRepository` mutation/read 경계로 분리했다.
+
+#### 허용 경계
+
+- `RoutineRepository`가 routine feature ViewModel의 Room `RoutineDao` read/mutation 접근 허용 경계다.
+- `RoutineBottomSheetViewModel`은 루틴 입력 state, exact-alarm 사전 검증, schedule side effect, analytics만 소유하고 insert/update persistence mapping은 repository에 위임한다.
+- `RoutineViewModel`은 상세 state, 삭제, enable toggle, restore aftercare orchestration, template share side effect만 소유하고 fetch/fetchAll/delete/updateEnabled persistence mapping은 repository에 위임한다.
+- `RoutineRepositoryTest`는 insert/fetch/update/delete/updateEnabled DAO mapping을 고정하고, routine ViewModel test fixture는 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
@@ -79,13 +90,14 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `LockHistoryLedger` 아래에서 `LockHistoryDao` / `LockHistoryEntity` 직접 import가 재도입되지 않고 `LockHistoryRepository.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `LockViewModel` 아래에서 `RoutineDao` / `RoutineEntity` / stale emergency-unlock DAO/entity import가 재도입되지 않고 `RoutineRepository`가 lock routine read 허용 경계로 남는지 검사한다.
+- 같은 static guard가 routine feature ViewModel 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## 남은 인벤토리
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 Lock routine read 경계까지 안전하게 닫고, Receiver/AccessibilityService/루틴 실행 경로는 별도 focused test와 runtime QA 범위로 다룬다.
+아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine ViewModel read/mutation 경계까지 안전하게 닫고, Receiver/AccessibilityService 런타임 경로는 별도 focused test와 runtime QA 범위로 다룬다.
 
-- `RoutineBottomSheetViewModel`, `RoutineViewModel`, `RoutineRestoreAftercare`: `RoutineDao`
+- `RoutineRestoreAftercare`: `RoutineDao`
 - `BootReceiver`, `RoutineAlarmReceiver`: `RoutineDao`
 - `KeepAccessibilityService`: `RoutineDao`, `GoalLockDao`
 - `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`: 현재 허용된 repository DAO 경계다.
@@ -102,6 +114,8 @@ python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'
+./gradlew --console=plain :app:compileDevDebugAndroidTestKotlin
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ```
 

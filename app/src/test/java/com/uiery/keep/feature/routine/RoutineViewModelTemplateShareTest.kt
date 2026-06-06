@@ -85,7 +85,7 @@ class RoutineViewModelTemplateShareTest {
             Mockito.`when`(it.canScheduleExactAlarms()).thenReturn(true)
         }
         return RoutineViewModel(
-            routineDao = routineDao,
+            routineRepository = RoomRoutineRepository(routineDao),
             dataStore = dataStore,
             analytics = analytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),

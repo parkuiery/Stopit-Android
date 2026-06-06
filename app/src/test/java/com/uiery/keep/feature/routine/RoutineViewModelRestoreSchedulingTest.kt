@@ -83,7 +83,7 @@ class RoutineViewModelRestoreSchedulingTest {
         scheduler: RoutineScheduler,
         routineNoticeStore: RoutineNoticeStore = RoutineNoticeStore(dataStore),
     ): RoutineViewModel = RoutineViewModel(
-        routineDao = routineDao,
+        routineRepository = RoomRoutineRepository(routineDao),
         dataStore = dataStore,
         analytics = NoopRoutineAnalytics,
         exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
