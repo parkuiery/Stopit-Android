@@ -32,6 +32,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "top_apps_count_bucket",
             "PR #485 read-model·UI 구현 develop 반영",
             "code-lane instrumentation 추가",
+            "PR #566 TalkBack 자동 baseline develop 반영",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -67,6 +68,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("14일 관측 전", ga4)
         self.assertIn("PR #485", dictionary)
         self.assertIn("PR #485", ga4)
+        self.assertIn("PR #566", dictionary)
+        self.assertIn("PR #566", ga4)
         self.assertIn("code-lane instrumentation", dictionary)
         self.assertIn("code-lane instrumentation", ga4)
 
@@ -87,6 +90,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("LockHistory 성과 리포트", dashboard)
         self.assertIn("#211 공유 CTA", dashboard)
         self.assertIn("개인 성과 해석/재방문 동기", dashboard)
+        self.assertIn("PR #566", dashboard)
 
     def test_runtime_qa_checklist_has_repeatable_evidence_template(self):
         checklist = read("docs/QA_RUNTIME_CHECKLIST.md")
@@ -121,6 +125,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         )
 
         self.assertIn("PR #485", source)
+        self.assertIn("PR #566", source)
         self.assertIn("develop`에 반영", source)
         self.assertIn("release/tag/Play deploy", source)
         self.assertIn("14일/30일 readback", source)

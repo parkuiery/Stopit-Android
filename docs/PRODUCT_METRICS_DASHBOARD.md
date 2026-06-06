@@ -231,10 +231,11 @@
 
 - 문제: `LockHistory`가 총 시간/세션/top apps를 보여도, 사용자가 “내가 무엇을 지켰는지”를 긍정적으로 해석하는 경험은 아직 약하다.
 - 기회: 기존 기록 화면을 유지하면서 summary card, empty/low-data copy, top apps heading을 성취형으로 정리하면 반복 방문과 자기효능감을 강화할 수 있다.
-- 기본 원칙:
+- 현재 상태:
   - #465의 source of truth는 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`다.
   - #211 공유 CTA와 같은 화면을 쓰더라도, #465의 1차 지표는 외부 공유가 아니라 `LockHistoryScreen` 재방문과 반복 차단/세션이다.
-  - 앱 이름/package/raw session/raw timestamp를 analytics로 보내지 않고, `period_type`, `report_state`, count/duration bucket만 사용한다.
+  - PR #485로 read model/UI/string/test slice, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`, PR #566으로 summary/top apps TalkBack contentDescription baseline이 `develop`에 반영됐다.
+  - release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일·30일 readback 전에는 `lock_history_*` 0건을 UX 실패로 해석하지 않는다.
 - guardrail:
   - `중독`, `실패`, `못 참음`, `위험 사용자` 같은 shame/friction copy 금지.
   - 성취 copy가 과장되거나 압박으로 읽히는지 Play review/rating, 긴급해제 사용률, crash-free users와 함께 본다.
