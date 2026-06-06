@@ -33,5 +33,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "python3 -m unittest scripts.tests.test_dao_boundary_contract -v",
             "python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v",
             ":app:testDevDebugUnitTest",
+            "MenuViewModel",
+            "RoutineRepository",
         ):
             self.assertIn(expected, text)

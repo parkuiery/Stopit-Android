@@ -2,16 +2,15 @@ package com.uiery.keep.feature.menu
 
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
-import com.uiery.keep.feature.review.FakeDataStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -24,7 +23,7 @@ class MenuViewModelTest {
 
         MenuViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
-            routineDao = FakeMenuRoutineDao(),
+            routineRepository = FakeMenuRoutineRepository(),
             analytics = analytics,
         )
 
@@ -35,7 +34,7 @@ class MenuViewModelTest {
     fun preventUninstallDefaultsToEnabled() {
         val viewModel = MenuViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
-            routineDao = FakeMenuRoutineDao(),
+            routineRepository = FakeMenuRoutineRepository(),
             analytics = MenuRecordingKeepAnalytics(),
         )
 
@@ -49,7 +48,7 @@ class MenuViewModelTest {
         }
         val viewModel = MenuViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
-            routineDao = FakeMenuRoutineDao(),
+            routineRepository = FakeMenuRoutineRepository(),
             analytics = MenuRecordingKeepAnalytics(),
         )
 
@@ -72,7 +71,7 @@ class MenuViewModelTest {
         val analytics = MenuRecordingKeepAnalytics()
         val viewModel = MenuViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
-            routineDao = FakeMenuRoutineDao(),
+            routineRepository = FakeMenuRoutineRepository(),
             analytics = analytics,
         )
 
@@ -97,7 +96,7 @@ class MenuViewModelTest {
         val analytics = MenuRecordingKeepAnalytics()
         val viewModel = MenuViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
-            routineDao = FakeMenuRoutineDao(),
+            routineRepository = FakeMenuRoutineRepository(),
             analytics = analytics,
         )
 
@@ -118,18 +117,12 @@ class MenuViewModelTest {
     }
 }
 
-private class FakeMenuRoutineDao(
-    routines: List<RoutineEntity> = emptyList(),
-) : RoutineDao {
+private class FakeMenuRoutineRepository(
+    routines: List<RoutineModel> = emptyList(),
+) : RoutineRepository {
     private val state = MutableStateFlow(routines)
 
-    override fun fetchAll(): Flow<List<RoutineEntity>> = state
-    override fun fetchAllOnce(): List<RoutineEntity> = state.value
-    override fun fetch(id: Long): RoutineEntity = state.value.first { it.id == id }
-    override fun insert(routineEntity: RoutineEntity): Long = routineEntity.id
-    override fun deleteById(id: Long) = Unit
-    override fun update(routineEntity: RoutineEntity) = Unit
-    override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
+    override fun fetchAll(): Flow<List<RoutineModel>> = state
 }
 
 private data class MonetizationInterestEvent(
