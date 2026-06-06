@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,24 +38,31 @@ internal fun LockHistoryTopApps(
     onClick: () -> Unit,
 ) {
     if (topApps.isEmpty()) return
+    val titleText = stringResource(report.topAppsTitleResId)
+    val supportingText = stringResource(report.topAppsSupportingResId)
+    val accessibilityDescription = listOf(titleText, supportingText)
+        .joinToString(separator = ". ")
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(KeepTheme.colors.tertiary)
+            .semantics(mergeDescendants = true) {
+                contentDescription = accessibilityDescription
+            }
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = stringResource(report.topAppsTitleResId),
+            text = titleText,
             color = KeepTheme.colors.onSurfaceVariant,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = stringResource(report.topAppsSupportingResId),
+            text = supportingText,
             color = KeepTheme.colors.onTertiaryContainer,
             fontSize = 12.sp,
         )

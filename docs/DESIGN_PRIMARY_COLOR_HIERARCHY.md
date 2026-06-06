@@ -34,21 +34,22 @@ Primary는 아래처럼 사용자 가치나 현재 상태를 직접 설명하는
 - contentDescription 또는 semantics가 있는 상태 설명
 - 선택된 항목의 위치/레이아웃 차이
 
-## 현재 코드 감사 기준선
+## 현재 코드 상태
 
-2026-06-05 docs-lane에서 `KeepTheme.colors.primary` 사용처를 점검한 결과, primary가 제품 상태/선택과 navigation action에 섞여 있다. 아래 후보는 code-lane에서 색상 위계 조정을 할 때 우선 본다.
+2026-06-05 docs-lane 감사(PR #474)에서는 `KeepTheme.colors.primary`가 제품 상태/선택과 navigation action에 섞여 있었다. 이후 2026-06-06 code-lane PR #546(`9b99cafc`)이 `develop`에 merge되어 핵심 navigation/action icon의 primary 과강조를 실제 코드에서 낮췄다.
 
-| 화면/파일 | 현재 표면 | #468 판단 | 권장 후속 |
+| 화면/파일 | PR #474 감사 당시 표면 | PR #546 이후 상태 | 남은 경계 |
 | --- | --- | --- | --- |
-| `HomeScreen.kt` | 메뉴 IconButton tint가 primary | navigation action이라 CTA와 경쟁 | `onSurface`/`surfaceVariant` 계열로 낮추고 Home의 시작/타이머/선택 CTA를 primary로 유지 |
-| `LockHistoryScreen.kt` | 뒤로가기 tint가 primary | navigation action이라 낮은 위계가 적절 | `onSurface` 계열로 낮추고 선택 날짜/성과 숫자 primary는 유지 |
-| `BlockedAppsScreen.kt` | 뒤로가기 tint가 primary | navigation action | back icon은 낮추고 rank/성과 강조는 유지 여부를 화면 문맥으로 판단 |
-| `RoutineScreen.kt` | 뒤로가기와 추가 icon이 모두 primary | back은 낮추고 add는 primary CTA인지 화면별 판단 필요 | add가 화면의 주요 action이면 primary 가능, back은 낮춤. add도 텍스트 CTA/label 보완을 검토 |
-| `EmergencyUnlockSettingsScreen.kt` | 뒤로가기 tint가 primary | navigation action | back icon은 낮추고 설정 값/선택 상태 primary는 유지 |
-| `EmergencyUnlockBottomSheetContent.kt` | duration/active/selected/progress primary | 선택/진행 상태 | 색상 외 chip/background/label 보완 여부만 확인 |
-| `RoutineDayContent.kt`, `LockHistoryTab.kt`, `LockHistoryWeekCalendar.kt` | 선택 상태 primary | 선택 상태 | 선택 shape/border/text 보완이 유지되면 primary 사용 가능 |
+| `HomeScreen.kt` | 메뉴 IconButton tint가 primary | 메뉴 icon을 lower-emphasis token으로 낮추고 Home의 시작/타이머/선택 CTA primary는 유지 | 실제 기기 visual QA에서 Home primary CTA가 충분히 강한지 확인 |
+| `LockHistoryScreen.kt` | 뒤로가기 tint가 primary | back icon을 lower-emphasis token으로 낮추고 선택 날짜/성과 숫자 primary는 유지 | 성과 리포트(#465) UI와 함께 visual QA 확인 |
+| `BlockedAppsScreen.kt` | 뒤로가기 tint가 primary | back icon을 낮추고 rank/성과 강조는 제품 가치 강조로 유지 | history 하위 화면 QA에서 rank 강조가 navigation보다 강한지 확인 |
+| `RoutineScreen.kt` | 뒤로가기와 추가 icon이 모두 primary | back icon은 낮추고 add icon은 화면의 주요 생성 action으로 primary 유지 | add가 icon-only라 비색상 cue/contentDescription이 유지되는지 확인 |
+| `EmergencyUnlockSettingsScreen.kt` | 뒤로가기 tint가 primary | back icon을 낮추고 설정 값/선택 상태 primary는 유지 | emergency unlock 설정 화면 visual/TalkBack QA 확인 |
+| `GoalLockCreationScreen.kt`, `GoalLockDetailScreen.kt`, `RoutineBottomSheetContent.kt`, `MenuScreen.kt`, `DevToolScreen.kt` | 이후 기능/진단 화면에서도 primary/raw orange navigation icon drift 가능 | PR #546의 정적 회귀 테스트가 navigation icon primary/raw orange 금지 snippet을 포함 | 새 화면 추가 시 `scripts.tests.test_design_primary_color_hierarchy`에 금지 snippet을 확장 |
+| `EmergencyUnlockBottomSheetContent.kt` | duration/active/selected/progress primary | 선택/진행 상태라 유지 | 색상 외 chip/background/label 보완이 유지되는지 QA |
+| `RoutineDayContent.kt`, `LockHistoryTab.kt`, `LockHistoryWeekCalendar.kt` | 선택 상태 primary | 선택 상태라 유지 | 선택 shape/border/text/semantics가 함께 유지되는지 QA |
 
-이 표는 구현 완료 선언이 아니다. 구현 PR에서는 실제 diff와 스크린샷/QA 증적을 별도로 남긴다.
+따라서 #468은 더 이상 “문서 계약만 있고 구현 전” 상태가 아니다. repo-internal 기준은 `DESIGN.md`/KDS 계약 + PR #546 code diff + 정적 회귀 테스트까지 들어온 상태이며, 남은 것은 실제 기기 visual QA, 릴리즈 포함 여부, 사용자 노출 후 확인이다.
 
 ## 화면별 적용 순서
 
@@ -65,11 +66,13 @@ Primary는 아래처럼 사용자 가치나 현재 상태를 직접 설명하는
 
 ## 완료/검증 기준
 
-#468을 닫으려면 repo 내부에서 아래를 모두 만족해야 한다.
+#468 repo-internal 기준은 PR #474 + PR #546 이후 아래 상태까지 충족됐다.
 
 - `DESIGN.md`와 `core/kds/README.md`가 primary 사용/비사용 기준을 동일하게 설명한다.
-- 주요 화면의 navigation icon과 primary CTA/선택/활성 상태 위계가 실제 코드에서 분리된다.
-- 선택/활성 상태가 색상 외 텍스트, 배지, shape, border, contentDescription 중 하나 이상으로 보완된다.
+- 주요 화면의 navigation icon과 primary CTA/선택/활성 상태 위계가 실제 코드에서 분리됐다.
+- 선택/활성 상태는 색상 외 텍스트, 배지, shape, border, contentDescription 중 하나 이상과 함께 유지한다.
 - raw `#FFA927`/raw `Color(0xFFFFA927)`를 새로 추가하지 않고 `KeepTheme.colors` 또는 KDS token을 사용한다.
-- 시각 변경 PR은 `:core:kds:assembleDebug` 또는 `:app:assembleProdDebug` 등 영향 범위에 맞는 검증을 남긴다.
-- 구현이 아직 없고 문서 계약만 완료된 PR은 `Refs #468`로 둔다.
+- PR #546 current-head에서 `Fast verification`, `Runtime smoke gate`, `Branch Hygiene`가 통과했다.
+- `scripts/tests/test_design_primary_color_hierarchy.py`가 핵심 navigation icon primary/raw orange drift를 정적으로 막는다.
+
+남은 경계는 repo-internal 문서/코드가 아니라 실제 기기 visual QA, 다음 릴리즈 반영, 사용자 노출 후 확인이다. 따라서 추가 docs-only PR은 `Refs #468`로 두고, visual QA/릴리즈 evidence까지 확보한 뒤 이슈 closure를 판단한다.

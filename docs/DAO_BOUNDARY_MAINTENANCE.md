@@ -48,7 +48,9 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `EmergencyUnlockCoordinator`는 settings read/sanitize, daily-limit 정책 순서, DataStore runtime state, analytics, `EmergencyUnlockState` 업데이트 순서만 소유한다.
 - Block/Lock/Settings test fixture는 coordinator에 DAO를 직접 넘기지 않고 repository 경계를 통해 같은 production constructor contract를 검증한다.
 - `LockHistoryRepository.recordSession(...)`이 완료된 Home/Lock 잠금 세션의 Room `LockHistoryDao` insert 허용 경계다.
-- `HomeViewModel`, `LockViewModel`, `LockHistoryLedger`는 legacy summary cache / session timing / review eligibility ordering만 소유하고 Room entity 생성·insert는 repository에 위임한다.
+- `LockHistoryRecorder`가 완료 세션 기록 orchestration의 허용 경계다. legacy DataStore summary cache 갱신과 `LockHistoryRepository.recordSession(...)` 호출 순서를 한곳에 모은다.
+- `HomeViewModel`, `LockViewModel`은 session timing / review eligibility ordering만 소유하고, legacy cache와 Room entity 생성·insert는 recorder/repository 경계에 위임한다.
+- `LockHistoryLedger`는 read-side 요약 전용 helper로 남아 완료 세션 저장 책임을 갖지 않는다.
 
 ### Menu routine read boundary
 
@@ -118,7 +120,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `GoalLockCreationViewModel` / `GoalLockDetailViewModel` 아래에서 `GoalLockDao` 직접 import가 재도입되지 않고 `GoalLockRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` 직접 import가 재도입되지 않고 `EmergencyUnlockRepository`가 허용 DAO 경계로 남는지 검사한다.
-- 같은 static guard가 `LockHistoryLedger` 아래에서 `LockHistoryDao` / `LockHistoryEntity` 직접 import가 재도입되지 않고 `LockHistoryRepository.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다.
+- 같은 static guard가 `LockHistoryRecorder` 아래에서 `LockHistoryDao` / `LockHistoryEntity` 직접 import가 재도입되지 않고 `LockHistoryRepository.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다. `LockHistoryLedger`는 read-side summary helper로만 남는지도 함께 검사한다.
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `LockViewModel` 아래에서 `RoutineDao` / `RoutineEntity` / stale emergency-unlock DAO/entity import가 재도입되지 않고 `RoutineRepository`가 lock routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 routine feature non-repository source 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation/restore-aftercare 허용 경계로 남는지 검사한다.
@@ -142,7 +144,7 @@ python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
-./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryRecorderTest' --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelAnalyticsTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest'

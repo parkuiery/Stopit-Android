@@ -33,6 +33,7 @@ import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -478,7 +479,7 @@ class HomeViewModelActivationAnalyticsTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(goalLockDao),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),

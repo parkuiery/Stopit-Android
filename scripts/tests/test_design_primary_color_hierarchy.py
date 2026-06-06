@@ -29,7 +29,7 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("색상만으로 전달하지 말고", text)
         self.assertIn("docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md", text)
 
-    def test_audit_doc_records_current_top_app_bar_follow_up_surface(self):
+    def test_audit_doc_records_current_post_implementation_surface(self):
         text = HIERARCHY_DOC.read_text()
 
         for expected in [
@@ -38,18 +38,63 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             "BlockedAppsScreen.kt",
             "RoutineScreen.kt",
             "EmergencyUnlockSettingsScreen.kt",
+            "GoalLockCreationScreen.kt",
+            "MenuScreen.kt",
         ]:
             self.assertIn(expected, text)
 
+        self.assertIn("PR #546", text)
+        self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
+        self.assertIn("visual QA", text)
 
-    def test_docs_agent_index_points_to_primary_hierarchy_doc(self):
+    def test_docs_agents_links_primary_color_hierarchy(self):
         text = DOCS_AGENTS.read_text()
 
         self.assertIn("DESIGN_PRIMARY_COLOR_HIERARCHY.md", text)
         self.assertIn("#468", text)
+
+    def test_top_app_bar_navigation_icons_do_not_use_primary(self):
+        forbidden_snippets = {
+            "app/src/main/java/com/uiery/keep/feature/home/HomeScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_open_menu),\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/routine/RoutineScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = KeepTheme.colors.primary,",
+                "contentDescription = stringResource(R.string.cd_delete_routine),\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/goallock/GoalLockCreationScreen.kt": [
+                "contentDescription = \"뒤로 가기\",\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/goallock/GoalLockDetailScreen.kt": [
+                "contentDescription = \"뒤로 가기\",\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineBottomSheetContent.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                    tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/menu/MenuScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = Color(0xFFFE9E0B),",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/devtool/DevToolScreen.kt": [
+                "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = Color(0xFFFE9E0B),",
+            ],
+        }
+
+        for relative_path, snippets in forbidden_snippets.items():
+            text = (REPO_ROOT / relative_path).read_text()
+            for snippet in snippets:
+                self.assertNotIn(snippet, text, f"{relative_path} keeps primary on a navigation icon")
 
 
 if __name__ == "__main__":

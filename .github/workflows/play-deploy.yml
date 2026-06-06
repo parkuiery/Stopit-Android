@@ -344,6 +344,7 @@ jobs:
 
       - name: Notify Discord deploy channel
         if: success() && (env.DEPLOY_TRACK == 'internal' || env.DEPLOY_TRACK == 'production')
+        continue-on-error: true
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_DEPLOY_CHANNEL_ID: ${{ secrets.DISCORD_DEPLOY_CHANNEL_ID }}

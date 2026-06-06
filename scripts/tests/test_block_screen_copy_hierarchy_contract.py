@@ -44,6 +44,7 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
             text = read(relative_path)
             self.assertIn("BLOCK_SCREEN_COPY_HIERARCHY.md", text, relative_path)
             self.assertIn("#464", text, relative_path)
+            self.assertIn("PR #487", text, relative_path)
 
     def test_event_dictionary_keeps_existing_analytics_order_and_no_new_payload_claim(self):
         dictionary = read("docs/ANALYTICS_EVENT_DICTIONARY.md")
@@ -64,6 +65,7 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
         required_phrases = [
             "Block screen copy/action hierarchy QA baseline",
             "Issue: #464",
+            "PR #487(`8fb1911c`)",
             "Normal blocked state",
             "First core action state",
             "Emergency unlock available",
@@ -94,7 +96,7 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
         self.assertIn("하던 일로 돌아가기", ko_strings)
         self.assertIn("emergencyUnlockAction.helperTextRes", block_screen)
 
-    def test_contract_does_not_claim_docs_lane_implemented_ui(self):
+    def test_contract_records_post_implementation_boundary_without_closing_issue(self):
         source = read("docs/BLOCK_SCREEN_COPY_HIERARCHY.md")
         high_traffic = "\n".join(
             read(path)
@@ -106,8 +108,9 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
             ]
         )
 
-        self.assertIn("이 docs-lane 산출물은 구현 완료가 아니다", source)
-        self.assertIn("구현 완료가 아니라", high_traffic)
+        self.assertIn("PR #487(`8fb1911c`)", source)
+        self.assertIn("develop에 반영됐다", high_traffic)
+        self.assertIn("실제 기기/screenshot/TalkBack QA", high_traffic)
         self.assertIn("release/tag/Play deploy 후 14일", high_traffic)
         self.assertNotIn("Closes #464를 사용한다", source)
 

@@ -243,7 +243,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
                             contentDescription = stringResource(R.string.cd_open_menu),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },

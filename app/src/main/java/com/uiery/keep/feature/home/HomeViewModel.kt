@@ -22,12 +22,11 @@ import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
-import com.uiery.keep.service.recordLockHistorySession
+import com.uiery.keep.service.LockHistoryRecorder
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +54,7 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
-        private val lockHistoryRepository: LockHistoryRepository,
+        private val lockHistoryRecorder: LockHistoryRecorder,
         private val goalLockRepository: GoalLockRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
@@ -294,9 +293,7 @@ class HomeViewModel
         ) = intent {
             val endTime = System.currentTimeMillis()
             val startTime = endTime - lockedMillis
-            recordLockHistorySession(
-                dataStore = dataStore,
-                lockHistoryRepository = lockHistoryRepository,
+            lockHistoryRecorder.recordSession(
                 startTimestamp = startTime,
                 endTimestamp = endTime,
                 lockedApps = state.selectedAppPackage,
