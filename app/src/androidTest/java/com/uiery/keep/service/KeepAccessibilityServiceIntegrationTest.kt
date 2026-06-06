@@ -164,6 +164,29 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        configureExpiredGoalLockBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+        waitForPackageForeground(
+            packageName = blockedPackage,
+            message = "Expected expired Goal Lock target to stay foreground without manual Keep or active Goal Lock",
+        )
+
+        Thread.sleep(1_000)
+
+        val snapshot = KeepAccessibilityServiceDebugState.read(context)
+        assertFalse(
+            "Did not expect expired Goal Lock to request BlockActivity. snapshot=$snapshot",
+            snapshot.lastLaunchedBlockPackage == blockedPackage ||
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.GOAL_LOCK,
+        )
+    }
+
+    @Test
     fun emergencyUnlockActive_keepsSelectedAppForegroundInsteadOfLaunchingBlockActivity() = runBlocking {
         val bypassPackage = resolveLaunchablePackages().last()
         configureManualKeepBlock(bypassPackage)
@@ -355,6 +378,28 @@ class KeepAccessibilityServiceIntegrationTest {
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
         return GOAL_LOCK_RUNTIME_TEST_ID
+    }
+
+    private suspend fun configureExpiredGoalLockBlock(packageName: String) {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        goalLockDao().insert(
+            GoalLockEntity(
+                id = GOAL_LOCK_RUNTIME_TEST_ID,
+                goalName = "Runtime QA",
+                startDate = LocalDate.now().minusDays(7).toString(),
+                endDate = LocalDate.now().minusDays(1).toString(),
+                lockMode = "all_day",
+                selectedPackages = listOf(packageName),
+                status = "active",
+            ),
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
     private fun goalLockDao(): GoalLockDao = EntryPointAccessors.fromApplication(
