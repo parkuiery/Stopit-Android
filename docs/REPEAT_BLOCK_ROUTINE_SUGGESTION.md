@@ -1,11 +1,11 @@
 # 반복 차단 패턴 기반 자동 루틴 제안 계약
 
 Issue: #531
-상태: **백로그 / 구현 전 제품·analytics·QA 계약 고정**
+상태: **code-lane policy + analytics foothold 구현 / UI wiring·release·GA4 등록 전**
 
 이 문서는 최근 차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 해석해, 사용자가 덜 힘들게 같은 약속을 지키도록 루틴 생성을 제안하는 기능의 source of truth다. 목적은 “또 실패했다”가 아니라 “이미 막아낸 패턴을 자동화해 다음에는 덜 흔들리게 돕는다”는 코칭 경험을 만드는 것이다.
 
-이 문서/PR은 repo 내부 계약을 정리하는 docs-lane work이므로 구현 전에는 `Refs #531`를 사용한다. issue closing keyword는 로컬 분석 로직, 추천 CTA/UI, 루틴 생성 prefill, analytics adapter/ViewModel 테스트, locale copy, QA evidence, release/GA4/readback 경계까지 acceptance가 실제로 충족될 때만 쓴다.
+이 문서/PR은 repo 내부 계약을 정리하는 docs-lane work에서 시작했고, 2026-06-06 code-lane에서 로컬 후보 산출 policy(`RepeatBlockRoutineSuggestionPolicy`)와 `repeat_block_routine_suggestion_*` analytics adapter 계약까지 전진했다. 아직 Home/LockHistory/성과 리포트 UI wiring, 루틴 생성 prefill 연결, locale copy, release/tag/Play deploy, GA4 Admin 등록/readback 경계가 남았으므로 현재 PR은 `Refs #531`을 사용한다. issue closing keyword는 위 경계까지 acceptance가 실제로 충족될 때만 쓴다.
 
 ## 근거 / 연결 맥락
 
