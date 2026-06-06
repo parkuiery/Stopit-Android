@@ -307,6 +307,8 @@ cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \\
   --tests '*LockHistory*Performance*' \\
   --tests '*LockHistoryViewModel*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \\
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 ```
 
@@ -315,6 +317,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
 - 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
 - top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
+- summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다.
 - 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
 
 수동 QA evidence template:
@@ -327,6 +330,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - Locale(s): ko / en / other changed locale
 - Commands:
   - `./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest`
   - `python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v`
 - Empty state:
   - copy:
@@ -341,6 +345,8 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
   - positive framing: pass / fail
   - app package/raw history absent from analytics spot-check: pass / fail
 - TalkBack summary/top apps meaning:
+  - focused contentDescription regression passed: pass / fail
+  - actual screen reader/screenshot spot-check: pass / fail / not collected
 - #211 share CTA remains optional and not pressured: pass / fail / not applicable
 - Decision: pass / fail / needs follow-up
 - Notes:
