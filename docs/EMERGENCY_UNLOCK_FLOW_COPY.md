@@ -118,9 +118,13 @@ Issue: #467
 cd <repo-root>
 python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
 ./gradlew --console=plain :app:lintProdRelease
 ./gradlew --console=plain :app:assembleProdDebug
 ```
+
+후속 QA PR부터 `EmergencyUnlockBottomSheetContentIntegrationTest`는 reason-required ON/OFF 양쪽의 실제 Compose flow를 고정한다. 이 테스트는 `기타` reason custom input validation, app selection disabled helper, duration chip selection, countdown 완료 후 `emergency_unlock_completed.reason` enum payload(`other` 또는 reason-not-required sentinel)와 duration/app set 전달을 emulator에서 검증한다.
 
 ### Runtime / screenshot QA evidence template
 

@@ -238,6 +238,7 @@ private fun ReasonStep(
                         if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
                         else KeepTheme.colors.onSecondary.copy(alpha = 0.5f)
                     )
+                    .testTag("emergency_unlock_reason_${reason.key}")
                     .selectable(
                         selected = isSelected,
                         onClick = { onReasonSelected(reason.key) },
@@ -264,6 +265,7 @@ private fun ReasonStep(
                 onValueChange = onCustomReasonChanged,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("emergency_unlock_reason_other_input")
                     .padding(top = 8.dp),
                 placeholder = {
                     Text(text = stringResource(R.string.emergency_unlock_reason_other_hint))
@@ -404,7 +406,8 @@ private fun DurationStep(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(48.dp)
+                        .testTag("emergency_unlock_duration_$minutes"),
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = KeepTheme.colors.primary.copy(alpha = 0.12f),
