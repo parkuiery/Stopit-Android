@@ -1,13 +1,7 @@
 package com.uiery.keep.service
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.model.LockHistoryModel
 import java.time.LocalDate
-import kotlinx.coroutines.flow.firstOrNull
 
 internal data class LockHistoryLedgerSummary(
     val groupedSessions: Map<LocalDate, List<LockHistoryModel>>,
@@ -47,32 +41,5 @@ internal fun summarizeLockHistoryLedger(sessions: List<LockHistoryModel>): LockH
         sessionCount = sessions.size,
         topApps = topApps,
         durationByDate = durationByDate,
-    )
-}
-
-internal suspend fun recordLockHistorySession(
-    dataStore: DataStore<Preferences>,
-    lockHistoryRepository: LockHistoryRepository,
-    startTimestamp: Long,
-    endTimestamp: Long,
-    lockedApps: Collection<String>,
-    isRoutine: Boolean,
-) {
-    val durationMillis = (endTimestamp - startTimestamp).coerceAtLeast(0L)
-    val preferences = dataStore.data.firstOrNull()
-    val previousLongest = preferences?.get(PreferencesKey.LONG_BLOCK_TIME) ?: 0L
-    val previousTotal = preferences?.get(PreferencesKey.TOTAL_BLOCK_TIME) ?: 0L
-
-    dataStore.edit { mutablePreferences ->
-        mutablePreferences[PreferencesKey.LONG_BLOCK_TIME] = maxOf(previousLongest, durationMillis)
-        mutablePreferences[PreferencesKey.TOTAL_BLOCK_TIME] = previousTotal + durationMillis
-    }
-
-    lockHistoryRepository.recordSession(
-        startTimestamp = startTimestamp,
-        endTimestamp = endTimestamp,
-        durationMillis = durationMillis,
-        lockedApps = lockedApps,
-        isRoutine = isRoutine,
     )
 }

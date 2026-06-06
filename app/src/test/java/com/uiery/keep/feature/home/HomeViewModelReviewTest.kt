@@ -21,6 +21,7 @@ import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.ReviewLaunchResult
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -137,7 +138,7 @@ class HomeViewModelReviewTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(FakeLockHistoryDao())),
             goalLockRepository = GoalLockRepository(EmptyGoalLockDao()),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
