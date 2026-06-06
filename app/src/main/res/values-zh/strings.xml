@@ -115,6 +115,10 @@
     <string name="cd_delete_routine">删除例程</string>
     <string name="cd_previous_period">上一期间</string>
     <string name="cd_next_period">下一期间</string>
+    <string name="cd_state_on">已开启</string>
+    <string name="cd_state_off">已关闭</string>
+    <string name="cd_tab_selected">已选择</string>
+    <string name="cd_tab_not_selected">未选择</string>
     <string name="blocked_apps_title">被阻止的应用</string>
     <string name="routine_alarm_permission_title">我们会提醒你，不要错过例行的开始。</string>
     <string name="routine_alarm_permission_description">我们会在设定的时间发送通知，帮助你自然地开始例行。</string>

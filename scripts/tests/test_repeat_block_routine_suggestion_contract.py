@@ -128,6 +128,10 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
 
         self.assertIn("반복 차단 기반 루틴 제안 조회성", ga4_runbook)
         self.assertIn("repeat block routine suggestion check", ga4_runbook)
+        self.assertIn("PR #552", ga4_runbook)
+        self.assertIn("PR #555", ga4_runbook)
+        self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
+        self.assertIn("Home/LockHistory", ga4_runbook)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
 
     def test_high_traffic_docs_link_to_repeat_block_suggestion_source_of_truth(self):
@@ -144,7 +148,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", document)
             self.assertIn("#531", document)
 
-    def test_high_traffic_docs_reflect_policy_foothold_without_claiming_full_ui_release(self):
+    def test_high_traffic_docs_reflect_prefill_and_dismiss_footholds_without_claiming_full_ui_release(self):
         documents = [
             PRODUCT_DASHBOARD.read_text(),
             METRICS_ANALYSIS.read_text(),
@@ -155,7 +159,11 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         for document in documents:
             self.assertIn("PR #537", document)
             self.assertIn("local policy + analytics", document)
-            self.assertIn("UI", document)
+            self.assertIn("PR #552", document)
+            self.assertIn("prefill", document)
+            self.assertIn("PR #555", document)
+            self.assertIn("RepeatBlockRoutineSuggestionStore", document)
+            self.assertIn("Home/LockHistory", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)
             self.assertIn("수요 없음", document)
@@ -166,6 +174,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         for phrase in [
             "반복 차단 기반 자동 루틴 제안 QA baseline",
             "Repeat block routine suggestion QA evidence",
+            "RoutineNavigationTest",
+            "RoutineBottomSheetViewModelTest",
+            "RepeatBlockRoutineSuggestionStoreTest",
             "onboarding / pre-first-lock 사용자에게 미노출",
             "기존 활성 루틴과 겹치면 미노출",
             "raw app name / package / history / timestamp absent",

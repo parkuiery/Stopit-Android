@@ -118,6 +118,10 @@
     <string name="cd_delete_routine">Delete routine</string>
     <string name="cd_previous_period">Previous period</string>
     <string name="cd_next_period">Next period</string>
+    <string name="cd_state_on">On</string>
+    <string name="cd_state_off">Off</string>
+    <string name="cd_tab_selected">Selected</string>
+    <string name="cd_tab_not_selected">Not selected</string>
     <string name="blocked_apps_title">Blocked Apps</string>
     <!-- Routine Notifications -->
     <string name="notification_channel_routine_name">Routine Notifications</string>

@@ -115,6 +115,10 @@
     <string name="cd_delete_routine">Elimina routine</string>
     <string name="cd_previous_period">Periodo precedente</string>
     <string name="cd_next_period">Periodo successivo</string>
+    <string name="cd_state_on">Attivato</string>
+    <string name="cd_state_off">Disattivato</string>
+    <string name="cd_tab_selected">Selezionato</string>
+    <string name="cd_tab_not_selected">Non selezionato</string>
     <string name="blocked_apps_title">App bloccate</string>
     <string name="routine_alarm_permission_title">Ti avviseremo così non perderai l\'inizio della tua routine.</string>
     <string name="routine_alarm_permission_description">Invieremo una notifica all\'ora impostata per aiutarti a iniziare la routine in modo naturale.</string>

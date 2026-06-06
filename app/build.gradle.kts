@@ -187,6 +187,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.google.play.services.ads)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(project(":core:kds"))
 }

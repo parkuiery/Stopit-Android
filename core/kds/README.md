@@ -219,22 +219,9 @@ KeepModalBottomSheet(
 
 ---
 
-### KeepBannerAd
+### 광고/수익화 경계
 
-Google AdMob 적응형 배너 광고.
-
-```kotlin
-KeepBannerAd(
-    adUnitId = "ca-app-pub-xxx/yyy",
-)
-```
-
-| 파라미터 | 타입 | 기본값 | 설명 |
-|----------|------|--------|------|
-| `modifier` | Modifier | Modifier | 레이아웃 수정자 |
-| `adUnitId` | String | (필수) | AdMob 단위 ID |
-
-**특징:** 화면 너비에 맞는 적응형 배너 크기. 프리뷰 모드에서 로딩 생략. 라이프사이클 자동 관리 (resume/pause). `INTERNET` 권한 필요.
+KDS는 AdMob SDK 런타임을 직접 소유하지 않습니다. 배너 광고 UI와 노출/클릭/수익 callback은 앱의 monetization/analytics 경계(`app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`)에서 관리합니다.
 
 ---
 

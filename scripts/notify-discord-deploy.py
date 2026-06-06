@@ -295,7 +295,16 @@ def main() -> int:
         print(f"Track {track!r} does not require a deploy-channel notification")
         return 0
 
-    post_discord_message(token, channel_id, payload)
+    try:
+        post_discord_message(token, channel_id, payload)
+    except (RuntimeError, urllib.error.URLError) as error:
+        print(
+            "::warning::Discord deploy notification failed; Play deploy result is unchanged. "
+            f"Check Discord bot/channel permissions and retry notification if needed: {error}",
+            file=sys.stderr,
+        )
+        return 0
+
     print(f"Posted {track} deploy notification for {tag} to Discord channel {channel_id}")
     return 0
 

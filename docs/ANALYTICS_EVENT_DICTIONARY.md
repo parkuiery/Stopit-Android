@@ -33,7 +33,7 @@
 - 잠금 기록 성과 리포트 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryPerformanceReportReadModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt` (PR #485로 UI/read model develop 반영; 2026-06-05 code-lane instrumentation으로 `lock_history_*` event 코드 계약 추가)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
-- 반복 차단 루틴 추천 코드 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code-lane에서 policy + analytics event contract 추가; UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
+- 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 부모 모드 구현 후보: `ParentModePolicy` / 보호자 PIN policy / same-device parent mode setup·active screen·AccessibilityService integration(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
@@ -152,7 +152,7 @@
 
 ### 잠금 기록 성과 리포트
 
-`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
+`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. PR #566은 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는 focused accessibility baseline을 추가했다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -243,7 +243,7 @@
 
 ### 반복 차단 기반 자동 루틴 제안
 
-반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code-lane에서 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` analytics method/constant 계약이 추가됐고, 후속 code/QA-lane에서 type-safe Routine prefill과 dismiss store가 추가됐다. 이번 code-lane PR은 Home/LockHistory CTA UI wiring과 apply/dismiss flow를 연결한다. 다만 release/tag/Play deploy, GA4 Admin 등록, 수동 device/locale/TalkBack QA 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload를 금지한다.
+반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code/QA lane에서 `RepeatBlockRoutineSuggestionPolicy`, `repeat_block_routine_suggestion_*` analytics method/constant, `RoutineRoute`/`RoutineBottomSheetViewModel` prefill 적용, `RepeatBlockRoutineSuggestionStore` dismiss persistence 계약이 추가됐다. 이번 code-lane PR은 Home/LockHistory CTA UI wiring과 apply/dismiss flow를 연결한다. 아직 성과 리포트/post-block success 표면, release/tag/Play deploy, GA4 Admin 등록, 수동 device/locale/TalkBack QA 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload 및 dismiss store 저장을 금지한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -592,7 +592,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 기록한다.
-- 2026-06-06T08:33:25Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `24,627 / 38,338 = 64.2%`였고 최신 관측 production version `1.7.7` active share도 `145 / 767 = 18.9%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-06T22:17:11Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `25,429 / 40,155 = 63.3%`였고 최신 관측 production version `1.7.7` active share도 `181 / 783 = 23.1%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

@@ -281,6 +281,17 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenRoutineChannelDisabled() {
+        assertEquals(
+            PendingRoutineStartNotice(message = "Routine started while notification channel was disabled"),
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.ChannelDisabled,
+                fallbackMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
     fun buildPendingRoutineStartNoticeReturnsNullWhenNotificationPosted() {
         assertNull(
             RoutineReceiverPolicy.buildPendingRoutineStartNotice(

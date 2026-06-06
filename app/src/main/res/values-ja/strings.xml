@@ -115,6 +115,10 @@
     <string name="cd_delete_routine">ルーティンを削除</string>
     <string name="cd_previous_period">前の期間</string>
     <string name="cd_next_period">次の期間</string>
+    <string name="cd_state_on">オン</string>
+    <string name="cd_state_off">オフ</string>
+    <string name="cd_tab_selected">選択済み</string>
+    <string name="cd_tab_not_selected">未選択</string>
     <string name="blocked_apps_title">ブロックされたアプリ</string>
     <string name="routine_alarm_permission_title">ルーティンの開始を逃さないようにお知らせします。</string>
     <string name="routine_alarm_permission_description">設定した時間に通知を送り、自然にルーティンを始められるようお手伝いします。</string>

@@ -56,6 +56,23 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### 기능성 control stateDescription locale baseline
+
+issue #570 계열 PR은 TalkBack이 읽는 상태 문구도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA evidence:
+- 메뉴 설정 토글: TalkBack 상태가 현재 앱 언어로 `켜짐/꺼짐` 또는 해당 locale 번역으로 읽힌다.
+- 잠금 기록 주/월 탭: TalkBack 상태가 현재 앱 언어로 `선택됨/선택되지 않음` 또는 해당 locale 번역으로 읽힌다.
+- 새 stateDescription string key를 추가하면 모든 shipped `values*/strings.xml`에 parity가 맞아야 한다.
+
 ### 홈 타이머 CTA duration baseline
 
 issue #187 계열 PR에서는 홈 타이머 바텀시트가 실제 `현재 시각 -> 목표 시각` 차이와 같은 값을 CTA에 표시하는지 JVM 계약 테스트를 기본 evidence로 남긴다.
@@ -307,6 +324,8 @@ cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \\
   --tests '*LockHistory*Performance*' \\
   --tests '*LockHistoryViewModel*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \\
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 ```
 
@@ -315,6 +334,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
 - 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
 - top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
+- summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다.
 - 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
 
 수동 QA evidence template:
@@ -327,6 +347,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - Locale(s): ko / en / other changed locale
 - Commands:
   - `./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest`
   - `python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v`
 - Empty state:
   - copy:
@@ -341,6 +362,8 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
   - positive framing: pass / fail
   - app package/raw history absent from analytics spot-check: pass / fail
 - TalkBack summary/top apps meaning:
+  - focused contentDescription regression passed: pass / fail
+  - actual screen reader/screenshot spot-check: pass / fail / not collected
 - #211 share CTA remains optional and not pressured: pass / fail / not applicable
 - Decision: pass / fail / needs follow-up
 - Notes:
@@ -458,6 +481,9 @@ issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 sour
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
+  --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
   --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' \
   --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'
@@ -483,7 +509,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - Device / Android version / OEM:
 - Entry point: home / post_block_success / lock_history / performance_report
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
 - Eligibility:
   - first_core_action_completed or app_block_intercepted already happened: pass / fail
@@ -541,7 +567,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 ```
 
 검증 범위:
-- `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
+- `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 시작일 당일 새벽의 전날 spillover 차단 금지, 종료일 밤에 시작된 scheduled window의 익일 새벽 spillover, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
 - `FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly`는 `goal_lock_created`가 enum/bucket 파라미터만 보내고 원문 목표명/app package/app label을 보내지 않는지 검증한다.
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
@@ -600,13 +626,16 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
   - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
+  - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`)
   - 현재 selector 출력:
     - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
-    - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock`
+    - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock)"`
+- channel-disabled runtime run:
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_channel_disabled)"`
 
 이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다. Backup/restore DataStore key 분류처럼 Android framework 없이 잡을 수 있는 정책 drift는 JVM static contract를 먼저 남긴다: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`.
 
@@ -616,6 +645,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
 - `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-disabled flow의 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
+- `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `EmergencyUnlockPolicyTest`: `EMERGENCY_UNLOCK_EXPIRE_TIME`에 저장된 만료 시각만으로 남은 초를 재계산하고 countdown notification tick을 재예약하는 JVM 계약. Lock 화면/ViewModel coroutine이 사라져도 AccessibilityService가 DataStore snapshot 기준으로 countdown 알림을 계속 동기화해야 한다.
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring

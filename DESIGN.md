@@ -139,9 +139,9 @@ Use for transient feedback. Shape is circular, background is `onSecondary`, text
 
 Use for bottom-sheet flows that need system bar color coordination. Default container is `onSecondary`; drag handle uses `tertiaryContainer`.
 
-### KeepBannerAd
+### AdMob / monetization boundary
 
-Use for AdMob banner surfaces. Do not move ad behavior into generic layout components.
+KDS does not own AdMob runtime behavior. Banner ad SDK lifecycle and monetization analytics live in the app analytics/monetization boundary (`TrackedBannerAd`).
 
 ### RotatingCircleGradient
 

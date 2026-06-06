@@ -115,7 +115,8 @@ Operational failure boundary for `GOOGLE_SERVICES_JSON`:
 - missing during production promotion -> no effect; production promotion skips Firebase restoration and AAB build
 
 Operational failure boundary for Discord deploy secrets:
-- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload, but deploy notification / approval-card posting is skipped or fails depending on the workflow step
+- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload/promote, and deploy notification / approval-card posting is skipped without changing the Play deploy result
+- Discord 알림 실패는 Play 업로드/승격 실패가 아니다. Discord HTTP 403/5xx, bot permission, or transient API failures should appear as workflow warnings from `scripts/notify-discord-deploy.py` / the non-blocking `Notify Discord deploy channel` step, while the Play upload/promotion result and any production completion marker remain governed by the preceding Play steps
 - missing Firebase Functions `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, allowed role/user IDs, or `GITHUB_ACTIONS_DISPATCH_TOKEN` -> Discord production-promotion button cannot verify/dispatch correctly even if GitHub Actions secrets exist
 
 The service account must have access in Play Console:
