@@ -34,7 +34,7 @@
 | `주의` | 10% 이상 30% 미만 | 방향성은 참고 가능하지만 전체 30일 합산과 섞이면 과신 위험 | 최신 버전 cohort와 전체 합산을 반드시 분리하고 D+14 재조회 예약 |
 | `보류` | 10% 미만 또는 최신 버전 주요 이벤트 행이 거의 없음 | 최신 코드/계측/문구 수정의 성과로 해석 금지 | release/Play 채택 또는 D+14/D+30 관측 대기. 새 코드/문서 PR을 만들지 않음 |
 
-운영 예시: 2026-06-06T08:33:25Z 스냅샷에서 최신 관측 버전 `1.7.7` activeUsers는 145명, 전체 activeUsers는 767명이므로 `145 / 767 = 18.9%`다. 이 상태는 `주의`이지만 30% 미만이므로, `newUsers +39.8%`나 screen/ad/review smoke를 최신 수정 성과로 승격하지 않는다.
+운영 예시: 2026-06-06T19:06:27Z 스냅샷에서 최신 관측 버전 `1.7.7` activeUsers는 178명, 전체 activeUsers는 781명이므로 `178 / 781 = 22.8%`다. 이 상태는 `주의`이지만 30% 미만이므로, `newUsers +39.8%`나 screen/ad/review smoke를 최신 수정 성과로 승격하지 않는다.
 
 ## 필수 표준 표
 
@@ -65,10 +65,10 @@
 
 | 관련 이슈 | 관련 PR/commit | main/tag/Play 포함 여부 | 최신 버전 active share | 판정 | 다음 액션 |
 | --- | --- | --- | ---: | --- | --- |
-| #13 | #296/#318/#358 (`47e43784`, `8d2ee10`, `6ceaecc4`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `145 / 767 = 18.9%` | 주의 | GA4 Admin + PR 포함 release/tag/Play deploy 후 D+14 screen quality 재조회 |
-| #14 | #256/#279/#283 (`bce1cda1`, `5c6331da`, `35c13ebb`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `145 / 767 = 18.9%` | 주의 | activation funnel D+14 재측정. CTA/첫 가치 피드백을 다시 만들지 않음 |
-| #16 | #293 (`afcb5c8e`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `145 / 767 = 18.9%` | 주의 | `ad_banner_*` post-split 14일 coverage 재조회. early smoke를 production placement 판단으로 승격하지 않음 |
-| #307 | #308/#312/#353 (`cfff4118`, `e920ea30`, `dc0978f`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `145 / 767 = 18.9%` | 주의 | review lifecycle + Play rating D+14/D+30 관측. `customEvent:reason`은 사용 가능, `customEvent:error`는 등록 경계 |
+| #13 | #296/#318/#358 (`47e43784`, `8d2ee10`, `6ceaecc4`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `178 / 781 = 22.8%` | 주의 | GA4 Admin + PR 포함 release/tag/Play deploy 후 D+14 screen quality 재조회 |
+| #14 | #256/#279/#283 (`bce1cda1`, `5c6331da`, `35c13ebb`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `178 / 781 = 22.8%` | 주의 | activation funnel D+14 재측정. CTA/첫 가치 피드백을 다시 만들지 않음 |
+| #16 | #293 (`afcb5c8e`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `178 / 781 = 22.8%` | 주의 | `ad_banner_*` post-split 14일 coverage 재조회. early smoke를 production placement 판단으로 승격하지 않음 |
+| #307 | #308/#312/#353 (`cfff4118`, `e920ea30`, `dc0978f`) | `origin/develop` 포함, `origin/main`/`v1.7.7` 미포함, Play 배포 미확인 | `178 / 781 = 22.8%` | 주의 | review lifecycle + Play rating D+14/D+30 관측. `customEvent:reason`은 사용 가능, `customEvent:error`는 등록 경계 |
 
 ## GA4 query template
 
