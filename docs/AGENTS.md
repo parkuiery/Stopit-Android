@@ -34,7 +34,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
 | `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, QA evidence template. |
 | `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
-| `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy 계약, emergency unlock 보조 액션, 광고 간섭 guardrail, QA evidence template. |
+| `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, QA evidence template. |
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
 
