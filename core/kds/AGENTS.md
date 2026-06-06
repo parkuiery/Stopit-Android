@@ -37,7 +37,7 @@ Keep Design System Android library module. It provides reusable Compose componen
 - Consumed by `:app` via `implementation(project(":core:kds"))`.
 
 ### External
-- Jetpack Compose Material 3, AndroidX UI tooling, Google Mobile Ads where banner components are used.
+- Jetpack Compose Material 3 and AndroidX UI tooling. AdMob SDK runtime dependencies belong in the app monetization boundary, not `:core:kds`.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->
 
@@ -45,4 +45,4 @@ Keep Design System Android library module. It provides reusable Compose componen
 
 - KDS dependency maintenance should treat `gradle/libs.versions.toml` as the preferred version source of truth, not ad-hoc strings in this module.
 - When `core/kds/build.gradle.kts` still contains direct version strings, call them out explicitly in the maintenance issue/runbook instead of assuming the app module already covered them.
-- `play-services-ads` and `lifecycle-runtime-compose` changes in KDS carry runtime/monetization risk for the app, so keep docs/QA follow-through linked when moving them to catalog aliases or bumping versions.
+- Do not add `play-services-ads` or AdMob lifecycle code back to KDS; banner SDK ownership lives in the app analytics/monetization layer.

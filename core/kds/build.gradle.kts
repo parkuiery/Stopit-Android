@@ -41,8 +41,4 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.kotlinx.datetime)
-
-    implementation(libs.google.play.services.ads)
-
-    implementation(libs.androidx.lifecycle.runtime.compose)
 }
