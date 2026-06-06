@@ -112,6 +112,10 @@
     <string name="cd_delete_routine">루틴 삭제</string>
     <string name="cd_previous_period">이전 기간</string>
     <string name="cd_next_period">다음 기간</string>
+    <string name="cd_state_on">켜짐</string>
+    <string name="cd_state_off">꺼짐</string>
+    <string name="cd_tab_selected">선택됨</string>
+    <string name="cd_tab_not_selected">선택되지 않음</string>
     <string name="blocked_apps_title">차단된 앱</string>
     <string name="notification_channel_routine_name">루틴 알림</string>
     <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>
