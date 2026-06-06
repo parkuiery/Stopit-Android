@@ -81,46 +81,33 @@ internal object GoalLockPolicy {
         mode: GoalLockMode.Scheduled,
         now: LocalDateTime,
     ): Boolean {
-        if (!isScheduledWindowActive(mode, now)) return false
-
-        val today = now.toLocalDate()
-        if (!today.isBefore(goalLock.startDate) && !today.isAfter(goalLock.endDate)) {
-            return true
-        }
-
-        val crossesMidnight = !mode.endTime.isAfter(mode.startTime)
-        if (!crossesMidnight || !now.toLocalTime().isBefore(mode.endTime)) {
-            return false
-        }
-
-        val previousDate = today.minusDays(1)
-        return !previousDate.isBefore(goalLock.startDate) && !previousDate.isAfter(goalLock.endDate)
+        val windowStartDate = scheduledWindowStartDate(mode, now) ?: return false
+        return windowStartDate in goalLock.startDate..goalLock.endDate
     }
 
-    private fun isScheduledWindowActive(
+    private fun scheduledWindowStartDate(
         mode: GoalLockMode.Scheduled,
         now: LocalDateTime,
-    ): Boolean {
-        if (mode.repeatDays.isEmpty()) return false
+    ): LocalDate? {
+        if (mode.repeatDays.isEmpty()) return null
 
+        val today = now.toLocalDate()
         val nowTime = now.toLocalTime()
         val crossesMidnight = !mode.endTime.isAfter(mode.startTime)
 
         if (!crossesMidnight) {
-            return now.dayOfWeek in mode.repeatDays &&
-                !nowTime.isBefore(mode.startTime) &&
-                nowTime.isBefore(mode.endTime)
+            return today.takeIf {
+                now.dayOfWeek in mode.repeatDays &&
+                    !nowTime.isBefore(mode.startTime) &&
+                    nowTime.isBefore(mode.endTime)
+            }
         }
 
-        val previousDay = now.dayOfWeek.previousDay()
-        val inTodayWindow = now.dayOfWeek in mode.repeatDays &&
-            !nowTime.isBefore(mode.startTime)
-        val inPreviousDayWindow = previousDay in mode.repeatDays &&
-            nowTime.isBefore(mode.endTime)
-
-        return inTodayWindow || inPreviousDayWindow
+        val previousDate = today.minusDays(1)
+        return when {
+            now.dayOfWeek in mode.repeatDays && !nowTime.isBefore(mode.startTime) -> today
+            previousDate.dayOfWeek in mode.repeatDays && nowTime.isBefore(mode.endTime) -> previousDate
+            else -> null
+        }
     }
-
-    private fun DayOfWeek.previousDay(): DayOfWeek =
-        if (this == DayOfWeek.MONDAY) DayOfWeek.SUNDAY else DayOfWeek.of(value - 1)
 }
