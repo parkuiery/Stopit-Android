@@ -116,7 +116,7 @@ private fun goalLockDetailViewModel(
     analytics: KeepAnalytics,
 ) = GoalLockDetailViewModel(
     savedStateHandle = SavedStateHandle(mapOf(GOAL_LOCK_ID_ARG to 42L)),
-    goalLockDao = goalLockDao,
+    goalLockRepository = GoalLockRepository(goalLockDao),
     analytics = analytics,
 )
 
