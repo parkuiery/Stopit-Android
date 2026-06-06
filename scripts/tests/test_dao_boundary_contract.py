@@ -111,6 +111,19 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
         self.assertIn("private val routineRepository: RoutineRepository", text)
 
+    def test_lock_viewmodel_uses_routine_repository_boundary(self):
+        lock = APP_MAIN / "feature/lock/LockViewModel.kt"
+        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+        text = lock.read_text()
+
+        self.assertTrue(repository.exists(), "RoutineRepository owns lock routine read DAO access")
+        self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", text)
+        self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.EmergencyUnlockEntity", text)
+        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("private val routineRepository: RoutineRepository", text)
+
     def test_routine_repository_is_the_feature_allowlisted_dao_boundary(self):
         repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
         self.assertTrue(repository.exists(), "RoutineRepository owns routine DAO access")

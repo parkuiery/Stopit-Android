@@ -10,9 +10,6 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -20,8 +17,8 @@ import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
@@ -46,7 +43,7 @@ class LockViewModel
     @Inject
     constructor(
         savedStateHandle: SavedStateHandle,
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         private val lockHistoryRepository: LockHistoryRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
@@ -94,7 +91,7 @@ class LockViewModel
         private fun getRoutines() =
             intent {
                 val nowDateTime = LocalDateTime.now(clock)
-                val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }.orEmpty()
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
                 val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines, nowDateTime = nowDateTime)
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
