@@ -79,6 +79,7 @@
 - `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`: #479용 `routines_count` user property coverage 보강 계약. `customUser:routines_count`가 metadata에 보인다는 사실과 `(not set)` activeUsers가 큰 coverage gap이라는 사실을 분리하고, code-lane 구현/release/D+14·D+30 readback 경계를 고정한다.
 - `docs/HOME_STATUS_CTA_STRUCTURE.md`: #463용 홈 화면 상태/CTA 구조 계약. Home의 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태와 단일 primary CTA 위계를 고정하되, docs-lane 산출물은 구현 완료가 아니며 `first_lock_configured`를 실제 차단 완료로 해석하지 않는다.
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약. `routine_creation_cta_*` 이벤트, privacy-safe 파라미터, Routine empty state/광고/#407 CTA 충돌 방지, 14일/30일 readback 경계를 정리한다.
+- `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`: #531용 반복 차단 기반 자동 루틴 제안 계약. 반복 시간대·요일·앱 카테고리 bucket 기반 루틴 prefill, 기존 루틴 coverage guard, #455/#407/광고 CTA slot 충돌 방지, `repeat_block_routine_suggestion_*` analytics와 QA baseline을 정리한다.
 - `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`: #464용 차단 화면 카피/액션 위계 계약. `BlockScreen`을 처벌/제한 화면이 아니라 코칭 톤의 “잠깐 멈춤 + 자기 통제 보조” 경험으로 고정하고, emergency unlock 보조 액션/남은 횟수/disabled reason, 광고 간섭 제한, locale parity, QA evidence 기준을 정리한다. 이 문서는 구현 완료가 아니라 code-lane 구현·release/tag/Play deploy 후 14일 readback 전까지는 UX 계약으로만 해석한다.
 - `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`: #467용 긴급해제 reason/app/duration/countdown copy·step 계약. PR #517(`572eb559`)로 짧은 reason label, helper/disabled copy, reason-required-off guardrail, 기존 reason enum compatibility, shipped locale parity와 focused JVM/lint/build 검증은 `develop`에 반영됐다. 아직 실제 기기/screenshot/TalkBack QA, release/tag/Play deploy, 14일 readback 전까지는 live 성과 판단을 보류한다.
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 첫 잠금 활성화 퍼널 source of truth. 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283) 이후에는 “CTA/피드백 부재”가 아니라 post-release 14일 재측정과 #13 queryability 경계를 기준으로 본다. 2026-06-02 확인 기준 이 세 PR은 `origin/develop`에는 포함됐지만 `origin/main`/최신 production tag `v1.7.7`에는 아직 미포함이므로, live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline으로 해석한다.
@@ -375,6 +376,7 @@ PY
 - 루틴 수가 있는 사용자의 세션/이벤트가 높다면 루틴 생성 유도를 활성화 개선 후보로 본다.
 - 루틴 보유/미보유 비교는 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 표준 코호트(`customUser:routines_count = 0`, `>=1`, `(not set)`)와 재측정 기준을 따른다. 2026-06-03 기준 루틴 보유자는 sessions / activeUsers와 `app_block_intercepted` users / activeUsers가 모두 높지만, `(not set)` activeUsers가 가장 커서 전체 retention 결론은 보류한다.
 - #455 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 보고, `first_core_action_completed` 또는 `app_block_intercepted` 이후 + 루틴 0개 사용자에게만 soft CTA를 제안한다. onboarding / pre-first-lock 사용자는 제외하고, Routine empty state / 광고 배너 / #407 루틴 템플릿 공유 CTA와 같은 slot에서 압박하지 않는다.
+- #531 반복 차단 기반 자동 루틴 제안은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 보고, 일반 CTA가 아니라 반복 차단 패턴이 충분한 사용자에게만 time/day/category bucket 기반 루틴 prefill을 제안한다. 기존 활성 루틴이 같은 패턴을 커버하면 추천하지 않고, `repeat_block_routine_suggestion_*` 이벤트는 privacy-safe enum/bucket만 사용한다.
 - 루틴 실험을 실행 후보로 올릴 때는 guardrail로 `emergency_unlock_completed` users / blocked users, review/rating, crash-free users를 함께 본다. 루틴 보유자의 차단 강도가 높다는 신호가 사용자 부담 증가로 이어질 수 있기 때문이다.
 
 ### 5. 수익화
