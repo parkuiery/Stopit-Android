@@ -29,7 +29,7 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("색상만으로 전달하지 말고", text)
         self.assertIn("docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md", text)
 
-    def test_audit_doc_records_current_top_app_bar_follow_up_surface(self):
+    def test_audit_doc_records_current_post_implementation_surface(self):
         text = HIERARCHY_DOC.read_text()
 
         for expected in [
@@ -38,12 +38,17 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             "BlockedAppsScreen.kt",
             "RoutineScreen.kt",
             "EmergencyUnlockSettingsScreen.kt",
+            "GoalLockCreationScreen.kt",
+            "MenuScreen.kt",
         ]:
             self.assertIn(expected, text)
 
+        self.assertIn("PR #546", text)
+        self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
+        self.assertIn("visual QA", text)
 
     def test_docs_agents_links_primary_color_hierarchy(self):
         text = DOCS_AGENTS.read_text()
