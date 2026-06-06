@@ -139,6 +139,22 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", document)
             self.assertIn("#531", document)
 
+    def test_high_traffic_docs_reflect_policy_foothold_without_claiming_full_ui_release(self):
+        documents = [
+            PRODUCT_DASHBOARD.read_text(),
+            METRICS_ANALYSIS.read_text(),
+            METRICS_CONTEXT.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+        ]
+
+        for document in documents:
+            self.assertIn("PR #537", document)
+            self.assertIn("local policy + analytics", document)
+            self.assertIn("UI", document)
+            self.assertIn("release", document)
+            self.assertIn("GA4", document)
+            self.assertIn("수요 없음", document)
+
     def test_qa_checklist_defines_non_shaming_repeat_block_evidence(self):
         qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
 
