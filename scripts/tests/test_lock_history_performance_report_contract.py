@@ -35,6 +35,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
+            "LockHistoryPerformanceReportAccessibilityTest",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, doc)
@@ -101,6 +102,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "#211 share CTA remains optional",
             "shame/friction wording absent",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
+            "LockHistoryPerformanceReportAccessibilityTest",
+            "focused contentDescription regression passed",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)

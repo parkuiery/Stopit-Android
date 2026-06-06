@@ -139,7 +139,7 @@ Issue: #465
 - 한 번의 짧은 차단 세션 후 low-data copy가 표시된다.
 - 주간/월간 탭 전환 시 headline 기간이 바뀐다.
 - Top apps 문구가 “위험 앱”이 아니라 “막아낸 성과”로 읽힌다.
-- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다.
+- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다. QA-lane accessibility regression은 summary card와 top apps card가 성과형 headline/supporting copy를 merged content description으로 노출하는지 확인한다.
 - 한국어/영어 string resource parity를 확인한다.
 
 ## 구현 상태와 남은 패키지 경계
@@ -153,6 +153,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
 7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
+8. QA-lane follow-through로 `LockHistoryPerformanceReportAccessibilityTest`가 추가되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정한다.
 
 현재 구현/문서 계약 검증 명령:
 
@@ -162,6 +163,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ./gradlew --console=plain :app:assembleProdDebug
 ./gradlew --console=plain :app:lintProdRelease
+./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 git diff --check
 ```
@@ -172,7 +174,7 @@ git diff --check
 
 - 성과 리포트 UI가 실제 retention을 개선했는지는 release/tag/Play deploy 후 14일/30일 window가 필요하다.
 - 새 analytics event를 추가하면 GA4 Admin custom dimension 등록과 metadata 확인은 별도 수동/운영 단계다.
-- 실제 스크린샷/디바이스 TalkBack evidence는 로컬 emulator/기기가 있는 QA lane 또는 PR CI/수동 QA에서 채운다.
+- 실제 스크린샷 evidence, release/tag/Play deploy 후 사용자 노출, 14일/30일 readback은 계속 외부/manual 경계다. TalkBack 의미 전달의 repo-internal baseline은 `LockHistoryPerformanceReportAccessibilityTest`가 summary/top apps content description으로 일부 자동화한다.
 
 ## 중복/연계 이슈
 
