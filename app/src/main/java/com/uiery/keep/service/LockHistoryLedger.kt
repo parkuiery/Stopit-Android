@@ -3,9 +3,8 @@ package com.uiery.keep.service
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.model.LockHistoryModel
 import java.time.LocalDate
 import kotlinx.coroutines.flow.firstOrNull
@@ -53,7 +52,7 @@ internal fun summarizeLockHistoryLedger(sessions: List<LockHistoryModel>): LockH
 
 internal suspend fun recordLockHistorySession(
     dataStore: DataStore<Preferences>,
-    lockHistoryDao: LockHistoryDao,
+    lockHistoryRepository: LockHistoryRepository,
     startTimestamp: Long,
     endTimestamp: Long,
     lockedApps: Collection<String>,
@@ -69,13 +68,11 @@ internal suspend fun recordLockHistorySession(
         mutablePreferences[PreferencesKey.TOTAL_BLOCK_TIME] = previousTotal + durationMillis
     }
 
-    lockHistoryDao.insert(
-        LockHistoryEntity(
-            startTimestamp = startTimestamp,
-            endTimestamp = endTimestamp,
-            durationMillis = durationMillis,
-            lockedApps = lockedApps.toList(),
-            isRoutine = isRoutine,
-        ),
+    lockHistoryRepository.recordSession(
+        startTimestamp = startTimestamp,
+        endTimestamp = endTimestamp,
+        durationMillis = durationMillis,
+        lockedApps = lockedApps,
+        isRoutine = isRoutine,
     )
 }

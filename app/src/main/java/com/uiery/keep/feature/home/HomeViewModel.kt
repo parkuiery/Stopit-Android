@@ -10,9 +10,6 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -20,10 +17,12 @@ import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -56,8 +55,8 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
-        private val lockHistoryDao: LockHistoryDao,
-        private val goalLockDao: GoalLockDao,
+        private val lockHistoryRepository: LockHistoryRepository,
+        private val goalLockRepository: GoalLockRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -248,10 +247,9 @@ class HomeViewModel
 
         private fun getGoalLockCard() =
             intent {
-                goalLockDao.fetchAll().collect { goalLocks ->
+                goalLockRepository.fetchAll().collect { goalLocks ->
                     val today = LocalDate.now()
                     val card = goalLocks
-                        .map { it.toDomain() }
                         .firstOrNull { it.status != GoalLockStoredStatus.EndedEarly }
                         ?.let { goalLock ->
                             val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
@@ -277,7 +275,7 @@ class HomeViewModel
             if (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay()) != GoalLockRuntimeStatus.Completed) return goalLock
 
             val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
-            goalLockDao.update(GoalLockEntity.fromDomain(completed))
+            goalLockRepository.update(completed)
             analytics.trackGoalLockCompleted(
                 lockMode = goalLock.lockMode.analyticsLockMode,
                 durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
@@ -298,7 +296,7 @@ class HomeViewModel
             val startTime = endTime - lockedMillis
             recordLockHistorySession(
                 dataStore = dataStore,
-                lockHistoryDao = lockHistoryDao,
+                lockHistoryRepository = lockHistoryRepository,
                 startTimestamp = startTime,
                 endTimestamp = endTime,
                 lockedApps = state.selectedAppPackage,

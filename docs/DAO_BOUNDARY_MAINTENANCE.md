@@ -38,25 +38,38 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `GoalLockCreationViewModel`은 목표 잠금 입력/검증, 생성 analytics, 생성 side effect만 소유하고 저장은 repository에 위임한다.
 - `GoalLockDetailViewModel`은 상세 state, 조기 종료/완료 analytics 정책만 소유하고 조회/업데이트 persistence mapping은 repository에 위임한다.
 
+### Emergency unlock coordinator and lock-history recording boundary
+
+#520의 네 번째 repo-internal QA 패키지는 긴급해제 요청 오케스트레이션과 완료된 잠금 세션 기록 경로에서 Room DAO 직접 접근을 분리했다.
+
+#### 허용 경계
+
+- `EmergencyUnlockRepository`가 emergency-unlock service 경계의 Room `EmergencyUnlockDao` 접근 허용 경계다.
+- `EmergencyUnlockCoordinator`는 settings read/sanitize, daily-limit 정책 순서, DataStore runtime state, analytics, `EmergencyUnlockState` 업데이트 순서만 소유한다.
+- Block/Lock/Settings test fixture는 coordinator에 DAO를 직접 넘기지 않고 repository 경계를 통해 같은 production constructor contract를 검증한다.
+- `LockHistoryRepository.recordSession(...)`이 완료된 Home/Lock 잠금 세션의 Room `LockHistoryDao` insert 허용 경계다.
+- `HomeViewModel`, `LockViewModel`, `LockHistoryLedger`는 legacy summary cache / session timing / review eligibility ordering만 소유하고 Room entity 생성·insert는 repository에 위임한다.
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
 - 같은 static guard가 `ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `GoalLockCreationViewModel` / `GoalLockDetailViewModel` 아래에서 `GoalLockDao` 직접 import가 재도입되지 않고 `GoalLockRepository`가 허용 DAO 경계로 남는지 검사한다.
+- 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` 직접 import가 재도입되지 않고 `EmergencyUnlockRepository`가 허용 DAO 경계로 남는지 검사한다.
+- 같은 static guard가 `LockHistoryLedger` 아래에서 `LockHistoryDao` / `LockHistoryEntity` 직접 import가 재도입되지 않고 `LockHistoryRepository.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## 남은 인벤토리
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 goal-lock 생성/상세 화면 경계까지 안전하게 닫고, Receiver/Service/잠금 실행 경로는 별도 focused test와 runtime QA 범위로 다룬다.
+아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 emergency-unlock coordinator persistence 경계와 Home/Lock 완료 세션 기록의 lock-history repository insert 경계까지 안전하게 닫고, Receiver/AccessibilityService/루틴 실행 경로는 별도 focused test와 runtime QA 범위로 다룬다.
 
-- `HomeViewModel`: `GoalLockDao`, `LockHistoryDao`
-- `LockViewModel`: `RoutineDao`, `LockHistoryDao`, `EmergencyUnlockDao`
+- `HomeViewModel`: `GoalLockDao`
+- `LockViewModel`: `RoutineDao`, `EmergencyUnlockDao`
 - `MenuViewModel`: `RoutineDao`
 - `RoutineBottomSheetViewModel`, `RoutineViewModel`, `RoutineRestoreAftercare`: `RoutineDao`
 - `BootReceiver`, `RoutineAlarmReceiver`: `RoutineDao`
 - `KeepAccessibilityService`: `RoutineDao`, `GoalLockDao`
-- `EmergencyUnlockCoordinator`, `LockHistoryLedger`: service 경계에서 DAO를 사용하므로 별도 저장소·정책 경계 판단이 필요하다.
-- `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`: 현재 허용된 repository DAO 경계다.
+- `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`: 현재 허용된 repository DAO 경계다.
 
 DB 모듈(`KeepDatabase`, `database/di`, DAO 인터페이스 자체)과 테스트 fake DAO는 이 인벤토리에서 제외한다.
 
@@ -68,6 +81,7 @@ python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ```
 

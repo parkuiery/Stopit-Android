@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.lockhistory
 
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.model.toModel
 import kotlinx.coroutines.flow.Flow
@@ -25,4 +26,22 @@ class LockHistoryRepository @Inject constructor(
                 .sortedByDescending { it.value }
                 .map { it.key to it.value }
         }
+
+    suspend fun recordSession(
+        startTimestamp: Long,
+        endTimestamp: Long,
+        durationMillis: Long,
+        lockedApps: Collection<String>,
+        isRoutine: Boolean,
+    ) {
+        lockHistoryDao.insert(
+            LockHistoryEntity(
+                startTimestamp = startTimestamp,
+                endTimestamp = endTimestamp,
+                durationMillis = durationMillis,
+                lockedApps = lockedApps.toList(),
+                isRoutine = isRoutine,
+            ),
+        )
+    }
 }

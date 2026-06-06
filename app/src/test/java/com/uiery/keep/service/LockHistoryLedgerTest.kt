@@ -3,6 +3,7 @@ package com.uiery.keep.service
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.LockHistoryModel
 import kotlinx.coroutines.flow.Flow
@@ -57,7 +58,7 @@ class LockHistoryLedgerTest {
 
         recordLockHistorySession(
             dataStore = dataStore,
-            lockHistoryDao = dao,
+            lockHistoryRepository = LockHistoryRepository(dao),
             startTimestamp = 1_000L,
             endTimestamp = 8_000L,
             lockedApps = setOf("com.instagram", "com.youtube"),
