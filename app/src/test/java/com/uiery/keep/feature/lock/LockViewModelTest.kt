@@ -25,6 +25,8 @@ import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRepository
+import com.uiery.keep.service.EmergencyUnlockRequestResult
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -118,7 +120,7 @@ class LockViewModelTest {
         return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(FakeLockHistoryDao())),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -161,7 +163,7 @@ class LockViewModelTest {
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -224,7 +226,7 @@ class LockViewModelTest {
             LockViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("lockTime" to LocalDateTime.now(clock).toString(), "isRoutine" to true)),
                 routineRepository = FakeRoutineRepository(flowOf(listOf(routine))),
-                lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
+                lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
