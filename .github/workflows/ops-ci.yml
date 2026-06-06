@@ -109,7 +109,12 @@ jobs:
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
+              - '.github/workflows/android-ci.yml'
               - '.github/workflows/ops-ci.yml'
+              - '.github/workflows/play-deploy.yml'
+              - '.github/workflows/release-build.yml'
+              - '.github/workflows/release-qa.yml'
+              - '.github/workflows/version-guard.yml'
             workflow_syntax:
               - '.github/workflows/**'
 
