@@ -180,6 +180,27 @@ interface KeepAnalytics {
         lockMode: String,
         durationDaysBucket: String,
     ) = Unit
+
+    fun trackRoutineCreationCtaShown(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
+
+    fun trackRoutineCreationCtaClicked(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
+
+    fun trackRoutineCreationCtaDismissed(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -222,6 +243,9 @@ object KeepAnalyticsEvent {
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
+    const val ROUTINE_CREATION_CTA_SHOWN = "routine_creation_cta_shown"
+    const val ROUTINE_CREATION_CTA_CLICKED = "routine_creation_cta_clicked"
+    const val ROUTINE_CREATION_CTA_DISMISSED = "routine_creation_cta_dismissed"
 }
 
 object KeepAnalyticsParam {
@@ -266,6 +290,10 @@ object KeepAnalyticsParam {
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
+    const val SURFACE = "surface"
+    const val ACTIVATION_STAGE = "activation_stage"
+    const val HAS_ROUTINE = "has_routine"
+    const val CTA_VARIANT = "cta_variant"
 }
 
 object OnboardingStepName {
@@ -425,4 +453,16 @@ object AnalyticsGoalLockEndedEarlyReason {
     const val USER_CONFIRMED = "user_confirmed"
     const val VALIDATION_RESET = "validation_reset"
     const val UNKNOWN = "unknown"
+}
+
+object AnalyticsRoutineCreationCtaSurface {
+    const val HOME_SECONDARY = "home_secondary"
+}
+
+object AnalyticsRoutineCreationCtaActivationStage {
+    const val POST_FIRST_CORE_ACTION = "post_first_core_action"
+}
+
+object AnalyticsRoutineCreationCtaVariant {
+    const val SOFT_DEFAULT = "soft_default"
 }

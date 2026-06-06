@@ -32,7 +32,7 @@
 - 집중 요약 공유 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayload.kt`
 - 잠금 기록 성과 리포트 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryPerformanceReportReadModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt` (PR #485로 UI/read model develop 반영; 2026-06-05 code-lane instrumentation으로 `lock_history_*` event 코드 계약 추가)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
-- 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
+- 루틴 생성 CTA 구현: `HomeViewModel` / `HomeStatusCtaReadModel` / `HomeScreen` / `FirebaseKeepAnalytics` (`home_secondary` soft CTA → Routine route)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 부모 모드 구현 후보: `ParentModePolicy` / 보호자 PIN policy / same-device parent mode setup·active screen·AccessibilityService integration(구현 시 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
@@ -234,10 +234,10 @@
 
 현재 enum 계약:
 
-- `surface`: `home`, `lock_history`, `post_block_success`
+- `surface`: `home_secondary`(현재 Home 보조 CTA 구현값), `lock_history`, `post_block_success`
 - `activation_stage`: `post_first_core_action`, `returning_blocked_user`
 - `has_routine`: MVP에서는 `false`만 허용한다. 루틴 보유자에게 보이면 QA 실패다.
-- `cta_variant`: `default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
+- `cta_variant`: `soft_default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
 
 ### 부모 모드

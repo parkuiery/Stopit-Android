@@ -215,6 +215,7 @@
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
+    <string name="home_secondary_create_routine">Create routine</string>
     <string name="first_lock_activation_cta_title">Bereit für deine erste Sperre?</string>
     <string name="first_lock_activation_cta_description">Du hast Apps ausgewählt. Schalte StopIt jetzt ein und erlebe die Sperre.</string>
     <string name="first_lock_activation_cta_action">Starten</string>

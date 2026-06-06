@@ -234,9 +234,9 @@
 | `goal_name_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, release/GA4 등록 전 | 목표 이름 원문을 보내지 않고 preset/custom enum만 확인 | `customEvent:goal_name_type` |
 | `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
 | `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
-| `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 생성 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
-| `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 동일 | `customEvent:activation_stage` |
-| `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
+| `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 (`home_secondary`) / GA4 등록 필요 | 루틴 생성 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
+| `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 (`post_first_core_action`) / GA4 등록 필요 | 동일 | `customEvent:activation_stage` |
+| `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 / GA4 등록 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
 | `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
 | `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
 | `pin_result` | `parent_mode_unlocked_by_pin` | #471 문서 계약 추가 / 코드 구현 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
@@ -256,7 +256,7 @@
 | `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
 | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | CTA copy/variant 비교가 필요할 때 |
 | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
-| `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
+| `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 (`soft_default`) / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
 
 ### 3) Recommended 이벤트 지표
 
@@ -331,10 +331,10 @@
 | `repeat_days_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_days_bucket` 확인 필요 | 요일 패턴별 공유 의도 비교. enum/bucket만 허용 |
 | `time_window_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_window_bucket` 확인 필요 | 시간대 패턴별 공유 의도 비교. raw time/session history 금지 |
 | `routine_name_included` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_name_included` 확인 필요 | 이름 원문 대신 opt-in 여부 boolean만 기록 |
-| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home/History/post-block 표면별 반응 비교 |
+| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)/History/post-block 표면별 반응 비교 |
 | `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
 | `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
-| `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | MVP는 `default` 단일 variant로 시작 |
+| `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | MVP는 `soft_default` 단일 variant로 시작 |
 | `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 구현·배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
 | `duration_minutes_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_minutes_bucket` 확인 필요 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 |
 | `pin_result` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:pin_result` 확인 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 |

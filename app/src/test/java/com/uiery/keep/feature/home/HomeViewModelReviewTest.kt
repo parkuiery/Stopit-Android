@@ -137,6 +137,7 @@ class HomeViewModelReviewTest {
             analytics = analytics,
             lockHistoryDao = FakeLockHistoryDao(),
             goalLockDao = EmptyGoalLockDao(),
+            routineDao = EmptyHomeRoutineDao(),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,

@@ -94,6 +94,28 @@ python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
 - 타이머 예약/실행 중: 즉시 차단과 타이머의 역할이 문구로 구분된다.
 - 목표 잠금 진행 중: `GoalLockProgressCard`류 상태 표면이 Home primary status와 충돌하지 않는다.
 
+### Routine creation CTA QA evidence
+
+issue #455 계열 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 본다. CTA는 onboarding/pre-first-lock이 아니라 첫 핵심 행동 이후(`post_first_core_action`) 루틴 0개 사용자에게만 Home 보조 slot으로 노출되어야 하며, 클릭하면 Routine 생성 흐름으로 이동해야 한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
+  --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA matrix:
+- 루틴 0개 + 선택 앱 있음 + 첫 핵심 행동 완료: Home 보조 CTA가 보이고 문구가 처벌/감시가 아니라 반복 자동화 도움으로 읽힌다.
+- pre-first-lock / 첫 핵심 행동 전: 루틴 생성 CTA가 보이지 않는다.
+- 루틴 1개 이상: 루틴 생성 CTA가 보이지 않는다.
+- CTA 클릭: Routine 화면/생성 흐름으로 이동한다.
+- analytics debug/log evidence가 가능하면 `routine_creation_cta_shown` / `routine_creation_cta_clicked` payload에 `surface=home_secondary`, `activation_stage=post_first_core_action`, `has_routine=false`, `cta_variant=soft_default`만 포함되는지 확인한다.
+
 ```md
 ## Home status/CTA QA evidence
 - Issue: #463

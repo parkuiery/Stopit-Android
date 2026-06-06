@@ -144,6 +144,7 @@ class HomeViewModelRoutineStartNoticeTest {
             analytics = analytics,
             lockHistoryDao = lockHistoryDao,
             goalLockDao = EmptyRoutineNoticeGoalLockDao(),
+            routineDao = EmptyHomeRoutineDao(),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
