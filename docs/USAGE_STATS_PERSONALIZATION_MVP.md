@@ -2,9 +2,9 @@
 
 이 문서는 GitHub issue #82에서 처음 정리된 Usage Access 개인화 아이디어를 이어받아, 현재 열린 umbrella issue #119 `[백로그] Usage Access 선택형 개인화 discovery 및 승격 게이트 정리`의 실행 판단 기준을 정리한 docs-lane source of truth다.
 
-현재 backlog follow-through source of truth는 open issue #119 `[백로그] Usage Access 기반 사용기록 리포트 MVP 실행 후보 재검토`로 본다. 이 문서는 #119가 승격 판단을 할 때 참조하는 제품/권한/가드레일 계약서다.
+현재 backlog follow-through source of truth는 open issue #119 `[백로그] Usage Access 선택형 개인화 discovery 및 승격 게이트 정리`로 본다. 이 문서는 #119가 승격 판단을 할 때 참조하는 제품/권한/가드레일 계약서다.
 
-목표는 막연한 “리포트 기능”을 제안하는 것이 아니라, 실제 착수 전에 아래 여섯 가지를 닫고, #119를 그대로 코드 lane에 넘기지 않도록 discovery package와 implementation package의 경계를 분리하는 것이다.
+목표는 막연한 “리포트 기능”을 제안하는 것이 아니라, 실제 착수 전에 아래 여섯 가지를 닫고, #119를 그대로 코드 lane에 넘기지 말고 discovery package와 implementation package의 경계를 분리하는 것이다.
 
 1. `UsageStatsManager`로 조회 가능한 데이터와 Android 제약을 명확히 한다.
 2. 권한 요청 UX와 미허용 fallback을 정의한다.
