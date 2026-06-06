@@ -124,6 +124,7 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("GoalLockSelectedAppUiItemTest", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
