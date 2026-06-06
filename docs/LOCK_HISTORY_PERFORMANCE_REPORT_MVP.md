@@ -1,7 +1,7 @@
 # 잠금 기록 성과 리포트 UX 계약
 
 Issue: #465
-상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / release·GA4·14일·30일 readback 전**
+상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / PR #566 TalkBack 자동 baseline develop 반영 / release·GA4·14일·30일 readback 전**
 
 이 문서는 Stopit의 `LockHistory` 화면을 단순 로그가 아니라 사용자가 “내가 지킨 기록”을 이해하는 성과 리포트 경험으로 개선하기 위한 source of truth다. #211 집중 요약 공유와 같은 화면을 쓰지만, 이 이슈의 1차 목표는 외부 공유가 아니라 **개인 성과 해석과 재방문 동기 강화**다.
 
@@ -153,7 +153,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
 7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
-8. QA-lane follow-through로 `LockHistoryPerformanceReportAccessibilityTest`가 추가되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정한다.
+8. PR #566(`test(lockhistory): 성과 리포트 접근성 baseline 보강`, merge commit `48167aef35682d4d84c02b462c94e1901797f04d`)로 `LockHistoryPerformanceReportAccessibilityTest`가 `develop`에 반영되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정한다.
 
 현재 구현/문서 계약 검증 명령:
 
@@ -174,7 +174,7 @@ git diff --check
 
 - 성과 리포트 UI가 실제 retention을 개선했는지는 release/tag/Play deploy 후 14일/30일 window가 필요하다.
 - 새 analytics event를 추가하면 GA4 Admin custom dimension 등록과 metadata 확인은 별도 수동/운영 단계다.
-- 실제 스크린샷 evidence, release/tag/Play deploy 후 사용자 노출, 14일/30일 readback은 계속 외부/manual 경계다. TalkBack 의미 전달의 repo-internal baseline은 `LockHistoryPerformanceReportAccessibilityTest`가 summary/top apps content description으로 일부 자동화한다.
+- 실제 스크린샷 evidence, release/tag/Play deploy 후 사용자 노출, 14일/30일 readback은 계속 외부/manual 경계다. TalkBack 의미 전달의 repo-internal baseline은 PR #566의 `LockHistoryPerformanceReportAccessibilityTest`가 summary/top apps content description으로 일부 자동화한다.
 
 ## 중복/연계 이슈
 
@@ -185,7 +185,7 @@ git diff --check
 
 ## PR/이슈 연결 규칙
 
-PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 14일/30일 readback, 실제 QA evidence 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
+PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. PR #566으로 summary/top apps TalkBack contentDescription regression과 QA evidence template도 `develop`에 반영됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 실제 스크린샷/TalkBack spot-check, 14일/30일 readback 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
 
 ## 계약 회귀 테스트
 
