@@ -157,6 +157,31 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("suspend fun deleteById", text)
         self.assertIn("suspend fun updateIsEnabledById", text)
 
+    def test_routine_receivers_use_routine_repository_boundary(self):
+        offenders: list[str] = []
+        receiver_root = APP_MAIN / "receiver"
+        receiver_names = {"BootReceiver.kt", "RoutineAlarmReceiver.kt"}
+        import_pattern = re.compile(r"^import\s+com\.uiery\.keep\.database\.dao\.RoutineDao\b", re.MULTILINE)
+
+        for source in self.kotlin_sources(receiver_root):
+            if source.name not in receiver_names:
+                continue
+            relative = source.relative_to(REPO_ROOT)
+            text = source.read_text()
+            if import_pattern.search(text):
+                offenders.append(str(relative))
+            self.assertIn(
+                "import com.uiery.keep.feature.routine.RoutineRepository",
+                text,
+                f"{relative} must use RoutineRepository for routine persistence",
+            )
+
+        self.assertEqual(
+            [],
+            offenders,
+            "routine receivers must depend on RoutineRepository, not RoutineDao directly",
+        )
+
     def test_emergency_unlock_coordinator_uses_repository_boundary(self):
         coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"
         repository = APP_MAIN / "service/EmergencyUnlockRepository.kt"

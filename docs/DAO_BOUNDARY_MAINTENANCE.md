@@ -91,6 +91,17 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `RoutineRestoreAftercare`는 restored routine list의 reschedule orchestration, exact-alarm permission prompt reset, `RoutineStore` compatibility cache rewrite만 소유하고, Room entity 조회·enabled update mapping은 repository에 위임한다.
 - `RoutineRepositoryTest`는 `fetchAllOnce()` mapping을 추가로 고정하고, Routine/Splash restore scheduling test fixture는 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
 
+### Routine receiver restore/reschedule boundary
+
+#520의 아홉 번째 repo-internal QA 패키지는 boot/package/time-change restore와 routine alarm receiver 경로의 `RoutineDao` 직접 접근을 `RoutineRepository` 경계로 분리했다.
+
+#### 허용 경계
+
+- `RoutineRepository`가 `BootReceiver` / `RoutineAlarmReceiver`의 Room `RoutineDao` read/update 접근 허용 경계다.
+- `BootReceiver`는 boot/package/time-change action filtering, restore orchestration, exact-alarm schedule 결과 반영, `RoutineStore` compatibility cache rewrite만 소유하고 Room entity 조회·enabled update mapping은 repository에 위임한다.
+- `RoutineAlarmReceiver`는 routine alarm trigger parsing, start notification/fallback notice, selected routine reschedule orchestration만 소유하고 Room entity 조회·enabled update mapping은 repository에 위임한다.
+- Receiver runtime/androidTest fixtures는 직접 receiver field에 DAO를 넣지 않고 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
@@ -101,13 +112,13 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `LockViewModel` 아래에서 `RoutineDao` / `RoutineEntity` / stale emergency-unlock DAO/entity import가 재도입되지 않고 `RoutineRepository`가 lock routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 routine feature non-repository source 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation/restore-aftercare 허용 경계로 남는지 검사한다.
+- 같은 static guard가 `BootReceiver` / `RoutineAlarmReceiver` 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 receiver restore/reschedule 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## 남은 인벤토리
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine restore-aftercare 경계까지 안전하게 닫고, Receiver/AccessibilityService 런타임 경로는 별도 focused test와 runtime QA 범위로 다룬다.
+아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine restore-aftercare와 receiver restore/reschedule 경계까지 안전하게 닫고, AccessibilityService 런타임 경로는 별도 focused test와 runtime QA 범위로 다룬다.
 
-- `BootReceiver`, `RoutineAlarmReceiver`: `RoutineDao`
 - `KeepAccessibilityService`: `RoutineDao`, `GoalLockDao`
 - `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`: 현재 허용된 repository DAO 경계다.
 
