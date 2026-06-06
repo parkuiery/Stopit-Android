@@ -5,9 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.LockHistoryEntity
-import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
@@ -21,6 +19,8 @@ import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
@@ -117,7 +117,7 @@ class LockViewModelTest {
 
         return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
-            routineDao = FakeRoutineDao(),
+            routineRepository = FakeRoutineRepository(),
             lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
@@ -160,7 +160,7 @@ class LockViewModelTest {
 
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
-            routineDao = FakeRoutineDao(),
+            routineRepository = FakeRoutineRepository(),
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
@@ -209,12 +209,12 @@ class LockViewModelTest {
         )
         val lockHistoryDao = RecordingLockHistoryDao()
         val routine =
-            RoutineEntity(
+            RoutineModel(
                 id = 1,
                 name = "Morning focus",
                 startTime = LocalTime(hour = 9, minute = 0),
                 endTime = LocalTime(hour = 10, minute = 0),
-                repeatDays = listOf(DayOfWeek.MONDAY),
+                repeatDays = DayOfWeek.entries.joinToString("") { day -> if (day == DayOfWeek.MONDAY) "1" else "0" },
                 lockApplications = listOf("com.youtube"),
                 isEnabled = true,
                 changeLockHours = null,
@@ -223,7 +223,7 @@ class LockViewModelTest {
         val viewModel =
             LockViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("lockTime" to LocalDateTime.now(clock).toString(), "isRoutine" to true)),
-                routineDao = FakeRoutineDao(flowOf(listOf(routine))),
+                routineRepository = FakeRoutineRepository(flowOf(listOf(routine))),
                 lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
@@ -253,17 +253,10 @@ class LockViewModelTest {
     }
 }
 
-private class FakeRoutineDao(
-    private val routinesFlow: Flow<List<RoutineEntity>> = emptyFlow(),
-) : RoutineDao {
-    override fun fetchAll(): Flow<List<RoutineEntity>> = routinesFlow
-
-    override fun fetchAllOnce(): List<RoutineEntity> = emptyList()
-    override fun fetch(id: Long): RoutineEntity = throw UnsupportedOperationException()
-    override fun insert(routineEntity: RoutineEntity): Long = 0L
-    override fun deleteById(id: Long) = Unit
-    override fun update(routineEntity: RoutineEntity) = Unit
-    override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
+private class FakeRoutineRepository(
+    private val routinesFlow: Flow<List<RoutineModel>> = emptyFlow(),
+) : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = routinesFlow
 }
 
 private class LockRecordingHistoryDao : LockHistoryDao {
