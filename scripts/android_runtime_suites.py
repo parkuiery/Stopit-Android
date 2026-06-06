@@ -79,6 +79,9 @@ SUITES: dict[str, list[str]] = {
     "notification_denied_emergency_unlock": [
         "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
     ],
+    "notification_channel_disabled": [
+        "com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest",
+    ],
 }
 
 RELEASE_QA_SEQUENCE = [
@@ -95,6 +98,7 @@ ANDROID_CI_SEQUENCE = [
     "android_ci_focused_runtime_smoke",
     "notification_denied_receiver",
     "notification_denied_emergency_unlock",
+    "notification_channel_disabled",
 ]
 
 

@@ -135,7 +135,7 @@ object RoutineReceiverPolicy {
         notificationResult: RoutineStartNotificationResult,
         fallbackMessage: String,
     ): PendingRoutineStartNotice? = when {
-        notificationResult != RoutineStartNotificationResult.PermissionDenied -> null
+        notificationResult == RoutineStartNotificationResult.Posted -> null
         fallbackMessage.isBlank() -> null
         else -> PendingRoutineStartNotice(message = fallbackMessage)
     }
