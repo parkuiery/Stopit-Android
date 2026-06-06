@@ -23,6 +23,7 @@ import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
+import com.uiery.keep.service.EmergencyUnlockRepository
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -123,7 +124,7 @@ class LockViewModelTest {
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
-                emergencyUnlockDao = emergencyUnlockDao,
+                repository = EmergencyUnlockRepository(emergencyUnlockDao),
                 analytics = analytics,
             ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
@@ -166,7 +167,7 @@ class LockViewModelTest {
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
-                emergencyUnlockDao = emergencyUnlockDao,
+                repository = EmergencyUnlockRepository(emergencyUnlockDao),
                 analytics = analytics,
             ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
@@ -229,7 +230,7 @@ class LockViewModelTest {
                 emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                     settingsStore = EmergencyUnlockSettingsStore(dataStore),
                     blockingStateStore = BlockingStateStore(dataStore),
-                    emergencyUnlockDao = emergencyUnlockDao,
+                    repository = EmergencyUnlockRepository(emergencyUnlockDao),
                     analytics = analytics,
                 ),
                 notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),

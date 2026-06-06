@@ -19,6 +19,8 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "GoalLockRepository",
             "GoalLockCreationViewModel",
             "GoalLockDetailViewModel",
+            "EmergencyUnlockRepository",
+            "EmergencyUnlockCoordinator",
             "Room DAO 직접 import",
             "허용 경계",
             "남은 인벤토리",

@@ -1,7 +1,6 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsSnapshot
@@ -51,7 +50,7 @@ class EmergencyUnlockCoordinator
     constructor(
         private val settingsStore: EmergencyUnlockSettingsStore,
         private val blockingStateStore: BlockingStateStore,
-        private val emergencyUnlockDao: EmergencyUnlockDao,
+        private val repository: EmergencyUnlockRepository,
         private val analytics: KeepAnalytics,
     ) {
         internal suspend fun readAvailability(): EmergencyUnlockAvailability {
@@ -100,7 +99,7 @@ class EmergencyUnlockCoordinator
 
             EmergencyUnlockState.current = unlockData
             blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
-            emergencyUnlockDao.insert(
+            repository.insert(
                 EmergencyUnlockEntity(
                     timestamp = nowMillis,
                     reason = reason,
@@ -131,9 +130,9 @@ class EmergencyUnlockCoordinator
 
         private suspend fun readUnlockCount(settings: EmergencyUnlockSettingsSnapshot): Int =
             if (settings.autoResetEnabled) {
-                emergencyUnlockDao.countToday(todayStartMillis())
+                repository.countToday(todayStartMillis())
             } else {
-                emergencyUnlockDao.countSince(settings.manualResetAtMillis)
+                repository.countSince(settings.manualResetAtMillis)
             }
 
         private fun availability(

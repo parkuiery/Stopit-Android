@@ -79,3 +79,17 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("fun create", text)
         self.assertIn("fun fetch", text)
         self.assertIn("fun update", text)
+
+    def test_emergency_unlock_coordinator_uses_repository_boundary(self):
+        coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"
+        repository = APP_MAIN / "service/EmergencyUnlockRepository.kt"
+        self.assertTrue(repository.exists(), "EmergencyUnlockRepository owns emergency-unlock DAO access")
+        coordinator_text = coordinator.read_text()
+        repository_text = repository.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", coordinator_text)
+        self.assertIn("private val repository: EmergencyUnlockRepository", coordinator_text)
+        self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", repository_text)
+        self.assertIn("suspend fun insert", repository_text)
+        self.assertIn("suspend fun countToday", repository_text)
+        self.assertIn("suspend fun countSince", repository_text)
