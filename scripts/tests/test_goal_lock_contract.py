@@ -57,6 +57,9 @@ class GoalLockContractTest(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
 
+        self.assertIn("종료일 다음날 새벽의 spillover 구간", runbook)
+        self.assertIn("window 종료 시각부터 차단을 멈춘다", runbook)
+
         forbidden_guidance = [
             "긴급 해제 횟수 자동 회복 OFF를 MVP에 포함",
             "목표 이름 원문을 analytics",
@@ -127,6 +130,7 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("목표 잠금 runtime QA baseline", qa_checklist)
         self.assertIn("GoalLockPolicyTest", qa_checklist)
+        self.assertIn("익일 새벽 spillover", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
