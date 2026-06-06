@@ -16,6 +16,7 @@ import javax.inject.Singleton
 sealed interface RoutineStartNotificationResult {
     data object Posted : RoutineStartNotificationResult
     data object PermissionDenied : RoutineStartNotificationResult
+    data object ChannelDisabled : RoutineStartNotificationResult
 }
 
 @Singleton
@@ -52,6 +53,10 @@ class NotificationHelper @Inject constructor(
             return RoutineStartNotificationResult.PermissionDenied
         }
 
+        if (!isRoutineChannelEnabled()) {
+            return RoutineStartNotificationResult.ChannelDisabled
+        }
+
         val notification = NotificationCompat.Builder(context, ROUTINE_CHANNEL_ID)
             .setSmallIcon(R.drawable.app_icon)
             .setColor(Color.White.toArgb())
@@ -68,6 +73,13 @@ class NotificationHelper @Inject constructor(
     }
 
     companion object {
-        private const val ROUTINE_CHANNEL_ID = "ROUTINE_CHANNEL"
+        internal const val ROUTINE_CHANNEL_ID = "ROUTINE_CHANNEL"
+    }
+
+    private fun isRoutineChannelEnabled(): Boolean {
+        val systemNotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return systemNotificationManager.getNotificationChannel(ROUTINE_CHANNEL_ID)?.importance !=
+            NotificationManager.IMPORTANCE_NONE
     }
 }

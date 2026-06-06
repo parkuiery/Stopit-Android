@@ -108,8 +108,9 @@ internal fun isEmergencyUnlockActiveForPackage(
 internal fun resolveEmergencyUnlockNotificationPostResult(
     notificationsEnabled: Boolean,
     postNotificationsPermissionGranted: Boolean,
+    notificationChannelEnabled: Boolean,
 ): EmergencyUnlockNotificationPostResult =
-    if (notificationsEnabled && postNotificationsPermissionGranted) {
+    if (notificationsEnabled && postNotificationsPermissionGranted && notificationChannelEnabled) {
         EmergencyUnlockNotificationPostResult.Posted
     } else {
         EmergencyUnlockNotificationPostResult.PermissionDenied

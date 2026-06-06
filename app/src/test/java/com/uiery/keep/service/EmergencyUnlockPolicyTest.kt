@@ -8,12 +8,13 @@ import org.junit.Test
 class EmergencyUnlockPolicyTest {
 
     @Test
-    fun emergencyUnlockNotificationPostResultRequiresEnabledNotificationsAndPermission() {
+    fun emergencyUnlockNotificationPostResultRequiresEnabledNotificationsPermissionAndChannel() {
         assertEquals(
             EmergencyUnlockNotificationPostResult.PermissionDenied,
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = false,
                 postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = true,
             )
         )
         assertEquals(
@@ -21,6 +22,15 @@ class EmergencyUnlockPolicyTest {
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = true,
                 postNotificationsPermissionGranted = false,
+                notificationChannelEnabled = true,
+            )
+        )
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.PermissionDenied,
+            resolveEmergencyUnlockNotificationPostResult(
+                notificationsEnabled = true,
+                postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = false,
             )
         )
         assertEquals(
@@ -28,6 +38,7 @@ class EmergencyUnlockPolicyTest {
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = true,
                 postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = true,
             )
         )
     }
