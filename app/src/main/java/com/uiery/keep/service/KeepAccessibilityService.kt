@@ -216,7 +216,12 @@ class KeepAccessibilityService :
 
     private fun launchBlockActivity(blockRequest: ForegroundBlockRequest) {
         KeepAccessibilityServiceDebugState.update(applicationContext) {
-            it.copy(lastLaunchedBlockPackage = blockRequest.packageName)
+            it.copy(
+                lastLaunchedBlockPackage = blockRequest.packageName,
+                lastLaunchedBlockSource = blockRequest.blockSource,
+                lastLaunchedRoutineId = blockRequest.routineId,
+                lastLaunchedGoalLockId = blockRequest.goalLockId,
+            )
         }
         val intent = Intent(this, BlockActivity::class.java)
         intent.putExtra(BlockActivity.EXTRA_PACKAGE_NAME, blockRequest.packageName)

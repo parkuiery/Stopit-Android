@@ -531,6 +531,10 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'
 python3 -m unittest scripts.tests.test_goal_lock_contract -v
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution
 ```
 
 검증 범위:
@@ -544,7 +548,9 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
 - `HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce`는 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회만 기록하는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시하고 상세 화면으로 이동한다.
-- Accessibility/blocking runtime은 all-day / scheduled / expiration 경계에서 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
+- `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 실제 AccessibilityService bind 후 수동 Keep이 꺼진 상태에서도 active all-day 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고, instrumentation debug state가 `block_source=goal_lock` / `goal_lock_id`를 남기는지 검증한다.
+- `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 같은 실제 AccessibilityService bind 경로에서 현재 요일 scheduled window의 active 목표 잠금도 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고 동일한 `block_source=goal_lock` / `goal_lock_id` attribution을 남기는지 검증한다.
+- Accessibility/blocking runtime은 expiration 경계까지 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
 
 수동 QA evidence template:
 
@@ -556,10 +562,13 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Entry point: home / routine / menu
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
   - `python3 -m unittest scripts.tests.test_goal_lock_contract -v`
 - all-day / scheduled / expiration:
   - all-day blocks selected apps through date boundary: pass / fail
-  - scheduled blocks only inside selected windows: pass / fail
+  - scheduled blocks selected apps inside selected windows: pass / fail
+  - scheduled does not block outside selected windows: pass / fail
   - expiration stops blocking after end date: pass / fail
 - Home card/section:
   - goal name / remaining period / lock mode / selected app count visible:

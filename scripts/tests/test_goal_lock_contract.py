@@ -46,6 +46,11 @@ class GoalLockContractTest(unittest.TestCase):
             "Home expiration completion foothold",
             "PR #489",
             "goal_lock_completed",
+            "Accessibility runtime QA foothold",
+            "KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "block_source",
+            "goal_lock_id",
             "Closes #417",
         ]
         for phrase in required_phrases:
@@ -135,6 +140,9 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("block_source=goal_lock", qa_checklist)
 
     def test_context_pack_does_not_describe_goal_lock_as_pre_implementation_only(self):
         product_context = PRODUCT_CONTEXT.read_text()
