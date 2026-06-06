@@ -38,6 +38,7 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.SUCCESSFUL_SESSION_COUNT,
         PreferencesKey.LAST_BACKGROUNDED_AT_MS,
         PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE,
+        PreferencesKey.REPEAT_BLOCK_DISMISSED_SUGGESTIONS,
     )
 
     val rehydratedCompatibilityCacheKeys: Set<Preferences.Key<*>> = setOf(
