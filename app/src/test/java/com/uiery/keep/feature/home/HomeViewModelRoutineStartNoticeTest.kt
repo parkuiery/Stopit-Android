@@ -11,6 +11,8 @@ import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeLockHistoryDao
@@ -21,6 +23,7 @@ import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.RecordingKeepAnalytics
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.receiver.RoutineReceiverPolicy
 import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
@@ -147,6 +150,9 @@ class HomeViewModelRoutineStartNoticeTest {
             analytics = analytics,
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(EmptyRoutineNoticeGoalLockDao()),
+            lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
+            routineRepository = EmptyRoutineNoticeRoutineRepository(),
+            repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
@@ -164,6 +170,10 @@ class HomeViewModelRoutineStartNoticeTest {
             ),
         )
     }
+}
+
+private class EmptyRoutineNoticeRoutineRepository : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
 }
 
 private class EmptyRoutineNoticeGoalLockDao : GoalLockDao {

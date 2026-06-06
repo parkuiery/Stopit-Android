@@ -101,6 +101,12 @@
     <string name="lock_history_block_count">%1$d veces</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
+    <string name="repeat_block_suggestion_home_title">Want to turn this frequent block pattern into a routine?</string>
+    <string name="repeat_block_suggestion_home_message">%1$d apps · %2$s–%3$s can be prefilled as a repeating block routine.</string>
+    <string name="repeat_block_suggestion_lock_history_title">Want to turn your lock-history pattern into a routine?</string>
+    <string name="repeat_block_suggestion_lock_history_message">%1$d apps · %2$s–%3$s can be prefilled in a routine.</string>
+    <string name="repeat_block_suggestion_apply_button">Create routine</string>
+    <string name="repeat_block_suggestion_dismiss_button">Later</string>
     <string name="cd_navigate_back">Volver</string>
     <string name="cd_open_menu">Abrir menú</string>
     <string name="cd_open_timer">Configurar temporizador de bloqueo</string>

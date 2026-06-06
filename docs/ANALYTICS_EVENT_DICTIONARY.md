@@ -243,7 +243,7 @@
 
 ### 반복 차단 기반 자동 루틴 제안
 
-반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code-lane에서 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` analytics method/constant 계약이 추가됐지만, Home/LockHistory UI wiring, release/tag/Play deploy, GA4 Admin 등록 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload를 금지한다.
+반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code-lane에서 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` analytics method/constant 계약이 추가됐고, 후속 code/QA-lane에서 type-safe Routine prefill과 dismiss store가 추가됐다. 이번 code-lane PR은 Home/LockHistory CTA UI wiring과 apply/dismiss flow를 연결한다. 다만 release/tag/Play deploy, GA4 Admin 등록, 수동 device/locale/TalkBack QA 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload를 금지한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

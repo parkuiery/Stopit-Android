@@ -463,6 +463,7 @@ object AnalyticsGoalLockEndedEarlyReason {
 
 object RepeatBlockRoutineSuggestionSurface {
     const val HOME = "home"
+    const val LOCK_HISTORY = "lock_history"
 }
 
 object RepeatBlockSuggestionVariant {

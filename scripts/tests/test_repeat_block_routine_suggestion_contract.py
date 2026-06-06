@@ -33,7 +33,10 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "14일 체크",
             "30일 체크",
             "RepeatBlockRoutineSuggestionStore",
-            "raw app name/package/list/history/timestamp를 저장하지 않는다",
+            "Home과 LockHistory 표면에서 추천 카드를 실제로 노출",
+            "apply는 루틴 prefill navigation",
+            "dismiss는 privacy-safe store",
+            "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
