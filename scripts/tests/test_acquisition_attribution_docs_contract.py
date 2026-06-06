@@ -10,19 +10,19 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-06T03:37:57Z"
+LATEST_TIMESTAMP = "2026-06-06T08:33:25Z"
 LATEST_VALUES = [
     "537",
     "335",
     "202",
     "62.4%",
     "+39.8%",
-    "-21.8%",
+    "-21.4%",
 ]
 SCREEN_QUALITY_VALUES = [
     "38,338",
-    "24,645",
-    "64.3%",
+    "24,627",
+    "64.2%",
     "145 / 767 = 18.9%",
 ]
 
@@ -88,7 +88,7 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("신규 유입 반등을 ASO 효과로 표현 금지", play_store_aso)
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
-        self.assertIn("활성 18명·세션 180회는 신규 유입 성과가 아니라", play_store_aso)
+        self.assertIn("활성 18명·세션 179회는 신규 유입 성과가 아니라", play_store_aso)
 
 
 if __name__ == "__main__":
