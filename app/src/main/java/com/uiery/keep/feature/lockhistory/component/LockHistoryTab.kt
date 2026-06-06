@@ -59,6 +59,9 @@ private fun TabItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val selectedStateDescription = stringResource(R.string.cd_tab_selected)
+    val notSelectedStateDescription = stringResource(R.string.cd_tab_not_selected)
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -68,7 +71,7 @@ private fun TabItem(
             .semantics {
                 role = Role.Tab
                 selected = isSelected
-                stateDescription = if (isSelected) "Selected" else "Not selected"
+                stateDescription = if (isSelected) selectedStateDescription else notSelectedStateDescription
             }
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),

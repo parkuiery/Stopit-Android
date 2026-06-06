@@ -109,6 +109,10 @@
     <string name="cd_delete_routine">Удалить рутину</string>
     <string name="cd_previous_period">Предыдущий период</string>
     <string name="cd_next_period">Следующий период</string>
+    <string name="cd_state_on">Включено</string>
+    <string name="cd_state_off">Выключено</string>
+    <string name="cd_tab_selected">Выбрано</string>
+    <string name="cd_tab_not_selected">Не выбрано</string>
     <string name="blocked_apps_title">Заблокированные приложения</string>
     <string name="routine_alarm_permission_title">Мы напомним, чтобы вы не пропустили начало своей рутины.</string>
     <string name="routine_alarm_permission_description">Мы отправим уведомление в заданное время, чтобы помочь вам начать рутину естественно.</string>
