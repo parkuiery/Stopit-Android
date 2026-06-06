@@ -32,6 +32,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "Play deploy",
             "14일 체크",
             "30일 체크",
+            "RepeatBlockRoutineSuggestionStore",
+            "raw app name/package/list/history/timestamp를 저장하지 않는다",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
