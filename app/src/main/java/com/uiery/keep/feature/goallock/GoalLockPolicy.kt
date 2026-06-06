@@ -68,12 +68,33 @@ internal object GoalLockPolicy {
     ): Boolean {
         if (!isValidForCreation(goalLock)) return false
         if (packageName !in goalLock.selectedPackages) return false
-        if (runtimeStatus(goalLock, now) != GoalLockRuntimeStatus.Active) return false
+        if (goalLock.status != GoalLockStoredStatus.Active) return false
 
         return when (val mode = goalLock.lockMode) {
-            GoalLockMode.AllDay -> true
-            is GoalLockMode.Scheduled -> isScheduledWindowActive(mode, now)
+            GoalLockMode.AllDay -> runtimeStatus(goalLock, now) == GoalLockRuntimeStatus.Active
+            is GoalLockMode.Scheduled -> isScheduledGoalLockActive(goalLock, mode, now)
         }
+    }
+
+    private fun isScheduledGoalLockActive(
+        goalLock: GoalLock,
+        mode: GoalLockMode.Scheduled,
+        now: LocalDateTime,
+    ): Boolean {
+        if (!isScheduledWindowActive(mode, now)) return false
+
+        val today = now.toLocalDate()
+        if (!today.isBefore(goalLock.startDate) && !today.isAfter(goalLock.endDate)) {
+            return true
+        }
+
+        val crossesMidnight = !mode.endTime.isAfter(mode.startTime)
+        if (!crossesMidnight || !now.toLocalTime().isBefore(mode.endTime)) {
+            return false
+        }
+
+        val previousDate = today.minusDays(1)
+        return !previousDate.isBefore(goalLock.startDate) && !previousDate.isAfter(goalLock.endDate)
     }
 
     private fun isScheduledWindowActive(

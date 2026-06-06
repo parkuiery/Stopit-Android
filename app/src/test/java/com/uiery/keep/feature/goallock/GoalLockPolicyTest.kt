@@ -125,6 +125,34 @@ class GoalLockPolicyTest {
     }
 
     @Test
+    fun overnightScheduledGoalLockIncludesSpilloverAfterEndDateWhenPreviousDayWasInRange() {
+        val goalLock = goalLock(
+            lockMode = GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.FRIDAY),
+                startTime = LocalTime.of(22, 0),
+                endTime = LocalTime.of(2, 0),
+            ),
+            startDate = LocalDate.of(2026, 6, 5),
+            endDate = LocalDate.of(2026, 6, 5),
+        )
+
+        assertTrue(
+            GoalLockPolicy.isBlocking(
+                goalLock = goalLock,
+                packageName = "com.video.app",
+                now = LocalDateTime.of(2026, 6, 6, 1, 30),
+            ),
+        )
+        assertFalse(
+            GoalLockPolicy.isBlocking(
+                goalLock = goalLock,
+                packageName = "com.video.app",
+                now = LocalDateTime.of(2026, 6, 6, 2, 0),
+            ),
+        )
+    }
+
+    @Test
     fun runtimeStatusSeparatesPendingActiveCompletedAndEndedEarly() {
         val goalLock = goalLock(
             startDate = LocalDate.of(2026, 6, 4),
