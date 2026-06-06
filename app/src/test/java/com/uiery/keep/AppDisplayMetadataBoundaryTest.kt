@@ -25,6 +25,7 @@ class AppDisplayMetadataBoundaryTest {
     private companion object {
         val displaySurfaceFiles = listOf(
             "src/main/java/com/uiery/keep/BlockScreen.kt",
+            "src/main/java/com/uiery/keep/feature/goallock/GoalLockCreationScreen.kt",
             "src/main/java/com/uiery/keep/feature/lock/component/EmergencyUnlockBottomSheetContent.kt",
             "src/main/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsScreen.kt",
             "src/main/java/com/uiery/keep/feature/lockhistory/component/LockHistoryTopApps.kt",
