@@ -28,25 +28,35 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `ReviewEligibilityEvaluator`는 kill switch, build flavor, accessibility, quiet hours, cooldown, recent emergency unlock, recent success policy ordering만 소유한다.
 - `ReviewEligibilityEvaluator` 테스트는 fake repository 경계를 통해 최근 긴급해제/성공 세션 값을 주입하므로 Room DAO fake에 직접 결합하지 않는다.
 
+### Goal lock feature boundary
+
+#520의 세 번째 repo-internal QA 패키지는 목표 잠금 생성/상세 화면을 DAO 직접 접근에서 분리했다.
+
+#### 허용 경계
+
+- `GoalLockRepository`가 goal-lock feature의 Room `GoalLockDao` 접근 허용 경계다.
+- `GoalLockCreationViewModel`은 목표 잠금 입력/검증, 생성 analytics, 생성 side effect만 소유하고 저장은 repository에 위임한다.
+- `GoalLockDetailViewModel`은 상세 state, 조기 종료/완료 analytics 정책만 소유하고 조회/업데이트 persistence mapping은 repository에 위임한다.
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
 - 같은 static guard가 `ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
+- 같은 static guard가 `GoalLockCreationViewModel` / `GoalLockDetailViewModel` 아래에서 `GoalLockDao` 직접 import가 재도입되지 않고 `GoalLockRepository`가 허용 DAO 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## 남은 인벤토리
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 review eligibility 경계까지 안전하게 닫고, Receiver/Service/잠금 실행 경로는 별도 focused test와 runtime QA 범위로 다룬다.
+아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 goal-lock 생성/상세 화면 경계까지 안전하게 닫고, Receiver/Service/잠금 실행 경로는 별도 focused test와 runtime QA 범위로 다룬다.
 
 - `HomeViewModel`: `GoalLockDao`, `LockHistoryDao`
 - `LockViewModel`: `RoutineDao`, `LockHistoryDao`, `EmergencyUnlockDao`
 - `MenuViewModel`: `RoutineDao`
 - `RoutineBottomSheetViewModel`, `RoutineViewModel`, `RoutineRestoreAftercare`: `RoutineDao`
-- `GoalLockCreationViewModel`, `GoalLockDetailViewModel`: `GoalLockDao`
 - `BootReceiver`, `RoutineAlarmReceiver`: `RoutineDao`
 - `KeepAccessibilityService`: `RoutineDao`, `GoalLockDao`
 - `EmergencyUnlockCoordinator`, `LockHistoryLedger`: service 경계에서 DAO를 사용하므로 별도 저장소·정책 경계 판단이 필요하다.
-- `ReviewEligibilityRepository`, `LockHistoryRepository`: 현재 허용된 repository DAO 경계다.
+- `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`: 현재 허용된 repository DAO 경계다.
 
 DB 모듈(`KeepDatabase`, `database/di`, DAO 인터페이스 자체)과 테스트 fake DAO는 이 인벤토리에서 제외한다.
 
@@ -57,6 +67,7 @@ python3 -m unittest scripts.tests.test_dao_boundary_contract -v
 python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ```
 

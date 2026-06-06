@@ -214,7 +214,7 @@ private fun createViewModel(
     blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
 ): GoalLockCreationViewModel =
     GoalLockCreationViewModel(
-        goalLockDao = dao,
+        goalLockRepository = GoalLockRepository(dao),
         analytics = analytics,
         blockingStateStore = blockingStateStore,
     )
