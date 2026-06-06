@@ -124,13 +124,13 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
         self.assertIn("private val routineRepository: RoutineRepository", text)
 
-    def test_routine_feature_viewmodels_use_repository_boundary(self):
+    def test_routine_feature_non_repository_sources_use_repository_boundary(self):
         offenders: list[str] = []
         feature_root = APP_MAIN / "feature/routine"
         import_pattern = re.compile(r"^import\s+com\.uiery\.keep\.database\.dao\.RoutineDao\b", re.MULTILINE)
 
         for source in self.kotlin_sources(feature_root):
-            if source.name.endswith("Repository.kt") or source.name.endswith("RestoreAftercare.kt"):
+            if source.name.endswith("Repository.kt"):
                 continue
             relative = source.relative_to(REPO_ROOT)
             if import_pattern.search(source.read_text()):
@@ -139,7 +139,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertEqual(
             [],
             offenders,
-            "routine feature ViewModels must depend on RoutineRepository, not RoutineDao directly",
+            "routine feature sources must depend on RoutineRepository, not RoutineDao directly",
         )
 
     def test_routine_repository_is_the_feature_allowlisted_dao_boundary(self):
@@ -151,6 +151,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.database.dao.RoutineDao", text)
         self.assertIn("fun fetchAll", text)
         self.assertIn("suspend fun fetch", text)
+        self.assertIn("suspend fun fetchAllOnce", text)
         self.assertIn("suspend fun insert", text)
         self.assertIn("suspend fun update", text)
         self.assertIn("suspend fun deleteById", text)
