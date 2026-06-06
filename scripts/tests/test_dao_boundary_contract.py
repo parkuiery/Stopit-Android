@@ -100,6 +100,26 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
         self.assertIn("private val goalLockRepository: GoalLockRepository", text)
 
+    def test_menu_viewmodel_uses_routine_repository_boundary(self):
+        menu = APP_MAIN / "feature/menu/MenuViewModel.kt"
+        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+        text = menu.read_text()
+
+        self.assertTrue(repository.exists(), "RoutineRepository owns menu routine read DAO access")
+        self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
+        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("private val routineRepository: RoutineRepository", text)
+
+    def test_routine_repository_is_the_feature_allowlisted_dao_boundary(self):
+        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+        self.assertTrue(repository.exists(), "RoutineRepository owns routine DAO access")
+        text = repository.read_text()
+        self.assertIn("interface RoutineRepository", text)
+        self.assertIn("class RoomRoutineRepository", text)
+        self.assertIn("import com.uiery.keep.database.dao.RoutineDao", text)
+        self.assertIn("fun fetchAll", text)
+
     def test_emergency_unlock_coordinator_uses_repository_boundary(self):
         coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"
         repository = APP_MAIN / "service/EmergencyUnlockRepository.kt"
