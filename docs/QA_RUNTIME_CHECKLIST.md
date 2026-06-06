@@ -222,7 +222,7 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 Source of truth: `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`
 Issue: #464
 
-Use this after the code-lane changes `BlockScreen.kt` / `block_screen_*` / `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR #487 already changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
 
 ```md
 ## Block screen copy/action hierarchy QA evidence
