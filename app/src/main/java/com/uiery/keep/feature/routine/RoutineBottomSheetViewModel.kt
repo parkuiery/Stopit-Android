@@ -48,11 +48,34 @@ class RoutineBottomSheetViewModel
                             selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
                             isEnabled = routineModel.isEnabled,
                             changeLockHours = routineModel.changeLockHours,
+                            repeatBlockSuggestionPrefill = null,
+                            repeatBlockSuggestionSurface = null,
                         )
 
                     editState.copy(isButtonEnable = editState.isValidForSave())
                 }
             }
+
+        internal fun applyRepeatBlockRoutineSuggestionPrefill(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) = intent {
+            analytics.trackRepeatBlockRoutineSuggestionClicked(
+                surface = surface,
+                suggestion = suggestion,
+            )
+            reduce {
+                val prefilledState = state.copy(
+                    startTime = suggestion.prefillStartTime,
+                    endTime = suggestion.prefillEndTime,
+                    selectDays = suggestion.dayType.toRoutinePrefillDays(),
+                    selectApps = suggestion.prefillPackages.toSet(),
+                    repeatBlockSuggestionPrefill = suggestion,
+                    repeatBlockSuggestionSurface = surface,
+                )
+                prefilledState.copy(isButtonEnable = prefilledState.isValidForSave())
+            }
+        }
 
         internal fun setChangeLockHours(hours: Int?) =
             intent {
@@ -103,6 +126,8 @@ class RoutineBottomSheetViewModel
 
         internal fun addRoutine() =
             intent {
+                val repeatBlockPrefill = state.repeatBlockSuggestionPrefill
+                val repeatBlockSurface = state.repeatBlockSuggestionSurface
                 val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel())
                 val insertedId = routineRepository.insert(resolvedRoutine.routine)
                 val routineWithId = resolvedRoutine.routine.copy(id = insertedId)
@@ -116,6 +141,18 @@ class RoutineBottomSheetViewModel
                         scheduleType = AnalyticsScheduleType.ROUTINE,
                         scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
                     )
+                }
+                if (repeatBlockPrefill != null && repeatBlockSurface != null) {
+                    analytics.trackRepeatBlockRoutineSuggestionApplied(
+                        surface = repeatBlockSurface,
+                        suggestion = repeatBlockPrefill,
+                    )
+                    reduce {
+                        state.copy(
+                            repeatBlockSuggestionPrefill = null,
+                            repeatBlockSuggestionSurface = null,
+                        )
+                    }
                 }
                 if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                     postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
@@ -159,7 +196,23 @@ data class RoutineBottomSheetUiState(
     val selectApps: Set<String> = emptySet(),
     val isEnabled: Boolean = true,
     val changeLockHours: Int? = null,
+    val repeatBlockSuggestionPrefill: RepeatBlockRoutineSuggestion? = null,
+    val repeatBlockSuggestionSurface: String? = null,
 )
+
+private fun RepeatBlockDayType.toRoutinePrefillDays(): List<DayOfWeek> = when (this) {
+    RepeatBlockDayType.Weekday -> listOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+    )
+
+    RepeatBlockDayType.Weekend -> listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    RepeatBlockDayType.Daily -> DayOfWeek.entries
+    RepeatBlockDayType.CustomDays -> emptyList()
+}
 
 private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
     val isNameValid = name.isNotEmpty()
