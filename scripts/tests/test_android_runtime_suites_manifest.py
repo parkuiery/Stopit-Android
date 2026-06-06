@@ -21,6 +21,7 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             "release_remaining_runtime",
             "notification_denied_receiver",
             "notification_denied_emergency_unlock",
+            "notification_channel_disabled",
         }
 
         self.assertEqual(required, set(android_runtime_suites.SUITES))
@@ -54,6 +55,7 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
 
         self.assertIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
         self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py run-connected notification_channel_disabled", android_ci)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
