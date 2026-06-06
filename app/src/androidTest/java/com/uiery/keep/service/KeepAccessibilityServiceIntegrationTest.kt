@@ -18,6 +18,7 @@ import com.uiery.keep.datastore.dataStore
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -133,6 +134,26 @@ class KeepAccessibilityServiceIntegrationTest {
 
         waitUntil(
             message = "Expected KeepAccessibilityService to request BlockActivity with goal-lock attribution for $blockedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.GOAL_LOCK &&
+                snapshot.lastLaunchedGoalLockId == goalLockId.toString()
+        }
+    }
+
+    @Test
+    fun activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        val goalLockId = configureScheduledGoalLockBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to request BlockActivity with scheduled goal-lock attribution for $blockedPackage",
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
             val snapshot = KeepAccessibilityServiceDebugState.read(context)
@@ -302,6 +323,32 @@ class KeepAccessibilityServiceIntegrationTest {
                 startDate = LocalDate.now().minusDays(1).toString(),
                 endDate = LocalDate.now().plusDays(1).toString(),
                 lockMode = "all_day",
+                selectedPackages = listOf(packageName),
+                status = "active",
+            ),
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        return GOAL_LOCK_RUNTIME_TEST_ID
+    }
+
+    private suspend fun configureScheduledGoalLockBlock(packageName: String): Long {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        goalLockDao().insert(
+            GoalLockEntity(
+                id = GOAL_LOCK_RUNTIME_TEST_ID,
+                goalName = "Runtime QA",
+                startDate = LocalDate.now().minusDays(1).toString(),
+                endDate = LocalDate.now().plusDays(1).toString(),
+                lockMode = "scheduled",
+                repeatDays = listOf(LocalDate.now().dayOfWeek),
+                startTime = LocalTime.MIN.toString(),
+                endTime = LocalTime.of(23, 59, 59).toString(),
                 selectedPackages = listOf(packageName),
                 status = "active",
             ),

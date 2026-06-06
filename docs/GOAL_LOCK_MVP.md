@@ -282,9 +282,9 @@ Code lane에서 PR #489로 Home progress card load 경로가 종료일이 지난
 
 ### 2026-06-06 Accessibility runtime QA foothold
 
-Code lane에서 `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`를 추가해 실제 AccessibilityService bind 후 DataStore의 수동 Keep이 꺼져 있어도 Room `goal_lock`의 active all-day 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하는지 자동 검증한다. `KeepAccessibilityServiceDebugState`는 instrumentation-only evidence로 마지막 차단 요청의 `block_source`와 `goal_lock_id`를 함께 기록해 목표 잠금 runtime 차단이 manual/timer/routine 경로로 오인되지 않게 고정한다.
+Code lane에서 `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`와 `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`를 추가해 실제 AccessibilityService bind 후 DataStore의 수동 Keep이 꺼져 있어도 Room `goal_lock`의 active 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하는지 자동 검증한다. 현재 자동 baseline은 all-day와 현재 요일의 scheduled window를 모두 포함한다. `KeepAccessibilityServiceDebugState`는 instrumentation-only evidence로 마지막 차단 요청의 `block_source`와 `goal_lock_id`를 함께 기록해 목표 잠금 runtime 차단이 manual/timer/routine 경로로 오인되지 않게 고정한다.
 
-이 foothold는 all-day 목표 잠금의 실제 서비스 경로 자동 증거를 추가하지만, scheduled window/expiration 중지/TalkBack/실기기 수동 evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 외부/manual 경계로 남긴다.
+이 foothold는 all-day/scheduled 목표 잠금의 실제 서비스 경로 자동 증거를 추가하지만, expiration 중지/TalkBack/실기기 수동 evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 외부/manual 경계로 남긴다.
 
 ## 외부/manual 경계
 
