@@ -51,6 +51,8 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RoutineScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutineViewModel = hiltViewModel(),
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -69,6 +71,12 @@ fun RoutineScreen(
     LaunchedEffect(state.routines) {
         if (state.routines.isNotEmpty()) {
             viewModel.checkAlarmPermissionNeeded()
+        }
+    }
+
+    LaunchedEffect(repeatBlockSuggestionSurface, repeatBlockSuggestion) {
+        if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.showRoutineBottomSheet()
         }
     }
 
@@ -160,6 +168,8 @@ fun RoutineScreen(
         ) {
             RoutineBottomSheetContent(
                 isEdit = false,
+                repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
+                repeatBlockSuggestion = repeatBlockSuggestion,
                 onCloseBottomSheet = {
                     coroutineScope.launch {
                         routineBottomSheetState.hide()

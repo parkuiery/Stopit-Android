@@ -48,6 +48,7 @@ import kotlinx.datetime.toJavaLocalTime
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
@@ -61,6 +62,8 @@ fun RoutineBottomSheetContent(
     viewModel: RoutineBottomSheetViewModel = hiltViewModel(),
     isEdit: Boolean,
     routine: RoutineModel? = null,
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onRequireAlarmPermission: () -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
@@ -86,11 +89,16 @@ fun RoutineBottomSheetContent(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isEdit, routine, repeatBlockSuggestionSurface, repeatBlockSuggestion) {
         if (isEdit) {
             routine?.let {
                 viewModel.resetEditState(it)
             }
+        } else if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.applyRepeatBlockRoutineSuggestionPrefill(
+                surface = repeatBlockSuggestionSurface,
+                suggestion = repeatBlockSuggestion,
+            )
         } else {
             viewModel.resetState()
         }
