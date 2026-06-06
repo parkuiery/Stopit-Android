@@ -182,6 +182,19 @@ class DaoBoundaryContractTest(unittest.TestCase):
             "routine receivers must depend on RoutineRepository, not RoutineDao directly",
         )
 
+    def test_accessibility_service_uses_repository_boundaries(self):
+        service = APP_MAIN / "service/KeepAccessibilityService.kt"
+        text = service.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", text)
+        self.assertNotIn("import com.uiery.keep.database.dao.GoalLockDao", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.GoalLockEntity", text)
+        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
+        self.assertIn("fun routineRepository(): RoutineRepository", text)
+        self.assertIn("fun goalLockRepository(): GoalLockRepository", text)
+
     def test_emergency_unlock_coordinator_uses_repository_boundary(self):
         coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"
         repository = APP_MAIN / "service/EmergencyUnlockRepository.kt"

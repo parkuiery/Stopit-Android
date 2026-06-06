@@ -10,13 +10,12 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -39,9 +38,9 @@ class KeepAccessibilityService :
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface RoutineRuntimeEntryPoint {
-        fun routineDao(): RoutineDao
+        fun routineRepository(): RoutineRepository
 
-        fun goalLockDao(): GoalLockDao
+        fun goalLockRepository(): GoalLockRepository
 
         fun blockingStateStore(): BlockingStateStore
 
@@ -99,24 +98,24 @@ class KeepAccessibilityService :
             }
         }
         launch {
-            entryPoint.routineDao().fetchAll()
+            entryPoint.routineRepository().fetchAll()
                 .catch {
                     cachedRoutines = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
-                .collect { routineEntities ->
-                    cachedRoutines = routineEntities.map { it.toModel() }
+                .collect { routines ->
+                    cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
         launch {
-            entryPoint.goalLockDao().fetchAll()
+            entryPoint.goalLockRepository().fetchAll()
                 .catch {
                     cachedGoalLocks = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
-                .collect { goalLockEntities ->
-                    cachedGoalLocks = goalLockEntities.map { it.toDomain() }
+                .collect { goalLocks ->
+                    cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
