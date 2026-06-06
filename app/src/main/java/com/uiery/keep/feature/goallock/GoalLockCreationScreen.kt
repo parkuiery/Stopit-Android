@@ -36,6 +36,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.DayOfWeek
@@ -156,6 +157,11 @@ private fun GoalLockCreationContent(
 ) {
     var customDaysText by remember { mutableStateOf("") }
     var endDateText by remember { mutableStateOf("") }
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
+    val selectedAppItems = buildGoalLockSelectedAppItems(
+        selectedPackages = state.selectedApps,
+        resolveLabel = { packageName -> appDisplayMetadataResolver.resolve(packageName).label },
+    )
 
     Column(
         modifier = modifier,
@@ -277,18 +283,24 @@ private fun GoalLockCreationContent(
                 OutlinedButton(onClick = onSelectApps) {
                     Text("앱 선택 화면에서 조정")
                 }
-                state.selectedApps.sorted().forEach { packageName ->
+                selectedAppItems.forEach { appItem ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            modifier = Modifier.weight(1f),
-                            text = packageName,
-                            color = KeepTheme.colors.onSurfaceVariant,
-                            fontSize = 13.sp,
-                        )
-                        TextButton(onClick = { onRemoveSelectedApp(packageName) }) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = appItem.label,
+                                color = KeepTheme.colors.onSurfaceVariant,
+                                fontSize = 13.sp,
+                            )
+                            Text(
+                                text = appItem.description,
+                                color = KeepTheme.colors.surfaceVariant,
+                                fontSize = 11.sp,
+                            )
+                        }
+                        TextButton(onClick = { onRemoveSelectedApp(appItem.packageName) }) {
                             Text("빼기")
                         }
                     }
@@ -305,3 +317,37 @@ private fun GoalLockCreationContent(
         }
     }
 }
+
+data class GoalLockSelectedAppUiItem(
+    val packageName: String,
+    val label: String,
+    val description: String,
+)
+
+fun buildGoalLockSelectedAppItems(
+    selectedPackages: Set<String>,
+    resolveLabel: (String) -> String?,
+): List<GoalLockSelectedAppUiItem> =
+    selectedPackages
+        .map { packageName ->
+            val normalizedPackageName = packageName.trim()
+            val label = resolveLabel(normalizedPackageName)
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: normalizedPackageName
+            GoalLockSelectedAppUiItem(
+                packageName = normalizedPackageName,
+                label = label,
+                description = if (label == normalizedPackageName) {
+                    "앱 이름을 불러오지 못했어요"
+                } else {
+                    normalizedPackageName
+                },
+            )
+        }
+        .distinctBy { it.packageName }
+        .sortedWith(
+            compareBy<GoalLockSelectedAppUiItem> { it.description == "앱 이름을 불러오지 못했어요" }
+                .thenBy { it.label.lowercase() }
+                .thenBy { it.packageName },
+        )

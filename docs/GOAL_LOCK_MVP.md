@@ -198,6 +198,9 @@ Guardrail:
   - 목표별 선택 앱 편집에서 picker selection replace, package trim/dedupe, remove와 0개 validation을 검증.
   - `Created(goalLockId)` side effect.
   - `goal_lock_created` bucket-only analytics 호출.
+- `GoalLockSelectedAppUiItemTest`:
+  - 목표 잠금 생성 화면의 선택 앱 목록이 package raw text만 노출하지 않고 shared display metadata resolver의 앱 이름을 우선 표시한다.
+  - 앱 이름을 못 불러온 package는 fallback 문구와 package 기준 remove payload를 유지한다.
 - `HomeViewModelActivationAnalyticsTest`:
   - active/pending/ended_early 목표 잠금이 Home card state로 노출됨.
   - 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회 기록함.
