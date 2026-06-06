@@ -137,6 +137,7 @@ scripts/bump-version.sh 1.7.2 --code 24 --fallback-play-max-version-code 23
 동작:
 - `app/build.gradle.kts`의 `versionName` 변경
 - `versionCode` 자동 +1 또는 지정 값으로 변경
+- `README.md` 상단의 `현재 버전` 라인을 같은 `versionName/versionCode`로 동기화
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - Gradle release task dry-run으로 task 존재 확인
 
@@ -153,7 +154,7 @@ scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 동작:
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 먼저 확인
 - `develop`에서 `release/1.7.2` 생성
-- 버전 bump
+- 버전 bump (`app/build.gradle.kts`와 `README.md` 현재 버전 라인을 함께 갱신)
 - release dry-run 검증(상위 release-start에서는 `--no-dry-run`을 허용하지 않음)
 - `chore: bump version to 1.7.2` 커밋 생성
 
