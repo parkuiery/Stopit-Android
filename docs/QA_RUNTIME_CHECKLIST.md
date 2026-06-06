@@ -458,7 +458,9 @@ issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 sour
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' \
-  --tests 'com.uiery.keep.feature.home.HomeViewModelRepeatBlockRoutineSuggestionTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
+  --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' \
   --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'
 python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v
 ```
@@ -482,7 +484,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - Device / Android version / OEM:
 - Entry point: home / post_block_success / lock_history / performance_report
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRepeatBlockRoutineSuggestionTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
 - Eligibility:
   - first_core_action_completed or app_block_intercepted already happened: pass / fail
