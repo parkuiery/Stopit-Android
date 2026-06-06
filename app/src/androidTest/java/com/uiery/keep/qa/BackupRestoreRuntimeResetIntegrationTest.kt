@@ -18,6 +18,7 @@ import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.feature.routine.RoutineViewModel
@@ -145,7 +146,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         val noticeStore = RoutineNoticeStore(dataStore)
 
         RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
             dataStore = dataStore,
             analytics = NoopBackupRestoreAnalytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),

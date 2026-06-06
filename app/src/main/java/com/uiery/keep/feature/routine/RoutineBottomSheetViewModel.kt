@@ -3,9 +3,7 @@ package com.uiery.keep.feature.routine
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -24,7 +22,7 @@ import javax.inject.Inject
 class RoutineBottomSheetViewModel
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
@@ -106,12 +104,12 @@ class RoutineBottomSheetViewModel
         internal fun addRoutine() =
             intent {
                 val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel())
-                val insertedId = routineDao.insert(routineEntity = resolvedRoutine.routine.toEntity())
+                val insertedId = routineRepository.insert(resolvedRoutine.routine)
                 val routineWithId = resolvedRoutine.routine.copy(id = insertedId)
                 val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routineWithId)
 
                 if (scheduleDecision.routine != routineWithId) {
-                    routineDao.update(scheduleDecision.routine.toEntity())
+                    routineRepository.update(scheduleDecision.routine)
                 }
                 if (scheduleDecision.shouldTrackLockScheduled) {
                     analytics.trackLockScheduled(
@@ -129,11 +127,11 @@ class RoutineBottomSheetViewModel
                 id?.let {
                     runCatching {
                         val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel(id = it))
-                        routineDao.update(resolvedRoutine.routine.toEntity())
+                        routineRepository.update(resolvedRoutine.routine)
                         exactAlarmOrchestrator.cancelRoutine(id)
                         val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
                         if (scheduleDecision.routine != resolvedRoutine.routine) {
-                            routineDao.update(scheduleDecision.routine.toEntity())
+                            routineRepository.update(scheduleDecision.routine)
                         }
                         if (scheduleDecision.shouldTrackLockScheduled) {
                             analytics.trackLockScheduled(
