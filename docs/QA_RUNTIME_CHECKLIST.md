@@ -448,6 +448,70 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 이 증거가 없으면 #455는 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`의 외부/manual 경계를 따른다.
 
+### 반복 차단 기반 자동 루틴 제안 QA baseline
+
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+
+자동 baseline(구현 PR에서 추가/확장할 테스트):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelRepeatBlockRoutineSuggestionTest' \
+  --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'
+python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v
+```
+
+검증 범위:
+- 반복 차단 패턴이 충분하고 해당 패턴을 커버하는 활성 루틴이 없을 때만 추천된다.
+- onboarding / pre-first-lock 사용자에게 미노출된다.
+- 기존 활성 루틴과 겹치면 미노출된다.
+- 추천은 최대 1개만 노출되고 dismiss 후 최소 7일 재노출 제한을 지킨다.
+- 추천 copy는 방어 성공/도움 제안 톤이며 비난형 copy 금지다.
+- `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`는 enum/bucket 파라미터만 사용한다.
+- raw app name / package / history / timestamp absent 상태가 analytics payload spot-check에서 확인된다.
+- #455 일반 루틴 CTA / #407 루틴 템플릿 공유 CTA / 광고 CTA / active goal lock / emergency unlock 상태와 slot·문맥 충돌이 없다.
+
+수동 QA evidence template:
+
+```md
+## Repeat block routine suggestion QA evidence
+- Issue: #531
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: home / post_block_success / lock_history / performance_report
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRepeatBlockRoutineSuggestionTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
+- Eligibility:
+  - first_core_action_completed or app_block_intercepted already happened: pass / fail
+  - repeat pattern exists: pass / fail
+  - existing active routine covers same pattern: pass / fail / n/a
+  - onboarding / pre-first-lock user hidden: pass / fail
+  - dismiss cooldown respected: pass / fail
+- Suggested pattern:
+  - time_bucket:
+  - day_type:
+  - category_bucket:
+  - repeat_count_bucket:
+  - routine_coverage_state:
+- UI/copy conflict checks:
+  - 비난형 copy 금지: pass / fail
+  - #455/#407/광고 CTA/goal lock/emergency unlock 충돌 없음: pass / fail
+  - prefill is user-editable before save: pass / fail
+- Analytics payload spot-check:
+  - repeat_block_routine_suggestion_shown:
+  - repeat_block_routine_suggestion_clicked:
+  - repeat_block_routine_suggestion_dismissed:
+  - repeat_block_routine_suggestion_applied:
+  - raw app name / package / history / timestamp absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #531은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, 추천 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`의 외부/manual 경계를 따른다.
+
 ### 목표 잠금 runtime QA baseline
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.

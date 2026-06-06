@@ -2,7 +2,7 @@
 
 이 문서는 `pm-skills`의 metrics dashboard, cohort analysis, prioritization, monetization, growth loop 프레임워크를 스탑잇 운영 방식에 맞게 흡수한 제품 지표 정의서다.
 
-첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 홈 화면 상태/CTA 구조 개선은 `docs/HOME_STATUS_CTA_STRUCTURE.md`(#463)를 source of truth로 보고, `first_lock_configured`를 실제 차단 완료로 과장하지 않은 채 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태와 단일 primary CTA 위계를 구현 전 계약으로 고정한다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. `routines_count` user property coverage 보강 계약은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`(#479)를 source of truth로 보고, `(not set)` coverage가 큰 동안에는 루틴 보유/미보유 retention 결론을 낮은 confidence로 둔다. 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`(#455)를 source of truth로 본다. 차단 화면 카피/액션 위계 개선은 `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`(#464)를 source of truth로 보되, 이 docs-lane 산출물은 구현 완료가 아니라 code-lane 구현·locale parity·release/tag/Play deploy 후 14일 readback 전까지는 UX 계약/QA 기준으로만 해석한다. 긴급해제 flow copy/step 개선은 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`(#467)를 source of truth로 보며, PR #517(`572eb559`)로 helper/validation copy와 locale parity는 `develop`에 반영됐지만 기존 `emergency_unlock_completed.reason` enum key와 privacy-safe payload 경계를 유지하고 실제 기기/screenshot/TalkBack QA, release/tag/Play deploy, 14일 readback 전까지는 live 성과 판단을 보류한다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. LockHistory 성과 리포트 UX 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)를 source of truth로 보고, 개인 성과 해석/재방문 동기는 공유·리뷰·광고 CTA와 분리해 판단한다. 목표 잠금 MVP 계약은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 보고, policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion foothold는 `develop` 반영 상태로 해석하되 장기 잠금 지표는 release/GA4 Admin 등록/readback 이후에만 해석한다. 부모 모드 / 아이에게 폰 주기 MVP 계약은 `docs/PARENT_MODE_MVP.md`(#471)를 source of truth로 보고, same-device 부모 PIN flow와 privacy-safe analytics/QA 경계를 구현 전 handoff로 고정한다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
+첫 잠금 활성화 퍼널의 단계 의미, CTA 계약, legacy 이벤트명 정리는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 본다. 홈 화면 상태/CTA 구조 개선은 `docs/HOME_STATUS_CTA_STRUCTURE.md`(#463)를 source of truth로 보고, `first_lock_configured`를 실제 차단 완료로 과장하지 않은 채 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태와 단일 primary CTA 위계를 구현 전 계약으로 고정한다. 루틴 보유/미보유 반복 사용 코호트 기준선은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`를 source of truth로 본다. `routines_count` user property coverage 보강 계약은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`(#479)를 source of truth로 보고, `(not set)` coverage가 큰 동안에는 루틴 보유/미보유 retention 결론을 낮은 confidence로 둔다. 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 CTA 실험은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`(#455)를 source of truth로 본다. 반복 차단 패턴 기반 자동 루틴 제안은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`(#531)를 source of truth로 보고, 기존 차단 기록의 privacy-safe bucket에서 로컬 추천 후보를 만들되 앱 이름/package/raw history를 지표 축으로 쓰지 않는다. 차단 화면 카피/액션 위계 개선은 `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`(#464)를 source of truth로 보되, 이 docs-lane 산출물은 구현 완료가 아니라 code-lane 구현·locale parity·release/tag/Play deploy 후 14일 readback 전까지는 UX 계약/QA 기준으로만 해석한다. 긴급해제 flow copy/step 개선은 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`(#467)를 source of truth로 보며, PR #517(`572eb559`)로 helper/validation copy와 locale parity는 `develop`에 반영됐지만 기존 `emergency_unlock_completed.reason` enum key와 privacy-safe payload 경계를 유지하고 실제 기기/screenshot/TalkBack QA, release/tag/Play deploy, 14일 readback 전까지는 live 성과 판단을 보류한다. 루틴 템플릿 공유 루프의 privacy-safe MVP 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)를 source of truth로 본다. LockHistory 성과 리포트 UX 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)를 source of truth로 보고, 개인 성과 해석/재방문 동기는 공유·리뷰·광고 CTA와 분리해 판단한다. 목표 잠금 MVP 계약은 `docs/GOAL_LOCK_MVP.md`(#417)를 source of truth로 보고, policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion foothold는 `develop` 반영 상태로 해석하되 장기 잠금 지표는 release/GA4 Admin 등록/readback 이후에만 해석한다. 부모 모드 / 아이에게 폰 주기 MVP 계약은 `docs/PARENT_MODE_MVP.md`(#471)를 source of truth로 보고, same-device 부모 PIN flow와 privacy-safe analytics/QA 경계를 구현 전 handoff로 고정한다. 최신 코드가 live 지표에 반영됐는지 판정할 때는 `docs/VERSION_ADOPTION_METRICS_GATE.md`의 버전 채택률/최신 버전 cohort 게이트를 먼저 적용한다.
 
 ## 목적
 
@@ -207,6 +207,26 @@
 
 ## 개인화 리포트 / 추천 후보
 
+### 반복 차단 기반 자동 루틴 제안
+
+- 문제: 첫 차단/반복 차단을 경험한 사용자가 매번 수동으로 같은 시간대 잠금을 시작해야 하면 루틴 전환 기회가 늦어진다. 특히 `routines_count=0` 또는 `(not set)` coverage가 큰 구간에서는 반복 사용 의도와 루틴 생성 UX 사이의 연결이 약하다.
+- 기회: 최근 차단 기록에서 반복되는 시간대·요일·앱 카테고리 bucket을 로컬에서 해석해 “이 시간대에 루틴으로 미리 도와드릴까요?” 수준의 prefill 제안을 만들면 반복 차단 사용자를 루틴 소유 cohort로 전환할 수 있다.
+- 기본 원칙:
+  - #531의 source of truth는 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`다.
+  - #455 루틴 생성 CTA는 루틴 0개 사용자를 향한 일반 soft CTA이고, #531은 충분한 반복 패턴이 관측된 후의 개인화 추천이다. 두 CTA가 동시에 같은 slot을 점유하면 UX 실패로 본다.
+  - 앱 이름/package/raw history/raw timestamp를 analytics로 보내지 않고 `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant`만 사용한다.
+- guardrail:
+  - onboarding / pre-first-lock 사용자에게는 노출하지 않는다.
+  - 기존 활성 루틴이 같은 패턴을 이미 커버하면 추천하지 않는다.
+  - `또 실패했어요`, `중독 패턴`, `못 참음` 같은 blame/shame copy 금지.
+  - 추천 prefill은 저장 전 사용자가 요일·시간·앱 범위를 수정할 수 있어야 한다.
+- 성공 판단:
+  - `repeat_block_routine_suggestion_clicked / repeat_block_routine_suggestion_shown`
+  - `repeat_block_routine_suggestion_applied / repeat_block_routine_suggestion_clicked`
+  - 추천 적용 cohort의 D7/D30 반복 차단/루틴 사용 유지율 vs eligible but not applied cohort
+  - 긴급해제 사용률, dismiss율, 리뷰 불만이 악화되면 추천 빈도/문구를 재검토한다.
+- 현재 상태: #531은 문서/analytics/QA 계약 고정 단계다. 구현, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일/30일 readback 전에는 event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
+
 ### LockHistory 성과 리포트
 
 - 문제: `LockHistory`가 총 시간/세션/top apps를 보여도, 사용자가 “내가 무엇을 지켰는지”를 긍정적으로 해석하는 경험은 아직 약하다.
@@ -318,6 +338,7 @@
 - #407 루틴 템플릿 공유 discovery / privacy-safe MVP 계약 (`docs/ROUTINE_TEMPLATE_SHARE_MVP.md` 참조)
 - #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, enum/bucket analytics와 QA baseline)
 - #471 부모 모드 / 아이에게 폰 주기 same-device MVP 계약 (`docs/PARENT_MODE_MVP.md` 참조; 보호자 PIN, 허용 앱, 시간 만료, privacy-safe analytics와 QA baseline)
+- #531 반복 차단 기반 자동 루틴 제안 계약 (`docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` 참조; 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, #455와 slot 충돌 방지, privacy-safe analytics와 QA baseline)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
 ## 관련 실행 문서
@@ -332,3 +353,4 @@
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP 계약. Android share sheet 텍스트 공유, privacy-safe payload, analytics event 초안, deep link/import decision gate, 14일/30일 측정 기준 포함.
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, `goal_lock_*` analytics, runtime QA baseline, 구현 후 `Closes #417` 경계 포함.
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약. 보호자 PIN, 허용 앱, 시간 만료, `parent_mode_*` analytics, runtime QA baseline, 원격 자녀 기기 관리 후속 gate 포함.
+- `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`: #531용 반복 차단 기반 자동 루틴 제안 계약. 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, 기존 루틴 coverage guard, #455/#407/광고 CTA slot 충돌 방지, `repeat_block_routine_suggestion_*` analytics와 QA evidence template 포함.
