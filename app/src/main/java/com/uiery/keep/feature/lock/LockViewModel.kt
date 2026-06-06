@@ -11,12 +11,12 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -47,7 +47,7 @@ class LockViewModel
     constructor(
         savedStateHandle: SavedStateHandle,
         private val routineDao: RoutineDao,
-        private val lockHistoryDao: LockHistoryDao,
+        private val lockHistoryRepository: LockHistoryRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
         private val reviewPromptStateStore: ReviewPromptStateStore,
@@ -166,7 +166,7 @@ class LockViewModel
                 val endTime = clock.millis()
                 recordLockHistorySession(
                     dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                    lockHistoryRepository = lockHistoryRepository,
                     startTimestamp = state.routineStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,
@@ -179,7 +179,7 @@ class LockViewModel
                 val endTime = System.currentTimeMillis()
                 recordLockHistorySession(
                     dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                    lockHistoryRepository = lockHistoryRepository,
                     startTimestamp = state.timerStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,

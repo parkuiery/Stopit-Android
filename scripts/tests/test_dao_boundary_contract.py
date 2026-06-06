@@ -36,6 +36,16 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", text)
         self.assertIn("fun sessionsInRange", text)
         self.assertIn("fun blockedAppsByFrequency", text)
+        self.assertIn("suspend fun recordSession", text)
+
+    def test_lock_history_ledger_uses_repository_boundary(self):
+        ledger = APP_MAIN / "service/LockHistoryLedger.kt"
+        text = ledger.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.LockHistoryEntity", text)
+        self.assertIn("import com.uiery.keep.feature.lockhistory.LockHistoryRepository", text)
+        self.assertIn("lockHistoryRepository: LockHistoryRepository", text)
 
     def test_review_eligibility_evaluator_uses_repository_boundary(self):
         evaluator = APP_MAIN / "feature/review/ReviewEligibilityEvaluator.kt"
@@ -78,7 +88,17 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("import com.uiery.keep.database.dao.GoalLockDao", text)
         self.assertIn("fun create", text)
         self.assertIn("fun fetch", text)
+        self.assertIn("fun fetchAll", text)
         self.assertIn("fun update", text)
+
+    def test_home_viewmodel_uses_goal_lock_repository_boundary(self):
+        home = APP_MAIN / "feature/home/HomeViewModel.kt"
+        text = home.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.GoalLockDao", text)
+        self.assertNotIn("import com.uiery.keep.database.entity.GoalLockEntity", text)
+        self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
+        self.assertIn("private val goalLockRepository: GoalLockRepository", text)
 
     def test_emergency_unlock_coordinator_uses_repository_boundary(self):
         coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"

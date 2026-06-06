@@ -12,6 +12,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -117,7 +118,7 @@ class LockViewModelTest {
         return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineDao = FakeRoutineDao(),
-            lockHistoryDao = FakeLockHistoryDao(),
+            lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -160,7 +161,7 @@ class LockViewModelTest {
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
             routineDao = FakeRoutineDao(),
-            lockHistoryDao = lockHistoryDao,
+            lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -223,7 +224,7 @@ class LockViewModelTest {
             LockViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("lockTime" to LocalDateTime.now(clock).toString(), "isRoutine" to true)),
                 routineDao = FakeRoutineDao(flowOf(listOf(routine))),
-                lockHistoryDao = lockHistoryDao,
+                lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
