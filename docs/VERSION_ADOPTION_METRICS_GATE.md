@@ -52,8 +52,8 @@
 | --- | ---: | ---: | ---: | --- | --- |
 | `first_open` |  |  |  | 기본 이벤트 | 신규 유입 분모 |
 | `first_lock_configured` |  |  |  | `customEvent:source`, `customEvent:selected_app_count` 확인 | 준비 완료. 실제 차단 완료로 과장 금지 |
-| `first_core_action_completed` |  |  |  | `customEvent:blocking_mode`, `customEvent:blocked_app_package` 확인 | 첫 가치 경험 |
-| `app_block_intercepted` |  |  |  | `customEvent:block_source`, `customEvent:blocked_app_package` 확인 | 실제 차단 증거 |
+| `first_core_action_completed` |  |  |  | `customEvent:blocking_mode`, `customEvent:blocked_app_category_bucket` 확인 | 첫 가치 경험. raw `blocked_app_package`는 #611 privacy 계약에 따라 등록/조회 대상에서 제외 |
+| `app_block_intercepted` |  |  |  | `customEvent:block_source`, `customEvent:blocked_app_category_bucket` 확인 | 실제 차단 증거. raw `blocked_app_package`는 #611 privacy 계약에 따라 등록/조회 대상에서 제외 |
 | `review_prompt_eligible` |  |  |  | 기본 이벤트 | 리뷰 arm 상태 |
 | `review_prompt_shown` |  |  |  | 기본 이벤트 | sheet launch 성공. 리뷰 작성 완료 아님 |
 | `review_prompt_skipped` |  |  |  | `customEvent:reason` 확인 | 2026-06-02 기준 reason 조회 가능. pre-fix cohort와 분리 |

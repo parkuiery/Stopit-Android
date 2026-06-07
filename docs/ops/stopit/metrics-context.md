@@ -82,7 +82,7 @@ ASO 판정 주의:
 - `first_lock_configured`는 준비 완료 신호이고, 실제 차단 완료가 아니다.
 - `first_core_action_completed`는 첫 가치 경험 신호이며, 최초 차단 화면 진입의 피드백/계측과 같이 본다.
 - `app_block_intercepted`는 실제 차단 증거다.
-- GA4 Admin에서 activation customEvent 축(`source`, `selected_app_count`, `block_source`, `blocked_app_package` 등)이 등록/metadata 확인되기 전에는 상위 이벤트 users 비율까지만 high-confidence로 보고, 출처/앱/권한별 세부 분해는 #13 외부 경계로 남긴다.
+- GA4 Admin에서 activation customEvent 축(`source`, `selected_app_count`, `block_source`, `blocked_app_category_bucket` 등)이 등록/metadata 확인되기 전에는 상위 이벤트 users 비율까지만 high-confidence로 보고, 출처/앱 카테고리/권한별 세부 분해는 #13 외부 경계로 남긴다. raw `blocked_app_package`는 #611 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다.
 
 활성화 퍼널:
 1. `first_open`
