@@ -125,6 +125,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.workflow_syntax == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: v1.7.12
 
     steps:
       - name: Checkout
@@ -133,7 +135,7 @@ jobs:
       - name: Install actionlint
         run: |
           set -euo pipefail
-          curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash -s -- latest /usr/local/bin
+          curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash -s -- "$ACTIONLINT_VERSION" /usr/local/bin
 
       - name: Run actionlint
         run: actionlint

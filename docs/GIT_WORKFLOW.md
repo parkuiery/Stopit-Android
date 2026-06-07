@@ -198,7 +198,7 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 - 현재 브랜치의 git working tree clean 여부 확인
 - 버전 형식 확인
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
-- `actionlint`가 있으면 workflow 문법 확인
+- `ACTIONLINT_VERSION=v1.7.12`에 맞춘 `actionlint` workflow 문법 확인. `actionlint`가 없거나 설치된 `actionlint --version`이 pinned `1.7.12`와 다르면 release readiness는 skip하지 않고 중단하므로, 로컬 preflight 전에 같은 pinned version을 설치한 뒤 재시도한다.
 - `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
 
 ## Standard Development Flow
