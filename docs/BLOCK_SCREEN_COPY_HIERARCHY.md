@@ -83,6 +83,7 @@ Issue: #464
 cd <repo-root>
 python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*BlockViewModel*' --tests '*EmergencyUnlock*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest
 ./gradlew --console=plain :app:lintProdRelease
 ./gradlew --console=plain :app:assembleProdDebug
 ```

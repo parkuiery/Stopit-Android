@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,9 +37,9 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.toMetadata
-import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
@@ -61,6 +62,9 @@ fun BlockScreen(
     val uiState by viewModel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val appName = remember(packageName, appDisplayMetadataResolver) {
+        appDisplayMetadataResolver.resolve(packageName).label
+    }
 
     LaunchedEffect(packageName, blockSource, routineId, goalLockId) {
         viewModel.trackBlockShown(packageName, blockSource, routineId, goalLockId)
@@ -104,32 +108,49 @@ fun BlockScreen(
         }
     }
 
+    BlockScreenContent(
+        modifier = modifier,
+        appName = appName,
+        uiState = uiState,
+        onShowEmergencyUnlock = viewModel::showEmergencyUnlockSheet,
+        onClose = onClose,
+    )
+}
+
+@Composable
+internal fun BlockScreenContent(
+    appName: String,
+    uiState: BlockUiState,
+    onShowEmergencyUnlock: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    showBannerAd: Boolean = true,
+) {
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(KeepTheme.colors.background),
         contentAlignment = Alignment.Center,
     ) {
-        TrackedBannerAd(
-            modifier = Modifier.align(Alignment.TopCenter),
-            metadata = AdPlacement.BlockTop.toMetadata(
-                screenName = KeepAnalyticsScreen.BLOCK,
-                screenContext = "blocked_app",
-            ),
-        )
+        if (showBannerAd) {
+            TrackedBannerAd(
+                modifier = Modifier.align(Alignment.TopCenter),
+                metadata = AdPlacement.BlockTop.toMetadata(
+                    screenName = KeepAnalyticsScreen.BLOCK,
+                    screenContext = "blocked_app",
+                ),
+            )
+        }
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val appName = remember(packageName, appDisplayMetadataResolver) {
-                appDisplayMetadataResolver.resolve(packageName).label
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 20.dp)
+                    .testTag("block_screen_copy_area"),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -143,7 +164,7 @@ fun BlockScreen(
                             RoundedCornerShape(12.dp)
                         ),
                     painter = painterResource(id = R.drawable.kepp_icon),
-                    contentDescription = null
+                    contentDescription = null,
                 )
                 Spacer(modifier = Modifier.padding(top = 8.dp))
                 Text(
@@ -183,7 +204,8 @@ fun BlockScreen(
             ) {
                 val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                 TextButton(
-                    onClick = viewModel::showEmergencyUnlockSheet,
+                    modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
+                    onClick = onShowEmergencyUnlock,
                     enabled = emergencyUnlockAction.enabled,
                 ) {
                     Text(
@@ -207,7 +229,8 @@ fun BlockScreen(
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .testTag("block_screen_emergency_unlock_helper"),
                     text = stringResource(emergencyUnlockAction.helperTextRes),
                     textAlign = TextAlign.Center,
                     color = KeepTheme.colors.surfaceVariant,
@@ -216,7 +239,9 @@ fun BlockScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 KeepButton(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("block_screen_close_cta"),
                     text = stringResource(id = R.string.block_screen_close),
                     onClick = onClose,
                 )
