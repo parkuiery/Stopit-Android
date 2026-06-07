@@ -88,7 +88,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore boot routine"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
         }
 
@@ -112,7 +112,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
             appContext = context
         }
@@ -144,15 +144,16 @@ class BackupRestoreRuntimeResetIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore app-open routine"))
         val scheduler = RoutineScheduler(context)
         val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
 
         RoutineViewModel(
-            routineRepository = RoomRoutineRepository(database.routineDao()),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopBackupRestoreAnalytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = database.routineDao(),
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,

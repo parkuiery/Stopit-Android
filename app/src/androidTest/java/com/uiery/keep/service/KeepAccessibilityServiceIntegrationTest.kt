@@ -11,10 +11,12 @@ import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.analytics.AnalyticsBlockSource
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
+import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
@@ -339,15 +341,15 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
-        goalLockDao().insert(
-            GoalLockEntity(
+        goalLockRepository().create(
+            GoalLock(
                 id = GOAL_LOCK_RUNTIME_TEST_ID,
                 goalName = "Runtime QA",
-                startDate = LocalDate.now().minusDays(1).toString(),
-                endDate = LocalDate.now().plusDays(1).toString(),
-                lockMode = "all_day",
-                selectedPackages = listOf(packageName),
-                status = "active",
+                startDate = LocalDate.now().minusDays(1),
+                endDate = LocalDate.now().plusDays(1),
+                lockMode = GoalLockMode.AllDay,
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
             ),
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
@@ -362,18 +364,19 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
-        goalLockDao().insert(
-            GoalLockEntity(
+        goalLockRepository().create(
+            GoalLock(
                 id = GOAL_LOCK_RUNTIME_TEST_ID,
                 goalName = "Runtime QA",
-                startDate = LocalDate.now().minusDays(1).toString(),
-                endDate = LocalDate.now().plusDays(1).toString(),
-                lockMode = "scheduled",
-                repeatDays = listOf(LocalDate.now().dayOfWeek),
-                startTime = LocalTime.MIN.toString(),
-                endTime = LocalTime.of(23, 59, 59).toString(),
-                selectedPackages = listOf(packageName),
-                status = "active",
+                startDate = LocalDate.now().minusDays(1),
+                endDate = LocalDate.now().plusDays(1),
+                lockMode = GoalLockMode.Scheduled(
+                    repeatDays = setOf(LocalDate.now().dayOfWeek),
+                    startTime = LocalTime.MIN,
+                    endTime = LocalTime.of(23, 59, 59),
+                ),
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
             ),
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
@@ -388,24 +391,24 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
-        goalLockDao().insert(
-            GoalLockEntity(
+        goalLockRepository().create(
+            GoalLock(
                 id = GOAL_LOCK_RUNTIME_TEST_ID,
                 goalName = "Runtime QA",
-                startDate = LocalDate.now().minusDays(7).toString(),
-                endDate = LocalDate.now().minusDays(1).toString(),
-                lockMode = "all_day",
-                selectedPackages = listOf(packageName),
-                status = "active",
+                startDate = LocalDate.now().minusDays(7),
+                endDate = LocalDate.now().minusDays(1),
+                lockMode = GoalLockMode.AllDay,
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
             ),
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
-    private fun goalLockDao(): GoalLockDao = EntryPointAccessors.fromApplication(
+    private fun goalLockRepository(): GoalLockRepository = EntryPointAccessors.fromApplication(
         context.applicationContext,
         KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
-    ).goalLockDao()
+    ).goalLockRepository()
 
     private suspend fun configureEmergencyUnlock(packageName: String): Long {
         val expireTimeMillis = System.currentTimeMillis() + EMERGENCY_UNLOCK_WINDOW_MS
@@ -443,15 +446,15 @@ class KeepAccessibilityServiceIntegrationTest {
 
     private fun clearGoalLockRuntimeBlock() {
         runCatching {
-            goalLockDao().insert(
-                GoalLockEntity(
+            goalLockRepository().create(
+                GoalLock(
                     id = GOAL_LOCK_RUNTIME_TEST_ID,
                     goalName = "Runtime QA",
-                    startDate = LocalDate.now().minusDays(1).toString(),
-                    endDate = LocalDate.now().minusDays(1).toString(),
-                    lockMode = "all_day",
-                    selectedPackages = emptyList(),
-                    status = "completed",
+                    startDate = LocalDate.now().minusDays(1),
+                    endDate = LocalDate.now().minusDays(1),
+                    lockMode = GoalLockMode.AllDay,
+                    selectedPackages = emptySet(),
+                    status = GoalLockStoredStatus.Completed,
                 ),
             )
         }

@@ -8,6 +8,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.feature.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.Flow
@@ -23,12 +24,13 @@ class SplashViewModelAnalyticsTest {
 
         val dataStore = FakeDataStore()
         val scheduler = Mockito.mock(RoutineScheduler::class.java)
+        val routineRepository = RoomRoutineRepository(EmptySplashRoutineDao)
 
         SplashViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = EmptySplashRoutineDao,
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = RoutineNoticeStore(dataStore),

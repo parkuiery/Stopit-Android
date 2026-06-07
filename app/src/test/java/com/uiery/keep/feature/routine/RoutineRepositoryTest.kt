@@ -54,12 +54,14 @@ class RoutineRepositoryTest {
 
         val insertedId = repository.insert(newRoutine)
         val fetched = repository.fetch(7L)
+        val fetchedOnce = repository.fetchAllOnce()
         repository.update(updatedRoutine)
         repository.updateIsEnabledById(7L, false)
         repository.deleteById(7L)
 
         assertEquals(99L, insertedId)
         assertEquals("Routine 7", fetched.name)
+        assertEquals(listOf("Routine 7"), fetchedOnce.map { it.name })
         assertEquals("Routine 0", dao.insertedEntity?.name)
         assertEquals("Routine 7", dao.updatedEntity?.name)
         assertFalse(dao.updatedEntity?.isEnabled ?: true)

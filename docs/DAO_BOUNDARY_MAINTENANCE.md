@@ -83,6 +83,37 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `RoutineViewModel`은 상세 state, 삭제, enable toggle, restore aftercare orchestration, template share side effect만 소유하고 fetch/fetchAll/delete/updateEnabled persistence mapping은 repository에 위임한다.
 - `RoutineRepositoryTest`는 insert/fetch/update/delete/updateEnabled DAO mapping을 고정하고, routine ViewModel test fixture는 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
 
+### Routine restore aftercare boundary
+
+#520의 여덟 번째 repo-internal QA 패키지는 restore-after-backup 후속 reschedule 경로의 `RoutineDao` 직접 접근을 `RoutineRepository` 경계로 분리했다.
+
+#### 허용 경계
+
+- `RoutineRepository`가 `RoutineRestoreAftercare`의 Room `RoutineDao` read/update 접근 허용 경계다.
+- `RoutineRestoreAftercare`는 restored routine list의 reschedule orchestration, exact-alarm permission prompt reset, `RoutineStore` compatibility cache rewrite만 소유하고, Room entity 조회·enabled update mapping은 repository에 위임한다.
+- `RoutineRepositoryTest`는 `fetchAllOnce()` mapping을 추가로 고정하고, Routine/Splash restore scheduling test fixture는 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
+
+### Routine receiver restore/reschedule boundary
+
+#520의 아홉 번째 repo-internal QA 패키지는 boot/package/time-change restore와 routine alarm receiver 경로의 `RoutineDao` 직접 접근을 `RoutineRepository` 경계로 분리했다.
+
+#### 허용 경계
+
+- `RoutineRepository`가 `BootReceiver` / `RoutineAlarmReceiver`의 Room `RoutineDao` read/update 접근 허용 경계다.
+- `BootReceiver`는 boot/package/time-change action filtering, restore orchestration, exact-alarm schedule 결과 반영, `RoutineStore` compatibility cache rewrite만 소유하고 Room entity 조회·enabled update mapping은 repository에 위임한다.
+- `RoutineAlarmReceiver`는 routine alarm trigger parsing, start notification/fallback notice, selected routine reschedule orchestration만 소유하고 Room entity 조회·enabled update mapping은 repository에 위임한다.
+- Receiver runtime/androidTest fixtures는 직접 receiver field에 DAO를 넣지 않고 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
+
+### Accessibility service runtime read boundary
+
+#520의 여덟 번째 repo-internal QA 패키지는 AccessibilityService의 routine/goal-lock foreground blocking cache에서 `RoutineDao` / `GoalLockDao` 직접 접근을 분리했다.
+
+#### 허용 경계
+
+- `RoutineRepository`가 AccessibilityService의 routine read 접근 허용 경계다.
+- `GoalLockRepository`가 AccessibilityService의 goal-lock read 접근 허용 경계다.
+- `KeepAccessibilityService`는 repository가 제공하는 domain model stream만 캐시하고, foreground block decision / emergency-unlock expiry / uninstall prevention orchestration만 소유한다.
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
@@ -92,16 +123,15 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `LockHistoryRecorder` 아래에서 `LockHistoryDao` / `LockHistoryEntity` 직접 import가 재도입되지 않고 `LockHistoryRepository.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다. `LockHistoryLedger`는 read-side summary helper로만 남는지도 함께 검사한다.
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `LockViewModel` 아래에서 `RoutineDao` / `RoutineEntity` / stale emergency-unlock DAO/entity import가 재도입되지 않고 `RoutineRepository`가 lock routine read 허용 경계로 남는지 검사한다.
-- 같은 static guard가 routine feature ViewModel 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation 허용 경계로 남는지 검사한다.
+- 같은 static guard가 routine feature non-repository source 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation/restore-aftercare 허용 경계로 남는지 검사한다.
+- 같은 static guard가 routine Receiver 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 boot/alarm receiver routine read/mutation 허용 경계로 남는지 검사한다.
+- 같은 static guard가 `KeepAccessibilityService` 아래에서 `RoutineDao` / `GoalLockDao` 직접 import가 재도입되지 않고 `RoutineRepository` / `GoalLockRepository`가 accessibility foreground cache 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## 남은 인벤토리
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine ViewModel read/mutation 경계까지 안전하게 닫고, Receiver/AccessibilityService 런타임 경로는 별도 focused test와 runtime QA 범위로 다룬다.
+아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine ViewModel/receiver read/mutation 경계와 AccessibilityService runtime cache 경계까지 안전하게 닫고, 남은 receiver/service runtime QA는 별도 focused test와 runtime evidence 범위로 다룬다.
 
-- `RoutineRestoreAftercare`: `RoutineDao`
-- `BootReceiver`, `RoutineAlarmReceiver`: `RoutineDao`
-- `KeepAccessibilityService`: `RoutineDao`, `GoalLockDao`
 - `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`: 현재 허용된 repository DAO 경계다.
 
 DB 모듈(`KeepDatabase`, `database/di`, DAO 인터페이스 자체)과 테스트 fake DAO는 이 인벤토리에서 제외한다.
@@ -117,6 +147,7 @@ python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryRecorderTest' --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelAnalyticsTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest'
 ./gradlew --console=plain :app:compileDevDebugAndroidTestKotlin
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ```

@@ -8,6 +8,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.feature.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toEntity
@@ -36,12 +37,13 @@ class SplashViewModelRestoreSchedulingTest {
         Mockito.`when`(scheduler.canScheduleExactAlarms()).thenReturn(true)
         Mockito.`when`(scheduler.scheduleRoutine(routine.toModel()))
             .thenReturn(RoutineScheduleResult.Scheduled)
+        val routineRepository = RoomRoutineRepository(routineDao)
 
         val viewModel = SplashViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
             analytics = NoopSplashAnalytics,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = routineDao,
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = RoutineNoticeStore(dataStore),
