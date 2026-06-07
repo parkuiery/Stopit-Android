@@ -64,6 +64,29 @@ Primary는 아래처럼 사용자 가치나 현재 상태를 직접 설명하는
    - KDS README는 token의 의미와 사용 금지 표면을 설명한다.
    - 루트 `DESIGN.md`는 app 화면 판단 원칙과 변경 승인 기준을 설명한다.
 
+## Visual QA / release closure evidence template
+
+#468은 PR #546 이후 repo-internal code/docs/정적 회귀 기준까지는 갖췄지만, 이슈를 닫으려면 실제 사용자가 보는 화면에서 primary 위계가 유지되는지 별도 evidence가 필요하다. 아래 template은 QA lane, release lane, 또는 수동 visual QA가 #468 closure 판단을 할 때 남겨야 하는 최소 증거다.
+
+| 화면 묶음 | visual QA 확인 항목 | evidence |
+| --- | --- | --- |
+| Home / TopAppBar | menu icon이 primary CTA보다 낮은 위계인지, 시작/타이머/선택 CTA가 화면에서 가장 강한 action인지 | light/dark screenshot 또는 짧은 영상 |
+| LockHistory / BlockedApps | back icon이 성과 숫자·선택 날짜·rank 강조보다 낮은 위계인지, 성과 강조가 navigation처럼 보이지 않는지 | light/dark screenshot, 선택 날짜/empty/has-history 상태 |
+| Routine / Routine bottom sheet | back/delete icon은 lower-emphasis 또는 error token이고, add/save/selected day는 비색상 cue를 함께 갖는지 | routine list + add/edit sheet screenshot |
+| Emergency Unlock settings / bottom sheet | back icon은 낮고 reason/duration/active selection/progress는 chip/background/label과 함께 전달되는지 | settings + bottom sheet screenshot, TalkBack/contentDescription spot-check |
+| Goal Lock creation/detail | back icon primary drift가 없고 기간/상태/progress 강조가 CTA와 충돌하지 않는지 | creation/detail screenshot, active/completed 상태 |
+| Menu / DevTool | debug/internal navigation icon에 raw orange 또는 primary tint가 재도입되지 않았는지 | source/static test 결과 또는 screenshot |
+
+Closure comment에 포함할 항목:
+
+- 확인 ref: PR/commit SHA, 포함 release tag 또는 배포 후보.
+- visual evidence: light/dark mode screenshot 또는 영상 링크/파일명.
+- accessibility evidence: 선택/활성 상태가 색상 외 텍스트, shape, badge, border, semantics, contentDescription 중 하나 이상으로 전달되는지.
+- release evidence: release/tag/Play deploy 포함 여부. 아직 release/tag/Play deploy 전이면 사용자 노출 후 확인이 남은 것으로 기록한다.
+- 사용자 노출 후 확인: 다음 릴리즈 반영 뒤 대표 화면에서 navigation icon이 다시 primary로 보인다는 피드백/QA finding이 없는지 확인한다.
+
+visual QA와 release evidence가 없으면 PR/이슈 코멘트는 `Refs #468`로 유지한다. `Closes #468`는 위 template의 visual QA, accessibility spot-check, release/tag/Play deploy 또는 동등한 사용자 노출 후 확인이 모두 기록됐을 때만 사용한다.
+
 ## 완료/검증 기준
 
 #468 repo-internal 기준은 PR #474 + PR #546 이후 아래 상태까지 충족됐다.
