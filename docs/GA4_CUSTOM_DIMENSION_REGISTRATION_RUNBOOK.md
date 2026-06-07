@@ -225,7 +225,7 @@
 - #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`의 Play Install Referrer / UTM attribution 계약을 GA4에서 breakdown하기 위한 최소 집합이다.
 - #65/#242 acquisition readback에서 `Direct` 신규 비중이 과다할 때, 진짜 direct와 external/campaign/UTM 누락을 분리하는 confidence를 올린다.
 - raw referrer URL, 검색어/search term, email/phone/account id, Discord user/channel name, raw URL path, arbitrary query key-value는 GA4 payload와 registration ledger 모두에서 금지한다.
-- PR #586의 parser/helper/analytics foothold는 `develop`에 있지만, SDK provider/첫 실행 lookup path, metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+- PR #586의 parser/helper/analytics foothold와 이번 QA package의 SDK provider/첫 실행 one-shot lookup wiring은 repo 내부에 있지만, metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `Direct` 감소나 ASO 회복을 주장하지 않는다.
 
 GA4 Admin 증적 후보:
 
