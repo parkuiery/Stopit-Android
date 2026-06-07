@@ -486,6 +486,44 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun parentModeStartedUsesSafeBucketedParamsOnly() {
+        analytics.trackParentModeStarted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+            allowedAppCountBucket = AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun parentModeCompletedDoesNotSendRawTimestampsOrPackages() {
+        analytics.trackParentModeCompleted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+            endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+                    KeepAnalyticsParam.END_REASON to AnalyticsParentModeEndReason.TIME_EXPIRED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun goalLockCreatedUsesSafeBucketedParamsOnly() {
         analytics.trackGoalLockCreated(
             durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,

@@ -202,6 +202,31 @@ interface KeepAnalytics {
         surface: String,
         suggestion: RepeatBlockRoutineSuggestion,
     ) = Unit
+
+    fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit
+
+    fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) = Unit
+
+    fun trackParentModeStarted(
+        durationMinutesBucket: String,
+        allowedAppCountBucket: String,
+    ) = Unit
+
+    fun trackParentModeCompleted(
+        durationMinutesBucket: String,
+        endReason: String,
+    ) = Unit
+
+    fun trackParentModeUnlockedByPin(
+        pinResult: String,
+        endReason: String,
+    ) = Unit
+
+    fun trackParentModeExtended(extensionMinutesBucket: String) = Unit
+
+    fun trackParentModeBlockIntercepted(blockContext: String) = Unit
+
+    fun trackParentModeCancelled(endReason: String) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -248,6 +273,14 @@ object KeepAnalyticsEvent {
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED = "repeat_block_routine_suggestion_applied"
+    const val PARENT_MODE_DURATION_SELECTED = "parent_mode_duration_selected"
+    const val PARENT_MODE_ALLOWED_APPS_SELECTED = "parent_mode_allowed_apps_selected"
+    const val PARENT_MODE_STARTED = "parent_mode_started"
+    const val PARENT_MODE_COMPLETED = "parent_mode_completed"
+    const val PARENT_MODE_UNLOCKED_BY_PIN = "parent_mode_unlocked_by_pin"
+    const val PARENT_MODE_EXTENDED = "parent_mode_extended"
+    const val PARENT_MODE_BLOCK_INTERCEPTED = "parent_mode_block_intercepted"
+    const val PARENT_MODE_CANCELLED = "parent_mode_cancelled"
 }
 
 object KeepAnalyticsParam {
@@ -300,6 +333,10 @@ object KeepAnalyticsParam {
     const val REPEAT_COUNT_BUCKET = "repeat_count_bucket"
     const val ROUTINE_COVERAGE_STATE = "routine_coverage_state"
     const val SUGGESTION_VARIANT = "suggestion_variant"
+    const val ALLOWED_APP_COUNT_BUCKET = "allowed_app_count_bucket"
+    const val PIN_RESULT = "pin_result"
+    const val EXTENSION_MINUTES_BUCKET = "extension_minutes_bucket"
+    const val BLOCK_CONTEXT = "block_context"
 }
 
 object OnboardingStepName {
@@ -467,4 +504,51 @@ object RepeatBlockRoutineSuggestionSurface {
 
 object RepeatBlockSuggestionVariant {
     const val DEFAULT = "default"
+}
+
+object AnalyticsParentModeDurationBucket {
+    const val ONE_TO_NINE = "1_9"
+    const val TEN = "10"
+    const val ELEVEN_TO_TWENTY = "11_20"
+    const val TWENTY_ONE_TO_THIRTY = "21_30"
+    const val THIRTY_ONE_TO_SIXTY = "31_60"
+    const val SIXTY_ONE_PLUS = "61_plus"
+}
+
+object AnalyticsParentModeExtensionMinutesBucket {
+    const val ONE_TO_NINE = "1_9"
+    const val TEN = "10"
+    const val ELEVEN_TO_TWENTY = "11_20"
+    const val TWENTY_ONE_TO_THIRTY = "21_30"
+    const val THIRTY_ONE_PLUS = "31_plus"
+}
+
+object AnalyticsParentModeAllowedAppCountBucket {
+    const val ONE = "1"
+    const val TWO_TO_THREE = "2_3"
+    const val FOUR_TO_SIX = "4_6"
+    const val SEVEN_PLUS = "7_plus"
+}
+
+object AnalyticsParentModePinResult {
+    const val SUCCESS = "success"
+    const val FAILURE = "failure"
+    const val NOT_CONFIGURED = "not_configured"
+}
+
+object AnalyticsParentModeEndReason {
+    const val TIME_EXPIRED = "time_expired"
+    const val PIN_UNLOCKED = "pin_unlocked"
+    const val CANCELLED_BEFORE_START = "cancelled_before_start"
+    const val CANCELLED_BY_PARENT = "cancelled_by_parent"
+    const val SYSTEM_INTERRUPTED = "system_interrupted"
+    const val UNKNOWN = "unknown"
+}
+
+object AnalyticsParentModeBlockContext {
+    const val DISALLOWED_APP = "disallowed_app"
+    const val SETTINGS_SURFACE = "settings_surface"
+    const val RECENT_APPS = "recent_apps"
+    const val NOTIFICATION_SURFACE = "notification_surface"
+    const val UNKNOWN = "unknown"
 }

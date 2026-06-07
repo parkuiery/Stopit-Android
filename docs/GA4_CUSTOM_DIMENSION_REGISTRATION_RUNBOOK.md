@@ -260,11 +260,11 @@
 | `category_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 앱 category bucket별 반응 비교. 앱 이름/package 금지 | `customEvent:category_bucket` |
 | `repeat_count_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 반복 강도별 추천 반응 비교. raw retry count 금지 | `customEvent:repeat_count_bucket` |
 | `routine_coverage_state` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 기존 루틴 커버리지 충돌/오노출 감지 | `customEvent:routine_coverage_state` |
-| `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
-| `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | #471 문서 계약 추가 / 코드 구현 전 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
-| `pin_result` | `parent_mode_unlocked_by_pin` | #471 문서 계약 추가 / 코드 구현 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
-| `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | #471 문서 계약 추가 / 코드 구현 전 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
-| `block_context` | `parent_mode_block_intercepted` | #471 문서 계약 추가 / 코드 구현 전 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
+| `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
+| `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
+| `pin_result` | `parent_mode_unlocked_by_pin` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
+| `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
+| `block_context` | `parent_mode_block_intercepted` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
 
 ### 2) Recommended 이벤트 차원
 
@@ -366,11 +366,11 @@
 | `repeat_count_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_count_bucket` 확인 필요 | 반복 강도별 추천 반응 비교. raw retry count 금지 |
 | `routine_coverage_state` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_coverage_state` 확인 필요 | 기존 루틴 커버리지 충돌/오노출 감지 |
 | `suggestion_variant` | Recommended dimension | 필요 시 등록 | 추천 copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:suggestion_variant` 확인 필요 | MVP는 `default` 단일 variant로 시작 |
-| `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 구현·배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
+| `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 코드 계약 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
 | `duration_minutes_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_minutes_bucket` 확인 필요 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 |
 | `pin_result` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:pin_result` 확인 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 |
 | `block_context` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:block_context` 확인 필요 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
-| `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
+| `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 코드 계약 포함 버전의 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
 
 ### metadata 확인 로그 템플릿
 
