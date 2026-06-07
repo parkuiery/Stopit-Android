@@ -63,14 +63,14 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         )
         self.assertLess(
             workflow.index("- name: Generate Play upload provenance manifest"),
-            workflow.index("- name: Upload signed AAB artifact"),
-        )
-        self.assertLess(
-            workflow.index("- name: Upload signed AAB artifact"),
             workflow.index("- name: Verify Play upload provenance manifest"),
         )
         self.assertLess(
             workflow.index("- name: Verify Play upload provenance manifest"),
+            workflow.index("- name: Upload signed AAB artifact"),
+        )
+        self.assertLess(
+            workflow.index("- name: Upload signed AAB artifact"),
             workflow.index("- name: Upload to Google Play"),
         )
 
@@ -102,6 +102,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "production promotion",
             "prior non-production",
             "internal release",
+            "before `Upload signed AAB artifact`",
         ):
             self.assertIn(required, docs)
 
