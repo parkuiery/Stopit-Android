@@ -59,7 +59,7 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         self.assertIn("#581", play_store_aso)
         self.assertIn("PR #586", play_store_aso)
         self.assertIn("parser/helper/analytics foothold", play_store_aso)
-        self.assertIn("SDK provider/첫 실행 lookup", play_store_aso)
+        self.assertIn("SDK provider/첫 실행 one-shot lookup", play_store_aso)
         self.assertIn("GA4 Admin", play_store_aso)
         self.assertIn("release/tag/Play deploy", play_store_aso)
         self.assertIn("14일/30일 readback", play_store_aso)
@@ -78,7 +78,7 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         ]:
             self.assertIn(dimension, ga4_runbook)
         self.assertIn("PR #586의 parser/helper/analytics foothold", ga4_runbook)
-        self.assertIn("SDK provider/첫 실행 lookup path", ga4_runbook)
+        self.assertIn("SDK provider/첫 실행 one-shot lookup wiring", ga4_runbook)
         self.assertIn("metadata 확인", ga4_runbook)
         self.assertIn("release/tag/Play deploy", ga4_runbook)
 
@@ -89,9 +89,10 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         self.assertIn("AcquisitionAttributionParser", contract)
         self.assertIn("CampaignLinkBuilder", contract)
         self.assertIn("KeepAnalytics.trackInstallReferrerAttributionChecked", contract)
-        self.assertIn("Play Install Referrer SDK provider wiring", contract)
-        self.assertIn("첫 실행 non-blocking lookup path", contract)
-        self.assertIn("문서 계약 + parser/helper/analytics foothold 완료", contract)
+        self.assertIn("InstallReferrerAttributionReporter", contract)
+        self.assertIn("PlayInstallReferrerLookup", contract)
+        self.assertIn("PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION", contract)
+        self.assertIn("문서 계약 + parser/helper/analytics foothold + SDK provider/runtime one-shot wiring 완료", contract)
 
 
 if __name__ == "__main__":
