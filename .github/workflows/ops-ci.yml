@@ -108,6 +108,7 @@ jobs:
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
+              - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
               - '.github/workflows/android-ci.yml'
