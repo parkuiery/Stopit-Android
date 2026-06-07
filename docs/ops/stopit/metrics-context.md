@@ -58,7 +58,7 @@
 ASO 판정 주의:
 - #65의 14일/30일 성과 판단은 `docs/PLAY_STORE_ASO.md`의 #242 acquisition attribution gate를 따른다.
 - GA4 `Organic Search`와 Play Console Search/Explore가 같은 방향인지 확인하기 전에는 ASO 효과로 단정하지 않는다.
-- `Direct` 비중 급증은 UTM/Install Referrer 누락, Discord/웹/QR 링크, redirect의 referrer 손실, 외부 캠페인 유입일 수 있으므로 먼저 분리한다.
+- `Direct` 비중 급증은 UTM/Install Referrer 누락, Discord/웹/QR 링크, redirect의 referrer 손실, 외부 캠페인 유입일 수 있으므로 먼저 분리한다. #581의 Play Install Referrer / UTM attribution 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`를 source of truth로 보고, privacy-safe bucket과 GA4 Admin/release/readback 경계를 지킨다.
 - 실제 캠페인 집행이 확인되지 않은 `Paid Search` 활성/세션은 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상으로 다룬다.
 - Play Store 링크를 새로 배포하거나 캠페인을 시작할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`과 게시 시각을 기록하고, #65 판정표에는 GA4 채널과 Play Console Search/Explore/external source를 함께 남긴다.
 - 2026-06-06 live readback(`2026-06-06T22:17:11Z`)에서도 전체 `newUsers`가 553명으로 직전 30일 대비 +49.9%였지만 `Direct` 신규가 332명(60.0%)으로 유지됐고 `Organic Search` 신규는 221명으로 #65 기준선 178명을 넘은 상태이며 `sessions`는 5,069회로 직전 6,226회 대비 -18.6%다. 따라서 현재 신규 유입 반등은 #242 외부 확인 전까지 ASO 회복이 아니라 attribution 판정 보류 신호로 본다.

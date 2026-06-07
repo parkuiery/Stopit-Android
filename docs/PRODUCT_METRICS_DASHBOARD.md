@@ -69,7 +69,7 @@
 | Business | 광고 eCPM | `totalAdRevenue` / impressions × 1000 | GA4/AdMob | 광고 효율 |
 | Business | 광고 CTR | clicks / impressions | GA4/AdMob | 광고 반응 |
 | Acquisition | 신규 사용자 | `newUsers` | GA4 | 성장 흐름 |
-| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용하고, UTM/Install Referrer/외부 링크 기록 여부를 확인 |
+| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용하고, #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`의 UTM/Install Referrer/외부 링크 기록 여부를 확인 |
 | Quality gate | 최신 버전 active share | 최신 배포 버전 `activeUsers` / 전체 `activeUsers` | GA4 `appVersion` | #359 판독 게이트. 10% 미만이면 최신 코드 성과 판단 보류, 10~30%는 주의, 30% 이상이면 최신 cohort 결론 사용 가능 |
 
 ## 현재 기준선
