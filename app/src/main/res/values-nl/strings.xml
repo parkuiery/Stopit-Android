@@ -98,6 +98,16 @@
     <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
     <string name="lock_history_focus_share_button">Deel het focusrecord van deze week</string>
     <string name="lock_history_focus_share_sheet_title">StopIt-focusrecord delen</string>
+    <string name="focus_summary_share_payload_text">Deze week heb ik met StopIt %1$d keer voor %2$s focus beschermd.\nAls ik focus nodig heb, pauzeer ik even mijn appgebruik.\n%3$s</string>
+    <string name="focus_summary_share_duration_hours_minutes">%1$s %2$s</string>
+    <plurals name="focus_summary_share_duration_hour">
+        <item quantity="one">%1$d uur</item>
+        <item quantity="other">%1$d uur</item>
+    </plurals>
+    <plurals name="focus_summary_share_duration_minute">
+        <item quantity="one">%1$d minuut</item>
+        <item quantity="other">%1$d minuten</item>
+    </plurals>
     <string name="lock_history_top_apps_title">Apps you protected time from</string>
     <string name="lock_history_block_count">%1$d keer</string>
     <string name="lock_history_duration_short_hour">%1$du%2$dm</string>

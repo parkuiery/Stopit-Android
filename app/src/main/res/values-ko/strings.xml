@@ -101,6 +101,14 @@
     <string name="lock_history_performance_empty_week_headline">이번 주 첫 기록을 시작해볼까요?</string>
     <string name="lock_history_focus_share_button">이번 주 집중 기록 공유</string>
     <string name="lock_history_focus_share_sheet_title">스탑잇 집중 기록 공유</string>
+    <string name="focus_summary_share_payload_text">이번 주 스탑잇으로 %1$d번, 총 %2$s 집중을 지켰어요.\n나도 집중이 필요할 때 앱 사용을 잠깐 멈춰요.\n%3$s</string>
+    <string name="focus_summary_share_duration_hours_minutes">%1$s %2$s</string>
+    <plurals name="focus_summary_share_duration_hour">
+        <item quantity="other">%1$d시간</item>
+    </plurals>
+    <plurals name="focus_summary_share_duration_minute">
+        <item quantity="other">%1$d분</item>
+    </plurals>
     <string name="lock_history_top_apps_title">가장 잘 막아낸 앱</string>
     <string name="lock_history_block_count">%1$d회</string>
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>

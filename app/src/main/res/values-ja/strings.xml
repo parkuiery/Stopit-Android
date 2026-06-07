@@ -98,6 +98,14 @@
     <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
     <string name="lock_history_focus_share_button">今週の集中記録を共有</string>
     <string name="lock_history_focus_share_sheet_title">StopItの集中記録を共有</string>
+    <string name="focus_summary_share_payload_text">今週はStopItで%1$d回、合計%2$sの集中を守りました。\n集中したいときは、私もアプリ利用を少し止めています。\n%3$s</string>
+    <string name="focus_summary_share_duration_hours_minutes">%1$s%2$s</string>
+    <plurals name="focus_summary_share_duration_hour">
+        <item quantity="other">%1$d時間</item>
+    </plurals>
+    <plurals name="focus_summary_share_duration_minute">
+        <item quantity="other">%1$d分</item>
+    </plurals>
     <string name="lock_history_top_apps_title">Apps you protected time from</string>
     <string name="lock_history_block_count">%1$d回</string>
     <string name="lock_history_duration_short_hour">%1$d時間%2$d分</string>

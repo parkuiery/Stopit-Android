@@ -97,6 +97,16 @@
     <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
     <string name="lock_history_focus_share_button">Compartir el registro de concentración de esta semana</string>
     <string name="lock_history_focus_share_sheet_title">Compartir registro de concentración de StopIt</string>
+    <string name="focus_summary_share_payload_text">Esta semana protegí mi concentración %1$d veces durante %2$s con StopIt.\nCuando necesito concentrarme, pauso un momento el uso de apps.\n%3$s</string>
+    <string name="focus_summary_share_duration_hours_minutes">%1$s %2$s</string>
+    <plurals name="focus_summary_share_duration_hour">
+        <item quantity="one">%1$d hora</item>
+        <item quantity="other">%1$d horas</item>
+    </plurals>
+    <plurals name="focus_summary_share_duration_minute">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
     <string name="lock_history_top_apps_title">Apps you protected time from</string>
     <string name="lock_history_block_count">%1$d veces</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>

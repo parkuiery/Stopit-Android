@@ -98,6 +98,14 @@
     <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
     <string name="lock_history_focus_share_button">分享本周专注记录</string>
     <string name="lock_history_focus_share_sheet_title">分享 StopIt 专注记录</string>
+    <string name="focus_summary_share_payload_text">本周我用 StopIt 守住了 %1$d 次专注，共 %2$s。\n需要专注时，我也会先暂停使用应用。\n%3$s</string>
+    <string name="focus_summary_share_duration_hours_minutes">%1$s%2$s</string>
+    <plurals name="focus_summary_share_duration_hour">
+        <item quantity="other">%1$d 小时</item>
+    </plurals>
+    <plurals name="focus_summary_share_duration_minute">
+        <item quantity="other">%1$d 分钟</item>
+    </plurals>
     <string name="lock_history_top_apps_title">Apps you protected time from</string>
     <string name="lock_history_block_count">%1$d次</string>
     <string name="lock_history_duration_short_hour">%1$d小时%2$d分</string>
