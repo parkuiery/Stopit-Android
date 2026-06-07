@@ -35,6 +35,7 @@ jobs:
           else
             echo "Invalid branch name: $HEAD_REF"
             echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, ecc-tools/*, release/x.y.z, hotfix/*"
+            echo "automation/* is reserved for local lane worktree branches; create a review branch with an allowed prefix such as docs/issue-123-topic or ci/issue-123-topic."
             exit 1
           fi
 

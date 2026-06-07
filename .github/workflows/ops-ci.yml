@@ -109,8 +109,10 @@ jobs:
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
+              - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
+              - '.github/workflows/branch-hygiene.yml'
               - '.github/workflows/android-ci.yml'
               - '.github/workflows/ops-ci.yml'
               - '.github/workflows/play-deploy.yml'
@@ -163,6 +165,7 @@ jobs:
           scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_review_prompt_post_release_followthrough_docs
+          scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
 
