@@ -38,7 +38,7 @@
 2026-05-29 live 점검 메모 기준:
 
 - `customUser:routines_count`만 metadata에서 확인됨. 단 #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 기준으로 metadata 조회 가능성과 active user coverage는 분리한다.
-- 활성화/리뷰용 `customEvent:*` 차원/지표는 아직 보이지 않음
+- 활성화용 `customEvent:*`와 review failure `customEvent:error`는 별도 metadata/runReport 확인 전까지 registration gap으로 둔다. review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능해졌으므로 #307 skip reason 분석에는 사용할 수 있다.
 - 광고용 `customEvent:*`는 아래 2026-06-01 #16 AdMob preflight에서 일부 등록 확인으로 보정됨
 - 최근 14일 `screen_view` 총량 `13,154`
 - `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`

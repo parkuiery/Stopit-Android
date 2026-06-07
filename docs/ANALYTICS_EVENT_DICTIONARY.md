@@ -375,7 +375,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 ## User property 계약
 
-현재 live metadata에서 확인된 custom dimension은 `customUser:routines_count` 하나뿐이므로, 이 값의 의미를 이벤트 파라미터와 분리해서 명시한다.
+`routines_count`는 live metadata에서 확인된 `customUser` dimension이므로, 이 값의 의미를 이벤트 파라미터와 분리해서 명시한다. activation/review/ad 관련 `customEvent:*` 조회성은 아래 GA4 registration 계약과 운영 메모를 따른다.
 
 | user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
 | --- | --- | --- | --- |
