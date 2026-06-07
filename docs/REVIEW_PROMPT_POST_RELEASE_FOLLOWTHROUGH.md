@@ -138,7 +138,7 @@
 
 | 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
-| baseline | TODO | TODO | TODO | 170 | TODO | Play Console 수동 기록 필요. `Direct` 신규 333명(60.2%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
+| baseline | TODO | TODO | TODO | 221 | TODO | Play Console 수동 기록 필요. `Direct` 신규 333명(60.2%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
 | D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
 | D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
 
