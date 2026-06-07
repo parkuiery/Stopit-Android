@@ -44,7 +44,7 @@ class ActionlintGateContractTest(unittest.TestCase):
         workflow = OPS_CI.read_text()
 
         self.assertIn("ACTIONLINT_VERSION", workflow)
-        self.assertRegex(workflow, r"ACTIONLINT_VERSION:\s+v\d+\.\d+\.\d+")
+        self.assertRegex(workflow, r"ACTIONLINT_VERSION:\s+\d+\.\d+\.\d+")
         self.assertNotIn("bash -s -- latest", workflow)
         self.assertRegex(workflow, r"bash -s -- \"\$ACTIONLINT_VERSION\" /usr/local/bin")
 
@@ -59,7 +59,7 @@ class ActionlintGateContractTest(unittest.TestCase):
             with self.subTest(doc=doc_name):
                 self.assertIn("Workflow syntax lint", doc)
                 self.assertIn("actionlint", doc)
-                self.assertIn("v1.7.12", doc)
+                self.assertIn("1.7.12", doc)
                 self.assertIn(".github/workflows/**", doc)
 
     def test_governance_release_workflows_use_checkout_v6(self):
