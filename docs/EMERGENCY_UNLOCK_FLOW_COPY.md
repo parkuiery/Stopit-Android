@@ -29,6 +29,7 @@ Issue: #467
 - PR #575로 반영된 자동 UI QA baseline:
   - `EmergencyUnlockBottomSheetContentIntegrationTest`가 reason-required ON 실제 Compose flow에서 `기타` reason 선택, custom reason validation, app selection, duration chip 선택, countdown 완료 후 `reason=other` payload와 selected app/duration 전달을 검증한다.
   - 같은 test class가 reason-required OFF flow를 유지해 reason step 없이 app selection → duration → countdown으로 이어지는 경로를 검증한다.
+  - countdown step은 TalkBack content description에서 waiting copy, 남은 초, cancel affordance를 함께 노출해야 한다.
   - 이 baseline은 emulator/Compose 자동 증거이며, 실제 기기 screenshot·TalkBack spot-check를 대체하지 않는다.
 - 남은 UX 리스크:
   - 실제 기기/screenshot QA에서 helper/validation copy가 광고 영역·CTA·bottom sheet height 안에서 읽히는지 확인해야 한다.

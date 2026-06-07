@@ -51,6 +51,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -444,6 +446,11 @@ private fun CountdownStep(
     onCancel: () -> Unit,
 ) {
     val latestOnTick by rememberUpdatedState(onTick)
+    val countdownTalkBackDescription = listOf(
+        stringResource(R.string.emergency_unlock_waiting),
+        stringResource(R.string.emergency_unlock_waiting_seconds, seconds),
+        stringResource(R.string.emergency_unlock_cancel),
+    ).joinToString(". ")
 
     LaunchedEffect(Unit) {
         repeat(seconds) {
@@ -461,6 +468,9 @@ private fun CountdownStep(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                contentDescription = countdownTalkBackDescription
+            }
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

@@ -280,7 +280,7 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. This checklist now collects the remaining real-device screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy or automatic flow coverage as unimplemented.
+Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. The #467 QA follow-up also adds a focused countdown TalkBack content-description baseline so the waiting copy, remaining seconds, and cancel affordance are exposed together in Compose UI tests. This checklist now collects the remaining real-device screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy or automatic flow coverage as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -303,12 +303,14 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candi
   - selected apps are explicit and zero-selection helper is visible: pass / fail
   - duration options are clear and bounded: pass / fail
   - countdown copy feels like a short reconsideration window, not punishment: pass / fail
+  - countdown TalkBack includes waiting copy, remaining seconds, and cancel affordance together: pass / fail
   - cancel path remains visible: pass / fail
 - Analytics/privacy:
   - `emergency_unlock_completed.reason` keeps enum key, not display label/custom text: pass / fail
   - no app name/package/custom reason/raw history added to analytics: pass / fail
 - Accessibility/TalkBack:
   - reason/app/duration selection and disabled helper are understandable: pass / fail
+  - countdown reads as one reconsideration state with remaining seconds and cancel option: pass / fail
 - Verification:
   - PR #517 merge commit included in tested build: yes / no / unknown
   - PR #575 UI QA baseline included in tested build: yes / no / unknown

@@ -112,7 +112,11 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
         self.assertIn("device/screenshot/TalkBack evidence", checklist)
         self.assertIn("PR #517 merge commit included in tested build", checklist)
         self.assertIn("PR #575 UI QA baseline included in tested build", checklist)
-
+        self.assertIn(
+            "countdown TalkBack includes waiting copy, remaining seconds, and cancel affordance together",
+            checklist,
+        )
+        self.assertIn("python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v", checklist)
 
 if __name__ == "__main__":
     unittest.main()
