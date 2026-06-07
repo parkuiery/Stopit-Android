@@ -14,6 +14,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 
 - [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
+- [ ] `README.md 현재 버전 라인` matches `app/build.gradle.kts` `versionName/versionCode`; `scripts/release-tag.sh` re-checks this before tag 생성 전.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than the highest versionCode currently visible through Google Play tracks; `Version Guard` and `scripts/play_version_code_guard.py` are the source of truth for this check.
 - [ ] If the release/hotfix PR changes app/runtime/build-critical paths (`app/**`, `core/**`, Gradle wrapper/root Gradle files, or `gradle/**`), `Version Guard` must run Play/main max version validation even when `app/build.gradle.kts` was not edited; only workflow/governance/docs-only main-target hotfixes may skip that API validation.
 - [ ] Any manual `workflow_dispatch` follow-up still starts from the same SemVer tag ref as the release tag; branch ref uploads are not allowed for `internal`, `alpha`, `beta`, or `production`, and the selected tag must pass the same `origin/main` ancestry + previous production marker guard as tag-push CD.

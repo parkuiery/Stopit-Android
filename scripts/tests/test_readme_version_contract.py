@@ -11,8 +11,11 @@ import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 BUMP_SCRIPT_SOURCE = REPO_ROOT / "scripts" / "bump-version.sh"
+RELEASE_TAG_SCRIPT_SOURCE = REPO_ROOT / "scripts" / "release-tag.sh"
 README_SOURCE = REPO_ROOT / "README.md"
 BUILD_GRADLE_SOURCE = REPO_ROOT / "app" / "build.gradle.kts"
+GIT_WORKFLOW_SOURCE = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+RELEASE_CHECKLIST_SOURCE = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 
 
 README_VERSION_RE = re.compile(
@@ -70,6 +73,45 @@ class ReadmeVersionContractTest(unittest.TestCase):
             self.assertIn('versionName = "1.7.8"', (repo / "app" / "build.gradle.kts").read_text())
             self.assertIn('versionCode = 43', (repo / "app" / "build.gradle.kts").read_text())
 
+    def test_release_tag_stops_when_readme_current_version_drifts_from_gradle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            self._write_release_tag_fixture(repo)
+            (repo / "README.md").write_text(
+                README_VERSION_RE.sub('- **현재 버전**: 1.7.7 (versionCode 42)', (repo / "README.md").read_text())
+            )
+            (repo / "app" / "build.gradle.kts").write_text(
+                GRADLE_VERSION_CODE_RE.sub(
+                    "versionCode = 43",
+                    GRADLE_VERSION_NAME_RE.sub('versionName = "1.7.8"', (repo / "app" / "build.gradle.kts").read_text()),
+                )
+            )
+
+            env = {**os.environ, "PATH": f"{repo / 'bin'}:{os.environ['PATH']}"}
+            result = subprocess.run(
+                ["bash", "scripts/release-tag.sh", "1.7.8"],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("README current version mismatch", result.stderr)
+            self.assertFalse((repo / "tagged.txt").exists(), "release-tag must stop before creating/pushing a tag")
+
+    def test_release_tag_readme_version_guard_is_documented(self):
+        docs = "\n".join(
+            [
+                GIT_WORKFLOW_SOURCE.read_text(),
+                RELEASE_CHECKLIST_SOURCE.read_text(),
+            ]
+        )
+
+        self.assertIn("README.md 현재 버전 라인", docs)
+        self.assertIn("scripts/release-tag.sh", docs)
+        self.assertIn("tag 생성 전", docs)
+
     def _write_bump_fixture(self, repo: pathlib.Path) -> None:
         (repo / "scripts").mkdir(parents=True, exist_ok=True)
         (repo / "app").mkdir(parents=True, exist_ok=True)
@@ -81,6 +123,17 @@ class ReadmeVersionContractTest(unittest.TestCase):
         self._write_play_guard_stub(repo)
         self._write_gradlew_stub(repo)
 
+    def _write_release_tag_fixture(self, repo: pathlib.Path) -> None:
+        (repo / "scripts").mkdir(parents=True, exist_ok=True)
+        (repo / "app").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(RELEASE_TAG_SCRIPT_SOURCE, repo / "scripts" / "release-tag.sh")
+        shutil.copy2(README_SOURCE, repo / "README.md")
+        shutil.copy2(BUILD_GRADLE_SOURCE, repo / "app" / "build.gradle.kts")
+        (repo / "scripts" / "release-tag.sh").chmod((repo / "scripts" / "release-tag.sh").stat().st_mode | stat.S_IXUSR)
+        self._write_git_stub(repo)
+        (repo / "scripts" / "check-latest-production-deployed.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+        (repo / "scripts" / "check-latest-production-deployed.sh").chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
     def _write_git_stub(self, repo: pathlib.Path) -> None:
         git_stub = repo / "git"
         git_stub.write_text(
@@ -89,11 +142,19 @@ class ReadmeVersionContractTest(unittest.TestCase):
                 #!/usr/bin/env bash
                 set -euo pipefail
                 case "$*" in
+                  "branch --show-current") echo main; exit 0 ;;
+                  "status --porcelain") exit 0 ;;
                   "fetch origin main") exit 0 ;;
+                  "fetch origin main --tags") exit 0 ;;
+                  "pull --ff-only origin main") exit 0 ;;
                   "show origin/main:app/build.gradle.kts")
                     cat app/build.gradle.kts
                     exit 0
                     ;;
+                  "rev-parse v"*) exit 1 ;;
+                  "ls-remote --exit-code --tags origin refs/tags/v"*) exit 1 ;;
+                  "tag v"*) touch tagged.txt; exit 0 ;;
+                  "push origin v"*) touch pushed.txt; exit 0 ;;
                   *) echo "unexpected git args: $*" >&2; exit 99 ;;
                 esac
                 """
