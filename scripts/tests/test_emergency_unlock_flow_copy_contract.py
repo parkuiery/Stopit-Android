@@ -17,6 +17,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "Issue: #467",
             "PR #517(`572eb559`)",
             "PR #575(`1a7c677`)",
+            "PR #593(`79fdee8`)",
             "EmergencyUnlockBottomSheetContent.kt",
             "reason → app selection → duration → countdown",
             "필요하면 빠르게, 습관이면 한 번 멈춤",
@@ -99,6 +100,8 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
 
         self.assertIn("PR #517(`572eb559`)", source)
         self.assertIn("PR #575(`1a7c677`)", source)
+        self.assertIn("PR #593(`79fdee8`)", source)
+        self.assertIn("countdown TalkBack baseline", high_traffic)
         self.assertIn("Compose UI flow baseline", high_traffic)
         self.assertIn("`develop`에 반영", high_traffic)
         self.assertIn("release/tag/Play deploy", high_traffic)
@@ -109,6 +112,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
 
         self.assertIn("PR #517(`572eb559`)", checklist)
         self.assertIn("PR #575(`1a7c677`)", checklist)
+        self.assertIn("PR #593(`79fdee8`)", checklist)
         self.assertIn("device/screenshot/TalkBack evidence", checklist)
         self.assertIn("PR #517 merge commit included in tested build", checklist)
         self.assertIn("PR #575 UI QA baseline included in tested build", checklist)
