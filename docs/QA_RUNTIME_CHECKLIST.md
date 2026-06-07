@@ -260,7 +260,7 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 Source of truth: `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`
 Issue: #464
 
-Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR #487 already changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
+Use this after PR #487(`8fb1911c`) + PR #588(`025f9326`) or a later release candidate is installed. PR #487 changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; PR #588 added the repeatable `BlockScreenContentIntegrationTest` Compose runtime baseline for copy area, emergency unlock helper/disabled reason, primary CTA, and repeated Back blocking. This checklist now collects the remaining release-candidate screenshot/TalkBack evidence and release/readback proof instead of treating the UI copy or automated UI regression as unimplemented.
 
 ```md
 ## Block screen copy/action hierarchy QA evidence
