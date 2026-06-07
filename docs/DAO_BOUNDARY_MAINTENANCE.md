@@ -106,7 +106,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 ### Accessibility service runtime read boundary
 
-#520의 여덟 번째 repo-internal QA 패키지는 AccessibilityService의 routine/goal-lock foreground blocking cache에서 `RoutineDao` / `GoalLockDao` 직접 접근을 분리했다.
+#520의 열 번째 repo-internal QA 패키지는 AccessibilityService의 routine/goal-lock foreground blocking cache에서 `RoutineDao` / `GoalLockDao` 직접 접근을 분리했다.
 
 #### 허용 경계
 
@@ -128,13 +128,15 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `KeepAccessibilityService` 아래에서 `RoutineDao` / `GoalLockDao` 직접 import가 재도입되지 않고 `RoutineRepository` / `GoalLockRepository`가 accessibility foreground cache 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
-## 남은 인벤토리
+## Closure audit
 
-아래 직접 DAO 의존은 아직 #520의 후속 패키지 대상이다. 이번 PR은 routine ViewModel/receiver read/mutation 경계와 AccessibilityService runtime cache 경계까지 안전하게 닫고, 남은 receiver/service runtime QA는 별도 focused test와 runtime evidence 범위로 다룬다.
+Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete. `app/src/main`의 ViewModel / Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 현재 남은 DAO import는 아래 허용 repository/DB 경계뿐이다.
 
-- `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`: 현재 허용된 repository DAO 경계다.
+- 허용 repository DAO 경계: `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`.
+- 허용 DB wiring 경계: `KeepDatabase`, `database/di`, DAO 인터페이스 자체.
+- 테스트 fixture/fake DAO는 production main-source 인벤토리에서 제외한다.
 
-DB 모듈(`KeepDatabase`, `database/di`, DAO 인터페이스 자체)과 테스트 fake DAO는 이 인벤토리에서 제외한다.
+future regression 발견 시에는 새 직접 DAO import를 이 문서의 허용 경계에 추가하지 말고, 해당 ViewModel/Receiver/Service를 repository/read-model 경계로 되돌리는 focused test 패키지로 처리한다.
 
 ## 검증 명령
 
