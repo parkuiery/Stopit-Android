@@ -260,7 +260,7 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 Source of truth: `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`
 Issue: #464
 
-Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR #487 already changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
+Use this after PR #487(`8fb1911c`) + PR #588(`025f9326`) or a later release candidate is installed. PR #487 changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; PR #588 added the repeatable `BlockScreenContentIntegrationTest` Compose runtime baseline for copy area, emergency unlock helper/disabled reason, primary CTA, and repeated Back blocking. This checklist now collects the remaining release-candidate screenshot/TalkBack evidence and release/readback proof instead of treating the UI copy or automated UI regression as unimplemented.
 
 ```md
 ## Block screen copy/action hierarchy QA evidence
@@ -303,7 +303,7 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. PR #593 added the focused countdown TalkBack content-description baseline so the waiting copy, remaining seconds, and cancel affordance are exposed together in Compose UI tests. This checklist now collects the remaining device/screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy, automatic flow coverage, or countdown accessibility coverage as unimplemented.
+Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + PR #604(`3e97f548`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. PR #593 added the focused countdown TalkBack content-description baseline so the waiting copy, remaining seconds, and cancel affordance are exposed together in Compose UI tests. PR #604 added the selected reason reflection helper baseline while preserving existing reason enum payload keys. This checklist now collects the remaining device/screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy, automatic flow coverage, countdown accessibility coverage, or reflection helper as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -339,6 +339,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) or 
   - PR #517 merge commit included in tested build: yes / no / unknown
   - PR #575 UI QA baseline included in tested build: yes / no / unknown
   - PR #593 countdown TalkBack baseline included in tested build: yes / no / unknown
+  - PR #604 selected reason reflection helper baseline included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
   - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
@@ -649,6 +650,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
 - `GoalLockSelectedAppUiItemTest`는 생성 화면의 선택 앱 목록이 package raw text만 보여주지 않고 shared display metadata resolver의 앱 이름을 우선 표시하며, fallback package와 remove payload를 안정적으로 유지하는지 검증한다.
+- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 실제 Compose instrumentation으로 검증한다.
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`와 `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`는 상세 화면 상태, 종료 확인/취소, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
