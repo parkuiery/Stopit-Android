@@ -3,6 +3,7 @@ package com.uiery.keep.feature.lock.component
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -126,6 +127,36 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
 
         assertTrue(dismissed)
         assertEquals(emptyList<EmergencyUnlockBottomSheetRequest>(), unlockedRequests)
+    }
+
+    @Test
+    fun countdownStepExposesTalkBackDescriptionWithRemainingSecondsAndCancelHint() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageName = context.packageName
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onUnlock = { _, _, _, _ -> },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
+
+        composeRule.onNodeWithContentDescription(
+            listOf(
+                context.getString(R.string.emergency_unlock_waiting),
+                context.getString(R.string.emergency_unlock_waiting_seconds, 30),
+                context.getString(R.string.emergency_unlock_cancel),
+            ).joinToString(". ")
+        ).assertExists()
     }
 
     @Test
