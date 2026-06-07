@@ -158,6 +158,7 @@
     <string name="notification_routine_start_message">Для концентрации использование приложений заблокировано.</string>
     <string name="routine_notification_permission_fallback_message">Рутина «%1$s» началась, но разрешение на уведомления отключено, поэтому StopIt напомнит об этом внутри приложения.</string>
     <string name="routine_running_tag">Выполняется</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">Защита от удаления</string>
     <string name="prevent_uninstall_subtitle">Защищает StopIt от удаления</string>
     <string name="prevent_uninstall_enabled">Защита от удаления активирована</string>
