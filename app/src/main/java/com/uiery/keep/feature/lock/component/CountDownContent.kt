@@ -31,6 +31,10 @@ import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.ZoneId
 
+private const val SECONDS_PER_DAY = 86_400
+
+internal fun countdownDayPrefixCount(totalSeconds: Int): Int = totalSeconds / SECONDS_PER_DAY
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun CountDownContent(
@@ -51,9 +55,9 @@ fun CountDownContent(
         }
     }
 
-    val days = remember(seconds) { seconds / 86400 }
+    val days = remember(seconds) { countdownDayPrefixCount(seconds) }
     val formattedTime = remember(seconds) {
-        formatHourAwareCountdown(seconds % 86400)
+        formatHourAwareCountdown(seconds % SECONDS_PER_DAY)
     }
 
     Row(
