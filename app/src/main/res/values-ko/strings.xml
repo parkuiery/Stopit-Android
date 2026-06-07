@@ -147,6 +147,10 @@
     <string name="cd_state_off">꺼짐</string>
     <string name="cd_tab_selected">선택됨</string>
     <string name="cd_tab_not_selected">선택되지 않음</string>
+    <string name="cd_lock_history_date_today">오늘</string>
+    <string name="cd_lock_history_date_selected">선택됨</string>
+    <string name="cd_lock_history_date_not_selected">선택되지 않음</string>
+    <string name="cd_lock_history_date_today_selected">오늘, 선택됨</string>
     <string name="blocked_apps_title">차단된 앱</string>
     <string name="notification_channel_routine_name">루틴 알림</string>
     <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>

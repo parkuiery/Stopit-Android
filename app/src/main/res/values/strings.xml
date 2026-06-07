@@ -149,6 +149,10 @@
     <string name="cd_state_off">Off</string>
     <string name="cd_tab_selected">Selected</string>
     <string name="cd_tab_not_selected">Not selected</string>
+    <string name="cd_lock_history_date_today">Today</string>
+    <string name="cd_lock_history_date_selected">Selected</string>
+    <string name="cd_lock_history_date_not_selected">Not selected</string>
+    <string name="cd_lock_history_date_today_selected">Today, selected</string>
     <string name="blocked_apps_title">Blocked Apps</string>
     <!-- Routine Notifications -->
     <string name="notification_channel_routine_name">Routine Notifications</string>

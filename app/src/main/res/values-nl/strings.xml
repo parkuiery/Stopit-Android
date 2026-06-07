@@ -146,6 +146,10 @@
     <string name="cd_state_off">Uit</string>
     <string name="cd_tab_selected">Geselecteerd</string>
     <string name="cd_tab_not_selected">Niet geselecteerd</string>
+    <string name="cd_lock_history_date_today">Vandaag</string>
+    <string name="cd_lock_history_date_selected">Geselecteerd</string>
+    <string name="cd_lock_history_date_not_selected">Niet geselecteerd</string>
+    <string name="cd_lock_history_date_today_selected">Vandaag, geselecteerd</string>
     <string name="blocked_apps_title">Geblokkeerde apps</string>
     <string name="routine_alarm_permission_title">We laten het je weten zodat je het begin van je routine niet mist.</string>
     <string name="routine_alarm_permission_description">We sturen op het ingestelde tijdstip een melding om je te helpen je routine op een natuurlijke manier te starten.</string>
