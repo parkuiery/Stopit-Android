@@ -314,6 +314,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) or 
   - duration options:
 - Reason required ON:
   - short reason labels scan quickly: pass / fail
+  - selected reason reflection helper reinforces intentional use without changing enum key: pass / fail
   - disabled Next explains missing reason/custom reason: pass / fail
   - selected reason maps to existing enum key: pass / fail
 - Reason required OFF:

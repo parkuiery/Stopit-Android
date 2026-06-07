@@ -138,6 +138,7 @@ fun EmergencyUnlockBottomSheetContent(
                     customReason = state.customReason,
                     stepHelperTextRes = state.stepHelperTextRes,
                     validationHelperTextRes = state.validationHelperTextRes,
+                    selectedReasonReflectionTextRes = state.selectedReasonReflectionTextRes,
                     onReasonSelected = { state = state.selectReason(it) },
                     onCustomReasonChanged = { state = state.changeCustomReason(it) },
                     onNext = { state = state.goNext() },
@@ -216,6 +217,7 @@ private fun ReasonStep(
     customReason: String,
     stepHelperTextRes: Int?,
     validationHelperTextRes: Int?,
+    selectedReasonReflectionTextRes: Int?,
     onReasonSelected: (String) -> Unit,
     onCustomReasonChanged: (String) -> Unit,
     onNext: () -> Unit,
@@ -261,6 +263,7 @@ private fun ReasonStep(
                 )
             }
         }
+        StepHelperText(selectedReasonReflectionTextRes)
         if (selectedReason == "other") {
             OutlinedTextField(
                 value = customReason,

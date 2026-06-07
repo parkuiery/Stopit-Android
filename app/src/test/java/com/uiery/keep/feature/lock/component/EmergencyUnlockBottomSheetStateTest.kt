@@ -81,6 +81,29 @@ class EmergencyUnlockBottomSheetStateTest {
     }
 
     @Test
+    fun selectedReasonReflectionTextKeepsAnalyticsKeysButClarifiesUserIntent() {
+        var state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app"),
+            durationOptions = listOf(10),
+            reasonStepEnabled = true,
+        )
+
+        assertEquals(null, state.selectedReasonReflectionTextRes)
+
+        state = state.selectReason("work")
+        assertEquals(R.string.emergency_unlock_reason_work_reflection, state.selectedReasonReflectionTextRes)
+        assertEquals("work", state.selectedReason)
+
+        state = state.selectReason("habit")
+        assertEquals(R.string.emergency_unlock_reason_habit_reflection, state.selectedReasonReflectionTextRes)
+        assertEquals("habit", state.selectedReason)
+
+        state = state.selectReason("other")
+        assertEquals(R.string.emergency_unlock_reason_other_reflection, state.selectedReasonReflectionTextRes)
+        assertEquals("other", state.selectedReason)
+    }
+
+    @Test
     fun appStepRequiresSelectionAndIgnoresUnknownPackages() {
         var state = EmergencyUnlockBottomSheetState.initial(
             blockedApps = setOf("com.social.app", "com.game.app"),

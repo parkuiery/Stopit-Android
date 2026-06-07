@@ -187,6 +187,12 @@
     <string name="emergency_unlock_reason_boredom">지루함/스트레스</string>
     <string name="emergency_unlock_reason_other">기타</string>
     <string name="emergency_unlock_reason_other_hint">짧게 이유를 적어주세요</string>
+    <string name="emergency_unlock_reason_work_reflection">필요한 시간만 짧게 열고 다시 잠금으로 돌아와요.</string>
+    <string name="emergency_unlock_reason_contact_reflection">확인하러 온 긴급 연락만 보고 돌아와요.</string>
+    <string name="emergency_unlock_reason_info_reflection">필요한 정보만 확인하고 둘러보기로 번지기 전에 돌아와요.</string>
+    <string name="emergency_unlock_reason_habit_reflection">습관을 알아차린 것만으로도 이미 한 번 멈춘 거예요. 아직 취소할 수 있어요.</string>
+    <string name="emergency_unlock_reason_boredom_reflection">지루함이나 스트레스라면 앱을 열기 전에 한 번만 더 멈춰봐요.</string>
+    <string name="emergency_unlock_reason_other_reflection">예외를 짧게 이름 붙이면 더 의식적으로 사용할 수 있어요.</string>
     <string name="emergency_unlock_reason_required_helper">이유를 하나 선택하면 다음으로 갈 수 있어요.</string>
     <string name="emergency_unlock_reason_other_required_helper">기타 이유를 입력하면 다음으로 갈 수 있어요.</string>
     <string name="emergency_unlock_select_apps">잠깐 열 앱만 선택하세요</string>
