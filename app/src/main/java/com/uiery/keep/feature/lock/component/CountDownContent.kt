@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,7 +69,11 @@ fun CountDownContent(
                 label = "days"
             ) { d ->
                 Text(
-                    text = "${d}일 ",
+                    text = pluralStringResource(
+                        id = R.plurals.countdown_day_prefix,
+                        count = d,
+                        d,
+                    ),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KeepTheme.colors.onSurfaceVariant,

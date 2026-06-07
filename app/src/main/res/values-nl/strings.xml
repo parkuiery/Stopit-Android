@@ -129,6 +129,10 @@
     <string name="change_lock_hours">%d uur van tevoren</string>
     <string name="change_lock_description">Bewerken en verwijderen van routines wordt beperkt vanaf %s</string>
     <string name="day_unit">Dag</string>
+    <plurals name="countdown_day_prefix">
+        <item quantity="one">%1$d dag </item>
+        <item quantity="other">%1$d dagen </item>
+    </plurals>
     <string name="lock_duration_with_day">Vergrendeld voor %1$d dagen %2$d uur %3$d minuten</string>
     <string name="lock_time_with_date">Tot %1$d/%2$d %3$d:%4$02d</string>
     <string name="lock_screen_unavailable_message_with_date">Geselecteerde apps zijn niet beschikbaar tot %1$s</string>
