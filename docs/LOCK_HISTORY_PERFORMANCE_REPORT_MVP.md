@@ -139,7 +139,7 @@ Issue: #465
 - 한 번의 짧은 차단 세션 후 low-data copy가 표시된다.
 - 주간/월간 탭 전환 시 headline 기간이 바뀐다.
 - Top apps 문구가 “위험 앱”이 아니라 “막아낸 성과”로 읽힌다.
-- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다. QA-lane accessibility regression은 summary card와 top apps card가 성과형 headline/supporting copy를 merged content description으로 노출하는지 확인한다.
+- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다. QA-lane accessibility regression은 summary card와 top apps card가 성과형 headline/supporting copy를 merged content description으로 노출하고, Top apps card는 rank/app label/block count까지 같은 description에 포함하는지 확인한다.
 - 한국어/영어 string resource parity를 확인한다.
 
 ## 구현 상태와 남은 패키지 경계
@@ -153,7 +153,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
 7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
-8. PR #566(`test(lockhistory): 성과 리포트 접근성 baseline 보강`, merge commit `48167aef35682d4d84c02b462c94e1901797f04d`)로 `LockHistoryPerformanceReportAccessibilityTest`가 `develop`에 반영되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정한다.
+8. PR #566(`test(lockhistory): 성과 리포트 접근성 baseline 보강`, merge commit `48167aef35682d4d84c02b462c94e1901797f04d`)로 `LockHistoryPerformanceReportAccessibilityTest`가 `develop`에 반영되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정한다. 이번 QA-lane follow-up은 Top apps card의 rank/app label/block count도 같은 merged content description에 포함되도록 회귀 범위를 확장한다.
 
 현재 구현/문서 계약 검증 명령:
 
