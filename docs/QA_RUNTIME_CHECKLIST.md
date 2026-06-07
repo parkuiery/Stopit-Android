@@ -277,7 +277,7 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after PR #517(`572eb559`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
+Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. This checklist now collects the remaining real-device screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy or automatic flow coverage as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -308,7 +308,9 @@ Use this after PR #517(`572eb559`) or a later release candidate is installed. PR
   - reason/app/duration selection and disabled helper are understandable: pass / fail
 - Verification:
   - PR #517 merge commit included in tested build: yes / no / unknown
+  - PR #575 UI QA baseline included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
 - Decision: pass / fail / needs follow-up
 ```
@@ -641,7 +643,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `BackupRestoreDataStoreKeyPolicyTest`: 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있고, `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
-- `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-disabled flow의 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
+- `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-required ON/OFF flow의 reason/custom reason validation → 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
 - `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
@@ -1187,7 +1189,7 @@ cd <repo-root>
 ```
 
 - `EmergencyUnlockBottomSheetStateTest`: reason enabled/disabled, custom reason, 앱 선택 없음, duration fallback, countdown cancel/complete가 Composable local state에 숨지 않고 순수 JVM 계약으로 유지되는지 고정한다.
-- `EmergencyUnlockBottomSheetContentIntegrationTest`: bottom sheet를 실제 Compose test rule에서 렌더링해 reason-disabled flow의 앱 선택 → duration → countdown → cancel과 countdown 완료 시 기존 unlock callback payload가 유지되는지 device/emulator에서 고정한다. 로컬 dev flavor Firebase prerequisite이 막히면 같은 class를 `:app:connectedProdDebugAndroidTest`로 실행해 prod google-services 경로에서 증거를 남기고, dev 경계는 PR 본문에 분리한다.
+- `EmergencyUnlockBottomSheetContentIntegrationTest`: bottom sheet를 실제 Compose test rule에서 렌더링해 reason-required ON flow의 `기타` custom reason validation → 앱 선택 → duration → countdown 완료 payload(`reason=other`, duration, selected app set)와 reason-required OFF flow의 앱 선택 → duration → countdown/cancel 경로가 유지되는지 device/emulator에서 고정한다. 로컬 dev flavor Firebase prerequisite이 막히면 같은 class를 `:app:connectedProdDebugAndroidTest`로 실행해 prod google-services 경로에서 증거를 남기고, dev 경계는 PR 본문에 분리한다.
 - `LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect`: LockScreen 진입점에서 긴급해제 완료 후 `UnlockCompleted` side effect가 발생해 화면 이탈 계약이 끊기지 않는지 고정한다.
 - `EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리며, 기존 ongoing 긴급해제 notification도 함께 정리하는지 검증한다.
 - 이 baseline은 실제 cross-app Accessibility 진입 전체를 대체하지는 않지만, 긴급해제 bottom sheet UI click-through, 완료 후 Lock 화면 고착, 만료 후 우회 지속 회귀를 각각 device-emulator/JVM 레벨에서 반복 가능하게 고정한다.
