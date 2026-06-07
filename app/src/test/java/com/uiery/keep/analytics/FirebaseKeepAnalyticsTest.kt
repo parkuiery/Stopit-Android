@@ -1,5 +1,7 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
+import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -587,6 +589,32 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun installReferrerAttributionEventUsesPrivacySafeParams() {
+        val attribution = AcquisitionAttributionParser.parse(
+            rawReferrer = "utm_source=discord&utm_medium=social&utm_campaign=aso_baseline&email=private@example.com",
+            lookupStatus = InstallReferrerLookupStatus.SUCCESS,
+            latencyMillis = 450,
+        )
+
+        analytics.trackInstallReferrerAttributionChecked(attribution)
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFERRER_STATUS to "success",
+                    KeepAnalyticsParam.UTM_SOURCE_TYPE to "discord",
+                    KeepAnalyticsParam.UTM_MEDIUM_TYPE to "social",
+                    KeepAnalyticsParam.CAMPAIGN_BUCKET to "aso_baseline",
+                    KeepAnalyticsParam.LINK_SURFACE to "discord",
+                    KeepAnalyticsParam.LOOKUP_LATENCY_BUCKET to "0_499ms",
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
@@ -606,7 +634,10 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
         assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)
+        assertEquals("install_referrer_attribution_checked", KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED)
         assertEquals("duration_days_bucket", KeepAnalyticsParam.DURATION_DAYS_BUCKET)
+        assertEquals("referrer_status", KeepAnalyticsParam.REFERRER_STATUS)
+        assertEquals("campaign_bucket", KeepAnalyticsParam.CAMPAIGN_BUCKET)
         assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
     }
 }

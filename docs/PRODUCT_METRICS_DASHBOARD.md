@@ -69,7 +69,7 @@
 | Business | 광고 eCPM | `totalAdRevenue` / impressions × 1000 | GA4/AdMob | 광고 효율 |
 | Business | 광고 CTR | clicks / impressions | GA4/AdMob | 광고 반응 |
 | Acquisition | 신규 사용자 | `newUsers` | GA4 | 성장 흐름 |
-| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용하고, UTM/Install Referrer/외부 링크 기록 여부를 확인 |
+| Acquisition | Organic Search 신규 사용자 | `newUsers` by `firstUserDefaultChannelGroup` + Play Console Search/Explore | GA4 + Play Console | ASO 효과. Direct/Paid Search mix가 흔들리면 `docs/PLAY_STORE_ASO.md`의 #242 attribution gate를 먼저 적용하고, #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`의 UTM/Install Referrer/외부 링크 기록 여부를 확인 |
 | Quality gate | 최신 버전 active share | 최신 배포 버전 `activeUsers` / 전체 `activeUsers` | GA4 `appVersion` | #359 판독 게이트. 10% 미만이면 최신 코드 성과 판단 보류, 10~30%는 주의, 30% 이상이면 최신 cohort 결론 사용 가능 |
 
 ## 현재 기준선
@@ -234,7 +234,7 @@
 - 현재 상태:
   - #465의 source of truth는 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`다.
   - #211 공유 CTA와 같은 화면을 쓰더라도, #465의 1차 지표는 외부 공유가 아니라 `LockHistoryScreen` 재방문과 반복 차단/세션이다.
-  - PR #485로 read model/UI/string/test slice, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`, PR #566으로 summary/top apps TalkBack contentDescription baseline이 `develop`에 반영됐다.
+  - PR #485로 read model/UI/string/test slice, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`, PR #566 summary/top apps TalkBack baseline, PR #579 Top Apps rank/app label/block count/duration contentDescription baseline이 `develop`에 반영됐다.
   - release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일·30일 readback 전에는 `lock_history_*` 0건을 UX 실패로 해석하지 않는다.
 - guardrail:
   - `중독`, `실패`, `못 참음`, `위험 사용자` 같은 shame/friction copy 금지.

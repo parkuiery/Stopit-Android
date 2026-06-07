@@ -336,7 +336,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
 - 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
 - top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
-- summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다.
+- summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다. PR #579 이후 Top apps card는 실제 표시되는 top app rank/app label/block count/duration까지 같은 content description에 포함해야 한다.
 - 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
 
 수동 QA evidence template:
@@ -909,6 +909,8 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
 ```
 
 즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+
+issue #580 계열 exact alarm 권한 안내 QA에서는 루틴 생성/활성화가 `ShowAlarmPermission`을 발생시켜 sheet가 보였다는 사실과, 사용자가 설정 이동 버튼을 명시적으로 눌러 OS 설정으로 나가려 했다는 사실을 분리해 기록한다. 단순 dismiss만 한 경우 `HAS_SHOWN_ALARM_PERMISSION`을 영구 true로 저장하면 안 되며, 이후 권한이 여전히 없으면 화면 재진입/루틴 활성화 경로에서 다시 안내될 수 있어야 한다. 설정 Activity가 OEM/프로필 환경에서 열리지 않으면 앱 상세 설정 fallback으로 이동하고, 그마저 실패해도 crash 없이 권한 없음/disabled routine 상태를 유지해야 한다.
 
 
 ## analytics / queryability handoff 경계

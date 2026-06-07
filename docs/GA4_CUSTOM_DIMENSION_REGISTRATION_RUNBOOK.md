@@ -14,6 +14,7 @@
 - 이벤트/파라미터 계약: `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - 분석/이슈화 절차: `docs/METRICS_ANALYSIS.md`
 - 제품 대시보드와 우선순위: `docs/PRODUCT_METRICS_DASHBOARD.md`
+- Install Referrer / UTM attribution 계약: `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` (#581)
 - `routines_count` user property coverage 계약: `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` (#479)
 - LockHistory 성과 리포트 UX/analytics 계약: `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` (#465)
 - 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
@@ -38,7 +39,7 @@
 2026-05-29 live 점검 메모 기준:
 
 - `customUser:routines_count`만 metadata에서 확인됨. 단 #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 기준으로 metadata 조회 가능성과 active user coverage는 분리한다.
-- 활성화/리뷰용 `customEvent:*` 차원/지표는 아직 보이지 않음
+- 활성화용 `customEvent:*`와 review failure `customEvent:error`는 별도 metadata/runReport 확인 전까지 registration gap으로 둔다. review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능해졌으므로 #307 skip reason 분석에는 사용할 수 있다.
 - 광고용 `customEvent:*`는 아래 2026-06-01 #16 AdMob preflight에서 일부 등록 확인으로 보정됨
 - 최근 14일 `screen_view` 총량 `13,154`
 - `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
@@ -148,7 +149,7 @@
 
 - `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)의 성과 리포트 UX가 구현된 뒤, empty/low-data/has-history 상태별 summary card 노출과 top apps 성과 섹션 조회를 privacy-safe bucket 기준으로 비교하기 위한 최소 집합이다.
 - 앱 이름, package name, raw session history, raw timestamp, raw duration은 GA4 payload와 registration ledger 모두에서 금지한다.
-- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다. PR #566의 TalkBack/contentDescription baseline은 repo-internal 접근성 회귀 방지 증거이며, 실제 스크린샷/TalkBack spot-check와 live GA4 readback을 대체하지 않는다.
+- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다. PR #566의 TalkBack/contentDescription baseline과 PR #579의 Top Apps 세부 contentDescription baseline은 repo-internal 접근성 회귀 방지 증거이며, 실제 스크린샷/TalkBack spot-check와 live GA4 readback을 대체하지 않는다.
 
 ### 7순위: 목표 잠금 조회성
 
@@ -209,6 +210,31 @@
 - `docs/PARENT_MODE_MVP.md`(#471)의 same-device 부모 모드가 구현된 뒤, 사용 시간 선택→허용 앱 선택→시작→시간 만료/PIN 해제/우회 차단을 enum/bucket 기준으로 비교하기 위한 최소 집합이다.
 - 아이 이름, 앱 이름/package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 GA4 payload와 registration ledger 모두에서 금지한다.
 - #471 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 부모 모드 setup/완료율과 가족 사용 확장 효과를 낮은 confidence로 둔다.
+
+### Install Referrer / UTM attribution 조회성
+
+- `referrer_status`
+- `utm_source_type`
+- `utm_medium_type`
+- `campaign_bucket`
+- `link_surface` (Recommended)
+- `lookup_latency_bucket` (Recommended)
+
+이 묶음이 필요한 이유:
+
+- #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`의 Play Install Referrer / UTM attribution 계약을 GA4에서 breakdown하기 위한 최소 집합이다.
+- #65/#242 acquisition readback에서 `Direct` 신규 비중이 과다할 때, 진짜 direct와 external/campaign/UTM 누락을 분리하는 confidence를 올린다.
+- raw referrer URL, 검색어/search term, email/phone/account id, Discord user/channel name, raw URL path, arbitrary query key-value는 GA4 payload와 registration ledger 모두에서 금지한다.
+- Android implementation, metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+
+GA4 Admin 증적 후보:
+
+- `customEvent:referrer_status`
+- `customEvent:utm_source_type`
+- `customEvent:utm_medium_type`
+- `customEvent:campaign_bucket`
+- `customEvent:link_surface`
+- `customEvent:lookup_latency_bucket`
 
 ## Required / Recommended 등록 워크리스트
 

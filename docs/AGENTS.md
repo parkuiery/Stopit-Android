@@ -27,6 +27,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `VERSION_ADOPTION_METRICS_GATE.md` | #359용 버전 채택률/최신 버전 cohort 판독 게이트. #13/#14/#16/#307 live 지표를 최신 코드 성과로 해석하기 전 확인한다. |
 | `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` Usage Access 선택형 개인화 discovery gate, guardrail, 측정 조건 문서. `scripts.tests.test_usage_stats_personalization_contract`가 stale title, privacy/activation guardrail, high-traffic docs 링크를 고정한다. |
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
+| `INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` | #581용 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` Play Install Referrer / UTM attribution 계약, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계. |
 | `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. |
 | `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. |
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |

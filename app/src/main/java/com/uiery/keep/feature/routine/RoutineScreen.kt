@@ -88,7 +88,6 @@ fun RoutineScreen(
             )
             is RoutineSideEffect.ShowAlarmPermission -> {
                 showAlarmPermissionBottomSheet = true
-                viewModel.markAlarmPermissionShown()
             }
             is RoutineSideEffect.ShareRoutineTemplate -> {
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -150,9 +149,12 @@ fun RoutineScreen(
                         }.invokeOnCompletion {
                             if (!alarmPermissionBottomSheetState.isVisible) {
                                 showAlarmPermissionBottomSheet = false
-                                createExactAlarmSettingsIntent(context.packageName)?.let { intent ->
-                                    context.startActivity(intent)
-                                }
+                                viewModel.markAlarmPermissionShown()
+                                RoutineAlarmPermissionSettingsLauncher.open(
+                                    exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
+                                    appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
+                                    launch = context::startActivity,
+                                )
                             }
                         }
                     },
@@ -181,7 +183,6 @@ fun RoutineScreen(
                 },
                 onRequireAlarmPermission = {
                     showAlarmPermissionBottomSheet = true
-                    viewModel.markAlarmPermissionShown()
                 },
             )
         }
@@ -238,7 +239,6 @@ fun RoutineScreen(
                 },
                 onRequireAlarmPermission = {
                     showAlarmPermissionBottomSheet = true
-                    viewModel.markAlarmPermissionShown()
                 },
             )
         }
