@@ -5,6 +5,11 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 
+fun createAppDetailsSettingsIntent(packageName: String): Intent =
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.parse("package:$packageName")
+    }
+
 fun createExactAlarmSettingsIntent(
     packageName: String,
     sdkInt: Int = Build.VERSION.SDK_INT,
