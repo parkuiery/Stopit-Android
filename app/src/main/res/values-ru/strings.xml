@@ -129,6 +129,12 @@
     <string name="change_lock_hours">За %d часов</string>
     <string name="change_lock_description">Редактирование и удаление рутин будут ограничены с %s</string>
     <string name="day_unit">День</string>
+    <plurals name="countdown_day_prefix">
+        <item quantity="one">%1$d день </item>
+        <item quantity="few">%1$d дня </item>
+        <item quantity="many">%1$d дней </item>
+        <item quantity="other">%1$d дней </item>
+    </plurals>
     <string name="lock_duration_with_day">Заблокировано на %1$d дн. %2$d ч. %3$d мин.</string>
     <string name="lock_time_with_date">До %1$d/%2$d %3$d:%4$02d</string>
     <string name="lock_screen_unavailable_message_with_date">Выбранные приложения недоступны до %1$s</string>

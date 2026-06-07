@@ -129,6 +129,10 @@
     <string name="change_lock_hours">%d時間前</string>
     <string name="change_lock_description">%sからルーチンの編集と削除が制限されます</string>
     <string name="day_unit">日</string>
+    <plurals name="countdown_day_prefix">
+        <item quantity="one">%1$d日 </item>
+        <item quantity="other">%1$d日 </item>
+    </plurals>
     <string name="lock_duration_with_day">%1$d日%2$d時間%3$d分間ロック</string>
     <string name="lock_time_with_date">%1$d月%2$d日 %3$d:%4$02dまで</string>
     <string name="lock_screen_unavailable_message_with_date">選択したアプリは%1$sまで使用できません</string>

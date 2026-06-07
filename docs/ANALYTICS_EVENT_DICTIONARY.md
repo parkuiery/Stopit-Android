@@ -168,7 +168,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 집중 요약 공유
 
-`LockHistory` 주간 요약 공유 MVP의 제품/QA 계약은 `docs/FOCUS_SUMMARY_SHARE_MVP.md`를 source of truth로 본다. 공유문과 이벤트 파라미터에는 앱 이름, package name, raw session 목록, raw duration을 넣지 않고 bucket/기간 타입만 남긴다.
+`LockHistory` 주간 요약 공유 MVP의 제품/QA 계약은 `docs/FOCUS_SUMMARY_SHARE_MVP.md`를 source of truth로 본다. 공유문과 이벤트 파라미터에는 앱 이름, package name, raw session 목록, raw duration을 넣지 않고 bucket/기간 타입만 남긴다. #597은 공유 payload의 locale resource/template debt이며 analytics schema 변경 이슈가 아니다. `focus_summary_share_*` 이벤트명과 `period_type`, `session_count_bucket`, `duration_minutes_bucket`, `reason` bucket 계약은 유지한다. 공유 본문 locale, raw rendered text, raw duration string, app name/package/topApps/raw session은 GA4 payload나 custom dimension registration 대상이 아니다.
 
 ### 잠금 기록 성과 리포트
 

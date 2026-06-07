@@ -186,7 +186,8 @@
 - 유입 경로: 공유 카드 → Play Store 링크.
 - 리스크: 사용자의 집중/중독 문제가 민감할 수 있으므로 공유는 완전 선택형이어야 한다.
 - 지표: 공유 클릭률, 공유 후 설치, 공유 사용자의 유지율.
-- 실행 계약: `docs/FOCUS_SUMMARY_SHARE_MVP.md`, issue #211
+- 현재 상태: #211 MVP는 repo-internal 공유 CTA/analytics/privacy guardrail로 구현됐지만, #597로 공유 본문/duration의 locale resource-template debt가 남아 있다. CTA/share sheet title localization과 payload body localization을 동일 완료 상태로 보지 않는다.
+- 실행 계약: `docs/FOCUS_SUMMARY_SHARE_MVP.md`, issue #211, localization follow-up #597
 
 ### 2. 루틴 템플릿 공유 루프
 
