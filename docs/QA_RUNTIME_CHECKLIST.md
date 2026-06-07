@@ -277,9 +277,11 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
   - `./gradlew --console=plain :app:assembleProdDebug`
 - Automated UI regression:
   - `BlockScreenContentIntegrationTest` renders the copy area, secondary emergency-unlock action/helper, disabled reason, and primary return CTA without requiring a full AccessibilityService foreground transition.
+  - `BlockScreenContentIntegrationTest#repeatedSystemBackDoesNotDismissTheProtectionScreen` verifies repeated system Back input is consumed and does not invoke the allowed close path.
 - Normal blocked state:
   - title/message coaching tone: pass / fail
   - primary CTA means return to previous work: pass / fail
+  - Android system Back 1회/연타가 차단 화면을 dismiss하지 않는다: pass / fail
   - banner ad does not outrank CTA/emergency status: pass / fail
 - First core action state:
   - first success feedback appears once: pass / fail
