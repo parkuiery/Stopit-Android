@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -143,7 +145,7 @@ internal fun GoalLockCreationScreen(
 }
 
 @Composable
-private fun GoalLockCreationContent(
+internal fun GoalLockCreationContent(
     modifier: Modifier = Modifier,
     state: GoalLockCreationUiState,
     onGoalNameChange: (String) -> Unit,
@@ -172,7 +174,7 @@ private fun GoalLockCreationContent(
     )
 
     Column(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(

@@ -650,6 +650,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
 - `GoalLockSelectedAppUiItemTest`는 생성 화면의 선택 앱 목록이 package raw text만 보여주지 않고 shared display metadata resolver의 앱 이름을 우선 표시하며, fallback package와 remove payload를 안정적으로 유지하는지 검증한다.
+- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 실제 Compose instrumentation으로 검증한다.
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`와 `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`는 상세 화면 상태, 종료 확인/취소, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
