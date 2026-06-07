@@ -33,6 +33,7 @@
 - 잠금 기록 성과 리포트 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryPerformanceReportReadModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt` (PR #485로 UI/read model develop 반영; 2026-06-05 code-lane instrumentation으로 `lock_history_*` event 코드 계약 추가)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
+- 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code-lane foothold로 순수 정책 + `parent_mode_*` analytics API 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
@@ -111,7 +112,7 @@
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
-긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. Reason/app/duration/countdown copy를 바꾸더라도 `emergency_unlock_completed.reason`은 existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지하고, display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
+긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 
 #467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp.
 
@@ -151,7 +152,7 @@
 
 ### 잠금 기록 성과 리포트
 
-`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
+`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. PR #566은 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는 focused accessibility baseline을 추가했다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -239,6 +240,29 @@
 - `has_routine`: MVP에서는 `false`만 허용한다. 루틴 보유자에게 보이면 QA 실패다.
 - `cta_variant`: `default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
+
+### 반복 차단 기반 자동 루틴 제안
+
+반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code/QA lane에서 `RepeatBlockRoutineSuggestionPolicy`, `repeat_block_routine_suggestion_*` analytics method/constant, `RoutineRoute`/`RoutineBottomSheetViewModel` prefill 적용, `RepeatBlockRoutineSuggestionStore` dismiss persistence 계약이 추가됐다. 아직 Home/LockHistory/성과 리포트 CTA UI wiring, dismiss/apply store UI wiring, release/tag/Play deploy, GA4 Admin 등록 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload 및 dismiss store 저장을 금지한다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `repeat_block_routine_suggestion_shown` | `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant` | 반복 차단 기반 루틴 추천 노출 |
+| `repeat_block_routine_suggestion_clicked` | `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant` | 추천 CTA 클릭 후 루틴 생성 prefill 흐름 진입 |
+| `repeat_block_routine_suggestion_dismissed` | `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant` | 추천 닫기/나중에 보기 |
+| `repeat_block_routine_suggestion_applied` | `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant` | 추천 prefill에서 루틴 저장 완료 |
+
+현재 enum/bucket 계약:
+
+- `surface`: `home`, `post_block_success`, `lock_history`, `performance_report`
+- `suggestion_reason`: `repeat_block_time_bucket`, `repeat_block_day_time`, `rapid_retry`
+- `time_bucket`: `morning`, `afternoon`, `evening`, `night`, `overnight`
+- `day_type`: `weekday`, `weekend`, `daily`, `custom_days`
+- `category_bucket`: `social`, `video`, `game`, `shopping`, `browser`, `unknown`
+- `repeat_count_bucket`: `3_5`, `6_10`, `10_plus`
+- `routine_coverage_state`: `not_covered`, `partially_covered`; `covered`는 추천 노출 실패로 간주한다.
+- `suggestion_variant`: `default`
+- 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, raw retry count, raw routine name, `routine_id`는 추천 shown/clicked/dismissed payload에 넣지 않는다.
 
 ### 부모 모드
 
@@ -341,6 +365,13 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `activation_stage` | 루틴 생성 CTA 대상 사용자의 활성화 단계 (`post_first_core_action`, `returning_blocked_user`) |
 | `has_routine` | 루틴 생성 CTA 대상자의 루틴 보유 여부. #455 MVP에서는 `false`만 허용 |
 | `cta_variant` | 루틴 생성 CTA copy/placement 실험 variant (`default` 등) |
+| `suggestion_reason` | 반복 차단 기반 루틴 추천 이유 (`repeat_block_time_bucket`, `repeat_block_day_time`, `rapid_retry`) |
+| `time_bucket` | 반복 차단 추천 시간대 bucket (`morning`, `afternoon`, `evening`, `night`, `overnight`) |
+| `day_type` | 반복 차단 추천 요일 유형 (`weekday`, `weekend`, `daily`, `custom_days`) |
+| `category_bucket` | 반복 차단 추천 앱 카테고리 bucket (`social`, `video`, `game`, `shopping`, `browser`, `unknown`) |
+| `repeat_count_bucket` | 반복 차단 추천 강도 bucket (`3_5`, `6_10`, `10_plus`) |
+| `routine_coverage_state` | 기존 루틴이 추천 패턴을 커버하는지 여부 (`not_covered`, `partially_covered`; `covered`는 추천 노출 실패) |
+| `suggestion_variant` | 반복 차단 루틴 추천 copy/placement variant (`default` 등) |
 
 ## User property 계약
 
@@ -389,9 +420,15 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
-| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 첫 차단 후 루틴 생성 CTA의 안전한 노출 표면별 반응 비교 |
+| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 루틴 CTA/추천의 안전한 노출 표면별 반응 비교 |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
+| Required | `suggestion_reason` | `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 반복 차단 기반 루틴 추천 이유 비교 |
+| Required | `time_bucket` | `time_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 추천 시간대별 반응 비교. raw timestamp 금지 |
+| Required | `day_type` | `day_type` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | weekday/weekend/daily/custom 추천 패턴 비교 |
+| Required | `category_bucket` | `category_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 앱 category bucket별 추천 반응 비교. 앱 이름/package 금지 |
+| Required | `repeat_count_bucket` | `repeat_count_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 반복 강도별 추천 반응 비교. raw retry count 금지 |
+| Required | `routine_coverage_state` | `routine_coverage_state` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 기존 루틴 커버리지 충돌/오노출 감지 |
 | Required | `allowed_app_count_bucket` | `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
 | Required | `pin_result` | `pin_result` | `parent_mode_unlocked_by_pin` | 보호자 PIN 해제/연장 성공·실패 UX guardrail 확인. PIN 원문/길이/세부값 금지 |
 | Required | `block_context` | `block_context` | `parent_mode_block_intercepted` | 부모 모드 중 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
@@ -405,6 +442,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `interest_variant` | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | CTA copy/variant 비교가 필요할 때 |
 | Recommended | `purchase_available` | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리 |
 | Recommended | `cta_variant` | `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
+| Recommended | `suggestion_variant` | `suggestion_variant` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 반복 차단 루틴 추천 copy/placement 비교가 필요할 때 |
 | Recommended | `extension_minutes_bucket` | `extension_minutes_bucket` | `parent_mode_extended` | 보호자 PIN 확인 후 연장 시간 분포가 필요할 때 |
 
 ### 필요 시 등록할 이벤트 지표
@@ -554,7 +592,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 기록한다.
-- 2026-06-05T14:26:22Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)`이 `24,075 / 37,013 = 65.0%`였고 최신 관측 production version `1.7.7` active share도 `109 / 762 = 14.3%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-06T22:17:11Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `25,429 / 40,155 = 63.3%`였고 최신 관측 production version `1.7.7` active share도 `181 / 783 = 23.1%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

@@ -51,6 +51,8 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RoutineScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutineViewModel = hiltViewModel(),
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -69,6 +71,12 @@ fun RoutineScreen(
     LaunchedEffect(state.routines) {
         if (state.routines.isNotEmpty()) {
             viewModel.checkAlarmPermissionNeeded()
+        }
+    }
+
+    LaunchedEffect(repeatBlockSuggestionSurface, repeatBlockSuggestion) {
+        if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.showRoutineBottomSheet()
         }
     }
 
@@ -160,6 +168,8 @@ fun RoutineScreen(
         ) {
             RoutineBottomSheetContent(
                 isEdit = false,
+                repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
+                repeatBlockSuggestion = repeatBlockSuggestion,
                 onCloseBottomSheet = {
                     coroutineScope.launch {
                         routineBottomSheetState.hide()
@@ -208,7 +218,7 @@ fun RoutineScreen(
                         Icon(
                             painter = painterResource(R.drawable.outline_delete_24),
                             contentDescription = stringResource(R.string.cd_delete_routine),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.error,
                         )
                     }
                 }
@@ -254,7 +264,7 @@ fun RoutineScreen(
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },

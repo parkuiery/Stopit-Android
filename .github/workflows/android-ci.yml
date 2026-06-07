@@ -194,3 +194,4 @@ jobs:
             set -eu
             python3 scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke
             python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
+            python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled

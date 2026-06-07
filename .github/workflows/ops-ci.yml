@@ -107,9 +107,15 @@ jobs:
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
+              - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
+              - '.github/workflows/android-ci.yml'
               - '.github/workflows/ops-ci.yml'
+              - '.github/workflows/play-deploy.yml'
+              - '.github/workflows/release-build.yml'
+              - '.github/workflows/release-qa.yml'
+              - '.github/workflows/version-guard.yml'
             workflow_syntax:
               - '.github/workflows/**'
 
@@ -152,6 +158,7 @@ jobs:
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
           scripts.tests.test_release_provenance_workflow_contract
+          scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_review_prompt_post_release_followthrough_docs
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate

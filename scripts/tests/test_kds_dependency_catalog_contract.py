@@ -10,8 +10,6 @@ VERSION_CATALOG_FILE = REPO_ROOT / "gradle/libs.versions.toml"
 
 EXPECTED_KDS_ALIASES = (
     "libs.kotlinx.datetime",
-    "libs.google.play.services.ads",
-    "libs.androidx.lifecycle.runtime.compose",
 )
 DIRECT_VERSION_DEPENDENCY = re.compile(r"implementation\(\s*\"[^\"]+:[0-9][^\"]*\"\s*\)")
 

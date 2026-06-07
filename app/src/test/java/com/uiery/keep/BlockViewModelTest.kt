@@ -10,6 +10,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.service.EmergencyUnlockCoordinator
+import com.uiery.keep.service.EmergencyUnlockRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -163,7 +164,7 @@ class BlockViewModelTest {
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
-                emergencyUnlockDao = FakeEmergencyUnlockDao(),
+                repository = EmergencyUnlockRepository(FakeEmergencyUnlockDao()),
                 analytics = analytics,
             ),
         )

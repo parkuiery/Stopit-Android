@@ -56,6 +56,23 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### 기능성 control stateDescription locale baseline
+
+issue #570 계열 PR은 TalkBack이 읽는 상태 문구도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA evidence:
+- 메뉴 설정 토글: TalkBack 상태가 현재 앱 언어로 `켜짐/꺼짐` 또는 해당 locale 번역으로 읽힌다.
+- 잠금 기록 주/월 탭: TalkBack 상태가 현재 앱 언어로 `선택됨/선택되지 않음` 또는 해당 locale 번역으로 읽힌다.
+- 새 stateDescription string key를 추가하면 모든 shipped `values*/strings.xml`에 parity가 맞아야 한다.
+
 ### 홈 타이머 CTA duration baseline
 
 issue #187 계열 PR에서는 홈 타이머 바텀시트가 실제 `현재 시각 -> 목표 시각` 차이와 같은 값을 CTA에 표시하는지 JVM 계약 테스트를 기본 evidence로 남긴다.
@@ -222,7 +239,7 @@ python3 -m unittest scripts.tests.test_user_facing_brand_strings -v
 Source of truth: `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`
 Issue: #464
 
-Use this after the code-lane changes `BlockScreen.kt` / `block_screen_*` / `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR #487 already changed `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, and `block_screen_*` / `emergency_unlock_*` resources on `develop`; this checklist now collects the remaining device/screenshot/TalkBack evidence instead of treating the UI copy as unimplemented.
 
 ```md
 ## Block screen copy/action hierarchy QA evidence
@@ -260,7 +277,7 @@ Use this after the code-lane changes `BlockScreen.kt` / `block_screen_*` / `emer
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after the code-lane changes `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources. This docs-lane contract is not implementation evidence by itself.
+Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. This checklist now collects the remaining real-device screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy or automatic flow coverage as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -290,7 +307,10 @@ Use this after the code-lane changes `EmergencyUnlockBottomSheetContent.kt`, `Em
 - Accessibility/TalkBack:
   - reason/app/duration selection and disabled helper are understandable: pass / fail
 - Verification:
+  - PR #517 merge commit included in tested build: yes / no / unknown
+  - PR #575 UI QA baseline included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
 - Decision: pass / fail / needs follow-up
 ```
@@ -306,6 +326,8 @@ cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \\
   --tests '*LockHistory*Performance*' \\
   --tests '*LockHistoryViewModel*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \\
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 ```
 
@@ -314,6 +336,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
 - 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
 - top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
+- summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다.
 - 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
 
 수동 QA evidence template:
@@ -326,6 +349,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - Locale(s): ko / en / other changed locale
 - Commands:
   - `./gradlew --console=plain :app:testDevDebugUnitTest --tests '*LockHistory*Performance*' --tests '*LockHistoryViewModel*'`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest`
   - `python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v`
 - Empty state:
   - copy:
@@ -340,6 +364,8 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
   - positive framing: pass / fail
   - app package/raw history absent from analytics spot-check: pass / fail
 - TalkBack summary/top apps meaning:
+  - focused contentDescription regression passed: pass / fail
+  - actual screen reader/screenshot spot-check: pass / fail / not collected
 - #211 share CTA remains optional and not pressured: pass / fail / not applicable
 - Decision: pass / fail / needs follow-up
 - Notes:
@@ -447,6 +473,72 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 이 증거가 없으면 #455는 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`의 외부/manual 경계를 따른다.
 
+### 반복 차단 기반 자동 루틴 제안 QA baseline
+
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+
+자동 baseline(구현 PR에서 추가/확장할 테스트):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
+  --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' \
+  --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'
+python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v
+```
+
+검증 범위:
+- 반복 차단 패턴이 충분하고 해당 패턴을 커버하는 활성 루틴이 없을 때만 추천된다.
+- onboarding / pre-first-lock 사용자에게 미노출된다.
+- 기존 활성 루틴과 겹치면 미노출된다.
+- 추천은 최대 1개만 노출되고 dismiss 후 최소 7일 재노출 제한을 지킨다.
+- 추천 copy는 방어 성공/도움 제안 톤이며 비난형 copy 금지다.
+- `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`는 enum/bucket 파라미터만 사용한다.
+- raw app name / package / history / timestamp absent 상태가 analytics payload spot-check에서 확인된다.
+- #455 일반 루틴 CTA / #407 루틴 템플릿 공유 CTA / 광고 CTA / active goal lock / emergency unlock 상태와 slot·문맥 충돌이 없다.
+
+수동 QA evidence template:
+
+```md
+## Repeat block routine suggestion QA evidence
+- Issue: #531
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: home / post_block_success / lock_history / performance_report
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
+  - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
+- Eligibility:
+  - first_core_action_completed or app_block_intercepted already happened: pass / fail
+  - repeat pattern exists: pass / fail
+  - existing active routine covers same pattern: pass / fail / n/a
+  - onboarding / pre-first-lock user hidden: pass / fail
+  - dismiss cooldown respected: pass / fail
+- Suggested pattern:
+  - time_bucket:
+  - day_type:
+  - category_bucket:
+  - repeat_count_bucket:
+  - routine_coverage_state:
+- UI/copy conflict checks:
+  - 비난형 copy 금지: pass / fail
+  - #455/#407/광고 CTA/goal lock/emergency unlock 충돌 없음: pass / fail
+  - prefill is user-editable before save: pass / fail
+- Analytics payload spot-check:
+  - repeat_block_routine_suggestion_shown:
+  - repeat_block_routine_suggestion_clicked:
+  - repeat_block_routine_suggestion_dismissed:
+  - repeat_block_routine_suggestion_applied:
+  - raw app name / package / history / timestamp absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #531은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, 추천 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`의 외부/manual 경계를 따른다.
+
 ### 목표 잠금 runtime QA baseline
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.
@@ -466,19 +558,29 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'
 python3 -m unittest scripts.tests.test_goal_lock_contract -v
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution
 ```
 
 검증 범위:
-- `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
+- `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, overnight window, 시작일 당일 새벽의 전날 spillover 차단 금지, 종료일 밤에 시작된 scheduled window의 익일 새벽 spillover, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
 - `FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly`는 `goal_lock_created`가 enum/bucket 파라미터만 보내고 원문 목표명/app package/app label을 보내지 않는지 검증한다.
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
+- `GoalLockSelectedAppUiItemTest`는 생성 화면의 선택 앱 목록이 package raw text만 보여주지 않고 shared display metadata resolver의 앱 이름을 우선 표시하며, fallback package와 remove payload를 안정적으로 유지하는지 검증한다.
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`와 `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`는 상세 화면 상태, 종료 확인/취소, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
 - `HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce`는 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회만 기록하는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시하고 상세 화면으로 이동한다.
-- Accessibility/blocking runtime은 all-day / scheduled / expiration 경계에서 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
+- `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 실제 AccessibilityService bind 후 수동 Keep이 꺼진 상태에서도 active all-day 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고, instrumentation debug state가 `block_source=goal_lock` / `goal_lock_id`를 남기는지 검증한다.
+- `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 같은 실제 AccessibilityService bind 경로에서 현재 요일 scheduled window의 active 목표 잠금도 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고 동일한 `block_source=goal_lock` / `goal_lock_id` attribution을 남기는지 검증한다.
+- `KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`는 저장 상태가 `active`로 남아 있더라도 종료일이 지난 목표 잠금이 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 보내지 않고, debug state에 `block_source=goal_lock` attribution을 남기지 않는지 검증한다.
+- Accessibility/blocking runtime은 expiration 경계까지 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
 
 수동 QA evidence template:
 
@@ -490,10 +592,14 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Entry point: home / routine / menu
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`
   - `python3 -m unittest scripts.tests.test_goal_lock_contract -v`
 - all-day / scheduled / expiration:
   - all-day blocks selected apps through date boundary: pass / fail
-  - scheduled blocks only inside selected windows: pass / fail
+  - scheduled blocks selected apps inside selected windows: pass / fail
+  - scheduled does not block outside selected windows: pass / fail
   - expiration stops blocking after end date: pass / fail
 - Home card/section:
   - goal name / remaining period / lock mode / selected app count visible:
@@ -520,13 +626,16 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
   - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
+  - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`)
   - 현재 selector 출력:
     - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
-    - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock`
+    - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock)"`
+- channel-disabled runtime run:
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_channel_disabled)"`
 
 이 gate는 develop/main PR 단계에서 lint·핵심 runtime 계약을 먼저 막는 역할이다. Backup/restore DataStore key 분류처럼 Android framework 없이 잡을 수 있는 정책 drift는 JVM static contract를 먼저 남긴다: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`.
 
@@ -534,8 +643,9 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `BackupRestoreDataStoreKeyPolicyTest`: 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있고, `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
 - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state 미복원
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
-- `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-disabled flow의 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
+- `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-required ON/OFF flow의 reason/custom reason validation → 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
+- `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `EmergencyUnlockPolicyTest`: `EMERGENCY_UNLOCK_EXPIRE_TIME`에 저장된 만료 시각만으로 남은 초를 재계산하고 countdown notification tick을 재예약하는 JVM 계약. Lock 화면/ViewModel coroutine이 사라져도 AccessibilityService가 DataStore snapshot 기준으로 countdown 알림을 계속 동기화해야 한다.
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
@@ -1080,7 +1190,7 @@ cd <repo-root>
 ```
 
 - `EmergencyUnlockBottomSheetStateTest`: reason enabled/disabled, custom reason, 앱 선택 없음, duration fallback, countdown cancel/complete가 Composable local state에 숨지 않고 순수 JVM 계약으로 유지되는지 고정한다.
-- `EmergencyUnlockBottomSheetContentIntegrationTest`: bottom sheet를 실제 Compose test rule에서 렌더링해 reason-disabled flow의 앱 선택 → duration → countdown → cancel과 countdown 완료 시 기존 unlock callback payload가 유지되는지 device/emulator에서 고정한다. 로컬 dev flavor Firebase prerequisite이 막히면 같은 class를 `:app:connectedProdDebugAndroidTest`로 실행해 prod google-services 경로에서 증거를 남기고, dev 경계는 PR 본문에 분리한다.
+- `EmergencyUnlockBottomSheetContentIntegrationTest`: bottom sheet를 실제 Compose test rule에서 렌더링해 reason-required ON flow의 `기타` custom reason validation → 앱 선택 → duration → countdown 완료 payload(`reason=other`, duration, selected app set)와 reason-required OFF flow의 앱 선택 → duration → countdown/cancel 경로가 유지되는지 device/emulator에서 고정한다. 로컬 dev flavor Firebase prerequisite이 막히면 같은 class를 `:app:connectedProdDebugAndroidTest`로 실행해 prod google-services 경로에서 증거를 남기고, dev 경계는 PR 본문에 분리한다.
 - `LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect`: LockScreen 진입점에서 긴급해제 완료 후 `UnlockCompleted` side effect가 발생해 화면 이탈 계약이 끊기지 않는지 고정한다.
 - `EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage`: 만료 시각 도달 시 `EmergencyUnlockState`와 DataStore의 `EMERGENCY_UNLOCK_*` state를 제거하고, 전면 앱이 만료된 예외 앱이면 재차단 대상으로 되돌리며, 기존 ongoing 긴급해제 notification도 함께 정리하는지 검증한다.
 - 이 baseline은 실제 cross-app Accessibility 진입 전체를 대체하지는 않지만, 긴급해제 bottom sheet UI click-through, 완료 후 Lock 화면 고착, 만료 후 우회 지속 회귀를 각각 device-emulator/JVM 레벨에서 반복 가능하게 고정한다.

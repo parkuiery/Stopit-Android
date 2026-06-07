@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.lock.component
 
+import com.uiery.keep.R
 import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -57,6 +58,29 @@ class EmergencyUnlockBottomSheetStateTest {
     }
 
     @Test
+    fun validationHelperTextExplainsWhyNextActionIsUnavailable() {
+        var state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app", "com.game.app"),
+            durationOptions = listOf(10),
+            reasonStepEnabled = true,
+        )
+
+        assertEquals(R.string.emergency_unlock_reason_helper, state.stepHelperTextRes)
+        assertEquals(R.string.emergency_unlock_reason_required_helper, state.validationHelperTextRes)
+
+        state = state.selectReason("other")
+        assertEquals(R.string.emergency_unlock_reason_other_required_helper, state.validationHelperTextRes)
+
+        state = state.changeCustomReason("urgent family call").goNext()
+        assertEquals(EmergencyUnlockBottomSheetStep.APPS, state.step)
+        assertEquals(R.string.emergency_unlock_apps_helper, state.stepHelperTextRes)
+        assertEquals(R.string.emergency_unlock_apps_required_helper, state.validationHelperTextRes)
+
+        state = state.toggleApp("com.social.app")
+        assertEquals(null, state.validationHelperTextRes)
+    }
+
+    @Test
     fun appStepRequiresSelectionAndIgnoresUnknownPackages() {
         var state = EmergencyUnlockBottomSheetState.initial(
             blockedApps = setOf("com.social.app", "com.game.app"),
@@ -64,7 +88,9 @@ class EmergencyUnlockBottomSheetStateTest {
             reasonStepEnabled = false,
         )
 
+        assertEquals(R.string.emergency_unlock_apps_no_reason_helper, state.stepHelperTextRes)
         assertFalse(state.canContinueFromApps)
+        assertEquals(R.string.emergency_unlock_apps_required_helper, state.validationHelperTextRes)
 
         state = state.toggleApp("com.unknown.app")
         assertTrue(state.selectedApps.isEmpty())

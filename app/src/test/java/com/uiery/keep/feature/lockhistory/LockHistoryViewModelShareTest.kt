@@ -25,13 +25,15 @@ class LockHistoryViewModelShareTest {
     fun weeklyHistoryBuildsSharePayloadAndTracksTappedEventWithBuckets() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = LockHistoryDaoWithSessions(
-                listOf(
-                    sessionInCurrentWeek(
-                        durationMillis = 130 * 60 * 1000L,
-                    ),
-                    sessionInCurrentWeek(
-                        durationMillis = 10 * 60 * 1000L,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        sessionInCurrentWeek(
+                            durationMillis = 130 * 60 * 1000L,
+                        ),
+                        sessionInCurrentWeek(
+                            durationMillis = 10 * 60 * 1000L,
+                        ),
                     ),
                 ),
             ),
@@ -91,8 +93,10 @@ class LockHistoryViewModelShareTest {
     fun monthlyHistoryDoesNotExposeSharePayload() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = MonthFetchDelayingLockHistoryDao(
-                listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
+            lockHistoryRepository = LockHistoryRepository(
+                MonthFetchDelayingLockHistoryDao(
+                    listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
+                ),
             ),
             analytics = analytics,
         )
@@ -110,7 +114,9 @@ class LockHistoryViewModelShareTest {
     fun emptyHistoryTracksOnlySummaryPerformanceEventWithoutTopApps() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = LockHistoryDaoWithSessions(emptyList()),
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(emptyList()),
+            ),
             analytics = analytics,
         )
 

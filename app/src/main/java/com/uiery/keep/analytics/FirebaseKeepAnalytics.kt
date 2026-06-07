@@ -1,5 +1,6 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -527,6 +528,46 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackRepeatBlockRoutineSuggestionShown(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionClicked(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionDismissed(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionApplied(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,
@@ -559,6 +600,20 @@ class FirebaseKeepAnalytics
             KeepAnalyticsParam.REPEAT_DAYS_BUCKET to repeatDaysBucket,
             KeepAnalyticsParam.TIME_WINDOW_BUCKET to timeWindowBucket,
             KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to routineNameIncluded,
+        )
+
+        private fun repeatBlockRoutineSuggestionParams(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) = mapOf(
+            KeepAnalyticsParam.SURFACE to surface,
+            KeepAnalyticsParam.SUGGESTION_REASON to suggestion.reason.analyticsValue,
+            KeepAnalyticsParam.TIME_BUCKET to suggestion.timeBucket.analyticsValue,
+            KeepAnalyticsParam.DAY_TYPE to suggestion.dayType.analyticsValue,
+            KeepAnalyticsParam.CATEGORY_BUCKET to suggestion.categoryBucket.analyticsValue,
+            KeepAnalyticsParam.REPEAT_COUNT_BUCKET to suggestion.repeatCountBucket.analyticsValue,
+            KeepAnalyticsParam.ROUTINE_COVERAGE_STATE to suggestion.routineCoverageState.analyticsValue,
+            KeepAnalyticsParam.SUGGESTION_VARIANT to RepeatBlockSuggestionVariant.DEFAULT,
         )
 
         private fun coreActionParams(

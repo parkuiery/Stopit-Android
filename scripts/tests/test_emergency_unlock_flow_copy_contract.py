@@ -15,6 +15,8 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
 
         required_phrases = [
             "Issue: #467",
+            "PR #517(`572eb559`)",
+            "PR #575(`1a7c677`)",
             "EmergencyUnlockBottomSheetContent.kt",
             "reason → app selection → duration → countdown",
             "필요하면 빠르게, 습관이면 한 번 멈춤",
@@ -95,10 +97,21 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             ]
         )
 
-        self.assertIn("이 docs-lane 산출물은 구현 완료가 아니다", source)
-        self.assertIn("구현 완료가 아니라", high_traffic)
-        self.assertIn("release/tag/Play deploy 후 14일", high_traffic)
+        self.assertIn("PR #517(`572eb559`)", source)
+        self.assertIn("PR #575(`1a7c677`)", source)
+        self.assertIn("Compose UI flow baseline", high_traffic)
+        self.assertIn("`develop`에 반영", high_traffic)
+        self.assertIn("release/tag/Play deploy", high_traffic)
         self.assertNotIn("Closes #467를 사용한다", source)
+
+    def test_runtime_qa_checklist_tracks_post_implementation_evidence_boundary(self):
+        checklist = read("docs/QA_RUNTIME_CHECKLIST.md")
+
+        self.assertIn("PR #517(`572eb559`)", checklist)
+        self.assertIn("PR #575(`1a7c677`)", checklist)
+        self.assertIn("device/screenshot/TalkBack evidence", checklist)
+        self.assertIn("PR #517 merge commit included in tested build", checklist)
+        self.assertIn("PR #575 UI QA baseline included in tested build", checklist)
 
 
 if __name__ == "__main__":

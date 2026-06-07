@@ -1,5 +1,7 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+
 interface KeepAnalytics {
     fun logEvent(
         name: String,
@@ -181,6 +183,26 @@ interface KeepAnalytics {
         durationDaysBucket: String,
     ) = Unit
 
+    fun trackRepeatBlockRoutineSuggestionShown(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionDismissed(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionApplied(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
     fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit
 
     fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) = Unit
@@ -247,6 +269,10 @@ object KeepAnalyticsEvent {
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN = "repeat_block_routine_suggestion_shown"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED = "repeat_block_routine_suggestion_applied"
     const val PARENT_MODE_DURATION_SELECTED = "parent_mode_duration_selected"
     const val PARENT_MODE_ALLOWED_APPS_SELECTED = "parent_mode_allowed_apps_selected"
     const val PARENT_MODE_STARTED = "parent_mode_started"
@@ -299,6 +325,14 @@ object KeepAnalyticsParam {
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
+    const val SURFACE = "surface"
+    const val SUGGESTION_REASON = "suggestion_reason"
+    const val TIME_BUCKET = "time_bucket"
+    const val DAY_TYPE = "day_type"
+    const val CATEGORY_BUCKET = "category_bucket"
+    const val REPEAT_COUNT_BUCKET = "repeat_count_bucket"
+    const val ROUTINE_COVERAGE_STATE = "routine_coverage_state"
+    const val SUGGESTION_VARIANT = "suggestion_variant"
     const val ALLOWED_APP_COUNT_BUCKET = "allowed_app_count_bucket"
     const val PIN_RESULT = "pin_result"
     const val EXTENSION_MINUTES_BUCKET = "extension_minutes_bucket"
@@ -462,6 +496,14 @@ object AnalyticsGoalLockEndedEarlyReason {
     const val USER_CONFIRMED = "user_confirmed"
     const val VALIDATION_RESET = "validation_reset"
     const val UNKNOWN = "unknown"
+}
+
+object RepeatBlockRoutineSuggestionSurface {
+    const val HOME = "home"
+}
+
+object RepeatBlockSuggestionVariant {
+    const val DEFAULT = "default"
 }
 
 object AnalyticsParentModeDurationBucket {

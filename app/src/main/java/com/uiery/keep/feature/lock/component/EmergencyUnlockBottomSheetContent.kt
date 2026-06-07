@@ -134,6 +134,8 @@ fun EmergencyUnlockBottomSheetContent(
                 EmergencyUnlockBottomSheetStep.REASON -> ReasonStep(
                     selectedReason = state.selectedReason,
                     customReason = state.customReason,
+                    stepHelperTextRes = state.stepHelperTextRes,
+                    validationHelperTextRes = state.validationHelperTextRes,
                     onReasonSelected = { state = state.selectReason(it) },
                     onCustomReasonChanged = { state = state.changeCustomReason(it) },
                     onNext = { state = state.goNext() },
@@ -141,12 +143,15 @@ fun EmergencyUnlockBottomSheetContent(
                 EmergencyUnlockBottomSheetStep.APPS -> AppSelectionStep(
                     blockedApps = state.blockedApps,
                     selectedApps = state.selectedApps,
+                    stepHelperTextRes = state.stepHelperTextRes,
+                    validationHelperTextRes = state.validationHelperTextRes,
                     onSelectionChanged = { state = state.selectApps(it) },
                     onNext = { state = state.goNext() },
                 )
                 EmergencyUnlockBottomSheetStep.DURATION -> DurationStep(
                     durationOptions = state.durationOptions,
                     selectedDuration = state.selectedDurationMinutes,
+                    stepHelperTextRes = state.stepHelperTextRes,
                     onDurationSelected = { state = state.selectDuration(it) },
                     onRequest = { state = state.goNext() },
                 )
@@ -207,6 +212,8 @@ private fun StepIndicator(
 private fun ReasonStep(
     selectedReason: String?,
     customReason: String,
+    stepHelperTextRes: Int?,
+    validationHelperTextRes: Int?,
     onReasonSelected: (String) -> Unit,
     onCustomReasonChanged: (String) -> Unit,
     onNext: () -> Unit,
@@ -218,6 +225,7 @@ private fun ReasonStep(
             fontWeight = FontWeight.Bold,
             color = KeepTheme.colors.onSurfaceVariant,
         )
+        StepHelperText(stepHelperTextRes)
         Spacer(modifier = Modifier.height(20.dp))
         REASONS.forEach { reason ->
             val isSelected = selectedReason == reason.key
@@ -230,6 +238,7 @@ private fun ReasonStep(
                         if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
                         else KeepTheme.colors.onSecondary.copy(alpha = 0.5f)
                     )
+                    .testTag("emergency_unlock_reason_${reason.key}")
                     .selectable(
                         selected = isSelected,
                         onClick = { onReasonSelected(reason.key) },
@@ -256,6 +265,7 @@ private fun ReasonStep(
                 onValueChange = onCustomReasonChanged,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("emergency_unlock_reason_other_input")
                     .padding(top = 8.dp),
                 placeholder = {
                     Text(text = stringResource(R.string.emergency_unlock_reason_other_hint))
@@ -265,6 +275,7 @@ private fun ReasonStep(
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
+        StepHelperText(validationHelperTextRes)
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
@@ -278,6 +289,8 @@ private fun ReasonStep(
 private fun AppSelectionStep(
     blockedApps: Set<String>,
     selectedApps: Set<String>,
+    stepHelperTextRes: Int?,
+    validationHelperTextRes: Int?,
     onSelectionChanged: (Set<String>) -> Unit,
     onNext: () -> Unit,
 ) {
@@ -293,6 +306,7 @@ private fun AppSelectionStep(
             fontWeight = FontWeight.Bold,
             color = KeepTheme.colors.onSurfaceVariant,
         )
+        StepHelperText(stepHelperTextRes)
         Spacer(modifier = Modifier.height(20.dp))
         LazyColumn(
             modifier = Modifier.weight(1f, fill = false),
@@ -344,6 +358,7 @@ private fun AppSelectionStep(
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
+        StepHelperText(validationHelperTextRes)
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
@@ -357,6 +372,7 @@ private fun AppSelectionStep(
 private fun DurationStep(
     durationOptions: List<Int>,
     selectedDuration: Int,
+    stepHelperTextRes: Int?,
     onDurationSelected: (Int) -> Unit,
     onRequest: () -> Unit,
 ) {
@@ -370,6 +386,7 @@ private fun DurationStep(
             color = KeepTheme.colors.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
+        StepHelperText(stepHelperTextRes)
         Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -389,7 +406,8 @@ private fun DurationStep(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(48.dp)
+                        .testTag("emergency_unlock_duration_$minutes"),
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = KeepTheme.colors.primary.copy(alpha = 0.12f),
@@ -405,6 +423,18 @@ private fun DurationStep(
             onClick = onRequest,
         )
     }
+}
+
+@Composable
+private fun StepHelperText(textRes: Int?) {
+    if (textRes == null) return
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = stringResource(textRes),
+        color = KeepTheme.colors.surfaceVariant,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+    )
 }
 
 @Composable

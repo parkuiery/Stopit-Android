@@ -46,10 +46,20 @@ class GoalLockContractTest(unittest.TestCase):
             "Home expiration completion foothold",
             "PR #489",
             "goal_lock_completed",
+            "Accessibility runtime QA foothold",
+            "KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution",
+            "block_source",
+            "goal_lock_id",
             "Closes #417",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
+
+        self.assertIn("시작일 당일 새벽의 전날 spillover 구간", runbook)
+        self.assertIn("종료일 다음날 새벽의 spillover 구간", runbook)
+        self.assertIn("window 종료 시각부터 차단을 멈춘다", runbook)
 
         forbidden_guidance = [
             "긴급 해제 횟수 자동 회복 OFF를 MVP에 포함",
@@ -121,9 +131,12 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("목표 잠금 runtime QA baseline", qa_checklist)
         self.assertIn("GoalLockPolicyTest", qa_checklist)
+        self.assertIn("시작일 당일 새벽", qa_checklist)
+        self.assertIn("익일 새벽 spillover", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("GoalLockSelectedAppUiItemTest", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
@@ -134,6 +147,10 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution", qa_checklist)
+        self.assertIn("block_source=goal_lock", qa_checklist)
 
     def test_context_pack_does_not_describe_goal_lock_as_pre_implementation_only(self):
         product_context = PRODUCT_CONTEXT.read_text()

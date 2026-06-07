@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.entity.GoalLockEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
@@ -22,7 +20,7 @@ internal class GoalLockDetailViewModel
     @Inject
     constructor(
         savedStateHandle: SavedStateHandle,
-        private val goalLockDao: GoalLockDao,
+        private val goalLockRepository: GoalLockRepository,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<GoalLockDetailUiState, GoalLockDetailSideEffect> {
@@ -35,7 +33,7 @@ internal class GoalLockDetailViewModel
 
         fun loadGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
-                val goalLock = goalLockDao.fetch(goalLockId)?.toDomain()
+                val goalLock = goalLockRepository.fetch(goalLockId)
                 if (goalLock == null) {
                     postSideEffect(GoalLockDetailSideEffect.NotFound)
                     return@intent
@@ -76,7 +74,7 @@ internal class GoalLockDetailViewModel
                 }
 
                 val ended = current.copy(status = GoalLockStoredStatus.EndedEarly)
-                goalLockDao.update(GoalLockEntity.fromDomain(ended))
+                goalLockRepository.update(ended)
                 analytics.trackGoalLockEndedEarly(
                     lockMode = current.lockMode.analyticsLockMode,
                     elapsedDaysBucket = elapsedDaysBucket(current.startDate, today),
@@ -103,7 +101,7 @@ internal class GoalLockDetailViewModel
             }
 
             val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
-            goalLockDao.update(GoalLockEntity.fromDomain(completed))
+            goalLockRepository.update(completed)
             analytics.trackGoalLockCompleted(
                 lockMode = goalLock.lockMode.analyticsLockMode,
                 durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),

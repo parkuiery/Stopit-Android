@@ -3,9 +3,7 @@ package com.uiery.keep.feature.lockhistory
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.service.summarizeLockHistoryLedger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
@@ -24,7 +22,7 @@ enum class PeriodType {
 
 @HiltViewModel
 class LockHistoryViewModel @Inject constructor(
-    private val lockHistoryDao: LockHistoryDao,
+    private val lockHistoryRepository: LockHistoryRepository,
     private val analytics: KeepAnalytics,
 ) : ContainerHost<LockHistoryUiState, LockHistorySideEffect>, ViewModel() {
 
@@ -76,9 +74,8 @@ class LockHistoryViewModel @Inject constructor(
         val startMillis = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endMillis = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        val sessions = lockHistoryDao.fetchByDateRange(startMillis, endMillis)
+        val sessions = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
             .firstOrNull()
-            ?.map { it.toModel() }
             ?: emptyList()
 
         val summary = summarizeLockHistoryLedger(sessions)

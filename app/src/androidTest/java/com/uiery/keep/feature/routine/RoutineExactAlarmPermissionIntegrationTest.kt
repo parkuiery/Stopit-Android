@@ -68,7 +68,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
@@ -97,7 +97,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
@@ -138,14 +138,15 @@ class RoutineExactAlarmPermissionIntegrationTest {
         val dataStore = createDataStore()
         val scheduler = RoutineScheduler(context)
         val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = database.routineDao(),
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
@@ -180,14 +181,15 @@ class RoutineExactAlarmPermissionIntegrationTest {
         val dataStore = createDataStore()
         val scheduler = RoutineScheduler(context)
         val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = database.routineDao(),
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
@@ -222,14 +224,15 @@ class RoutineExactAlarmPermissionIntegrationTest {
         val dataStore = createDataStore()
         val scheduler = RoutineScheduler(context)
         val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = database.routineDao(),
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
