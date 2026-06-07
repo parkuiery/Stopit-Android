@@ -12,22 +12,29 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 
@@ -38,6 +45,8 @@ internal fun GoalLockDetailScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
+    val appSelectionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isAppSelectionSheetVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadGoalLock()
@@ -48,6 +57,21 @@ internal fun GoalLockDetailScreen(
             GoalLockDetailSideEffect.NotFound,
             GoalLockDetailSideEffect.Ended,
             -> onNavigateBack()
+        }
+    }
+
+    if (isAppSelectionSheetVisible) {
+        ModalBottomSheet(
+            sheetState = appSelectionSheetState,
+            onDismissRequest = { isAppSelectionSheetVisible = false },
+        ) {
+            CategoryBottomSheetContent(
+                storeSelectApps = uiState.goalLock?.selectedPackages.orEmpty(),
+                onComplete = { selectedApps ->
+                    viewModel.requestUpdateSelectedApps(selectedApps)
+                    isAppSelectionSheetVisible = false
+                },
+            )
         }
     }
 
@@ -81,17 +105,23 @@ internal fun GoalLockDetailScreen(
             onRequestEnd = viewModel::requestEndGoalLock,
             onCancelEnd = viewModel::cancelEndGoalLock,
             onConfirmEnd = { viewModel.confirmEndGoalLock() },
+            onRequestUpdateApps = { isAppSelectionSheetVisible = true },
+            onCancelUpdateApps = viewModel::cancelUpdateSelectedApps,
+            onConfirmUpdateApps = viewModel::confirmUpdateSelectedApps,
         )
     }
 }
 
 @Composable
-private fun GoalLockDetailContent(
+internal fun GoalLockDetailContent(
     modifier: Modifier = Modifier,
     state: GoalLockDetailUiState,
     onRequestEnd: () -> Unit,
     onCancelEnd: () -> Unit,
     onConfirmEnd: () -> Unit,
+    onRequestUpdateApps: (Set<String>) -> Unit,
+    onCancelUpdateApps: () -> Unit,
+    onConfirmUpdateApps: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -137,6 +167,41 @@ private fun GoalLockDetailContent(
         }
 
         if (!state.isEnded && !state.isCompleted) {
+            if (state.showUpdateAppsConfirmation) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                id = R.string.goal_lock_detail_update_apps_confirmation,
+                                state.pendingSelectedApps.size,
+                            ),
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            OutlinedButton(onClick = onCancelUpdateApps) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_apps_cancel))
+                            }
+                            Button(onClick = onConfirmUpdateApps) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_apps_save))
+                            }
+                        }
+                    }
+                }
+            }
+
+            OutlinedButton(onClick = { onRequestUpdateApps(state.goalLock.selectedPackages) }) {
+                Text(text = stringResource(id = R.string.goal_lock_detail_update_apps_cta))
+            }
+
             if (state.showEndConfirmation) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

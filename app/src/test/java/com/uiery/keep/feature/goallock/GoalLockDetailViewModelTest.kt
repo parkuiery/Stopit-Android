@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
+import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
@@ -103,6 +104,56 @@ class GoalLockDetailViewModelTest {
         )
     }
 
+    @Test
+    fun confirmSelectedAppsUpdateReplacesPackagesAndTracksGoalLockUpdated() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateSelectedApps(setOf(" com.new.video ", "com.new.video", "com.new.game"))
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateAppsConfirmation }
+        viewModel.confirmUpdateSelectedApps()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.selectedPackages == setOf("com.new.video", "com.new.game") }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(42L, updated.id)
+        assertEquals("시험 준비", updated.goalName)
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 7, 3), updated.endDate)
+        assertEquals(GoalLockMode.AllDay, updated.lockMode)
+        assertEquals(GoalLockStoredStatus.Active, updated.status)
+        assertEquals(setOf("com.new.video", "com.new.game"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateAppsConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.APPS,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmSelectedAppsUpdateRejectsEmptySelectionWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateSelectedApps(setOf(" ", "\t"))
+        viewModel.confirmUpdateSelectedApps()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateAppsConfirmation)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
@@ -194,9 +245,15 @@ private data class GoalLockCompletedCall(
     val durationDaysBucket: String,
 )
 
+private data class GoalLockUpdatedCall(
+    val lockMode: String,
+    val changedField: String,
+)
+
 private class DetailRecordingKeepAnalytics : KeepAnalytics {
     val goalLockEndedEarlyCalls = mutableListOf<GoalLockEndedEarlyCall>()
     val goalLockCompletedCalls = mutableListOf<GoalLockCompletedCall>()
+    val goalLockUpdatedCalls = mutableListOf<GoalLockUpdatedCall>()
 
     override fun logEvent(
         name: String,
@@ -262,6 +319,16 @@ private class DetailRecordingKeepAnalytics : KeepAnalytics {
         goalLockCompletedCalls += GoalLockCompletedCall(
             lockMode = lockMode,
             durationDaysBucket = durationDaysBucket,
+        )
+    }
+
+    override fun trackGoalLockUpdated(
+        lockMode: String,
+        changedField: String,
+    ) {
+        goalLockUpdatedCalls += GoalLockUpdatedCall(
+            lockMode = lockMode,
+            changedField = changedField,
         )
     }
 }
