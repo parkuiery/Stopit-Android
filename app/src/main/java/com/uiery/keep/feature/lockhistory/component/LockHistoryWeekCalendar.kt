@@ -15,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -27,8 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.formatMonthDayLabel
+import com.uiery.keep.util.formatWeekdayShort
 import java.time.LocalDate
-import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
@@ -41,6 +44,7 @@ internal fun LockHistoryWeekCalendar(
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val context = LocalContext.current
+    val appLocale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     val dates = generateSequence(startDate) { it.plusDays(1) }
         .takeWhile { !it.isAfter(endDate) }
         .toList()
@@ -58,6 +62,7 @@ internal fun LockHistoryWeekCalendar(
                 isToday = date == LocalDate.now(),
                 onClick = { onSelectDate(date) },
                 context = context,
+                locale = appLocale,
             )
         }
     }
@@ -72,15 +77,16 @@ private fun DayItem(
     isToday: Boolean,
     onClick: () -> Unit,
     context: Context,
+    locale: Locale,
 ) {
-    val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    val dayOfWeek = formatWeekdayShort(date.dayOfWeek, locale)
     val durationText = formatDurationShort(context, duration)
-    val dateLabel = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + date.dayOfMonth
+    val dateLabel = formatMonthDayLabel(date, locale)
     val statusDescription = when {
-        isToday && isSelected -> "Today, selected"
-        isToday -> "Today"
-        isSelected -> "Selected"
-        else -> "Not selected"
+        isToday && isSelected -> stringResource(R.string.cd_lock_history_date_today_selected)
+        isToday -> stringResource(R.string.cd_lock_history_date_today)
+        isSelected -> stringResource(R.string.cd_lock_history_date_selected)
+        else -> stringResource(R.string.cd_lock_history_date_not_selected)
     }
 
     Column(

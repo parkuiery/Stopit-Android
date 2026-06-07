@@ -144,6 +144,10 @@
     <string name="cd_state_off">オフ</string>
     <string name="cd_tab_selected">選択済み</string>
     <string name="cd_tab_not_selected">未選択</string>
+    <string name="cd_lock_history_date_today">今日</string>
+    <string name="cd_lock_history_date_selected">選択済み</string>
+    <string name="cd_lock_history_date_not_selected">未選択</string>
+    <string name="cd_lock_history_date_today_selected">今日、選択済み</string>
     <string name="blocked_apps_title">ブロックされたアプリ</string>
     <string name="routine_alarm_permission_title">ルーティンの開始を逃さないようにお知らせします。</string>
     <string name="routine_alarm_permission_description">設定した時間に通知を送り、自然にルーティンを始められるようお手伝いします。</string>

@@ -146,6 +146,10 @@
     <string name="cd_state_off">Desativado</string>
     <string name="cd_tab_selected">Selecionado</string>
     <string name="cd_tab_not_selected">Não selecionado</string>
+    <string name="cd_lock_history_date_today">Hoje</string>
+    <string name="cd_lock_history_date_selected">Selecionado</string>
+    <string name="cd_lock_history_date_not_selected">Não selecionado</string>
+    <string name="cd_lock_history_date_today_selected">Hoje, selecionado</string>
     <string name="blocked_apps_title">Apps bloqueadas</string>
     <string name="routine_alarm_permission_title">Vamos avisar para você não perder o início da sua rotina.</string>
     <string name="routine_alarm_permission_description">Enviaremos uma notificação no horário definido para ajudar você a começar a rotina de forma natural.</string>
