@@ -62,9 +62,9 @@
 
 | 이벤트 | 기존/legacy 축 | 새 privacy-safe 축 | 전환 상태 |
 | --- | --- | --- | --- |
-| `app_block_intercepted` | `blocked_app_package` | `blocked_app_category_bucket`, `block_source`, `routine_id?`, `goal_lock_id?` | code-lane에서 raw package 제거 필요 |
-| `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | code-lane에서 raw package 제거 필요 |
-| `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | code-lane에서 raw package 제거 필요 |
+| `app_block_intercepted` | `blocked_app_package` | `blocked_app_category_bucket`, `block_source`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
+| `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
+| `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
 
 `routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 id다. 목표 이름, 루틴 이름, 앱 label/package를 이 id 대신 보내지 않는다.
 
@@ -96,6 +96,7 @@
 문서 계약만으로는 #611을 닫지 않는다. 다음 외부/후속 경계가 남는다.
 
 - Android code-lane에서 raw package payload 제거 또는 bucket 전환 구현
+  - 이번 code-lane PR은 `FirebaseKeepAnalytics` payload에서 `blocked_app_package`를 제거하고, 로컬 package 값을 `blocked_app_category_bucket`으로 변환해 전송하는 repo-internal 구현 경계를 닫는다.
 - release/tag/Play deploy에 해당 구현 포함
 - GA4 Admin에서 `customEvent:blocked_app_category_bucket` 등록 및 metadata 확인
 - 배포 후 14일: `app_block_intercepted` / `first_core_action_completed` / `core_action_completed`가 category bucket으로 조회되는지 확인

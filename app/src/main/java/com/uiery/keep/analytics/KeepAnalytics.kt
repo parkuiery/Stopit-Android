@@ -301,7 +301,9 @@ object KeepAnalyticsParam {
     const val SCHEDULE_TYPE = "schedule_type"
     const val SCHEDULED_DURATION_MINUTES = "scheduled_duration_minutes"
     const val BLOCK_SOURCE = "block_source"
+    @Deprecated("Use BLOCKED_APP_CATEGORY_BUCKET for external analytics payloads.")
     const val BLOCKED_APP_PACKAGE = "blocked_app_package"
+    const val BLOCKED_APP_CATEGORY_BUCKET = "blocked_app_category_bucket"
     const val REASON = "reason"
     const val DURATION_MINUTES = "duration_minutes"
     const val REMAINING_UNLOCKS = "remaining_unlocks"

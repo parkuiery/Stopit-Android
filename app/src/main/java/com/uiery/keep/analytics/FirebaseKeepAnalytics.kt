@@ -159,7 +159,10 @@ class FirebaseKeepAnalytics
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = buildMap {
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
-                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    put(
+                        KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                        blockedAppCategoryBucketForPackage(blockedAppPackage),
+                    )
                     routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
                     goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
                 },
@@ -633,7 +636,7 @@ class FirebaseKeepAnalytics
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
-            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+            put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
             routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
             goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
         }
