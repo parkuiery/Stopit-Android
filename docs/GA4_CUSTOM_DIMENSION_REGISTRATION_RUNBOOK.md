@@ -149,7 +149,7 @@
 
 - `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)의 성과 리포트 UX가 구현된 뒤, empty/low-data/has-history 상태별 summary card 노출과 top apps 성과 섹션 조회를 privacy-safe bucket 기준으로 비교하기 위한 최소 집합이다.
 - 앱 이름, package name, raw session history, raw timestamp, raw duration은 GA4 payload와 registration ledger 모두에서 금지한다.
-- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다. PR #566의 TalkBack/contentDescription baseline은 repo-internal 접근성 회귀 방지 증거이며, 실제 스크린샷/TalkBack spot-check와 live GA4 readback을 대체하지 않는다.
+- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다. PR #566의 TalkBack/contentDescription baseline과 PR #579의 Top Apps 세부 contentDescription baseline은 repo-internal 접근성 회귀 방지 증거이며, 실제 스크린샷/TalkBack spot-check와 live GA4 readback을 대체하지 않는다.
 
 ### 7순위: 목표 잠금 조회성
 

@@ -234,7 +234,7 @@
 - 현재 상태:
   - #465의 source of truth는 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`다.
   - #211 공유 CTA와 같은 화면을 쓰더라도, #465의 1차 지표는 외부 공유가 아니라 `LockHistoryScreen` 재방문과 반복 차단/세션이다.
-  - PR #485로 read model/UI/string/test slice, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`, PR #566으로 summary/top apps TalkBack contentDescription baseline이 `develop`에 반영됐다.
+  - PR #485로 read model/UI/string/test slice, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed`, PR #566 summary/top apps TalkBack baseline, PR #579 Top Apps rank/app label/block count/duration contentDescription baseline이 `develop`에 반영됐다.
   - release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일·30일 readback 전에는 `lock_history_*` 0건을 UX 실패로 해석하지 않는다.
 - guardrail:
   - `중독`, `실패`, `못 참음`, `위험 사용자` 같은 shame/friction copy 금지.
