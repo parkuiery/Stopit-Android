@@ -121,6 +121,7 @@ issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth�
 cd <repo-root>
 python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.home.HomeStatusCtaCardIntegrationTest
 ./gradlew --console=plain :app:lintProdRelease
 ```
 
