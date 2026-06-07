@@ -156,6 +156,7 @@ scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 - `develop`에서 `release/1.7.2` 생성
 - 버전 bump (`app/build.gradle.kts`와 `README.md` 현재 버전 라인을 함께 갱신)
 - release dry-run 검증(상위 release-start에서는 `--no-dry-run`을 허용하지 않음)
+- release branch 생성 후 `scripts/check-release-readiness.sh` quick preflight로 `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `scripts/verify_lint_registry.py`, `:app:bundleProdRelease --dry-run`까지 확인
 - `chore: bump version to 1.7.2` 커밋 생성
 
 ### 릴리즈 production 완료 게이트
@@ -198,7 +199,8 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 - 버전 형식 확인
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - `actionlint`가 있으면 workflow 문법 확인
-- `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
+- quick preflight로 `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `scripts/verify_lint_registry.py`, `:app:bundleProdRelease --dry-run` 실행
+- Signed AAB provenance 생성/검증은 로컬 quick preflight가 아니라 Android Release Build workflow가 실제 signed artifact 옆의 `release-provenance.json`으로 검증한다.
 
 ## Standard Development Flow
 
