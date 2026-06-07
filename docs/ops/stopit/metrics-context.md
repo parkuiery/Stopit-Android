@@ -150,7 +150,7 @@ ASO 판정 주의:
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`
 - `docs/PLAY_STORE_ASO.md`
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`
-- `docs/FOCUS_SUMMARY_SHARE_MVP.md`
+- `docs/FOCUS_SUMMARY_SHARE_MVP.md` (#211 주간 집중 요약 공유 MVP + #597 공유 payload locale resource/template debt. #597는 analytics schema 변경이 아니라 payload body/duration localization 경계이며, `focus_summary_share_*` event/bucket 계약은 유지한다.)
 - `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`
 - `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` (#479 `routines_count` coverage 보강 계약)
 - `docs/BLOCK_SCREEN_COPY_HIERARCHY.md` (#464 차단 화면 카피/액션 위계 UX/QA 계약)
