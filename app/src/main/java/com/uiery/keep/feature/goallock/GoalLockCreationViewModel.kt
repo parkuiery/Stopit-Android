@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
+import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
@@ -26,6 +27,10 @@ internal class GoalLockCreationViewModel
         ContainerHost<GoalLockCreationUiState, GoalLockCreationSideEffect> {
         override val container: Container<GoalLockCreationUiState, GoalLockCreationSideEffect> =
             container(GoalLockCreationUiState())
+
+        init {
+            analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+        }
 
         internal fun setGoalName(goalName: String) =
             intent {

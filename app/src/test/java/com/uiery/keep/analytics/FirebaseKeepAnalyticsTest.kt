@@ -532,6 +532,19 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun goalLockCreateStartedUsesEntrySurfaceOnly() {
+        analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                mapOf(KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsGoalLockEntrySurface.MENU),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun goalLockCreatedUsesSafeBucketedParamsOnly() {
         analytics.trackGoalLockCreated(
             durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,

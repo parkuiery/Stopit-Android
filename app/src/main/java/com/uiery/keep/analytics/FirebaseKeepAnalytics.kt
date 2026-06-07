@@ -487,6 +487,13 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockCreateStarted(entrySurface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                params = mapOf(KeepAnalyticsParam.ENTRY_SURFACE to entrySurface),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
