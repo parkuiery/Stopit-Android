@@ -3,6 +3,7 @@ package com.uiery.keep.analytics
 import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
 import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class FirebaseKeepAnalyticsTest {
@@ -182,33 +183,36 @@ class FirebaseKeepAnalyticsTest {
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[3],
         )
+        assertFalse(backend.loggedEvents[3].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.ROUTINE_ID to "42",
                 ),
             ),
             backend.loggedEvents[4],
         )
+        assertFalse(backend.loggedEvents[4].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.goal",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.GOAL_LOCK_ID to "77",
                 ),
             ),
             backend.loggedEvents[5],
         )
+        assertFalse(backend.loggedEvents[5].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
@@ -246,23 +250,25 @@ class FirebaseKeepAnalyticsTest {
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 120L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.MANUAL_KEEP,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[0],
         )
+        assertFalse(backend.loggedEvents[0].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 180L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.ROUTINE_ID to "routine-1",
                 ),
             ),
             backend.loggedEvents[1],
         )
+        assertFalse(backend.loggedEvents[1].params.containsKey("blocked_app_package"))
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
         assertEquals(
