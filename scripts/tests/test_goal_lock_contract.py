@@ -175,6 +175,36 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertNotIn("패키지 직접 추가", screen)
         self.assertNotIn("onAddSelectedAppPackage", screen)
 
+    def test_goal_lock_creation_screen_uses_string_resources_for_user_visible_copy(self):
+        screen = GOAL_LOCK_CREATION_SCREEN.read_text()
+
+        self.assertIn("stringResource(id = R.string.goal_lock_creation_title)", screen)
+        self.assertIn("R.string.goal_lock_creation_duration_range", screen)
+        self.assertIn("R.string.goal_lock_creation_selected_apps_helper", screen)
+        self.assertIn("stringResource(id = R.string.goal_lock_creation_app_label_missing)", screen)
+        for hardcoded_copy in [
+            "목표 잠금 만들기",
+            "뒤로 가기",
+            "목표 이름",
+            "예: 시험 준비, SNS 줄이기",
+            "시험 준비",
+            "SNS 줄이기",
+            "기간",
+            "직접 일수 입력: 예: 21",
+            "종료 날짜 입력: YYYY-MM-DD",
+            "잠금 방식",
+            "하루종일 잠금",
+            "평일 저녁 잠금",
+            "현재 방식:",
+            "선택 앱",
+            "홈 선택 다시 불러오기",
+            "앱 선택 화면에서 조정",
+            "빼기",
+            "목표 잠금 시작",
+            "앱 이름을 불러오지 못했어요",
+        ]:
+            self.assertNotIn(hardcoded_copy, screen)
+
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()
 
