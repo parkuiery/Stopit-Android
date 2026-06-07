@@ -22,6 +22,14 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
         self.assertIn("review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능", runbook)
         self.assertNotIn("활성화/리뷰용 `customEvent:*` 차원/지표는 아직 보이지 않음", runbook)
 
+    def test_blocked_app_package_is_not_a_new_registration_target(self):
+        runbook = GA4_RUNBOOK.read_text()
+
+        self.assertIn("`blocked_app_category_bucket` | Required dimension", runbook)
+        self.assertIn("`blocked_app_package` | Deprecated / 금지", runbook)
+        self.assertIn("#611 privacy 계약", runbook)
+        self.assertNotIn("`blocked_app_package` | Required dimension", runbook)
+
 
 if __name__ == "__main__":
     unittest.main()

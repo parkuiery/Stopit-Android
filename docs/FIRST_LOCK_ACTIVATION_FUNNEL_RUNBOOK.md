@@ -64,7 +64,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 
 - `permission_outcome` by `customEvent:permission_name`, `customEvent:outcome` → `400 INVALID_ARGUMENT`
 - `first_lock_configured` by `customEvent:source` → `400 INVALID_ARGUMENT`
-- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_package` → 아직 registration gap 우선 정리 단계
+- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_category_bucket` → #611 privacy 계약에 따라 raw package가 아니라 category bucket 등록/조회로 전환 필요
 
 따라서 현재는 `first_open`, `app_selection_completed`, `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 **상위 이벤트 count/users 비율**은 읽을 수 있어도, 어떤 권한/출처/차단 앱에서 병목이 생기는지 세부 분해 해석은 낮은 confidence로 둬야 한다.
 
@@ -77,7 +77,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 운영 원칙:
 
 - 퍼널 숫자가 이상해 보여도 곧바로 CTA/UI 결론으로 점프하지 않는다.
-- 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 `permission_name`, `outcome`, `source`, `block_source`, `blocked_app_package` 등록/metadata 확인이 끝났는지 본다.
+- 먼저 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` 기준으로 `permission_name`, `outcome`, `source`, `block_source`, `blocked_app_category_bucket` 등록/metadata 확인이 끝났는지 본다. `blocked_app_package` 원문 등록은 #611에서 금지한 privacy 역행으로 취급한다.
 - 그 전까지 issue #14 후속 문서/PR은 "퍼널 해석 계약 정리"와 "manual/live registration 대기"를 분리해서 기록한다.
 
 ## canonical 퍼널 정의
@@ -153,7 +153,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 | `permission_outcome`은 있으나 `app_selection_completed`가 낮음 | 권한 뒤 앱 선택에서 이탈 | 앱 선택 자체를 더 빠르고 덜 부담스럽게 만든다 | `app_selection_completed`, `selected_app_count` |
 | `app_selection_completed`는 있으나 `first_lock_configured`가 낮음 | 앱은 골랐지만 첫 잠금/Keep 토글/타이머/루틴으로 이어지지 않음 | 홈에서 첫 잠금 CTA를 노출해 Keep 토글로 바로 이어지게 한다 | `first_lock_configured`, `source=home` |
 | `first_lock_configured`는 있으나 `first_core_action_completed`가 낮음 | 준비는 했지만 첫 가치 경험으로 이어지지 않음 | 실제 차단이 언제/어떻게 발생하는지 피드백을 분명히 한다 | `first_core_action_completed`, `elapsed_since_first_open_seconds`, `blocking_mode` |
-| `first_core_action_completed`는 있으나 `app_block_intercepted`가 낮음 | 첫 가치/세션 계측과 실차단 계측이 어긋나거나 런타임 계약이 비어 있음 | 접근성 runtime/차단 화면/실차단 계측 연결을 검증한다 | `app_block_intercepted`, `block_source`, `blocked_app_package` |
+| `first_core_action_completed`는 있으나 `app_block_intercepted`가 낮음 | 첫 가치/세션 계측과 실차단 계측이 어긋나거나 런타임 계약이 비어 있음 | 접근성 runtime/차단 화면/실차단 계측 연결을 검증한다 | `app_block_intercepted`, `block_source`, `blocked_app_category_bucket` |
 
 ### 홈 첫 잠금 CTA 계약
 
@@ -314,6 +314,6 @@ cd <repo-root>
 - PR #256/#279/#283 포함 release PR이 `main`에 merge되고 SemVer tag/Play deploy가 완료되기 전까지, live production 데이터는 post-fix가 아니라 pre-#256/#279/#283 baseline으로 본다.
 - 배포 후 14일 기준 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed` 재측정
 - 필요 시 GA4 metadata/대시보드 쿼리 업데이트
-- `permission_name` / `source` / `blocking_mode` / `block_source` / `blocked_app_package`가 실제 `customEvent:*`로 등록됐는지 live 확인
+- `permission_name` / `source` / `blocking_mode` / `block_source` / `blocked_app_category_bucket`가 실제 `customEvent:*`로 등록됐는지 live 확인. `blocked_app_package` 원문은 #611에 따라 새 registration/readback 대상에서 제외
 
 따라서 이번 docs lane 산출물은 `Refs #14`가 맞고, `Closes #14`는 code/product/manual measurement까지 충족될 때만 사용한다.
