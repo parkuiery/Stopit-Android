@@ -73,6 +73,8 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
             "banner ad does not outrank CTA/emergency status",
             "color-only state avoided",
             "python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v",
+            "BlockScreenContentIntegrationTest",
+            ":app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)

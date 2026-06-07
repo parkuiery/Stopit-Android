@@ -251,8 +251,11 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
   - manual Keep block / timer block / routine block / goal lock block:
 - Commands:
   - `python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
   - `./gradlew --console=plain :app:assembleProdDebug`
+- Automated UI regression:
+  - `BlockScreenContentIntegrationTest` renders the copy area, secondary emergency-unlock action/helper, disabled reason, and primary return CTA without requiring a full AccessibilityService foreground transition.
 - Normal blocked state:
   - title/message coaching tone: pass / fail
   - primary CTA means return to previous work: pass / fail
