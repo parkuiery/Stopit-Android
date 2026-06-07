@@ -222,17 +222,6 @@ jobs:
           --release-status "$RELEASE_STATUS"
           --rollout-fraction "$ROLLOUT_FRACTION"
 
-      - name: Upload signed AAB artifact
-        if: env.DEPLOY_TRACK != 'production'
-        uses: actions/upload-artifact@v7
-        with:
-          name: stopit-prod-release-signed-aab
-          path: |
-            app/build/outputs/bundle/prodRelease/*.aab
-            app/build/outputs/bundle/prodRelease/release-provenance.json
-          if-no-files-found: error
-          retention-days: 30
-
       - name: Verify Play upload provenance manifest
         if: env.DEPLOY_TRACK != 'production'
         run: >-
@@ -244,6 +233,17 @@ jobs:
           --track "$DEPLOY_TRACK"
           --release-status "$RELEASE_STATUS"
           --rollout-fraction "$ROLLOUT_FRACTION"
+
+      - name: Upload signed AAB artifact
+        if: env.DEPLOY_TRACK != 'production'
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-prod-release-signed-aab
+          path: |
+            app/build/outputs/bundle/prodRelease/*.aab
+            app/build/outputs/bundle/prodRelease/release-provenance.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload to Google Play
         if: env.DEPLOY_TRACK != 'production'

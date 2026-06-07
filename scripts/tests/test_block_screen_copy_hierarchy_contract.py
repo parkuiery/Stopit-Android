@@ -27,6 +27,9 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
             "앱 이름, package, raw blocked app list, raw session timestamp, raw history",
             "PR body에는 `Refs #464`를 사용한다",
             "Closes #464",
+            "PR #588(`025f9326`)",
+            "BlockScreenContentIntegrationTest",
+            "repeated Back 차단",
             "python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v",
         ]
         for phrase in required_phrases:
@@ -45,6 +48,7 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
             self.assertIn("BLOCK_SCREEN_COPY_HIERARCHY.md", text, relative_path)
             self.assertIn("#464", text, relative_path)
             self.assertIn("PR #487", text, relative_path)
+            self.assertIn("PR #588", text, relative_path)
 
     def test_event_dictionary_keeps_existing_analytics_order_and_no_new_payload_claim(self):
         dictionary = read("docs/ANALYTICS_EVENT_DICTIONARY.md")
@@ -65,7 +69,7 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
         required_phrases = [
             "Block screen copy/action hierarchy QA baseline",
             "Issue: #464",
-            "PR #487(`8fb1911c`)",
+            "PR #487(`8fb1911c`) + PR #588(`025f9326`)",
             "Normal blocked state",
             "First core action state",
             "Emergency unlock available",
@@ -111,8 +115,10 @@ class BlockScreenCopyHierarchyContractTest(unittest.TestCase):
         )
 
         self.assertIn("PR #487(`8fb1911c`)", source)
+        self.assertIn("PR #588(`025f9326`)", source)
         self.assertIn("develop에 반영됐다", high_traffic)
-        self.assertIn("실제 기기/screenshot/TalkBack QA", high_traffic)
+        self.assertIn("BlockScreenContentIntegrationTest", high_traffic)
+        self.assertIn("release-candidate screenshot/TalkBack QA", high_traffic)
         self.assertIn("release/tag/Play deploy 후 14일", high_traffic)
         self.assertNotIn("Closes #464를 사용한다", source)
 
