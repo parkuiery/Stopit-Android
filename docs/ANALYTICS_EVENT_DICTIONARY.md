@@ -72,7 +72,7 @@
 
 ### 획득 / Install Referrer attribution
 
-Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. QA/code follow-up에서 parser, campaign link helper, analytics event/parameter constants와 privacy-safe unit regression foothold가 추가됐다. 다만 Play Install Referrer SDK provider wiring, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. PR #586으로 parser, campaign link helper, analytics event/parameter constants와 privacy-safe unit regression foothold가 `develop`에 반영됐다. 다만 Play Install Referrer SDK provider wiring, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

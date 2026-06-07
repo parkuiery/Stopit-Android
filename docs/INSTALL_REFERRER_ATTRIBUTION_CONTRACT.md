@@ -6,7 +6,7 @@ Issue: #581
 
 최근 #65/#242 acquisition readback에서는 `newUsers`가 반등했지만 `Direct` 신규 사용자 비중이 계속 과다해 ASO 효과, 외부 링크, 캠페인, attribution 누락을 분리하기 어렵다. 이 문서는 Play Install Referrer와 UTM link helper를 도입할 때의 **제품/analytics/ops 계약**을 먼저 고정한다.
 
-이 PR은 docs-lane 계약 산출물이었다. QA/code follow-up에서 parser, campaign link helper, analytics event/parameter constants와 privacy-safe regression test foothold가 추가되더라도 Play Install Referrer SDK provider wiring, GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
+PR #585는 docs-lane 계약 산출물이었다. PR #586(`7100a45c`) 이후에는 parser, campaign link helper, analytics event/parameter constants, privacy-safe regression test foothold가 `develop`에 반영된 상태로 본다. 다만 Play Install Referrer SDK provider wiring, 첫 실행 non-blocking lookup path, GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
 
 ## 현재 문제
 
@@ -25,9 +25,14 @@ Issue: #581
 - GA4 이벤트/파라미터 계약과 Admin 등록/readback 절차.
 - #65/#242 ASO 판정표에서 repo-internal 구현 경계와 Play Console/캠페인 수동 경계를 분리한다.
 
-### 제외
+### 현재 repo-internal 완료
 
-- 이 docs-lane PR에서 Android SDK를 추가하거나 첫 실행 runtime path를 변경하지 않는다.
+- PR #585: 이 문서와 high-traffic docs/runbook/static contract test가 `develop`에 반영됐다.
+- PR #586: `AcquisitionAttributionParser`, `CampaignLinkBuilder`, `install_referrer_attribution_checked` analytics contract, raw referrer/URL/PII 금지 regression foothold가 `develop`에 반영됐다.
+
+### 제외 / 남은 구현 경계
+
+- 아직 Play Install Referrer SDK provider wiring과 첫 실행 runtime lookup path는 구현되지 않았다.
 - attribution provider, MMP, server-side campaign warehouse 도입은 별도 결정 전까지 제외한다.
 - `Direct`를 0에 가깝게 만드는 것을 목표로 삼지 않는다. 목표는 **Search/Explore, external/campaign, unknown/direct를 더 신뢰 가능하게 분리**하는 것이다.
 
@@ -42,23 +47,34 @@ Issue: #581
 
 ## Android code-lane handoff
 
+### Landed foothold on `develop`
+
+PR #586(`7100a45c`)로 아래 repo-internal foothold는 이미 반영됐다.
+
+1. `AcquisitionAttributionParser`
+   - referrer string / UTM query를 privacy-safe bucket으로 정규화한다.
+   - raw referrer URL, 검색어, arbitrary query 값이 analytics payload에 들어가지 않는 regression test가 있다.
+2. `CampaignLinkBuilder`
+   - Play Store URL에 UTM 필수 필드를 일관되게 붙이는 helper contract가 있다.
+   - link surface와 campaign/campaign source를 slug/bucket으로 제한한다.
+3. `KeepAnalytics.trackInstallReferrerAttributionChecked(...)`
+   - `install_referrer_attribution_checked` event contract와 Firebase parameter mapping이 추가됐다.
+   - `docs/ANALYTICS_EVENT_DICTIONARY.md`와 이 문서가 같은 bucket set을 공유한다.
+
+### Remaining SDK/runtime handoff
+
 권장 패키지 이름은 code-lane에서 조정할 수 있지만, 계약상 최소 seam은 아래를 만족해야 한다.
 
 1. `InstallReferrerAttributionProvider`
    - Play Install Referrer Client 호출을 캡슐화한다.
    - timeout/failure/service-unavailable을 성공 경로와 분리한다.
    - 앱 시작, onboarding, lock/routine path를 block하지 않는다.
-2. `AcquisitionAttributionParser`
-   - referrer string / UTM query를 파싱하되 raw string을 analytics로 넘기지 않는다.
-   - 필수 UTM 필드: `utm_source`, `utm_medium`, `utm_campaign`.
-   - unknown/malformed/missing을 명시 enum으로 반환한다.
-3. `CampaignLinkBuilder` 또는 운영 script
-   - Play Store URL에 UTM 필수 필드를 일관되게 붙인다.
-   - link surface와 campaign name을 slug/bucket으로 제한한다.
-   - redirect/short-link를 쓰면 final URL에서 UTM 보존 여부를 확인하는 체크리스트를 제공한다.
-4. 테스트 seam
-   - Play service unavailable / developer error / timeout / success / missing UTM / malformed UTM / full UTM 케이스를 단위 테스트로 고정한다.
-   - raw referrer URL, search term, arbitrary query 값이 analytics payload에 들어가지 않는 회귀 테스트를 둔다.
+2. First-launch lookup path
+   - 첫 실행/설치 attribution lookup이 terminal status에 도달했을 때 1회만 analytics event를 보낸다.
+   - lookup 실패/timeout/service unavailable이 앱 시작, onboarding, lock/routine path를 block하지 않는 회귀 테스트를 둔다.
+3. Runtime + release evidence
+   - provider wiring 포함 버전이 release/tag/Play deploy에 들어갔는지 확인한다.
+   - GA4 Admin metadata/readback과 Play Console source 확인 전에는 `Direct` 감소를 성과로 주장하지 않는다.
 
 ## Analytics event contract
 
@@ -173,12 +189,20 @@ Code-lane 추가 검증 후보:
 
 #581은 아래가 모두 끝나야 closure를 검토한다.
 
-- parser, campaign link helper, analytics event/parameter constants와 privacy-safe regression test foothold가 구현된다. (QA/code follow-up에서 진행)
-- Play Install Referrer SDK provider wiring과 첫 실행 non-blocking lookup path가 구현된다.
-- raw referrer/URL/PII 금지 회귀 테스트가 있다.
-- campaign link helper 또는 문서화된 운영 명령이 있다.
-- event dictionary / GA4 runbook / ASO 런북 / metrics context가 동기화된다.
-- release/tag/Play deploy 이후 14일/30일 readback 절차가 실행된다.
-- #242/#65 외부 경계와 #581 repo-internal 구현 경계가 issue comment에 분리 기록된다.
+완료된 repo-internal foothold:
 
-이 docs-lane PR은 위 중 **계약/문서/정적 회귀 기준**만 완료했다. QA/code follow-up은 parser/helper/analytics foothold를 전진시킨다. 남은 경계는 SDK provider wiring, GA4 Admin, Play Console/campaign 수동 기록, release/readback이다.
+- [x] docs/source-of-truth 계약과 high-traffic docs/static regression test가 있다. (PR #585)
+- [x] parser, campaign link helper, analytics event/parameter constants와 privacy-safe regression test foothold가 구현됐다. (PR #586)
+- [x] raw referrer/URL/PII 금지 회귀 테스트가 있다. (PR #586)
+- [x] campaign link helper가 있다. (PR #586)
+- [x] event dictionary와 #581 contract doc이 code foothold 상태에 맞게 동기화됐다. (PR #586)
+
+남은 경계:
+
+- [ ] Play Install Referrer SDK provider wiring과 첫 실행 non-blocking lookup path가 구현된다.
+- [ ] GA4 Admin registration runbook의 #581 custom dimensions가 실제 Admin metadata에서 확인된다.
+- [ ] 구현 포함 release/tag/Play deploy 이후 14일/30일 readback 절차가 실행된다.
+- [ ] Play Console Search/Explore와 external/campaign source가 수동 확인된다.
+- [ ] #242/#65 외부 경계와 #581 repo-internal 구현 경계가 issue comment에 분리 기록된다.
+
+따라서 현재 상태는 **문서 계약 + parser/helper/analytics foothold 완료, provider/runtime/GA4/release/readback 경계 대기**다. 이 경계가 남아 있는 동안 후속 PR은 `Refs #581`을 유지한다.
