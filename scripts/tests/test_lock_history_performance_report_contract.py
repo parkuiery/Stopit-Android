@@ -33,6 +33,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "PR #485 read-model·UI 구현 develop 반영",
             "code-lane instrumentation 추가",
             "PR #566 TalkBack 자동 baseline develop 반영",
+            "rank/app label/block count",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -107,6 +108,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "shame/friction wording absent",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
             "LockHistoryPerformanceReportAccessibilityTest",
+            "top app rank/app label/block count",
             "focused contentDescription regression passed",
         ]
         for phrase in required_phrases:

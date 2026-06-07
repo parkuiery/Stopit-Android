@@ -55,27 +55,32 @@ class LockHistoryPerformanceReportAccessibilityTest {
     @Test
     fun topAppsCardExposesPositiveTalkBackDescription() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val topApps = listOf(context.packageName to 2)
         val report = buildLockHistoryPerformanceReport(
             periodType = PeriodType.WEEK,
             totalDurationMillis = 30 * 60_000L,
             sessionCount = 2,
-            topApps = listOf(context.packageName to 2),
+            topApps = topApps,
         )
+        val appLabel = context.packageManager.getApplicationLabel(context.applicationInfo).toString()
         val expectedDescription = listOf(
             context.getString(R.string.lock_history_top_apps_title),
             context.getString(R.string.lock_history_top_apps_positive_supporting),
+            "#1",
+            appLabel,
+            context.getString(R.string.lock_history_block_count, 2),
         ).joinToString(separator = ". ")
 
         composeRule.setContent {
             KeepTheme {
                 LockHistoryTopApps(
-                    topApps = listOf(context.packageName to 2),
+                    topApps = topApps,
                     report = report,
                     onClick = {},
                 )
             }
         }
 
-        composeRule.onNodeWithContentDescription(expectedDescription, substring = true).assertExists()
+        composeRule.onNodeWithContentDescription(expectedDescription).assertExists()
     }
 }
