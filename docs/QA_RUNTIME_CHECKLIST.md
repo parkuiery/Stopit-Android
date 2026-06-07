@@ -73,6 +73,26 @@ python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
 - 잠금 기록 주/월 탭: TalkBack 상태가 현재 앱 언어로 `선택됨/선택되지 않음` 또는 해당 locale 번역으로 읽힌다.
 - 새 stateDescription string key를 추가하면 모든 shipped `values*/strings.xml`에 parity가 맞아야 한다.
 
+### Long countdown locale QA evidence
+
+issue #596 계열 PR은 Lock 화면의 24시간 이상 countdown day prefix가 Kotlin hardcoded Korean suffix가 아니라 locale/plural resource를 따라야 한다. 1일/2일 이상 경계와 24시간 미만 경계를 함께 확인해서 장기 잠금/목표 잠금 화면이 모든 shipped locale에서 자연스럽게 보이는지 기록한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_countdown_day_locale_contract -v
+./gradlew --console=plain :app:testDevDebugUnitTest
+./gradlew --console=plain :app:assembleProdDebug
+```
+
+수동 QA evidence:
+- Locale(s): ko / en / ja / zh / other changed locale
+- 24시간 미만 countdown: day prefix 없이 `HH:mm:ss` 또는 `mm:ss` + remaining copy가 보인다.
+- 1 day / 2 days 이상 countdown: 현재 locale의 day unit/plural이 보이고 한국어 `일` hardcoded suffix가 다른 locale에 노출되지 않는다.
+- TalkBack: countdown 숫자와 남은 시간 문맥이 화면 locale과 충돌하지 않는다.
+- #464 차단 화면 copy/action hierarchy와 visual hierarchy가 충돌하지 않는다.
+
 ### 홈 타이머 CTA duration baseline
 
 issue #187 계열 PR에서는 홈 타이머 바텀시트가 실제 `현재 시각 -> 목표 시각` 차이와 같은 값을 CTA에 표시하는지 JVM 계약 테스트를 기본 evidence로 남긴다.

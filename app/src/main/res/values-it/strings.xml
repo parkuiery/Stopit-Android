@@ -129,6 +129,10 @@
     <string name="change_lock_hours">%d ore prima</string>
     <string name="change_lock_description">La modifica e l\'eliminazione delle routine saranno limitate da %s</string>
     <string name="day_unit">Giorno</string>
+    <plurals name="countdown_day_prefix">
+        <item quantity="one">%1$d giorno </item>
+        <item quantity="other">%1$d giorni </item>
+    </plurals>
     <string name="lock_duration_with_day">Bloccato per %1$d giorni %2$d ore %3$d minuti</string>
     <string name="lock_time_with_date">Fino al %1$d/%2$d %3$d:%4$02d</string>
     <string name="lock_screen_unavailable_message_with_date">Le app selezionate non sono disponibili fino a %1$s</string>
