@@ -10,13 +10,12 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -39,11 +38,13 @@ class KeepAccessibilityService :
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface RoutineRuntimeEntryPoint {
-        fun routineDao(): RoutineDao
+        fun routineRepository(): RoutineRepository
 
-        fun goalLockDao(): GoalLockDao
+        fun goalLockRepository(): GoalLockRepository
 
         fun blockingStateStore(): BlockingStateStore
+
+        fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
     }
 
     @Volatile
@@ -61,6 +62,8 @@ class KeepAccessibilityService :
     private var lastBlockElapsedRealtime: Long = 0L
     private var scheduledEmergencyUnlockExpireTime: Long = 0L
     private var emergencyUnlockExpiryRunnable: Runnable? = null
+    private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
+    private var emergencyUnlockCountdownRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -83,31 +86,36 @@ class KeepAccessibilityService :
                         observedPreventUninstall = cachedPrefs.preventUninstall,
                         observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
                         observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
+                        observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
                     )
                 }
                 scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
+                syncEmergencyUnlockCountdownNotification(
+                    expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                    notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+                )
                 reevaluateCurrentForegroundAfterStateUpdate()
             }
         }
         launch {
-            entryPoint.routineDao().fetchAll()
+            entryPoint.routineRepository().fetchAll()
                 .catch {
                     cachedRoutines = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
-                .collect { routineEntities ->
-                    cachedRoutines = routineEntities.map { it.toModel() }
+                .collect { routines ->
+                    cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
         launch {
-            entryPoint.goalLockDao().fetchAll()
+            entryPoint.goalLockRepository().fetchAll()
                 .catch {
                     cachedGoalLocks = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
-                .collect { goalLockEntities ->
-                    cachedGoalLocks = goalLockEntities.map { it.toDomain() }
+                .collect { goalLocks ->
+                    cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
@@ -207,7 +215,12 @@ class KeepAccessibilityService :
 
     private fun launchBlockActivity(blockRequest: ForegroundBlockRequest) {
         KeepAccessibilityServiceDebugState.update(applicationContext) {
-            it.copy(lastLaunchedBlockPackage = blockRequest.packageName)
+            it.copy(
+                lastLaunchedBlockPackage = blockRequest.packageName,
+                lastLaunchedBlockSource = blockRequest.blockSource,
+                lastLaunchedRoutineId = blockRequest.routineId,
+                lastLaunchedGoalLockId = blockRequest.goalLockId,
+            )
         }
         val intent = Intent(this, BlockActivity::class.java)
         intent.putExtra(BlockActivity.EXTRA_PACKAGE_NAME, blockRequest.packageName)
@@ -338,6 +351,54 @@ class KeepAccessibilityService :
         emergencyUnlockExpiryRunnable?.let(handler::removeCallbacks)
         emergencyUnlockExpiryRunnable = null
         scheduledEmergencyUnlockExpireTime = 0L
+    }
+
+    private fun syncEmergencyUnlockCountdownNotification(
+        expireTimeMillis: Long,
+        notificationHelper: EmergencyUnlockNotificationHelper,
+    ) {
+        handler.post {
+            if (expireTimeMillis <= 0L) {
+                cancelEmergencyUnlockCountdownNotification(notificationHelper)
+                return@post
+            }
+            if (scheduledEmergencyUnlockCountdownExpireTime == expireTimeMillis) return@post
+
+            cancelEmergencyUnlockCountdownNotification(notificationHelper)
+            scheduledEmergencyUnlockCountdownExpireTime = expireTimeMillis
+            val countdownRunnable = object : Runnable {
+                override fun run() {
+                    val currentExpireTime = scheduledEmergencyUnlockCountdownExpireTime
+                    if (currentExpireTime != expireTimeMillis) return
+
+                    val delayMillis = emergencyUnlockNotificationTickDelayMillis(expireTimeMillis)
+                    if (delayMillis == null) {
+                        cancelEmergencyUnlockCountdownNotification(notificationHelper)
+                        return
+                    }
+
+                    val postResult = notificationHelper.syncWithStoredExpireTime(expireTimeMillis)
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            lastCountdownNotificationExpireTimeMillis = expireTimeMillis,
+                            lastCountdownNotificationPostResult = postResult?.name,
+                        )
+                    }
+                    handler.postDelayed(this, delayMillis)
+                }
+            }
+            emergencyUnlockCountdownRunnable = countdownRunnable
+            countdownRunnable.run()
+        }
+    }
+
+    private fun cancelEmergencyUnlockCountdownNotification(
+        notificationHelper: EmergencyUnlockNotificationHelper,
+    ) {
+        emergencyUnlockCountdownRunnable?.let(handler::removeCallbacks)
+        emergencyUnlockCountdownRunnable = null
+        scheduledEmergencyUnlockCountdownExpireTime = 0L
+        notificationHelper.cancel()
     }
 
     private fun handleEmergencyUnlockExpired(expectedExpireTimeMillis: Long) {

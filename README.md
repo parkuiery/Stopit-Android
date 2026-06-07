@@ -6,7 +6,7 @@
 - **Package**: `com.uiery.keep`
 - **사용자 노출명**: StopIt / 스탑잇
 - **Platform**: Android (minSdk 33, targetSdk 35)
-- **현재 버전**: 1.7.6 (versionCode 28)
+- **현재 버전**: 1.7.5 (versionCode 27)
 
 ## 서비스 소개
 
@@ -166,6 +166,7 @@ Keep-Android/
 ## 현재 analytics 해석 주의
 
 - `customUser:routines_count` 조회 가능만으로 GA4 queryability가 해결된 것으로 보면 안 됩니다.
+- `routines_count` 자체도 조회 가능성과 coverage를 분리합니다. #479 / `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 완료 전에는 `(not set)` activeUsers를 무루틴 사용자로 합산하지 않습니다.
 - `customEvent:*` 차원/지표가 GA4 Admin에 실제 등록되기 전까지 activation / review / monetization 세부 파라미터 해석 confidence는 낮게 유지해야 합니다.
 - `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`은 기본적으로 no-data가 아니라 **GA4 Admin registration gap** 신호로 해석합니다.
 - queryability follow-through의 현재 source of truth는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`입니다.

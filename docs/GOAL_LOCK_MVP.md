@@ -2,7 +2,7 @@
 
 Issue: #417
 
-이 문서는 기간 기반 장기 앱 잠금 기능인 **목표 잠금**의 제품/analytics/QA/implementation handoff 계약을 고정한다. #417은 `ready` 상태지만, 코드 lane이 바로 들어가기 전에 “타이머/루틴을 조금 늘리는 기능”으로 축소되거나 “강력 제한 모드”까지 섞이지 않도록 MVP 범위와 외부 경계를 분리한다.
+이 문서는 기간 기반 장기 앱 잠금 기능인 **목표 잠금**의 제품/analytics/QA/implementation handoff 계약을 고정한다. #417은 `ready` 상태에서 여러 code-lane foothold가 `develop`에 반영된 상태이므로, 이미 구현된 정책/저장/생성/홈/상세/차단/완료 계층을 “구현 전”으로 되돌리지 않고 남은 외부·manual 경계를 분리한다. 동시에 후속 lane이 이 기능을 “타이머/루틴을 조금 늘리는 기능”으로 축소하거나 “강력 제한 모드”까지 섞지 않도록 MVP 범위를 유지한다.
 
 ## 한 줄 목표
 
@@ -91,7 +91,9 @@ Issue: #417
 - 기간 전이면 차단하지 않는다.
 - 기간 내 `all_day`는 선택 앱을 하루종일 차단한다.
 - 기간 내 `scheduled`는 선택 요일/시간대에만 차단한다.
-- overnight 시간대는 시작일/다음날 경계를 명확히 처리한다.
+- overnight 시간대는 현재 날짜가 아니라 window가 시작된 날짜를 기준으로 기간 포함 여부를 판단한다.
+- scheduled overnight window에서 시작일 당일 새벽의 전날 spillover 구간(`22:00–02:00`의 `01:30` 등)은 window 시작 날짜가 `startDate` 이전이면 차단하지 않는다.
+- scheduled overnight window가 종료일 밤에 시작된 경우, 종료일 다음날 새벽의 spillover 구간(`22:00–02:00`의 `01:30` 등)은 이전 날짜가 기간 내였으면 계속 차단하고 window 종료 시각부터 차단을 멈춘다.
 - 종료일이 지나면 자동 완료/비활성화되어 차단하지 않는다.
 - 선택 앱이 0개면 생성 완료 analytics를 기록하지 않거나 validation 실패로 처리한다.
 
@@ -198,8 +200,14 @@ Guardrail:
   - 목표별 선택 앱 편집에서 picker selection replace, package trim/dedupe, remove와 0개 validation을 검증.
   - `Created(goalLockId)` side effect.
   - `goal_lock_created` bucket-only analytics 호출.
-- `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`:
+- `GoalLockSelectedAppUiItemTest`:
+  - 목표 잠금 생성 화면의 선택 앱 목록이 package raw text만 노출하지 않고 shared display metadata resolver의 앱 이름을 우선 표시한다.
+  - 앱 이름을 못 불러온 package는 fallback 문구와 package 기준 remove payload를 유지한다.
+- `GoalLockCreationContentIntegrationTest`:
+  - 작은 화면 높이에서도 생성 플로우 내용이 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 Compose instrumentation으로 검증한다.
+- `HomeViewModelActivationAnalyticsTest`:
   - active/pending/ended_early 목표 잠금이 Home card state로 노출됨.
+  - 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회 기록함.
 - `GoalLockDetailViewModelTest`:
   - 상세 화면 상태가 목표 이름/잠금 방식/선택 앱 수를 노출함.
   - 종료 요청/취소가 확인 상태만 바꿈.
@@ -219,6 +227,7 @@ Guardrail:
 - all-day 목표 잠금이 하루 경계에서 계속 차단한다.
 - scheduled 목표 잠금이 지정 시간대 밖에서는 차단하지 않는다.
 - 종료일 경과 후 선택 앱이 다시 열릴 수 있다.
+  - `KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`는 저장 상태가 `active`로 남아 있어도 종료일이 지난 목표 잠금이 수동 Keep 없이 선택 앱을 차단하지 않고 `block_source=goal_lock` attribution을 남기지 않는지 실제 AccessibilityService bind 경로에서 고정한다.
 - 조기 종료 확인 문구가 비난/강압 톤이 아니다.
 - TalkBack에서 홈 목표 잠금 카드가 목표 이름/남은 기간/상태를 이해 가능하게 읽는다.
 
@@ -262,18 +271,39 @@ Code lane에서 다음 repo-internal foothold로 `HomeViewModel`이 `GoalLockDao
 
 Code lane에서 홈 목표 잠금 카드를 상세 화면으로 연결하고, `GoalLockDetailViewModel` / `GoalLockDetailScreen` / `GoalLockDetailRoute`를 추가했다. 현재 고정된 범위는 목표 이름·잠금 방식·선택 앱 수 상세 상태, 비난하지 않는 조기 종료 확인, 사용자 확인 시 `ended_early` 저장, `goal_lock_ended_early` bucket-only analytics 호출이다.
 
-이 foothold는 상세/종료 CTA와 early-end analytics runtime call을 고정하지만, 목표 잠금 생성 UI entrypoint, 수정 UX, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 `Refs #417`로 유지하고, 위 UI/runtime/analytics/release 경계까지 완료된 뒤에만 `Closes #417`를 사용한다.
+이 foothold는 상세/종료 CTA와 early-end analytics runtime call을 고정하지만, 생성 UI/navigation entrypoint와 Home 만료 완료 정규화는 이후 foothold에서 별도로 들어왔다. 이 단락을 읽을 때 `goal_lock_ended_early` 상세 path의 현재 구현 범위로만 해석하고, #417 전체 남은 경계는 아래 최신 foothold와 외부/manual 경계를 따른다.
 
 ### 2026-06-05 creation UI / navigation foothold
 
 Code lane에서 같은 #417 package를 이어서 `GoalLockCreationRoute`, `GoalLockCreationScreen`, Menu의 `목표 잠금` entrypoint, 그리고 생성 성공 후 `GoalLockDetailRoute`로 이동하는 navigation을 추가했다. 생성 화면은 현재 홈의 앱 선택 상태를 `BlockingStateStore`에서 읽어 seed로 사용하고, 목표별 선택 앱 편집(홈 선택 재불러오기, `CategoryBottomSheetContent` 기반 full picker UX, picker selection replace, 개별 제거, 0개 validation), 목표 이름 preset/직접 입력, 7/14/30일 preset 기간, 직접 일수(`custom_days`) 입력, ISO 종료 날짜(`end_date`) 입력, `all_day`와 평일 저녁 `scheduled` 선택, 생성 가능 validation, `goal_lock_created` 호출 후 상세 화면 진입을 고정한다.
 
-이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint 및 기존 앱 선택 picker 재사용까지 연결하지만, 종료일 경과 시 completed 상태 persistence/analytics, 실제 device/emulator runtime QA evidence, GA4 Admin 등록, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. 따라서 관련 PR은 계속 `Refs #417`로 유지한다.
+이 foothold는 생성 UI/navigation runway와 custom days/end date 기간 선택, 목표별 선택 앱 편집을 실제 앱 entrypoint 및 기존 앱 선택 picker 재사용까지 연결했다. 이 시점 이후 “full picker-style 앱 선택 UX”를 남은 구현 경계로 반복하지 않는다.
+
+### 2026-06-05 Home expiration completion foothold
+
+Code lane에서 PR #489로 Home progress card load 경로가 종료일이 지난 active 목표 잠금을 `completed`로 정규화하고, 상세 path와 동일한 bucketed `goal_lock_completed` analytics를 1회 기록하도록 보강했다. 또한 생성/상세/Home 완료 경로가 같은 `lock_mode` / duration bucket mapping을 쓰도록 목표 잠금 analytics helper를 공유화했다.
+
+이 foothold는 Home에서 만료 목표 잠금이 조용히 사라지거나 active처럼 남는 해석 drift를 막지만, 실제 device/emulator runtime QA evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 대체하지 않는다. #417 이슈는 repo-internal 주요 구현 foothold가 들어왔더라도 이 외부/manual 경계가 확인될 때까지 `Refs #417` 상태가 맞다.
+
+### 2026-06-06 Accessibility runtime QA foothold
+
+Code lane에서 `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`와 `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`를 추가해 실제 AccessibilityService bind 후 DataStore의 수동 Keep이 꺼져 있어도 Room `goal_lock`의 active 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하는지 자동 검증한다. 현재 자동 baseline은 all-day와 현재 요일의 scheduled window를 모두 포함한다. `KeepAccessibilityServiceDebugState`는 instrumentation-only evidence로 마지막 차단 요청의 `block_source`와 `goal_lock_id`를 함께 기록해 목표 잠금 runtime 차단이 manual/timer/routine 경로로 오인되지 않게 고정한다.
+
+QA lane에서 이어서 `KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`를 추가해 Room `goal_lock` row가 `status=active`로 남아 있어도 종료일이 지난 목표 잠금은 수동 Keep이 꺼진 상태에서 선택 앱 foreground 전환을 `BlockActivity`로 보내지 않고, debug state에 `block_source=goal_lock` attribution을 남기지 않는 expiration 중지 경계를 고정했다.
+
+이 foothold는 all-day/scheduled 목표 잠금의 실제 서비스 경로 자동 증거와 expiration 중지 자동 증거를 추가하지만, TalkBack/실기기 수동 evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 외부/manual 경계로 남긴다.
+
+### 2026-06-07 creation compact-height QA foothold
+
+Code lane에서 PR #625(`b714422b`)로 `GoalLockCreationScreen` 본문을 스크롤 가능하게 만들고 `GoalLockCreationContentIntegrationTest.compactHeightCreationContentScrollsToSubmitAction`을 추가했다. 이 Compose instrumentation baseline은 320dp 높이의 compact surface에서도 생성 플로우가 하단 `목표 잠금 시작` CTA까지 접근 가능한지 검증한다.
+
+이 foothold 이후 #417을 “생성 화면 작은 화면/큰 글꼴 접근성 미검증” 상태로 되돌리지 않는다. 다만 TalkBack이 실제 홈 목표 잠금 카드와 생성/상세 화면을 자연스럽게 읽는지에 대한 수동 spot-check, 실기기 release-candidate screenshot evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 여전히 외부/manual 경계다.
 
 ## 외부/manual 경계
 
 - GA4 Admin custom dimension 등록과 metadata readback.
 - 목표 잠금 포함 버전의 release/tag/Play deploy.
+- 수동 QA evidence: 실기기 또는 release-candidate에서 Home card 상태, 상세/조기 종료 copy, 생성/상세 화면 스크린샷, TalkBack label을 확인한다. all-day/scheduled 차단, 종료일 경과 후 차단 중지, compact-height 생성 CTA 접근성은 `KeepAccessibilityServiceIntegrationTest`와 `GoalLockCreationContentIntegrationTest` 자동 baseline으로 이미 고정됐으므로 같은 자동 증거를 남은 경계로 반복하지 않는다.
 - 배포 후 14일/30일 측정.
 - 강력 제한 모드나 결제/프리미엄 연결 여부는 대표님 제품 판단이 필요하다.
 

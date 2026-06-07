@@ -27,7 +27,7 @@
 - Play deploy secret ownership / helper scope / `GOOGLE_SERVICES_JSON` restore matrix / Firebase Functions promotion secret boundary의 장기 source of truth는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`다.
 - issue #13의 docs/ops 범위는 이벤트 딕셔너리만이 아니라 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger, metadata 증적 포맷, issue/PR handoff까지 포함한다.
 - issue #13은 docs lane 문서화만으로 닫지 않는다. 실제 `customEvent:*` 등록, live metadata/runReport 확인, 배포 후 14일 재측정이 끝나기 전까지는 `Refs #13`과 외부/manual 경계를 명시하는 것이 기본값이다.
-- 2026-06-03/04 screen quality smoke(`13,780 / 22,584 = 61.0%` 14일 query, `23,074 / 36,707 = 62.9%` 30일 metrics snapshot)처럼 live 수치가 흔들려도, 관련 screen-view 보강 PR이 `origin/main`/production tag에 없고 최신 version active share가 `30% 미만`이면 post-fix 성과로 승격하지 않고 release boundary 전 중간 smoke로만 기록한다.
+- 2026-06-03/07 screen quality smoke(`13,780 / 22,584 = 61.0%` 14일 query, `26,138 / 41,792 = 62.5%` 30일 metrics snapshot)처럼 live 수치가 흔들려도, 관련 screen-view 보강 PR이 `origin/main`/production tag에 없고 최신 version active share가 `30% 미만`이면 post-fix 성과로 승격하지 않고 release boundary 전 중간 smoke로만 기록한다.
 
 ## 업데이트 규칙
 

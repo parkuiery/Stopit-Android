@@ -51,6 +51,8 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RoutineScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutineViewModel = hiltViewModel(),
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -72,6 +74,12 @@ fun RoutineScreen(
         }
     }
 
+    LaunchedEffect(repeatBlockSuggestionSurface, repeatBlockSuggestion) {
+        if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.showRoutineBottomSheet()
+        }
+    }
+
     viewModel.collectSideEffect { sideEffect ->
         when (sideEffect) {
             is RoutineSideEffect.MoveToLock -> onNavigateLock(
@@ -80,7 +88,6 @@ fun RoutineScreen(
             )
             is RoutineSideEffect.ShowAlarmPermission -> {
                 showAlarmPermissionBottomSheet = true
-                viewModel.markAlarmPermissionShown()
             }
             is RoutineSideEffect.ShareRoutineTemplate -> {
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -142,9 +149,12 @@ fun RoutineScreen(
                         }.invokeOnCompletion {
                             if (!alarmPermissionBottomSheetState.isVisible) {
                                 showAlarmPermissionBottomSheet = false
-                                createExactAlarmSettingsIntent(context.packageName)?.let { intent ->
-                                    context.startActivity(intent)
-                                }
+                                viewModel.markAlarmPermissionShown()
+                                RoutineAlarmPermissionSettingsLauncher.open(
+                                    exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
+                                    appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
+                                    launch = context::startActivity,
+                                )
                             }
                         }
                     },
@@ -160,6 +170,8 @@ fun RoutineScreen(
         ) {
             RoutineBottomSheetContent(
                 isEdit = false,
+                repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
+                repeatBlockSuggestion = repeatBlockSuggestion,
                 onCloseBottomSheet = {
                     coroutineScope.launch {
                         routineBottomSheetState.hide()
@@ -171,7 +183,6 @@ fun RoutineScreen(
                 },
                 onRequireAlarmPermission = {
                     showAlarmPermissionBottomSheet = true
-                    viewModel.markAlarmPermissionShown()
                 },
             )
         }
@@ -208,7 +219,7 @@ fun RoutineScreen(
                         Icon(
                             painter = painterResource(R.drawable.outline_delete_24),
                             contentDescription = stringResource(R.string.cd_delete_routine),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.error,
                         )
                     }
                 }
@@ -228,7 +239,6 @@ fun RoutineScreen(
                 },
                 onRequireAlarmPermission = {
                     showAlarmPermissionBottomSheet = true
-                    viewModel.markAlarmPermissionShown()
                 },
             )
         }
@@ -254,7 +264,7 @@ fun RoutineScreen(
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },

@@ -2,13 +2,9 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
-import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.entity.GoalLockEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
@@ -24,7 +20,7 @@ internal class GoalLockDetailViewModel
     @Inject
     constructor(
         savedStateHandle: SavedStateHandle,
-        private val goalLockDao: GoalLockDao,
+        private val goalLockRepository: GoalLockRepository,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<GoalLockDetailUiState, GoalLockDetailSideEffect> {
@@ -37,7 +33,7 @@ internal class GoalLockDetailViewModel
 
         fun loadGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
-                val goalLock = goalLockDao.fetch(goalLockId)?.toDomain()
+                val goalLock = goalLockRepository.fetch(goalLockId)
                 if (goalLock == null) {
                     postSideEffect(GoalLockDetailSideEffect.NotFound)
                     return@intent
@@ -78,7 +74,7 @@ internal class GoalLockDetailViewModel
                 }
 
                 val ended = current.copy(status = GoalLockStoredStatus.EndedEarly)
-                goalLockDao.update(GoalLockEntity.fromDomain(ended))
+                goalLockRepository.update(ended)
                 analytics.trackGoalLockEndedEarly(
                     lockMode = current.lockMode.analyticsLockMode,
                     elapsedDaysBucket = elapsedDaysBucket(current.startDate, today),
@@ -105,10 +101,10 @@ internal class GoalLockDetailViewModel
             }
 
             val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
-            goalLockDao.update(GoalLockEntity.fromDomain(completed))
+            goalLockRepository.update(completed)
             analytics.trackGoalLockCompleted(
                 lockMode = goalLock.lockMode.analyticsLockMode,
-                durationDaysBucket = durationDaysBucket(goalLock.startDate, goalLock.endDate),
+                durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
             )
             return completed
         }
@@ -136,12 +132,6 @@ private val GoalLockMode.detailLabel: String
         is GoalLockMode.Scheduled -> "특정 시간 잠금"
     }
 
-private val GoalLockMode.analyticsLockMode: String
-    get() = when (this) {
-        GoalLockMode.AllDay -> AnalyticsGoalLockMode.ALL_DAY
-        is GoalLockMode.Scheduled -> AnalyticsGoalLockMode.SCHEDULED
-    }
-
 private fun elapsedDaysBucket(
     startDate: LocalDate,
     today: LocalDate,
@@ -151,15 +141,4 @@ private fun elapsedDaysBucket(
     in 3L..6L -> AnalyticsGoalLockElapsedDaysBucket.THREE_TO_SIX
     in 7L..14L -> AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN
     else -> AnalyticsGoalLockElapsedDaysBucket.FIFTEEN_PLUS
-}
-
-private fun durationDaysBucket(
-    startDate: LocalDate,
-    endDate: LocalDate,
-): String = when (ChronoUnit.DAYS.between(startDate, endDate).plus(1).coerceAtLeast(1)) {
-    in 1L..6L -> AnalyticsGoalLockDurationDaysBucket.ONE_TO_SIX
-    7L -> AnalyticsGoalLockDurationDaysBucket.SEVEN
-    in 8L..14L -> AnalyticsGoalLockDurationDaysBucket.EIGHT_TO_FOURTEEN
-    in 15L..30L -> AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY
-    else -> AnalyticsGoalLockDurationDaysBucket.THIRTY_ONE_PLUS
 }

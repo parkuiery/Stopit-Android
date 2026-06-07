@@ -68,7 +68,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
@@ -97,7 +97,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
@@ -136,12 +136,21 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
         database.routineDao().insert(disabledRoutineEntity(TEST_ROUTINE_ID, "Grant path"))
         val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
-            routineNoticeStore = RoutineNoticeStore(dataStore),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Routine list should load from Room") {
@@ -170,12 +179,21 @@ class RoutineExactAlarmPermissionIntegrationTest {
             ),
         )
         val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
-            routineNoticeStore = RoutineNoticeStore(dataStore),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Multi-day routine list should load from Room") {
@@ -204,12 +222,21 @@ class RoutineExactAlarmPermissionIntegrationTest {
             ),
         )
         val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
-            routineNoticeStore = RoutineNoticeStore(dataStore),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Cleanup multi-day routine list should load from Room") {

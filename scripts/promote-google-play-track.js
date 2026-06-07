@@ -136,6 +136,26 @@ function versionNumber(code) {
   return Number.isFinite(value) ? value : -1;
 }
 
+function validateReleaseStatusAndRolloutFraction(releaseStatus, rolloutFraction) {
+  if (releaseStatus === 'inProgress') {
+    if (!rolloutFraction) {
+      throw new Error('RELEASE_STATUS=inProgress requires rollout_fraction. Set rollout_fraction to a numeric value with 0 < rollout_fraction <= 1.');
+    }
+
+    const fraction = Number(rolloutFraction);
+    if (!Number.isFinite(fraction) || fraction <= 0 || fraction > 1) {
+      throw new Error(`Invalid rollout_fraction=${rolloutFraction}. RELEASE_STATUS=inProgress requires 0 < rollout_fraction <= 1.`);
+    }
+    return fraction;
+  }
+
+  if (rolloutFraction) {
+    throw new Error(`Release statuses other than inProgress must leave rollout_fraction empty. Got release_status=${releaseStatus}, rollout_fraction=${rolloutFraction}.`);
+  }
+
+  return null;
+}
+
 function resolvePromotionVersionCode(targetTrack, versionCode) {
   if (targetTrack === 'production' && !versionCode) {
     throw new Error('VERSION_CODE is required when DEPLOY_TRACK=production');
@@ -170,6 +190,7 @@ async function main() {
   const releaseStatus = env('RELEASE_STATUS', 'completed');
   const rolloutFraction = env('ROLLOUT_FRACTION');
   const versionCode = resolvePromotionVersionCode(targetTrack, env('VERSION_CODE'));
+  const validatedRolloutFraction = validateReleaseStatusAndRolloutFraction(releaseStatus, rolloutFraction);
 
   if (!serviceAccountPath) throw new Error('GOOGLE_PLAY_SERVICE_ACCOUNT_PATH is required');
   if (!packageName) throw new Error('PACKAGE_NAME is required');
@@ -192,8 +213,7 @@ async function main() {
   };
   if (sourceRelease.releaseNotes) release.releaseNotes = sourceRelease.releaseNotes;
   if (releaseStatus === 'inProgress') {
-    if (!rolloutFraction) throw new Error('ROLLOUT_FRACTION is required when RELEASE_STATUS is inProgress');
-    release.userFraction = Number.parseFloat(rolloutFraction);
+    release.userFraction = validatedRolloutFraction;
   }
 
   await client.updateTrack(editId, targetTrack, { track: targetTrack, releases: [release] });
@@ -219,4 +239,5 @@ if (require.main === module) {
 module.exports = {
   resolvePromotionVersionCode,
   selectRelease,
+  validateReleaseStatusAndRolloutFraction,
 };

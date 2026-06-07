@@ -66,6 +66,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,
             onNavigateLock = navController::navigateToLock,
+            onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
         )
         menuScreen(

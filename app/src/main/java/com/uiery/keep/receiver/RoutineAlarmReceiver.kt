@@ -7,10 +7,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.R
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
-import com.uiery.keep.model.toModel
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
@@ -28,7 +27,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var routineScheduler: RoutineScheduler
 
     @Inject
-    lateinit var routineDao: RoutineDao
+    lateinit var routineRepository: RoutineRepository
 
     @Inject
     @KeepDataSource
@@ -86,7 +85,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
 
         val routineStore = RoutineStore(dataStore)
         val storedRoutines = routineStore.readCachedRoutines()
-        val databaseRoutines = routineDao.fetchAllOnce().map { it.toModel() }
+        val databaseRoutines = routineRepository.fetchAllOnce()
         val routines = RoutineReceiverPolicy.resolveRoutines(
             storedRoutines = storedRoutines,
             databaseRoutines = databaseRoutines,
@@ -112,12 +111,14 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         }
 
         disabledRoutineIds.forEach { routineId ->
-            routineDao.updateIsEnabledById(routineId, false)
+            routineRepository.updateIsEnabledById(routineId, false)
         }
 
-        if (
-            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
-            disabledRoutineIds.isNotEmpty()
+        if (RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = storedRoutines,
+                databaseRoutines = databaseRoutines,
+                updatedRoutines = updatedRoutines,
+            )
         ) {
             routineStore.writeCachedRoutines(updatedRoutines)
         }

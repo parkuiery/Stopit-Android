@@ -13,6 +13,15 @@ internal enum class EmergencyUnlockNotificationPostResult {
     PermissionDenied,
 }
 
+internal sealed interface EmergencyUnlockNotificationSyncPlan {
+    data class ShowCountdown(
+        val remainingSeconds: Int,
+        val totalSeconds: Int,
+    ) : EmergencyUnlockNotificationSyncPlan
+
+    data object Cancel : EmergencyUnlockNotificationSyncPlan
+}
+
 @Deprecated("Use DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT")
 internal const val DAILY_EMERGENCY_UNLOCK_LIMIT = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 
@@ -99,8 +108,9 @@ internal fun isEmergencyUnlockActiveForPackage(
 internal fun resolveEmergencyUnlockNotificationPostResult(
     notificationsEnabled: Boolean,
     postNotificationsPermissionGranted: Boolean,
+    notificationChannelEnabled: Boolean,
 ): EmergencyUnlockNotificationPostResult =
-    if (notificationsEnabled && postNotificationsPermissionGranted) {
+    if (notificationsEnabled && postNotificationsPermissionGranted && notificationChannelEnabled) {
         EmergencyUnlockNotificationPostResult.Posted
     } else {
         EmergencyUnlockNotificationPostResult.PermissionDenied
@@ -115,6 +125,33 @@ internal fun emergencyUnlockExpiryDelayMillis(
     } else {
         null
     }
+
+internal fun resolveEmergencyUnlockNotificationSyncPlan(
+    expireTimeMillis: Long,
+    nowMillis: Long = System.currentTimeMillis(),
+): EmergencyUnlockNotificationSyncPlan {
+    val remainingMillis = expireTimeMillis - nowMillis
+    if (expireTimeMillis <= 0L || remainingMillis <= 0L) {
+        return EmergencyUnlockNotificationSyncPlan.Cancel
+    }
+
+    val remainingSeconds = ((remainingMillis + 999L) / 1_000L).coerceAtLeast(1L).toInt()
+    return EmergencyUnlockNotificationSyncPlan.ShowCountdown(
+        remainingSeconds = remainingSeconds,
+        totalSeconds = remainingSeconds,
+    )
+}
+
+internal fun emergencyUnlockNotificationTickDelayMillis(
+    expireTimeMillis: Long,
+    nowMillis: Long = System.currentTimeMillis(),
+): Long? {
+    val remainingMillis = expireTimeMillis - nowMillis
+    if (expireTimeMillis <= 0L || remainingMillis <= 0L) {
+        return null
+    }
+    return remainingMillis.coerceAtMost(1_000L)
+}
 
 internal fun shouldHandleEmergencyUnlockExpiry(
     expectedExpireTimeMillis: Long,

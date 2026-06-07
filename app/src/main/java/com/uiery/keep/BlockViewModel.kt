@@ -5,8 +5,6 @@ import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS

@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.lock.component
 
+import com.uiery.keep.R
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
 
@@ -57,6 +58,46 @@ internal data class EmergencyUnlockBottomSheetState(
 
     val canContinueFromApps: Boolean
         get() = selectedApps.isNotEmpty()
+
+    val stepHelperTextRes: Int?
+        get() = when (step) {
+            EmergencyUnlockBottomSheetStep.REASON -> R.string.emergency_unlock_reason_helper
+            EmergencyUnlockBottomSheetStep.APPS -> if (reasonStepEnabled) {
+                R.string.emergency_unlock_apps_helper
+            } else {
+                R.string.emergency_unlock_apps_no_reason_helper
+            }
+            EmergencyUnlockBottomSheetStep.DURATION -> R.string.emergency_unlock_duration_helper
+            EmergencyUnlockBottomSheetStep.COUNTDOWN -> null
+        }
+
+    val validationHelperTextRes: Int?
+        get() = when (step) {
+            EmergencyUnlockBottomSheetStep.REASON -> when {
+                selectedReason == OTHER_REASON_KEY && customReason.isBlank() ->
+                    R.string.emergency_unlock_reason_other_required_helper
+                selectedReason == null -> R.string.emergency_unlock_reason_required_helper
+                else -> null
+            }
+            EmergencyUnlockBottomSheetStep.APPS -> if (selectedApps.isEmpty()) {
+                R.string.emergency_unlock_apps_required_helper
+            } else {
+                null
+            }
+            EmergencyUnlockBottomSheetStep.DURATION -> null
+            EmergencyUnlockBottomSheetStep.COUNTDOWN -> null
+        }
+
+    val selectedReasonReflectionTextRes: Int?
+        get() = when (selectedReason) {
+            "work" -> R.string.emergency_unlock_reason_work_reflection
+            "contact" -> R.string.emergency_unlock_reason_contact_reflection
+            "info" -> R.string.emergency_unlock_reason_info_reflection
+            "habit" -> R.string.emergency_unlock_reason_habit_reflection
+            "boredom" -> R.string.emergency_unlock_reason_boredom_reflection
+            OTHER_REASON_KEY -> R.string.emergency_unlock_reason_other_reflection
+            else -> null
+        }
 
     fun selectReason(reason: String): EmergencyUnlockBottomSheetState = copy(selectedReason = reason)
 

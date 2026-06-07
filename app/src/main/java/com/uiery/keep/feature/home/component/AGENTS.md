@@ -14,7 +14,7 @@ Home-specific Compose UI pieces such as timer pickers, home-only labels, and seg
 | `SegementedControl.kt` | Kotlin source for segemented control. |
 | `TimeBottomSheetContent.kt` | Kotlin source for time bottom sheet content. |
 | `TimerContent.kt` | Kotlin source for timer content. |
-| `TimerPicker.kt` | Kotlin source for timer picker. |
+
 
 ## Subdirectories
 No documented child directories.
@@ -25,7 +25,7 @@ No documented child directories.
 - Follow the existing Orbit MVI pattern: immutable `UiState`, one-time `SideEffect`, and intent methods that reduce state or post effects.
 - Keep Composable screens stateless where practical; route user events into the feature ViewModel.
 - Place feature-private UI pieces in `component/` instead of expanding screen files indefinitely.
-- Do not reintroduce moved stubs or duplicates for `CategoryBottomSheetContent`, `CategoryButton`, `SearchTextField`, `AppItem`, or `KeepSwitch`; use `com.uiery.keep.ui.component` / `core:kds` instead.
+- Do not reintroduce moved stubs or duplicates for `CategoryBottomSheetContent`, `CategoryButton`, `SearchTextField`, `AppItem`, `TimerPicker`, or `KeepSwitch`; use `com.uiery.keep.ui.component` / `core:kds` instead.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

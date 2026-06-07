@@ -1,15 +1,13 @@
 <!-- Parent: ../AGENTS.md -->
 <!-- Generated: 2026-04-27 | Updated: 2026-04-27 -->
 
-# Compose components
+# Legacy permission onboarding component package
 
 ## Purpose
-Permission onboarding dialog components.
+This package is intentionally empty after #492. Permission handoff UI that is shared by onboarding and Home lives in `com.uiery.keep.ui.component.PermissionSettingDialog`.
 
 ## Key Files
-| File | Description |
-|------|-------------|
-| `PermissionSettingDialog.kt` | Kotlin source for permission setting dialog. |
+No feature-private permission dialog files should be added here unless the UI is truly onboarding-only.
 
 ## Subdirectories
 No documented child directories.

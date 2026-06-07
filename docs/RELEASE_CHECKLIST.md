@@ -14,6 +14,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 
 - [ ] Latest existing SemVer tag has a production completion marker (`scripts/check-latest-production-deployed.sh`).
 - [ ] `versionName` in `app/build.gradle.kts` matches the intended release version.
+- [ ] `README.md 현재 버전 라인` matches `app/build.gradle.kts` `versionName/versionCode`; `scripts/release-tag.sh` re-checks this before tag 생성 전.
 - [ ] `versionCode` is greater than the version currently on `main` and greater than the highest versionCode currently visible through Google Play tracks; `Version Guard` and `scripts/play_version_code_guard.py` are the source of truth for this check.
 - [ ] If the release/hotfix PR changes app/runtime/build-critical paths (`app/**`, `core/**`, Gradle wrapper/root Gradle files, or `gradle/**`), `Version Guard` must run Play/main max version validation even when `app/build.gradle.kts` was not edited; only workflow/governance/docs-only main-target hotfixes may skip that API validation.
 - [ ] Any manual `workflow_dispatch` follow-up still starts from the same SemVer tag ref as the release tag; branch ref uploads are not allowed for `internal`, `alpha`, `beta`, or `production`, and the selected tag must pass the same `origin/main` ancestry + previous production marker guard as tag-push CD.
@@ -30,6 +31,8 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Android CI passes on the PR.
 - [ ] Android Release QA passes on the PR:
   - `Full release QA` runs `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, and `:app:assembleProdDebug`.
+  - `Release instrumentation QA` selector source of truth is `scripts/android_runtime_suites.py`; workflow YAML owns install/appops sequencing only.
+  - Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
   - `Release instrumentation QA` runs single-day and multi-day exact-alarm/runtime gates, in order, on a GitHub-hosted Android emulator:
     1. `com.uiery.keep.qa.StopitReleaseSmokeTest`
     2. `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability` after `adb shell cmd appops reset com.uiery.keep.dev`
@@ -46,9 +49,12 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
     13. `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
     14. `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
 
-- [ ] Android Release Build passes `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, prodRelease lint registry verification, and produces a signed AAB artifact.
-- [ ] Non-production Play Deploy build/upload runs the same prod lint/registry gate before Google Play upload; production promotion remains a tag/versionCode promotion-only path and does not run `:app:lintProdRelease`, build, or upload a new AAB.
+- [ ] Android Release Build passes `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, prodRelease lint registry verification, and produces a signed AAB artifact plus `release-provenance.json`.
+- [ ] The Release Build provenance manifest is self-verified before `Upload signed AAB artifact` with `upload-mode none` and empty Play track/status fields, so AAB checksum/size/package/version/ref drift blocks artifact upload.
+- [ ] The Release Build / non-production Play Deploy provenance manifest records AAB `sha256`, size, `versionName`, `versionCode`, git SHA/ref, track/status, and workflow run URL, and it does not include secrets such as keystore material, service account JSON, or Firebase config.
+- [ ] Non-production Play Deploy build/upload runs the same prod lint/registry gate before Google Play upload, generates `release-provenance.json`, self-verifies it before `Upload signed AAB artifact`, and only then stores the manifest with the signed AAB artifact and uploads to Google Play; production promotion remains a tag/versionCode promotion-only path and does not run `:app:lintProdRelease`, build, or upload a new AAB.
 - [ ] Non-production staged rollout dispatch is validated before secret decode/build: `release_status=inProgress` uses numeric `rollout_fraction` where `0 < rollout_fraction <= 1`, and `completed`/`draft`/`halted` leave `rollout_fraction` empty.
+- [ ] Production staged rollout dispatch uses the same `release_status`/`rollout_fraction` contract and fails before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` validation/decode if the input is invalid.
 - [ ] No keystore, service account JSON, or `google-services.json` secret was committed.
 - [ ] Play deploy secret/setup contract was reviewed against `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`; if Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed, attach `scripts/check-play-deploy-secret-contract.sh` evidence.
 - [ ] `GOOGLE_SERVICES_JSON` restore expectations are not restated ad hoc in the PR: Android CI / Release QA use the runbook's dev+prod restore matrix, Release Build / Play Deploy non-production build/upload use the prod-only restore path, and Play Deploy production promotion records that `GOOGLE_SERVICES_JSON`/`ANDROID_*` are unused.

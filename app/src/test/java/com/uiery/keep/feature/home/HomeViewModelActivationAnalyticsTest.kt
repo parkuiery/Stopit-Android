@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.home
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
+import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
@@ -16,19 +18,22 @@ import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
-import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.feature.review.FakeLockHistoryDao
 import com.uiery.keep.feature.review.FakeReviewLauncher
 import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -136,6 +141,45 @@ class HomeViewModelActivationAnalyticsTest {
             analytics.calls[2],
         )
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun lockTimeUsesTimerScheduleAfterCountdownValueWhenTimerModeIsSelected() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 0, minute = 0))
+        viewModel.updateManualLockMode(ManualLockMode.TIMER)
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals(ManualLockMode.TIMER, viewModel.container.stateFlow.value.manualLockMode)
+        assertEquals(HomeAnalyticsCall.LockScheduled(AnalyticsScheduleType.TIMER), analytics.calls[0])
+        assertEquals(true, ManualLockTimePolicy.isActiveAt(dataStore.snapshot()[PreferencesKey.LOCK_TIME]))
+    }
+
+    @Test
+    fun switchingToTimerModeDoesNotClearCountdownValueButExposesTimerModeForUiDecisions() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 0, minute = 0))
+        viewModel.updateManualLockMode(ManualLockMode.TIMER)
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(1, state.countdownDays)
+        assertEquals(ManualLockMode.TIMER, state.manualLockMode)
     }
 
     @Test
@@ -368,6 +412,51 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 
+    @Test
+    fun expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val goalLockDao = FakeHomeGoalLockDao(
+            listOf(
+                goalLockEntity(
+                    goalName = "30일 SNS 줄이기",
+                    startDate = LocalDate.now().minusDays(30),
+                    endDate = LocalDate.now().minusDays(1),
+                    lockMode = GoalLockMode.AllDay,
+                    selectedPackages = setOf("com.social.app"),
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = goalLockDao,
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 7L,
+                goalName = "30일 SNS 줄이기",
+                status = HomeGoalLockStatus.Completed,
+                daysRemaining = 0,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 1,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+        assertEquals(GoalLockStoredStatus.Completed, goalLockDao.updated.single().toDomain().status)
+        assertEquals(
+            listOf(
+                HomeAnalyticsCall.GoalLockCompleted(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+                ),
+            ),
+            analytics.calls,
+        )
+    }
+
     private fun CoroutineScope.launchSideEffects(
         viewModel: HomeViewModel,
         sideEffects: MutableList<HomeSideEffect>,
@@ -390,15 +479,14 @@ class HomeViewModelActivationAnalyticsTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            lockHistoryDao = lockHistoryDao,
-            goalLockDao = goalLockDao,
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+            goalLockRepository = GoalLockRepository(goalLockDao),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
                 remoteConfig = FakeReviewRemoteConfig(enabled = true),
                 accessibilityChecker = FakeAccessibilityChecker(enabled = true),
-                emergencyUnlockDao = FakeEmergencyUnlockDao(),
-                lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = 2),
+                repository = fakeReviewEligibilityRepository(recentSuccessCount = 2),
                 clock = clock,
                 buildConfig = ReviewBuildConfig(isDebug = false, flavor = "prod"),
             ),
@@ -415,13 +503,17 @@ class HomeViewModelActivationAnalyticsTest {
 private class FakeHomeGoalLockDao(
     private val goalLocks: List<GoalLockEntity> = emptyList(),
 ) : GoalLockDao {
+    val updated = mutableListOf<GoalLockEntity>()
+
     override fun fetchAll(): Flow<List<GoalLockEntity>> = flowOf(goalLocks)
 
     override fun fetch(id: Long): GoalLockEntity? = goalLocks.firstOrNull { it.id == id }
 
     override fun insert(goalLock: GoalLockEntity): Long = goalLock.id
 
-    override fun update(goalLock: GoalLockEntity) = Unit
+    override fun update(goalLock: GoalLockEntity) {
+        updated += goalLock
+    }
 }
 
 private fun goalLockEntity(
@@ -483,6 +575,11 @@ private sealed interface HomeAnalyticsCall {
     data class LockScheduled(
         val scheduleType: String,
     ) : HomeAnalyticsCall
+
+    data class GoalLockCompleted(
+        val lockMode: String,
+        val durationDaysBucket: String,
+    ) : HomeAnalyticsCall
 }
 
 private class HomeRecordingKeepAnalytics : KeepAnalytics {
@@ -526,5 +623,12 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         calls += HomeAnalyticsCall.LockScheduled(scheduleType = scheduleType)
+    }
+
+    override fun trackGoalLockCompleted(lockMode: String, durationDaysBucket: String) {
+        calls += HomeAnalyticsCall.GoalLockCompleted(
+            lockMode = lockMode,
+            durationDaysBucket = durationDaysBucket,
+        )
     }
 }

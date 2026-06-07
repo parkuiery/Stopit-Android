@@ -114,6 +114,19 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK != 'production'", rollout_step)
         self.assertIn("run: node scripts/validate-play-rollout-inputs.js", rollout_step)
 
+    def test_production_staged_rollout_inputs_are_validated_before_secret_decode(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("- name: Validate production staged rollout inputs", workflow)
+        rollout_step = workflow.split("- name: Validate production staged rollout inputs", 1)[1].split("- name:", 1)[0]
+        secret_step_index = workflow.index("- name: Validate production promotion secrets")
+        rollout_step_index = workflow.index("- name: Validate production staged rollout inputs")
+
+        self.assertLess(rollout_step_index, secret_step_index)
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", rollout_step)
+        self.assertIn("node - <<'NODE'", rollout_step)
+        self.assertIn("validateReleaseStatusAndRolloutFraction", rollout_step)
+
     def run_rollout_validator(self, release_status, rollout_fraction):
         env = os.environ.copy()
         env["RELEASE_STATUS"] = release_status
@@ -167,6 +180,17 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
 
         self.assertIn("non-production staged rollout", docs)
         self.assertIn("secret decode", docs)
+        self.assertIn("`release_status=inProgress`", docs)
+        self.assertIn("`0 < rollout_fraction <= 1`", docs)
+        self.assertIn("`completed`/`draft`/`halted`", docs)
+
+    def test_production_staged_rollout_docs_define_pre_secret_boundary(self):
+        docs = "\n--- docs/PLAY_DEPLOYMENT.md ---\n" + PLAY_DOC_PATH.read_text()
+        docs += "\n--- docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md ---\n" + PLAY_SECRETS_RUNBOOK_PATH.read_text()
+        docs += "\n--- docs/ops/stopit/release-context.md ---\n" + RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("production staged rollout", docs)
+        self.assertIn("before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`", docs)
         self.assertIn("`release_status=inProgress`", docs)
         self.assertIn("`0 < rollout_fraction <= 1`", docs)
         self.assertIn("`completed`/`draft`/`halted`", docs)

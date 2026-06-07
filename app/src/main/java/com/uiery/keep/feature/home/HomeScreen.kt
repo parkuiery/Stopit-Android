@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -62,6 +64,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
@@ -71,11 +74,10 @@ import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
-import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
-import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
@@ -91,6 +93,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
+    onNavigateLockHistory: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
@@ -201,8 +204,10 @@ fun HomeScreen(
                 blockTime = uiState.blockTime,
                 countdownDays = uiState.countdownDays,
                 countdownTime = uiState.countdownTime,
+                manualLockMode = uiState.manualLockMode,
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
+                onChangeManualLockMode = viewModel::updateManualLockMode,
                 onLockClick = {
                     if (uiState.selectedAppPackage.isEmpty()) {
                         viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
@@ -239,7 +244,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
                             contentDescription = stringResource(R.string.cd_open_menu),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -284,24 +289,37 @@ fun HomeScreen(
                         )
                 }
             }
-            CategoryButton(
+            val homeStatusCtaModel = buildHomeStatusCtaModel(
+                isKeep = uiState.isKeep,
+                selectedAppCount = uiState.selectedAppPackage.size,
+                showFirstLockActivationCta = uiState.showFirstLockActivationCta,
+                hasGoalLockCard = uiState.goalLockCard != null,
+            )
+            HomeStatusCtaCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                onClick = viewModel::showCategoryBottomSheet,
-                enabled = !uiState.isKeep,
-                categorySize = uiState.selectedAppPackage.size,
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                model = homeStatusCtaModel,
+                onPrimaryClick = {
+                    when {
+                        homeStatusCtaModel.shouldOpenAppSelection -> viewModel.showCategoryBottomSheet()
+                        homeStatusCtaModel.shouldToggleKeep -> {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.changeIsKeep(
+                                firstLockStartedMessage = if (uiState.showFirstLockActivationCta) {
+                                    firstLockKeepStartedMessage
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                },
+                onChangeAppsClick = viewModel::showCategoryBottomSheet,
+                onTimerClick = viewModel::showTimeBottomSheet,
+                onLockHistoryClick = onNavigateLockHistory,
             )
-            if (uiState.showFirstLockActivationCta) {
-                FirstLockActivationCta(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                    onClick = { viewModel.changeIsKeep(firstLockStartedMessage = firstLockKeepStartedMessage) },
-                )
-            }
             uiState.goalLockCard?.let { goalLockCard ->
                 GoalLockProgressCard(
                     modifier = Modifier
@@ -478,40 +496,63 @@ private fun GoalLockProgressCard(
 }
 
 @Composable
-private fun FirstLockActivationCta(
+internal fun HomeStatusCtaCard(
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+    model: HomeStatusCtaModel,
+    onPrimaryClick: () -> Unit,
+    onChangeAppsClick: () -> Unit,
+    onTimerClick: () -> Unit,
+    onLockHistoryClick: () -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(KeepTheme.colors.onSecondary)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Card(
+        modifier = modifier.testTag("home_status_cta_card"),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            val title = when (model.statusKind) {
+                HomeStatusKind.NO_SELECTED_APPS -> stringResource(model.titleResId)
+                else -> stringResource(model.titleResId, model.selectedAppCount)
+            }
             Text(
-                text = stringResource(R.string.first_lock_activation_cta_title),
+                text = title,
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
             )
             Text(
-                text = stringResource(R.string.first_lock_activation_cta_description),
+                text = stringResource(model.descriptionResId),
                 color = KeepTheme.colors.surfaceVariant,
                 fontSize = 13.sp,
             )
+            KeepButton(
+                text = stringResource(model.primaryCtaResId),
+                enabled = model.shouldOpenAppSelection || model.shouldToggleKeep,
+                onClick = onPrimaryClick,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (model.showChangeAppsSecondary) {
+                    TextButton(onClick = onChangeAppsClick) {
+                        Text(text = stringResource(R.string.home_secondary_change_apps))
+                    }
+                }
+                if (model.timerEnabled) {
+                    TextButton(onClick = onTimerClick) {
+                        Text(text = stringResource(R.string.home_secondary_timer))
+                    }
+                }
+                if (model.showLockHistorySecondary) {
+                    TextButton(onClick = onLockHistoryClick) {
+                        Text(text = stringResource(R.string.home_secondary_lock_history))
+                    }
+                }
+            }
         }
-        Text(
-            text = stringResource(R.string.first_lock_activation_cta_action),
-            color = KeepTheme.colors.primary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-        )
     }
 }

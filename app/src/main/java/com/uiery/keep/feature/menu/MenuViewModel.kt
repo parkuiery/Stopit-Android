@@ -6,10 +6,9 @@ import com.uiery.keep.analytics.AnalyticsMonetizationInterestContext
 import com.uiery.keep.analytics.AnalyticsMonetizationInterestSurface
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
-import com.uiery.keep.model.toModel
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MenuViewModel @Inject constructor(
     private val blockingStateStore: BlockingStateStore,
-    private val routineDao: RoutineDao,
+    private val routineRepository: RoutineRepository,
     private val analytics: KeepAnalytics,
 ) : ViewModel() {
 
@@ -37,9 +36,9 @@ class MenuViewModel @Inject constructor(
         .map { it.preventUninstall }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    val isBlocking: StateFlow<Boolean> = combine(blockingStateStore.accessibilitySnapshot, routineDao.fetchAll()) { snapshot, routineEntities ->
+    val isBlocking: StateFlow<Boolean> = combine(blockingStateStore.accessibilitySnapshot, routineRepository.fetchAll()) { snapshot, routines ->
             val isLockTime = ManualLockTimePolicy.isActiveAt(snapshot.lockTime)
-            val isRoutineActive = RoutineRuntimePolicy.isAnyRoutineActive(routineEntities.map { it.toModel() })
+            val isRoutineActive = RoutineRuntimePolicy.isAnyRoutineActive(routines)
             snapshot.isKeep || isLockTime || isRoutineActive
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)

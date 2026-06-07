@@ -1,10 +1,11 @@
 package com.uiery.keep.feature.goallock
 
+import androidx.datastore.core.DataStore
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
+import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
@@ -28,6 +29,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 class GoalLockCreationViewModelTest {
+    @Test
+    fun creationFlowEntryTracksMenuSurfaceOnce() {
+        val analytics = RecordingKeepAnalytics()
+
+        createViewModel(analytics = analytics)
+
+        assertEquals(
+            listOf(AnalyticsGoalLockEntrySurface.MENU),
+            analytics.goalLockCreateStartedCalls,
+        )
+    }
+
     @Test
     fun createAllDayGoalLockPersistsActiveGoalAndTracksBucketedAnalytics() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 17L)
@@ -214,7 +227,7 @@ private fun createViewModel(
     blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
 ): GoalLockCreationViewModel =
     GoalLockCreationViewModel(
-        goalLockDao = dao,
+        goalLockRepository = GoalLockRepository(dao),
         analytics = analytics,
         blockingStateStore = blockingStateStore,
     )
@@ -263,6 +276,7 @@ private data class GoalLockCreatedCall(
 )
 
 private class RecordingKeepAnalytics : KeepAnalytics {
+    val goalLockCreateStartedCalls = mutableListOf<String>()
     val goalLockCreatedCalls = mutableListOf<GoalLockCreatedCall>()
 
     override fun logEvent(
@@ -309,6 +323,10 @@ private class RecordingKeepAnalytics : KeepAnalytics {
         source: String,
         unlockCountRemaining: Int?,
     ) = Unit
+
+    override fun trackGoalLockCreateStarted(entrySurface: String) {
+        goalLockCreateStartedCalls += entrySurface
+    }
 
     override fun trackGoalLockCreated(
         durationSelectionType: String,

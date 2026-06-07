@@ -10,20 +10,23 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.feature.goallock.analyticsLockMode
+import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
-import com.uiery.keep.service.recordLockHistorySession
+import com.uiery.keep.service.LockHistoryRecorder
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -51,8 +54,8 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
-        private val lockHistoryDao: LockHistoryDao,
-        private val goalLockDao: GoalLockDao,
+        private val lockHistoryRecorder: LockHistoryRecorder,
+        private val goalLockRepository: GoalLockRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -214,7 +217,7 @@ class HomeViewModel
         internal fun moveToLock() =
             intent {
                 val routeDeadline = state.pendingManualLockRouteDeadline ?: run {
-                    val targetDateTime = if (state.countdownDays > 0) {
+                    val targetDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                         calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                     } else {
                         calculateTargetLockDateTime(state.blockTime)
@@ -243,25 +246,41 @@ class HomeViewModel
 
         private fun getGoalLockCard() =
             intent {
-                goalLockDao.fetchAll().collect { goalLocks ->
+                goalLockRepository.fetchAll().collect { goalLocks ->
                     val today = LocalDate.now()
                     val card = goalLocks
-                        .map { it.toDomain() }
-                        .firstOrNull { GoalLockPolicy.runtimeStatus(it) != GoalLockRuntimeStatus.Completed }
+                        .firstOrNull { it.status != GoalLockStoredStatus.EndedEarly }
                         ?.let { goalLock ->
-                            val runtimeStatus = GoalLockPolicy.runtimeStatus(goalLock)
+                            val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
+                            val runtimeStatus = GoalLockPolicy.runtimeStatus(normalizedGoalLock, today.atStartOfDay())
                             HomeGoalLockCardState(
-                                goalLockId = goalLock.id,
-                                goalName = goalLock.goalName,
+                                goalLockId = normalizedGoalLock.id,
+                                goalName = normalizedGoalLock.goalName,
                                 status = runtimeStatus.toHomeStatus(),
-                                daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
-                                lockModeLabel = goalLock.lockMode.homeLabel,
-                                selectedAppCount = goalLock.selectedPackages.size,
+                                daysRemaining = ChronoUnit.DAYS.between(today, normalizedGoalLock.endDate).toInt().plus(1).coerceAtLeast(0),
+                                lockModeLabel = normalizedGoalLock.lockMode.homeLabel,
+                                selectedAppCount = normalizedGoalLock.selectedPackages.size,
                             )
                         }
                     reduce { state.copy(goalLockCard = card) }
                 }
             }
+
+        private fun completeExpiredGoalLockIfNeeded(
+            goalLock: GoalLock,
+            today: LocalDate,
+        ): GoalLock {
+            if (goalLock.status != GoalLockStoredStatus.Active) return goalLock
+            if (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay()) != GoalLockRuntimeStatus.Completed) return goalLock
+
+            val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
+            goalLockRepository.update(completed)
+            analytics.trackGoalLockCompleted(
+                lockMode = goalLock.lockMode.analyticsLockMode,
+                durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
+            )
+            return completed
+        }
 
         private fun storeSelectedApp(selectedAppPackage: Set<String>) =
             intent {
@@ -274,9 +293,7 @@ class HomeViewModel
         ) = intent {
             val endTime = System.currentTimeMillis()
             val startTime = endTime - lockedMillis
-            recordLockHistorySession(
-                dataStore = dataStore,
-                lockHistoryDao = lockHistoryDao,
+            lockHistoryRecorder.recordSession(
                 startTimestamp = startTime,
                 endTimestamp = endTime,
                 lockedApps = state.selectedAppPackage,
@@ -339,6 +356,7 @@ class HomeViewModel
                         .toKotlinLocalTime()
                 reduce {
                     state.copy(
+                        manualLockMode = ManualLockMode.COUNTDOWN,
                         countdownTime = LocalTime(duration.hour, duration.minute),
                         countdownDays = duration.day,
                         blockTime = blockTime,
@@ -348,7 +366,30 @@ class HomeViewModel
 
         internal fun updateTimerTime(timerTime: LocalTime) =
             intent {
-                reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
+                reduce {
+                    state.copy(
+                        manualLockMode = ManualLockMode.TIMER,
+                        timerTime = timerTime,
+                        blockTime = timerTime,
+                    )
+                }
+            }
+
+        internal fun updateManualLockMode(mode: ManualLockMode) =
+            intent {
+                reduce {
+                    state.copy(
+                        manualLockMode = mode,
+                        blockTime = when (mode) {
+                            ManualLockMode.COUNTDOWN -> timeNow
+                                .toJavaLocalTime()
+                                .plusHours(state.countdownTime.hour.toLong())
+                                .plusMinutes(state.countdownTime.minute.toLong())
+                                .toKotlinLocalTime()
+                            ManualLockMode.TIMER -> state.timerTime
+                        },
+                    )
+                }
             }
 
         internal fun lockTime(
@@ -369,7 +410,7 @@ class HomeViewModel
                     }
                     return@intent
                 }
-                val targetLockDateTime = if (state.countdownDays > 0) {
+                val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
@@ -397,7 +438,7 @@ class HomeViewModel
                     }
                 }
                 analytics.trackLockScheduled(
-                    scheduleType = if (state.countdownDays > 0) {
+                    scheduleType = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                         AnalyticsScheduleType.COUNTDOWN
                     } else {
                         AnalyticsScheduleType.TIMER
@@ -464,6 +505,7 @@ data class HomeUiState(
     val blockTime: LocalTime = timeNow,
     val countdownTime: LocalTime = timeNow,
     val timerTime: LocalTime = timeNow,
+    val manualLockMode: ManualLockMode = ManualLockMode.COUNTDOWN,
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
@@ -483,6 +525,7 @@ data class HomeGoalLockCardState(
 enum class HomeGoalLockStatus {
     Pending,
     Active,
+    Completed,
     EndedEarly,
 }
 
@@ -490,7 +533,7 @@ private fun GoalLockRuntimeStatus.toHomeStatus(): HomeGoalLockStatus = when (thi
     GoalLockRuntimeStatus.Pending -> HomeGoalLockStatus.Pending
     GoalLockRuntimeStatus.Active -> HomeGoalLockStatus.Active
     GoalLockRuntimeStatus.EndedEarly -> HomeGoalLockStatus.EndedEarly
-    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.EndedEarly
+    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.Completed
 }
 
 private val GoalLockMode.homeLabel: String
@@ -500,6 +543,11 @@ private val GoalLockMode.homeLabel: String
     }
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
+
+enum class ManualLockMode {
+    COUNTDOWN,
+    TIMER,
+}
 
 sealed class HomeSideEffect {
     data class ShowSnackBar(

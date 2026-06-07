@@ -8,8 +8,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
-| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Signed `prodRelease` AAB artifact. Before the signed AAB is built it runs `:app:lintProdRelease` and `scripts/verify_lint_registry.py` against the prodRelease lint report. The artifact is built with R8 minification and resource shrinking enabled. No Play upload. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch from an allowed release ref are required. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded. |
-| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks run `:app:lintProdRelease` + prodRelease lint registry verification before building/signing/uploading the R8/resource-shrunk AAB. Production promotes the already-internal release that matches the selected SemVer tag `versionCode` and does not run `:app:lintProdRelease`, build, or upload a new AAB. |
+| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Signed `prodRelease` AAB artifact plus `release-provenance.json`. Before the signed AAB is built it runs `:app:lintProdRelease` and `scripts/verify_lint_registry.py` against the prodRelease lint report. The artifact is built with R8 minification and resource shrinking enabled, then the manifest records sha256, size, versionName/versionCode, git ref/SHA, and workflow run URL. Release Build self-verifies that manifest against the generated AAB before artifact upload, using `upload-mode none` and empty Play track/status fields because this layer creates signed evidence but does not upload to Play. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch from an allowed release ref are required. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks run `:app:lintProdRelease` + prodRelease lint registry verification before building/signing/uploading the R8/resource-shrunk AAB. They generate `release-provenance.json`, self-verify the manifest before `Upload signed AAB artifact`, then upload the verified AAB/manifest artifact and proceed to Google Play upload. Production promotes the already-internal release that matches the selected SemVer tag `versionCode` and does not run `:app:lintProdRelease`, build, or upload a new AAB. |
 
 ## What is automated
 
@@ -36,6 +36,8 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Release candidates targeting `main` also run Android Release QA before merge:
   - `Full release QA`: `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
   - `Release instrumentation QA`: single-day and multi-day exact-alarm/runtime gates below run on a GitHub-hosted Android emulator.
+  - Selector source of truth: `scripts/android_runtime_suites.py` owns selector fragments; workflow YAML owns install/appops sequencing.
+  - Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest`
   - `adb shell cmd appops reset com.uiery.keep.dev` 후 기본 상태 경로를 실행
     - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
@@ -62,15 +64,18 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:lintProdRelease`
   - `python3 scripts/verify_lint_registry.py --report app/build/reports/lint-results-prodRelease.html ...`
   - signed `prodRelease` AAB build
-  - upload signed AAB artifact to GitHub Actions
+  - `scripts/release_provenance_manifest.py generate` creates `release-provenance.json` next to the AAB with the AAB `sha256`, file size, `versionName`, `versionCode`, git ref/SHA, and GitHub Actions workflow run URL
+  - `scripts/release_provenance_manifest.py verify` self-verifies the Release Build manifest before artifact upload; checksum, size, package, version, or ref drift fails before `Upload signed AAB artifact`
+  - upload signed AAB artifact plus `release-provenance.json` to GitHub Actions; the manifest does not include secrets such as keystore contents, service account JSON, Firebase config, or secret names
 - Pushing a semver tag like `v1.7.1` or manually dispatching Play Deploy from that tag runs Play deployment only after the Play deploy release guard passes:
   - selected ref must be a SemVer tag
   - tag must be origin/main reachable
   - previous SemVer production completion marker must already exist
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
+  - non-production Play Deploy generates `release-provenance.json`, verifies it before `Upload signed AAB artifact`, and only then uploads the verified AAB/manifest artifact before `Upload to Google Play`; operators should use that manifest as the prior non-production signed-AAB evidence for any later production promotion because it ties the internal release to AAB `sha256`, `versionCode`, git SHA/ref, track/status, and workflow run URL
   - non-production staged rollouts are validated before any signing/Firebase/Play secret decode: `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty
-  - for `production`: the production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance, then promotes the matching `internal` release
+  - for `production`: the production promotion path validates production staged rollout inputs before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is checked or decoded. `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty. It does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance after input validation, then promotes the matching `internal` release
   - tag-triggered runs upload to Google Play `internal` track by default
 - A successful `production` CD run writes two completion markers for the tag only when `track=production` and `release_status=completed`:
   - GitHub Deployment: environment `production`, status `success`
@@ -79,6 +84,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires the same SemVer tag ref release guard as tag-triggered CD.
 - Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard: branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, and the selected tag must be origin/main reachable with the previous SemVer production completion marker present.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
+- Production promotion does not build or upload a new AAB, so its provenance boundary is the prior non-production `release-provenance.json` generated for the matching internal release. When auditing a production promotion, compare the tag `versionCode` and internal release with the manifest's `versionCode`, AAB `sha256`, git SHA/ref, and workflow run URL instead of expecting a new production AAB manifest.
 
 ## Required GitHub secrets
 
@@ -109,7 +115,8 @@ Operational failure boundary for `GOOGLE_SERVICES_JSON`:
 - missing during production promotion -> no effect; production promotion skips Firebase restoration and AAB build
 
 Operational failure boundary for Discord deploy secrets:
-- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload, but deploy notification / approval-card posting is skipped or fails depending on the workflow step
+- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload/promote, and deploy notification / approval-card posting is skipped without changing the Play deploy result
+- Discord 알림 실패는 Play 업로드/승격 실패가 아니다. Discord HTTP 403/5xx, bot permission, or transient API failures should appear as workflow warnings from `scripts/notify-discord-deploy.py` / the non-blocking `Notify Discord deploy channel` step, while the Play upload/promotion result and any production completion marker remain governed by the preceding Play steps
 - missing Firebase Functions `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, allowed role/user IDs, or `GITHUB_ACTIONS_DISPATCH_TOKEN` -> Discord production-promotion button cannot verify/dispatch correctly even if GitHub Actions secrets exist
 
 The service account must have access in Play Console:

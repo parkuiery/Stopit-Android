@@ -74,6 +74,22 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         return EmergencyUnlockNotificationPostResult.Posted
     }
 
+    internal fun syncWithStoredExpireTime(
+        expireTimeMillis: Long,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): EmergencyUnlockNotificationPostResult? =
+        when (val plan = resolveEmergencyUnlockNotificationSyncPlan(expireTimeMillis, nowMillis)) {
+            EmergencyUnlockNotificationSyncPlan.Cancel -> {
+                cancel()
+                null
+            }
+            is EmergencyUnlockNotificationSyncPlan.ShowCountdown ->
+                showCountdown(
+                    remainingSeconds = plan.remainingSeconds,
+                    totalSeconds = plan.totalSeconds,
+                )
+        }
+
     internal fun showExpired(): EmergencyUnlockNotificationPostResult {
         if (!canPostNotification()) {
             cancel()
@@ -100,6 +116,10 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         return resolveEmergencyUnlockNotificationPostResult(
             notificationsEnabled = notificationsEnabled,
             postNotificationsPermissionGranted = permissionGranted,
+            notificationChannelEnabled = isNotificationChannelEnabled(),
         ) == EmergencyUnlockNotificationPostResult.Posted
     }
+
+    private fun isNotificationChannelEnabled(): Boolean =
+        notificationManager.getNotificationChannel(CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
 }

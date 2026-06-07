@@ -1,6 +1,6 @@
 # 루틴 보유/미보유 반복 사용 코호트 기준선
 
-이 문서는 issue #380의 source of truth다. 목적은 “루틴을 만든 사용자가 반복 사용과 핵심 차단 가치에서 실제로 더 강한 신호를 보이는가”를 감이 아니라 같은 분자/분모로 재조회할 수 있게 고정하는 것이다.
+이 문서는 issue #380의 source of truth다. 목적은 “루틴을 만든 사용자가 반복 사용과 핵심 차단 가치에서 실제로 더 강한 신호를 보이는가”를 감이 아니라 같은 분자/분모로 재조회할 수 있게 고정하는 것이다. `routines_count=(not set)` coverage 보강 실행 계약은 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`(#479)를 source of truth로 본다.
 
 ## 현재 판정
 
@@ -18,7 +18,7 @@
 - `app_block_intercepted` users / active users는 `>=1`이 `91 / 150 = 60.7%`, `0`이 `62 / 155 = 40.0%`이다.
 - `app_block_intercepted` eventCount / blocked users는 `>=1`이 `6,099 / 91 = 67.0`, `0`이 `1,763 / 62 = 28.4`이다.
 
-따라서 루틴 생성 유도는 반복 사용/핵심 가치 관점에서 유망한 다음 실험 후보로 둔다. 단, `customUser:routines_count = (not set)` 사용자가 activeUsers 560명으로 가장 커서, 이 기준선은 **루틴 보유자 vs 미보유자 비교의 초기 신호**이지 전체 사용자 retention 결론은 아니다.
+따라서 루틴 생성 유도는 반복 사용/핵심 가치 관점에서 유망한 다음 실험 후보로 둔다. 단, `customUser:routines_count = (not set)` 사용자가 activeUsers 560명으로 가장 커서, 이 기준선은 **루틴 보유자 vs 미보유자 비교의 초기 신호**이지 전체 사용자 retention 결론은 아니다. #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`가 닫히기 전까지 `0`과 `(not set)`을 모두 “루틴 없음”으로 합산하지 않는다.
 
 ## 코호트 정의
 
@@ -32,7 +32,7 @@
 
 - `first_open`은 30일 window에서 전부 `(not set)`로 잡힌다. 신규 사용자의 첫 방문 시점에는 루틴 수 user property가 아직 반영되지 않는 것이 자연스럽기 때문에, `first_open`을 루틴 보유/미보유 코호트 분모로 쓰지 않는다.
 - `customUser:routines_count`가 보인다고 해서 `customEvent:*` 파라미터 queryability가 모두 해결된 것은 아니다. activation 세부 `source`, `block_source`, `routine_id` 분해는 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 GA4 Admin 등록 상태를 먼저 확인한다.
-- 최신 버전 `1.7.7` active share는 2026-06-04T20:14:53Z 기준 `107 / 757 = 14.1%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `주의`다. 30% 미만이므로 최신 develop PR의 효과로 과대해석하지 않는다.
+- 최신 버전 `1.7.7` active share는 2026-06-07T16:13:51Z 기준 `199 / 792 = 25.1%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `주의`다. 30% 미만이므로 최신 develop PR의 효과로 과대해석하지 않는다.
 
 ## 2026-06-03 기준선 표
 
@@ -174,6 +174,7 @@ for event_name in EVENTS:
 ## 연결 이슈/문서
 
 - GitHub issue: #380
+- GitHub issue: #479 (`docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`) — `routines_count` user property coverage 보강 계약
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star/Input/retention 해석
 - `docs/METRICS_ANALYSIS.md`: 유지/반복 사용 분석 절차
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455 첫 차단 성공 후 루틴 생성 CTA 실험 계약

@@ -39,7 +39,6 @@ import com.uiery.keep.feature.lockhistory.component.LockHistorySummaryCard
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTab
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTopApps
 import com.uiery.keep.feature.lockhistory.component.LockHistoryWeekCalendar
-import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.util.formatLockHistoryDateHeader
 import com.uiery.keep.util.formatMonthDay
 import com.uiery.keep.util.formatYearMonth
@@ -97,7 +96,7 @@ internal fun LockHistoryScreen(
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -107,26 +106,12 @@ internal fun LockHistoryScreen(
             )
         }
     ) { paddingValues ->
-        // 선택된 날짜에 따른 세션 필터링
-        val sessionsToShow: Map<LocalDate, List<LockHistoryModel>> =
-            uiState.selectedDate?.let { selectedDate ->
-                uiState.groupedSessions[selectedDate]?.let { sessions ->
-                    mapOf(selectedDate to sessions)
-                } ?: emptyMap()
-            } ?: uiState.groupedSessions
-
-        // 선택된 날짜에 따른 통계 계산
-        val displaySessions = sessionsToShow.values.flatten()
-        val displayTotalDuration = displaySessions.sumOf { it.durationMillis }
-        val displaySessionCount = displaySessions.size
-        val displayTopApps = displaySessions
-            .flatMap { it.lockedApps }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .sortedByDescending { it.value }
-            .take(3)
-            .map { it.key to it.value }
+        val displayReport = buildLockHistoryDisplayReport(
+            groupedSessions = uiState.groupedSessions,
+            selectedDate = uiState.selectedDate,
+            periodType = uiState.periodType,
+            fallbackReport = uiState.performanceReport,
+        )
 
         Column(
             modifier = Modifier
@@ -152,8 +137,9 @@ internal fun LockHistoryScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             LockHistorySummaryCard(
-                totalDuration = displayTotalDuration,
-                sessionCount = displaySessionCount,
+                totalDuration = displayReport.totalDurationMillis,
+                sessionCount = displayReport.sessionCount,
+                report = displayReport.performanceReport,
             )
 
             uiState.focusSummarySharePayload?.let {
@@ -179,17 +165,18 @@ internal fun LockHistoryScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (displayTopApps.isNotEmpty()) {
+            if (displayReport.performanceReport.shouldShowTopApps) {
                 LockHistoryTopApps(
-                    topApps = displayTopApps,
+                    topApps = displayReport.topApps,
+                    report = displayReport.performanceReport,
                     onClick = onNavigateBlockedApps,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (sessionsToShow.isEmpty()) {
+            if (displayReport.sessionsToShow.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.lock_history_no_records),
+                    text = stringResource(displayReport.performanceReport.topAppsSupportingResId),
                     color = KeepTheme.colors.onTertiaryContainer,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -198,7 +185,7 @@ internal fun LockHistoryScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    sessionsToShow.toSortedMap(compareByDescending { it }).forEach { (date, sessions) ->
+                    displayReport.sessionsToShow.toSortedMap(compareByDescending { it }).forEach { (date, sessions) ->
                         item(key = date.toString()) {
                             DateHeader(date = date)
                         }

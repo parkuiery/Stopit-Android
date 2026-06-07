@@ -43,10 +43,23 @@ class GoalLockContractTest(unittest.TestCase):
             "full picker UX",
             "직접 일수(`custom_days`) 입력",
             "ISO 종료 날짜(`end_date`) 입력",
+            "Home expiration completion foothold",
+            "PR #489",
+            "goal_lock_completed",
+            "Accessibility runtime QA foothold",
+            "KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
+            "KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution",
+            "block_source",
+            "goal_lock_id",
             "Closes #417",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
+
+        self.assertIn("시작일 당일 새벽의 전날 spillover 구간", runbook)
+        self.assertIn("종료일 다음날 새벽의 spillover 구간", runbook)
+        self.assertIn("window 종료 시각부터 차단을 멈춘다", runbook)
 
         forbidden_guidance = [
             "긴급 해제 횟수 자동 회복 OFF를 MVP에 포함",
@@ -118,16 +131,44 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("목표 잠금 runtime QA baseline", qa_checklist)
         self.assertIn("GoalLockPolicyTest", qa_checklist)
+        self.assertIn("시작일 당일 새벽", qa_checklist)
+        self.assertIn("익일 새벽 spillover", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("GoalLockPersistenceMapperTest", qa_checklist)
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
+        self.assertIn("GoalLockSelectedAppUiItemTest", qa_checklist)
+        self.assertIn("GoalLockCreationContentIntegrationTest", qa_checklist)
+        self.assertIn("compact-height", qa_checklist)
+        self.assertIn("목표 잠금 시작", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
         self.assertIn("목표별 선택 앱 편집", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
+        self.assertIn("HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce", qa_checklist)
+        self.assertIn("GoalLockDetailViewModelTest", qa_checklist)
+        self.assertIn("FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution", qa_checklist)
+        self.assertIn("KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution", qa_checklist)
+        self.assertIn("block_source=goal_lock", qa_checklist)
+
+    def test_context_pack_does_not_describe_goal_lock_as_pre_implementation_only(self):
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        for document in [product_context, metrics_context]:
+            self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion", document)
+            self.assertIn("compact-height creation CTA", document)
+            self.assertIn("TalkBack", document)
+            self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
+
+        dashboard = PRODUCT_DASHBOARD.read_text()
+        self.assertIn("Home completion foothold", dashboard)
+        self.assertIn("`develop` 반영 상태", dashboard)
+        self.assertIn("compact-height 생성 CTA", dashboard)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()
@@ -138,6 +179,36 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("viewModel.setSelectedApps(selectedApps)", screen)
         self.assertNotIn("패키지 직접 추가", screen)
         self.assertNotIn("onAddSelectedAppPackage", screen)
+
+    def test_goal_lock_creation_screen_uses_string_resources_for_user_visible_copy(self):
+        screen = GOAL_LOCK_CREATION_SCREEN.read_text()
+
+        self.assertIn("stringResource(id = R.string.goal_lock_creation_title)", screen)
+        self.assertIn("R.string.goal_lock_creation_duration_range", screen)
+        self.assertIn("R.string.goal_lock_creation_selected_apps_helper", screen)
+        self.assertIn("stringResource(id = R.string.goal_lock_creation_app_label_missing)", screen)
+        for hardcoded_copy in [
+            "목표 잠금 만들기",
+            "뒤로 가기",
+            "목표 이름",
+            "예: 시험 준비, SNS 줄이기",
+            "시험 준비",
+            "SNS 줄이기",
+            "기간",
+            "직접 일수 입력: 예: 21",
+            "종료 날짜 입력: YYYY-MM-DD",
+            "잠금 방식",
+            "하루종일 잠금",
+            "평일 저녁 잠금",
+            "현재 방식:",
+            "선택 앱",
+            "홈 선택 다시 불러오기",
+            "앱 선택 화면에서 조정",
+            "빼기",
+            "목표 잠금 시작",
+            "앱 이름을 불러오지 못했어요",
+        ]:
+            self.assertNotIn(hardcoded_copy, screen)
 
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()

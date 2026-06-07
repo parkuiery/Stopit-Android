@@ -2,23 +2,53 @@ package com.uiery.keep.feature.splash
 
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.feature.routine.RoomRoutineRepository
+import com.uiery.keep.feature.routine.RoutineRestoreAftercare
+import com.uiery.keep.notification.RoutineScheduler
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.Mockito
 
 class SplashViewModelAnalyticsTest {
     @Test
     fun initLogsSplashScreenView() {
         val analytics = RecordingSplashAnalytics()
 
+        val dataStore = FakeDataStore()
+        val scheduler = Mockito.mock(RoutineScheduler::class.java)
+        val routineRepository = RoomRoutineRepository(EmptySplashRoutineDao)
+
         SplashViewModel(
-            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = RoutineNoticeStore(dataStore),
+            ),
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.SPLASH), analytics.screenViews)
     }
+}
+
+private object EmptySplashRoutineDao : RoutineDao {
+    override fun fetchAll(): Flow<List<RoutineEntity>> = flowOf(emptyList())
+    override fun fetchAllOnce(): List<RoutineEntity> = emptyList()
+    override fun fetch(id: Long): RoutineEntity = error("No routines in splash analytics test")
+    override fun insert(routineEntity: RoutineEntity): Long = routineEntity.id
+    override fun deleteById(id: Long) = Unit
+    override fun update(routineEntity: RoutineEntity) = Unit
+    override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
 }
 
 private class RecordingSplashAnalytics : KeepAnalytics {

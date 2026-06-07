@@ -120,12 +120,12 @@ fun TimerPicker(
     }
 }
 
-private fun timerPickerHourLabels(): List<String> =
+internal fun timerPickerHourLabels(): List<String> =
     listOf("12") + (1..11).map { it.toString() }
 
-private fun timerPickerStartIndex(time: LocalTime): Int = time.hour % HOURS_PER_PERIOD
+internal fun timerPickerStartIndex(time: LocalTime): Int = time.hour % HOURS_PER_PERIOD
 
-private fun timerPickerSelectedTime(
+internal fun timerPickerSelectedTime(
     isPm: Boolean,
     hourLabel: String,
     minute: Int,

@@ -25,22 +25,26 @@ class LockHistoryViewModelShareTest {
     fun weeklyHistoryBuildsSharePayloadAndTracksTappedEventWithBuckets() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = LockHistoryDaoWithSessions(
-                listOf(
-                    sessionInCurrentWeek(
-                        durationMillis = 130 * 60 * 1000L,
-                    ),
-                    sessionInCurrentWeek(
-                        durationMillis = 10 * 60 * 1000L,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        sessionInCurrentWeek(
+                            durationMillis = 130 * 60 * 1000L,
+                        ),
+                        sessionInCurrentWeek(
+                            durationMillis = 10 * 60 * 1000L,
+                        ),
                     ),
                 ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViews)
 
         waitForHistoryLoad(viewModel)
+        waitForAnalyticsEventCount(analytics, 2)
         val payload = viewModel.container.stateFlow.value.focusSummarySharePayload
 
         assertNotNull(payload)
@@ -50,15 +54,35 @@ class LockHistoryViewModelShareTest {
         assertEquals("120_239", payload.durationMinutesBucket)
 
         viewModel.shareFocusSummary()
-        waitForAnalyticsEvent(analytics)
+        waitForAnalyticsEventCount(analytics, 3)
 
         assertEquals(
             listOf(
                 ShareAnalyticsEvent(
-                    name = "tapped",
+                    name = "performance_summary_viewed",
                     periodType = "week",
+                    reportState = "has_history",
                     sessionCountBucket = "2_3",
                     durationMinutesBucket = "120_239",
+                    topAppsCountBucket = null,
+                    reason = null,
+                ),
+                ShareAnalyticsEvent(
+                    name = "top_apps_viewed",
+                    periodType = "week",
+                    reportState = null,
+                    sessionCountBucket = null,
+                    durationMinutesBucket = null,
+                    topAppsCountBucket = "1",
+                    reason = null,
+                ),
+                ShareAnalyticsEvent(
+                    name = "tapped",
+                    periodType = "week",
+                    reportState = null,
+                    sessionCountBucket = "2_3",
+                    durationMinutesBucket = "120_239",
+                    topAppsCountBucket = null,
                     reason = null,
                 ),
             ),
@@ -70,10 +94,13 @@ class LockHistoryViewModelShareTest {
     fun monthlyHistoryDoesNotExposeSharePayload() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
         val viewModel = LockHistoryViewModel(
-            lockHistoryDao = MonthFetchDelayingLockHistoryDao(
-                listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
+            lockHistoryRepository = LockHistoryRepository(
+                MonthFetchDelayingLockHistoryDao(
+                    listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
+                ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         waitForHistoryLoad(viewModel)
@@ -85,12 +112,45 @@ class LockHistoryViewModelShareTest {
         assertNull(viewModel.container.stateFlow.value.focusSummarySharePayload)
     }
 
+    @Test
+    fun emptyHistoryTracksOnlySummaryPerformanceEventWithoutTopApps() = runBlocking {
+        val analytics = RecordingLockHistoryAnalytics()
+        val viewModel = LockHistoryViewModel(
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(emptyList()),
+            ),
+            analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
+        )
+
+        waitForAnalyticsEventCount(analytics, 1)
+
+        assertEquals(
+            listOf(
+                ShareAnalyticsEvent(
+                    name = "performance_summary_viewed",
+                    periodType = "week",
+                    reportState = "empty",
+                    sessionCountBucket = "0",
+                    durationMinutesBucket = "0",
+                    topAppsCountBucket = null,
+                    reason = null,
+                ),
+            ),
+            analytics.events,
+        )
+        assertEquals(LockHistoryPerformanceReportState.EMPTY, viewModel.container.stateFlow.value.performanceReport.state)
+    }
+
     private suspend fun waitForHistoryLoad(viewModel: LockHistoryViewModel) {
         waitUntil { viewModel.container.stateFlow.value.sessionCount > 0 }
     }
 
-    private suspend fun waitForAnalyticsEvent(analytics: RecordingLockHistoryAnalytics) {
-        waitUntil { analytics.events.isNotEmpty() }
+    private suspend fun waitForAnalyticsEventCount(
+        analytics: RecordingLockHistoryAnalytics,
+        expectedCount: Int,
+    ) {
+        waitUntil { analytics.events.size >= expectedCount }
     }
 
     private suspend fun waitUntil(predicate: () -> Boolean) {
@@ -114,6 +174,11 @@ class LockHistoryViewModelShareTest {
             isRoutine = false,
         )
     }
+}
+
+private class FakeFocusSummaryShareTextProvider : FocusSummaryShareTextProvider {
+    override fun buildText(request: FocusSummaryShareTextRequest): String =
+        "Focus summary ${request.sessionCount} sessions / ${request.durationMinutes} minutes\n${request.playStoreUrl}"
 }
 
 private open class LockHistoryDaoWithSessions(
@@ -151,8 +216,10 @@ private class MonthFetchDelayingLockHistoryDao(
 private data class ShareAnalyticsEvent(
     val name: String,
     val periodType: String,
+    val reportState: String?,
     val sessionCountBucket: String?,
     val durationMinutesBucket: String?,
+    val topAppsCountBucket: String?,
     val reason: String?,
 )
 
@@ -192,8 +259,10 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         events += ShareAnalyticsEvent(
             name = "tapped",
             periodType = periodType,
+            reportState = null,
             sessionCountBucket = sessionCountBucket,
             durationMinutesBucket = durationMinutesBucket,
+            topAppsCountBucket = null,
             reason = null,
         )
     }
@@ -206,8 +275,10 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         events += ShareAnalyticsEvent(
             name = "sheet_opened",
             periodType = periodType,
+            reportState = null,
             sessionCountBucket = sessionCountBucket,
             durationMinutesBucket = durationMinutesBucket,
+            topAppsCountBucket = null,
             reason = null,
         )
     }
@@ -216,9 +287,43 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         events += ShareAnalyticsEvent(
             name = "failed",
             periodType = periodType,
+            reportState = null,
             sessionCountBucket = null,
             durationMinutesBucket = null,
+            topAppsCountBucket = null,
             reason = reason,
+        )
+    }
+
+    override fun trackLockHistoryPerformanceSummaryViewed(
+        periodType: String,
+        reportState: String,
+        sessionCountBucket: String,
+        durationMinutesBucket: String,
+    ) {
+        events += ShareAnalyticsEvent(
+            name = "performance_summary_viewed",
+            periodType = periodType,
+            reportState = reportState,
+            sessionCountBucket = sessionCountBucket,
+            durationMinutesBucket = durationMinutesBucket,
+            topAppsCountBucket = null,
+            reason = null,
+        )
+    }
+
+    override fun trackLockHistoryTopAppsViewed(
+        periodType: String,
+        topAppsCountBucket: String,
+    ) {
+        events += ShareAnalyticsEvent(
+            name = "top_apps_viewed",
+            periodType = periodType,
+            reportState = null,
+            sessionCountBucket = null,
+            durationMinutesBucket = null,
+            topAppsCountBucket = topAppsCountBucket,
+            reason = null,
         )
     }
 }

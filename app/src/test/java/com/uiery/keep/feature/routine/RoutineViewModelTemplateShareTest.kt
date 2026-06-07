@@ -84,12 +84,19 @@ class RoutineViewModelTemplateShareTest {
         val scheduler = Mockito.mock(RoutineScheduler::class.java).also {
             Mockito.`when`(it.canScheduleExactAlarms()).thenReturn(true)
         }
+        val routineRepository = RoomRoutineRepository(routineDao)
         return RoutineViewModel(
-            routineDao = routineDao,
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = analytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = RoutineNoticeStore(dataStore),
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = RoutineNoticeStore(dataStore),
+            ),
         )
     }
 
@@ -112,6 +119,7 @@ class RoutineViewModelTemplateShareTest {
         startTime: LocalTime = LocalTime(hour = 19, minute = 0),
         endTime: LocalTime = LocalTime(hour = 21, minute = 0),
         lockApplications: List<String> = listOf("com.example.blocked"),
+        isEnabled: Boolean = false,
     ) = RoutineModel(
         id = id,
         name = name,
@@ -119,7 +127,7 @@ class RoutineViewModelTemplateShareTest {
         endTime = endTime,
         repeatDays = repeatDays.toRepeatDaysBinary(),
         lockApplications = lockApplications,
-        isEnabled = true,
+        isEnabled = isEnabled,
     ).toEntity()
 }
 

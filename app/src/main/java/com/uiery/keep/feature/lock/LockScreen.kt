@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.lock
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -66,6 +67,11 @@ fun LockScreen(
     viewModel: LockViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit,
 ) {
+    BackHandler(enabled = true) {
+        // Active locks must not be dismissed by system back; only explicit policy
+        // exits such as timer completion or emergency unlock may navigate home.
+    }
+
     val uiState by viewModel.collectAsState()
     val configuration = LocalConfiguration.current
 

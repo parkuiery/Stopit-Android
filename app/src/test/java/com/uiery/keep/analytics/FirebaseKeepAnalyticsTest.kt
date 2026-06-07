@@ -1,6 +1,9 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
+import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class FirebaseKeepAnalyticsTest {
@@ -180,33 +183,36 @@ class FirebaseKeepAnalyticsTest {
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[3],
         )
+        assertFalse(backend.loggedEvents[3].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.ROUTINE_ID to "42",
                 ),
             ),
             backend.loggedEvents[4],
         )
+        assertFalse(backend.loggedEvents[4].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.goal",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.GOAL_LOCK_ID to "77",
                 ),
             ),
             backend.loggedEvents[5],
         )
+        assertFalse(backend.loggedEvents[5].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
@@ -244,23 +250,25 @@ class FirebaseKeepAnalyticsTest {
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 120L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.MANUAL_KEEP,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[0],
         )
+        assertFalse(backend.loggedEvents[0].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 180L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                     KeepAnalyticsParam.ROUTINE_ID to "routine-1",
                 ),
             ),
             backend.loggedEvents[1],
         )
+        assertFalse(backend.loggedEvents[1].params.containsKey("blocked_app_package"))
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
         assertEquals(
@@ -416,6 +424,43 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun lockHistoryPerformanceEventsUsePrivacySafeBuckets() {
+        analytics.trackLockHistoryPerformanceSummaryViewed(
+            periodType = "month",
+            reportState = "has_history",
+            sessionCountBucket = "4_6",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackLockHistoryTopAppsViewed(
+            periodType = "month",
+            topAppsCountBucket = "2_3",
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.REPORT_STATE to "has_history",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "4_6",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to "2_3",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+    }
+
+    @Test
     fun monetizationInterestEventsUseExperimentContextParams() {
         analytics.trackMonetizationInterestShown(
             interestSurface = AnalyticsMonetizationInterestSurface.MENU,
@@ -445,6 +490,57 @@ class FirebaseKeepAnalyticsTest {
                 ),
             ),
             backend.loggedEvents[1],
+        )
+    }
+
+    @Test
+    fun parentModeStartedUsesSafeBucketedParamsOnly() {
+        analytics.trackParentModeStarted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+            allowedAppCountBucket = AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun parentModeCompletedDoesNotSendRawTimestampsOrPackages() {
+        analytics.trackParentModeCompleted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+            endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+                    KeepAnalyticsParam.END_REASON to AnalyticsParentModeEndReason.TIME_EXPIRED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockCreateStartedUsesEntrySurfaceOnly() {
+        analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                mapOf(KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsGoalLockEntrySurface.MENU),
+            ),
+            backend.loggedEvents.single(),
         )
     }
 
@@ -512,10 +608,40 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun installReferrerAttributionEventUsesPrivacySafeParams() {
+        val attribution = AcquisitionAttributionParser.parse(
+            rawReferrer = "utm_source=discord&utm_medium=social&utm_campaign=aso_baseline&email=private@example.com",
+            lookupStatus = InstallReferrerLookupStatus.SUCCESS,
+            latencyMillis = 450,
+        )
+
+        analytics.trackInstallReferrerAttributionChecked(attribution)
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFERRER_STATUS to "success",
+                    KeepAnalyticsParam.UTM_SOURCE_TYPE to "discord",
+                    KeepAnalyticsParam.UTM_MEDIUM_TYPE to "social",
+                    KeepAnalyticsParam.CAMPAIGN_BUCKET to "aso_baseline",
+                    KeepAnalyticsParam.LINK_SURFACE to "discord",
+                    KeepAnalyticsParam.LOOKUP_LATENCY_BUCKET to "0_499ms",
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
+        assertEquals("lock_history_performance_summary_viewed", KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED)
+        assertEquals("lock_history_top_apps_viewed", KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED)
         assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
+        assertEquals("report_state", KeepAnalyticsParam.REPORT_STATE)
+        assertEquals("top_apps_count_bucket", KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
         assertEquals("SplashScreen", KeepAnalyticsScreen.SPLASH)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
@@ -527,7 +653,10 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
         assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)
+        assertEquals("install_referrer_attribution_checked", KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED)
         assertEquals("duration_days_bucket", KeepAnalyticsParam.DURATION_DAYS_BUCKET)
+        assertEquals("referrer_status", KeepAnalyticsParam.REFERRER_STATUS)
+        assertEquals("campaign_bucket", KeepAnalyticsParam.CAMPAIGN_BUCKET)
         assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
     }
 }

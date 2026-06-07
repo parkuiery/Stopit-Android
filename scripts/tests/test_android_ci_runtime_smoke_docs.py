@@ -1,30 +1,22 @@
 import pathlib
-import re
 import unittest
+
+from scripts import android_runtime_suites
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
-DOCS_THAT_MIRROR_ANDROID_CI_SMOKE = {
+DOCS_THAT_DESCRIBE_ANDROID_CI_SMOKE = {
     "runtime QA checklist": REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md",
 }
 
 
 def _android_ci_runtime_smoke_entries():
-    workflow = ANDROID_CI_WORKFLOW.read_text()
-    class_args = re.findall(
-        r"-Pandroid\.testInstrumentationRunnerArguments\.class=([^\s]+)",
-        workflow,
-    )
-    if len(class_args) != 2:
-        raise AssertionError(
-            f"Expected Android CI to have 2 focused runtime smoke class args; got {len(class_args)}"
-        )
-    return [entry for class_arg in class_args for entry in class_arg.split(",")]
+    return android_runtime_suites.selectors_for(android_runtime_suites.ANDROID_CI_SEQUENCE)
 
 
 class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
-    def test_android_ci_runtime_smoke_entries_are_documented(self):
+    def test_android_ci_runtime_smoke_entries_are_manifested_and_documented_by_suite(self):
         entries = _android_ci_runtime_smoke_entries()
         self.assertIn(
             "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm",
@@ -35,14 +27,19 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
             entries,
         )
 
-        for doc_name, path in DOCS_THAT_MIRROR_ANDROID_CI_SMOKE.items():
+        workflow = ANDROID_CI_WORKFLOW.read_text()
+        self.assertIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", workflow)
+        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", workflow)
+
+        for doc_name, path in DOCS_THAT_DESCRIBE_ANDROID_CI_SMOKE.items():
             text = path.read_text()
             with self.subTest(doc=doc_name):
                 self.assertIn("Android CI", text)
                 self.assertIn("focused runtime smoke", text)
-            for entry in entries:
-                with self.subTest(doc=doc_name, entry=entry):
-                    self.assertIn(entry, text)
+                self.assertIn("scripts/android_runtime_suites.py", text)
+                self.assertIn("android_ci_focused_runtime_smoke", text)
+                self.assertIn("notification_denied_receiver", text)
+                self.assertIn("notification_denied_emergency_unlock", text)
 
     def test_release_checklist_separates_android_ci_smoke_from_release_qa_evidence(self):
         checklist = (REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md").read_text()
@@ -61,7 +58,7 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
             section,
         )
         self.assertIn(
-            "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
+            "notification_denied_emergency_unlock",
             checklist,
         )
 

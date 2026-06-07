@@ -61,7 +61,7 @@ internal fun GoalLockDetailScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = "뒤로 가기",
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },

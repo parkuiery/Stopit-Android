@@ -56,6 +56,8 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.SUCCESSFUL_SESSION_COUNT,
             PreferencesKey.LAST_BACKGROUNDED_AT_MS,
             PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE,
+            PreferencesKey.REPEAT_BLOCK_DISMISSED_SUGGESTIONS,
+            PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         )
 
         assertEquals(

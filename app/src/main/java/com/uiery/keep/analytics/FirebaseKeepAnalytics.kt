@@ -1,5 +1,7 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -157,7 +159,10 @@ class FirebaseKeepAnalytics
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = buildMap {
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
-                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    put(
+                        KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                        blockedAppCategoryBucketForPackage(blockedAppPackage),
+                    )
                     routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
                     goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
                 },
@@ -297,6 +302,36 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackLockHistoryPerformanceSummaryViewed(
+            periodType: String,
+            reportState: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.REPORT_STATE to reportState,
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to sessionCountBucket,
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                ),
+            )
+        }
+
+        override fun trackLockHistoryTopAppsViewed(
+            periodType: String,
+            topAppsCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to topAppsCountBucket,
+                ),
+            )
+        }
+
         override fun trackMonetizationInterestShown(
             interestSurface: String,
             interestContext: String,
@@ -378,6 +413,87 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackParentModeDurationSelected(durationMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_DURATION_SELECTED,
+                params = mapOf(KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_ALLOWED_APPS_SELECTED,
+                params = mapOf(KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket),
+            )
+        }
+
+        override fun trackParentModeStarted(
+            durationMinutesBucket: String,
+            allowedAppCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket,
+                ),
+            )
+        }
+
+        override fun trackParentModeCompleted(
+            durationMinutesBucket: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeUnlockedByPin(
+            pinResult: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_UNLOCKED_BY_PIN,
+                params = mapOf(
+                    KeepAnalyticsParam.PIN_RESULT to pinResult,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeExtended(extensionMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_EXTENDED,
+                params = mapOf(KeepAnalyticsParam.EXTENSION_MINUTES_BUCKET to extensionMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeBlockIntercepted(blockContext: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                params = mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to blockContext),
+            )
+        }
+
+        override fun trackParentModeCancelled(endReason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_CANCELLED,
+                params = mapOf(KeepAnalyticsParam.END_REASON to endReason),
+            )
+        }
+
+        override fun trackGoalLockCreateStarted(entrySurface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                params = mapOf(KeepAnalyticsParam.ENTRY_SURFACE to entrySurface),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
@@ -423,6 +539,53 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackRepeatBlockRoutineSuggestionShown(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionClicked(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionDismissed(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionApplied(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
+                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = attribution.toAnalyticsParams(),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,
@@ -457,6 +620,20 @@ class FirebaseKeepAnalytics
             KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to routineNameIncluded,
         )
 
+        private fun repeatBlockRoutineSuggestionParams(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) = mapOf(
+            KeepAnalyticsParam.SURFACE to surface,
+            KeepAnalyticsParam.SUGGESTION_REASON to suggestion.reason.analyticsValue,
+            KeepAnalyticsParam.TIME_BUCKET to suggestion.timeBucket.analyticsValue,
+            KeepAnalyticsParam.DAY_TYPE to suggestion.dayType.analyticsValue,
+            KeepAnalyticsParam.CATEGORY_BUCKET to suggestion.categoryBucket.analyticsValue,
+            KeepAnalyticsParam.REPEAT_COUNT_BUCKET to suggestion.repeatCountBucket.analyticsValue,
+            KeepAnalyticsParam.ROUTINE_COVERAGE_STATE to suggestion.routineCoverageState.analyticsValue,
+            KeepAnalyticsParam.SUGGESTION_VARIANT to RepeatBlockSuggestionVariant.DEFAULT,
+        )
+
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,
@@ -466,7 +643,7 @@ class FirebaseKeepAnalytics
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
-            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+            put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
             routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
             goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
         }

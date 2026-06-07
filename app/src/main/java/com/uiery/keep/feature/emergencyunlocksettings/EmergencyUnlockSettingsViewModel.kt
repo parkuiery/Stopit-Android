@@ -8,6 +8,7 @@ import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.MAX_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.MIN_EMERGENCY_UNLOCK_DAILY_LIMIT
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,11 +24,13 @@ class EmergencyUnlockSettingsViewModel
     @Inject
     constructor(
         private val settingsStore: EmergencyUnlockSettingsStore,
+        private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val analytics: KeepAnalytics,
     ) : ViewModel() {
         val uiState: StateFlow<EmergencyUnlockSettingsUiState> =
             settingsStore.settings
                 .map { settings ->
+                    val availability = emergencyUnlockCoordinator.readAvailability()
                     EmergencyUnlockSettingsUiState(
                         enabled = settings.enabled,
                         dailyLimit = settings.dailyLimit,
@@ -35,6 +38,8 @@ class EmergencyUnlockSettingsViewModel
                         reasonRequired = settings.reasonRequired,
                         autoResetEnabled = settings.autoResetEnabled,
                         manualResetAtMillis = settings.manualResetAtMillis,
+                        refillMode = EmergencyUnlockRefillMode.fromAutoResetEnabled(settings.autoResetEnabled),
+                        remainingUnlockCount = availability.dailyUnlockRemaining,
                     )
                 }
                 .stateIn(
@@ -78,6 +83,10 @@ class EmergencyUnlockSettingsViewModel
             }
         }
 
+        fun setRefillMode(mode: EmergencyUnlockRefillMode) {
+            setAutoResetEnabled(mode.autoResetEnabled)
+        }
+
         fun markManualReset() {
             viewModelScope.launch {
                 settingsStore.markManualReset()
@@ -92,6 +101,8 @@ data class EmergencyUnlockSettingsUiState(
     val reasonRequired: Boolean = true,
     val autoResetEnabled: Boolean = true,
     val manualResetAtMillis: Long = 0L,
+    val refillMode: EmergencyUnlockRefillMode = EmergencyUnlockRefillMode.Daily,
+    val remainingUnlockCount: Int = dailyLimit,
     val allowedDailyLimits: IntRange = MIN_EMERGENCY_UNLOCK_DAILY_LIMIT..MAX_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val allowedDurations: List<Int> = ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS,
 )
