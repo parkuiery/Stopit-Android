@@ -22,6 +22,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "reason → app selection → duration → countdown",
             "필요하면 빠르게, 습관이면 한 번 멈춤",
             "짧은 label + 보조 설명",
+            "selected reason reflection helper",
             "disabled reason은 보이는 copy",
             "reasonStepEnabled=false",
             "Countdown은 안전한 유예",
@@ -80,6 +81,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "Reason required OFF",
             "App selection/duration/countdown",
             "selected reason maps to existing enum key",
+            "selected reason reflection helper reinforces intentional use",
             "no app name/package/custom reason/raw history added to analytics",
             "python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v",
         ]

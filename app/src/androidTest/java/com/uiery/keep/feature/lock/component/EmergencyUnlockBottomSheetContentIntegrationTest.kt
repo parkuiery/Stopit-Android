@@ -55,6 +55,9 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_required_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsNotEnabled()
 
+        composeRule.onNodeWithTag("emergency_unlock_reason_habit").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_habit_reflection)).assertExists()
+
         composeRule.onNodeWithTag("emergency_unlock_reason_other").performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_other_required_helper)).assertExists()
         composeRule.onNodeWithTag("emergency_unlock_reason_other_input").performTextInput("은행 인증")

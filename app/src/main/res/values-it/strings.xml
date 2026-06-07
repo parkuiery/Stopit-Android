@@ -189,6 +189,12 @@
     <string name="emergency_unlock_reason_boredom">Mi annoio o voglio alleviare lo stress</string>
     <string name="emergency_unlock_reason_other">Altro</string>
     <string name="emergency_unlock_reason_other_hint">Inserisci il tuo motivo</string>
+    <string name="emergency_unlock_reason_work_reflection">Use the shortest window needed, then come back to the block.</string>
+    <string name="emergency_unlock_reason_contact_reflection">Check only the urgent message you came for.</string>
+    <string name="emergency_unlock_reason_info_reflection">Look up the information, then return before it turns into browsing.</string>
+    <string name="emergency_unlock_reason_habit_reflection">Noticing the habit is already a win. You can still cancel here.</string>
+    <string name="emergency_unlock_reason_boredom_reflection">If this is boredom or stress, pause once before opening the app.</string>
+    <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>

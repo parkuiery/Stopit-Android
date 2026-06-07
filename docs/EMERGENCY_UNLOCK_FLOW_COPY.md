@@ -21,7 +21,8 @@ Issue: #467
   - `boredom`
   - `other`
 - PR #517로 반영된 구조:
-  - reason step: 짧은 reason label + 상단 helper + `기타` 입력 validation helper + disabled `다음` 설명.
+  - reason step: 짧은 reason label + 상단 helper + 선택 후 의도별 reflection helper + `기타` 입력 validation helper + disabled `다음` 설명.
+  - selected reason reflection helper는 표시 카피만 보강하며 기존 `work` / `contact` / `info` / `habit` / `boredom` / `other` payload key를 바꾸지 않는다.
   - app step: 필요한 앱만 선택한다는 helper + zero-selection validation helper + disabled `다음` 설명.
   - duration step: 필요한 만큼만 선택한다는 helper + `해제 요청`.
   - countdown step: 짧은 reconsideration window로 읽히는 countdown copy + 취소.
@@ -51,7 +52,7 @@ Issue: #467
 | 단계 | 역할 | 권장 copy 방향 | 금지/주의 |
 | --- | --- | --- | --- |
 | Reason | 해제 의도 self-check | 제목: `정말 필요한 경우에만 잠깐 열 수 있어요` / helper: `가장 가까운 이유를 골라주세요` | `왜 실패했나요?`, `중독`, `참지 못함` 같은 낙인 톤 |
-| Reason option | 빠른 스캔 | `업무/공부`, `긴급 연락`, `정보 확인`, `습관`, `지루함/스트레스`, `기타` 같은 short label | 기존 enum key를 표시 카피와 함께 변경 |
+| Reason option | 빠른 스캔 | `업무/공부`, `긴급 연락`, `정보 확인`, `습관`, `지루함/스트레스`, `기타` 같은 short label + 선택 후 짧은 reflection helper | 기존 enum key를 표시 카피와 함께 변경 |
 | Other reason | 자유 입력 | optional short note. analytics 원문 전송 금지 명시 | 원문을 GA4 dimension으로 보낼 수 있다는 오해 |
 | Apps | 범위 제한 | `잠깐 열 앱만 선택하세요` / 선택 0개 helper | 모든 차단 앱을 기본 전체 해제로 오해시키는 copy |
 | Duration | 시간 제한 | `필요한 만큼만 선택하세요` / duration option은 분 단위 명확 | 긴 시간을 권장하는 tone |
