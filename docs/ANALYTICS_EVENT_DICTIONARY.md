@@ -13,7 +13,7 @@
 
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`: #13용 GA4 Admin 수동 등록, metadata 증적, 14일 재측정 런북
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`: #14용 canonical activation funnel 계약
-- `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`: #581용 Play Install Referrer / UTM attribution 계약. `install_referrer_attribution_checked` 후보 이벤트, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계를 관리한다.
+- `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`: #581용 Play Install Referrer / UTM attribution 계약. `install_referrer_attribution_checked` 이벤트, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계를 관리한다.
 - `docs/HOME_STATUS_CTA_STRUCTURE.md`: #463용 Home 상태/CTA 구조 계약. 새 이벤트를 요구하지 않고 기존 `first_lock_configured` / `first_core_action_completed` / `app_block_intercepted` 의미를 보존한다.
 - `docs/ADMOB_MONETIZATION_RUNBOOK.md`: 광고 이벤트 해석 guardrail과 수익화 운영 기준
 - `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`: #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 계약
@@ -70,9 +70,9 @@
 
 ## 이벤트 딕셔너리
 
-### 획득 / Install Referrer attribution 후보
+### 획득 / Install Referrer attribution
 
-Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. 아래 이벤트는 code-lane 구현 전 후보 계약이며, Android implementation, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. QA/code follow-up에서 parser, campaign link helper, analytics event/parameter constants와 privacy-safe unit regression foothold가 추가됐다. 다만 Play Install Referrer SDK provider wiring, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

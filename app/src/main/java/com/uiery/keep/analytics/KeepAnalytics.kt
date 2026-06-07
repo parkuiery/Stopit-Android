@@ -1,5 +1,6 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 
 interface KeepAnalytics {
@@ -227,6 +228,8 @@ interface KeepAnalytics {
     fun trackParentModeBlockIntercepted(blockContext: String) = Unit
 
     fun trackParentModeCancelled(endReason: String) = Unit
+
+    fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -281,6 +284,7 @@ object KeepAnalyticsEvent {
     const val PARENT_MODE_EXTENDED = "parent_mode_extended"
     const val PARENT_MODE_BLOCK_INTERCEPTED = "parent_mode_block_intercepted"
     const val PARENT_MODE_CANCELLED = "parent_mode_cancelled"
+    const val INSTALL_REFERRER_ATTRIBUTION_CHECKED = "install_referrer_attribution_checked"
 }
 
 object KeepAnalyticsParam {
@@ -337,6 +341,12 @@ object KeepAnalyticsParam {
     const val PIN_RESULT = "pin_result"
     const val EXTENSION_MINUTES_BUCKET = "extension_minutes_bucket"
     const val BLOCK_CONTEXT = "block_context"
+    const val REFERRER_STATUS = "referrer_status"
+    const val UTM_SOURCE_TYPE = "utm_source_type"
+    const val UTM_MEDIUM_TYPE = "utm_medium_type"
+    const val CAMPAIGN_BUCKET = "campaign_bucket"
+    const val LINK_SURFACE = "link_surface"
+    const val LOOKUP_LATENCY_BUCKET = "lookup_latency_bucket"
 }
 
 object OnboardingStepName {

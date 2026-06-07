@@ -1,5 +1,6 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -565,6 +566,13 @@ class FirebaseKeepAnalytics
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
                 params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = attribution.toAnalyticsParams(),
             )
         }
 

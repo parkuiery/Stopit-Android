@@ -6,7 +6,7 @@ Issue: #581
 
 최근 #65/#242 acquisition readback에서는 `newUsers`가 반등했지만 `Direct` 신규 사용자 비중이 계속 과다해 ASO 효과, 외부 링크, 캠페인, attribution 누락을 분리하기 어렵다. 이 문서는 Play Install Referrer와 UTM link helper를 도입할 때의 **제품/analytics/ops 계약**을 먼저 고정한다.
 
-이 PR은 docs-lane 계약 산출물이다. Android 코드, SDK 의존성, GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
+이 PR은 docs-lane 계약 산출물이었다. QA/code follow-up에서 parser, campaign link helper, analytics event/parameter constants와 privacy-safe regression test foothold가 추가되더라도 Play Install Referrer SDK provider wiring, GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
 
 ## 현재 문제
 
@@ -173,11 +173,12 @@ Code-lane 추가 검증 후보:
 
 #581은 아래가 모두 끝나야 closure를 검토한다.
 
-- parser/provider/helper 코드와 테스트가 구현된다.
+- parser, campaign link helper, analytics event/parameter constants와 privacy-safe regression test foothold가 구현된다. (QA/code follow-up에서 진행)
+- Play Install Referrer SDK provider wiring과 첫 실행 non-blocking lookup path가 구현된다.
 - raw referrer/URL/PII 금지 회귀 테스트가 있다.
 - campaign link helper 또는 문서화된 운영 명령이 있다.
 - event dictionary / GA4 runbook / ASO 런북 / metrics context가 동기화된다.
 - release/tag/Play deploy 이후 14일/30일 readback 절차가 실행된다.
 - #242/#65 외부 경계와 #581 repo-internal 구현 경계가 issue comment에 분리 기록된다.
 
-이 docs-lane PR은 위 중 **계약/문서/정적 회귀 기준**만 완료한다. 남은 경계는 Android implementation, GA4 Admin, Play Console/campaign 수동 기록, release/readback이다.
+이 docs-lane PR은 위 중 **계약/문서/정적 회귀 기준**만 완료했다. QA/code follow-up은 parser/helper/analytics foothold를 전진시킨다. 남은 경계는 SDK provider wiring, GA4 Admin, Play Console/campaign 수동 기록, release/readback이다.
