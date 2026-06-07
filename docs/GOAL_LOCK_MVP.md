@@ -293,11 +293,17 @@ QA lane에서 이어서 `KeepAccessibilityServiceIntegrationTest.expiredGoalLock
 
 이 foothold는 all-day/scheduled 목표 잠금의 실제 서비스 경로 자동 증거와 expiration 중지 자동 증거를 추가하지만, TalkBack/실기기 수동 evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 아직 외부/manual 경계로 남긴다.
 
+### 2026-06-07 creation compact-height QA foothold
+
+Code lane에서 PR #625(`b714422b`)로 `GoalLockCreationScreen` 본문을 스크롤 가능하게 만들고 `GoalLockCreationContentIntegrationTest.compactHeightCreationContentScrollsToSubmitAction`을 추가했다. 이 Compose instrumentation baseline은 320dp 높이의 compact surface에서도 생성 플로우가 하단 `목표 잠금 시작` CTA까지 접근 가능한지 검증한다.
+
+이 foothold 이후 #417을 “생성 화면 작은 화면/큰 글꼴 접근성 미검증” 상태로 되돌리지 않는다. 다만 TalkBack이 실제 홈 목표 잠금 카드와 생성/상세 화면을 자연스럽게 읽는지에 대한 수동 spot-check, 실기기 release-candidate screenshot evidence, GA4 Admin 등록/readback, release/tag/Play deploy, 14/30일 측정은 여전히 외부/manual 경계다.
+
 ## 외부/manual 경계
 
 - GA4 Admin custom dimension 등록과 metadata readback.
 - 목표 잠금 포함 버전의 release/tag/Play deploy.
-- 실제 device/emulator runtime QA evidence: all-day/scheduled 차단, 종료일 경과 후 차단 중지, Home card 상태, 상세/조기 종료 copy, TalkBack label.
+- 수동 QA evidence: 실기기 또는 release-candidate에서 Home card 상태, 상세/조기 종료 copy, 생성/상세 화면 스크린샷, TalkBack label을 확인한다. all-day/scheduled 차단, 종료일 경과 후 차단 중지, compact-height 생성 CTA 접근성은 `KeepAccessibilityServiceIntegrationTest`와 `GoalLockCreationContentIntegrationTest` 자동 baseline으로 이미 고정됐으므로 같은 자동 증거를 남은 경계로 반복하지 않는다.
 - 배포 후 14일/30일 측정.
 - 강력 제한 모드나 결제/프리미엄 연결 여부는 대표님 제품 판단이 필요하다.
 
