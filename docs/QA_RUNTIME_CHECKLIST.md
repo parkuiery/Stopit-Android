@@ -300,7 +300,7 @@ Use this after PR #487(`8fb1911c`) or a later release candidate is installed. PR
 Source of truth: `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`
 Issue: #467
 
-Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. The #467 QA follow-up also adds a focused countdown TalkBack content-description baseline so the waiting copy, remaining seconds, and cancel affordance are exposed together in Compose UI tests. This checklist now collects the remaining real-device screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy or automatic flow coverage as unimplemented.
+Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) or a later release candidate is installed. PR #517 already changed `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, and `emergency_unlock_*` resources on `develop`; PR #575 added the repeatable Compose UI baseline for reason-required ON/OFF. PR #593 added the focused countdown TalkBack content-description baseline so the waiting copy, remaining seconds, and cancel affordance are exposed together in Compose UI tests. This checklist now collects the remaining device/screenshot/TalkBack evidence and release inclusion proof instead of treating the UI copy, automatic flow coverage, or countdown accessibility coverage as unimplemented.
 
 ```md
 ## Emergency unlock flow copy QA evidence
@@ -334,6 +334,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) or a later release candi
 - Verification:
   - PR #517 merge commit included in tested build: yes / no / unknown
   - PR #575 UI QA baseline included in tested build: yes / no / unknown
+  - PR #593 countdown TalkBack baseline included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
   - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
