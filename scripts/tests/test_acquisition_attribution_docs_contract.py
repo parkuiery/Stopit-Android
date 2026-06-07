@@ -55,6 +55,8 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("Organic Search` 신규 사용자 | 221", review_prompt_followthrough)
         self.assertIn("Direct` 신규 사용자 | 333", review_prompt_followthrough)
         self.assertIn("60.2%", review_prompt_followthrough)
+        self.assertIn("| baseline | TODO | TODO | TODO | 221 | TODO |", review_prompt_followthrough)
+        self.assertNotIn("| baseline | TODO | TODO | TODO | 170 | TODO |", review_prompt_followthrough)
         self.assertIn("Play Console Search/Explore", review_prompt_followthrough)
         self.assertIn("external/campaign", review_prompt_followthrough)
         self.assertIn("ASO 회복으로 표현하지 않음", review_prompt_followthrough)
