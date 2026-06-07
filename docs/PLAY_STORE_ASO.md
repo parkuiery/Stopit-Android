@@ -194,10 +194,10 @@
 
 1. 대표님이나 자동화가 Play Store 링크를 새로 배포할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`을 붙인 URL을 기록한다.
 2. Play Store로 redirect되는 짧은 링크/문서 링크를 쓰면 final URL에서 UTM이 보존되는지 확인한다.
-3. Android 앱 코드가 Install Referrer SDK를 아직 사용하지 않는 상태에서는, GA4 `Direct`를 “출처 없음/어트리뷰션 누락 가능성”으로 보수적으로 해석한다.
+3. PR #586으로 parser/helper/analytics foothold는 `develop`에 있지만, Play Install Referrer SDK provider와 첫 실행 lookup path가 아직 연결되지 않았으므로 GA4 `Direct`를 “출처 없음/어트리뷰션 누락 가능성”으로 보수적으로 해석한다.
 4. #65의 +14일/+30일 ASO 판정 표에는 GA4 채널뿐 아니라 Play Console Search/Explore와 external/campaign source를 같이 적는다.
 5. campaign 집행이 없었다는 운영 확인이 있으면 `Paid Search` 활성/세션 잔상은 신규 획득 성과에서 제외한다.
-6. 외부 링크/캠페인 운영 규칙이 실제로 필요해진 뒤에는 #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`를 source of truth로 본다. 현재 docs-lane 계약은 Android implementation, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전까지 Direct 감소나 ASO 회복을 주장하지 않는다.
+6. 외부 링크/캠페인 운영 규칙이 실제로 필요해진 뒤에는 #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`를 source of truth로 본다. 현재 상태는 parser/helper/analytics foothold 완료, SDK provider/첫 실행 lookup 미연결, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 대기이므로 Direct 감소나 ASO 회복을 주장하지 않는다.
 7. #242/#65 acquisition snapshot 또는 #581 Install Referrer/UTM 계약을 고칠 때는 downstream 문서 drift를 막기 위해 `python3 -m unittest scripts.tests.test_acquisition_attribution_docs_contract -v`와 `python3 -m unittest scripts.tests.test_install_referrer_attribution_contract -v`를 함께 실행한다.
 
 #### Play Console 수동 확인 템플릿
