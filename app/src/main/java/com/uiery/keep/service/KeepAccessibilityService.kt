@@ -12,8 +12,11 @@ import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.parentmode.ParentModeSession
+import com.uiery.keep.feature.parentmode.ParentModeSessionStore
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import dagger.hilt.EntryPoint
@@ -55,6 +58,9 @@ class KeepAccessibilityService :
 
     @Volatile
     private var cachedGoalLocks: List<GoalLock> = emptyList()
+
+    @Volatile
+    private var cachedParentModeSession: ParentModeSession? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -119,6 +125,17 @@ class KeepAccessibilityService :
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
+        launch {
+            ParentModeSessionStore(applicationContext.dataStore).observe()
+                .catch {
+                    cachedParentModeSession = null
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+                .collect { session ->
+                    cachedParentModeSession = session
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -165,6 +182,8 @@ class KeepAccessibilityService :
             ),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
+            parentModeSession = cachedParentModeSession,
+            parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
         ) ?: return
@@ -204,6 +223,8 @@ class KeepAccessibilityService :
             ),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
+            parentModeSession = cachedParentModeSession,
+            parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
         ) ?: return

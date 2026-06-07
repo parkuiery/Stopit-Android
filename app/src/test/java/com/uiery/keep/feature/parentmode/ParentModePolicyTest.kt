@@ -85,7 +85,7 @@ class ParentModePolicyTest {
     }
 
     @Test
-    fun activeSessionAllowsOnlyExplicitlyAllowedPackagesUntilExpiry() {
+    fun activeSessionAllowsOnlyExplicitlyAllowedPackagesAndExpiryBlocksAllowedApps() {
         val session = ParentModeSession(
             startedAtMillis = 1_000L,
             expiresAtMillis = 61_000L,
@@ -96,7 +96,7 @@ class ParentModePolicyTest {
 
         assertFalse(ParentModePolicy.shouldBlockPackage(session, packageName = "com.video.app", nowMillis = 2_000L))
         assertTrue(ParentModePolicy.shouldBlockPackage(session, packageName = "com.game.app", nowMillis = 2_000L))
-        assertFalse(ParentModePolicy.shouldBlockPackage(session, packageName = "com.game.app", nowMillis = 61_000L))
+        assertTrue(ParentModePolicy.shouldBlockPackage(session, packageName = "com.video.app", nowMillis = 61_000L))
     }
 
     @Test
