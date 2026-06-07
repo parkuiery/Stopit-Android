@@ -181,6 +181,7 @@ scripts/release-tag.sh 1.7.2
 - 현재 브랜치가 `main`인지 확인
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
+- tag 생성 전 `README.md 현재 버전 라인`이 `app/build.gradle.kts`의 `versionName/versionCode`와 일치하는지 최종 확인
 - `v1.7.2` 태그 생성 및 push
 - GitHub Actions CD가 `scripts/validate-play-deploy-ref.sh`로 태그가 `origin/main`에서 온 SemVer release tag인지, 직전 SemVer production marker가 있는지 다시 검증한 뒤 Google Play internal track 업로드 실행
 
