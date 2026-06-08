@@ -146,6 +146,7 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("ParentModePinPolicyTest", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("ParentModeAccessibilityIntegrationTest", qa_checklist)
+        self.assertIn("0분/음수 extension은 거부", qa_checklist)
         self.assertIn("Parent mode QA evidence", qa_checklist)
         self.assertIn("same-device / PIN / bypass", qa_checklist)
 
