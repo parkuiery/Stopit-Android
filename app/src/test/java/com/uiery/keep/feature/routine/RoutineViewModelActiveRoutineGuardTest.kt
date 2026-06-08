@@ -3,6 +3,9 @@ package com.uiery.keep.feature.routine
 import com.uiery.keep.data.routine.RoutineRepository
 import androidx.datastore.preferences.core.emptyPreferences
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
@@ -14,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -80,6 +84,7 @@ class RoutineViewModelActiveRoutineGuardTest {
             routineRepository = repository,
             dataStore = dataStore,
             analytics = NoopGuardRoutineAnalytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(EmptyGuardRoutineDao, NoopGuardRoutineAnalytics),
             exactAlarmOrchestrator = exactAlarmOrchestrator,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -139,6 +144,16 @@ private class GuardRoutineRepository(
             if (routine.id == id) routine.copy(isEnabled = isEnabled) else routine
         }
     }
+}
+
+private object EmptyGuardRoutineDao : RoutineDao {
+    override fun fetchAll(): Flow<List<RoutineEntity>> = flowOf(emptyList())
+    override fun fetchAllOnce(): List<RoutineEntity> = emptyList()
+    override fun fetch(id: Long): RoutineEntity = error("No routines in EmptyGuardRoutineDao")
+    override fun insert(routineEntity: RoutineEntity): Long = routineEntity.id
+    override fun deleteById(id: Long) = Unit
+    override fun update(routineEntity: RoutineEntity) = Unit
+    override fun updateIsEnabledById(id: Long, isEnabled: Boolean) = Unit
 }
 
 private object NoopGuardRoutineAnalytics : KeepAnalytics {

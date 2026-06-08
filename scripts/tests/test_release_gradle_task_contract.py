@@ -18,14 +18,24 @@ WORKFLOW_GRADLE_TASK_GUARD = REPO_ROOT / "scripts" / "check_workflow_gradle_task
 
 class ReleaseGradleTaskContractTest(unittest.TestCase):
     def test_release_helper_dry_runs_use_app_qualified_tasks(self):
-        expected = ":app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run"
         for path in RELEASE_HELPERS:
             with self.subTest(path=path.name):
                 text = path.read_text()
-                self.assertIn(expected, text)
+                self.assertIn(":app:testProdReleaseUnitTest", text)
+                if path.name == "check-release-readiness.sh":
+                    self.assertIn(":app:lintProdRelease", text)
+                self.assertIn(":app:bundleProdRelease --dry-run", text)
                 self.assertIsNone(
-                    re.search(r"\.\/gradlew\s+testProdReleaseUnitTest\s+bundleProdRelease\s+--dry-run", text),
-                    f"{path} should not rely on root task-name inference for app release tasks",
+                    re.search(r"\.\/gradlew\s+testProdReleaseUnitTest\b", text),
+                    f"{path} should not rely on root task-name inference for app release unit tests",
+                )
+                self.assertIsNone(
+                    re.search(r"\.\/gradlew\s+lintProdRelease\b", text),
+                    f"{path} should not rely on root task-name inference for prod release lint",
+                )
+                self.assertIsNone(
+                    re.search(r"\.\/gradlew\s+bundleProdRelease\b", text),
+                    f"{path} should not rely on root task-name inference for app release bundles",
                 )
 
     def test_release_workflows_use_app_qualified_release_tasks(self):

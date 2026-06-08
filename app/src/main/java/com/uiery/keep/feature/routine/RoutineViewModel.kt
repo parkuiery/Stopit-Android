@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.analytics.RoutineTemplateShareFailureReason
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
@@ -26,6 +27,7 @@ class RoutineViewModel
         private val routineRepository: RoutineRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val analytics: KeepAnalytics,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val routineNoticeStore: RoutineNoticeStore,
         private val routineRestoreAftercare: RoutineRestoreAftercare,
@@ -89,7 +91,7 @@ class RoutineViewModel
                     if (restoreResult.shouldShowAlarmPermissionPrompt) {
                         postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                     }
-                    analytics.setUserProperty("routines_count", routinesModel.size.toString())
+                    routineCountAnalyticsSync.syncCount(restoreResult.routines.size)
                 }
             }
 

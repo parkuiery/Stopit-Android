@@ -14,6 +14,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
@@ -151,6 +152,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopBackupRestoreAnalytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), NoopBackupRestoreAnalytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(

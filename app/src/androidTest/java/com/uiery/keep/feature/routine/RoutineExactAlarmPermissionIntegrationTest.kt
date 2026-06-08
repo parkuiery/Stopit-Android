@@ -15,6 +15,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.database.entity.RoutineEntity
@@ -145,6 +146,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -188,6 +190,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -231,6 +234,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(

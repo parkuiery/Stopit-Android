@@ -4,6 +4,8 @@ import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.feature.parentmode.ParentModePolicy
+import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import com.uiery.keep.util.isRoutineActiveNow
@@ -29,6 +31,8 @@ internal fun resolveServiceConnectionForegroundBlockRequest(
     prefs: AccessibilityBlockingPreferences,
     cachedRoutines: List<RoutineModel>,
     cachedGoalLocks: List<GoalLock> = emptyList(),
+    parentModeSession: ParentModeSession? = null,
+    parentControlPackages: Set<String> = emptySet(),
     now: LocalDateTime = LocalDateTime.now(),
     isEmergencyUnlocked: Boolean,
     isDuplicateBlock: Boolean,
@@ -39,6 +43,8 @@ internal fun resolveServiceConnectionForegroundBlockRequest(
         prefs = prefs,
         cachedRoutines = cachedRoutines,
         cachedGoalLocks = cachedGoalLocks,
+        parentModeSession = parentModeSession,
+        parentControlPackages = parentControlPackages,
         now = now,
         isEmergencyUnlocked = isEmergencyUnlocked,
         isDuplicateBlock = isDuplicateBlock,
@@ -50,11 +56,14 @@ internal fun resolveForegroundBlockRequest(
     prefs: AccessibilityBlockingPreferences,
     cachedRoutines: List<RoutineModel>,
     cachedGoalLocks: List<GoalLock> = emptyList(),
+    parentModeSession: ParentModeSession? = null,
+    parentControlPackages: Set<String> = emptySet(),
     now: LocalDateTime = LocalDateTime.now(),
     isEmergencyUnlocked: Boolean,
     isDuplicateBlock: Boolean,
 ): ForegroundBlockRequest? {
     if (isEmergencyUnlocked) return null
+    if (parentModeSession != null && packageName in parentControlPackages) return null
 
     val isLockTime = ManualLockTimePolicy.isActiveAt(
         storedDeadline = prefs.lockTime,
@@ -80,13 +89,31 @@ internal fun resolveForegroundBlockRequest(
         )
     }
     val isShouldGoalLockBlock = blockingGoalLock != null
-    val isBlocking = prefs.isKeep || isLockTime || isShouldRoutineBlock || isShouldGoalLockBlock
+    val nowMillis = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    val isShouldParentModeBlock = parentModeSession?.let { session ->
+        ParentModePolicy.shouldBlockPackage(
+            session = session,
+            packageName = packageName,
+            nowMillis = nowMillis,
+        )
+    } ?: false
+    val isBlocking = prefs.isKeep ||
+        isLockTime ||
+        isShouldRoutineBlock ||
+        isShouldGoalLockBlock ||
+        isShouldParentModeBlock
     if (!isBlocking) return null
-    if (!prefs.selectedAppPackages.contains(packageName) && !isShouldRoutineBlock && !isShouldGoalLockBlock) return null
+    if (
+        !prefs.selectedAppPackages.contains(packageName) &&
+        !isShouldRoutineBlock &&
+        !isShouldGoalLockBlock &&
+        !isShouldParentModeBlock
+    ) return null
 
     val blockSource = when {
         isShouldRoutineBlock -> AnalyticsBlockSource.ROUTINE
         isShouldGoalLockBlock -> AnalyticsBlockSource.GOAL_LOCK
+        isShouldParentModeBlock -> AnalyticsBlockSource.PARENT_MODE
         isLockTime -> AnalyticsBlockSource.TIMED_LOCK
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }

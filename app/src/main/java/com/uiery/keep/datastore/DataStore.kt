@@ -42,5 +42,10 @@ object PreferencesKey {
     val LAST_BACKGROUNDED_AT_MS = longPreferencesKey("last_backgrounded_at_ms")
     val PENDING_ROUTINE_START_NOTICE_MESSAGE = stringPreferencesKey("pending_routine_start_notice_message")
     val REPEAT_BLOCK_DISMISSED_SUGGESTIONS = stringSetPreferencesKey("repeat_block_dismissed_suggestions")
+    val PARENT_MODE_STARTED_AT = longPreferencesKey("parent_mode_started_at")
+    val PARENT_MODE_EXPIRES_AT = longPreferencesKey("parent_mode_expires_at")
+    val PARENT_MODE_DURATION_MINUTES = intPreferencesKey("parent_mode_duration_minutes")
+    val PARENT_MODE_ALLOWED_APPS = stringSetPreferencesKey("parent_mode_allowed_apps")
+    val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
     val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
 }

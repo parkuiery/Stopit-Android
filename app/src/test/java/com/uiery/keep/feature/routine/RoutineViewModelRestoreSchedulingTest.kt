@@ -4,6 +4,7 @@ import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.data.routine.RoutineRepository
 import androidx.datastore.preferences.core.emptyPreferences
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.RoutineNoticeStore
@@ -90,6 +91,7 @@ class RoutineViewModelRestoreSchedulingTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopRoutineAnalytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, NoopRoutineAnalytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = routineNoticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
