@@ -138,6 +138,31 @@ class GoalLockCreationViewModelTest {
     }
 
     @Test
+    fun scheduledGoalLockWithSameStartAndEndTimeIsDisabledAndDoesNotPersist() = runBlocking {
+        val dao = RecordingGoalLockDao()
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+
+        viewModel.setGoalName("SNS 줄이기")
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 30))
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        viewModel.setScheduledMode(
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            startTime = LocalTime.of(19, 0),
+            endTime = LocalTime.of(19, 0),
+        )
+        awaitUntil { !viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        delay(50)
+
+        assertFalse(viewModel.container.stateFlow.value.isCreateEnabled)
+        assertTrue(viewModel.container.stateFlow.value.hasInvalidScheduledTime)
+        assertEquals(null, dao.insertedEntity)
+        assertTrue(analytics.goalLockCreatedCalls.isEmpty())
+    }
+
+    @Test
     fun loadSelectedAppsSeedsGoalLockCreationFromCurrentBlockingSelection() = runBlocking {
         val dataStore = FakeDataStore.withPrefs {
             this[PreferencesKey.SELECTED_APP_PACKAGES] = setOf("com.video.app", "com.social.app")

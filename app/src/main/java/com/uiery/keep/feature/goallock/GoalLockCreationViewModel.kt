@@ -160,7 +160,11 @@ data class GoalLockCreationUiState(
     val durationSelectionType: String = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
     val goalNameType: String = AnalyticsGoalLockNameType.CUSTOM,
     val isCreateEnabled: Boolean = false,
-)
+) {
+    val hasInvalidScheduledTime: Boolean
+        get() = (lockMode as? GoalLockCreationLockMode.Scheduled)
+            ?.hasInvalidTimeWindow() == true
+}
 
 sealed interface GoalLockCreationLockMode {
     data object AllDay : GoalLockCreationLockMode
@@ -192,8 +196,11 @@ private fun GoalLockCreationUiState.isValidForCreation(goalLock: GoalLock): Bool
         GoalLockPolicy.isValidForCreation(goalLock) &&
         when (lockMode) {
             GoalLockCreationLockMode.AllDay -> true
-            is GoalLockCreationLockMode.Scheduled -> lockMode.repeatDays.isNotEmpty()
+            is GoalLockCreationLockMode.Scheduled ->
+                lockMode.repeatDays.isNotEmpty() && !lockMode.hasInvalidTimeWindow()
         }
+
+private fun GoalLockCreationLockMode.Scheduled.hasInvalidTimeWindow(): Boolean = startTime == endTime
 
 private fun GoalLockCreationLockMode.toDomain(): GoalLockMode =
     when (this) {

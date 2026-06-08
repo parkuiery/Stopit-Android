@@ -291,6 +291,13 @@ internal fun GoalLockCreationContent(
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 13.sp,
                 )
+                if (state.hasInvalidScheduledTime) {
+                    Text(
+                        text = stringResource(id = R.string.goal_lock_creation_invalid_scheduled_time),
+                        color = KeepTheme.colors.error,
+                        fontSize = 12.sp,
+                    )
+                }
                 Text(
                     text = stringResource(
                         id = R.string.goal_lock_creation_selected_apps_helper,

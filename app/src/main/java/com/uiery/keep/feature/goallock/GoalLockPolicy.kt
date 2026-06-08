@@ -40,7 +40,9 @@ internal enum class GoalLockRuntimeStatus {
 
 internal object GoalLockPolicy {
     fun isValidForCreation(goalLock: GoalLock): Boolean =
-        goalLock.selectedPackages.isNotEmpty() && !goalLock.endDate.isBefore(goalLock.startDate)
+        goalLock.selectedPackages.isNotEmpty() &&
+            !goalLock.endDate.isBefore(goalLock.startDate) &&
+            goalLock.lockMode.isValidForCreation()
 
     fun runtimeStatus(
         goalLock: GoalLock,
@@ -110,4 +112,9 @@ internal object GoalLockPolicy {
             else -> null
         }
     }
+}
+
+private fun GoalLockMode.isValidForCreation(): Boolean = when (this) {
+    GoalLockMode.AllDay -> true
+    is GoalLockMode.Scheduled -> repeatDays.isNotEmpty() && startTime != endTime
 }

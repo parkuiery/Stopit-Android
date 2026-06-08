@@ -270,6 +270,29 @@ class GoalLockDetailViewModelTest {
     }
 
     @Test
+    fun sameStartEndScheduledModeUpdateIsRejectedWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+        val invalidScheduled = GoalLockMode.Scheduled(
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            startTime = LocalTime.of(19, 0),
+            endTime = LocalTime.of(19, 0),
+        )
+
+        viewModel.requestUpdateLockMode(invalidScheduled)
+        viewModel.confirmUpdateLockMode()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateLockModeConfirmation)
+        assertEquals(GoalLockMode.AllDay, viewModel.container.stateFlow.value.goalLock?.lockMode)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
+    @Test
     fun updateDurationAndLockModeRejectCompletedGoalLockWithoutAnalytics() = runBlocking {
         val dao = DetailRecordingGoalLockDao(existing = expiredActiveGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
