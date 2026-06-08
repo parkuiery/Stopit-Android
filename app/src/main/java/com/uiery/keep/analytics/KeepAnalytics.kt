@@ -1,7 +1,15 @@
 package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+
+data class RepeatBlockRoutineSuggestionAnalyticsPayload(
+    val reason: String,
+    val timeBucket: String,
+    val dayType: String,
+    val categoryBucket: String,
+    val repeatCountBucket: String,
+    val routineCoverageState: String,
+)
 
 interface KeepAnalytics {
     fun logEvent(
@@ -193,22 +201,22 @@ interface KeepAnalytics {
 
     fun trackRepeatBlockRoutineSuggestionShown(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
 
     fun trackRepeatBlockRoutineSuggestionClicked(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
 
     fun trackRepeatBlockRoutineSuggestionDismissed(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
 
     fun trackRepeatBlockRoutineSuggestionApplied(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
 
     fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit

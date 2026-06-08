@@ -1,7 +1,6 @@
 package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -554,7 +553,7 @@ class FirebaseKeepAnalytics
 
         override fun trackRepeatBlockRoutineSuggestionShown(
             surface: String,
-            suggestion: RepeatBlockRoutineSuggestion,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN,
@@ -564,7 +563,7 @@ class FirebaseKeepAnalytics
 
         override fun trackRepeatBlockRoutineSuggestionClicked(
             surface: String,
-            suggestion: RepeatBlockRoutineSuggestion,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED,
@@ -574,7 +573,7 @@ class FirebaseKeepAnalytics
 
         override fun trackRepeatBlockRoutineSuggestionDismissed(
             surface: String,
-            suggestion: RepeatBlockRoutineSuggestion,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED,
@@ -584,7 +583,7 @@ class FirebaseKeepAnalytics
 
         override fun trackRepeatBlockRoutineSuggestionApplied(
             surface: String,
-            suggestion: RepeatBlockRoutineSuggestion,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
@@ -635,15 +634,15 @@ class FirebaseKeepAnalytics
 
         private fun repeatBlockRoutineSuggestionParams(
             surface: String,
-            suggestion: RepeatBlockRoutineSuggestion,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) = mapOf(
             KeepAnalyticsParam.SURFACE to surface,
-            KeepAnalyticsParam.SUGGESTION_REASON to suggestion.reason.analyticsValue,
-            KeepAnalyticsParam.TIME_BUCKET to suggestion.timeBucket.analyticsValue,
-            KeepAnalyticsParam.DAY_TYPE to suggestion.dayType.analyticsValue,
-            KeepAnalyticsParam.CATEGORY_BUCKET to suggestion.categoryBucket.analyticsValue,
-            KeepAnalyticsParam.REPEAT_COUNT_BUCKET to suggestion.repeatCountBucket.analyticsValue,
-            KeepAnalyticsParam.ROUTINE_COVERAGE_STATE to suggestion.routineCoverageState.analyticsValue,
+            KeepAnalyticsParam.SUGGESTION_REASON to suggestion.reason,
+            KeepAnalyticsParam.TIME_BUCKET to suggestion.timeBucket,
+            KeepAnalyticsParam.DAY_TYPE to suggestion.dayType,
+            KeepAnalyticsParam.CATEGORY_BUCKET to suggestion.categoryBucket,
+            KeepAnalyticsParam.REPEAT_COUNT_BUCKET to suggestion.repeatCountBucket,
+            KeepAnalyticsParam.ROUTINE_COVERAGE_STATE to suggestion.routineCoverageState,
             KeepAnalyticsParam.SUGGESTION_VARIANT to RepeatBlockSuggestionVariant.DEFAULT,
         )
 
