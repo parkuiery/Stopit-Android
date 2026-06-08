@@ -539,6 +539,19 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockUpdated(
+            lockMode: String,
+            changedField: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.CHANGED_FIELD to changedField,
+                ),
+            )
+        }
+
         override fun trackRepeatBlockRoutineSuggestionShown(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestion,

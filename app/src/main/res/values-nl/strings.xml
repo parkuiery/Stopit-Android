@@ -87,6 +87,14 @@
     <string name="goal_lock_creation_remove_app">Remove</string>
     <string name="goal_lock_creation_submit">Start goal lock</string>
     <string name="goal_lock_creation_app_label_missing">Could not load the app name</string>
+    <string name="goal_lock_detail_update_apps_cta">Change blocked apps</string>
+    <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
+    <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
+    <string name="goal_lock_detail_update_apps_save">Save changes</string>
+    <string name="goal_lock_detail_goal_name_label">Goal name</string>
+    <string name="goal_lock_detail_update_name_confirmation">Change this goal lock name to %1$s?</string>
+    <string name="goal_lock_detail_update_name_cancel">Cancel</string>
+    <string name="goal_lock_detail_update_name_save">Save name</string>
     <string name="contact_us">Neem contact op</string>
     <string name="monetization_interest_menu_title">StopIt zonder advertenties gebruiken?</string>
     <string name="monetization_interest_menu_message">Laat ons weten of een advertentievrije optie nuttig is. Kopen is nog niet beschikbaar.</string>

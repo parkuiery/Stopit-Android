@@ -102,6 +102,7 @@ class GoalLockCreationViewModelTest {
             goalNameType = AnalyticsGoalLockNameType.CUSTOM,
         )
         awaitUntil { dao.insertedEntity != null }
+        awaitUntil { analytics.goalLockCreatedCalls.isNotEmpty() }
 
         val inserted = requireNotNull(dao.insertedEntity).toDomain()
         val mode = inserted.lockMode as GoalLockMode.Scheduled
@@ -109,8 +110,9 @@ class GoalLockCreationViewModelTest {
         assertEquals(LocalTime.of(19, 0), mode.startTime)
         assertEquals(LocalTime.of(23, 0), mode.endTime)
         assertEquals(selectedApps, inserted.selectedPackages)
-        assertEquals(AnalyticsGoalLockMode.SCHEDULED, analytics.goalLockCreatedCalls.single().lockMode)
-        assertEquals(AnalyticsSelectedAppCountBucket.SEVEN_PLUS, analytics.goalLockCreatedCalls.single().selectedAppCountBucket)
+        val createdCall = analytics.goalLockCreatedCalls.single()
+        assertEquals(AnalyticsGoalLockMode.SCHEDULED, createdCall.lockMode)
+        assertEquals(AnalyticsSelectedAppCountBucket.SEVEN_PLUS, createdCall.selectedAppCountBucket)
     }
 
     @Test
