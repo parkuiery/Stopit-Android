@@ -165,6 +165,7 @@
     <string name="notification_routine_start_message">Se bloqueó el uso de apps para ayudarte a concentrarte.</string>
     <string name="routine_notification_permission_fallback_message">La rutina %1$s comenzó, pero el permiso de notificaciones está desactivado, así que StopIt te avisará dentro de la app.</string>
     <string name="routine_running_tag">En curso</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">Protección contra desinstalación</string>
     <string name="prevent_uninstall_subtitle">Protege StopIt de ser desinstalado</string>
     <string name="prevent_uninstall_enabled">La protección contra desinstalación está activa</string>
