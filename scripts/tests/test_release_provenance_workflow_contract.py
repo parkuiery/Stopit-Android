@@ -45,6 +45,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("python3 scripts/release_provenance_manifest.py verify", verify_step)
         self.assertIn("--aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'", verify_step)
         self.assertIn("--manifest app/build/outputs/bundle/prodRelease/release-provenance.json", verify_step)
+        self.assertIn("--artifact-name stopit-prod-release-signed-aab", verify_step)
         self.assertIn("--package-name com.uiery.keep", verify_step)
         self.assertIn("--upload-mode none", verify_step)
         self.assertIn("--track ''", verify_step)
@@ -79,6 +80,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         for block in (generate_step, verify_step):
             self.assertIn("if: env.DEPLOY_TRACK != 'production'", block)
             self.assertIn("release-provenance.json", block)
+            self.assertIn("stopit-prod-release-signed-aab", block)
             self.assertIn('"$DEPLOY_TRACK"', block)
             self.assertIn('"$RELEASE_STATUS"', block)
             self.assertIn('"$ROLLOUT_FRACTION"', block)
@@ -96,6 +98,8 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         )
         for required in (
             "release-provenance.json",
+            "artifact_name",
+            "run_id",
             "sha256",
             "versionCode",
             "workflow run URL",
