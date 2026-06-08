@@ -23,7 +23,7 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts.tests.test_android_manifest_contract`로 manifest/backup static policy를, `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
-| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, release-helper guardrail scripts (`scripts/check-release-readiness.sh`, `scripts/check-latest-production-deployed.sh`, `scripts/release-start.sh`, `scripts/bump-version.sh`, `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, `scripts/release-tag.sh`, `scripts/check-play-deploy-secret-contract.sh`, `scripts/setup-play-deploy-secrets.sh`, `scripts/setup-discord-deploy-secrets.sh`, `scripts/play_version_code_guard.py`, `scripts/verify_lint_registry.py`, `scripts/check_workflow_gradle_tasks.py`), `scripts/tests/**`, `.github/workflows/**`, `docs/**`, `**/*.md`, or manual | `Workflow syntax lint` runs `actionlint` for every `.github/workflows/**` change. For release/CI/CD workflow 변경 PR (`android-ci.yml`, `release-qa.yml`, `release-build.yml`, `play-deploy.yml`, `version-guard.yml`), Ops CI must also materialize `Docs/runbook contract tests`; actionlint-only green은 YAML 문법 확인일 뿐이고 contract-test green이 operator docs/runbook/source-of-truth drift까지 검증한다. `Docs/runbook contract tests` is a lightweight gate for runbook/source-of-truth drift and runs selected Python contract tests (`scripts.tests.test_play_deploy_secret_contract_runbook`, `scripts.tests.test_release_build_workflow_scope`, `scripts.tests.test_release_qa_runtime_gate_docs`, `scripts.tests.test_android_ci_runtime_smoke_docs`, `scripts.tests.test_release_guard_hotfix_sync`, `scripts.tests.test_release_provenance_workflow_contract`, `scripts.tests.test_acquisition_attribution_docs_contract`, `scripts.tests.test_ops_ci_workflow`, `scripts.tests.test_actionlint_gate`) without `npm ci`, Gradle, or emulator work. Functions and release-helper jobs remain path-classified: Firebase Functions `npm ci`/`npm run lint`/`npm test` runs for `functions/**`, while Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, staged rollout validator syntax `node --check scripts/validate-play-rollout-inputs.js`, release-helper guardrail Python tests `python3 -m unittest discover -s scripts/tests -p 'test_*.py'` including `scripts.tests.test_android_manifest_contract` and `scripts.tests.test_workflow_gradle_task_guard`, release-helper shell syntax `bash -n ...`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py` run for release-helper/script surfaces. |
+| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, release-helper guardrail scripts (`scripts/check-release-readiness.sh`, `scripts/check-latest-production-deployed.sh`, `scripts/release-start.sh`, `scripts/bump-version.sh`, `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, `scripts/release-tag.sh`, `scripts/check-play-deploy-secret-contract.sh`, `scripts/setup-play-deploy-secrets.sh`, `scripts/setup-discord-deploy-secrets.sh`, `scripts/play_version_code_guard.py`, `scripts/release_provenance_manifest.py`, `scripts/verify_lint_registry.py`, `scripts/check_workflow_gradle_tasks.py`), `scripts/tests/**`, `.github/workflows/**`, `docs/**`, `**/*.md`, or manual | `Workflow syntax lint` runs `actionlint` for every `.github/workflows/**` change. For release/CI/CD workflow 변경 PR (`android-ci.yml`, `release-qa.yml`, `release-build.yml`, `play-deploy.yml`, `version-guard.yml`), Ops CI must also materialize `Docs/runbook contract tests`; actionlint-only green은 YAML 문법 확인일 뿐이고 contract-test green이 operator docs/runbook/source-of-truth drift까지 검증한다. `Docs/runbook contract tests` is a lightweight gate for runbook/source-of-truth drift and runs selected Python contract tests (`scripts.tests.test_play_deploy_secret_contract_runbook`, `scripts.tests.test_release_build_workflow_scope`, `scripts.tests.test_release_qa_runtime_gate_docs`, `scripts.tests.test_android_ci_runtime_smoke_docs`, `scripts.tests.test_release_guard_hotfix_sync`, `scripts.tests.test_release_provenance_workflow_contract`, `scripts.tests.test_acquisition_attribution_docs_contract`, `scripts.tests.test_review_prompt_post_release_followthrough_docs`, `scripts.tests.test_branch_hygiene_policy`, `scripts.tests.test_ops_ci_workflow`, `scripts.tests.test_actionlint_gate`) without `npm ci`, Gradle, or emulator work. Functions and release-helper jobs remain path-classified: Firebase Functions `npm ci`/`npm run lint`/`npm test` runs for `functions/**`, while Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, staged rollout validator syntax `node --check scripts/validate-play-rollout-inputs.js`, release-helper guardrail Python tests `python3 -m unittest discover -s scripts/tests -p 'test_*.py'` including `scripts.tests.test_android_manifest_contract` and `scripts.tests.test_workflow_gradle_task_guard`, release-helper shell syntax `bash -n ...`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py`, plus release provenance manifest script compile `python3 -m py_compile scripts/release_provenance_manifest.py`, run for release-helper/script surfaces. |
 | Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate first runs static policy tests including `scripts.tests.test_android_manifest_contract` for sensitive permissions, exported components, AccessibilityService metadata, and backup/data-extraction XML scope, then `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. |
 | Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Signed prod release AAB artifact. Before the signed AAB is built it runs `:app:lintProdRelease` plus `scripts/verify_lint_registry.py` against the prodRelease lint report. No Play upload. Direct push to `main` does not trigger signed artifact generation; use release/hotfix PR gates or explicit manual dispatch from an allowed release ref. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded. |
 | CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production build/upload runs signed AAB build + Google Play upload, after `:app:lintProdRelease` and prodRelease lint registry verification. Production promotion uses an existing internal release and does not run `:app:lintProdRelease`, build, or upload a new AAB. |
@@ -69,6 +69,8 @@ Play deploy secret/setup contract:
 
 자동 검증: `.github/workflows/branch-hygiene.yml`가 PR 브랜치 이름과 PR 대상 브랜치를 검사한다.
 
+Automation lane 브랜치인 `automation/*`는 PR head prefix가 아니라 **로컬 lane/worktree 안정 브랜치 전용(local lane stable branch)**이다. 예를 들어 docs lane은 `automation/stopit-docs-lane`에서 최신 `origin/develop`을 따라가다가, reviewable 작업을 만들 때는 `docs/issue-629-branch-hygiene-policy`처럼 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...` 브랜치를 새로 만든다. `automation/*`를 PR head로 열면 Branch Hygiene가 의도적으로 실패해야 한다.
+
 ## PR Routing Rules
 
 | Head branch | Base branch | 이유 |
@@ -76,6 +78,8 @@ Play deploy secret/setup contract:
 | `feature/*`, `fix/*`, `refactor/*`, `docs/*`, `test/*`, `ci/*`, `chore/*` | `develop` | 일반 개발 통합 |
 | `release/*` | `main` | 릴리즈 후보를 프로덕션 기준선으로 승격 |
 | `hotfix/*` | `main` | 긴급 수정 우선 배포 |
+
+로컬 lane/worktree 안정 브랜치(`automation/stopit-docs-lane`, `automation/stopit-qa-lane`, `automation/stopit-code-lane`, `automation/stopit-merge-lane`, `automation/stopit-release-lane`)는 위 PR routing table에 포함하지 않는다. lane cron은 stable automation branch를 기준선으로만 사용하고, 실제 PR은 변경 성격에 맞는 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` head branch에서 만든다.
 
 릴리즈/핫픽스가 `main`에 들어간 뒤에는 반드시 `main -> develop` 역머지를 해서 두 브랜치를 동기화한다.
 
@@ -181,6 +185,7 @@ scripts/release-tag.sh 1.7.2
 - 현재 브랜치가 `main`인지 확인
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
+- tag 생성 전 `README.md 현재 버전 라인`이 `app/build.gradle.kts`의 `versionName/versionCode`와 일치하는지 최종 확인
 - `v1.7.2` 태그 생성 및 push
 - GitHub Actions CD가 `scripts/validate-play-deploy-ref.sh`로 태그가 `origin/main`에서 온 SemVer release tag인지, 직전 SemVer production marker가 있는지 다시 검증한 뒤 Google Play internal track 업로드 실행
 
@@ -197,7 +202,7 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 - 현재 브랜치의 git working tree clean 여부 확인
 - 버전 형식 확인
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
-- `actionlint`가 있으면 workflow 문법 확인
+- `ACTIONLINT_VERSION=1.7.12`에 맞춘 `actionlint` workflow 문법 확인. `actionlint`가 없거나 설치된 `actionlint --version`이 pinned `1.7.12`와 다르면 release readiness는 skip하지 않고 중단하므로, 로컬 preflight 전에 같은 pinned version을 설치한 뒤 재시도한다.
 - `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
 
 ## Standard Development Flow
@@ -221,7 +226,7 @@ gh pr create --base develop --fill
 
 ## Flavor-aware Gradle Verification Matrix
 
-`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다.
+`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다. GitHub Actions workflow 안에서는 variant만 명시한 root task inference(`testDevDebugUnitTest`, `lintDevDebug`, `assembleProdDebug`, `connectedDevDebugAndroidTest` 등)도 금지하고, 반드시 `:app:` module-qualified task를 사용합니다.
 
 | 상황 | 권장 명령 | 비고 |
 | --- | --- | --- |

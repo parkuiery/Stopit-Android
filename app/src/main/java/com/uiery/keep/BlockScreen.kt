@@ -1,5 +1,6 @@
 package com.uiery.keep
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -126,6 +127,11 @@ internal fun BlockScreenContent(
     modifier: Modifier = Modifier,
     showBannerAd: Boolean = true,
 ) {
+    BackHandler(enabled = true) {
+        // Keep the protection surface in front. The explicit close CTA remains the
+        // allowed way to leave the blocked app by sending the user Home.
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()

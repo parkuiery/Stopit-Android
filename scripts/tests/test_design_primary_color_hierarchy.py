@@ -50,6 +50,26 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("Refs #468", text)
         self.assertIn("visual QA", text)
 
+    def test_visual_qa_closure_template_keeps_external_boundaries_explicit(self):
+        text = HIERARCHY_DOC.read_text()
+
+        for expected in [
+            "## Visual QA / release closure evidence template",
+            "Home / TopAppBar",
+            "LockHistory / BlockedApps",
+            "Routine / Routine bottom sheet",
+            "Emergency Unlock settings / bottom sheet",
+            "Goal Lock creation/detail",
+            "light/dark mode",
+            "TalkBack/contentDescription spot-check",
+            "release/tag/Play deploy",
+            "사용자 노출 후 확인",
+            "Closes #468",
+        ]:
+            self.assertIn(expected, text)
+
+        self.assertIn("visual QA와 release evidence가 없으면 PR/이슈 코멘트는 `Refs #468`로 유지한다", text)
+
     def test_docs_agents_links_primary_color_hierarchy(self):
         text = DOCS_AGENTS.read_text()
 

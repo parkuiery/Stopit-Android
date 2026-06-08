@@ -6,7 +6,7 @@ Issue: #467
 
 긴급 해제 플로우는 StopIt의 안전장치이면서도 사용자가 습관적 해제를 한 번 멈춰 생각하게 만드는 자기통제 장치다. 이 문서는 `EmergencyUnlockBottomSheetContent`의 reason → app selection → duration → countdown 흐름을 **짧게 스캔 가능한 선택 + 신중히 쓰는 예외 기능** 경험으로 다듬기 위한 copy, 단계, analytics, locale, QA 계약을 고정한다.
 
-이 문서는 #467의 source of truth다. PR #488은 문서/QA 계약을 고정했고, PR #517(`572eb559`)은 `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, shipped `strings.xml` locale parity, 관련 JVM/lint/build 검증으로 reason/app/duration 단계 helper·validation copy 구현을 `develop`에 반영했다. PR #575(`1a7c677`)는 reason-required ON/OFF 실제 Compose flow를 `EmergencyUnlockBottomSheetContentIntegrationTest`로 고정해 `기타` custom reason validation, app selection, duration chip, countdown 완료 callback payload를 emulator baseline으로 추가했다. 이제 이 문서는 code-lane 구현 전 handoff가 아니라 **develop에 반영된 구현+자동 UI QA baseline 상태 + 남은 release/device/readback 경계**를 고정한다. `origin/main`/SemVer tag/Play deploy, 실제 기기/screenshot/TalkBack spot-check, 14일 readback이 끝나기 전까지 follow-up PR body는 `Refs #467`를 사용한다.
+이 문서는 #467의 source of truth다. PR #488은 문서/QA 계약을 고정했고, PR #517(`572eb559`)은 `EmergencyUnlockBottomSheetContent.kt`, `EmergencyUnlockBottomSheetState`, shipped `strings.xml` locale parity, 관련 JVM/lint/build 검증으로 reason/app/duration 단계 helper·validation copy 구현을 `develop`에 반영했다. PR #575(`1a7c677`)는 reason-required ON/OFF 실제 Compose flow를 `EmergencyUnlockBottomSheetContentIntegrationTest`로 고정해 `기타` custom reason validation, app selection, duration chip, countdown 완료 callback payload를 emulator baseline으로 추가했다. PR #593(`79fdee8`)는 countdown TalkBack baseline을 추가해 waiting copy, 남은 초, cancel affordance가 하나의 접근성 상태로 읽히는지 focused Compose instrumentation으로 고정했다. PR #604(`3e97f548`)는 selected reason reflection helper와 shipped locale parity를 실제 UI/resource/test baseline으로 보강하되 기존 reason enum payload key는 유지하도록 고정했다. 이제 이 문서는 code-lane 구현 전 handoff가 아니라 **develop에 반영된 구현+자동 UI QA baseline+countdown TalkBack baseline+selected reason reflection helper 상태 + 남은 release/device/readback 경계**를 고정한다. `origin/main`/SemVer tag/Play deploy, 실제 기기/screenshot/TalkBack spot-check, 14일 readback이 끝나기 전까지 follow-up PR body는 `Refs #467`를 사용한다.
 
 ## 현재 구현 표면
 
@@ -21,7 +21,8 @@ Issue: #467
   - `boredom`
   - `other`
 - PR #517로 반영된 구조:
-  - reason step: 짧은 reason label + 상단 helper + `기타` 입력 validation helper + disabled `다음` 설명.
+  - reason step: 짧은 reason label + 상단 helper + 선택 후 의도별 reflection helper + `기타` 입력 validation helper + disabled `다음` 설명.
+  - selected reason reflection helper는 표시 카피만 보강하며 기존 `work` / `contact` / `info` / `habit` / `boredom` / `other` payload key를 바꾸지 않는다.
   - app step: 필요한 앱만 선택한다는 helper + zero-selection validation helper + disabled `다음` 설명.
   - duration step: 필요한 만큼만 선택한다는 helper + `해제 요청`.
   - countdown step: 짧은 reconsideration window로 읽히는 countdown copy + 취소.
@@ -29,11 +30,13 @@ Issue: #467
 - PR #575로 반영된 자동 UI QA baseline:
   - `EmergencyUnlockBottomSheetContentIntegrationTest`가 reason-required ON 실제 Compose flow에서 `기타` reason 선택, custom reason validation, app selection, duration chip 선택, countdown 완료 후 `reason=other` payload와 selected app/duration 전달을 검증한다.
   - 같은 test class가 reason-required OFF flow를 유지해 reason step 없이 app selection → duration → countdown으로 이어지는 경로를 검증한다.
+  - PR #593(`79fdee8`) 이후 countdown step은 TalkBack content description에서 waiting copy, 남은 초, cancel affordance를 함께 노출해야 하며, 이를 `countdownStepExposesTalkBackDescriptionWithRemainingSecondsAndCancelHint`가 검증한다.
+  - PR #604(`3e97f548`) 이후 selected reason reflection helper는 선택한 reason의 display copy를 보강하지만 `emergency_unlock_completed.reason` payload는 기존 enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`)로 유지한다.
   - 이 baseline은 emulator/Compose 자동 증거이며, 실제 기기 screenshot·TalkBack spot-check를 대체하지 않는다.
 - 남은 UX 리스크:
   - 실제 기기/screenshot QA에서 helper/validation copy가 광고 영역·CTA·bottom sheet height 안에서 읽히는지 확인해야 한다.
   - TalkBack/접근성에서 reason/app/duration helper와 disabled reason이 색상 의존 없이 전달되는지 확인해야 한다.
-  - `origin/main`/SemVer tag/Play deploy 전까지 live 지표 0건 또는 변화 없음은 post-#517/#575 성과로 해석하면 안 된다.
+  - `origin/main`/SemVer tag/Play deploy 전까지 live 지표 0건 또는 변화 없음은 post-#517/#575/#593/#604 성과로 해석하면 안 된다.
 
 ## 제품 원칙
 
@@ -50,7 +53,7 @@ Issue: #467
 | 단계 | 역할 | 권장 copy 방향 | 금지/주의 |
 | --- | --- | --- | --- |
 | Reason | 해제 의도 self-check | 제목: `정말 필요한 경우에만 잠깐 열 수 있어요` / helper: `가장 가까운 이유를 골라주세요` | `왜 실패했나요?`, `중독`, `참지 못함` 같은 낙인 톤 |
-| Reason option | 빠른 스캔 | `업무/공부`, `긴급 연락`, `정보 확인`, `습관`, `지루함/스트레스`, `기타` 같은 short label | 기존 enum key를 표시 카피와 함께 변경 |
+| Reason option | 빠른 스캔 | `업무/공부`, `긴급 연락`, `정보 확인`, `습관`, `지루함/스트레스`, `기타` 같은 short label + 선택 후 짧은 reflection helper | 기존 enum key를 표시 카피와 함께 변경 |
 | Other reason | 자유 입력 | optional short note. analytics 원문 전송 금지 명시 | 원문을 GA4 dimension으로 보낼 수 있다는 오해 |
 | Apps | 범위 제한 | `잠깐 열 앱만 선택하세요` / 선택 0개 helper | 모든 차단 앱을 기본 전체 해제로 오해시키는 copy |
 | Duration | 시간 제한 | `필요한 만큼만 선택하세요` / duration option은 분 단위 명확 | 긴 시간을 권장하는 tone |
@@ -128,7 +131,7 @@ python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v
 ./gradlew --console=plain :app:assembleProdDebug
 ```
 
-후속 QA PR부터 `EmergencyUnlockBottomSheetContentIntegrationTest`는 reason-required ON/OFF 양쪽의 실제 Compose flow를 고정한다. PR #575(`1a7c677`) 기준 이 테스트는 `기타` reason custom input validation, app selection disabled helper, duration chip selection, countdown 완료 후 `emergency_unlock_completed.reason` enum payload(`other` 또는 reason-not-required sentinel)와 duration/app set 전달을 emulator에서 검증한다. 따라서 다음 docs/QA follow-up은 “자동 UI baseline 부재”가 아니라 실제 기기 screenshot·TalkBack spot-check, release inclusion, 14일 readback 경계를 대상으로 삼는다.
+후속 QA PR부터 `EmergencyUnlockBottomSheetContentIntegrationTest`는 reason-required ON/OFF 양쪽의 실제 Compose flow를 고정한다. PR #575(`1a7c677`) 기준 이 테스트는 `기타` reason custom input validation, app selection disabled helper, duration chip selection, countdown 완료 후 `emergency_unlock_completed.reason` enum payload(`other` 또는 reason-not-required sentinel)와 duration/app set 전달을 emulator에서 검증한다. PR #593(`79fdee8`) 기준 countdown TalkBack baseline은 waiting copy, remaining seconds, cancel affordance가 하나의 content description으로 함께 노출되는지 검증한다. PR #604(`3e97f548`) 기준 selected reason reflection helper는 화면 copy/resource baseline에 포함되지만 analytics payload는 display label/custom text가 아니라 기존 enum key로 유지한다. 따라서 다음 docs/QA follow-up은 “자동 UI baseline 부재”가 아니라 실제 기기 screenshot·TalkBack spot-check, release inclusion, 14일 readback 경계를 대상으로 삼는다.
 
 ### Runtime / screenshot QA evidence template
 
@@ -191,17 +194,29 @@ PR #575(`1a7c677`)로 아래 repo-internal QA baseline도 `develop`에 반영됐
 - reason-required OFF에서 reason step 없이 app selection부터 시작해 duration/countdown/callback으로 이어지는 경로를 유지한다.
 - 검증: focused `EmergencyUnlockBottomSheetContentIntegrationTest` 3개, focused state JVM test, androidTest compile, `:app:assembleProdDebug`, 문서 계약 테스트, `git diff --check`.
 
+PR #593(`79fdee8`)로 countdown TalkBack baseline도 `develop`에 반영됐다.
+
+- `EmergencyUnlockBottomSheetContentIntegrationTest#countdownStepExposesTalkBackDescriptionWithRemainingSecondsAndCancelHint`가 countdown content description을 focused Compose instrumentation으로 검증한다.
+- TalkBack은 countdown waiting copy, 남은 초, cancel affordance를 한 상태로 읽어야 하며, 화면에 보이는 countdown copy와 취소 affordance를 접근성 label이 따로 누락하지 않아야 한다.
+- 검증: focused countdown TalkBack instrumentation, 전체 `EmergencyUnlockBottomSheetContentIntegrationTest`, `:app:lintProdRelease`, 문서 계약 테스트, `git diff --check`.
+
+PR #604(`3e97f548`)로 selected reason reflection helper baseline도 `develop`에 반영됐다.
+
+- selected reason별 reflection helper가 reason step 선택 후 intentional use를 보강한다.
+- helper copy/resource/locale parity는 UI 표시 계약이며, `emergency_unlock_completed.reason` payload key는 기존 enum key를 유지한다.
+- 검증: focused Compose UI baseline, locale/resource parity, 문서 계약 테스트, `git diff --check`.
+
 후속 code/QA/release가 #467을 이어갈 때는 다음 순서를 따른다.
 
 1. 실제 기기/screenshot QA에서 reason required ON/OFF, app selection, duration, countdown 상태를 촬영/기록한다.
 2. TalkBack/접근성에서 helper/disabled reason이 읽히는지 확인한다.
-3. release PR/tag/Play deploy에 #517/#575 merge commit이 포함됐는지 확인한 뒤 14일 readback 창을 시작한다.
+3. release PR/tag/Play deploy에 #517/#575/#593/#604 merge commit이 포함됐는지 확인한 뒤 14일 readback 창을 시작한다.
 4. analytics 해석에서는 `emergency_unlock_completed.reason`이 enum key를 유지하고 custom reason 원문을 payload/query 축으로 확장하지 않는지 계속 확인한다.
 5. PR body에는 `Refs #467`를 사용한다. `Closes #467`는 실제 기기/screenshot QA, release/tag/Play deploy 포함 여부, 14일 readback 또는 대표님이 인정한 closure boundary가 확인됐을 때만 사용한다.
 
 ## 남은 외부/후속 경계
 
-- docs-lane 계약, PR #517 code-lane UI/resource/test 변경, PR #575 Compose UI QA baseline은 `develop`에 반영됐다.
-- #467 완료에는 실제 기기/screenshot QA에서 bottom sheet visual hierarchy, countdown wording, TalkBack/disabled helper 전달을 확인해야 한다.
-- GA4/Play readback은 copy 변경과 UI QA baseline 포함 release/tag/Play deploy 후 14일 이상 지나야 해석한다.
+- docs-lane 계약, PR #517 code-lane UI/resource/test 변경, PR #575 Compose UI QA baseline, PR #593 countdown TalkBack baseline, PR #604 selected reason reflection helper baseline은 `develop`에 반영됐다.
+- #467 완료에는 실제 기기/screenshot QA에서 bottom sheet visual hierarchy, countdown wording, TalkBack/disabled helper 전달을 확인해야 한다. 자동 countdown TalkBack baseline은 접근성 contract를 고정하지만 실제 기기/screenshot/TalkBack evidence를 대체하지 않는다.
+- GA4/Play readback은 copy 변경과 UI/TalkBack QA baseline 포함 release/tag/Play deploy 후 14일 이상 지나야 해석한다.
 - emergency unlock policy 자체(일일 횟수, strong/manual refill mode, duration option policy)를 바꾸는 결정은 #467 밖 follow-up으로 분리한다.

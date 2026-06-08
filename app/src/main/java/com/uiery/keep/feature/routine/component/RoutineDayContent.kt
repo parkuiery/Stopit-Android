@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,8 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.formatWeekdayShort
 import java.time.DayOfWeek
-import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
@@ -33,6 +34,8 @@ fun RoutineDayContent(
     selectDays: List<DayOfWeek>,
     onSelectDay: (DayOfWeek) -> Unit,
 ) {
+    val appLocale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+
     RoutineSettingCard(
         modifier = modifier.fillMaxWidth(),
         topContent = {
@@ -53,7 +56,7 @@ fun RoutineDayContent(
                 DayOfWeek.entries.forEach { day ->
                     DayButton(
                         modifier = Modifier.weight(1f),
-                        text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                        text = formatWeekdayShort(day, appLocale),
                         isSelect = selectDays.contains(day),
                         onSelect = { onSelectDay(day) }
                     )

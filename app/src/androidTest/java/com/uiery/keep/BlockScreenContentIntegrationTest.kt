@@ -3,18 +3,22 @@ package com.uiery.keep
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 
 class BlockScreenContentIntegrationTest {
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
@@ -69,6 +73,37 @@ class BlockScreenContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_daily_limit_reached)).assertIsDisplayed()
         composeRule.onNodeWithTag("block_screen_emergency_unlock_helper").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_daily_limit_reached_helper)).assertIsDisplayed()
+        composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun repeatedSystemBackDoesNotDismissTheProtectionScreen() {
+        var closeCount = 0
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    uiState = BlockUiState(),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onClose = { closeCount += 1 },
+                )
+            }
+        }
+
+        repeat(3) {
+            composeRule.runOnUiThread {
+                composeRule.activity.onBackPressedDispatcher.onBackPressed()
+            }
+            composeRule.waitForIdle()
+        }
+
+        assertEquals("System back must not trigger the allowed close path", 0, closeCount)
+        assertNotEquals(
+            "System back must be consumed so the blocking Activity stays visible",
+            Lifecycle.State.DESTROYED,
+            composeRule.activity.lifecycle.currentState,
+        )
         composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
     }
 }

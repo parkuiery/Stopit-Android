@@ -147,6 +147,7 @@ def verify(args: argparse.Namespace) -> int:
 
     _expect("schema_version", manifest.get("schema_version"), SCHEMA_VERSION)
     _expect("package_name", manifest.get("package_name"), args.package_name)
+    _expect("artifact_name", manifest.get("artifact_name"), args.artifact_name)
     if not args.allow_artifact_path_relocation:
         _expect("artifact.path", manifest.get("artifact", {}).get("path"), aab.as_posix())
     _expect("artifact.file_name", manifest.get("artifact", {}).get("file_name"), aab.name)
@@ -157,12 +158,26 @@ def verify(args: argparse.Namespace) -> int:
     _expect("android.version_code", manifest.get("android", {}).get("version_code"), version_code)
     if args.expected_version_code is not None:
         _expect("android.version_code", manifest.get("android", {}).get("version_code"), args.expected_version_code)
-    if args.expected_git_sha:
-        _expect("git.sha", manifest.get("git", {}).get("sha"), args.expected_git_sha)
-    if args.expected_git_ref:
-        _expect("git.ref", manifest.get("git", {}).get("ref"), args.expected_git_ref)
-    if args.expected_git_ref_name:
-        _expect("git.ref_name", manifest.get("git", {}).get("ref_name"), args.expected_git_ref_name)
+    _expect("git.sha", manifest.get("git", {}).get("sha"), args.expected_git_sha or _nullable(os.environ.get("GITHUB_SHA")))
+    _expect("git.ref", manifest.get("git", {}).get("ref"), args.expected_git_ref or _nullable(os.environ.get("GITHUB_REF")))
+    _expect("git.ref_name", manifest.get("git", {}).get("ref_name"), args.expected_git_ref_name or _nullable(os.environ.get("GITHUB_REF_NAME")))
+    _expect("git.ref_type", manifest.get("git", {}).get("ref_type"), _nullable(os.environ.get("GITHUB_REF_TYPE")))
+    _expect(
+        "github_actions.workflow",
+        manifest.get("github_actions", {}).get("workflow"),
+        _nullable(os.environ.get("GITHUB_WORKFLOW")),
+    )
+    _expect(
+        "github_actions.run_id",
+        manifest.get("github_actions", {}).get("run_id"),
+        _nullable(os.environ.get("GITHUB_RUN_ID")),
+    )
+    _expect(
+        "github_actions.run_attempt",
+        manifest.get("github_actions", {}).get("run_attempt"),
+        _nullable(os.environ.get("GITHUB_RUN_ATTEMPT")),
+    )
+    _expect("github_actions.run_url", manifest.get("github_actions", {}).get("run_url"), _run_url())
     _expect("play.upload_mode", manifest.get("play", {}).get("upload_mode"), args.upload_mode)
     _expect("play.track", manifest.get("play", {}).get("track"), _nullable(args.track))
     _expect(
@@ -198,6 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ver = subparsers.add_parser("verify", parents=[common])
     ver.add_argument("--manifest", required=True)
+    ver.add_argument("--artifact-name", required=True)
     ver.add_argument("--expected-version-code", type=int)
     ver.add_argument("--expected-git-sha", default="")
     ver.add_argument("--expected-git-ref", default="")
