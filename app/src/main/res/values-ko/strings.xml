@@ -80,6 +80,7 @@
     <string name="goal_lock_creation_lock_mode_weekday_evening">평일 저녁 잠금</string>
     <string name="goal_lock_creation_current_mode_all_day">현재 방식: 하루종일 잠금</string>
     <string name="goal_lock_creation_current_mode_scheduled">현재 방식: %1$d일 %2$s~%3$s</string>
+    <string name="goal_lock_creation_invalid_scheduled_time">예약 목표 잠금은 시작 시간과 종료 시간을 다르게 설정해야 해요.</string>
     <string name="goal_lock_creation_selected_apps_helper">선택 앱 %1$d개가 목표 잠금에 사용됩니다. 홈 선택을 다시 불러오거나 이 목표에서만 뺄 앱을 조정할 수 있어요.</string>
     <string name="goal_lock_creation_reload_current_selection">홈 선택 다시 불러오기</string>
     <string name="goal_lock_creation_open_app_picker">앱 선택 화면에서 조정</string>
