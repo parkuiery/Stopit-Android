@@ -96,6 +96,7 @@ class RoutineBottomSheetViewModelTest {
         awaitState(viewModel) { it.name == "Morning focus" }
         viewModel.editRoutine(7L)
         awaitUntil { routineDao.updatedEntity != null }
+        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
         awaitRoutineCancelled(routineScheduler, 7L)

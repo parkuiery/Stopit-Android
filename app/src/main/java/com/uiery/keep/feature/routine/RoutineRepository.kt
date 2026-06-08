@@ -10,6 +10,7 @@ import javax.inject.Inject
 
 interface RoutineRepository {
     fun fetchAll(): Flow<List<RoutineModel>>
+    suspend fun fetchAllOnce(): List<RoutineModel> = unsupportedMutationBoundary()
     suspend fun fetch(id: Long): RoutineModel = unsupportedMutationBoundary()
     suspend fun insert(routine: RoutineModel): Long = unsupportedMutationBoundary()
     suspend fun update(routine: RoutineModel): Unit = unsupportedMutationBoundary()
@@ -25,6 +26,8 @@ class RoomRoutineRepository @Inject constructor(
 ) : RoutineRepository {
     override fun fetchAll(): Flow<List<RoutineModel>> =
         routineDao.fetchAll().map { routines -> routines.map { it.toModel() } }
+
+    override suspend fun fetchAllOnce(): List<RoutineModel> = routineDao.fetchAllOnce().map { it.toModel() }
 
     override suspend fun fetch(id: Long): RoutineModel = routineDao.fetch(id).toModel()
 

@@ -12,6 +12,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
         for expected in (
             "#520",
             "LockHistoryRepository",
+            "LockHistorySessionWriter",
             "LockHistoryRecorder",
             "LockHistoryViewModel",
             "BlockedAppsViewModel",
@@ -27,7 +28,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "RoutineViewModel",
             "Room DAO 직접 import",
             "허용 경계",
-            "남은 인벤토리",
+            "Closure audit",
         ):
             self.assertIn(expected, text)
 
@@ -41,3 +42,10 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "RoutineRepository",
         ):
             self.assertIn(expected, text)
+
+    def test_doc_records_closure_audit_instead_of_stale_followup_inventory(self):
+        text = DOC.read_text(encoding="utf-8")
+        self.assertIn("Closure audit", text)
+        self.assertIn("repo-internal DAO boundary package is complete", text)
+        self.assertIn("future regression 발견 시", text)
+        self.assertNotIn("직접 DAO 의존은 아직 #520의 후속 패키지 대상", text)

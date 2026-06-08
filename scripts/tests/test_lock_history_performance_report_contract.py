@@ -1,13 +1,51 @@
 import pathlib
 import unittest
+import xml.etree.ElementTree as ET
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs"
 
+LOCK_HISTORY_PERFORMANCE_LOCALE_KEYS = [
+    "lock_history_top_apps_empty_supporting",
+    "lock_history_top_apps_positive_supporting",
+    "lock_history_performance_sessions_supporting",
+    "lock_history_performance_month_headline",
+    "lock_history_performance_week_headline",
+    "lock_history_performance_low_data_supporting",
+    "lock_history_performance_low_data_headline",
+    "lock_history_performance_empty_supporting",
+    "lock_history_performance_empty_month_headline",
+    "lock_history_performance_empty_week_headline",
+    "lock_history_top_apps_title",
+]
+
+SHIPPED_NON_DEFAULT_LOCALES = [
+    "values-de",
+    "values-es",
+    "values-fr",
+    "values-it",
+    "values-ja",
+    "values-nl",
+    "values-pt",
+    "values-pt-rBR",
+    "values-ru",
+    "values-zh",
+]
+
 
 def read(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _android_strings(values_dir: str) -> dict[str, str]:
+    strings_path = ROOT / "app" / "src" / "main" / "res" / values_dir / "strings.xml"
+    root = ET.parse(strings_path).getroot()
+    return {
+        element.attrib["name"]: "".join(element.itertext())
+        for element in root.findall("string")
+        if "name" in element.attrib
+    }
 
 
 class LockHistoryPerformanceReportContractTest(unittest.TestCase):
@@ -32,7 +70,13 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "top_apps_count_bucket",
             "PR #485 read-model·UI 구현 develop 반영",
             "code-lane instrumentation 추가",
-            "PR #566 TalkBack 자동 baseline develop 반영",
+            "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영",
+            "rank/app label/block count/duration",
+            "PR #579",
+            "f4b499baf9ccb42102fe29be71ee386a310e6fb3",
+            "PR #637",
+            "3d8e8d73b1cdba566a49b554fc6f255bed9aceb9",
+            "shipped non-default locale copy localization",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -70,6 +114,9 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("PR #485", ga4)
         self.assertIn("PR #566", dictionary)
         self.assertIn("PR #566", ga4)
+        self.assertIn("PR #579", dictionary)
+        self.assertIn("PR #579", ga4)
+        self.assertIn("rank/app label/block count/duration", dictionary)
         self.assertIn("code-lane instrumentation", dictionary)
         self.assertIn("code-lane instrumentation", ga4)
 
@@ -91,6 +138,21 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("#211 공유 CTA", dashboard)
         self.assertIn("개인 성과 해석/재방문 동기", dashboard)
         self.assertIn("PR #566", dashboard)
+        self.assertIn("PR #579", dashboard)
+
+    def test_shipped_locale_copy_does_not_leave_performance_report_in_english(self):
+        default_strings = _android_strings("values")
+
+        for locale in SHIPPED_NON_DEFAULT_LOCALES:
+            locale_strings = _android_strings(locale)
+            for key in LOCK_HISTORY_PERFORMANCE_LOCALE_KEYS:
+                with self.subTest(locale=locale, key=key):
+                    self.assertIn(key, locale_strings)
+                    self.assertNotEqual(
+                        default_strings[key],
+                        locale_strings[key],
+                        f"{locale}/{key} must not ship the default English #465 copy",
+                    )
 
     def test_runtime_qa_checklist_has_repeatable_evidence_template(self):
         checklist = read("docs/QA_RUNTIME_CHECKLIST.md")
@@ -107,6 +169,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "shame/friction wording absent",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
             "LockHistoryPerformanceReportAccessibilityTest",
+            "top app rank/app label/block count/duration",
             "focused contentDescription regression passed",
         ]
         for phrase in required_phrases:
@@ -126,6 +189,10 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
 
         self.assertIn("PR #485", source)
         self.assertIn("PR #566", source)
+        self.assertIn("PR #579", source)
+        self.assertIn("PR #637", source)
+        self.assertIn("shipped non-default locale copy localization", source)
+        self.assertIn("default English copy 잔존 방지", source)
         self.assertIn("develop`에 반영", source)
         self.assertIn("release/tag/Play deploy", source)
         self.assertIn("14일/30일 readback", source)

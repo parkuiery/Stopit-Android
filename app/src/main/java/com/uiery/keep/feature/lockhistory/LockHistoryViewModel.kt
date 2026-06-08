@@ -32,6 +32,7 @@ class LockHistoryViewModel @Inject constructor(
     private val routineRepository: RoutineRepository,
     private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
     private val analytics: KeepAnalytics,
+    private val focusSummaryShareTextProvider: FocusSummaryShareTextProvider,
 ) : ContainerHost<LockHistoryUiState, LockHistorySideEffect>, ViewModel() {
 
     override val container: Container<LockHistoryUiState, LockHistorySideEffect> =
@@ -120,6 +121,7 @@ class LockHistoryViewModel @Inject constructor(
                     periodType = state.periodType,
                     sessionCount = summary.sessionCount,
                     totalDurationMillis = summary.totalDurationMillis,
+                    textProvider = focusSummaryShareTextProvider,
                 ),
                 repeatBlockRoutineSuggestion = suggestion,
             )

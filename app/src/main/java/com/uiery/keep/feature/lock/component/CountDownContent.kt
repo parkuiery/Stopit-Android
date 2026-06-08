@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,10 @@ import com.uiery.keep.util.formatHourAwareCountdown
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.ZoneId
+
+private const val SECONDS_PER_DAY = 86_400
+
+internal fun countdownDayPrefixCount(totalSeconds: Int): Int = totalSeconds / SECONDS_PER_DAY
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -50,9 +55,9 @@ fun CountDownContent(
         }
     }
 
-    val days = remember(seconds) { seconds / 86400 }
+    val days = remember(seconds) { countdownDayPrefixCount(seconds) }
     val formattedTime = remember(seconds) {
-        formatHourAwareCountdown(seconds % 86400)
+        formatHourAwareCountdown(seconds % SECONDS_PER_DAY)
     }
 
     Row(
@@ -68,7 +73,11 @@ fun CountDownContent(
                 label = "days"
             ) { d ->
                 Text(
-                    text = "${d}일 ",
+                    text = pluralStringResource(
+                        id = R.plurals.countdown_day_prefix,
+                        count = d,
+                        d,
+                    ),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KeepTheme.colors.onSurfaceVariant,

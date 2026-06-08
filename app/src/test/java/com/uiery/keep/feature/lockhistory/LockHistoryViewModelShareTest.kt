@@ -43,6 +43,7 @@ class LockHistoryViewModelShareTest {
                 ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViews)
@@ -104,6 +105,7 @@ class LockHistoryViewModelShareTest {
                 ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         waitForHistoryLoad(viewModel)
@@ -123,6 +125,7 @@ class LockHistoryViewModelShareTest {
                 LockHistoryDaoWithSessions(emptyList()),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         waitForAnalyticsEventCount(analytics, 1)
@@ -147,11 +150,13 @@ class LockHistoryViewModelShareTest {
     private fun createViewModel(
         lockHistoryRepository: LockHistoryRepository,
         analytics: RecordingLockHistoryAnalytics,
+        focusSummaryShareTextProvider: FocusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
     ): LockHistoryViewModel = LockHistoryViewModel(
         lockHistoryRepository = lockHistoryRepository,
         routineRepository = EmptyLockHistoryRoutineRepository(),
         repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(FakeDataStore(mutablePreferencesOf())),
         analytics = analytics,
+        focusSummaryShareTextProvider = focusSummaryShareTextProvider,
     )
 
     private suspend fun waitForHistoryLoad(viewModel: LockHistoryViewModel) {
@@ -186,6 +191,11 @@ class LockHistoryViewModelShareTest {
             isRoutine = false,
         )
     }
+}
+
+private class FakeFocusSummaryShareTextProvider : FocusSummaryShareTextProvider {
+    override fun buildText(request: FocusSummaryShareTextRequest): String =
+        "Focus summary ${request.sessionCount} sessions / ${request.durationMinutes} minutes\n${request.playStoreUrl}"
 }
 
 private open class LockHistoryDaoWithSessions(

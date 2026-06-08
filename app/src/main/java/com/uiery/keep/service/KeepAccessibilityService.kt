@@ -10,13 +10,13 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -27,6 +27,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.LocalDateTime
 import kotlin.coroutines.CoroutineContext
 
 class KeepAccessibilityService :
@@ -39,9 +41,9 @@ class KeepAccessibilityService :
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface RoutineRuntimeEntryPoint {
-        fun routineDao(): RoutineDao
+        fun routineRepository(): RoutineRepository
 
-        fun goalLockDao(): GoalLockDao
+        fun goalLockRepository(): GoalLockRepository
 
         fun blockingStateStore(): BlockingStateStore
 
@@ -65,6 +67,7 @@ class KeepAccessibilityService :
     private var emergencyUnlockExpiryRunnable: Runnable? = null
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
+    private var routineStartReevaluationRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -99,24 +102,26 @@ class KeepAccessibilityService :
             }
         }
         launch {
-            entryPoint.routineDao().fetchAll()
+            entryPoint.routineRepository().fetchAll()
                 .catch {
                     cachedRoutines = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextRoutineStartReevaluation(emptyList())
                 }
-                .collect { routineEntities ->
-                    cachedRoutines = routineEntities.map { it.toModel() }
+                .collect { routines ->
+                    cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextRoutineStartReevaluation(routines)
                 }
         }
         launch {
-            entryPoint.goalLockDao().fetchAll()
+            entryPoint.goalLockRepository().fetchAll()
                 .catch {
                     cachedGoalLocks = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
-                .collect { goalLockEntities ->
-                    cachedGoalLocks = goalLockEntities.map { it.toDomain() }
+                .collect { goalLocks ->
+                    cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
@@ -181,6 +186,20 @@ class KeepAccessibilityService :
             FOREGROUND_REEVALUATION_RETRY_DELAYS_MS.forEach { delayMillis ->
                 handler.postDelayed({ reevaluateCurrentForegroundOnce() }, delayMillis)
             }
+        }
+    }
+
+    private fun scheduleNextRoutineStartReevaluation(routines: List<RoutineModel>) {
+        handler.post {
+            routineStartReevaluationRunnable?.let(handler::removeCallbacks)
+            routineStartReevaluationRunnable = null
+            val delayMillis = nextRoutineStartReevaluationDelayMillis(routines) ?: return@post
+            val runnable = Runnable {
+                reevaluateCurrentForegroundAfterStateUpdate()
+                scheduleNextRoutineStartReevaluation(cachedRoutines)
+            }
+            routineStartReevaluationRunnable = runnable
+            handler.postDelayed(runnable, delayMillis)
         }
     }
 
@@ -457,6 +476,37 @@ class KeepAccessibilityService :
         }
         return isDuplicate
     }
+}
+
+internal fun nextRoutineStartReevaluationDelayMillis(
+    routines: List<RoutineModel>,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long? = routines
+    .asSequence()
+    .filter { routine -> routine.isEnabled && !routine.lockApplications.isNullOrEmpty() }
+    .flatMap { routine ->
+        routine.repeatDays.toDayOfWeekList().asSequence().mapNotNull { dayOfWeek ->
+            val startDate = nextDateForDayOfWeek(dayOfWeek = dayOfWeek, now = now)
+            val candidateStart = startDate.atTime(
+                routine.startTime.hour,
+                routine.startTime.minute,
+                routine.startTime.second,
+            )
+            if (candidateStart.isAfter(now)) {
+                Duration.between(now, candidateStart).toMillis()
+            } else {
+                Duration.between(now, candidateStart.plusWeeks(1)).toMillis()
+            }
+        }
+    }
+    .minOrNull()
+
+private fun nextDateForDayOfWeek(
+    dayOfWeek: java.time.DayOfWeek,
+    now: LocalDateTime,
+): java.time.LocalDate {
+    val daysUntil = Math.floorMod(dayOfWeek.value - now.dayOfWeek.value, 7)
+    return now.toLocalDate().plusDays(daysUntil.toLong())
 }
 
 internal suspend fun handleExpiredEmergencyUnlockForContext(

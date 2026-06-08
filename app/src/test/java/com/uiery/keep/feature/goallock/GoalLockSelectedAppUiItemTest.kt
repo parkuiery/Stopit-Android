@@ -15,6 +15,7 @@ class GoalLockSelectedAppUiItemTest {
                     else -> null
                 }
             },
+            unknownAppDescription = "앱 이름을 불러오지 못했어요",
         )
 
         assertEquals(

@@ -17,6 +17,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.routine.RoomRoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
@@ -80,7 +81,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
 
@@ -105,7 +106,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
         database.routineDao().insert(
@@ -140,7 +141,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
 
@@ -165,7 +166,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
         database.routineDao().insert(
@@ -202,7 +203,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
         }
@@ -246,7 +247,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
         }

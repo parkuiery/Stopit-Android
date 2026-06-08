@@ -140,6 +140,7 @@ jobs:
           python3 scripts/release_provenance_manifest.py verify
           --aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'
           --manifest app/build/outputs/bundle/prodRelease/release-provenance.json
+          --artifact-name stopit-prod-release-signed-aab
           --package-name com.uiery.keep
           --upload-mode none
           --track ''

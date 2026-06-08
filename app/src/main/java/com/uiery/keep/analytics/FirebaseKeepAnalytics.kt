@@ -1,5 +1,6 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -158,7 +159,10 @@ class FirebaseKeepAnalytics
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = buildMap {
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
-                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    put(
+                        KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                        blockedAppCategoryBucketForPackage(blockedAppPackage),
+                    )
                     routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
                     goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
                 },
@@ -409,6 +413,87 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackParentModeDurationSelected(durationMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_DURATION_SELECTED,
+                params = mapOf(KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_ALLOWED_APPS_SELECTED,
+                params = mapOf(KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket),
+            )
+        }
+
+        override fun trackParentModeStarted(
+            durationMinutesBucket: String,
+            allowedAppCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket,
+                ),
+            )
+        }
+
+        override fun trackParentModeCompleted(
+            durationMinutesBucket: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeUnlockedByPin(
+            pinResult: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_UNLOCKED_BY_PIN,
+                params = mapOf(
+                    KeepAnalyticsParam.PIN_RESULT to pinResult,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeExtended(extensionMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_EXTENDED,
+                params = mapOf(KeepAnalyticsParam.EXTENSION_MINUTES_BUCKET to extensionMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeBlockIntercepted(blockContext: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                params = mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to blockContext),
+            )
+        }
+
+        override fun trackParentModeCancelled(endReason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_CANCELLED,
+                params = mapOf(KeepAnalyticsParam.END_REASON to endReason),
+            )
+        }
+
+        override fun trackGoalLockCreateStarted(entrySurface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                params = mapOf(KeepAnalyticsParam.ENTRY_SURFACE to entrySurface),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
@@ -454,6 +539,19 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockUpdated(
+            lockMode: String,
+            changedField: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.CHANGED_FIELD to changedField,
+                ),
+            )
+        }
+
         override fun trackRepeatBlockRoutineSuggestionShown(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestion,
@@ -491,6 +589,13 @@ class FirebaseKeepAnalytics
             backend.logEvent(
                 name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
                 params = repeatBlockRoutineSuggestionParams(surface, suggestion),
+            )
+        }
+
+        override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = attribution.toAnalyticsParams(),
             )
         }
 
@@ -551,7 +656,7 @@ class FirebaseKeepAnalytics
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
-            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+            put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
             routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
             goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
         }
