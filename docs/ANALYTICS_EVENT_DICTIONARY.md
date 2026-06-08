@@ -37,7 +37,7 @@
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
 - 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; 2026-06-08 #651 code-lane에서 analytics boundary는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO로 분리해 feature-local suggestion object를 analytics API/Firebase adapter가 직접 import하지 않는다. Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
-- 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code-lane foothold로 순수 정책 + `parent_mode_*` analytics API 추가)
+- 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSessionStore.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` (PR #519로 순수 정책 + `parent_mode_*` analytics API, PR #584로 session persistence + `block_source=parent_mode` Accessibility decision foothold 추가)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
@@ -288,7 +288,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 부모 모드
 
-부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
+부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. PR #519 이후 `parent_mode_*` analytics API와 privacy-safe bucket contract가 코드에 들어갔고, PR #584 이후 active session의 foreground 차단은 `app_block_intercepted.block_source=parent_mode`로 구분된다. 아직 setup/active UI, PIN runtime flow, release/tag/Play deploy, GA4 Admin metadata/readback 전이므로 live product conclusion은 낮은 confidence로 둔다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

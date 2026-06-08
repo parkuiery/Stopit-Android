@@ -84,8 +84,28 @@ class ParentModeContractTest(unittest.TestCase):
             "block_source=parent_mode",
             "시간 만료 후 허용 앱도 차단",
             "부모 제어 surface는 차단하지 않는다",
+            "PR #519",
+            "PR #584",
+            "repo-internal foothold",
+            "남은 범위는 MVP 전체 UX/릴리스/실측 검증",
         ]:
             self.assertIn(phrase, runbook)
+
+        stale_pre_implementation_phrases = [
+            "이 표는 구현 전 계약이다",
+            "이 문서/계약 PR은 구현 전 handoff",
+        ]
+        for phrase in stale_pre_implementation_phrases:
+            self.assertNotIn(phrase, runbook)
+
+    def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
+        product_context = PRODUCT_CONTEXT.read_text()
+
+        self.assertIn("PR #519", product_context)
+        self.assertIn("PR #584", product_context)
+        self.assertIn("policy/analytics/session/Accessibility foothold", product_context)
+        self.assertIn("남은 경계는 MVP 전체 UX", product_context)
+        self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
         documents = [

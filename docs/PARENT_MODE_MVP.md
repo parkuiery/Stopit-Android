@@ -80,7 +80,7 @@ Issue: #471
 
 ## Analytics 계약
 
-> 이 표는 구현 전 계약이다. 코드 PR이 들어가기 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 이 문서가 source of truth이며, GA4 Admin 등록/metadata 확인 전에는 세부 breakdown 결론을 낮은 confidence로 둔다.
+> 이 표는 PR #519의 policy/analytics foothold와 PR #584의 session/accessibility foothold 이후에도 유지되는 source of truth다. 코드에는 일부 `parent_mode_*` API와 `app_block_intercepted.block_source=parent_mode` 경계가 들어갔지만, setup/active UI, release/tag/Play deploy, GA4 Admin 등록/metadata 확인 전에는 세부 breakdown 결론을 낮은 confidence로 둔다.
 
 | 이벤트명 | 주요 파라미터 | 의미 |
 | --- | --- | --- |
@@ -166,7 +166,7 @@ cd <repo-root>
 
 ### 1차 code-lane foothold
 
-2026-06-06 code-lane에서 첫 repo-internal foothold를 추가했다. 이 foothold는 아직 entrypoint/setup UI/Accessibility runtime 연결은 아니지만, 후속 구현이 공유해야 할 순수 정책과 privacy-safe analytics schema를 코드 계약으로 고정한다.
+2026-06-06 code-lane PR #519에서 첫 repo-internal foothold를 추가했다. 이 foothold는 아직 entrypoint/setup UI/Accessibility runtime 연결은 아니지만, 후속 구현이 공유해야 할 순수 정책과 privacy-safe analytics schema를 코드 계약으로 고정한다.
 
 - `feature/parentmode/ParentModePolicy.kt`: duration/app-count/state transition/pin-result pure policy, active session expiry, allowlist 기반 block decision
 - `ParentModePolicyTest`, `ParentModePinPolicyTest`: RED/GREEN 첫 계약
@@ -175,7 +175,7 @@ cd <repo-root>
 
 ### 2차 code-lane foothold
 
-2026-06-07 code-lane에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
+2026-06-07 code-lane PR #584에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했고, merge commit `b58c6a8dbf2ba4541a748da4d0b948ee8c6a692a`로 `develop`에 반영됐다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
 
 - `ParentModeSessionStore`: `PreferencesKey.PARENT_MODE_STARTED_AT`, `PARENT_MODE_EXPIRES_AT`, `PARENT_MODE_DURATION_MINUTES`, `PARENT_MODE_ALLOWED_APPS`, `PARENT_MODE_STATE`를 DataStore에 저장/관찰한다.
 - `BackupRestoreDataStoreKeyPolicy`: 부모 모드 session key를 restore-reset-only로 유지해 기기 복원 후 아이에게 폰 주기 session이 되살아나지 않게 한다.
@@ -189,6 +189,8 @@ cd <repo-root>
 - Parent mode active/expired screen
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
+남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 시작 진입점, PIN 확인 UI, active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
+
 ### 후속 별도 이슈 후보
 
 - 원격 부모폰에서 아이 폰/태블릿 관리
@@ -199,8 +201,8 @@ cd <repo-root>
 
 ## Closing discipline
 
-- 이 문서/계약 PR은 구현 전 handoff이므로 `Refs #471`가 맞다.
-- `Closes #471`는 부모 모드 entrypoint, setup, PIN policy, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
+- 이 문서는 PR #519와 PR #584 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
+- `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
 - GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
 
 ## Contract regression
