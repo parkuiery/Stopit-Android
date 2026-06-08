@@ -478,6 +478,50 @@ python3 -m unittest scripts.tests.test_focus_summary_share_contract -v
 
 이 증거가 없으면 #597는 docs/ops/static-contract가 정리됐더라도 실제 runtime locale 전환, locale parity, formatter/privacy tests, release 후 spot-check 경계가 남은 상태로 본다.
 
+### 루틴 카드 상태/반복/다음 실행 visual QA evidence
+
+issue #466 계열 PR은 루틴 카드가 단순 목록이 아니라 반복 스케줄 카드로 읽히는지 자동 read model 계약과 실제 화면 evidence를 함께 남긴다. Room 저장 구조, `RoutineScheduler`, exact alarm 정책은 변경 범위가 아니며, 카드 표시/계산/카피만 검증한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'
+./gradlew --console=plain :app:assembleProdDebug
+```
+
+검증 범위:
+- `RoutineCardReadModelTest`는 활성 루틴의 반복 요일과 다음 실행 시각, 실행 중 루틴의 다음 회차 계산, 비활성 루틴의 `nextRunAt = null`, overnight 루틴을 고정한다.
+- 루틴 카드에는 `실행중` / `활성` / `비활성` 텍스트 배지가 색상과 별도로 보여야 한다.
+- 반복 요일 line과 `다음 실행: ...` line이 카드에서 읽혀야 하며, 비활성 루틴은 다음 실행을 표시하지 않는다.
+- 공유/편집/토글 동작은 기존 콜백을 유지한다. 실행 중 또는 routine change-lock 상태의 disabled 처리도 기존 정책을 유지한다.
+
+수동 visual QA evidence template:
+
+```md
+## Routine card schedule visibility QA evidence
+- Issue: #466
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / default / other changed locale
+- Commands:
+  - `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'`
+  - `./gradlew --console=plain :app:assembleProdDebug`
+- Screens checked:
+  - enabled routine card: status badge / repeat days / next run visible
+  - disabled routine card: disabled badge visible / no misleading next run
+  - running routine card: running badge emphasized / next scheduled occurrence visible
+  - routine change-lock card if applicable: protection badge still visible, edit/toggle disabled
+- Existing actions:
+  - edit detail opens for non-blocked routine: pass / fail
+  - share button works for non-blocked routine: pass / fail
+  - switch toggles enabled state for non-blocked routine: pass / fail
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #466은 repo-internal read model/UI 계약이 완료됐더라도 실제 기기 시각 확인 경계가 남은 상태로 본다.
+
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
 issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
