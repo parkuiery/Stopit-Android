@@ -2,6 +2,7 @@ package com.uiery.keep.feature.routine
 
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
@@ -188,7 +189,11 @@ class RoutineBottomSheetViewModelTest {
             prefilled.selectDays,
         )
         assertFalse(prefilled.isButtonEnable)
-        assertEquals(listOf(RepeatBlockRoutineSuggestionSurface.HOME to suggestion), analytics.repeatBlockClickedCalls)
+        val expectedAnalyticsPayload = suggestion.toExpectedAnalyticsPayload()
+        assertEquals(
+            listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
+            analytics.repeatBlockClickedCalls,
+        )
 
         viewModel.setName("Sleep defense")
         awaitState(viewModel) { it.isButtonEnable }
@@ -197,7 +202,7 @@ class RoutineBottomSheetViewModelTest {
 
         assertEquals(suggestion.prefillPackages, routineDao.insertedEntity?.lockApplications)
         assertEquals(
-            listOf(RepeatBlockRoutineSuggestionSurface.HOME to suggestion),
+            listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
             analytics.repeatBlockAppliedCalls,
         )
     }
@@ -313,8 +318,8 @@ private open class NoOpKeepAnalytics : KeepAnalytics {
 
 private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
     val lockScheduledCalls = mutableListOf<Pair<String, Long>>()
-    val repeatBlockClickedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestion>>()
-    val repeatBlockAppliedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestion>>()
+    val repeatBlockClickedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
+    val repeatBlockAppliedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         lockScheduledCalls += scheduleType to scheduledDurationMinutes
@@ -322,15 +327,24 @@ private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
 
     override fun trackRepeatBlockRoutineSuggestionClicked(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         repeatBlockClickedCalls += surface to suggestion
     }
 
     override fun trackRepeatBlockRoutineSuggestionApplied(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         repeatBlockAppliedCalls += surface to suggestion
     }
 }
+
+private fun RepeatBlockRoutineSuggestion.toExpectedAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)

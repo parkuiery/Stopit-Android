@@ -47,8 +47,7 @@ Issue: #651
 | service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockPolicy` | foreground block decision의 입력 model/policy를 shared domain boundary로 이동한다. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt` | `feature.routine.RoutineRepository` | boot/package/time-change restore가 shared routine runtime repository/use case를 사용하게 한다. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt` | `feature.routine.RoutineRepository` | alarm receiver가 shared routine runtime repository/use case를 사용하게 한다. |
-| analytics | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | `feature.routine.RepeatBlockRoutineSuggestion` | analytics API는 feature-local suggestion object 대신 bucketed analytics DTO/interface를 받는다. |
-| analytics | `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` | `feature.routine.RepeatBlockRoutineSuggestion` | Firebase adapter는 shared analytics DTO를 payload로 변환한다. |
+
 
 ## Migration order
 
@@ -61,9 +60,9 @@ Issue: #651
    - Boot/Package/RoutineAlarm receiver와 AccessibilityService가 feature package import 없이 restore/reschedule/cache를 수행하도록 한다.
    - focused 검증 후보: `RoutineReceiverPolicyTest`, `ReceiverRuntimeIntegrationTest`, exact-alarm receiver suites.
 3. **Analytics DTO boundary**
-   - `RepeatBlockRoutineSuggestion` analytics payload를 privacy-safe bucket DTO로 분리한다.
-   - `KeepAnalytics` interface가 feature-local type을 받지 않도록 바꾼다.
-   - focused 검증 후보: `RepeatBlockRoutineSuggestionAnalyticsTest`, `FirebaseKeepAnalyticsTest`, #531 docs contract tests.
+   - 완료: `KeepAnalytics` / `FirebaseKeepAnalytics`는 feature-local `RepeatBlockRoutineSuggestion` 대신 `RepeatBlockRoutineSuggestionAnalyticsPayload`를 받는다.
+   - 완료: Routine feature는 prefill 앱/package를 로컬 UI/저장 경계에만 유지하고 analytics boundary에는 reason/time/day/category/repeat/coverage bucket DTO만 넘긴다.
+   - 완료: `RepeatBlockRoutineSuggestionAnalyticsTest`, `RoutineBottomSheetViewModelTest`, static feature-domain guard가 이 경계를 검증한다.
 4. **LockHistory recorder boundary**
    - 완료: `LockHistorySessionWriter`가 runtime Room ledger write boundary를 소유하고, `LockHistoryRepository`는 feature read-model repository로 남긴다.
    - 완료: service recording path가 feature-private repository를 import하지 않도록 data boundary로 이동했다.
@@ -96,7 +95,7 @@ Issue: #651
 - 변경 범위:
   - [ ] GoalLock shared domain boundary
   - [ ] Routine runtime repository/use-case boundary
-  - [ ] RepeatBlock analytics DTO boundary
+  - [x] RepeatBlock analytics DTO boundary
   - [ ] LockHistory runtime recording boundary
   - [ ] static guard inventory 감소
 - 검증:

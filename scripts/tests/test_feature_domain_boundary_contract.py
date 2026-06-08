@@ -34,12 +34,6 @@ EXPECTED_FEATURE_IMPORTS = {
     "app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt": [
         "com.uiery.keep.feature.routine.RoutineRepository",
     ],
-    "app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt": [
-        "com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion",
-    ],
-    "app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt": [
-        "com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion",
-    ],
 }
 
 
@@ -70,6 +64,9 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         self.assertIn("현재 production drift inventory", runbook)
         self.assertIn("Migration order", runbook)
         self.assertIn("Closes #651", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt", runbook)
+        self.assertIn("RepeatBlockRoutineSuggestionAnalyticsPayload", runbook)
 
         for relative_path, imports in EXPECTED_FEATURE_IMPORTS.items():
             self.assertIn(relative_path, runbook)

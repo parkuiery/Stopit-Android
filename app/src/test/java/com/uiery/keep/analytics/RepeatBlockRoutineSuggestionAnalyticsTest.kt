@@ -1,13 +1,5 @@
 package com.uiery.keep.analytics
 
-import com.uiery.keep.feature.routine.RepeatBlockCategoryBucket
-import com.uiery.keep.feature.routine.RepeatBlockCountBucket
-import com.uiery.keep.feature.routine.RepeatBlockDayType
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
-import com.uiery.keep.feature.routine.RepeatBlockSuggestionReason
-import com.uiery.keep.feature.routine.RepeatBlockTimeBucket
-import com.uiery.keep.feature.routine.RoutineCoverageState
-import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -18,16 +10,13 @@ class RepeatBlockRoutineSuggestionAnalyticsTest {
 
     @Test
     fun repeatBlockRoutineSuggestionEventsUseOnlyPrivacySafeBuckets() {
-        val suggestion = RepeatBlockRoutineSuggestion(
-            timeBucket = RepeatBlockTimeBucket.Night,
-            dayType = RepeatBlockDayType.Weekday,
-            categoryBucket = RepeatBlockCategoryBucket.Social,
-            repeatCountBucket = RepeatBlockCountBucket.ThreeToFive,
-            routineCoverageState = RoutineCoverageState.NotCovered,
-            reason = RepeatBlockSuggestionReason.RepeatBlockTimeBucket,
-            prefillPackages = listOf("com.instagram.android", "com.twitter.android"),
-            prefillStartTime = LocalTime(22, 0),
-            prefillEndTime = LocalTime(0, 0),
+        val suggestion = RepeatBlockRoutineSuggestionAnalyticsPayload(
+            reason = "repeat_block_time_bucket",
+            timeBucket = "night",
+            dayType = "weekday",
+            categoryBucket = "social",
+            repeatCountBucket = "3_5",
+            routineCoverageState = "not_covered",
         )
 
         analytics.trackRepeatBlockRoutineSuggestionShown(
