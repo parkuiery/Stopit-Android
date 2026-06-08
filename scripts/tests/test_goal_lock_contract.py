@@ -148,6 +148,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce", qa_checklist)
         self.assertIn("GoalLockDetailViewModelTest", qa_checklist)
+        self.assertIn("duration update recalculates end date", qa_checklist)
+        self.assertIn("lock mode update tracks lock_mode vs schedule changed_field", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn("Goal lock QA evidence", qa_checklist)
         self.assertIn("all-day / scheduled / expiration", qa_checklist)
@@ -220,6 +222,13 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("stringResource(id = R.string.goal_lock_detail_update_apps_cta)", screen)
         self.assertIn("R.string.goal_lock_detail_update_apps_confirmation", screen)
         self.assertIn("stringResource(id = R.string.goal_lock_detail_update_apps_save)", screen)
+        self.assertIn("R.string.goal_lock_detail_duration_label", screen)
+        self.assertIn("R.string.goal_lock_detail_duration_option_7_days", screen)
+        self.assertIn("R.string.goal_lock_detail_update_duration_confirmation", screen)
+        self.assertIn("R.string.goal_lock_detail_lock_mode_label", screen)
+        self.assertIn("R.string.goal_lock_detail_lock_mode_all_day", screen)
+        self.assertIn("R.string.goal_lock_detail_lock_mode_weekday_evening", screen)
+        self.assertIn("R.string.goal_lock_detail_update_lock_mode_confirmation", screen)
         for hardcoded_copy in [
             "목표 이름",
             "목표 잠금 이름을 ${state.pendingGoalName.trim()}(으)로 바꿀까요?",
@@ -227,6 +236,13 @@ class GoalLockContractTest(unittest.TestCase):
             "차단 앱 변경",
             "선택한 앱 ${state.pendingSelectedApps.size}개로 목표 잠금 대상을 바꿀까요?",
             "변경 저장",
+            "기간",
+            "7일",
+            "14일",
+            "30일",
+            "잠금 방식",
+            "하루종일 잠금",
+            "평일 저녁 잠금",
         ]:
             self.assertNotIn(hardcoded_copy, screen)
 

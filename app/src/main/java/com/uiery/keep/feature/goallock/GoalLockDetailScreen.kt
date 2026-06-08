@@ -38,6 +38,8 @@ import com.uiery.keep.R
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import java.time.DayOfWeek
+import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +114,12 @@ internal fun GoalLockDetailScreen(
             onRequestUpdateApps = { isAppSelectionSheetVisible = true },
             onCancelUpdateApps = viewModel::cancelUpdateSelectedApps,
             onConfirmUpdateApps = viewModel::confirmUpdateSelectedApps,
+            onDurationDaysChange = viewModel::requestUpdateDurationDays,
+            onCancelUpdateDuration = viewModel::cancelUpdateDuration,
+            onConfirmUpdateDuration = viewModel::confirmUpdateDuration,
+            onLockModeChange = viewModel::requestUpdateLockMode,
+            onCancelUpdateLockMode = viewModel::cancelUpdateLockMode,
+            onConfirmUpdateLockMode = viewModel::confirmUpdateLockMode,
         )
     }
 }
@@ -129,6 +137,12 @@ internal fun GoalLockDetailContent(
     onRequestUpdateApps: (Set<String>) -> Unit,
     onCancelUpdateApps: () -> Unit,
     onConfirmUpdateApps: () -> Unit,
+    onDurationDaysChange: (Int) -> Unit,
+    onCancelUpdateDuration: () -> Unit,
+    onConfirmUpdateDuration: () -> Unit,
+    onLockModeChange: (GoalLockMode) -> Unit,
+    onCancelUpdateLockMode: () -> Unit,
+    onConfirmUpdateLockMode: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -244,6 +258,95 @@ internal fun GoalLockDetailContent(
                 singleLine = true,
             )
 
+            Text(
+                text = stringResource(id = R.string.goal_lock_detail_duration_label),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { onDurationDaysChange(7) }) {
+                    Text(text = stringResource(id = R.string.goal_lock_detail_duration_option_7_days))
+                }
+                OutlinedButton(onClick = { onDurationDaysChange(14) }) {
+                    Text(text = stringResource(id = R.string.goal_lock_detail_duration_option_14_days))
+                }
+                OutlinedButton(onClick = { onDurationDaysChange(30) }) {
+                    Text(text = stringResource(id = R.string.goal_lock_detail_duration_option_30_days))
+                }
+            }
+
+            if (state.showUpdateDurationConfirmation) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                id = R.string.goal_lock_detail_update_duration_confirmation,
+                                state.pendingDurationDays,
+                            ),
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(onClick = onCancelUpdateDuration) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_duration_cancel))
+                            }
+                            Button(onClick = onConfirmUpdateDuration) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_duration_save))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = stringResource(id = R.string.goal_lock_detail_lock_mode_label),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { onLockModeChange(GoalLockMode.AllDay) }) {
+                    Text(text = stringResource(id = R.string.goal_lock_detail_lock_mode_all_day))
+                }
+                OutlinedButton(onClick = { onLockModeChange(weekdayEveningGoalLockMode()) }) {
+                    Text(text = stringResource(id = R.string.goal_lock_detail_lock_mode_weekday_evening))
+                }
+            }
+
+            if (state.showUpdateLockModeConfirmation) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                id = R.string.goal_lock_detail_update_lock_mode_confirmation,
+                                state.pendingLockModeLabel,
+                            ),
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(onClick = onCancelUpdateLockMode) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_lock_mode_cancel))
+                            }
+                            Button(onClick = onConfirmUpdateLockMode) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_lock_mode_save))
+                            }
+                        }
+                    }
+                }
+            }
+
             OutlinedButton(onClick = { onRequestUpdateApps(state.goalLock.selectedPackages) }) {
                 Text(text = stringResource(id = R.string.goal_lock_detail_update_apps_cta))
             }
@@ -282,3 +385,15 @@ internal fun GoalLockDetailContent(
         }
     }
 }
+
+private fun weekdayEveningGoalLockMode(): GoalLockMode.Scheduled = GoalLockMode.Scheduled(
+    repeatDays = setOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+    ),
+    startTime = LocalTime.of(19, 0),
+    endTime = LocalTime.of(23, 0),
+)

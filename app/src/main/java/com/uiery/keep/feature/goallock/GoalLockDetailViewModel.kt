@@ -49,6 +49,10 @@ internal class GoalLockDetailViewModel
                         showUpdateAppsConfirmation = false,
                         pendingGoalName = normalizedGoalLock.goalName,
                         showUpdateGoalNameConfirmation = false,
+                        pendingDurationDays = normalizedGoalLock.durationDays,
+                        pendingLockMode = normalizedGoalLock.lockMode,
+                        showUpdateDurationConfirmation = false,
+                        showUpdateLockModeConfirmation = false,
                         isEnded = normalizedGoalLock.status == GoalLockStoredStatus.EndedEarly,
                         isCompleted = normalizedGoalLock.status == GoalLockStoredStatus.Completed,
                     )
@@ -170,6 +174,120 @@ internal class GoalLockDetailViewModel
                 }
             }
 
+        fun requestUpdateDurationDays(days: Int) =
+            intent {
+                val current = state.goalLock ?: return@intent
+                if (current.status != GoalLockStoredStatus.Active || state.isEnded || state.isCompleted) return@intent
+                val normalizedDays = days.coerceAtLeast(1)
+                reduce {
+                    state.copy(
+                        pendingDurationDays = normalizedDays,
+                        showUpdateDurationConfirmation = normalizedDays != current.durationDays,
+                    )
+                }
+            }
+
+        fun cancelUpdateDuration() =
+            intent {
+                reduce {
+                    state.copy(
+                        pendingDurationDays = state.goalLock?.durationDays ?: state.pendingDurationDays,
+                        showUpdateDurationConfirmation = false,
+                    )
+                }
+            }
+
+        fun confirmUpdateDuration() =
+            intent {
+                val current = state.goalLock ?: return@intent
+                val durationDays = state.pendingDurationDays.coerceAtLeast(1)
+                val updatedEndDate = current.startDate.plusDays((durationDays - 1).toLong())
+                if (current.status != GoalLockStoredStatus.Active || updatedEndDate == current.endDate) {
+                    reduce {
+                        state.copy(
+                            pendingDurationDays = current.durationDays,
+                            showUpdateDurationConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+
+                val updated = current.copy(endDate = updatedEndDate)
+                goalLockRepository.update(updated)
+                analytics.trackGoalLockUpdated(
+                    lockMode = current.lockMode.analyticsLockMode,
+                    changedField = AnalyticsGoalLockChangedField.DURATION,
+                )
+                reduce {
+                    state.copy(
+                        goalLock = updated,
+                        pendingDurationDays = updated.durationDays,
+                        showUpdateDurationConfirmation = false,
+                    )
+                }
+            }
+
+        fun requestUpdateLockMode(lockMode: GoalLockMode) =
+            intent {
+                val current = state.goalLock ?: return@intent
+                if (current.status != GoalLockStoredStatus.Active || state.isEnded || state.isCompleted) return@intent
+                if (!lockMode.isValidForUpdate()) return@intent
+                reduce {
+                    state.copy(
+                        pendingLockMode = lockMode,
+                        showUpdateLockModeConfirmation = lockMode != current.lockMode,
+                    )
+                }
+            }
+
+        fun cancelUpdateLockMode() =
+            intent {
+                reduce {
+                    state.copy(
+                        pendingLockMode = state.goalLock?.lockMode ?: state.pendingLockMode,
+                        showUpdateLockModeConfirmation = false,
+                    )
+                }
+            }
+
+        fun confirmUpdateLockMode() =
+            intent {
+                val current = state.goalLock ?: return@intent
+                val lockMode = state.pendingLockMode
+                if (current.status != GoalLockStoredStatus.Active || lockMode == null || lockMode == current.lockMode) {
+                    reduce {
+                        state.copy(
+                            pendingLockMode = current.lockMode,
+                            showUpdateLockModeConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+                if (!lockMode.isValidForUpdate()) {
+                    reduce {
+                        state.copy(
+                            pendingLockMode = current.lockMode,
+                            showUpdateLockModeConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+
+                val updated = current.copy(lockMode = lockMode)
+                goalLockRepository.update(updated)
+                analytics.trackGoalLockUpdated(
+                    lockMode = updated.lockMode.analyticsLockMode,
+                    changedField = current.lockMode.changedFieldFor(updated.lockMode),
+                )
+                reduce {
+                    state.copy(
+                        goalLock = updated,
+                        pendingLockMode = updated.lockMode,
+                        showUpdateLockModeConfirmation = false,
+                    )
+                }
+            }
+
         fun confirmEndGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
                 val current = state.goalLock ?: return@intent
@@ -226,11 +344,16 @@ internal data class GoalLockDetailUiState(
     val showUpdateAppsConfirmation: Boolean = false,
     val pendingGoalName: String = "",
     val showUpdateGoalNameConfirmation: Boolean = false,
+    val pendingDurationDays: Int = 1,
+    val showUpdateDurationConfirmation: Boolean = false,
+    val pendingLockMode: GoalLockMode? = null,
+    val showUpdateLockModeConfirmation: Boolean = false,
     val isEnded: Boolean = false,
     val isCompleted: Boolean = false,
 ) {
     val goalName: String = goalLock?.goalName.orEmpty()
     val lockModeLabel: String = goalLock?.lockMode?.detailLabel.orEmpty()
+    val pendingLockModeLabel: String = pendingLockMode?.detailLabel.orEmpty()
     val selectedAppCount: Int = goalLock?.selectedPackages?.size ?: 0
 }
 
@@ -255,6 +378,17 @@ private fun elapsedDaysBucket(
     in 7L..14L -> AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN
     else -> AnalyticsGoalLockElapsedDaysBucket.FIFTEEN_PLUS
 }
+
+private val GoalLock.durationDays: Int
+    get() = (ChronoUnit.DAYS.between(startDate, endDate).coerceAtLeast(0) + 1).toInt()
+
+private fun GoalLockMode.isValidForUpdate(): Boolean = when (this) {
+    GoalLockMode.AllDay -> true
+    is GoalLockMode.Scheduled -> repeatDays.isNotEmpty() && startTime != endTime
+}
+
+private fun GoalLockMode.changedFieldFor(updated: GoalLockMode): String =
+    if (this::class == updated::class) AnalyticsGoalLockChangedField.SCHEDULE else AnalyticsGoalLockChangedField.LOCK_MODE
 
 private fun Set<String>.normalizedPackages(): Set<String> =
     map { it.trim() }
