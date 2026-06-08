@@ -5,6 +5,9 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 EVENT_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
 GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
+PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
+METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
+METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 
 
 class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
@@ -29,6 +32,19 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
         self.assertIn("`blocked_app_package` | Deprecated / 금지", runbook)
         self.assertIn("#611 privacy 계약", runbook)
         self.assertNotIn("`blocked_app_package` | Required dimension", runbook)
+
+    def test_screen_quality_boundary_mentions_docs_sync_pr_across_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #296/#318/#358",
+            "6ceaecc4",
+            "post-fix 성과가 아니라 release boundary 전 중간 smoke",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
 
 
 if __name__ == "__main__":
