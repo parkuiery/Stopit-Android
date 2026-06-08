@@ -29,12 +29,14 @@ class HomeStatusCtaCardIntegrationTest {
                         isKeep = false,
                         selectedAppCount = 0,
                         showFirstLockActivationCta = false,
+                        showRoutineCreationCta = false,
                         hasGoalLockCard = false,
                     ),
                     onPrimaryClick = {},
                     onChangeAppsClick = {},
                     onTimerClick = {},
                     onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
                 )
             }
         }
@@ -55,12 +57,14 @@ class HomeStatusCtaCardIntegrationTest {
                         isKeep = false,
                         selectedAppCount = 3,
                         showFirstLockActivationCta = true,
+                        showRoutineCreationCta = false,
                         hasGoalLockCard = true,
                     ),
                     onPrimaryClick = {},
                     onChangeAppsClick = {},
                     onTimerClick = {},
                     onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
                 )
             }
         }
@@ -82,12 +86,14 @@ class HomeStatusCtaCardIntegrationTest {
                         isKeep = true,
                         selectedAppCount = 4,
                         showFirstLockActivationCta = false,
+                        showRoutineCreationCta = false,
                         hasGoalLockCard = false,
                     ),
                     onPrimaryClick = {},
                     onChangeAppsClick = {},
                     onTimerClick = {},
                     onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
                 )
             }
         }
