@@ -91,6 +91,10 @@
     <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
     <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
     <string name="goal_lock_detail_update_apps_save">Save changes</string>
+    <string name="goal_lock_detail_goal_name_label">Goal name</string>
+    <string name="goal_lock_detail_update_name_confirmation">Change this goal lock name to %1$s?</string>
+    <string name="goal_lock_detail_update_name_cancel">Cancel</string>
+    <string name="goal_lock_detail_update_name_save">Save name</string>
     <string name="contact_us">Entre em contato</string>
     <string name="monetization_interest_menu_title">Quer usar o StopIt sem anúncios?</string>
     <string name="monetization_interest_menu_message">Conte se uma opção sem anúncios seria útil. A compra ainda não está disponível.</string>

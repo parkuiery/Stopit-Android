@@ -16,6 +16,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -105,6 +106,9 @@ internal fun GoalLockDetailScreen(
             onRequestEnd = viewModel::requestEndGoalLock,
             onCancelEnd = viewModel::cancelEndGoalLock,
             onConfirmEnd = { viewModel.confirmEndGoalLock() },
+            onGoalNameChange = viewModel::requestUpdateGoalName,
+            onCancelUpdateGoalName = viewModel::cancelUpdateGoalName,
+            onConfirmUpdateGoalName = viewModel::confirmUpdateGoalName,
             onRequestUpdateApps = { isAppSelectionSheetVisible = true },
             onCancelUpdateApps = viewModel::cancelUpdateSelectedApps,
             onConfirmUpdateApps = viewModel::confirmUpdateSelectedApps,
@@ -119,6 +123,9 @@ internal fun GoalLockDetailContent(
     onRequestEnd: () -> Unit,
     onCancelEnd: () -> Unit,
     onConfirmEnd: () -> Unit,
+    onGoalNameChange: (String) -> Unit,
+    onCancelUpdateGoalName: () -> Unit,
+    onConfirmUpdateGoalName: () -> Unit,
     onRequestUpdateApps: (Set<String>) -> Unit,
     onCancelUpdateApps: () -> Unit,
     onConfirmUpdateApps: () -> Unit,
@@ -197,6 +204,45 @@ internal fun GoalLockDetailContent(
                     }
                 }
             }
+
+            if (state.showUpdateGoalNameConfirmation) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                id = R.string.goal_lock_detail_update_name_confirmation,
+                                state.pendingGoalName.trim(),
+                            ),
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            OutlinedButton(onClick = onCancelUpdateGoalName) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_name_cancel))
+                            }
+                            Button(onClick = onConfirmUpdateGoalName) {
+                                Text(text = stringResource(id = R.string.goal_lock_detail_update_name_save))
+                            }
+                        }
+                    }
+                }
+            }
+
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = state.pendingGoalName,
+                onValueChange = onGoalNameChange,
+                label = { Text(text = stringResource(id = R.string.goal_lock_detail_goal_name_label)) },
+                singleLine = true,
+            )
 
             OutlinedButton(onClick = { onRequestUpdateApps(state.goalLock.selectedPackages) }) {
                 Text(text = stringResource(id = R.string.goal_lock_detail_update_apps_cta))

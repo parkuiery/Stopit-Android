@@ -214,11 +214,13 @@ Guardrail:
   - 사용자 확인 종료가 `ended_early`로 저장되고 `goal_lock_ended_early`를 enum/bucket만으로 기록함.
   - 상세 화면 앱 변경 확인이 선택 package를 trim/dedupe한 뒤 기존 목표 잠금 row를 보존하면서 앱 목록만 교체하고 `goal_lock_updated(changed_field=apps)`를 기록함.
   - 빈 앱 선택은 저장·계측 없이 확인 상태를 닫는다.
+  - 상세 화면 이름 변경 확인이 입력값을 trim한 뒤 기존 기간·잠금 방식·앱 목록·상태를 보존하면서 `goalName`만 교체하고 `goal_lock_updated(changed_field=name)`을 기록함.
+  - 빈 이름 또는 기존 이름과 같은 입력은 저장·계측 없이 확인 상태를 닫는다.
 - `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly` / `goalLockUpdatedUsesSafeChangedFieldOnly`:
   - `goal_lock_ended_early` 이벤트가 `lock_mode`, `elapsed_days_bucket`, `reason`만 기록함.
   - `goal_lock_updated` 이벤트가 `lock_mode`, `changed_field`만 기록하고 raw 목표명/package/날짜를 보내지 않는다.
 - `GoalLockDetailContentIntegrationTest`:
-  - 진행 중인 상세 화면에서 `차단 앱 변경` CTA와 변경 확인 copy/`변경 저장` 액션을 Compose instrumentation compile/runtime surface로 고정한다.
+  - 진행 중인 상세 화면에서 `목표 이름` 입력, `차단 앱 변경` CTA와 변경 확인 copy/`변경 저장` 액션을 Compose instrumentation compile/runtime surface로 고정한다.
 
 ### ViewModel/UI state 테스트
 
@@ -306,9 +308,9 @@ Code lane에서 PR #625(`b714422b`)로 `GoalLockCreationScreen` 본문을 스크
 
 ### 2026-06-07 detail app-update / analytics foothold
 
-Code lane에서 상세 화면의 `차단 앱 변경` CTA를 기존 `CategoryBottomSheetContent` picker에 연결하고, 앱 변경 저장 전 별도 확인 copy를 추가했다. `GoalLockDetailViewModel`은 선택 package를 trim/dedupe한 뒤 목표명·기간·잠금 방식·상태는 보존하고 `selectedPackages`만 교체하며, 성공 시 `goal_lock_updated(lock_mode, changed_field=apps)`를 기록한다. 빈 선택은 저장·계측 없이 확인 상태를 닫는다. `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 `goal_lock_updated` payload가 `lock_mode`/`changed_field`만 포함하고 raw 목표명/package/날짜를 보내지 않음을 고정한다.
+Code lane에서 상세 화면의 `차단 앱 변경` CTA를 기존 `CategoryBottomSheetContent` picker에 연결하고, 앱 변경 저장 전 별도 확인 copy를 추가했다. `GoalLockDetailViewModel`은 선택 package를 trim/dedupe한 뒤 목표명·기간·잠금 방식·상태는 보존하고 `selectedPackages`만 교체하며, 성공 시 `goal_lock_updated(lock_mode, changed_field=apps)`를 기록한다. 빈 선택은 저장·계측 없이 확인 상태를 닫는다. 이후 같은 detail-update package에서 `목표 이름` 입력/저장 확인도 추가해 입력값을 trim하고 기존 기간·잠금 방식·앱 목록·상태를 보존하면서 이름만 교체하며, 성공 시 `goal_lock_updated(lock_mode, changed_field=name)`을 기록한다. 빈 이름 또는 기존 이름과 같은 입력은 저장·계측 없이 확인 상태를 닫는다. `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 `goal_lock_updated` payload가 `lock_mode`/`changed_field`만 포함하고 raw 목표명/package/날짜를 보내지 않음을 고정한다.
 
-이 foothold 이후 #417을 “상세 화면에서 앱 목록 수정 저장/`goal_lock_updated` apps 계측 없음” 상태로 되돌리지 않는다. 다만 이름/기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부 또는 후속 repo-internal 경계다.
+이 foothold 이후 #417을 “상세 화면에서 앱 목록 수정 저장/`goal_lock_updated` apps 계측 없음” 또는 “상세 화면에서 이름 수정 저장/`goal_lock_updated` name 계측 없음” 상태로 되돌리지 않는다. 다만 기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부 또는 후속 repo-internal 경계다.
 
 ## 외부/manual 경계
 

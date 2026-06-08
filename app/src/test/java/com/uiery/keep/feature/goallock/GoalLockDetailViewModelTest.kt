@@ -154,6 +154,56 @@ class GoalLockDetailViewModelTest {
         assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
     }
 
+    @Test
+    fun confirmGoalNameUpdateTrimsNameAndTracksGoalLockUpdated() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateGoalName("  30일 SNS 디톡스  ")
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation }
+        viewModel.confirmUpdateGoalName()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.goalName == "30일 SNS 디톡스" }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals("30일 SNS 디톡스", updated.goalName)
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 7, 3), updated.endDate)
+        assertEquals(GoalLockMode.AllDay, updated.lockMode)
+        assertEquals(setOf("com.video.app", "com.social.app"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.NAME,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmGoalNameUpdateRejectsBlankOrSameNameWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateGoalName("  ")
+        viewModel.confirmUpdateGoalName()
+        viewModel.requestUpdateGoalName(" 시험 준비 ")
+        viewModel.confirmUpdateGoalName()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return

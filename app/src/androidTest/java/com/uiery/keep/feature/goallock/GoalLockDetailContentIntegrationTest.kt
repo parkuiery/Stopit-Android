@@ -33,6 +33,9 @@ class GoalLockDetailContentIntegrationTest {
                     onRequestEnd = {},
                     onCancelEnd = {},
                     onConfirmEnd = {},
+                    onGoalNameChange = {},
+                    onCancelUpdateGoalName = {},
+                    onConfirmUpdateGoalName = {},
                     onRequestUpdateApps = { selectedApps -> updateRequests += selectedApps },
                     onCancelUpdateApps = { cancelCount += 1 },
                     onConfirmUpdateApps = { confirmCount += 1 },
@@ -40,6 +43,7 @@ class GoalLockDetailContentIntegrationTest {
             }
         }
 
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_goal_name_label)).assertIsDisplayed()
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_update_apps_cta)).assertIsDisplayed()
         composeRule.onNodeWithText(
             composeRule.activity.getString(R.string.goal_lock_detail_update_apps_confirmation, 2),

@@ -47,6 +47,8 @@ internal class GoalLockDetailViewModel
                         showEndConfirmation = false,
                         pendingSelectedApps = emptySet(),
                         showUpdateAppsConfirmation = false,
+                        pendingGoalName = normalizedGoalLock.goalName,
+                        showUpdateGoalNameConfirmation = false,
                         isEnded = normalizedGoalLock.status == GoalLockStoredStatus.EndedEarly,
                         isCompleted = normalizedGoalLock.status == GoalLockStoredStatus.Completed,
                     )
@@ -116,6 +118,58 @@ internal class GoalLockDetailViewModel
                 }
             }
 
+        fun requestUpdateGoalName(goalName: String) =
+            intent {
+                val current = state.goalLock ?: return@intent
+                if (current.status != GoalLockStoredStatus.Active || state.isEnded || state.isCompleted) return@intent
+                val normalizedGoalName = goalName.trim()
+                reduce {
+                    state.copy(
+                        pendingGoalName = goalName,
+                        showUpdateGoalNameConfirmation = normalizedGoalName.isNotBlank() && normalizedGoalName != current.goalName,
+                    )
+                }
+            }
+
+        fun cancelUpdateGoalName() =
+            intent {
+                reduce {
+                    state.copy(
+                        pendingGoalName = state.goalLock?.goalName.orEmpty(),
+                        showUpdateGoalNameConfirmation = false,
+                    )
+                }
+            }
+
+        fun confirmUpdateGoalName() =
+            intent {
+                val current = state.goalLock ?: return@intent
+                val goalName = state.pendingGoalName.trim()
+                if (current.status != GoalLockStoredStatus.Active || goalName.isBlank() || goalName == current.goalName) {
+                    reduce {
+                        state.copy(
+                            pendingGoalName = current.goalName,
+                            showUpdateGoalNameConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+
+                val updated = current.copy(goalName = goalName)
+                goalLockRepository.update(updated)
+                analytics.trackGoalLockUpdated(
+                    lockMode = current.lockMode.analyticsLockMode,
+                    changedField = AnalyticsGoalLockChangedField.NAME,
+                )
+                reduce {
+                    state.copy(
+                        goalLock = updated,
+                        pendingGoalName = updated.goalName,
+                        showUpdateGoalNameConfirmation = false,
+                    )
+                }
+            }
+
         fun confirmEndGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
                 val current = state.goalLock ?: return@intent
@@ -170,6 +224,8 @@ internal data class GoalLockDetailUiState(
     val showEndConfirmation: Boolean = false,
     val pendingSelectedApps: Set<String> = emptySet(),
     val showUpdateAppsConfirmation: Boolean = false,
+    val pendingGoalName: String = "",
+    val showUpdateGoalNameConfirmation: Boolean = false,
     val isEnded: Boolean = false,
     val isCompleted: Boolean = false,
 ) {
