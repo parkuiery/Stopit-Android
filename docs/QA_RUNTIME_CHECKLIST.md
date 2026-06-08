@@ -58,20 +58,47 @@ cd <repo-root>
 
 ### 기능성 control stateDescription locale baseline
 
-issue #570 계열 PR은 TalkBack이 읽는 상태 문구도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다.
+issue #570/#628 계열 PR은 TalkBack이 읽는 상태 문구와 요일/날짜 라벨도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`, `"Today"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다. Android 13+ per-app language를 켠 경우 `Locale.getDefault()`가 시스템 언어를 가리킬 수 있으므로, 루틴 요일/잠금 기록 주간 캘린더는 `LocalConfiguration.current.locales[0]` 또는 동등한 앱 configuration locale을 사용한다.
 
-자동 baseline:
+자동 gate / baseline:
+
+- Android CI `Fast verification`와 Release QA `Full release QA`의 `Run static policy unit tests` step이 `scripts.tests.test_compose_icon_button_accessibility`와 `scripts.tests.test_locale_string_parity`를 자동 실행한다. 즉 PR에서는 접근성 icon-only/stateDescription 정적 정책과 shipped locale key/placeholder parity가 CI gate로 먼저 막혀야 한다.
+- 아래 명령은 로컬에서 같은 정책을 재현하거나 수동 QA 전에 빠르게 선검증할 때 사용한다.
 
 ```bash
 cd <repo-root>
-python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility scripts.tests.test_locale_string_parity -v
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryLocaleFormatterTest'
 ./gradlew --console=plain :app:lintProdRelease
 ```
 
 수동 QA evidence:
 - 메뉴 설정 토글: TalkBack 상태가 현재 앱 언어로 `켜짐/꺼짐` 또는 해당 locale 번역으로 읽힌다.
 - 잠금 기록 주/월 탭: TalkBack 상태가 현재 앱 언어로 `선택됨/선택되지 않음` 또는 해당 locale 번역으로 읽힌다.
+- 잠금 기록 주간 캘린더: 앱 언어를 한국어/일본어 등으로 바꾸고 시스템 언어를 영어로 둬도 요일/월 라벨과 `오늘/선택됨/선택되지 않음` 상태가 앱 언어 기준으로 읽힌다.
+- 루틴 반복 요일 버튼: 앱 언어와 시스템 언어가 다를 때도 요일 라벨이 앱 언어 기준으로 표시된다.
 - 새 stateDescription string key를 추가하면 모든 shipped `values*/strings.xml`에 parity가 맞아야 한다.
+
+### 접근성 권한 copy / Android permission wording baseline
+
+issue #642 계열 PR은 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 보고, 온보딩 접근성 권한 화면이 Android Accessibility Service 맥락을 정확히 설명하는지 확인한다. `Screen Time permission` / `스크린타임 권한` / `화면 시간 권한`처럼 Android 권한명이 아닌 표현은 접근성 권한 copy에 재유입되면 안 된다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_accessibility_permission_copy_contract -v
+python3 -m unittest scripts.tests.test_locale_string_parity -v
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA evidence:
+- Locale(s): ko / en / es / ja / other changed locale
+- 온보딩 접근성 권한 제목이 현재 locale에서 Android Accessibility/접근성 권한으로 읽힌다.
+- 설명이 “사용자가 선택한 앱을 Stopit이 차단하기 위한 권한”으로 이해된다.
+- `Screen Time permission` 또는 같은 의미의 권한명 오해 표현이 보이지 않는다.
+- TalkBack에서도 권한명과 설명이 같은 의미로 전달된다.
+- Play Console Accessibility declaration의 사용 목적과 충돌하지 않는다.
 
 ### Long countdown locale QA evidence
 
@@ -617,6 +644,51 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 
 이 증거가 없으면 #531은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, 추천 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`의 외부/manual 경계를 따른다.
 
+### 활성 루틴 보호 UX QA baseline
+
+issue #609 계열 PR은 실행 중인 루틴이 수정/삭제/끄기 동작을 조용히 무시하지 않고, 사용자가 왜 막혔는지 즉시 이해할 수 있는 피드백을 남기는지 확인한다. 이 계약은 루틴 실행 중 우회 방지와 비징벌적 안내를 함께 다룬다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelActiveRoutineGuardTest'
+./gradlew --console=plain :app:lintProdRelease
+```
+
+검증 범위:
+- 실행 중인 루틴을 탭해 상세/수정 bottom sheet를 열려고 하면 `RoutineSideEffect.ShowActiveRoutineBlocked`가 발생하고 edit sheet가 열리지 않는다.
+- 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시킨다.
+- 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
+- Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
+- 안내 문구는 긴급 해제를 안전한 임시 예외로 안내하되 사용자를 비난하거나 처벌하는 톤을 쓰지 않는다.
+- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 한다.
+
+수동 QA evidence template:
+
+```md
+## Active routine guard QA evidence
+- Issue: #609
+- Build / variant:
+- Device / Android version / OEM:
+- Active routine setup: repeat day / start time / end time / selected apps:
+- Edit attempt while active:
+  - edit sheet not opened: pass / fail
+  - snackbar visible: pass / fail
+- Delete attempt while active:
+  - routine remains: pass / fail
+  - snackbar visible: pass / fail
+- OFF attempt while active:
+  - routine stays enabled: pass / fail
+  - snackbar visible: pass / fail
+- Emergency unlock remains available for temporary exception: pass / fail / n/a
+- Copy tone is non-punitive: pass / fail
+- Notes:
+```
+
+이 증거가 없으면 #609는 JVM 계약과 release lint가 green이어도 실제 기기 UX 확인 경계가 남은 상태로 본다.
+
 ### 목표 잠금 runtime QA baseline
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.
@@ -650,7 +722,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
 - `GoalLockSelectedAppUiItemTest`는 생성 화면의 선택 앱 목록이 package raw text만 보여주지 않고 shared display metadata resolver의 앱 이름을 우선 표시하며, fallback package와 remove payload를 안정적으로 유지하는지 검증한다.
-- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 실제 Compose instrumentation으로 검증한다.
+- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이(compact-height)에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 실제 Compose instrumentation으로 검증한다.
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`와 `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`는 상세 화면 상태, 종료 확인/취소, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.

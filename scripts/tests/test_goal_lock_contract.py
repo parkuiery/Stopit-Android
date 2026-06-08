@@ -138,6 +138,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
         self.assertIn("GoalLockSelectedAppUiItemTest", qa_checklist)
         self.assertIn("GoalLockCreationContentIntegrationTest", qa_checklist)
+        self.assertIn("compact-height", qa_checklist)
+        self.assertIn("목표 잠금 시작", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
@@ -158,13 +160,15 @@ class GoalLockContractTest(unittest.TestCase):
         metrics_context = METRICS_CONTEXT.read_text()
 
         for document in [product_context, metrics_context]:
-            self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion foothold", document)
-            self.assertIn("device/emulator runtime QA evidence", document)
+            self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion", document)
+            self.assertIn("compact-height creation CTA", document)
+            self.assertIn("TalkBack", document)
             self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
 
         dashboard = PRODUCT_DASHBOARD.read_text()
         self.assertIn("Home completion foothold", dashboard)
         self.assertIn("`develop` 반영 상태", dashboard)
+        self.assertIn("compact-height 생성 CTA", dashboard)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()

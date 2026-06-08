@@ -4,8 +4,8 @@
     <string name="select_apps_prompt">Please select the apps that tempt you</string>
     <string name="app_lock_info">The selected apps will be locked to prevent usage. You can turn the app lock on and off at any time.</string>
     <string name="select_apps_button">Select Apps</string>
-    <string name="accessibility_permission_required">Screen Time permission is essential!</string>
-    <string name="accessibility_permission_description">Screen Time permission can block all apps that tempt us.</string>
+    <string name="accessibility_permission_required">Accessibility permission is required!</string>
+    <string name="accessibility_permission_description">Accessibility permission lets StopIt block the distracting apps you choose.</string>
     <string name="permission_usage_note">Permission is used only to block app usage</string>
     <string name="allow_permission">Allow permission</string>
     <string name="notification_permission_request">Please allow notifications to help you keep your promises with StopIt.</string>
@@ -90,6 +90,7 @@
     <string name="routine_alarm_permission_description">We will send a notification at the set time to help you start your routine naturally.</string>
     <string name="routine_alarm_permission_button">Set up notifications</string>
     <string name="routine_running_tag">Running</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="contact_us">Contact Us</string>
     <string name="monetization_interest_menu_title">Want to use StopIt without ads?</string>
     <string name="monetization_interest_menu_message">Tell us if an ad-free option would be useful. No purchase is available yet.</string>
@@ -149,6 +150,10 @@
     <string name="cd_state_off">Off</string>
     <string name="cd_tab_selected">Selected</string>
     <string name="cd_tab_not_selected">Not selected</string>
+    <string name="cd_lock_history_date_today">Today</string>
+    <string name="cd_lock_history_date_selected">Selected</string>
+    <string name="cd_lock_history_date_not_selected">Not selected</string>
+    <string name="cd_lock_history_date_today_selected">Today, selected</string>
     <string name="blocked_apps_title">Blocked Apps</string>
     <!-- Routine Notifications -->
     <string name="notification_channel_routine_name">Routine Notifications</string>

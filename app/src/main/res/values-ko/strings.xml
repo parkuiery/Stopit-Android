@@ -5,7 +5,7 @@
     <string name="app_lock_info">선택한 앱은 더 이상 사용되지 못하도록\n스탑잇이 앱 사용을 잠가드려요.\n앱 잠금은 언제든지 끄고 켤 수 있어요.</string>
     <string name="select_apps_button">앱 선택하기</string>
     <string name="accessibility_permission_required">접근성 권한이 꼭 필요해요!</string>
-    <string name="accessibility_permission_description">접근성 권한으로 우리를 유혹하는\n모든 앱 사용을 막을 수 있어요.</string>
+    <string name="accessibility_permission_description">접근성 권한으로 내가 선택한\n유혹 앱 사용을 막을 수 있어요.</string>
     <string name="permission_usage_note">권한은 앱 사용을 막을 때만 사용</string>
     <string name="allow_permission">권한 허용하기</string>
     <string name="notification_permission_request">스탑잇과 함께 약속을 잘 지킬 수 있도록 알림을 허용해주세요.</string>
@@ -90,6 +90,7 @@
     <string name="routine_alarm_permission_description">설정한 시간에 알림으로 보내 루틴을 자연스럽게 시작할 수 있도록 도와드려요.</string>
     <string name="routine_alarm_permission_button">알림 설정하기</string>
     <string name="routine_running_tag">실행중</string>
+    <string name="routine_active_action_blocked_message">루틴 실행 중에는 수정·삭제·끄기가 잠겨요. 잠깐 예외가 필요하면 긴급 해제를 사용하세요.</string>
     <string name="contact_us">문의하기</string>
     <string name="monetization_interest_menu_title">광고 없이 스탑잇을 쓰고 싶으신가요?</string>
     <string name="monetization_interest_menu_message">광고 제거 옵션이 필요하다면 알려주세요. 아직 실제 결제는 제공되지 않습니다.</string>
@@ -147,6 +148,10 @@
     <string name="cd_state_off">꺼짐</string>
     <string name="cd_tab_selected">선택됨</string>
     <string name="cd_tab_not_selected">선택되지 않음</string>
+    <string name="cd_lock_history_date_today">오늘</string>
+    <string name="cd_lock_history_date_selected">선택됨</string>
+    <string name="cd_lock_history_date_not_selected">선택되지 않음</string>
+    <string name="cd_lock_history_date_today_selected">오늘, 선택됨</string>
     <string name="blocked_apps_title">차단된 앱</string>
     <string name="notification_channel_routine_name">루틴 알림</string>
     <string name="notification_channel_routine_description">루틴 시작 시 알림을 받습니다</string>

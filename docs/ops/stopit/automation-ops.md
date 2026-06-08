@@ -9,6 +9,8 @@
 Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의존하지 않는다.
 현재는 아래처럼 역할이 분리된 cron topology를 기준으로 운영한다.
 
+Branch Hygiene 정책상 `automation/*`는 PR head prefix가 아니다. 아래 `automation/stopit-*-lane` stable branches는 local lane worktree 기준선일 뿐이며, reviewable PR은 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` 같은 허용 prefix에서 만든다.
+
 ### 1) 제품/지표 분석 계층
 
 - `stopit-daily-metrics-monitor`
@@ -26,13 +28,17 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
 
 - `stopit-executor-docs-lane`
   - docs/ops/analytics/ASO/runbook 성격 이슈 처리
+  - stable branch는 `automation/stopit-docs-lane` 같은 로컬 lane/worktree 전용 local lane 브랜치다. PR head로는 쓰지 않고, reviewable 작업은 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...`처럼 Branch Hygiene 허용 prefix로 새 브랜치를 만든다.
 - `stopit-executor-qa-lane`
   - QA 기준, 테스트, 재현, 저위험 회귀 방지 작업
+  - stable branch는 `automation/stopit-qa-lane`이며 PR head는 `test/issue-...` 또는 `fix/issue-...`를 사용한다.
 - `stopit-executor-code-lane`
   - Android 코드 변경 이슈 처리
+  - stable branch는 `automation/stopit-code-lane`이며 PR head는 `fix/issue-...`, `feature/issue-...`, `refactor/issue-...`처럼 변경 성격에 맞춘다.
 - `stopit-merge-controller`
   - lane PR의 check/merge 가능 여부 확인
   - 저위험·green PR만 순차 merge
+  - `automation/stopit-merge-lane`는 merge controller 작업대 전용이며 PR head가 아니다.
 
 ### 3) 릴리즈 계층
 
@@ -40,6 +46,7 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
   - release PR 판단
   - `main` merge 후 semver tag 생성
   - Google Play `internal` track deploy 흐름 확인
+  - `automation/stopit-release-lane`는 release 판단 작업대 전용이고, release PR은 `release/<version>` head를 사용한다.
 - `stopit-local-branch-cleanup`
   - lane/worktree 정리 보조
 

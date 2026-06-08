@@ -166,6 +166,8 @@ interface KeepAnalytics {
         reason: String,
     ) = Unit
 
+    fun trackGoalLockCreateStarted(entrySurface: String) = Unit
+
     fun trackGoalLockCreated(
         durationSelectionType: String,
         lockMode: String,
@@ -269,6 +271,7 @@ object KeepAnalyticsEvent {
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
     const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
+    const val GOAL_LOCK_CREATE_STARTED = "goal_lock_create_started"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
@@ -326,6 +329,7 @@ object KeepAnalyticsParam {
     const val TIME_WINDOW_BUCKET = "time_window_bucket"
     const val ROUTINE_NAME_INCLUDED = "routine_name_included"
     const val DURATION_SELECTION_TYPE = "duration_selection_type"
+    const val ENTRY_SURFACE = "entry_surface"
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
@@ -466,6 +470,13 @@ object AnalyticsGoalLockDurationSelectionType {
     const val PRESET_DAYS = "preset_days"
     const val CUSTOM_DAYS = "custom_days"
     const val END_DATE = "end_date"
+}
+
+object AnalyticsGoalLockEntrySurface {
+    const val HOME = "home"
+    const val ROUTINE = "routine"
+    const val MENU = "menu"
+    const val GOAL_LOCK_DETAIL = "goal_lock_detail"
 }
 
 object AnalyticsGoalLockMode {

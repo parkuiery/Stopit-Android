@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Por favor, selecione os aplicativos que te tentam</string>
     <string name="app_lock_info">Os aplicativos selecionados serão bloqueados para evitar o uso. Você pode ativar e desativar o bloqueio a qualquer momento.</string>
     <string name="select_apps_button">Selecionar Apps</string>
-    <string name="accessibility_permission_required">Permissão de Tempo de Tela é essencial!</string>
-    <string name="accessibility_permission_description">Permissão de Tempo de Tela pode bloquear todos os aplicativos que nos tentam.</string>
+    <string name="accessibility_permission_required">A permissão de acessibilidade é necessária!</string>
+    <string name="accessibility_permission_description">A permissão de acessibilidade permite que o StopIt bloqueie os apps de distração que você escolher.</string>
     <string name="permission_usage_note">A permissão é usada apenas para bloquear o uso de aplicativos</string>
     <string name="allow_permission">Permitir permissão</string>
     <string name="notification_permission_request">Por favor, permita notificações para ajudá-lo a manter suas promessas com o StopIt.</string>
@@ -109,16 +109,16 @@
     <string name="lock_history_routine_session">Rotina</string>
     <string name="lock_history_manual_session">Manual</string>
     <string name="lock_history_no_records">Sem histórico de bloqueio para este período</string>
-    <string name="lock_history_top_apps_empty_supporting">After your next completed block, the apps you protected time from will appear here.</string>
-    <string name="lock_history_top_apps_positive_supporting">These are the apps you blocked most successfully in this period.</string>
-    <string name="lock_history_performance_sessions_supporting">You held your promise %1$d times without judgment or pressure.</string>
-    <string name="lock_history_performance_month_headline">You protected %1$s this month</string>
-    <string name="lock_history_performance_week_headline">You protected %1$s this week</string>
-    <string name="lock_history_performance_low_data_supporting">A small start counts. You can keep building this protected time.</string>
-    <string name="lock_history_performance_low_data_headline">Your first record has started</string>
-    <string name="lock_history_performance_empty_supporting">Complete one block session and your protected time will appear here.</string>
-    <string name="lock_history_performance_empty_month_headline">Ready to start this month\'s record?</string>
-    <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
+    <string name="lock_history_top_apps_empty_supporting">Depois do próximo bloqueio concluído, os apps dos quais você protegeu seu tempo aparecerão aqui.</string>
+    <string name="lock_history_top_apps_positive_supporting">Estes são os apps que você bloqueou com mais sucesso neste período.</string>
+    <string name="lock_history_performance_sessions_supporting">Você cumpriu sua promessa %1$d vezes, sem julgamento nem pressão.</string>
+    <string name="lock_history_performance_month_headline">Você protegeu %1$s este mês</string>
+    <string name="lock_history_performance_week_headline">Você protegeu %1$s esta semana</string>
+    <string name="lock_history_performance_low_data_supporting">Um começo pequeno também conta. Você pode continuar acumulando esse tempo protegido.</string>
+    <string name="lock_history_performance_low_data_headline">Seu primeiro registro começou</string>
+    <string name="lock_history_performance_empty_supporting">Conclua uma sessão de bloqueio e seu tempo protegido aparecerá aqui.</string>
+    <string name="lock_history_performance_empty_month_headline">Pronto para iniciar o primeiro registro deste mês?</string>
+    <string name="lock_history_performance_empty_week_headline">Pronto para iniciar o primeiro registro desta semana?</string>
     <string name="lock_history_focus_share_button">Compartilhar o registro de foco desta semana</string>
     <string name="lock_history_focus_share_sheet_title">Compartilhar registro de foco do StopIt</string>
     <string name="focus_summary_share_payload_text">Esta semana, protegi meu foco %1$d vezes por %2$s com o StopIt.\nQuando preciso me concentrar, faço uma pausa no uso dos apps.\n%3$s</string>
@@ -131,7 +131,7 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
-    <string name="lock_history_top_apps_title">Apps you protected time from</string>
+    <string name="lock_history_top_apps_title">Apps dos quais você protegeu seu tempo</string>
     <string name="lock_history_block_count">%1$d vezes</string>
     <string name="lock_history_duration_short_hour">%1$dh%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
@@ -146,6 +146,10 @@
     <string name="cd_state_off">Desativado</string>
     <string name="cd_tab_selected">Selecionado</string>
     <string name="cd_tab_not_selected">Não selecionado</string>
+    <string name="cd_lock_history_date_today">Hoje</string>
+    <string name="cd_lock_history_date_selected">Selecionado</string>
+    <string name="cd_lock_history_date_not_selected">Não selecionado</string>
+    <string name="cd_lock_history_date_today_selected">Hoje, selecionado</string>
     <string name="blocked_apps_title">Apps bloqueados</string>
     <string name="routine_alarm_permission_title">Vamos avisar para você não perder o início da sua rotina.</string>
     <string name="routine_alarm_permission_description">Vamos enviar uma notificação no horário definido para ajudar você a começar a rotina de forma natural.</string>
@@ -154,6 +158,7 @@
     <string name="notification_routine_start_message">O uso de apps foi bloqueado para ajudar você a se concentrar.</string>
     <string name="routine_notification_permission_fallback_message">A rotina %1$s começou, mas a permissão de notificações está desativada, então o StopIt vai avisar você dentro do app.</string>
     <string name="routine_running_tag">Em execução</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">Proteção contra desinstalação</string>
     <string name="prevent_uninstall_subtitle">Protege o StopIt de ser desinstalado</string>
     <string name="prevent_uninstall_enabled">A proteção contra desinstalação está ativa</string>
