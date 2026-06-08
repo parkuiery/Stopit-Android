@@ -250,7 +250,7 @@ GA4 Admin 증적 후보:
 | `outcome` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:outcome` |
 | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 미확인/등록 필요 | 동일 | `customEvent:source` |
 | `block_source` | `app_block_intercepted` | 미확인/등록 필요 | 동일 | `customEvent:block_source` |
-| `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #611 문서 계약 추가 / code-lane 전환 필요 | raw package 제거 구현 포함 release 전후로 GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:blocked_app_category_bucket` |
+| `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #611 문서 계약 + PR #617 Android payload 전환 완료 | PR #617 포함 버전의 release/tag/Play deploy 전후로 GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:blocked_app_category_bucket` |
 | `blocked_app_package` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | GA4 Admin 신규 등록 대상에서 제외. 기존 live 흔적은 legacy baseline으로만 해석 | 등록하지 않음 |
 | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 미확인/등록 필요 | 동일 | `customEvent:selected_app_count` |
 | `is_onboarding` | `app_selection_completed` | 미확인/등록 필요 | 동일 | `customEvent:is_onboarding` |
@@ -363,7 +363,7 @@ GA4 Admin 증적 후보:
 | `outcome` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `block_source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `blocked_app_category_bucket` | Required dimension | 등록 필요 | raw package 제거 구현 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:blocked_app_category_bucket` 확인 필요 | #611 privacy-safe 대체 축 |
+| `blocked_app_category_bucket` | Required dimension | 등록 필요 | PR #617 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:blocked_app_category_bucket` 확인 필요 | #611 privacy-safe 대체 축 |
 | `blocked_app_package` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | raw package 원문. #611에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `selected_app_count` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `is_onboarding` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
