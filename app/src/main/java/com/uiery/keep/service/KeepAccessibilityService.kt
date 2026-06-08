@@ -14,7 +14,7 @@ import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.feature.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.EntryPoint

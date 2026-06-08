@@ -43,10 +43,8 @@ Issue: #651
 | Layer | 파일 | 현재 feature import | code-lane migration 방향 |
 | --- | --- | --- | --- |
 | database | `app/src/main/java/com/uiery/keep/database/entity/GoalLockEntity.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockMode`, `feature.goallock.GoalLockStoredStatus` | `GoalLock` domain model / mode / status를 shared domain package로 이동하고 entity mapper는 shared domain을 반환한다. |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockRepository`, `feature.routine.RoutineRepository` | AccessibilityService가 shared lock-state read repository 또는 runtime-facing use case에 의존하도록 분리한다. |
+| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockRepository` | AccessibilityService의 GoalLock read/model 입력을 shared lock-state read repository 또는 runtime-facing use case로 분리한다. Routine read contract는 `data.routine.RoutineRepository`로 이동 완료. |
 | service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockPolicy` | foreground block decision의 입력 model/policy를 shared domain boundary로 이동한다. |
-| receiver | `app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt` | `feature.routine.RoutineRepository` | boot/package/time-change restore가 shared routine runtime repository/use case를 사용하게 한다. |
-| receiver | `app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt` | `feature.routine.RoutineRepository` | alarm receiver가 shared routine runtime repository/use case를 사용하게 한다. |
 | analytics | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | `feature.routine.RepeatBlockRoutineSuggestion` | analytics API는 feature-local suggestion object 대신 bucketed analytics DTO/interface를 받는다. |
 | analytics | `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` | `feature.routine.RepeatBlockRoutineSuggestion` | Firebase adapter는 shared analytics DTO를 payload로 변환한다. |
 

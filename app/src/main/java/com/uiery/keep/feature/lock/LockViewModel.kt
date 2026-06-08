@@ -16,7 +16,7 @@ import com.uiery.keep.datastore.ReviewPromptStateStore
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS

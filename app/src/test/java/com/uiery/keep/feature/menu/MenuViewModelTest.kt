@@ -5,7 +5,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

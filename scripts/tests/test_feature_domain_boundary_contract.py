@@ -22,17 +22,10 @@ EXPECTED_FEATURE_IMPORTS = {
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt": [
         "com.uiery.keep.feature.goallock.GoalLock",
         "com.uiery.keep.feature.goallock.GoalLockRepository",
-        "com.uiery.keep.feature.routine.RoutineRepository",
     ],
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt": [
         "com.uiery.keep.feature.goallock.GoalLock",
         "com.uiery.keep.feature.goallock.GoalLockPolicy",
-    ],
-    "app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt": [
-        "com.uiery.keep.feature.routine.RoutineRepository",
-    ],
-    "app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt": [
-        "com.uiery.keep.feature.routine.RoutineRepository",
     ],
     "app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt": [
         "com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion",
