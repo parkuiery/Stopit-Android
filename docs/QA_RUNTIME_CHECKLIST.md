@@ -1056,7 +1056,7 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 
 release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다. 세부 단계 source of truth는 `.github/workflows/release-qa.yml`, `scripts/android_runtime_suites.py`, `docs/ops/stopit/release-context.md`이며, 이 문서는 그 순서를 사람이 반복 실행하기 쉬운 checklist 형태로 풀어쓴 것이다. Android CI의 focused runtime smoke 목록과 섞지 말고, main-target release evidence에는 아래 Release QA 목록을 그대로 기록한다.
 
-Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock`.
+Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
 
 ```bash
 cd <repo-root>
@@ -1113,9 +1113,12 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
 adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification
+./gradlew :app:installDevDebug
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest
 ```
 
-즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate -> notification-channel-disabled gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 issue #580 계열 exact alarm 권한 안내 QA에서는 루틴 생성/활성화가 `ShowAlarmPermission`을 발생시켜 sheet가 보였다는 사실과, 사용자가 설정 이동 버튼을 명시적으로 눌러 OS 설정으로 나가려 했다는 사실을 분리해 기록한다. 단순 dismiss만 한 경우 `HAS_SHOWN_ALARM_PERMISSION`을 영구 true로 저장하면 안 되며, 이후 권한이 여전히 없으면 화면 재진입/루틴 활성화 경로에서 다시 안내될 수 있어야 한다. 설정 Activity가 OEM/프로필 환경에서 열리지 않으면 앱 상세 설정 fallback으로 이동하고, 그마저 실패해도 crash 없이 권한 없음/disabled routine 상태를 유지해야 한다.
 

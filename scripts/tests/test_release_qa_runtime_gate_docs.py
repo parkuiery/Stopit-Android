@@ -47,6 +47,11 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             with self.subTest(suite=suite):
                 self.assertIn(suite, workflow)
 
+    def test_notification_channel_disabled_is_release_qa_gate(self):
+        self.assertIn("notification_channel_disabled", android_runtime_suites.RELEASE_QA_SEQUENCE)
+        workflow = RELEASE_QA_WORKFLOW.read_text()
+        self.assertIn("run-connected notification_channel_disabled", workflow)
+
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(

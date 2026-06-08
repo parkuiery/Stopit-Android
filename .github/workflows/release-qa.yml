@@ -137,3 +137,4 @@ jobs:
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow"
             python3 scripts/android_runtime_suites.py run-connected release_remaining_runtime
             python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
+            python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled --before "./gradlew --console=plain :app:installDevDebug"
