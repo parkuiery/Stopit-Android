@@ -17,10 +17,13 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "Issue: #467",
             "PR #517(`572eb559`)",
             "PR #575(`1a7c677`)",
+            "PR #593(`79fdee8`)",
+            "PR #604(`3e97f548`)",
             "EmergencyUnlockBottomSheetContent.kt",
             "reason → app selection → duration → countdown",
             "필요하면 빠르게, 습관이면 한 번 멈춤",
             "짧은 label + 보조 설명",
+            "selected reason reflection helper",
             "disabled reason은 보이는 copy",
             "reasonStepEnabled=false",
             "Countdown은 안전한 유예",
@@ -79,6 +82,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "Reason required OFF",
             "App selection/duration/countdown",
             "selected reason maps to existing enum key",
+            "selected reason reflection helper reinforces intentional use",
             "no app name/package/custom reason/raw history added to analytics",
             "python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v",
         ]
@@ -99,6 +103,10 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
 
         self.assertIn("PR #517(`572eb559`)", source)
         self.assertIn("PR #575(`1a7c677`)", source)
+        self.assertIn("PR #593(`79fdee8`)", source)
+        self.assertIn("PR #604(`3e97f548`)", source)
+        self.assertIn("countdown TalkBack baseline", high_traffic)
+        self.assertIn("selected reason reflection helper baseline", high_traffic)
         self.assertIn("Compose UI flow baseline", high_traffic)
         self.assertIn("`develop`에 반영", high_traffic)
         self.assertIn("release/tag/Play deploy", high_traffic)
@@ -109,10 +117,17 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
 
         self.assertIn("PR #517(`572eb559`)", checklist)
         self.assertIn("PR #575(`1a7c677`)", checklist)
+        self.assertIn("PR #593(`79fdee8`)", checklist)
+        self.assertIn("PR #604(`3e97f548`)", checklist)
         self.assertIn("device/screenshot/TalkBack evidence", checklist)
         self.assertIn("PR #517 merge commit included in tested build", checklist)
         self.assertIn("PR #575 UI QA baseline included in tested build", checklist)
-
+        self.assertIn("PR #604 selected reason reflection helper baseline included in tested build", checklist)
+        self.assertIn(
+            "countdown TalkBack includes waiting copy, remaining seconds, and cancel affordance together",
+            checklist,
+        )
+        self.assertIn("python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v", checklist)
 
 if __name__ == "__main__":
     unittest.main()

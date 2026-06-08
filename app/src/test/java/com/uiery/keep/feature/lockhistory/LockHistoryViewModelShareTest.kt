@@ -38,6 +38,7 @@ class LockHistoryViewModelShareTest {
                 ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViews)
@@ -99,6 +100,7 @@ class LockHistoryViewModelShareTest {
                 ),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         waitForHistoryLoad(viewModel)
@@ -118,6 +120,7 @@ class LockHistoryViewModelShareTest {
                 LockHistoryDaoWithSessions(emptyList()),
             ),
             analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
         waitForAnalyticsEventCount(analytics, 1)
@@ -171,6 +174,11 @@ class LockHistoryViewModelShareTest {
             isRoutine = false,
         )
     }
+}
+
+private class FakeFocusSummaryShareTextProvider : FocusSummaryShareTextProvider {
+    override fun buildText(request: FocusSummaryShareTextRequest): String =
+        "Focus summary ${request.sessionCount} sessions / ${request.durationMinutes} minutes\n${request.playStoreUrl}"
 }
 
 private open class LockHistoryDaoWithSessions(

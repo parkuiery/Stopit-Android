@@ -72,6 +72,7 @@ class RoutineViewModel
                     routineRepository.fetch(id)
                 }.onSuccess { routine ->
                     if (routine.isRunningNow() || routine.isChangeLocked()) {
+                        postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                         return@onSuccess
                     }
                     showEditRoutineBottomSheet(routine)
@@ -95,6 +96,7 @@ class RoutineViewModel
             intent {
                 val routine = state.routines.find { it.id == id }
                 if (routine?.isRunningNow() == true || routine?.isChangeLocked() == true) {
+                    postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                     return@intent
                 }
                 exactAlarmOrchestrator.cancelRoutine(id)
@@ -109,10 +111,12 @@ class RoutineViewModel
             val isRunningRoutine = routine?.isRunningNow() == true
 
             if (!isEnabled && isRunningRoutine) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
             if (routine?.isChangeLocked() == true) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
@@ -214,6 +218,8 @@ sealed class RoutineSideEffect {
     ) : RoutineSideEffect()
 
     data object ShowAlarmPermission : RoutineSideEffect()
+
+    data object ShowActiveRoutineBlocked : RoutineSideEffect()
 
     data class ShareRoutineTemplate(
         val payload: RoutineTemplateSharePayload,

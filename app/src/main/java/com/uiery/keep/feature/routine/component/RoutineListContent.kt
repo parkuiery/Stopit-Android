@@ -3,40 +3,46 @@ package com.uiery.keep.feature.routine.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uiery.kds.KeepSwitch
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.kds.KeepSwitch
+import com.uiery.keep.analytics.toMetadata
+import com.uiery.keep.feature.routine.RoutineCardStatus
+import com.uiery.keep.feature.routine.toRoutineCardReadModel
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.util.formatLockEndTime
 import com.uiery.keep.util.formatTwelveHourTime
 import com.uiery.keep.util.isChangeLocked
-import com.uiery.keep.util.isRunningNow
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlinx.datetime.LocalTime
 
 @Composable
@@ -62,12 +68,21 @@ internal fun RoutineListContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(routines) { routine ->
-                val isRunning = routine.isRunningNow()
+                val readModel = routine.toRoutineCardReadModel()
+                val isRunning = readModel.status == RoutineCardStatus.Running
                 val isLocked = routine.isChangeLocked()
                 val isBlocked = isRunning || isLocked
                 RoutineItem(
                     name = routine.name,
                     startTime = routine.startTime,
+                    status = readModel.status,
+                    repeatDaysLabel = readModel.repeatDays.toRoutineRepeatDaysLabel(),
+                    nextRunLabel = readModel.nextRunAt?.let { nextRunAt ->
+                        stringResource(
+                            R.string.routine_next_run_label,
+                            formatLockEndTime(nextRunAt),
+                        )
+                    },
                     isEnabled = routine.isEnabled,
                     isRunning = isRunning,
                     isLocked = isLocked,
@@ -93,6 +108,9 @@ private fun RoutineItem(
     modifier: Modifier = Modifier,
     name: String,
     startTime: LocalTime,
+    status: RoutineCardStatus,
+    repeatDaysLabel: String,
+    nextRunLabel: String?,
     isEnabled: Boolean,
     isRunning: Boolean,
     isLocked: Boolean,
@@ -102,6 +120,16 @@ private fun RoutineItem(
     onShareClick: () -> Unit,
 ) {
     val isBlocked = isRunning || isLocked
+    val cardColor = if (status == RoutineCardStatus.Disabled) {
+        KeepTheme.colors.tertiaryContainer
+    } else {
+        KeepTheme.colors.tertiary
+    }
+    val statusLabel = when (status) {
+        RoutineCardStatus.Running -> stringResource(R.string.routine_running_tag)
+        RoutineCardStatus.Enabled -> stringResource(R.string.routine_enabled_tag)
+        RoutineCardStatus.Disabled -> stringResource(R.string.routine_disabled_tag)
+    }
     Row(
         modifier =
             modifier
@@ -109,13 +137,14 @@ private fun RoutineItem(
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(enabled = !isBlocked) { onClick() }
                 .background(
-                    color = KeepTheme.colors.tertiary,
+                    color = cardColor,
                     shape = RoundedCornerShape(12.dp),
                 ).padding(horizontal = 12.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val amPmText = if (startTime.hour < 12) R.string.am else R.string.pm
         Column(
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
@@ -135,19 +164,19 @@ private fun RoutineItem(
                     fontSize = 28.sp,
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
-                if (isRunning) {
-                    Text(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(KeepTheme.colors.primary)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                        text = stringResource(R.string.routine_running_tag),
-                        color = KeepTheme.colors.onPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                RoutineStatusBadge(
+                    text = statusLabel,
+                    containerColor = if (status == RoutineCardStatus.Running) {
+                        KeepTheme.colors.primary
+                    } else {
+                        KeepTheme.colors.onSurfaceVariant
+                    },
+                    contentColor = if (status == RoutineCardStatus.Running) {
+                        KeepTheme.colors.onPrimary
+                    } else {
+                        KeepTheme.colors.tertiary
+                    },
+                )
                 if (isLocked && changeLockHours != null) {
                     Row(
                         modifier =
@@ -176,9 +205,27 @@ private fun RoutineItem(
             Text(
                 text = name,
                 color = KeepTheme.colors.surfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Text(
+                text = repeatDaysLabel,
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (nextRunLabel != null) {
+                Text(
+                    text = nextRunLabel,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        Spacer(modifier = Modifier.weight(1f))
         IconButton(
             enabled = !isBlocked,
             onClick = onShareClick,
@@ -194,5 +241,35 @@ private fun RoutineItem(
             enabled = !isBlocked,
             onCheckedChange = onEnabledChange,
         )
+    }
+}
+
+@Composable
+private fun RoutineStatusBadge(
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+) {
+    Text(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(containerColor)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        text = text,
+        color = contentColor,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
+private fun List<java.time.DayOfWeek>.toRoutineRepeatDaysLabel(): String {
+    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    return if (isEmpty()) {
+        stringResource(R.string.routine_repeat_days_empty)
+    } else {
+        joinToString(" · ") { dayOfWeek ->
+            dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+        }
     }
 }

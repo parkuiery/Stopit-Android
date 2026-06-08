@@ -159,7 +159,10 @@ class FirebaseKeepAnalytics
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = buildMap {
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
-                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+                    put(
+                        KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                        blockedAppCategoryBucketForPackage(blockedAppPackage),
+                    )
                     routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
                     goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
                 },
@@ -484,6 +487,13 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackGoalLockCreateStarted(entrySurface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                params = mapOf(KeepAnalyticsParam.ENTRY_SURFACE to entrySurface),
+            )
+        }
+
         override fun trackGoalLockCreated(
             durationSelectionType: String,
             lockMode: String,
@@ -525,6 +535,19 @@ class FirebaseKeepAnalytics
                 params = mapOf(
                     KeepAnalyticsParam.LOCK_MODE to lockMode,
                     KeepAnalyticsParam.DURATION_DAYS_BUCKET to durationDaysBucket,
+                ),
+            )
+        }
+
+        override fun trackGoalLockUpdated(
+            lockMode: String,
+            changedField: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.CHANGED_FIELD to changedField,
                 ),
             )
         }
@@ -633,7 +656,7 @@ class FirebaseKeepAnalytics
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
-            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
+            put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
             routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
             goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
         }

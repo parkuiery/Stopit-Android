@@ -70,7 +70,7 @@ class RepeatBlockRoutineSuggestionAnalyticsTest {
                 ),
                 event.params,
             )
-            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey("blocked_app_package"))
             assertFalse(event.params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
         }
     }
