@@ -59,7 +59,7 @@
 | Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환. `selected_app_count >= 1` 계약을 전제로 해석 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반. #479 완료 전에는 `(not set)` activeUsers를 별도 coverage gap으로 분리하고 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`의 release/readback gate를 따른다 |
 | Input | 첫 차단 후 루틴 CTA 전환 | `routine_creation_cta_clicked` users / `routine_creation_cta_shown` users, `routine_created` users / clicked users | GA4 customEvent + customUser | #455 soft CTA 실험. `first_core_action_completed` 이후 + 루틴 0개 사용자만 분모로 해석 |
-| Input | 부모 모드 시작 전환 | `parent_mode_started` users / `parent_mode_duration_selected` users, `parent_mode_started` users / `parent_mode_allowed_apps_selected` users | GA4 customEvent | #471 same-device 부모 모드 setup 완주. 보호자 PIN/허용 앱 선택 후 시작만 유효 |
+| Input | 부모 모드 시작 전환 | `parent_mode_started` users / `parent_mode_duration_selected` users, `parent_mode_started` users / `parent_mode_allowed_apps_selected` users | GA4 customEvent | #471 same-device 부모 모드 setup 완주. PR #519/#584로 policy/analytics/session/accessibility foothold는 develop에 있으나 setup UI·PIN runtime·release·GA4 Admin 전에는 live 수요/성과로 해석하지 않음 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
 | Health | 긴급해제 사용률 | `emergency_unlock_completed` users / active blocked users | GA4 | 차단 강도/사용자 부담 |
