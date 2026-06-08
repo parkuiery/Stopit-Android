@@ -184,10 +184,18 @@ cd <repo-root>
 - `KeepAccessibilityService`: `ParentModeSessionStore.observe()`를 구독하고 foreground 재평가에 부모 모드 session을 전달한다.
 - `AnalyticsBlockSource.PARENT_MODE`: `app_block_intercepted.block_source`에 `parent_mode` 값을 추가했다.
 
+### 3차 code-lane foothold
+
+2026-06-09 code-lane PR에서 `ParentModeSessionController`를 추가해 setup validation → session 저장 → privacy-safe analytics commit, PIN 검증 후 연장/즉시 종료 commit 경계를 한 곳으로 묶었다. 이 foothold는 아직 화면 진입점이나 실제 PIN 입력 UI가 아니지만, 후속 Home/Menu/setup/active 화면은 이 controller를 통해서만 부모 모드 session을 시작·연장·종료해야 한다.
+
+- `ParentModeSessionController`: duration/허용 앱/PIN validation 실패 시 저장·analytics를 하지 않고 `SetupBlocked`를 반환한다.
+- `ParentModeSessionControllerTest`: 시작, invalid setup, PIN 없는 연장 거부, PIN 성공 연장, PIN 성공 즉시 종료를 DataStore 저장값과 analytics call 순서까지 검증한다.
+- `parent_mode_started`, `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_extended`는 raw 앱 package/PIN/session history 없이 bucket/enum만 보낸다.
+
 ### 다음 code-lane 후보
 
 - Home/Menu entrypoint + setup screen
-- Parent mode active/expired screen
+- Parent mode active/expired screen과 실제 PIN 입력 UI
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
 남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 시작 진입점, PIN 확인 UI, active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.

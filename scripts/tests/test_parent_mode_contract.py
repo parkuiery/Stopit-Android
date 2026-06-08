@@ -98,6 +98,28 @@ class ParentModeContractTest(unittest.TestCase):
         for phrase in stale_pre_implementation_phrases:
             self.assertNotIn(phrase, runbook)
 
+    def test_runbook_tracks_session_controller_commit_boundary(self):
+        runbook = RUNBOOK.read_text()
+        qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
+
+        for phrase in [
+            "ParentModeSessionController",
+            "setup validation → session 저장 → privacy-safe analytics commit",
+            "시작·연장·종료",
+            "invalid setup",
+            "PIN 없는 연장 거부",
+            "PIN 성공 즉시 종료",
+            "ParentModeSessionControllerTest",
+        ]:
+            self.assertIn(phrase, runbook)
+
+        for phrase in [
+            "ParentModeSessionControllerTest",
+            "setup validation 실패 시 저장/analytics를 하지 않고",
+            "PIN 성공 후 연장/즉시 종료만 저장",
+        ]:
+            self.assertIn(phrase, qa_checklist)
+
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
 
