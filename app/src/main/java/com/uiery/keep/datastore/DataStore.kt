@@ -47,4 +47,5 @@ object PreferencesKey {
     val PARENT_MODE_DURATION_MINUTES = intPreferencesKey("parent_mode_duration_minutes")
     val PARENT_MODE_ALLOWED_APPS = stringSetPreferencesKey("parent_mode_allowed_apps")
     val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
+    val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
 }

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ACTIONLINT_VERSION="1.7.12"
+
 fetch_origin_main_or_die() {
   if ! git fetch origin main >/dev/null; then
     echo "Failed to fetch origin/main before release readiness validation." >&2
@@ -46,9 +48,17 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 if command -v actionlint >/dev/null 2>&1; then
+  actual_actionlint_version="$(actionlint --version | sed -n '1s/^v//; 1p')"
+  if [[ "$actual_actionlint_version" != "$ACTIONLINT_VERSION" ]]; then
+    echo "actionlint version mismatch: expected $ACTIONLINT_VERSION, actual $actual_actionlint_version" >&2
+    echo "Install pinned actionlint version v$ACTIONLINT_VERSION before running release readiness, then retry." >&2
+    exit 1
+  fi
   actionlint
 else
-  echo "actionlint not installed; skipping workflow lint"
+  echo "actionlint is required for release readiness workflow lint." >&2
+  echo "Install pinned actionlint version v$ACTIONLINT_VERSION before running release readiness, then retry." >&2
+  exit 1
 fi
 
 python3 scripts/play_version_code_guard.py validate-build \

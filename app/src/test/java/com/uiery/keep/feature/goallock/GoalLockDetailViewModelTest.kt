@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
+import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
@@ -103,6 +104,216 @@ class GoalLockDetailViewModelTest {
         )
     }
 
+    @Test
+    fun confirmSelectedAppsUpdateReplacesPackagesAndTracksGoalLockUpdated() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateSelectedApps(setOf(" com.new.video ", "com.new.video", "com.new.game"))
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateAppsConfirmation }
+        viewModel.confirmUpdateSelectedApps()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.selectedPackages == setOf("com.new.video", "com.new.game") }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(42L, updated.id)
+        assertEquals("시험 준비", updated.goalName)
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 7, 3), updated.endDate)
+        assertEquals(GoalLockMode.AllDay, updated.lockMode)
+        assertEquals(GoalLockStoredStatus.Active, updated.status)
+        assertEquals(setOf("com.new.video", "com.new.game"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateAppsConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.APPS,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmSelectedAppsUpdateRejectsEmptySelectionWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateSelectedApps(setOf(" ", "\t"))
+        viewModel.confirmUpdateSelectedApps()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateAppsConfirmation)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
+    @Test
+    fun confirmGoalNameUpdateTrimsNameAndTracksGoalLockUpdated() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateGoalName("  30일 SNS 디톡스  ")
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation }
+        viewModel.confirmUpdateGoalName()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.goalName == "30일 SNS 디톡스" }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals("30일 SNS 디톡스", updated.goalName)
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 7, 3), updated.endDate)
+        assertEquals(GoalLockMode.AllDay, updated.lockMode)
+        assertEquals(setOf("com.video.app", "com.social.app"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.NAME,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmGoalNameUpdateRejectsBlankOrSameNameWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateGoalName("  ")
+        viewModel.confirmUpdateGoalName()
+        viewModel.requestUpdateGoalName(" 시험 준비 ")
+        viewModel.confirmUpdateGoalName()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateGoalNameConfirmation)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
+    @Test
+    fun confirmDurationUpdateRecalculatesEndDateAndTracksDurationChanged() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateDurationDays(14)
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateDurationConfirmation }
+        viewModel.confirmUpdateDuration()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.endDate == LocalDate.of(2026, 6, 17) }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 6, 17), updated.endDate)
+        assertEquals(GoalLockMode.AllDay, updated.lockMode)
+        assertEquals(setOf("com.video.app", "com.social.app"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateDurationConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.DURATION,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmLockModeUpdateStoresScheduledModeAndTracksLockModeChanged() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+        val scheduled = GoalLockMode.Scheduled(
+            repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
+            startTime = LocalTime.of(19, 0),
+            endTime = LocalTime.of(23, 0),
+        )
+
+        viewModel.requestUpdateLockMode(scheduled)
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateLockModeConfirmation }
+        viewModel.confirmUpdateLockMode()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock?.lockMode == scheduled }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(scheduled, updated.lockMode)
+        assertEquals(LocalDate.of(2026, 6, 4), updated.startDate)
+        assertEquals(LocalDate.of(2026, 7, 3), updated.endDate)
+        assertEquals(setOf("com.video.app", "com.social.app"), updated.selectedPackages)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateLockModeConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.SCHEDULED,
+                    changedField = AnalyticsGoalLockChangedField.LOCK_MODE,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun sameStartEndScheduledModeUpdateIsRejectedWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock()
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+        val invalidScheduled = GoalLockMode.Scheduled(
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            startTime = LocalTime.of(19, 0),
+            endTime = LocalTime.of(19, 0),
+        )
+
+        viewModel.requestUpdateLockMode(invalidScheduled)
+        viewModel.confirmUpdateLockMode()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateLockModeConfirmation)
+        assertEquals(GoalLockMode.AllDay, viewModel.container.stateFlow.value.goalLock?.lockMode)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
+    @Test
+    fun updateDurationAndLockModeRejectCompletedGoalLockWithoutAnalytics() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = expiredActiveGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.isCompleted }
+        dao.updatedEntity = null
+        analytics.goalLockCompletedCalls.clear()
+
+        viewModel.requestUpdateDurationDays(30)
+        viewModel.confirmUpdateDuration()
+        viewModel.requestUpdateLockMode(GoalLockMode.AllDay)
+        viewModel.confirmUpdateLockMode()
+        delay(50)
+
+        assertEquals(null, dao.updatedEntity)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateDurationConfirmation)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateLockModeConfirmation)
+        assertEquals(emptyList<GoalLockUpdatedCall>(), analytics.goalLockUpdatedCalls)
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         repeat(20) {
             if (predicate()) return
@@ -194,9 +405,15 @@ private data class GoalLockCompletedCall(
     val durationDaysBucket: String,
 )
 
+private data class GoalLockUpdatedCall(
+    val lockMode: String,
+    val changedField: String,
+)
+
 private class DetailRecordingKeepAnalytics : KeepAnalytics {
     val goalLockEndedEarlyCalls = mutableListOf<GoalLockEndedEarlyCall>()
     val goalLockCompletedCalls = mutableListOf<GoalLockCompletedCall>()
+    val goalLockUpdatedCalls = mutableListOf<GoalLockUpdatedCall>()
 
     override fun logEvent(
         name: String,
@@ -262,6 +479,16 @@ private class DetailRecordingKeepAnalytics : KeepAnalytics {
         goalLockCompletedCalls += GoalLockCompletedCall(
             lockMode = lockMode,
             durationDaysBucket = durationDaysBucket,
+        )
+    }
+
+    override fun trackGoalLockUpdated(
+        lockMode: String,
+        changedField: String,
+    ) {
+        goalLockUpdatedCalls += GoalLockUpdatedCall(
+            lockMode = lockMode,
+            changedField = changedField,
         )
     }
 }

@@ -62,6 +62,7 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.PARENT_MODE_DURATION_MINUTES,
             PreferencesKey.PARENT_MODE_ALLOWED_APPS,
             PreferencesKey.PARENT_MODE_STATE,
+            PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         )
 
         assertEquals(

@@ -114,6 +114,7 @@ class HomeStatusCtaStructureContractTest(unittest.TestCase):
                     "python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v",
                     text,
                 )
+                self.assertIn("HomeStatusCtaCardIntegrationTest", text)
 
 
 if __name__ == "__main__":

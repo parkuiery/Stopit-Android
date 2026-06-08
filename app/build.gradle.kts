@@ -179,6 +179,7 @@ dependencies {
     implementation(libs.firebase.config)
 
     implementation(libs.play.review.ktx)
+    implementation(libs.install.referrer)
 
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)

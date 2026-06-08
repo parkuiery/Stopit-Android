@@ -2,8 +2,8 @@ package com.uiery.keep.service
 
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -22,7 +22,7 @@ class LockHistoryRecorderTest {
         val dao = RecordingLockHistoryDao()
         val recorder = LockHistoryRecorder(
             dataStore = dataStore,
-            lockHistoryRepository = LockHistoryRepository(dao),
+            lockHistorySessionWriter = LockHistorySessionWriter(dao),
         )
 
         recorder.recordSession(
@@ -59,7 +59,7 @@ class LockHistoryRecorderTest {
         val dao = RecordingLockHistoryDao()
         val recorder = LockHistoryRecorder(
             dataStore = dataStore,
-            lockHistoryRepository = LockHistoryRepository(dao),
+            lockHistorySessionWriter = LockHistorySessionWriter(dao),
         )
 
         recorder.recordSession(

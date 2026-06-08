@@ -6,11 +6,11 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -120,7 +120,7 @@ class LockViewModelTest {
         return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(FakeLockHistoryDao())),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -163,7 +163,7 @@ class LockViewModelTest {
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -192,6 +192,56 @@ class LockViewModelTest {
         val snapshot = dataStore.snapshot()
         assertEquals(9_000L + session.durationMillis, snapshot[PreferencesKey.TOTAL_BLOCK_TIME])
         assertEquals(maxOf(4_000L, session.durationMillis), snapshot[PreferencesKey.LONG_BLOCK_TIME])
+    }
+
+    @Test
+    fun completedHomeTimerRecordsHistoryFromPersistedManualStartTimeAfterReentry() = runBlocking {
+        val analytics = LockRecordingKeepAnalytics()
+        val persistedStartTime = Instant.parse("2026-05-25T09:00:00Z").toEpochMilli()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.START_TIME to persistedStartTime,
+            ),
+        )
+        val emergencyUnlockDao = FakeEmergencyUnlockDao()
+        val lockHistoryDao = LockRecordingHistoryDao()
+        val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            repository = fakeReviewEligibilityRepository(),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
+        )
+
+        LockViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
+            routineRepository = FakeRoutineRepository(),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
+                settingsStore = EmergencyUnlockSettingsStore(dataStore),
+                blockingStateStore = BlockingStateStore(dataStore),
+                repository = EmergencyUnlockRepository(emergencyUnlockDao),
+                analytics = analytics,
+            ),
+            notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
+            analytics = analytics,
+            reviewEligibility = reviewEligibility,
+            clock = clock,
+        )
+        withTimeout(2_000) {
+            while (lockHistoryDao.inserted.isEmpty()) {
+                delay(10)
+            }
+        }
+
+        assertEquals(persistedStartTime, lockHistoryDao.inserted.single().startTimestamp)
     }
 
     @Test
@@ -226,7 +276,7 @@ class LockViewModelTest {
             LockViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("lockTime" to LocalDateTime.now(clock).toString(), "isRoutine" to true)),
                 routineRepository = FakeRoutineRepository(flowOf(listOf(routine))),
-                lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+                lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,

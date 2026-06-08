@@ -39,19 +39,40 @@ scripts/check-latest-production-deployed.sh
 git fetch origin main --tags
 git pull --ff-only origin main
 
-actual_version="$(python3 - <<'PY'
+actual_version_info="$(python3 - <<'PY'
 from pathlib import Path
 import re
 text = Path('app/build.gradle.kts').read_text()
-match = re.search(r'versionName\s*=\s*"([^"]+)"', text)
-if not match:
+name = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+code = re.search(r'versionCode\s*=\s*(\d+)', text)
+if not name:
     raise SystemExit('versionName not found')
-print(match.group(1))
+if not code:
+    raise SystemExit('versionCode not found')
+print(f"{name.group(1)} {code.group(1)}")
 PY
 )"
+read -r actual_version actual_code <<<"$actual_version_info"
 
 if [[ "$actual_version" != "$version_name" ]]; then
   echo "versionName mismatch: app has $actual_version, requested $version_name" >&2
+  exit 1
+fi
+
+readme_version_info="$(python3 - <<'PY'
+from pathlib import Path
+import re
+text = Path('README.md').read_text()
+match = re.search(r'^- \*\*현재 버전\*\*: (\d+\.\d+\.\d+) \(versionCode (\d+)\)$', text, re.MULTILINE)
+if not match:
+    raise SystemExit("README current version line not found: expected '- **현재 버전**: x.y.z (versionCode n)'")
+print(f"{match.group(1)} {match.group(2)}")
+PY
+)"
+read -r readme_version readme_code <<<"$readme_version_info"
+
+if [[ "$readme_version" != "$actual_version" || "$readme_code" != "$actual_code" ]]; then
+  echo "README current version mismatch: README has $readme_version (versionCode $readme_code), app has $actual_version (versionCode $actual_code)" >&2
   exit 1
 fi
 

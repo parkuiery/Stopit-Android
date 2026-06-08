@@ -1,8 +1,11 @@
 # LockHistory 주간 집중 요약 공유 MVP
 
 Issue: #211
+Follow-up debt: #597
 
-이 문서는 `LockHistory`에 이미 존재하는 주간/월간 잠금 기록 요약을 기반으로, privacy-safe한 선택형 공유 MVP를 실행 가능한 제품/analytics/QA 계약으로 정리한다. 구현 PR의 source of truth는 코드와 `docs/ANALYTICS_EVENT_DICTIONARY.md`가 되지만, 구현 전 discovery/기획 판단은 이 문서를 따른다.
+상태: **#211 repo-internal MVP 구현 완료 / #597 code-lane runtime 전환 완료**
+
+이 문서는 `LockHistory`에 이미 존재하는 주간/월간 잠금 기록 요약을 기반으로, privacy-safe한 선택형 공유 MVP를 실행 가능한 제품/analytics/QA 계약으로 정리한다. 구현 PR의 source of truth는 코드와 `docs/ANALYTICS_EVENT_DICTIONARY.md`가 되며, 이 문서는 공유 CTA/analytics/privacy 계약과 #597 localization runtime 계약을 함께 고정한다. CTA/share sheet title뿐 아니라 `FocusSummarySharePayload.kt`의 공유 본문과 duration text도 `AndroidFocusSummaryShareTextProvider` + Android string/plural resources로 분리되어 locale-ready runtime 계약을 따른다.
 
 ## 한 줄 목표
 
@@ -51,7 +54,19 @@ Issue: #211
 - 접근성 설명: `이번 주 집중 요약을 다른 앱으로 공유`
 - share sheet title: `스탑잇 집중 기록 공유`
 
-### 기본 공유문
+### 공유문 locale/template 계약
+
+아래 Korean 문구는 #211 당시 기본 예시이며, #597 이후 runtime canonical source가 아니다. 구현은 Android string/plural resource 또는 resource-backed text provider에서 locale별 template을 읽고 다음 placeholder만 채워야 한다.
+
+필수 placeholder:
+
+- `{sessionCount}` 또는 Android format `%1$d`
+- `{durationText}` 또는 Android format `%2$s`
+- `{playStoreUrl}` 또는 Android format `%3$s`
+
+공유 payload builder는 앱 이름, package, topApps, raw session list, raw timestamp를 template 입력으로 받지 않는다. Duration text도 Kotlin hardcoded `시간`/`분` 조합이 아니라 locale-aware resource/plural contract를 따른다.
+
+### 기본 공유문 예시
 
 ```text
 이번 주 스탑잇으로 {sessionCount}번, 총 {durationText} 집중을 지켰어요.
@@ -157,6 +172,25 @@ GA4 custom dimension 등록은 구현 완료 후 별도 수동/운영 단계가 
 - TalkBack/접근성 라벨이 의미를 전달한다.
 - 날짜 필터 선택 중에도 공유문이 “이번 주” 요약임을 혼동시키지 않는다.
 
+## #597 localization/resource runtime contract
+
+현재 구현 표면:
+
+- `FocusSummarySharePayload.kt`: `FocusSummaryShareTextProvider`를 통해 공유 본문 생성을 주입받고, Android runtime 구현은 `AndroidFocusSummaryShareTextProvider`가 담당한다.
+- `AndroidFocusSummaryShareTextProvider`: `focus_summary_share_payload_text`, `focus_summary_share_duration_hours_minutes`, `focus_summary_share_duration_hour`, `focus_summary_share_duration_minute` resource/plural key를 사용한다.
+- `FocusSummarySharePayloadTest.kt`: Korean literal을 canonical expectation으로 고정하지 않고 provider injection request, privacy guardrail, analytics bucket을 검증한다.
+- `strings.xml` shipped locale files는 payload body template/duration placeholder key parity를 유지한다.
+
+#597 code-lane 완료 조건:
+
+1. 공유 본문 template을 Android resources 또는 resource-backed provider로 이동한다. ✅
+2. session count, duration text, Play Store URL placeholder 순서를 문서화하고 모든 shipped locale에서 key parity를 유지한다. ✅
+3. duration/session grammar는 locale-aware string/plural contract를 사용한다. ✅
+4. formatter/helper tests는 Korean literal을 유일한 canonical expectation으로 고정하지 않고, resource/provider injection으로 locale별 rendering과 privacy guardrail을 검증한다. ✅
+5. `focus_summary_share_*` analytics event name, bucket, privacy policy는 변경하지 않는다. ✅
+
+`Closes #597`는 runtime payload resource/template 전환, shipped locale parity, formatter/privacy tests, static docs contract가 모두 통과한 code-lane PR에서 사용한다.
+
 ## 구현 패키지 추천 범위
 
 이 문서 PR은 discovery/contract 산출물이다. 구현 착수 시에는 #211을 바로 닫기보다 아래 패키지를 한 PR에서 끝까지 처리한다.
@@ -169,7 +203,7 @@ GA4 custom dimension 등록은 구현 완료 후 별도 수동/운영 단계가 
 6. `docs/ANALYTICS_EVENT_DICTIONARY.md` 이벤트 반영.
 7. `docs/QA_RUNTIME_CHECKLIST.md` 또는 관련 QA 문서에 수동 share sheet 확인 추가.
 
-`Closes #211`는 위 구현+테스트+event dictionary+QA 문서까지 완료했을 때만 사용한다. 이 문서-only PR은 `Refs #211`가 맞다.
+`Closes #211`는 위 구현+테스트+event dictionary+QA 문서까지 완료했을 때만 사용한다. 이 문서-only PR은 `Refs #211`가 맞다. #211 repo-internal MVP 구현 이후 #597 같은 localization/resource debt를 다루는 문서/ops/static-contract PR은 `Refs #597`를 사용하고, runtime resource/template 전환이 끝난 code-lane PR에서만 `Closes #597`를 사용한다.
 
 ## 외부/manual 경계
 

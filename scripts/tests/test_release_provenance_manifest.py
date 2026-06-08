@@ -92,6 +92,8 @@ android {
             "app/build/outputs/bundle/prodRelease/*.aab",
             "--manifest",
             "app/build/outputs/bundle/prodRelease/release-provenance.json",
+            "--artifact-name",
+            overrides.get("artifact_name", "stopit-prod-release-signed-aab"),
             "--package-name",
             "com.uiery.keep",
             "--upload-mode",
@@ -160,6 +162,40 @@ android {
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("android.version_name mismatch", result.stderr)
+
+    def test_verify_rejects_artifact_name_drift(self):
+        self.generate()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["artifact_name"] = "tampered-artifact"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.verify(check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifact_name mismatch", result.stderr)
+
+    def test_verify_rejects_git_and_github_actions_metadata_drift(self):
+        self.generate()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["git"]["sha"] = "evil"
+        manifest["github_actions"]["run_url"] = None
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.verify(check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("git.sha mismatch", result.stderr)
+
+    def test_verify_rejects_missing_github_actions_run_identity(self):
+        self.generate()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["github_actions"].pop("run_id")
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.verify(check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("github_actions.run_id mismatch", result.stderr)
 
     def test_generate_rejects_missing_or_ambiguous_aab_glob(self):
         self.aab.unlink()

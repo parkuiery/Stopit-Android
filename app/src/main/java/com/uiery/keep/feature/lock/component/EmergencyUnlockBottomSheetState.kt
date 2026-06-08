@@ -88,6 +88,17 @@ internal data class EmergencyUnlockBottomSheetState(
             EmergencyUnlockBottomSheetStep.COUNTDOWN -> null
         }
 
+    val selectedReasonReflectionTextRes: Int?
+        get() = when (selectedReason) {
+            "work" -> R.string.emergency_unlock_reason_work_reflection
+            "contact" -> R.string.emergency_unlock_reason_contact_reflection
+            "info" -> R.string.emergency_unlock_reason_info_reflection
+            "habit" -> R.string.emergency_unlock_reason_habit_reflection
+            "boredom" -> R.string.emergency_unlock_reason_boredom_reflection
+            OTHER_REASON_KEY -> R.string.emergency_unlock_reason_other_reflection
+            else -> null
+        }
+
     fun selectReason(reason: String): EmergencyUnlockBottomSheetState = copy(selectedReason = reason)
 
     fun changeCustomReason(reason: String): EmergencyUnlockBottomSheetState = copy(customReason = reason)

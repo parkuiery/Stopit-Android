@@ -12,6 +12,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
         for expected in (
             "#520",
             "LockHistoryRepository",
+            "LockHistorySessionWriter",
             "LockHistoryRecorder",
             "LockHistoryViewModel",
             "BlockedAppsViewModel",

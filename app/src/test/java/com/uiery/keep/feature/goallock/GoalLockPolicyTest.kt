@@ -229,6 +229,43 @@ class GoalLockPolicyTest {
         assertTrue(GoalLockPolicy.isValidForCreation(goalLock()))
     }
 
+    @Test
+    fun scheduledGoalLockRequiresRepeatDaysAndDifferentStartEndTimes() {
+        assertFalse(
+            GoalLockPolicy.isValidForCreation(
+                goalLock(
+                    lockMode = GoalLockMode.Scheduled(
+                        repeatDays = emptySet(),
+                        startTime = LocalTime.of(19, 0),
+                        endTime = LocalTime.of(23, 0),
+                    ),
+                ),
+            ),
+        )
+        assertFalse(
+            GoalLockPolicy.isValidForCreation(
+                goalLock(
+                    lockMode = GoalLockMode.Scheduled(
+                        repeatDays = setOf(DayOfWeek.MONDAY),
+                        startTime = LocalTime.of(19, 0),
+                        endTime = LocalTime.of(19, 0),
+                    ),
+                ),
+            ),
+        )
+        assertTrue(
+            GoalLockPolicy.isValidForCreation(
+                goalLock(
+                    lockMode = GoalLockMode.Scheduled(
+                        repeatDays = setOf(DayOfWeek.MONDAY),
+                        startTime = LocalTime.of(23, 0),
+                        endTime = LocalTime.of(2, 0),
+                    ),
+                ),
+            ),
+        )
+    }
+
     private fun goalLock(
         startDate: LocalDate = LocalDate.of(2026, 6, 1),
         endDate: LocalDate = LocalDate.of(2026, 6, 30),

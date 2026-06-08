@@ -166,6 +166,8 @@ interface KeepAnalytics {
         reason: String,
     ) = Unit
 
+    fun trackGoalLockCreateStarted(entrySurface: String) = Unit
+
     fun trackGoalLockCreated(
         durationSelectionType: String,
         lockMode: String,
@@ -182,6 +184,11 @@ interface KeepAnalytics {
     fun trackGoalLockCompleted(
         lockMode: String,
         durationDaysBucket: String,
+    ) = Unit
+
+    fun trackGoalLockUpdated(
+        lockMode: String,
+        changedField: String,
     ) = Unit
 
     fun trackRepeatBlockRoutineSuggestionShown(
@@ -269,9 +276,11 @@ object KeepAnalyticsEvent {
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
     const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
+    const val GOAL_LOCK_CREATE_STARTED = "goal_lock_create_started"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
+    const val GOAL_LOCK_UPDATED = "goal_lock_updated"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN = "repeat_block_routine_suggestion_shown"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
@@ -301,7 +310,9 @@ object KeepAnalyticsParam {
     const val SCHEDULE_TYPE = "schedule_type"
     const val SCHEDULED_DURATION_MINUTES = "scheduled_duration_minutes"
     const val BLOCK_SOURCE = "block_source"
+    @Deprecated("Use BLOCKED_APP_CATEGORY_BUCKET for external analytics payloads.")
     const val BLOCKED_APP_PACKAGE = "blocked_app_package"
+    const val BLOCKED_APP_CATEGORY_BUCKET = "blocked_app_category_bucket"
     const val REASON = "reason"
     const val DURATION_MINUTES = "duration_minutes"
     const val REMAINING_UNLOCKS = "remaining_unlocks"
@@ -324,11 +335,13 @@ object KeepAnalyticsParam {
     const val TIME_WINDOW_BUCKET = "time_window_bucket"
     const val ROUTINE_NAME_INCLUDED = "routine_name_included"
     const val DURATION_SELECTION_TYPE = "duration_selection_type"
+    const val ENTRY_SURFACE = "entry_surface"
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
+    const val CHANGED_FIELD = "changed_field"
     const val SURFACE = "surface"
     const val SUGGESTION_REASON = "suggestion_reason"
     const val TIME_BUCKET = "time_bucket"
@@ -467,6 +480,13 @@ object AnalyticsGoalLockDurationSelectionType {
     const val END_DATE = "end_date"
 }
 
+object AnalyticsGoalLockEntrySurface {
+    const val HOME = "home"
+    const val ROUTINE = "routine"
+    const val MENU = "menu"
+    const val GOAL_LOCK_DETAIL = "goal_lock_detail"
+}
+
 object AnalyticsGoalLockMode {
     const val ALL_DAY = "all_day"
     const val SCHEDULED = "scheduled"
@@ -501,6 +521,14 @@ object AnalyticsGoalLockDurationDaysBucket {
     const val EIGHT_TO_FOURTEEN = "8_14"
     const val FIFTEEN_TO_THIRTY = "15_30"
     const val THIRTY_ONE_PLUS = "31_plus"
+}
+
+object AnalyticsGoalLockChangedField {
+    const val DURATION = "duration"
+    const val APPS = "apps"
+    const val SCHEDULE = "schedule"
+    const val NAME = "name"
+    const val LOCK_MODE = "lock_mode"
 }
 
 object AnalyticsGoalLockEndedEarlyReason {
