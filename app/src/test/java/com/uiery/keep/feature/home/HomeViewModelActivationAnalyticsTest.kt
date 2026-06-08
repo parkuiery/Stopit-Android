@@ -439,6 +439,139 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun activeGoalLockTakesPriorityOverFuturePendingGoalLockOnHomeCard() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val today = LocalDate.now()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        id = 20L,
+                        goalName = "다음 시험 준비",
+                        startDate = today.plusDays(7),
+                        endDate = today.plusDays(14),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.future.app"),
+                    ),
+                    goalLockEntity(
+                        id = 10L,
+                        goalName = "현재 시험 준비",
+                        startDate = today.minusDays(1),
+                        endDate = today.plusDays(5),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.active.app"),
+                    ),
+                ),
+            ),
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 10L,
+                goalName = "현재 시험 준비",
+                status = HomeGoalLockStatus.Active,
+                daysRemaining = 6,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 1,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+    }
+
+    @Test
+    fun nearestPendingGoalLockIsShownWhenNoGoalLockIsCurrentlyActive() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val today = LocalDate.now()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        id = 30L,
+                        goalName = "먼 시험 준비",
+                        startDate = today.plusDays(20),
+                        endDate = today.plusDays(25),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.far.app"),
+                    ),
+                    goalLockEntity(
+                        id = 31L,
+                        goalName = "가까운 시험 준비",
+                        startDate = today.plusDays(2),
+                        endDate = today.plusDays(8),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.near.app"),
+                    ),
+                ),
+            ),
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 31L,
+                goalName = "가까운 시험 준비",
+                status = HomeGoalLockStatus.Pending,
+                daysRemaining = 9,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 1,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+    }
+
+    @Test
+    fun completedGoalLockDoesNotHideActiveOrPendingHomeCardCandidate() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val today = LocalDate.now()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        id = 40L,
+                        goalName = "이미 끝난 시험 준비",
+                        startDate = today.minusDays(20),
+                        endDate = today.minusDays(10),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.done.app"),
+                        status = GoalLockStoredStatus.Completed,
+                    ),
+                    goalLockEntity(
+                        id = 41L,
+                        goalName = "곧 시작할 시험 준비",
+                        startDate = today.plusDays(1),
+                        endDate = today.plusDays(5),
+                        lockMode = GoalLockMode.AllDay,
+                        selectedPackages = setOf("com.pending.app"),
+                    ),
+                ),
+            ),
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 41L,
+                goalName = "곧 시작할 시험 준비",
+                status = HomeGoalLockStatus.Pending,
+                daysRemaining = 6,
+                lockModeLabel = "하루종일 잠금",
+                selectedAppCount = 1,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+    }
+
+    @Test
     fun expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val goalLockDao = FakeHomeGoalLockDao(
@@ -548,15 +681,17 @@ private fun goalLockEntity(
     endDate: LocalDate,
     lockMode: GoalLockMode,
     selectedPackages: Set<String>,
+    id: Long = 7L,
+    status: GoalLockStoredStatus = GoalLockStoredStatus.Active,
 ): GoalLockEntity = GoalLockEntity.fromDomain(
     GoalLock(
-        id = 7L,
+        id = id,
         goalName = goalName,
         startDate = startDate,
         endDate = endDate,
         lockMode = lockMode,
         selectedPackages = selectedPackages,
-        status = GoalLockStoredStatus.Active,
+        status = status,
     ),
 )
 
