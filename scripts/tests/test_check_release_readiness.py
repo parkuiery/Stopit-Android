@@ -203,6 +203,8 @@ class CheckReleaseReadinessScriptTest(unittest.TestCase):
         env = os.environ.copy()
         env["PATH"] = f"{repo / 'bin'}:/usr/bin:/bin:/usr/sbin:/sbin"
         env["STOPIT_PLAY_MAX_VERSION_CODE"] = "0"
+        env.pop("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH", None)
+        env.pop("STOPIT_PACKAGE_NAME", None)
         return subprocess.run(
             ["bash", "scripts/check-release-readiness.sh"],
             cwd=repo,
