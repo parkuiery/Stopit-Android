@@ -105,6 +105,14 @@ android {
             "--rollout-fraction",
             overrides.get("rollout_fraction", ""),
         ]
+        if "expected_version_code" in overrides:
+            args.extend(["--expected-version-code", str(overrides["expected_version_code"])])
+        if "expected_git_sha" in overrides:
+            args.extend(["--expected-git-sha", overrides["expected_git_sha"]])
+        if "expected_git_ref" in overrides:
+            args.extend(["--expected-git-ref", overrides["expected_git_ref"]])
+        if "expected_git_ref_name" in overrides:
+            args.extend(["--expected-git-ref-name", overrides["expected_git_ref_name"]])
         return self.run_script(*args, check=overrides.get("check", True))
 
     def test_generate_writes_secret_free_manifest_with_artifact_version_and_run_metadata(self):
@@ -142,6 +150,39 @@ android {
         self.generate(track="beta", release_status="inProgress", rollout_fraction="0.25")
         self.verify(track="beta", release_status="inProgress", rollout_fraction="0.25")
 
+    def test_verify_accepts_recursive_aab_glob_for_downloaded_artifact_tree(self):
+        self.generate()
+        nested_dir = self.root / "downloaded" / "app" / "build" / "outputs" / "bundle" / "prodRelease"
+        nested_dir.mkdir(parents=True)
+        nested_aab = nested_dir / "app-prod-release.aab"
+        nested_manifest = nested_dir / "release-provenance.json"
+        nested_aab.write_bytes(self.aab.read_bytes())
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        nested_manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.run_script(
+            "verify",
+            "--aab-glob",
+            str(self.root / "downloaded" / "**" / "*.aab"),
+            "--manifest",
+            str(nested_manifest),
+            "--artifact-name",
+            "stopit-prod-release-signed-aab",
+            "--package-name",
+            "com.uiery.keep",
+            "--upload-mode",
+            "play-upload",
+            "--track",
+            "internal",
+            "--release-status",
+            "completed",
+            "--rollout-fraction",
+            "",
+            "--allow-artifact-path-relocation",
+        )
+
+        self.assertIn("Verified release provenance manifest", result.stdout)
+
     def test_verify_rejects_checksum_drift(self):
         self.generate()
         self.aab.write_bytes(b"changed bytes")
@@ -162,6 +203,35 @@ android {
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("android.version_name mismatch", result.stderr)
+
+    def test_verify_production_promotion_rejects_version_code_sha_ref_or_tag_mismatch(self):
+        self.generate()
+
+        result = self.verify(expected_version_code=43, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("android.version_code mismatch", result.stderr)
+
+        result = self.verify(expected_git_sha="different-sha", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("git.sha mismatch", result.stderr)
+
+        result = self.verify(expected_git_ref="refs/tags/v9.9.9", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("git.ref mismatch", result.stderr)
+
+        result = self.verify(expected_git_ref_name="v9.9.9", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("git.ref_name mismatch", result.stderr)
+
+    def test_verify_production_promotion_accepts_matching_tag_identity(self):
+        self.generate()
+
+        self.verify(
+            expected_version_code=42,
+            expected_git_sha="abc123",
+            expected_git_ref="refs/tags/v1.2.3",
+            expected_git_ref_name="v1.2.3",
+        )
 
     def test_verify_rejects_artifact_name_drift(self):
         self.generate()

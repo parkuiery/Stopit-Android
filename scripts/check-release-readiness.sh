@@ -65,6 +65,20 @@ python3 scripts/play_version_code_guard.py validate-build \
   --build-file app/build.gradle.kts \
   --minimum-main-version-code "$main_version_code"
 
-./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run
+./gradlew :app:testProdReleaseUnitTest
+./gradlew :app:lintProdRelease
+python3 scripts/verify_lint_registry.py \
+  --report app/build/reports/lint-results-prodRelease.html \
+  --require-section "Included Additional Checks" \
+  --require-identifier androidx.navigation.common \
+  --require-identifier androidx.navigation.compose \
+  --require-identifier androidx.navigation.runtime \
+  --require-issue-id MissingSerializableAnnotation \
+  --require-issue-id MissingKeepAnnotation \
+  --require-issue-id WrongNavigateRouteType \
+  --forbid-text "Requires newer lint; these checks will be skipped!" \
+  --forbid-text ObsoleteLintCustomCheck
+./gradlew :app:bundleProdRelease --dry-run
 
-echo "Release readiness dry-run passed."
+echo "Release readiness quick preflight passed."
+echo "Signed AAB provenance is still verified by the Android Release Build workflow."

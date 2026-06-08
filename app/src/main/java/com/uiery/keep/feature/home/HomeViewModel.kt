@@ -11,6 +11,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -62,6 +63,7 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val lockHistoryRecorder: LockHistoryRecorder,
         private val goalLockRepository: GoalLockRepository,
         private val lockHistoryRepository: LockHistoryRepository,
@@ -76,6 +78,7 @@ class HomeViewModel
         init {
             getIsKeep()
             getSelectedApp()
+            syncRoutinesCount()
             getGoalLockCard()
             loadRepeatBlockRoutineSuggestion()
         }
@@ -315,6 +318,11 @@ class HomeViewModel
                         ),
                     )
                 }
+            }
+
+        private fun syncRoutinesCount() =
+            intent {
+                routineCountAnalyticsSync.syncFromRoom()
             }
 
         private fun getGoalLockCard() =

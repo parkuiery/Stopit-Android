@@ -21,11 +21,11 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
 
         for phrase in [
             "Issue: #479",
-            "docs-lane 계약 고정 / code-lane 구현 전",
+            "code-lane 중앙 sync 구현 PR 준비",
             "560 / 865 = 64.7%",
             "routines_count=(not set)",
-            "RoutineViewModel.kt",
-            "analytics.setUserProperty(\"routines_count\", routines.size.toString())",
+            "RoutineCountAnalyticsSync",
+            "KeepAnalyticsUserProperty.ROUTINES_COUNT",
             "Refs #479",
         ]:
             self.assertIn(phrase, contract)
@@ -78,6 +78,19 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
         for document in documents:
             self.assertIn("ROUTINES_COUNT_COVERAGE_CONTRACT.md", document)
             self.assertIn("#479", document)
+
+    def test_code_lane_sync_owner_is_reflected_in_metrics_contexts(self):
+        for document in [
+            CONTRACT.read_text(),
+            ANALYTICS_DICTIONARY.read_text(),
+            METRICS_CONTEXT.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+        ]:
+            self.assertIn("RoutineCountAnalyticsSync", document)
+
+        contract = CONTRACT.read_text()
+        self.assertIn("HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry", contract)
+        self.assertIn("SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation", contract)
 
 
 if __name__ == "__main__":
