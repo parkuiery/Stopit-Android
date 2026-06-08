@@ -144,6 +144,32 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun lockTimePersistsManualTimerSessionStartTimeWithDeadline() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        val before = System.currentTimeMillis()
+        viewModel.updateTimerTime(LocalTime(hour = 23, minute = 45))
+        viewModel.lockTime()
+        delay(50)
+        val after = System.currentTimeMillis()
+
+        val snapshot = dataStore.snapshot()
+        val storedStartTime = snapshot[PreferencesKey.START_TIME]
+
+        assertEquals(true, ManualLockTimePolicy.isActiveAt(snapshot[PreferencesKey.LOCK_TIME]))
+        assertEquals(true, storedStartTime != null)
+        assertEquals(true, storedStartTime!! in before..after)
+    }
+
+    @Test
     fun lockTimeUsesTimerScheduleAfterCountdownValueWhenTimerModeIsSelected() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
