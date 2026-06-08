@@ -60,11 +60,14 @@ cd <repo-root>
 
 issue #570/#628 계열 PR은 TalkBack이 읽는 상태 문구와 요일/날짜 라벨도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`, `"Today"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다. Android 13+ per-app language를 켠 경우 `Locale.getDefault()`가 시스템 언어를 가리킬 수 있으므로, 루틴 요일/잠금 기록 주간 캘린더는 `LocalConfiguration.current.locales[0]` 또는 동등한 앱 configuration locale을 사용한다.
 
-자동 baseline:
+자동 gate / baseline:
+
+- Android CI `Fast verification`와 Release QA `Full release QA`의 `Run static policy unit tests` step이 `scripts.tests.test_compose_icon_button_accessibility`와 `scripts.tests.test_locale_string_parity`를 자동 실행한다. 즉 PR에서는 접근성 icon-only/stateDescription 정적 정책과 shipped locale key/placeholder parity가 CI gate로 먼저 막혀야 한다.
+- 아래 명령은 로컬에서 같은 정책을 재현하거나 수동 QA 전에 빠르게 선검증할 때 사용한다.
 
 ```bash
 cd <repo-root>
-python3 -m unittest scripts.tests.test_compose_icon_button_accessibility -v
+python3 -m unittest scripts.tests.test_compose_icon_button_accessibility scripts.tests.test_locale_string_parity -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryLocaleFormatterTest'
 ./gradlew --console=plain :app:lintProdRelease
 ```
