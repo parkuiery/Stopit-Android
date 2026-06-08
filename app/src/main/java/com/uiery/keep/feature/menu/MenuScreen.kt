@@ -25,7 +25,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -81,7 +80,7 @@ fun MenuScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = Color(0xFFFE9E0B),
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },

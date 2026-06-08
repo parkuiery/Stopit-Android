@@ -11,6 +11,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 |------|-------------|
 | `GIT_WORKFLOW.md` | Git branching, commit, and release workflow documentation. |
 | `ANALYTICS_EVENT_DICTIONARY.md` | #13용 이벤트/파라미터 계약, screen_view 규칙, GA4 조회 기준. |
+| `BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md` | #611용 차단 앱 analytics privacy 계약, PR #617 이후 `blocked_app_package` 퇴역, `blocked_app_category_bucket` 구현/readback 기준. |
 | `GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` | #13용 GA4 Admin 등록 ledger, metadata 증적, 14일 재측정 운영 런북. |
 | `FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` | #14용 첫 잠금 활성화 퍼널 canonical 계약, CTA, guardrail, 측정 템플릿. |
 | `METRICS_ANALYSIS.md` | 스탑잇 제품 지표 분석, GA4 조회, 개선 이슈화 절차 문서. |
@@ -25,18 +26,21 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `REVIEW_PROMPT_LIFECYCLE.md` | #17용 리뷰 프롬프트 eligibility/drain 계약과 queryability guardrail 문서. |
 | `REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` | #307용 리뷰 프롬프트 shown 0 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적 런북. `scripts.tests.test_review_prompt_post_release_followthrough_docs`가 release/GA4/Play Console 경계를 고정한다. |
 | `VERSION_ADOPTION_METRICS_GATE.md` | #359용 버전 채택률/최신 버전 cohort 판독 게이트. #13/#14/#16/#307 live 지표를 최신 코드 성과로 해석하기 전 확인한다. |
-| `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 Usage Access 기반 리포트/추천 MVP 가설, guardrail, 측정 조건 문서. |
+| `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` Usage Access 선택형 개인화 discovery gate, guardrail, 측정 조건 문서. `scripts.tests.test_usage_stats_personalization_contract`가 stale title, privacy/activation guardrail, high-traffic docs 링크를 고정한다. |
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
-| `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. |
+| `INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` | #581용 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` Play Install Referrer / UTM attribution 계약, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계. |
+| `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. #597 공유 payload locale resource/template debt와 `scripts.tests.test_focus_summary_share_contract` static guard도 여기서 추적한다. |
 | `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. |
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. |
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
 | `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, QA evidence template. |
-| `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계, TopAppBar/icon tint audit, KDS/DESIGN.md 후속 구현 기준. |
-| `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy 계약, emergency unlock 보조 액션, 광고 간섭 guardrail, QA evidence template. |
-| `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, QA evidence template. |
+| `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
+| `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
+| `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, 남은 device/release/readback 경계. |
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
+| `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. |
+| `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |
 
 ## Subdirectories
 | Directory | Purpose |

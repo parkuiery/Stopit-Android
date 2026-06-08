@@ -2,6 +2,8 @@ package com.uiery.keep.feature.lockhistory
 
 import androidx.annotation.StringRes
 import com.uiery.keep.R
+import com.uiery.keep.model.LockHistoryModel
+import java.time.LocalDate
 
 enum class LockHistoryPerformanceReportState {
     EMPTY,
@@ -22,6 +24,55 @@ data class LockHistoryPerformanceReportReadModel(
     val durationMinutesBucket: String,
     val topAppsCountBucket: String,
 )
+
+data class LockHistoryDisplayReport(
+    val sessionsToShow: Map<LocalDate, List<LockHistoryModel>>,
+    val totalDurationMillis: Long,
+    val sessionCount: Int,
+    val topApps: List<Pair<String, Int>>,
+    val performanceReport: LockHistoryPerformanceReportReadModel,
+)
+
+internal fun buildLockHistoryDisplayReport(
+    groupedSessions: Map<LocalDate, List<LockHistoryModel>>,
+    selectedDate: LocalDate?,
+    periodType: PeriodType,
+    fallbackReport: LockHistoryPerformanceReportReadModel,
+): LockHistoryDisplayReport {
+    val sessionsToShow = selectedDate?.let { date ->
+        groupedSessions[date]?.let { sessions ->
+            mapOf(date to sessions)
+        } ?: emptyMap()
+    } ?: groupedSessions
+    val displaySessions = sessionsToShow.values.flatten()
+    val displayTotalDuration = displaySessions.sumOf { it.durationMillis }
+    val displaySessionCount = displaySessions.size
+    val displayTopApps = displaySessions
+        .flatMap { it.lockedApps }
+        .groupingBy { it }
+        .eachCount()
+        .entries
+        .sortedByDescending { it.value }
+        .take(MAX_DISPLAY_TOP_APPS)
+        .map { it.key to it.value }
+    val displayPerformanceReport = if (selectedDate == null) {
+        fallbackReport
+    } else {
+        buildLockHistoryPerformanceReport(
+            periodType = periodType,
+            totalDurationMillis = displayTotalDuration,
+            sessionCount = displaySessionCount,
+            topApps = displayTopApps,
+        )
+    }
+    return LockHistoryDisplayReport(
+        sessionsToShow = sessionsToShow,
+        totalDurationMillis = displayTotalDuration,
+        sessionCount = displaySessionCount,
+        topApps = displayTopApps,
+        performanceReport = displayPerformanceReport,
+    )
+}
 
 internal fun buildLockHistoryPerformanceReport(
     periodType: PeriodType,
@@ -99,3 +150,4 @@ private fun bucketTopAppsCount(count: Int): String = when {
 }
 
 private const val LOW_DATA_DURATION_MINUTES = 5L
+private const val MAX_DISPLAY_TOP_APPS = 3

@@ -1,10 +1,11 @@
 package com.uiery.keep.feature.goallock
 
+import androidx.datastore.core.DataStore
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
+import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
@@ -28,6 +29,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 class GoalLockCreationViewModelTest {
+    @Test
+    fun creationFlowEntryTracksMenuSurfaceOnce() {
+        val analytics = RecordingKeepAnalytics()
+
+        createViewModel(analytics = analytics)
+
+        assertEquals(
+            listOf(AnalyticsGoalLockEntrySurface.MENU),
+            analytics.goalLockCreateStartedCalls,
+        )
+    }
+
     @Test
     fun createAllDayGoalLockPersistsActiveGoalAndTracksBucketedAnalytics() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 17L)
@@ -89,6 +102,7 @@ class GoalLockCreationViewModelTest {
             goalNameType = AnalyticsGoalLockNameType.CUSTOM,
         )
         awaitUntil { dao.insertedEntity != null }
+        awaitUntil { analytics.goalLockCreatedCalls.isNotEmpty() }
 
         val inserted = requireNotNull(dao.insertedEntity).toDomain()
         val mode = inserted.lockMode as GoalLockMode.Scheduled
@@ -96,8 +110,9 @@ class GoalLockCreationViewModelTest {
         assertEquals(LocalTime.of(19, 0), mode.startTime)
         assertEquals(LocalTime.of(23, 0), mode.endTime)
         assertEquals(selectedApps, inserted.selectedPackages)
-        assertEquals(AnalyticsGoalLockMode.SCHEDULED, analytics.goalLockCreatedCalls.single().lockMode)
-        assertEquals(AnalyticsSelectedAppCountBucket.SEVEN_PLUS, analytics.goalLockCreatedCalls.single().selectedAppCountBucket)
+        val createdCall = analytics.goalLockCreatedCalls.single()
+        assertEquals(AnalyticsGoalLockMode.SCHEDULED, createdCall.lockMode)
+        assertEquals(AnalyticsSelectedAppCountBucket.SEVEN_PLUS, createdCall.selectedAppCountBucket)
     }
 
     @Test
@@ -118,6 +133,31 @@ class GoalLockCreationViewModelTest {
         delay(50)
 
         assertFalse(viewModel.container.stateFlow.value.isCreateEnabled)
+        assertEquals(null, dao.insertedEntity)
+        assertTrue(analytics.goalLockCreatedCalls.isEmpty())
+    }
+
+    @Test
+    fun scheduledGoalLockWithSameStartAndEndTimeIsDisabledAndDoesNotPersist() = runBlocking {
+        val dao = RecordingGoalLockDao()
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+
+        viewModel.setGoalName("SNS 줄이기")
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 30))
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        viewModel.setScheduledMode(
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            startTime = LocalTime.of(19, 0),
+            endTime = LocalTime.of(19, 0),
+        )
+        awaitUntil { !viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        delay(50)
+
+        assertFalse(viewModel.container.stateFlow.value.isCreateEnabled)
+        assertTrue(viewModel.container.stateFlow.value.hasInvalidScheduledTime)
         assertEquals(null, dao.insertedEntity)
         assertTrue(analytics.goalLockCreatedCalls.isEmpty())
     }
@@ -263,6 +303,7 @@ private data class GoalLockCreatedCall(
 )
 
 private class RecordingKeepAnalytics : KeepAnalytics {
+    val goalLockCreateStartedCalls = mutableListOf<String>()
     val goalLockCreatedCalls = mutableListOf<GoalLockCreatedCall>()
 
     override fun logEvent(
@@ -309,6 +350,10 @@ private class RecordingKeepAnalytics : KeepAnalytics {
         source: String,
         unlockCountRemaining: Int?,
     ) = Unit
+
+    override fun trackGoalLockCreateStarted(entrySurface: String) {
+        goalLockCreateStartedCalls += entrySurface
+    }
 
     override fun trackGoalLockCreated(
         durationSelectionType: String,

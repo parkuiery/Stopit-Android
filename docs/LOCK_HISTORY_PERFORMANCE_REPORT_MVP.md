@@ -1,7 +1,7 @@
 # 잠금 기록 성과 리포트 UX 계약
 
 Issue: #465
-상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / release·GA4·14일·30일 readback 전**
+상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영 / release·GA4·14일·30일 readback 전**
 
 이 문서는 Stopit의 `LockHistory` 화면을 단순 로그가 아니라 사용자가 “내가 지킨 기록”을 이해하는 성과 리포트 경험으로 개선하기 위한 source of truth다. #211 집중 요약 공유와 같은 화면을 쓰지만, 이 이슈의 1차 목표는 외부 공유가 아니라 **개인 성과 해석과 재방문 동기 강화**다.
 
@@ -24,7 +24,7 @@ Issue: #465
 - 기록 없음 / low-data 상태의 격려 카피와 다음 행동 안내.
 - Top apps 영역을 `위험 앱 목록`보다 `잘 막아낸 앱`에 가깝게 프레이밍.
 - week/month 탭, calendar, session list의 기존 동작 유지.
-- 한국어/영어 string parity와 TalkBack 의미 확인.
+- shipped locale string parity와 TalkBack 의미 확인. PR #637 이후 non-default shipped locale copy가 default English 성과 리포트 문구를 그대로 노출하지 않는지도 contract test로 고정한다.
 - 향후 streak, 전주 대비, 공유 CTA와 연결될 수 있도록 read model/test seam을 남긴다.
 
 ### 제외
@@ -139,8 +139,8 @@ Issue: #465
 - 한 번의 짧은 차단 세션 후 low-data copy가 표시된다.
 - 주간/월간 탭 전환 시 headline 기간이 바뀐다.
 - Top apps 문구가 “위험 앱”이 아니라 “막아낸 성과”로 읽힌다.
-- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다.
-- 한국어/영어 string resource parity를 확인한다.
+- TalkBack에서 summary headline과 top apps 섹션 의미가 전달된다. QA-lane accessibility regression은 summary card와 top apps card가 성과형 headline/supporting copy를 merged content description으로 노출하고, PR #579 이후 Top apps card는 rank/app label/block count/duration까지 같은 description에 포함하는지 확인한다.
+- shipped locale string resource parity를 확인한다. PR #637 이후 `values-de`, `values-es`, `values-fr`, `values-it`, `values-ja`, `values-nl`, `values-pt`, `values-pt-rBR`, `values-ru`, `values-zh`의 성과 리포트 copy가 default English를 그대로 남기지 않는지 `scripts.tests.test_lock_history_performance_report_contract`가 회귀 확인한다.
 
 ## 구현 상태와 남은 패키지 경계
 
@@ -150,9 +150,10 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 2. empty / low-data / has-history / week-month / top-apps copy 계약이 read model 테스트로 고정됐다.
 3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다.
 4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy가 성취형/긍정 프레이밍으로 바뀌었다.
-5. 유지 locale string parity와 `:app:lintProdRelease` 검증이 완료됐다.
+5. 기본 string resource parity와 `:app:lintProdRelease` 검증이 완료됐다. 이후 PR #637(`docs(lockhistory): 성과 리포트 locale copy 계약 동기화`, merge commit `3d8e8d73b1cdba566a49b554fc6f255bed9aceb9`)로 shipped non-default locale copy localization과 default English copy 잔존 방지 회귀 테스트가 추가됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
 7. `docs/QA_RUNTIME_CHECKLIST.md`의 LockHistory performance report evidence template은 구현 PR/QA lane이 실제 evidence를 붙일 수 있는 기준으로 유지한다.
+8. PR #566(`test(lockhistory): 성과 리포트 접근성 baseline 보강`, merge commit `48167aef35682d4d84c02b462c94e1901797f04d`)로 `LockHistoryPerformanceReportAccessibilityTest`가 `develop`에 반영되어 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는지 device Compose test로 고정했다. PR #579(`test(lockhistory): Top Apps TalkBack 세부 정보 보강`, merge commit `f4b499baf9ccb42102fe29be71ee386a310e6fb3`)는 Top Apps card의 rank/app label/block count/duration까지 같은 merged content description에 포함하도록 회귀 범위를 확장했다.
 
 현재 구현/문서 계약 검증 명령:
 
@@ -162,6 +163,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 ./gradlew --console=plain :app:testDevDebugUnitTest
 ./gradlew --console=plain :app:assembleProdDebug
 ./gradlew --console=plain :app:lintProdRelease
+./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest
 python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v
 git diff --check
 ```
@@ -172,7 +174,7 @@ git diff --check
 
 - 성과 리포트 UI가 실제 retention을 개선했는지는 release/tag/Play deploy 후 14일/30일 window가 필요하다.
 - 새 analytics event를 추가하면 GA4 Admin custom dimension 등록과 metadata 확인은 별도 수동/운영 단계다.
-- 실제 스크린샷/디바이스 TalkBack evidence는 로컬 emulator/기기가 있는 QA lane 또는 PR CI/수동 QA에서 채운다.
+- 실제 스크린샷 evidence, release/tag/Play deploy 후 사용자 노출, 14일/30일 readback은 계속 외부/manual 경계다. TalkBack 의미 전달의 repo-internal baseline은 PR #566/#579의 `LockHistoryPerformanceReportAccessibilityTest`가 summary/top apps content description으로 자동화한다. 다만 이 자동 baseline은 실제 기기 스크린샷·운영 TalkBack spot-check를 대체하지 않는다.
 
 ## 중복/연계 이슈
 
@@ -183,7 +185,7 @@ git diff --check
 
 ## PR/이슈 연결 규칙
 
-PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 14일/30일 readback, 실제 QA evidence 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
+PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. PR #566으로 summary/top apps TalkBack contentDescription regression과 QA evidence template이 `develop`에 반영됐고, PR #579로 Top Apps TalkBack contentDescription이 rank/app label/block count/duration까지 확장됐다. PR #637로 shipped non-default locale copy localization과 default English copy 잔존 방지 regression이 `develop`에 반영됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 실제 스크린샷/TalkBack spot-check, 14일/30일 readback 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
 
 ## 계약 회귀 테스트
 

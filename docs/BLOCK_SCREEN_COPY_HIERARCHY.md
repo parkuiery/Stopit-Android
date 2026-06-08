@@ -6,7 +6,7 @@ Issue: #464
 
 차단 화면은 사용자가 습관적으로 차단된 앱을 열었을 때 가장 자주 보는 핵심 가치 화면이다. 이 문서는 `BlockScreen`을 처벌/제한 화면이 아니라 **잠깐 멈춤 + 자기 통제 보조** 경험으로 다듬기 위한 copy, action hierarchy, QA 계약을 고정한다.
 
-이 문서는 #464의 source of truth다. 코드 변경은 `BlockScreen.kt`, `BlockViewModel`, `EmergencyUnlockBottomSheetContent`, `strings.xml` locale parity, screenshot/runtime QA를 포함해야 하며 PR body는 구현·검증·release/readback이 모두 끝나기 전까지 `Refs #464`를 사용한다.
+이 문서는 #464의 source of truth다. PR #486은 구현 전 문서/QA 계약을 고정했고, PR #487(`8fb1911c`)은 `BlockScreen.kt`, `EmergencyUnlockActionUiPolicy`, `strings.xml` locale parity, focused JVM/lint/build 검증으로 차단 화면 copy/action hierarchy 구현을 `develop`에 반영했다. PR #588(`025f9326`)은 `BlockScreenContent` 분리와 `BlockScreenContentIntegrationTest`를 추가해 copy area, emergency unlock helper, disabled reason, primary CTA, repeated Back 차단을 반복 가능한 Compose runtime baseline으로 고정했다. 이제 이 문서는 code-lane 구현 전 handoff가 아니라 **develop에 반영된 구현/runtime baseline 상태 + 남은 screenshot/TalkBack/release/readback 경계**를 고정한다. `origin/main`/SemVer tag/Play deploy, 실제 기기 screenshot/TalkBack QA, 14일 readback이 끝나기 전까지 follow-up PR body는 `Refs #464`를 사용한다.
 
 ## 현재 표면과 구현 상태
 
@@ -16,11 +16,19 @@ Issue: #464
   - 상단 `TrackedBannerAd(AdPlacement.BlockTop)`
   - 중앙 app icon + title/message + 최초 차단 성공 feedback
   - 하단 `TextButton` emergency unlock + helper reason/status + primary `KeepButton` close
-- code-lane 구현 기준:
-  - title/message/primary CTA는 `잠깐 멈춤 + 하던 일로 돌아가기` 계열 코칭 톤이어야 한다.
-  - emergency unlock은 기존 action label에 더해 helper reason/status string을 함께 노출해 색상 비활성만으로 상태를 설명하지 않는다.
-  - `EmergencyUnlockBottomSheetContent`, unlock side effect, analytics event order는 변경하지 않는다.
-  - 광고 영역은 본문/CTA보다 우선되어 보이면 신뢰 리스크다.
+- PR #487로 반영된 구조:
+  - title/message/primary CTA가 `잠깐 멈춤 + 하던 일로 돌아가기` 계열 코칭 톤으로 변경됐다.
+  - `EmergencyUnlockActionUiPolicy`가 available/disabled/0회/소진 상태별 helper text를 반환해 색상 비활성만으로 상태를 설명하지 않는다.
+  - `EmergencyUnlockBottomSheetContent`, unlock side effect, analytics event order는 그대로 유지했다.
+  - shipped `values-*` locale parity, `EmergencyUnlockActionUiPolicyTest`, `lintProdRelease`, `assembleProdDebug` 검증이 code-lane PR body와 이슈 코멘트에 남아 있다.
+- PR #588로 반영된 runtime baseline:
+  - `BlockScreenContent`를 분리해 AccessibilityService foreground 전환 없이 copy/action hierarchy를 Compose UI 테스트로 반복 검증할 수 있게 했다.
+  - `BlockScreenContentIntegrationTest`가 normal blocked copy area, secondary emergency unlock action/helper, disabled reason, primary return CTA를 함께 렌더링한다.
+  - `BlockScreenContentIntegrationTest#repeatedSystemBackDoesNotDismissTheProtectionScreen`가 Android system Back 연타가 보호 화면을 dismiss하지 않는다는 UX/보호 계약을 고정한다.
+- 남은 UX 리스크:
+  - 실제 release-candidate screenshot QA에서 광고 영역이 본문/CTA/emergency status보다 높아 보이지 않는지 확인해야 한다.
+  - TalkBack/접근성에서 차단 앱, primary CTA, emergency unlock helper text가 색상 의존 없이 전달되는지 확인해야 한다.
+  - `origin/main`/SemVer tag/Play deploy 전까지 live 지표 0건 또는 변화 없음은 post-#487/#588 성과로 해석하면 안 된다.
 
 ## 제품 원칙
 
@@ -79,6 +87,7 @@ Issue: #464
 cd <repo-root>
 python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*BlockViewModel*' --tests '*EmergencyUnlock*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest
 ./gradlew --console=plain :app:lintProdRelease
 ./gradlew --console=plain :app:assembleProdDebug
 ```
@@ -116,19 +125,29 @@ python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v
 - Notes:
 ```
 
-## 구현 handoff
+## 구현 상태 및 남은 handoff
 
-Code-lane이 #464를 이어갈 때 권장 순서:
+PR #487(`8fb1911c`)와 PR #588(`025f9326`)로 아래 repo-internal 구현/자동 QA 항목은 `develop`에 반영됐다.
 
-1. current string/locales inventory: `block_screen_*`, `emergency_unlock_*`, `cd_*`.
-2. `BlockScreen` screenshot/Compose preview 또는 screenshot QA 기준으로 title/message/CTA 변경.
-3. emergency unlock disabled reason helper text가 필요한지 확인하되, coordinator/side effect 동작은 바꾸지 않는다.
-4. `BlockViewModel` analytics order (`app_block_intercepted` → 최초 1회 `first_core_action_completed`) 유지 테스트를 재실행한다.
-5. `:app:lintProdRelease`로 locale parity 확인.
-6. PR body에는 `Refs #464`를 사용한다. `Closes #464`는 copy/action hierarchy 구현, locale parity, affected tests/build/lint, screenshot/manual QA 또는 release-acceptable evidence가 모두 끝났을 때만 사용한다.
+- `BlockScreen.kt`에 코칭 톤 title/message/primary CTA와 emergency unlock helper text 노출을 반영했다.
+- `EmergencyUnlockActionUiPolicy`로 available/disabled/limit-reached helper text 계약을 분리했다.
+- `EmergencyUnlockActionUiPolicyTest`로 상태별 helper text와 disabled reason을 고정했다.
+- shipped `values-*` locale parity를 유지했고, legacy `Keep` 사용자 노출 string을 추가하지 않았다.
+- `BlockScreenContent`와 `BlockScreenContentIntegrationTest`로 copy area, emergency unlock helper/disabled reason, primary CTA, repeated Back 차단을 반복 가능한 Compose runtime baseline으로 고정했다.
+- 검증: focused JVM policy test, focused Compose UI regression, `python3 -m unittest scripts.tests.test_block_screen_copy_hierarchy_contract -v`, `python3 scripts/check_locale_string_parity.py`, `:app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest`, `:app:lintProdRelease`, `:app:assembleProdDebug`, `git diff --check`.
+
+후속 QA/release가 #464를 이어갈 때는 다음 순서를 따른다.
+
+1. 실제 release-candidate 기기/screenshot QA에서 normal blocked, first-core-action, emergency unlock available, disabled/limit-reached 상태를 촬영/기록한다.
+2. 광고 영역이 CTA/emergency status보다 높은 위계로 보이지 않는지 확인한다.
+3. TalkBack/접근성에서 blocked app, primary CTA, emergency unlock helper text가 이해 가능한지 확인한다.
+4. release PR/tag/Play deploy에 #487/#588 merge commit이 포함됐는지 확인한 뒤 14일 readback 창을 시작한다.
+5. analytics 해석에서는 기존 `app_block_intercepted` → 최초 1회 `first_core_action_completed` → 반복 `core_action_completed`, `emergency_unlock_used/completed` 의미가 유지되는지 계속 확인한다.
+6. PR body에는 `Refs #464`를 사용한다. `Closes #464`는 release-candidate screenshot/TalkBack QA, release/tag/Play deploy 포함 여부, 14일 readback 또는 대표님이 인정한 closure boundary가 확인됐을 때만 사용한다.
 
 ## 남은 외부/후속 경계
 
-- 이 docs-lane 산출물은 구현 완료가 아니다.
+- docs-lane 계약, PR #487 code-lane UI/resource/test 변경, PR #588 Compose runtime regression baseline은 `develop`에 반영됐다.
+- #464 완료에는 실제 release-candidate screenshot/TalkBack QA에서 광고 영역·CTA·emergency unlock helper text 시각/접근성 위계를 확인해야 한다.
 - GA4/Play readback은 copy 변경 포함 release/tag/Play deploy 후 14일 이상 지나야 해석한다.
 - 광고 placement, emergency unlock policy, first-core-action feedback 자체를 바꾸는 별도 제품 결정은 #464 밖 follow-up으로 분리한다.

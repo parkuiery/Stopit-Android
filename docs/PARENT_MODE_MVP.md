@@ -164,12 +164,14 @@ cd <repo-root>
 
 ## 구현 handoff
 
-### 1차 code-lane 후보
+### 1차 code-lane foothold
 
-- `feature/parentmode/ParentModePolicy.kt`: duration/app-count/state transition/pin-result pure policy
+2026-06-06 code-lane에서 첫 repo-internal foothold를 추가했다. 이 foothold는 아직 entrypoint/setup UI/Accessibility runtime 연결은 아니지만, 후속 구현이 공유해야 할 순수 정책과 privacy-safe analytics schema를 코드 계약으로 고정한다.
+
+- `feature/parentmode/ParentModePolicy.kt`: duration/app-count/state transition/pin-result pure policy, active session expiry, allowlist 기반 block decision
 - `ParentModePolicyTest`, `ParentModePinPolicyTest`: RED/GREEN 첫 계약
 - `KeepAnalytics` / `FirebaseKeepAnalytics`: `parent_mode_*` event API 추가
-- `FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly`: privacy-safe parameter 회귀
+- `FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly`, `parentModeCompletedDoesNotSendRawTimestampsOrPackages`: privacy-safe parameter 회귀
 
 ### 2차 code-lane 후보
 

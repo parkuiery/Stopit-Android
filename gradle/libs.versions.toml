@@ -30,6 +30,7 @@ gmsGoogleServices = "4.4.4"
 firebaseCrashlytics = "3.0.6"
 mockitoCore = "5.14.2"
 playReview = "2.0.2"
+installReferrer = "2.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,6 +43,7 @@ firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
+install-referrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }

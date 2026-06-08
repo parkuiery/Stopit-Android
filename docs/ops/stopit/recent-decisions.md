@@ -21,13 +21,15 @@
 - Stopit Android는 `dev`/`prod` flavor가 있으므로 flavorless Gradle task를 피하고 variant-specific task를 우선한다.
 - PR body나 Issue comment가 markdown/backtick/괄호/멀티라인을 포함하면 temp file과 `--body-file`을 사용한다.
 - 이슈 실행/배포 follow-through의 현재 source of truth는 legacy 단일 cron이 아니라 `stopit-executor-{docs,qa,code}-lane` + `stopit-merge-controller` + `stopit-release-orchestrator-internal` 조합이다.
+- `automation/*` 브랜치는 `automation/stopit-docs-lane` 같은 로컬 lane/worktree 안정 브랜치 전용 local lane branch이며 PR head가 아니다. 실행 lane은 PR을 만들 때 `docs/issue-*`, `test/issue-*`, `fix/issue-*`, `feature/issue-*`, `ci/issue-*`, `chore/issue-*` 등 Branch Hygiene 허용 prefix를 사용한다.
+- 같은 정책의 shorthand는 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*`이며, `automation/*`는 이 허용 PR prefix 목록에 넣지 않는다.
 - 실행 lane은 "한 번에 닫히는 작은 slice"만 찾다가 멈추지 않는다. 같은 이슈에서 더 진행 가능한 코드/테스트/문서/QA/운영 준비가 남아 있으면 실제 외부 경계(배포 대기, Play Console 수동 반영, 대표님 승인, 디바이스·콘솔 증적 부족 등)를 만날 때까지 계속 밀어붙인다.
 - 안전/잠금/긴급해제/권한/백업/복구 플로우는 신뢰 리스크가 커서 QA 기준을 높게 본다.
 - 실제 Play 배포를 수행하지 않았으면 배포 완료라고 말하지 않는다. tag-triggered CD는 기본적으로 internal track이다.
 - Play deploy secret ownership / helper scope / `GOOGLE_SERVICES_JSON` restore matrix / Firebase Functions promotion secret boundary의 장기 source of truth는 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`다.
 - issue #13의 docs/ops 범위는 이벤트 딕셔너리만이 아니라 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`에 정리된 GA4 Admin 등록 ledger, metadata 증적 포맷, issue/PR handoff까지 포함한다.
 - issue #13은 docs lane 문서화만으로 닫지 않는다. 실제 `customEvent:*` 등록, live metadata/runReport 확인, 배포 후 14일 재측정이 끝나기 전까지는 `Refs #13`과 외부/manual 경계를 명시하는 것이 기본값이다.
-- 2026-06-03/06 screen quality smoke(`13,780 / 22,584 = 61.0%` 14일 query, `24,645 / 38,338 = 64.3%` 30일 metrics snapshot)처럼 live 수치가 흔들려도, 관련 screen-view 보강 PR이 `origin/main`/production tag에 없고 최신 version active share가 `30% 미만`이면 post-fix 성과로 승격하지 않고 release boundary 전 중간 smoke로만 기록한다.
+- 2026-06-03/08 screen quality smoke(`13,780 / 22,584 = 61.0%` 14일 query, `26,599 / 42,706 = 62.3%` 30일 metrics snapshot)처럼 live 수치가 흔들려도, 관련 screen-view 보강 PR이 `origin/main`/production tag에 없고 최신 version active share가 `30% 미만`이면 post-fix 성과로 승격하지 않고 release boundary 전 중간 smoke로만 기록한다.
 
 ## 업데이트 규칙
 

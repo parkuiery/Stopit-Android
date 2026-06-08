@@ -28,8 +28,18 @@ class ClickableSemanticsViolation:
     problem: str
 
 
+@dataclass(frozen=True)
+class StateDescriptionLocalizationViolation:
+    path: pathlib.Path
+    line: int
+    problem: str
+
+
 ICON_BUTTON_TOKEN = "IconButton"
 NULL_CONTENT_DESCRIPTION = "contentDescription = null"
+HARDCODED_ENGLISH_STATE_DESCRIPTION_PATTERN = re.compile(
+    r"stateDescription\s*=\s*.*\"(?:On|Off|Selected|Not selected)\""
+)
 GUARDED_CLICKABLE_PATHS = {
     pathlib.Path("app/src/main/java/com/uiery/keep/feature/lockhistory/component/LockHistoryTab.kt"),
     pathlib.Path("app/src/main/java/com/uiery/keep/feature/lockhistory/component/LockHistoryWeekCalendar.kt"),
@@ -143,16 +153,41 @@ def find_clickable_semantics_violations(source_dir: pathlib.Path) -> list[Clicka
     return violations
 
 
+def find_hardcoded_state_description_violations(
+    source_dir: pathlib.Path,
+) -> list[StateDescriptionLocalizationViolation]:
+    violations: list[StateDescriptionLocalizationViolation] = []
+    for path in sorted(source_dir.rglob("*.kt")):
+        source = _strip_block_comments(path.read_text(encoding="utf-8"))
+        for index, line in enumerate(source.splitlines()):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("import "):
+                continue
+            if not HARDCODED_ENGLISH_STATE_DESCRIPTION_PATTERN.search(stripped):
+                continue
+            violations.append(
+                StateDescriptionLocalizationViolation(
+                    path=path,
+                    line=index + 1,
+                    problem="hardcoded_english_state_description",
+                )
+            )
+    return violations
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     source_dir = pathlib.Path(argv[0]) if argv else pathlib.Path("app/src/main/java")
     icon_button_violations = find_icon_button_accessibility_violations(source_dir)
     clickable_semantics_violations = find_clickable_semantics_violations(source_dir)
+    state_description_violations = find_hardcoded_state_description_violations(source_dir)
     for violation in icon_button_violations:
         print(f"{violation.path}:{violation.line}: {violation.problem}")
     for violation in clickable_semantics_violations:
         print(f"{violation.path}:{violation.line}: {violation.problem}")
-    return 1 if icon_button_violations or clickable_semantics_violations else 0
+    for violation in state_description_violations:
+        print(f"{violation.path}:{violation.line}: {violation.problem}")
+    return 1 if icon_button_violations or clickable_semantics_violations or state_description_violations else 0
 
 
 if __name__ == "__main__":

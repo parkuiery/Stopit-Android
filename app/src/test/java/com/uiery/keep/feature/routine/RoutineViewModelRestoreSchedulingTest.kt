@@ -82,19 +82,22 @@ class RoutineViewModelRestoreSchedulingTest {
         dataStore: FakeDataStore = FakeDataStore(emptyPreferences()),
         scheduler: RoutineScheduler,
         routineNoticeStore: RoutineNoticeStore = RoutineNoticeStore(dataStore),
-    ): RoutineViewModel = RoutineViewModel(
-        routineDao = routineDao,
-        dataStore = dataStore,
-        analytics = NoopRoutineAnalytics,
-        exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
-        routineNoticeStore = routineNoticeStore,
-        routineRestoreAftercare = RoutineRestoreAftercare(
-            routineDao = routineDao,
+    ): RoutineViewModel {
+        val routineRepository = RoomRoutineRepository(routineDao)
+        return RoutineViewModel(
+            routineRepository = routineRepository,
             dataStore = dataStore,
+            analytics = NoopRoutineAnalytics,
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = routineNoticeStore,
-        ),
-    )
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = routineNoticeStore,
+            ),
+        )
+    }
 
     private suspend fun waitFor(predicate: suspend () -> Boolean) {
         repeat(50) {

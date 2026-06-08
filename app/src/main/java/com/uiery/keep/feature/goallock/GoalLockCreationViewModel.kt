@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
+import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
@@ -26,6 +27,10 @@ internal class GoalLockCreationViewModel
         ContainerHost<GoalLockCreationUiState, GoalLockCreationSideEffect> {
         override val container: Container<GoalLockCreationUiState, GoalLockCreationSideEffect> =
             container(GoalLockCreationUiState())
+
+        init {
+            analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+        }
 
         internal fun setGoalName(goalName: String) =
             intent {
@@ -155,7 +160,11 @@ data class GoalLockCreationUiState(
     val durationSelectionType: String = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
     val goalNameType: String = AnalyticsGoalLockNameType.CUSTOM,
     val isCreateEnabled: Boolean = false,
-)
+) {
+    val hasInvalidScheduledTime: Boolean
+        get() = (lockMode as? GoalLockCreationLockMode.Scheduled)
+            ?.hasInvalidTimeWindow() == true
+}
 
 sealed interface GoalLockCreationLockMode {
     data object AllDay : GoalLockCreationLockMode
@@ -187,8 +196,11 @@ private fun GoalLockCreationUiState.isValidForCreation(goalLock: GoalLock): Bool
         GoalLockPolicy.isValidForCreation(goalLock) &&
         when (lockMode) {
             GoalLockCreationLockMode.AllDay -> true
-            is GoalLockCreationLockMode.Scheduled -> lockMode.repeatDays.isNotEmpty()
+            is GoalLockCreationLockMode.Scheduled ->
+                lockMode.repeatDays.isNotEmpty() && !lockMode.hasInvalidTimeWindow()
         }
+
+private fun GoalLockCreationLockMode.Scheduled.hasInvalidTimeWindow(): Boolean = startTime == endTime
 
 private fun GoalLockCreationLockMode.toDomain(): GoalLockMode =
     when (this) {

@@ -3,12 +3,12 @@ package com.uiery.keep.feature.home
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.AnalyticsEventRecord
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -21,6 +21,7 @@ import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.ReviewLaunchResult
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -138,7 +139,7 @@ class HomeViewModelReviewTest {
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             routineDao = EmptyHomeRoutineDao(),
-            lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             goalLockRepository = GoalLockRepository(EmptyGoalLockDao()),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),

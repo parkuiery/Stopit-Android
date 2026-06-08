@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -26,6 +28,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
+import com.uiery.keep.util.AppDisplayMetadata
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 
 @Composable
@@ -36,24 +39,44 @@ internal fun LockHistoryTopApps(
     onClick: () -> Unit,
 ) {
     if (topApps.isEmpty()) return
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
+    val appMetadata = remember(topApps, appDisplayMetadataResolver) {
+        topApps.map { (packageName, blockCount) ->
+            appDisplayMetadataResolver.resolve(packageName) to blockCount
+        }
+    }
+    val titleText = stringResource(report.topAppsTitleResId)
+    val supportingText = stringResource(report.topAppsSupportingResId)
+    val accessibilityDescription = buildList {
+        add(titleText)
+        add(supportingText)
+        appMetadata.forEachIndexed { index, (metadata, blockCount) ->
+            add("#${index + 1}")
+            add(metadata.contentDescription)
+            add(stringResource(R.string.lock_history_block_count, blockCount))
+        }
+    }.joinToString(separator = ". ")
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(KeepTheme.colors.tertiary)
+            .semantics(mergeDescendants = true) {
+                contentDescription = accessibilityDescription
+            }
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = stringResource(report.topAppsTitleResId),
+            text = titleText,
             color = KeepTheme.colors.onSurfaceVariant,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = stringResource(report.topAppsSupportingResId),
+            text = supportingText,
             color = KeepTheme.colors.onTertiaryContainer,
             fontSize = 12.sp,
         )
@@ -61,11 +84,11 @@ internal fun LockHistoryTopApps(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            topApps.forEachIndexed { index, (packageName, blockCount) ->
+            appMetadata.forEachIndexed { index, (metadata, blockCount) ->
                 TopAppItem(
                     modifier = Modifier.weight(1f),
                     rank = index + 1,
-                    packageName = packageName,
+                    appMetadata = metadata,
                     blockCount = blockCount,
                 )
             }
@@ -77,15 +100,9 @@ internal fun LockHistoryTopApps(
 private fun TopAppItem(
     modifier: Modifier = Modifier,
     rank: Int,
-    packageName: String,
+    appMetadata: AppDisplayMetadata,
     blockCount: Int,
 ) {
-    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
-
-    val appMetadata = remember(packageName, appDisplayMetadataResolver) {
-        appDisplayMetadataResolver.resolve(packageName)
-    }
-
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,

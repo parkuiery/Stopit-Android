@@ -1,5 +1,8 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+
 interface KeepAnalytics {
     fun logEvent(
         name: String,
@@ -163,6 +166,8 @@ interface KeepAnalytics {
         reason: String,
     ) = Unit
 
+    fun trackGoalLockCreateStarted(entrySurface: String) = Unit
+
     fun trackGoalLockCreated(
         durationSelectionType: String,
         lockMode: String,
@@ -180,6 +185,58 @@ interface KeepAnalytics {
         lockMode: String,
         durationDaysBucket: String,
     ) = Unit
+
+    fun trackGoalLockUpdated(
+        lockMode: String,
+        changedField: String,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionShown(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionDismissed(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackRepeatBlockRoutineSuggestionApplied(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) = Unit
+
+    fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit
+
+    fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) = Unit
+
+    fun trackParentModeStarted(
+        durationMinutesBucket: String,
+        allowedAppCountBucket: String,
+    ) = Unit
+
+    fun trackParentModeCompleted(
+        durationMinutesBucket: String,
+        endReason: String,
+    ) = Unit
+
+    fun trackParentModeUnlockedByPin(
+        pinResult: String,
+        endReason: String,
+    ) = Unit
+
+    fun trackParentModeExtended(extensionMinutesBucket: String) = Unit
+
+    fun trackParentModeBlockIntercepted(blockContext: String) = Unit
+
+    fun trackParentModeCancelled(endReason: String) = Unit
+
+    fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) = Unit
 
     fun trackRoutineCreationCtaShown(
         surface: String,
@@ -240,9 +297,24 @@ object KeepAnalyticsEvent {
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
     const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
+    const val GOAL_LOCK_CREATE_STARTED = "goal_lock_create_started"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
+    const val GOAL_LOCK_UPDATED = "goal_lock_updated"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN = "repeat_block_routine_suggestion_shown"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
+    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED = "repeat_block_routine_suggestion_applied"
+    const val PARENT_MODE_DURATION_SELECTED = "parent_mode_duration_selected"
+    const val PARENT_MODE_ALLOWED_APPS_SELECTED = "parent_mode_allowed_apps_selected"
+    const val PARENT_MODE_STARTED = "parent_mode_started"
+    const val PARENT_MODE_COMPLETED = "parent_mode_completed"
+    const val PARENT_MODE_UNLOCKED_BY_PIN = "parent_mode_unlocked_by_pin"
+    const val PARENT_MODE_EXTENDED = "parent_mode_extended"
+    const val PARENT_MODE_BLOCK_INTERCEPTED = "parent_mode_block_intercepted"
+    const val PARENT_MODE_CANCELLED = "parent_mode_cancelled"
+    const val INSTALL_REFERRER_ATTRIBUTION_CHECKED = "install_referrer_attribution_checked"
     const val ROUTINE_CREATION_CTA_SHOWN = "routine_creation_cta_shown"
     const val ROUTINE_CREATION_CTA_CLICKED = "routine_creation_cta_clicked"
     const val ROUTINE_CREATION_CTA_DISMISSED = "routine_creation_cta_dismissed"
@@ -262,7 +334,9 @@ object KeepAnalyticsParam {
     const val SCHEDULE_TYPE = "schedule_type"
     const val SCHEDULED_DURATION_MINUTES = "scheduled_duration_minutes"
     const val BLOCK_SOURCE = "block_source"
+    @Deprecated("Use BLOCKED_APP_CATEGORY_BUCKET for external analytics payloads.")
     const val BLOCKED_APP_PACKAGE = "blocked_app_package"
+    const val BLOCKED_APP_CATEGORY_BUCKET = "blocked_app_category_bucket"
     const val REASON = "reason"
     const val DURATION_MINUTES = "duration_minutes"
     const val REMAINING_UNLOCKS = "remaining_unlocks"
@@ -285,12 +359,31 @@ object KeepAnalyticsParam {
     const val TIME_WINDOW_BUCKET = "time_window_bucket"
     const val ROUTINE_NAME_INCLUDED = "routine_name_included"
     const val DURATION_SELECTION_TYPE = "duration_selection_type"
+    const val ENTRY_SURFACE = "entry_surface"
     const val LOCK_MODE = "lock_mode"
     const val SELECTED_APP_COUNT_BUCKET = "selected_app_count_bucket"
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
+    const val CHANGED_FIELD = "changed_field"
     const val SURFACE = "surface"
+    const val SUGGESTION_REASON = "suggestion_reason"
+    const val TIME_BUCKET = "time_bucket"
+    const val DAY_TYPE = "day_type"
+    const val CATEGORY_BUCKET = "category_bucket"
+    const val REPEAT_COUNT_BUCKET = "repeat_count_bucket"
+    const val ROUTINE_COVERAGE_STATE = "routine_coverage_state"
+    const val SUGGESTION_VARIANT = "suggestion_variant"
+    const val ALLOWED_APP_COUNT_BUCKET = "allowed_app_count_bucket"
+    const val PIN_RESULT = "pin_result"
+    const val EXTENSION_MINUTES_BUCKET = "extension_minutes_bucket"
+    const val BLOCK_CONTEXT = "block_context"
+    const val REFERRER_STATUS = "referrer_status"
+    const val UTM_SOURCE_TYPE = "utm_source_type"
+    const val UTM_MEDIUM_TYPE = "utm_medium_type"
+    const val CAMPAIGN_BUCKET = "campaign_bucket"
+    const val LINK_SURFACE = "link_surface"
+    const val LOOKUP_LATENCY_BUCKET = "lookup_latency_bucket"
     const val ACTIVATION_STAGE = "activation_stage"
     const val HAS_ROUTINE = "has_routine"
     const val CTA_VARIANT = "cta_variant"
@@ -413,6 +506,13 @@ object AnalyticsGoalLockDurationSelectionType {
     const val END_DATE = "end_date"
 }
 
+object AnalyticsGoalLockEntrySurface {
+    const val HOME = "home"
+    const val ROUTINE = "routine"
+    const val MENU = "menu"
+    const val GOAL_LOCK_DETAIL = "goal_lock_detail"
+}
+
 object AnalyticsGoalLockMode {
     const val ALL_DAY = "all_day"
     const val SCHEDULED = "scheduled"
@@ -449,9 +549,72 @@ object AnalyticsGoalLockDurationDaysBucket {
     const val THIRTY_ONE_PLUS = "31_plus"
 }
 
+object AnalyticsGoalLockChangedField {
+    const val DURATION = "duration"
+    const val APPS = "apps"
+    const val SCHEDULE = "schedule"
+    const val NAME = "name"
+    const val LOCK_MODE = "lock_mode"
+}
+
 object AnalyticsGoalLockEndedEarlyReason {
     const val USER_CONFIRMED = "user_confirmed"
     const val VALIDATION_RESET = "validation_reset"
+    const val UNKNOWN = "unknown"
+}
+
+object RepeatBlockRoutineSuggestionSurface {
+    const val HOME = "home"
+}
+
+object RepeatBlockSuggestionVariant {
+    const val DEFAULT = "default"
+}
+
+object AnalyticsParentModeDurationBucket {
+    const val ONE_TO_NINE = "1_9"
+    const val TEN = "10"
+    const val ELEVEN_TO_TWENTY = "11_20"
+    const val TWENTY_ONE_TO_THIRTY = "21_30"
+    const val THIRTY_ONE_TO_SIXTY = "31_60"
+    const val SIXTY_ONE_PLUS = "61_plus"
+}
+
+object AnalyticsParentModeExtensionMinutesBucket {
+    const val ONE_TO_NINE = "1_9"
+    const val TEN = "10"
+    const val ELEVEN_TO_TWENTY = "11_20"
+    const val TWENTY_ONE_TO_THIRTY = "21_30"
+    const val THIRTY_ONE_PLUS = "31_plus"
+}
+
+object AnalyticsParentModeAllowedAppCountBucket {
+    const val ONE = "1"
+    const val TWO_TO_THREE = "2_3"
+    const val FOUR_TO_SIX = "4_6"
+    const val SEVEN_PLUS = "7_plus"
+}
+
+object AnalyticsParentModePinResult {
+    const val SUCCESS = "success"
+    const val FAILURE = "failure"
+    const val NOT_CONFIGURED = "not_configured"
+}
+
+object AnalyticsParentModeEndReason {
+    const val TIME_EXPIRED = "time_expired"
+    const val PIN_UNLOCKED = "pin_unlocked"
+    const val CANCELLED_BEFORE_START = "cancelled_before_start"
+    const val CANCELLED_BY_PARENT = "cancelled_by_parent"
+    const val SYSTEM_INTERRUPTED = "system_interrupted"
+    const val UNKNOWN = "unknown"
+}
+
+object AnalyticsParentModeBlockContext {
+    const val DISALLOWED_APP = "disallowed_app"
+    const val SETTINGS_SURFACE = "settings_surface"
+    const val RECENT_APPS = "recent_apps"
+    const val NOTIFICATION_SURFACE = "notification_surface"
     const val UNKNOWN = "unknown"
 }
 
