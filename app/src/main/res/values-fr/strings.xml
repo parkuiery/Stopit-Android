@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Veuillez sélectionner les applications qui vous tentent</string>
     <string name="app_lock_info">Les applications sélectionnées seront verrouillées pour empêcher leur utilisation. Vous pouvez activer et désactiver le verrouillage à tout moment.</string>
     <string name="select_apps_button">Sélectionner les Apps</string>
-    <string name="accessibility_permission_required">L\'autorisation de Temps d\'écran est essentielle !</string>
-    <string name="accessibility_permission_description">L\'autorisation de Temps d\'écran peut bloquer toutes les applications qui nous tentent.</string>
+    <string name="accessibility_permission_required">L\'autorisation d\'accessibilité est requise !</string>
+    <string name="accessibility_permission_description">L\'autorisation d\'accessibilité permet à StopIt de bloquer les applications distrayantes que vous choisissez.</string>
     <string name="permission_usage_note">L\'autorisation est utilisée uniquement pour bloquer l\'utilisation des applications</string>
     <string name="allow_permission">Autoriser l\'accès</string>
     <string name="notification_permission_request">Veuillez autoriser les notifications pour vous aider à tenir vos promesses avec StopIt.</string>

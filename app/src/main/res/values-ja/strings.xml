@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">誘惑となるアプリを選択してください</string>
     <string name="app_lock_info">選択したアプリは使用できないようにロックされます。アプリのロックはいつでもオン/オフできます。</string>
     <string name="select_apps_button">アプリを選択</string>
-    <string name="accessibility_permission_required">スクリーンタイムの許可が必要です！</string>
-    <string name="accessibility_permission_description">スクリーンタイムの許可で、誘惑となるすべてのアプリをブロックできます。</string>
+    <string name="accessibility_permission_required">ユーザー補助の許可が必要です！</string>
+    <string name="accessibility_permission_description">ユーザー補助の許可により、選択した気が散るアプリをStopItがブロックできます。</string>
     <string name="permission_usage_note">許可はアプリの使用をブロックするためだけに使用されます</string>
     <string name="allow_permission">許可する</string>
     <string name="notification_permission_request">StopItと約束を守るために、通知を許可してください。</string>

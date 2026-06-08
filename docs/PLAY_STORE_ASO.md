@@ -351,6 +351,8 @@ Select the apps that break your concentration, then lock them instantly, by time
 
 StopIt is designed for practical focus: real blocking, routine support, and a safer fallback than all-or-nothing locking.
 
+in-app Accessibility permission copy는 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 본다. Store listing / Accessibility declaration은 `Accessibility API`를, 온보딩 권한 화면은 `Accessibility permission` 또는 locale별 Android 접근성 권한 표현을 사용해야 하며, `Screen Time permission`을 Android 권한명처럼 쓰지 않는다.
+
 ## Accessibility 정책 대응 제출 문안
 
 ### Play Console Accessibility declaration
