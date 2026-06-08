@@ -147,6 +147,7 @@ def verify(args: argparse.Namespace) -> int:
 
     _expect("schema_version", manifest.get("schema_version"), SCHEMA_VERSION)
     _expect("package_name", manifest.get("package_name"), args.package_name)
+    _expect("artifact_name", manifest.get("artifact_name"), args.artifact_name)
     _expect("artifact.path", manifest.get("artifact", {}).get("path"), aab.as_posix())
     _expect("artifact.file_name", manifest.get("artifact", {}).get("file_name"), aab.name)
     _expect("artifact.sha256", manifest.get("artifact", {}).get("sha256"), _sha256(aab))
@@ -154,6 +155,26 @@ def verify(args: argparse.Namespace) -> int:
     _expect("android.variant", manifest.get("android", {}).get("variant"), VARIANT)
     _expect("android.version_name", manifest.get("android", {}).get("version_name"), version_name)
     _expect("android.version_code", manifest.get("android", {}).get("version_code"), version_code)
+    _expect("git.sha", manifest.get("git", {}).get("sha"), _nullable(os.environ.get("GITHUB_SHA")))
+    _expect("git.ref", manifest.get("git", {}).get("ref"), _nullable(os.environ.get("GITHUB_REF")))
+    _expect("git.ref_name", manifest.get("git", {}).get("ref_name"), _nullable(os.environ.get("GITHUB_REF_NAME")))
+    _expect("git.ref_type", manifest.get("git", {}).get("ref_type"), _nullable(os.environ.get("GITHUB_REF_TYPE")))
+    _expect(
+        "github_actions.workflow",
+        manifest.get("github_actions", {}).get("workflow"),
+        _nullable(os.environ.get("GITHUB_WORKFLOW")),
+    )
+    _expect(
+        "github_actions.run_id",
+        manifest.get("github_actions", {}).get("run_id"),
+        _nullable(os.environ.get("GITHUB_RUN_ID")),
+    )
+    _expect(
+        "github_actions.run_attempt",
+        manifest.get("github_actions", {}).get("run_attempt"),
+        _nullable(os.environ.get("GITHUB_RUN_ATTEMPT")),
+    )
+    _expect("github_actions.run_url", manifest.get("github_actions", {}).get("run_url"), _run_url())
     _expect("play.upload_mode", manifest.get("play", {}).get("upload_mode"), args.upload_mode)
     _expect("play.track", manifest.get("play", {}).get("track"), _nullable(args.track))
     _expect(
@@ -189,6 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ver = subparsers.add_parser("verify", parents=[common])
     ver.add_argument("--manifest", required=True)
+    ver.add_argument("--artifact-name", required=True)
     ver.set_defaults(func=verify)
     return parser
 
