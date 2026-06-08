@@ -156,6 +156,7 @@
     <string name="notification_routine_start_message">集中のためにアプリの使用がロックされました。</string>
     <string name="routine_notification_permission_fallback_message">%1$s のルーティンが始まりましたが、通知権限がオフのため、StopIt がアプリ内で代わりにお知らせします。</string>
     <string name="routine_running_tag">実行中</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">アンインストール防止</string>
     <string name="prevent_uninstall_subtitle">StopItのアンインストールを防止します</string>
     <string name="prevent_uninstall_enabled">アンインストール防止が有効になりました</string>

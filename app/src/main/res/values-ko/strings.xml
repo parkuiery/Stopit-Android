@@ -90,6 +90,7 @@
     <string name="routine_alarm_permission_description">설정한 시간에 알림으로 보내 루틴을 자연스럽게 시작할 수 있도록 도와드려요.</string>
     <string name="routine_alarm_permission_button">알림 설정하기</string>
     <string name="routine_running_tag">실행중</string>
+    <string name="routine_active_action_blocked_message">루틴 실행 중에는 수정·삭제·끄기가 잠겨요. 잠깐 예외가 필요하면 긴급 해제를 사용하세요.</string>
     <string name="contact_us">문의하기</string>
     <string name="monetization_interest_menu_title">광고 없이 스탑잇을 쓰고 싶으신가요?</string>
     <string name="monetization_interest_menu_message">광고 제거 옵션이 필요하다면 알려주세요. 아직 실제 결제는 제공되지 않습니다.</string>

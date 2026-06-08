@@ -158,6 +158,7 @@
     <string name="notification_routine_start_message">Het gebruik van apps is vergrendeld om je te helpen focussen.</string>
     <string name="routine_notification_permission_fallback_message">Routine %1$s is gestart, maar meldingsrechten staan uit, dus StopIt herinnert je in plaats daarvan in de app.</string>
     <string name="routine_running_tag">Actief</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">Verwijderingsbescherming</string>
     <string name="prevent_uninstall_subtitle">Beschermt StopIt tegen verwijdering</string>
     <string name="prevent_uninstall_enabled">Verwijderingsbescherming is nu actief</string>

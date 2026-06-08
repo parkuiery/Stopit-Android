@@ -644,6 +644,51 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 
 이 증거가 없으면 #531은 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, 추천 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`의 외부/manual 경계를 따른다.
 
+### 활성 루틴 보호 UX QA baseline
+
+issue #609 계열 PR은 실행 중인 루틴이 수정/삭제/끄기 동작을 조용히 무시하지 않고, 사용자가 왜 막혔는지 즉시 이해할 수 있는 피드백을 남기는지 확인한다. 이 계약은 루틴 실행 중 우회 방지와 비징벌적 안내를 함께 다룬다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineViewModelActiveRoutineGuardTest'
+./gradlew --console=plain :app:lintProdRelease
+```
+
+검증 범위:
+- 실행 중인 루틴을 탭해 상세/수정 bottom sheet를 열려고 하면 `RoutineSideEffect.ShowActiveRoutineBlocked`가 발생하고 edit sheet가 열리지 않는다.
+- 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시킨다.
+- 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
+- Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
+- 안내 문구는 긴급 해제를 안전한 임시 예외로 안내하되 사용자를 비난하거나 처벌하는 톤을 쓰지 않는다.
+- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 한다.
+
+수동 QA evidence template:
+
+```md
+## Active routine guard QA evidence
+- Issue: #609
+- Build / variant:
+- Device / Android version / OEM:
+- Active routine setup: repeat day / start time / end time / selected apps:
+- Edit attempt while active:
+  - edit sheet not opened: pass / fail
+  - snackbar visible: pass / fail
+- Delete attempt while active:
+  - routine remains: pass / fail
+  - snackbar visible: pass / fail
+- OFF attempt while active:
+  - routine stays enabled: pass / fail
+  - snackbar visible: pass / fail
+- Emergency unlock remains available for temporary exception: pass / fail / n/a
+- Copy tone is non-punitive: pass / fail
+- Notes:
+```
+
+이 증거가 없으면 #609는 JVM 계약과 release lint가 green이어도 실제 기기 UX 확인 경계가 남은 상태로 본다.
+
 ### 목표 잠금 runtime QA baseline
 
 issue #417 계열 구현 PR은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 삼고, 기간 기반 장기 잠금이 `all_day`와 `scheduled` 두 방식 모두에서 실제 차단/홈 상태/종료 경계를 지키는지 증거를 남긴다. 이 기능은 자기통제 강도가 높은 흐름이므로 강압적 문구, 원문 목표명 analytics, app package/app label analytics, raw 날짜 query 축을 금지한다.
