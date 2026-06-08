@@ -243,6 +243,9 @@
     <string name="cd_emergency_unlock_auto_reset_switch">긴급 해제 횟수 관리</string>
     <string name="cd_emergency_unlock_manual_reset_button">긴급 해제 횟수 다시 채우기 버튼</string>
     <string name="emergency_unlock_reason_title">정말 필요한 경우에만 잠깐 열 수 있어요</string>
+    <string name="emergency_unlock_reason_step_purpose">1단계: 이번 예외가 왜 필요한지 먼저 확인해요.</string>
+    <string name="emergency_unlock_apps_step_purpose">2단계: 정말 필요한 앱만 예외로 열어요.</string>
+    <string name="emergency_unlock_duration_step_purpose">3단계: 해제 시간은 가능한 짧게 잡아요.</string>
     <string name="emergency_unlock_reason_helper">가장 가까운 이유를 골라주세요.</string>
     <string name="emergency_unlock_reason_work">업무/공부</string>
     <string name="emergency_unlock_reason_contact">긴급 연락</string>

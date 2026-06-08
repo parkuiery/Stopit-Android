@@ -27,6 +27,10 @@ Issue: #467
   - duration step: 필요한 만큼만 선택한다는 helper + `해제 요청`.
   - countdown step: 짧은 reconsideration window로 읽히는 countdown copy + 취소.
   - `reasonStepEnabled=false`: app selection부터 시작하되 예외 기능/필요 앱만 선택 원칙을 helper copy로 유지.
+- 이번 code-lane PR의 추가 구현 범위:
+  - step indicator 아래에 `step purpose` copy를 노출해 각 단계가 왜 필요한지 한 줄로 설명한다.
+  - reason step은 `이번 예외가 왜 필요한지`, app step은 `정말 필요한 앱만`, duration step은 `가능한 짧게`라는 목적을 명시한다.
+  - countdown step에는 기존 TalkBack countdown baseline을 유지하고 별도 step purpose copy를 추가하지 않는다.
 - PR #575로 반영된 자동 UI QA baseline:
   - `EmergencyUnlockBottomSheetContentIntegrationTest`가 reason-required ON 실제 Compose flow에서 `기타` reason 선택, custom reason validation, app selection, duration chip 선택, countdown 완료 후 `reason=other` payload와 selected app/duration 전달을 검증한다.
   - 같은 test class가 reason-required OFF flow를 유지해 reason step 없이 app selection → duration → countdown으로 이어지는 경로를 검증한다.
@@ -52,11 +56,11 @@ Issue: #467
 
 | 단계 | 역할 | 권장 copy 방향 | 금지/주의 |
 | --- | --- | --- | --- |
-| Reason | 해제 의도 self-check | 제목: `정말 필요한 경우에만 잠깐 열 수 있어요` / helper: `가장 가까운 이유를 골라주세요` | `왜 실패했나요?`, `중독`, `참지 못함` 같은 낙인 톤 |
+| Reason | 해제 의도 self-check | 제목: `정말 필요한 경우에만 잠깐 열 수 있어요` / step purpose: `이번 예외가 왜 필요한지 먼저 확인` / helper: `가장 가까운 이유를 골라주세요` | `왜 실패했나요?`, `중독`, `참지 못함` 같은 낙인 톤 |
 | Reason option | 빠른 스캔 | `업무/공부`, `긴급 연락`, `정보 확인`, `습관`, `지루함/스트레스`, `기타` 같은 short label + 선택 후 짧은 reflection helper | 기존 enum key를 표시 카피와 함께 변경 |
 | Other reason | 자유 입력 | optional short note. analytics 원문 전송 금지 명시 | 원문을 GA4 dimension으로 보낼 수 있다는 오해 |
-| Apps | 범위 제한 | `잠깐 열 앱만 선택하세요` / 선택 0개 helper | 모든 차단 앱을 기본 전체 해제로 오해시키는 copy |
-| Duration | 시간 제한 | `필요한 만큼만 선택하세요` / duration option은 분 단위 명확 | 긴 시간을 권장하는 tone |
+| Apps | 범위 제한 | step purpose: `정말 필요한 앱만 예외로 열기` / `잠깐 열 앱만 선택하세요` / 선택 0개 helper | 모든 차단 앱을 기본 전체 해제로 오해시키는 copy |
+| Duration | 시간 제한 | step purpose: `해제 시간은 가능한 짧게` / `필요한 만큼만 선택하세요` / duration option은 분 단위 명확 | 긴 시간을 권장하는 tone |
 | Countdown | 마지막 확인 | `잠시 후 해제돼요. 필요 없으면 취소할 수 있어요.` | 처벌/기다리게 만들기/광고 노출 유도처럼 보이는 copy |
 
 ## Reason taxonomy contract
