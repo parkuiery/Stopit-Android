@@ -79,6 +79,27 @@ python3 -m unittest scripts.tests.test_compose_icon_button_accessibility scripts
 - 루틴 반복 요일 버튼: 앱 언어와 시스템 언어가 다를 때도 요일 라벨이 앱 언어 기준으로 표시된다.
 - 새 stateDescription string key를 추가하면 모든 shipped `values*/strings.xml`에 parity가 맞아야 한다.
 
+### 접근성 권한 copy / Android permission wording baseline
+
+issue #642 계열 PR은 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 보고, 온보딩 접근성 권한 화면이 Android Accessibility Service 맥락을 정확히 설명하는지 확인한다. `Screen Time permission` / `스크린타임 권한` / `화면 시간 권한`처럼 Android 권한명이 아닌 표현은 접근성 권한 copy에 재유입되면 안 된다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_accessibility_permission_copy_contract -v
+python3 -m unittest scripts.tests.test_locale_string_parity -v
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA evidence:
+- Locale(s): ko / en / es / ja / other changed locale
+- 온보딩 접근성 권한 제목이 현재 locale에서 Android Accessibility/접근성 권한으로 읽힌다.
+- 설명이 “사용자가 선택한 앱을 Stopit이 차단하기 위한 권한”으로 이해된다.
+- `Screen Time permission` 또는 같은 의미의 권한명 오해 표현이 보이지 않는다.
+- TalkBack에서도 권한명과 설명이 같은 의미로 전달된다.
+- Play Console Accessibility declaration의 사용 목적과 충돌하지 않는다.
+
 ### Long countdown locale QA evidence
 
 issue #596 계열 PR은 Lock 화면의 24시간 이상 countdown day prefix가 Kotlin hardcoded Korean suffix가 아니라 locale/plural resource를 따라야 한다. 1일/2일 이상 경계와 24시간 미만 경계를 함께 확인해서 장기 잠금/목표 잠금 화면이 모든 shipped locale에서 자연스럽게 보이는지 기록한다.

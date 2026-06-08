@@ -4,8 +4,8 @@
     <string name="select_apps_prompt">Please select the apps that tempt you</string>
     <string name="app_lock_info">The selected apps will be locked to prevent usage. You can turn the app lock on and off at any time.</string>
     <string name="select_apps_button">Select Apps</string>
-    <string name="accessibility_permission_required">Screen Time permission is essential!</string>
-    <string name="accessibility_permission_description">Screen Time permission can block all apps that tempt us.</string>
+    <string name="accessibility_permission_required">¡Se requiere el permiso de accesibilidad!</string>
+    <string name="accessibility_permission_description">El permiso de accesibilidad permite que StopIt bloquee las apps distractoras que elijas.</string>
     <string name="permission_usage_note">Permission is used only to block app usage</string>
     <string name="allow_permission">Allow permission</string>
     <string name="notification_permission_request">Permite las notificaciones para ayudarte a cumplir tus promesas con StopIt.</string>

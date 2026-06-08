@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Bitte wählen Sie die Apps aus, die Sie in Versuchung führen</string>
     <string name="app_lock_info">Die ausgewählten Apps werden gesperrt, um die Nutzung zu verhindern. Sie können die App-Sperre jederzeit ein- und ausschalten.</string>
     <string name="select_apps_button">Apps auswählen</string>
-    <string name="accessibility_permission_required">Bildschirmzeit-Berechtigung ist wichtig!</string>
-    <string name="accessibility_permission_description">Mit der Bildschirmzeit-Berechtigung können alle verlockenden Apps blockiert werden.</string>
+    <string name="accessibility_permission_required">Bedienungshilfen-Berechtigung ist erforderlich!</string>
+    <string name="accessibility_permission_description">Mit der Bedienungshilfen-Berechtigung kann StopIt die von dir ausgewählten ablenkenden Apps blockieren.</string>
     <string name="permission_usage_note">Berechtigung wird nur zum Blockieren der App-Nutzung verwendet</string>
     <string name="allow_permission">Berechtigung erlauben</string>
     <string name="notification_permission_request">Bitte erlauben Sie Benachrichtigungen, damit StopIt Ihnen hilft, Ihre Versprechen einzuhalten.</string>

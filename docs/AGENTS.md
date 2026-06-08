@@ -39,6 +39,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, 남은 device/release/readback 경계. |
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
+| `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |
 
 ## Subdirectories
 | Directory | Purpose |
