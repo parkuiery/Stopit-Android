@@ -197,7 +197,7 @@ internal class GoalLockDetailViewModel
                 }
             }
 
-        fun confirmUpdateDuration() =
+        fun confirmUpdateDuration(today: LocalDate = LocalDate.now()) =
             intent {
                 val current = state.goalLock ?: return@intent
                 val durationDays = state.pendingDurationDays.coerceAtLeast(1)
@@ -213,16 +213,21 @@ internal class GoalLockDetailViewModel
                 }
 
                 val updated = current.copy(endDate = updatedEndDate)
-                goalLockRepository.update(updated)
                 analytics.trackGoalLockUpdated(
                     lockMode = current.lockMode.analyticsLockMode,
                     changedField = AnalyticsGoalLockChangedField.DURATION,
                 )
+                val normalizedUpdated = completeIfExpired(goalLock = updated, today = today)
+                if (normalizedUpdated.status == GoalLockStoredStatus.Active) {
+                    goalLockRepository.update(updated)
+                }
                 reduce {
                     state.copy(
-                        goalLock = updated,
-                        pendingDurationDays = updated.durationDays,
+                        goalLock = normalizedUpdated,
+                        pendingDurationDays = normalizedUpdated.durationDays,
                         showUpdateDurationConfirmation = false,
+                        isEnded = normalizedUpdated.status == GoalLockStoredStatus.EndedEarly,
+                        isCompleted = normalizedUpdated.status == GoalLockStoredStatus.Completed,
                     )
                 }
             }

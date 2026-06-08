@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
 import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
@@ -231,6 +232,45 @@ class GoalLockDetailViewModelTest {
                 ),
             ),
             analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmDurationUpdateCompletesGoalLockWhenNewEndDateIsPast() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateDurationDays(5)
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateDurationConfirmation }
+        viewModel.confirmUpdateDuration(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.isCompleted }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(LocalDate.of(2026, 6, 8), updated.endDate)
+        assertEquals(GoalLockStoredStatus.Completed, updated.status)
+        assertTrue(viewModel.container.stateFlow.value.isCompleted)
+        assertFalse(viewModel.container.stateFlow.value.isEnded)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateDurationConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.DURATION,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+        assertEquals(
+            listOf(
+                GoalLockCompletedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.ONE_TO_SIX,
+                ),
+            ),
+            analytics.goalLockCompletedCalls,
         )
     }
 
