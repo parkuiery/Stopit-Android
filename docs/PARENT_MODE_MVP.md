@@ -173,11 +173,20 @@ cd <repo-root>
 - `KeepAnalytics` / `FirebaseKeepAnalytics`: `parent_mode_*` event API 추가
 - `FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly`, `parentModeCompletedDoesNotSendRawTimestampsOrPackages`: privacy-safe parameter 회귀
 
-### 2차 code-lane 후보
+### 2차 code-lane foothold
+
+2026-06-07 code-lane에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
+
+- `ParentModeSessionStore`: `PreferencesKey.PARENT_MODE_STARTED_AT`, `PARENT_MODE_EXPIRES_AT`, `PARENT_MODE_DURATION_MINUTES`, `PARENT_MODE_ALLOWED_APPS`, `PARENT_MODE_STATE`를 DataStore에 저장/관찰한다.
+- `BackupRestoreDataStoreKeyPolicy`: 부모 모드 session key를 restore-reset-only로 유지해 기기 복원 후 아이에게 폰 주기 session이 되살아나지 않게 한다.
+- `KeepAccessibilityServiceBlockDecisionTest`: active 부모 모드가 허용되지 않은 앱을 `block_source=parent_mode`로 차단하고, 시간 만료 후 허용 앱도 차단하는 순수 decision 경계를 검증한다. 단, Stopit 앱처럼 보호자 PIN/종료/연장 진입에 필요한 부모 제어 surface는 차단하지 않는다.
+- `KeepAccessibilityService`: `ParentModeSessionStore.observe()`를 구독하고 foreground 재평가에 부모 모드 session을 전달한다.
+- `AnalyticsBlockSource.PARENT_MODE`: `app_block_intercepted.block_source`에 `parent_mode` 값을 추가했다.
+
+### 다음 code-lane 후보
 
 - Home/Menu entrypoint + setup screen
 - Parent mode active/expired screen
-- AccessibilityService 차단 판단 연결
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
 ### 후속 별도 이슈 후보

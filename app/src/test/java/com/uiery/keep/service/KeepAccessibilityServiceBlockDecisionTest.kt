@@ -5,6 +5,8 @@ import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
+import com.uiery.keep.feature.parentmode.ParentModeSession
+import com.uiery.keep.feature.parentmode.ParentModeSessionState
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -276,6 +278,88 @@ class KeepAccessibilityServiceBlockDecisionTest {
 
         assertNull(request)
     }
+
+    @Test
+    fun activeParentModeBlocksDisallowedPackageWithParentModeSource() {
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.game.app",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.game.app",
+                blockSource = AnalyticsBlockSource.PARENT_MODE,
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun parentModeKeepsParentControlPackageAccessibleForPinUnlock() {
+        val request = resolveForegroundBlockRequest(
+            packageName = "com.uiery.keep",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(),
+            parentControlPackages = setOf("com.uiery.keep"),
+            now = LocalDateTime.of(2026, 5, 27, 10, 2),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun parentModeAllowsExplicitPackageBeforeExpiryButBlocksItAfterExpiry() {
+        val activeRequest = resolveForegroundBlockRequest(
+            packageName = "com.video.app",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+        val expiredRequest = resolveForegroundBlockRequest(
+            packageName = "com.video.app",
+            prefs = AccessibilityBlockingPreferences(),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 2),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(activeRequest)
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = "com.video.app",
+                blockSource = AnalyticsBlockSource.PARENT_MODE,
+            ),
+            expiredRequest,
+        )
+    }
+
+    private fun activeParentModeSession(): ParentModeSession = ParentModeSession(
+        startedAtMillis = LocalDateTime.of(2026, 5, 27, 10, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli(),
+        expiresAtMillis = LocalDateTime.of(2026, 5, 27, 10, 1)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli(),
+        durationMinutes = 1,
+        allowedApps = setOf("com.video.app"),
+        state = ParentModeSessionState.Active,
+    )
 
     private fun activeRoutine(
         id: Long = 1L,

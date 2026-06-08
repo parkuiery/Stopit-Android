@@ -16,9 +16,14 @@ FEATURE_IMPORT_PATTERN = re.compile(
 EXPECTED_FEATURE_IMPORTS = {
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt": [
         "com.uiery.keep.feature.goallock.GoalLockRepository",
+        "com.uiery.keep.feature.parentmode.ParentModeSession",
+        "com.uiery.keep.feature.parentmode.ParentModeSessionStore",
         "com.uiery.keep.feature.routine.RoutineRepository",
     ],
-
+    "app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt": [
+        "com.uiery.keep.feature.parentmode.ParentModePolicy",
+        "com.uiery.keep.feature.parentmode.ParentModeSession",
+    ],
     "app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt": [
         "com.uiery.keep.feature.routine.RoutineRepository",
     ],
