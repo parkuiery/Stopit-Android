@@ -3,6 +3,7 @@ package com.uiery.keep.feature.splash
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.setRoutinesCount
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
@@ -35,7 +36,8 @@ class SplashViewModel
         private fun navigateScreen() =
             intent {
                 delay(0.7.seconds)
-                routineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom()
+                val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom()
+                analytics.setRoutinesCount(restoreResult.routines.size)
                 postSideEffect(handleNavigate())
             }
 
