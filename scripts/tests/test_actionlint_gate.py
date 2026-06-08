@@ -74,6 +74,34 @@ class ActionlintGateContractTest(unittest.TestCase):
                     f"{workflow_name} should stay on the repository checkout major standard v6",
                 )
 
+    def test_gradle_workflows_validate_wrapper_before_gradle_or_secret_steps(self):
+        workflows = ("android-ci.yml", "play-deploy.yml", "release-build.yml", "release-qa.yml")
+        secret_or_gradle_markers = (
+            "- name: Set up Gradle",
+            "- name: Restore Firebase",
+            "- name: Validate release build secrets",
+            "- name: Validate build/upload deployment secrets",
+            "- name: Validate production promotion secrets",
+            "- name: Decode signing",
+        )
+
+        for workflow_name in workflows:
+            workflow = (WORKFLOW_DIR / workflow_name).read_text()
+            with self.subTest(workflow=workflow_name):
+                self.assertIn("- name: Validate Gradle Wrapper", workflow)
+                self.assertIn("gradle/actions/wrapper-validation@v6", workflow)
+                wrapper_index = workflow.index("- name: Validate Gradle Wrapper")
+                first_sensitive_index = min(
+                    workflow.index(marker)
+                    for marker in secret_or_gradle_markers
+                    if marker in workflow
+                )
+                self.assertLess(
+                    wrapper_index,
+                    first_sensitive_index,
+                    f"{workflow_name} must validate the Gradle Wrapper before Gradle setup or secret restore/decode steps",
+                )
+
     def test_operator_docs_describe_checkout_major_standard_for_all_release_governance_workflows(self):
         git_workflow = GIT_WORKFLOW.read_text()
         release_context = RELEASE_CONTEXT.read_text()
@@ -87,6 +115,22 @@ class ActionlintGateContractTest(unittest.TestCase):
                 self.assertIn("v6", doc)
                 self.assertIn("Branch Hygiene", doc)
                 self.assertIn("Release QA", doc)
+
+    def test_operator_docs_describe_gradle_wrapper_validation_secret_boundary(self):
+        git_workflow = GIT_WORKFLOW.read_text()
+        release_context = RELEASE_CONTEXT.read_text()
+
+        for doc_name, doc in (
+            ("docs/GIT_WORKFLOW.md", git_workflow),
+            ("docs/ops/stopit/release-context.md", release_context),
+        ):
+            with self.subTest(doc=doc_name):
+                self.assertIn("Gradle Wrapper", doc)
+                self.assertIn("wrapper-validation", doc)
+                self.assertIn("signing/Firebase/Play secret", doc)
+                self.assertIn("gradlew", doc)
+                self.assertIn("gradle-wrapper.jar", doc)
+                self.assertIn("scripts.tests.test_actionlint_gate", doc)
 
     def _trigger_block(self, workflow: str, trigger: str) -> str:
         pattern = rf"(?ms)^  {trigger}:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|^permissions:|^concurrency:|^jobs:|\Z)"
