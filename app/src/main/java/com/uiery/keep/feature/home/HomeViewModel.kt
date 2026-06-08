@@ -410,6 +410,7 @@ class HomeViewModel
                     }
                     return@intent
                 }
+                val sessionStartTime = System.currentTimeMillis()
                 val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
@@ -418,6 +419,7 @@ class HomeViewModel
                 val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
                 val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
                 blockingStateStore.saveLockTime(encodedDeadline)
+                blockingStateStore.saveStartTime(sessionStartTime)
                 reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline) }
                 val lockedDuration =
                     Duration
