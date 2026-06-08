@@ -357,8 +357,6 @@ internal data class GoalLockDetailUiState(
     val isCompleted: Boolean = false,
 ) {
     val goalName: String = goalLock?.goalName.orEmpty()
-    val lockModeLabel: String = goalLock?.lockMode?.detailLabel.orEmpty()
-    val pendingLockModeLabel: String = pendingLockMode?.detailLabel.orEmpty()
     val selectedAppCount: Int = goalLock?.selectedPackages?.size ?: 0
 }
 
@@ -366,12 +364,6 @@ internal sealed interface GoalLockDetailSideEffect {
     data object NotFound : GoalLockDetailSideEffect
     data object Ended : GoalLockDetailSideEffect
 }
-
-private val GoalLockMode.detailLabel: String
-    get() = when (this) {
-        GoalLockMode.AllDay -> "하루종일 잠금"
-        is GoalLockMode.Scheduled -> "특정 시간 잠금"
-    }
 
 private fun elapsedDaysBucket(
     startDate: LocalDate,
