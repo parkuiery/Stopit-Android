@@ -246,6 +246,9 @@
     <string name="cd_emergency_unlock_auto_reset_switch">Emergency unlock count management</string>
     <string name="cd_emergency_unlock_manual_reset_button">Refill emergency unlock count button</string>
     <string name="emergency_unlock_reason_title">Really need a short unlock?</string>
+    <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
+    <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
+    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_work">Work / study</string>
     <string name="emergency_unlock_reason_contact">Urgent contact</string>

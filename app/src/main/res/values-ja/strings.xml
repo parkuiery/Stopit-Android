@@ -257,6 +257,9 @@
     <string name="emergency_unlock_reason_habit_reflection">Noticing the habit is already a win. You can still cancel here.</string>
     <string name="emergency_unlock_reason_boredom_reflection">If this is boredom or stress, pause once before opening the app.</string>
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
+    <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
+    <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
+    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
