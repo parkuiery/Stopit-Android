@@ -203,13 +203,19 @@ jobs:
             | head -n 1)"
           if [[ -z "$run_id" ]]; then
             echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA" >&2
+            echo "Recovery: rerun a non-production Play Deploy for this SemVer tag or restore the long-lived release-provenance.json fallback before production promotion." >&2
             exit 1
           fi
-          gh run download "$run_id" \
+          if ! gh run download "$run_id" \
             --name stopit-prod-release-signed-aab \
-            --dir /tmp/stopit-prior-internal-provenance
+            --dir /tmp/stopit-prior-internal-provenance; then
+            echo "Prior internal provenance artifact expired/missing for run_id=$run_id ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
+            echo "Recovery: use the durable release-provenance.json fallback or rerun non-production Play Deploy for the same SemVer tag before production promotion." >&2
+            exit 1
+          fi
           test -n "$(find /tmp/stopit-prior-internal-provenance -name release-provenance.json -print -quit)" || {
-            echo "Downloaded prior internal artifact is missing release-provenance.json" >&2
+            echo "Downloaded prior internal artifact is missing release-provenance.json; classify this separately from provenance mismatch." >&2
+            echo "Recovery: restore the long-lived release-provenance.json fallback or rerun non-production Play Deploy for the same SemVer tag." >&2
             exit 1
           }
 

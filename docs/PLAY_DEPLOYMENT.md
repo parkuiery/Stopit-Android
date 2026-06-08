@@ -87,6 +87,16 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 - Production promotion does not build or upload a new AAB, so its provenance boundary is the prior non-production `release-provenance.json` generated for the matching internal release. When auditing a production promotion, compare the tag `versionCode` and internal release with the manifest's `versionCode`, AAB `sha256`, git SHA/ref, and workflow run URL instead of expecting a new production AAB manifest.
 
+## Production promotion provenance retention / recovery
+
+Issue #680 source-of-truth boundary: production promotion depends on prior internal release provenance, but the GitHub Actions artifact that stores `stopit-prod-release-signed-aab` is currently a 30-day evidence surface. Treat that 30-day retention as an operating SLA, not as durable release history.
+
+- Default path: promote to production while the prior non-production Play Deploy artifact is still available. The workflow downloads `stopit-prod-release-signed-aab`, verifies `release-provenance.json`, then validates/decodes `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` for the promotion.
+- Durable evidence target: every SemVer release should have a long-lived provenance fallback such as a GitHub Release asset or an equivalent provenance ledger containing `release-provenance.json` and the AAB checksum/size metadata. That fallback must stay secret-free: no keystore material, service-account JSON, Firebase config, or secret values.
+- Expired artifact recovery: if `gh run download --name stopit-prod-release-signed-aab` cannot find the prior artifact after the retention window, do not rebuild or upload a new production AAB from the production promotion path. Recover the prior internal provenance from the durable fallback, or rerun a non-production deploy for the same SemVer tag to recreate internal evidence before attempting production promotion again.
+- Failure classification: distinguish `artifact expired/missing`, `durable fallback missing`, and `provenance mismatch`. Expired/missing evidence is an operator recovery boundary; mismatch is a release safety blocker.
+- Workflow follow-up: until the fallback lookup is implemented in `play-deploy.yml`, production promotions older than the artifact retention window must be reported as `Refs #680` with the exact missing artifact/run evidence and the chosen recovery path.
+
 ## Required GitHub secrets
 
 Source of truth: `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` owns the helper / workflow / Firebase Functions secret boundary. Keep this section as the operator-facing summary, but use that runbook for audits and drift checks.
