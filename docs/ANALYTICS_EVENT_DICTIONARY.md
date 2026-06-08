@@ -239,7 +239,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - `duration_selection_type`: `preset_days`, `custom_days`, `end_date`
 - `lock_mode`: `all_day`, `scheduled`
 - `selected_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
-- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`; 목표 이름 원문은 analytics에 넣지 않는다.
+- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`; 목표 이름 원문은 analytics에 넣지 않는다. Preset CTA는 표시 문자열/locale literal 비교가 아니라 locale-independent preset key로 분류하고, 사용자가 같은 문구를 직접 입력한 경우는 `custom`으로 기록한다.
 - `duration_days_bucket`: `1_6`, `7`, `8_14`, `15_30`, `31_plus`
 - `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`

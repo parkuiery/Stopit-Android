@@ -42,6 +42,43 @@ class GoalLockCreationViewModelTest {
     }
 
     @Test
+    fun presetGoalSelectionTracksLocaleIndependentGoalNameType() = runBlocking {
+        assertPresetSelectionTracksGoalNameType(
+            displayName = "Exam prep",
+            preset = GoalLockPresetGoal.Exam,
+            expectedGoalNameType = AnalyticsGoalLockNameType.PRESET_EXAM,
+        )
+        assertPresetSelectionTracksGoalNameType(
+            displayName = "시험 준비",
+            preset = GoalLockPresetGoal.Exam,
+            expectedGoalNameType = AnalyticsGoalLockNameType.PRESET_EXAM,
+        )
+        assertPresetSelectionTracksGoalNameType(
+            displayName = "SNSを減らす",
+            preset = GoalLockPresetGoal.Sns,
+            expectedGoalNameType = AnalyticsGoalLockNameType.PRESET_SNS,
+        )
+    }
+
+    @Test
+    fun customGoalNameTextDoesNotBecomePresetAnalyticsByMatchingLocalizedCopy() = runBlocking {
+        val dao = RecordingGoalLockDao(insertedId = 22L)
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+
+        viewModel.setGoalName("시험 준비")
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 7, 3))
+        viewModel.setAllDayMode()
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        assertEquals(AnalyticsGoalLockNameType.CUSTOM, analytics.goalLockCreatedCalls.single().goalNameType)
+    }
+
+    @Test
     fun createAllDayGoalLockPersistsActiveGoalAndTracksBucketedAnalytics() = runBlocking {
         val dao = RecordingGoalLockDao(insertedId = 17L)
         val analytics = RecordingKeepAnalytics()
@@ -238,6 +275,28 @@ class GoalLockCreationViewModelTest {
         awaitUntil { dao.insertedEntity != null }
 
         assertEquals(setOf("com.focus.app"), requireNotNull(dao.insertedEntity).toDomain().selectedPackages)
+    }
+
+    private suspend fun assertPresetSelectionTracksGoalNameType(
+        displayName: String,
+        preset: GoalLockPresetGoal,
+        expectedGoalNameType: String,
+    ) {
+        val dao = RecordingGoalLockDao(insertedId = 21L)
+        val analytics = RecordingKeepAnalytics()
+        val viewModel = createViewModel(dao = dao, analytics = analytics)
+
+        viewModel.setPresetGoalName(preset = preset, displayName = displayName)
+        viewModel.setDateRange(LocalDate.of(2026, 6, 4), LocalDate.of(2026, 7, 3))
+        viewModel.setAllDayMode()
+        viewModel.setSelectedApps(setOf("com.video.app"))
+        awaitUntil { viewModel.container.stateFlow.value.isCreateEnabled }
+
+        viewModel.createGoalLock()
+        awaitUntil { dao.insertedEntity != null }
+
+        assertEquals(displayName, requireNotNull(dao.insertedEntity).toDomain().goalName)
+        assertEquals(expectedGoalNameType, analytics.goalLockCreatedCalls.single().goalNameType)
     }
 
     private suspend fun awaitUntil(predicate: () -> Boolean) {

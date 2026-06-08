@@ -95,6 +95,8 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("GOAL_LOCK_MVP.md", analytics)
         self.assertIn("목표 이름 원문/app package/app label 금지", analytics)
+        self.assertIn("locale-independent preset key", analytics)
+        self.assertIn("직접 입력한 경우는 `custom`", analytics)
 
     def test_high_traffic_docs_link_to_goal_lock_source_of_truth(self):
         documents = [
