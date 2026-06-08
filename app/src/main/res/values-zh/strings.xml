@@ -99,7 +99,7 @@
     <string name="goal_lock_detail_status_ended">This goal lock has ended.</string>
     <string name="goal_lock_detail_status_active">This goal lock is in progress.</string>
     <string name="goal_lock_detail_end_confirmation">Ending this goal lock may let the selected apps open again from today. End it now?</string>
-    <string name="goal_lock_detail_end_cancel">Keep it</string>
+    <string name="goal_lock_detail_end_cancel">Continue</string>
     <string name="goal_lock_detail_end_confirm">End</string>
     <string name="goal_lock_detail_end_cta">End goal lock</string>
     <string name="goal_lock_detail_goal_name_label">Goal name</string>
