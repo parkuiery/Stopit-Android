@@ -63,6 +63,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
       - name: Set up JDK 17
         if: env.DEPLOY_TRACK != 'production'
         uses: actions/setup-java@v5
