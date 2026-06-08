@@ -119,6 +119,24 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("keystore", docs)
         self.assertIn("service account JSON", docs)
 
+    def test_docs_define_release_readiness_quick_preflight_boundary(self):
+        git_workflow = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+        docs = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (git_workflow, PLAY_DOC, RELEASE_CHECKLIST)
+        )
+        for required in (
+            "scripts/check-release-readiness.sh",
+            "quick preflight",
+            ":app:testProdReleaseUnitTest",
+            ":app:lintProdRelease",
+            "scripts/verify_lint_registry.py",
+            ":app:bundleProdRelease --dry-run",
+            "Signed AAB provenance",
+            "Android Release Build workflow",
+        ):
+            self.assertIn(required, docs)
+
 
 if __name__ == "__main__":
     unittest.main()
