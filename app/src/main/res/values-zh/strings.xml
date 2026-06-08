@@ -178,6 +178,10 @@
     <string name="notification_routine_start_message">为了专注，已锁定应用使用。</string>
     <string name="routine_notification_permission_fallback_message">%1$s 例行已开始，但通知权限已关闭，因此 StopIt 会改为在应用内提醒你。</string>
     <string name="routine_running_tag">进行中</string>
+    <string name="routine_enabled_tag">已启用</string>
+    <string name="routine_disabled_tag">已关闭</string>
+    <string name="routine_repeat_days_empty">无重复日期</string>
+    <string name="routine_next_run_label">下次执行：%1$s</string>
     <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="prevent_uninstall">卸载保护</string>
     <string name="prevent_uninstall_subtitle">防止StopIt被卸载</string>

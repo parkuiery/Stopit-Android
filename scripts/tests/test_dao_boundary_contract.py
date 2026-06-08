@@ -30,25 +30,32 @@ class DaoBoundaryContractTest(unittest.TestCase):
 
     def test_lock_history_repository_is_the_feature_allowlisted_dao_boundary(self):
         repository = APP_MAIN / "feature/lockhistory/LockHistoryRepository.kt"
-        self.assertTrue(repository.exists(), "LockHistoryRepository owns feature lock-history DAO access")
+        self.assertTrue(repository.exists(), "LockHistoryRepository owns feature lock-history read DAO access")
         text = repository.read_text()
         self.assertIn("class LockHistoryRepository", text)
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", text)
         self.assertIn("fun sessionsInRange", text)
         self.assertIn("fun blockedAppsByFrequency", text)
-        self.assertIn("suspend fun recordSession", text)
+        self.assertNotIn("suspend fun recordSession", text)
 
     def test_lock_history_recorder_uses_repository_boundary(self):
         recorder = APP_MAIN / "service/LockHistoryRecorder.kt"
         ledger = APP_MAIN / "service/LockHistoryLedger.kt"
+        session_writer = APP_MAIN / "database/repository/LockHistorySessionWriter.kt"
         recorder_text = recorder.read_text()
         ledger_text = ledger.read_text()
+        session_writer_text = session_writer.read_text()
 
         self.assertTrue(recorder.exists(), "LockHistoryRecorder owns completed-session recording orchestration")
+        self.assertTrue(session_writer.exists(), "LockHistorySessionWriter owns completed-session Room ledger writes")
         self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", recorder_text)
         self.assertNotIn("import com.uiery.keep.database.entity.LockHistoryEntity", recorder_text)
-        self.assertIn("import com.uiery.keep.feature.lockhistory.LockHistoryRepository", recorder_text)
-        self.assertIn("private val lockHistoryRepository: LockHistoryRepository", recorder_text)
+        self.assertNotIn("import com.uiery.keep.feature.lockhistory", recorder_text)
+        self.assertIn("import com.uiery.keep.database.repository.LockHistorySessionWriter", recorder_text)
+        self.assertIn("private val lockHistorySessionWriter: LockHistorySessionWriter", recorder_text)
+        self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", session_writer_text)
+        self.assertIn("import com.uiery.keep.database.entity.LockHistoryEntity", session_writer_text)
+        self.assertIn("suspend fun recordSession", session_writer_text)
         self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", ledger_text)
         self.assertNotIn("import com.uiery.keep.database.entity.LockHistoryEntity", ledger_text)
 

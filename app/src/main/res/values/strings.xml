@@ -112,6 +112,10 @@
     <string name="routine_alarm_permission_description">We will send a notification at the set time to help you start your routine naturally.</string>
     <string name="routine_alarm_permission_button">Set up notifications</string>
     <string name="routine_running_tag">Running</string>
+    <string name="routine_enabled_tag">Active</string>
+    <string name="routine_disabled_tag">Off</string>
+    <string name="routine_repeat_days_empty">No repeat days</string>
+    <string name="routine_next_run_label">Next run: %1$s</string>
     <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="contact_us">Contact Us</string>
     <string name="monetization_interest_menu_title">Want to use StopIt without ads?</string>

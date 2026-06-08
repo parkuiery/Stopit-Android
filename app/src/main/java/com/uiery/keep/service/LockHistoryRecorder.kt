@@ -4,8 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
@@ -15,7 +15,7 @@ import javax.inject.Inject
  */
 class LockHistoryRecorder @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
-    private val lockHistoryRepository: LockHistoryRepository,
+    private val lockHistorySessionWriter: LockHistorySessionWriter,
 ) {
     suspend fun recordSession(
         startTimestamp: Long,
@@ -33,7 +33,7 @@ class LockHistoryRecorder @Inject constructor(
             mutablePreferences[PreferencesKey.TOTAL_BLOCK_TIME] = previousTotal + durationMillis
         }
 
-        lockHistoryRepository.recordSession(
+        lockHistorySessionWriter.recordSession(
             startTimestamp = startTimestamp,
             endTimestamp = endTimestamp,
             durationMillis = durationMillis,

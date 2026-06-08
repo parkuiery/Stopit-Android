@@ -43,7 +43,6 @@ Issue: #651
 | Layer | 파일 | 현재 feature import | code-lane migration 방향 |
 | --- | --- | --- | --- |
 | service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLockRepository`, `feature.routine.RoutineRepository` | AccessibilityService가 shared lock-state read repository 또는 runtime-facing use case에 의존하도록 분리한다. `GoalLock` model import는 `domain.goallock`으로 이동 완료. |
-| service | `app/src/main/java/com/uiery/keep/service/LockHistoryRecorder.kt` | `feature.lockhistory.LockHistoryRepository` | 완료 세션 기록용 repository contract를 app data/runtime boundary로 승격하거나 shared interface로 분리한다. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt` | `feature.routine.RoutineRepository` | boot/package/time-change restore가 shared routine runtime repository/use case를 사용하게 한다. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt` | `feature.routine.RoutineRepository` | alarm receiver가 shared routine runtime repository/use case를 사용하게 한다. |
 | analytics | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | `feature.routine.RepeatBlockRoutineSuggestion` | analytics API는 feature-local suggestion object 대신 bucketed analytics DTO/interface를 받는다. |
@@ -65,8 +64,8 @@ Issue: #651
    - `KeepAnalytics` interface가 feature-local type을 받지 않도록 바꾼다.
    - focused 검증 후보: `RepeatBlockRoutineSuggestionAnalyticsTest`, `FirebaseKeepAnalyticsTest`, #531 docs contract tests.
 4. **LockHistory recorder boundary**
-   - `LockHistoryRepository`가 feature 화면 repository와 runtime recording repository 중 어느 소유권인지 정한다.
-   - service recording path가 feature-private repository를 import하지 않도록 shared interface나 data boundary로 이동한다.
+   - 완료: `LockHistorySessionWriter`가 runtime Room ledger write boundary를 소유하고, `LockHistoryRepository`는 feature read-model repository로 남긴다.
+   - 완료: service recording path가 feature-private repository를 import하지 않도록 data boundary로 이동했다.
 
 ## Static guard 계약
 

@@ -6,11 +6,11 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -120,7 +120,7 @@ class LockViewModelTest {
         return LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(FakeLockHistoryDao())),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -163,7 +163,7 @@ class LockViewModelTest {
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -220,7 +220,7 @@ class LockViewModelTest {
         LockViewModel(
             savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
-            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
             reviewPromptStateStore = reviewPromptStateStore,
@@ -276,7 +276,7 @@ class LockViewModelTest {
             LockViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("lockTime" to LocalDateTime.now(clock).toString(), "isRoutine" to true)),
                 routineRepository = FakeRoutineRepository(flowOf(listOf(routine))),
-                lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+                lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
                 dataStore = dataStore,
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
