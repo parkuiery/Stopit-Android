@@ -39,6 +39,12 @@ class GoalLockDetailContentIntegrationTest {
                     onRequestUpdateApps = { selectedApps -> updateRequests += selectedApps },
                     onCancelUpdateApps = { cancelCount += 1 },
                     onConfirmUpdateApps = { confirmCount += 1 },
+                    onDurationDaysChange = {},
+                    onCancelUpdateDuration = {},
+                    onConfirmUpdateDuration = {},
+                    onLockModeChange = {},
+                    onCancelUpdateLockMode = {},
+                    onConfirmUpdateLockMode = {},
                 )
             }
         }
