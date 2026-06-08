@@ -2,6 +2,7 @@ package com.uiery.keep.feature.routine
 
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
@@ -95,10 +96,11 @@ class RoutineBottomSheetViewModelTest {
         awaitState(viewModel) { it.name == "Morning focus" }
         viewModel.editRoutine(7L)
         awaitUntil { routineDao.updatedEntity != null }
+        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
-        Mockito.verify(routineScheduler).cancelRoutine(7L)
-        Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).cancelRoutine(7L)
+        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).scheduleRoutine(anyRoutine())
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
@@ -151,6 +153,55 @@ class RoutineBottomSheetViewModelTest {
         assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect.await())
     }
 
+    @Test
+    fun repeatBlockSuggestionPrefillsEditableRoutineFieldsAndTracksAppliedAfterSave() = runBlocking {
+        val routineDao = RecordingRoutineDao(insertedId = 44L)
+        val analytics = RecordingKeepAnalytics()
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
+            .thenReturn(RoutineScheduleResult.Scheduled)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+            analytics = analytics,
+        )
+        val suggestion = repeatBlockSuggestion()
+
+        viewModel.applyRepeatBlockRoutineSuggestionPrefill(
+            surface = RepeatBlockRoutineSuggestionSurface.HOME,
+            suggestion = suggestion,
+        )
+        val prefilled = awaitState(viewModel) { it.selectApps == suggestion.prefillPackages.toSet() }
+
+        assertEquals("", prefilled.name)
+        assertEquals(LocalTime(hour = 22, minute = 0), prefilled.startTime)
+        assertEquals(LocalTime(hour = 0, minute = 0), prefilled.endTime)
+        assertEquals(
+            listOf(
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY,
+            ),
+            prefilled.selectDays,
+        )
+        assertFalse(prefilled.isButtonEnable)
+        assertEquals(listOf(RepeatBlockRoutineSuggestionSurface.HOME to suggestion), analytics.repeatBlockClickedCalls)
+
+        viewModel.setName("Sleep defense")
+        awaitState(viewModel) { it.isButtonEnable }
+        viewModel.addRoutine()
+        awaitUntil { routineDao.insertedEntity != null }
+
+        assertEquals(suggestion.prefillPackages, routineDao.insertedEntity?.lockApplications)
+        assertEquals(
+            listOf(RepeatBlockRoutineSuggestionSurface.HOME to suggestion),
+            analytics.repeatBlockAppliedCalls,
+        )
+    }
+
     private fun createViewModel(
         routineDao: RoutineDao = RecordingRoutineDao(),
         routineScheduler: RoutineScheduler = Mockito.mock(RoutineScheduler::class.java).also {
@@ -158,7 +209,7 @@ class RoutineBottomSheetViewModelTest {
         },
         analytics: KeepAnalytics = NoOpKeepAnalytics(),
     ) = RoutineBottomSheetViewModel(
-        routineDao = routineDao,
+        routineRepository = RoomRoutineRepository(routineDao),
         exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(routineScheduler),
         analytics = analytics,
     )
@@ -208,6 +259,18 @@ class RoutineBottomSheetViewModelTest {
         isEnabled = isEnabled,
         changeLockHours = 2,
     )
+
+    private fun repeatBlockSuggestion() = RepeatBlockRoutineSuggestion(
+        reason = RepeatBlockSuggestionReason.RepeatBlockTimeBucket,
+        timeBucket = RepeatBlockTimeBucket.Night,
+        dayType = RepeatBlockDayType.Weekday,
+        categoryBucket = RepeatBlockCategoryBucket.Social,
+        repeatCountBucket = RepeatBlockCountBucket.ThreeToFive,
+        routineCoverageState = RoutineCoverageState.NotCovered,
+        prefillPackages = listOf("com.instagram.android", "com.twitter.android"),
+        prefillStartTime = LocalTime(hour = 22, minute = 0),
+        prefillEndTime = LocalTime(hour = 0, minute = 0),
+    )
 }
 
 private class RecordingRoutineDao(
@@ -250,8 +313,24 @@ private open class NoOpKeepAnalytics : KeepAnalytics {
 
 private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
     val lockScheduledCalls = mutableListOf<Pair<String, Long>>()
+    val repeatBlockClickedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestion>>()
+    val repeatBlockAppliedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestion>>()
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         lockScheduledCalls += scheduleType to scheduledDurationMinutes
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) {
+        repeatBlockClickedCalls += surface to suggestion
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionApplied(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestion,
+    ) {
+        repeatBlockAppliedCalls += surface to suggestion
     }
 }

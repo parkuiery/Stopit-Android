@@ -85,15 +85,16 @@ class RoutineViewModelTemplateShareTest {
         val scheduler = Mockito.mock(RoutineScheduler::class.java).also {
             Mockito.`when`(it.canScheduleExactAlarms()).thenReturn(true)
         }
+        val routineRepository = RoomRoutineRepository(routineDao)
         return RoutineViewModel(
-            routineDao = routineDao,
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = analytics,
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, analytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = routineDao,
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = RoutineNoticeStore(dataStore),

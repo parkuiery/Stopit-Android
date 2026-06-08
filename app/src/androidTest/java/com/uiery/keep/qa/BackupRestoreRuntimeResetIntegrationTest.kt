@@ -19,6 +19,7 @@ import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.feature.routine.RoutineViewModel
@@ -88,7 +89,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore boot routine"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
         }
 
@@ -112,7 +113,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
             appContext = context
         }
@@ -144,16 +145,17 @@ class BackupRestoreRuntimeResetIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore app-open routine"))
         val scheduler = RoutineScheduler(context)
         val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
 
         RoutineViewModel(
-            routineDao = database.routineDao(),
+            routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopBackupRestoreAnalytics,
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), NoopBackupRestoreAnalytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
-                routineDao = database.routineDao(),
+                routineRepository = routineRepository,
                 dataStore = dataStore,
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,

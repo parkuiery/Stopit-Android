@@ -36,12 +36,12 @@
 - 앱/루트 Gradle 파일에 새 직접 버전 문자열이 들어오면, 먼저 `gradle/libs.versions.toml` alias로 이동할 수 있는지 확인한다.
 - 2026-06-01 기준 `core/kds/build.gradle.kts`의 기존 direct version drift는 catalog alias로 이동됐다.
   - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1` → `libs.kotlinx.datetime`
-  - `com.google.android.gms:play-services-ads:23.0.0` → `libs.google.play.services.ads`
-  - `androidx.lifecycle:lifecycle-runtime-compose:2.9.3` → `libs.androidx.lifecycle.runtime.compose`
+- 2026-06-07 기준 AdMob SDK 런타임 의존(`libs.google.play.services.ads`)과 banner lifecycle code는 KDS에서 제거하고 앱 monetization/analytics 경계로 고정했다.
 - 2026-06-02 기준 KDS modal bottom sheet의 deprecated Accompanist `SystemUiController` 의존성은 제거됐다.
   - 앱 entry point의 `androidx.activity.enableEdgeToEdge()`와 Material3 `ModalBottomSheet`/insets 계약을 source of truth로 둔다.
   - `app`/`core:kds`에 `libs.accompanist.systemuicontroller`, `rememberSystemUiController`, 또는 `accompanist-systemuicontroller`가 재유입되면 `scripts.tests.test_kds_dependency_catalog_contract`가 실패해야 한다.
-- `gradle/libs.versions.toml`에는 위 세 의존성의 alias가 모두 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 direct-version drift와 deprecated Accompanist 재유입을 막는다.
+- `gradle/libs.versions.toml`에는 앱/KDS에서 쓰는 의존성 alias가 남아 있어야 하며, `scripts.tests.test_kds_dependency_catalog_contract`가 direct-version drift와 deprecated Accompanist 재유입을 막는다.
+- KDS가 AdMob SDK를 다시 소유하지 않도록 `scripts.tests.test_kds_admob_boundary`가 `core/kds/src/main`과 `core/kds/build.gradle.kts`를 감시한다.
 - 따라서 드리프트 점검은 `libs.versions.toml`만 읽고 끝내면 안 되고, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`, `core/kds/src/main/java`를 같이 확인해야 한다.
 
 ### version catalog 정책 메모
@@ -138,7 +138,7 @@
 이번 배치 후에도 남겨둔 defer 항목:
 
 - `Room 2.7.1 -> 2.8.4`: KSP/annotation processing 회귀 확인이 필요하므로 별도 좁은 배치 권장
-- `core:kds`의 `play-services-ads 23.0.0` / `lifecycle-runtime-compose 2.9.3`: catalog alias 전환은 완료됐지만, 실제 버전 업그레이드는 수익화/런타임 QA 범위가 커서 별도 검토 권장
+- KDS의 AdMob runtime 의존은 2026-06-07 #557 package에서 앱 monetization/analytics 경계로 이동했다. 앞으로 Ads SDK 업그레이드는 `app/build.gradle.kts`, `TrackedBannerAd`, #16 runbook/QA evidence와 함께 검토한다.
 - `AGP`, `Kotlin`, `Compose`, `Lifecycle`, `Activity`, `Material`, `Navigation` 등 coordinated stack 계열
 
 ## 권장 업그레이드 순서

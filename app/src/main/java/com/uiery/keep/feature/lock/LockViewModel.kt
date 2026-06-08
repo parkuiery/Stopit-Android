@@ -10,25 +10,21 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRequestResult
-import com.uiery.keep.service.recordLockHistorySession
+import com.uiery.keep.service.LockHistoryRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -46,8 +42,8 @@ class LockViewModel
     @Inject
     constructor(
         savedStateHandle: SavedStateHandle,
-        private val routineDao: RoutineDao,
-        private val lockHistoryDao: LockHistoryDao,
+        private val routineRepository: RoutineRepository,
+        private val lockHistoryRecorder: LockHistoryRecorder,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val blockingStateStore: BlockingStateStore,
         private val reviewPromptStateStore: ReviewPromptStateStore,
@@ -82,8 +78,25 @@ class LockViewModel
             intent {
                 getSelectedApp()
                 checkDailyLimit()
-                if (route.isRoutine) getRoutines() else navigateHome(state.lockTime)
+                if (route.isRoutine) {
+                    getRoutines()
+                } else {
+                    val timerStartTime = resolveManualTimerStartTime(
+                        fallbackStartTime = state.timerStartTime.takeIf { it > 0L } ?: clock.millis(),
+                    )
+                    reduce { state.copy(timerStartTime = timerStartTime) }
+                    navigateHome(state.lockTime)
+                }
             }
+
+        private suspend fun resolveManualTimerStartTime(fallbackStartTime: Long): Long {
+            val persistedStartTime = blockingStateStore.readStartTime()
+            val resolvedStartTime = persistedStartTime ?: fallbackStartTime
+            if (persistedStartTime == null) {
+                blockingStateStore.saveStartTime(resolvedStartTime)
+            }
+            return resolvedStartTime
+        }
 
         private fun getSelectedApp() =
             intent {
@@ -94,7 +107,7 @@ class LockViewModel
         private fun getRoutines() =
             intent {
                 val nowDateTime = LocalDateTime.now(clock)
-                val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }.orEmpty()
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
                 val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines, nowDateTime = nowDateTime)
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
@@ -164,9 +177,7 @@ class LockViewModel
         private fun saveRoutineLockHistory() =
             intent {
                 val endTime = clock.millis()
-                recordLockHistorySession(
-                    dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                lockHistoryRecorder.recordSession(
                     startTimestamp = state.routineStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,
@@ -177,9 +188,7 @@ class LockViewModel
         private fun saveTimerLockHistory() =
             intent {
                 val endTime = System.currentTimeMillis()
-                recordLockHistorySession(
-                    dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                lockHistoryRecorder.recordSession(
                     startTimestamp = state.timerStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,

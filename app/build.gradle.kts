@@ -179,6 +179,7 @@ dependencies {
     implementation(libs.firebase.config)
 
     implementation(libs.play.review.ktx)
+    implementation(libs.install.referrer)
 
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
@@ -187,6 +188,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.google.play.services.ads)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(project(":core:kds"))
 }

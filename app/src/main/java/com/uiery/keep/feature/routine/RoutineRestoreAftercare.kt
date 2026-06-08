@@ -3,17 +3,15 @@ package com.uiery.keep.feature.routine
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.uiery.keep.KeepDataSource
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import javax.inject.Inject
 
 class RoutineRestoreAftercare
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val routineNoticeStore: RoutineNoticeStore,
@@ -24,7 +22,7 @@ class RoutineRestoreAftercare
             routines.filter { it.isEnabled }.forEach { routine ->
                 val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routine)
                 if (scheduleDecision.routine.isEnabled != routine.isEnabled) {
-                    routineDao.updateIsEnabledById(routine.id, scheduleDecision.routine.isEnabled)
+                    routineRepository.updateIsEnabledById(routine.id, scheduleDecision.routine.isEnabled)
                     restoredRoutines = restoredRoutines.map { current ->
                         if (current.id == routine.id) scheduleDecision.routine else current
                     }
@@ -44,7 +42,7 @@ class RoutineRestoreAftercare
         }
 
         suspend fun rescheduleRestoredEnabledRoutinesFromRoom(): RoutineRestoreRescheduleResult {
-            val routines = routineDao.fetchAllOnce().map { it.toModel() }
+            val routines = routineRepository.fetchAllOnce()
             val result = rescheduleRestoredEnabledRoutines(routines)
             RoutineStore(dataStore).writeCachedRoutines(result.routines)
             return result

@@ -8,11 +8,9 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.analytics.RoutineTemplateShareFailureReason
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +23,7 @@ import javax.inject.Inject
 class RoutineViewModel
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val analytics: KeepAnalytics,
         private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
@@ -73,10 +71,10 @@ class RoutineViewModel
         internal fun getRoutineDetail(id: Long) =
             intent {
                 runCatching {
-                    routineDao.fetch(id)
-                }.onSuccess {
-                    val routine = it.toModel()
+                    routineRepository.fetch(id)
+                }.onSuccess { routine ->
                     if (routine.isRunningNow() || routine.isChangeLocked()) {
+                        postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                         return@onSuccess
                     }
                     showEditRoutineBottomSheet(routine)
@@ -85,15 +83,14 @@ class RoutineViewModel
 
         private fun getRoutines() =
             intent {
-                routineDao.fetchAll().collect { routines ->
-                    val routinesModel = routines.map { it.toModel() }
+                routineRepository.fetchAll().collect { routinesModel ->
                     val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutines(routinesModel)
                     reduce { state.copy(routines = restoreResult.routines) }
                     storeRoutine(restoreResult.routines)
                     if (restoreResult.shouldShowAlarmPermissionPrompt) {
                         postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                     }
-                    routineCountAnalyticsSync.syncFromRoutines(routines)
+                    routineCountAnalyticsSync.syncCount(restoreResult.routines.size)
                 }
             }
 
@@ -101,10 +98,11 @@ class RoutineViewModel
             intent {
                 val routine = state.routines.find { it.id == id }
                 if (routine?.isRunningNow() == true || routine?.isChangeLocked() == true) {
+                    postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                     return@intent
                 }
                 exactAlarmOrchestrator.cancelRoutine(id)
-                routineDao.deleteById(id)
+                routineRepository.deleteById(id)
             }
 
         internal fun changeEnabled(
@@ -115,19 +113,21 @@ class RoutineViewModel
             val isRunningRoutine = routine?.isRunningNow() == true
 
             if (!isEnabled && isRunningRoutine) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
             if (routine?.isChangeLocked() == true) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
             routine?.let {
                 val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(it.copy(isEnabled = isEnabled))
-                routineDao.updateIsEnabledById(id, resolvedRoutine.routine.isEnabled)
+                routineRepository.updateIsEnabledById(id, resolvedRoutine.routine.isEnabled)
                 val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
                 if (scheduleDecision.routine.isEnabled != resolvedRoutine.routine.isEnabled) {
-                    routineDao.updateIsEnabledById(id, scheduleDecision.routine.isEnabled)
+                    routineRepository.updateIsEnabledById(id, scheduleDecision.routine.isEnabled)
                 }
                 if (!resolvedRoutine.routine.isEnabled) {
                     exactAlarmOrchestrator.cancelRoutine(id)
@@ -220,6 +220,8 @@ sealed class RoutineSideEffect {
     ) : RoutineSideEffect()
 
     data object ShowAlarmPermission : RoutineSideEffect()
+
+    data object ShowActiveRoutineBlocked : RoutineSideEffect()
 
     data class ShareRoutineTemplate(
         val payload: RoutineTemplateSharePayload,

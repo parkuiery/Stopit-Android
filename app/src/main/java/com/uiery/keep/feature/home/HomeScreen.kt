@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -243,7 +244,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
                             contentDescription = stringResource(R.string.cd_open_menu),
-                            tint = KeepTheme.colors.primary,
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -495,7 +496,7 @@ private fun GoalLockProgressCard(
 }
 
 @Composable
-private fun HomeStatusCtaCard(
+internal fun HomeStatusCtaCard(
     modifier: Modifier = Modifier,
     model: HomeStatusCtaModel,
     onPrimaryClick: () -> Unit,
@@ -504,7 +505,7 @@ private fun HomeStatusCtaCard(
     onLockHistoryClick: () -> Unit,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.testTag("home_status_cta_card"),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {

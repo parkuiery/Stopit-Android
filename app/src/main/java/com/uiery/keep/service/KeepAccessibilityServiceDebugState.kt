@@ -19,6 +19,9 @@ object KeepAccessibilityServiceDebugState {
         val lastCountdownNotificationPostResult: String? = null,
         val lastWindowStateChangedPackage: String? = null,
         val lastLaunchedBlockPackage: String? = null,
+        val lastLaunchedBlockSource: String? = null,
+        val lastLaunchedRoutineId: String? = null,
+        val lastLaunchedGoalLockId: String? = null,
         val lastDismissedUninstallPackage: String? = null,
     )
 
@@ -44,6 +47,7 @@ object KeepAccessibilityServiceDebugState {
         val parts = file.readText().split('\n')
         if (parts.size < 8) return Snapshot()
         val hasNotificationFields = parts.size >= 11
+        val hasLaunchAttributionFields = parts.size >= 14
         return Snapshot(
             isServiceConnected = parts[0].toBoolean(),
             observedIsKeep = parts[1].toBoolean(),
@@ -55,6 +59,9 @@ object KeepAccessibilityServiceDebugState {
             lastCountdownNotificationPostResult = if (hasNotificationFields) parts[7].ifBlank { null } else null,
             lastWindowStateChangedPackage = parts[if (hasNotificationFields) 8 else 5].ifBlank { null },
             lastLaunchedBlockPackage = parts[if (hasNotificationFields) 9 else 6].ifBlank { null },
+            lastLaunchedBlockSource = if (hasLaunchAttributionFields) parts[11].ifBlank { null } else null,
+            lastLaunchedRoutineId = if (hasLaunchAttributionFields) parts[12].ifBlank { null } else null,
+            lastLaunchedGoalLockId = if (hasLaunchAttributionFields) parts[13].ifBlank { null } else null,
             lastDismissedUninstallPackage = parts[if (hasNotificationFields) 10 else 7].ifBlank { null },
         )
     }
@@ -75,7 +82,10 @@ object KeepAccessibilityServiceDebugState {
                 appendLine(snapshot.lastCountdownNotificationPostResult.orEmpty())
                 appendLine(snapshot.lastWindowStateChangedPackage.orEmpty())
                 appendLine(snapshot.lastLaunchedBlockPackage.orEmpty())
-                append(snapshot.lastDismissedUninstallPackage.orEmpty())
+                appendLine(snapshot.lastDismissedUninstallPackage.orEmpty())
+                appendLine(snapshot.lastLaunchedBlockSource.orEmpty())
+                appendLine(snapshot.lastLaunchedRoutineId.orEmpty())
+                append(snapshot.lastLaunchedGoalLockId.orEmpty())
             },
         )
     }

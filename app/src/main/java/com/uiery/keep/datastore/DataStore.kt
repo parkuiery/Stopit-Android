@@ -41,4 +41,6 @@ object PreferencesKey {
     val SUCCESSFUL_SESSION_COUNT = intPreferencesKey("successful_session_count")
     val LAST_BACKGROUNDED_AT_MS = longPreferencesKey("last_backgrounded_at_ms")
     val PENDING_ROUTINE_START_NOTICE_MESSAGE = stringPreferencesKey("pending_routine_start_notice_message")
+    val REPEAT_BLOCK_DISMISSED_SUGGESTIONS = stringSetPreferencesKey("repeat_block_dismissed_suggestions")
+    val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
 }

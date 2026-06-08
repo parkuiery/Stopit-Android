@@ -2,11 +2,10 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
+import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.GoalLockDao
-import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.datastore.BlockingStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
@@ -18,16 +17,20 @@ import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
-class GoalLockCreationViewModel
+internal class GoalLockCreationViewModel
     @Inject
     constructor(
-        private val goalLockDao: GoalLockDao,
+        private val goalLockRepository: GoalLockRepository,
         private val analytics: KeepAnalytics,
         private val blockingStateStore: BlockingStateStore,
     ) : ViewModel(),
         ContainerHost<GoalLockCreationUiState, GoalLockCreationSideEffect> {
         override val container: Container<GoalLockCreationUiState, GoalLockCreationSideEffect> =
             container(GoalLockCreationUiState())
+
+        init {
+            analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+        }
 
         internal fun setGoalName(goalName: String) =
             intent {
@@ -132,7 +135,7 @@ class GoalLockCreationViewModel
             val goalLock = state.toGoalLock()
             if (!state.isValidForCreation(goalLock)) return@intent
 
-            val insertedId = goalLockDao.insert(GoalLockEntity.fromDomain(goalLock))
+            val insertedId = goalLockRepository.create(goalLock)
             analytics.trackGoalLockCreated(
                 durationSelectionType = durationSelectionType ?: state.durationSelectionType,
                 lockMode = goalLock.lockMode.analyticsLockMode,
@@ -157,7 +160,11 @@ data class GoalLockCreationUiState(
     val durationSelectionType: String = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
     val goalNameType: String = AnalyticsGoalLockNameType.CUSTOM,
     val isCreateEnabled: Boolean = false,
-)
+) {
+    val hasInvalidScheduledTime: Boolean
+        get() = (lockMode as? GoalLockCreationLockMode.Scheduled)
+            ?.hasInvalidTimeWindow() == true
+}
 
 sealed interface GoalLockCreationLockMode {
     data object AllDay : GoalLockCreationLockMode
@@ -189,8 +196,11 @@ private fun GoalLockCreationUiState.isValidForCreation(goalLock: GoalLock): Bool
         GoalLockPolicy.isValidForCreation(goalLock) &&
         when (lockMode) {
             GoalLockCreationLockMode.AllDay -> true
-            is GoalLockCreationLockMode.Scheduled -> lockMode.repeatDays.isNotEmpty()
+            is GoalLockCreationLockMode.Scheduled ->
+                lockMode.repeatDays.isNotEmpty() && !lockMode.hasInvalidTimeWindow()
         }
+
+private fun GoalLockCreationLockMode.Scheduled.hasInvalidTimeWindow(): Boolean = startTime == endTime
 
 private fun GoalLockCreationLockMode.toDomain(): GoalLockMode =
     when (this) {

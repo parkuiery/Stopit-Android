@@ -6,10 +6,12 @@ import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeLockHistoryDao
@@ -21,6 +23,7 @@ import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.RecordingKeepAnalytics
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.receiver.RoutineReceiverPolicy
+import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -140,12 +143,12 @@ class HomeViewModelRoutineStartNoticeTest {
         return HomeViewModel(
             dataStore = dataStore,
             blockingStateStore = BlockingStateStore(dataStore),
-            reviewPromptStateStore = reviewPromptStateStore,
+            reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
-            lockHistoryDao = lockHistoryDao,
-            goalLockDao = EmptyRoutineNoticeGoalLockDao(),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
+            goalLockRepository = GoalLockRepository(EmptyRoutineNoticeGoalLockDao()),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,

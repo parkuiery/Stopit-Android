@@ -10,9 +10,17 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
+import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -115,6 +123,69 @@ class KeepAccessibilityServiceIntegrationTest {
         ) {
             KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
         }
+    }
+
+    @Test
+    fun activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        val goalLockId = configureAllDayGoalLockBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to request BlockActivity with goal-lock attribution for $blockedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.GOAL_LOCK &&
+                snapshot.lastLaunchedGoalLockId == goalLockId.toString()
+        }
+    }
+
+    @Test
+    fun activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        val goalLockId = configureScheduledGoalLockBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to request BlockActivity with scheduled goal-lock attribution for $blockedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.GOAL_LOCK &&
+                snapshot.lastLaunchedGoalLockId == goalLockId.toString()
+        }
+    }
+
+    @Test
+    fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        configureExpiredGoalLockBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+        waitForPackageForeground(
+            packageName = blockedPackage,
+            message = "Expected expired Goal Lock target to stay foreground without manual Keep or active Goal Lock",
+        )
+
+        Thread.sleep(1_000)
+
+        val snapshot = KeepAccessibilityServiceDebugState.read(context)
+        assertFalse(
+            "Did not expect expired Goal Lock to request BlockActivity. snapshot=$snapshot",
+            snapshot.lastLaunchedBlockPackage == blockedPackage ||
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.GOAL_LOCK,
+        )
     }
 
     @Test
@@ -262,6 +333,83 @@ class KeepAccessibilityServiceIntegrationTest {
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
+    private suspend fun configureAllDayGoalLockBlock(packageName: String): Long {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        goalLockRepository().create(
+            GoalLock(
+                id = GOAL_LOCK_RUNTIME_TEST_ID,
+                goalName = "Runtime QA",
+                startDate = LocalDate.now().minusDays(1),
+                endDate = LocalDate.now().plusDays(1),
+                lockMode = GoalLockMode.AllDay,
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
+            ),
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        return GOAL_LOCK_RUNTIME_TEST_ID
+    }
+
+    private suspend fun configureScheduledGoalLockBlock(packageName: String): Long {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        goalLockRepository().create(
+            GoalLock(
+                id = GOAL_LOCK_RUNTIME_TEST_ID,
+                goalName = "Runtime QA",
+                startDate = LocalDate.now().minusDays(1),
+                endDate = LocalDate.now().plusDays(1),
+                lockMode = GoalLockMode.Scheduled(
+                    repeatDays = setOf(LocalDate.now().dayOfWeek),
+                    startTime = LocalTime.MIN,
+                    endTime = LocalTime.of(23, 59, 59),
+                ),
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
+            ),
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        return GOAL_LOCK_RUNTIME_TEST_ID
+    }
+
+    private suspend fun configureExpiredGoalLockBlock(packageName: String) {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        goalLockRepository().create(
+            GoalLock(
+                id = GOAL_LOCK_RUNTIME_TEST_ID,
+                goalName = "Runtime QA",
+                startDate = LocalDate.now().minusDays(7),
+                endDate = LocalDate.now().minusDays(1),
+                lockMode = GoalLockMode.AllDay,
+                selectedPackages = setOf(packageName),
+                status = GoalLockStoredStatus.Active,
+            ),
+        )
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+    }
+
+    private fun goalLockRepository(): GoalLockRepository = EntryPointAccessors.fromApplication(
+        context.applicationContext,
+        KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
+    ).goalLockRepository()
+
     private suspend fun configureEmergencyUnlock(packageName: String): Long {
         val expireTimeMillis = System.currentTimeMillis() + EMERGENCY_UNLOCK_WINDOW_MS
         context.dataStore.edit { preferences ->
@@ -290,9 +438,26 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
+        clearGoalLockRuntimeBlock()
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
         EmergencyUnlockNotificationHelper(context).cancel()
         KeepAccessibilityServiceDebugState.reset(context)
+    }
+
+    private fun clearGoalLockRuntimeBlock() {
+        runCatching {
+            goalLockRepository().create(
+                GoalLock(
+                    id = GOAL_LOCK_RUNTIME_TEST_ID,
+                    goalName = "Runtime QA",
+                    startDate = LocalDate.now().minusDays(1),
+                    endDate = LocalDate.now().minusDays(1),
+                    lockMode = GoalLockMode.AllDay,
+                    selectedPackages = emptySet(),
+                    status = GoalLockStoredStatus.Completed,
+                ),
+            )
+        }
     }
 
     private fun grantPostNotificationsPermission() {
@@ -594,6 +759,9 @@ class KeepAccessibilityServiceIntegrationTest {
                 observedEmergencyUnlockApps = emptySet(),
                 lastWindowStateChangedPackage = null,
                 lastLaunchedBlockPackage = null,
+                lastLaunchedBlockSource = null,
+                lastLaunchedRoutineId = null,
+                lastLaunchedGoalLockId = null,
                 lastDismissedUninstallPackage = null,
             )
         }
@@ -614,6 +782,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val PACKAGE_VISIBILITY_TIMEOUT_MS = 5_000L
         const val UNINSTALL_DISMISS_TIMEOUT_MS = 12_000L
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L
+        const val GOAL_LOCK_RUNTIME_TEST_ID = 417_001L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
         const val SETTINGS_PACKAGE = "com.android.settings"

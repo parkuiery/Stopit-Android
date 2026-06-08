@@ -15,12 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uiery.keep.R
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.kds.KeepSwitch
 
@@ -34,12 +36,15 @@ fun MenuToggleItem(
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    val onStateDescription = stringResource(R.string.cd_state_on)
+    val offStateDescription = stringResource(R.string.cd_state_off)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
                 role = Role.Switch
-                stateDescription = if (checked) "On" else "Off"
+                stateDescription = if (checked) onStateDescription else offStateDescription
             }
             .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier)
             .padding(horizontal = 20.dp, vertical = 12.dp),

@@ -172,6 +172,71 @@ class ComposeIconButtonAccessibilityTest(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
+    def test_reports_hardcoded_english_state_description_literals(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source_dir = pathlib.Path(tmp)
+            screen = source_dir / "LocalizedStateDescription.kt"
+            screen.write_text(
+                textwrap.dedent(
+                    """
+                    @Composable
+                    fun LocalizedStateDescription(selected: Boolean) {
+                        Box(
+                            modifier = Modifier.semantics {
+                                stateDescription = if (selected) "Selected" else "Not selected"
+                            }
+                        )
+                    }
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            violations = module.find_hardcoded_state_description_violations(source_dir)
+
+        self.assertEqual(
+            violations,
+            [
+                module.StateDescriptionLocalizationViolation(
+                    path=screen,
+                    line=5,
+                    problem="hardcoded_english_state_description",
+                )
+            ],
+        )
+
+    def test_allows_string_resource_state_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source_dir = pathlib.Path(tmp)
+            (source_dir / "LocalizedStateDescription.kt").write_text(
+                textwrap.dedent(
+                    """
+                    @Composable
+                    fun LocalizedStateDescription(selected: Boolean) {
+                        val selectedState = stringResource(R.string.cd_tab_selected)
+                        val notSelectedState = stringResource(R.string.cd_tab_not_selected)
+                        Box(
+                            modifier = Modifier.semantics {
+                                stateDescription = if (selected) selectedState else notSelectedState
+                            }
+                        )
+                    }
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            violations = module.find_hardcoded_state_description_violations(source_dir)
+
+        self.assertEqual(violations, [])
+
+    def test_main_source_has_no_hardcoded_english_state_descriptions(self):
+        source_dir = REPO_ROOT / "app" / "src" / "main" / "java"
+
+        violations = module.find_hardcoded_state_description_violations(source_dir)
+
+        self.assertEqual(violations, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -34,7 +34,7 @@ class EmergencyUnlockCoordinatorTest {
         val coordinator = EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
-            emergencyUnlockDao = dao,
+            repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
         )
 
@@ -188,7 +188,7 @@ class EmergencyUnlockCoordinatorTest {
         val coordinator = EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
-            emergencyUnlockDao = dao,
+            repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
         )
 
@@ -233,7 +233,7 @@ class EmergencyUnlockCoordinatorTest {
         EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
-            emergencyUnlockDao = dao,
+            repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
         )
 
@@ -250,7 +250,7 @@ class EmergencyUnlockCoordinatorTest {
         val coordinator = EmergencyUnlockCoordinator(
             settingsStore = EmergencyUnlockSettingsStore(dataStore),
             blockingStateStore = BlockingStateStore(dataStore),
-            emergencyUnlockDao = dao,
+            repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY

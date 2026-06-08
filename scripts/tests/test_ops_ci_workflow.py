@@ -101,8 +101,12 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_android_ci_runtime_smoke_docs", workflow)
         self.assertIn("scripts.tests.test_release_guard_hotfix_sync", workflow)
         self.assertIn("scripts.tests.test_release_provenance_workflow_contract", workflow)
+        self.assertIn("scripts.tests.test_acquisition_attribution_docs_contract", workflow)
         self.assertIn("scripts.tests.test_ops_ci_workflow", workflow)
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
+        docs_contract_filter = self._filter_block(workflow, "docs_contract")
+        self.assertIn("'scripts/tests/test_acquisition_attribution_docs_contract.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'", docs_contract_filter)
         docs_contract_job = self._job_block(workflow, "docs-contract")
         self.assertNotRegex(
             docs_contract_job,
@@ -115,6 +119,47 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "Firebase Functions verification should not run for docs-only trigger materialization",
         )
 
+    def test_release_workflow_changes_materialize_docs_contract_gate(self):
+        workflow = OPS_CI_WORKFLOW.read_text()
+        docs_contract_filter = self._filter_block(workflow, "docs_contract")
+        docs_contract_job = self._job_block(workflow, "docs-contract")
+        release_workflow_paths = [
+            ".github/workflows/android-ci.yml",
+            ".github/workflows/release-qa.yml",
+            ".github/workflows/release-build.yml",
+            ".github/workflows/play-deploy.yml",
+            ".github/workflows/version-guard.yml",
+        ]
+
+        for workflow_path in release_workflow_paths:
+            with self.subTest(filter="docs_contract", workflow_path=workflow_path):
+                self.assertIn(f"'{workflow_path}'", docs_contract_filter)
+
+        expected_contract_modules = [
+            "scripts.tests.test_release_qa_runtime_gate_docs",
+            "scripts.tests.test_android_ci_runtime_smoke_docs",
+            "scripts.tests.test_release_build_workflow_scope",
+            "scripts.tests.test_release_provenance_workflow_contract",
+            "scripts.tests.test_acquisition_attribution_docs_contract",
+            "scripts.tests.test_review_prompt_post_release_followthrough_docs",
+            "scripts.tests.test_play_deploy_secret_contract_runbook",
+            "scripts.tests.test_release_guard_hotfix_sync",
+        ]
+        for module in expected_contract_modules:
+            with self.subTest(job="docs-contract", module=module):
+                self.assertIn(module, docs_contract_job)
+
+    def test_operator_docs_name_workflow_contract_materialization_boundary(self):
+        git_workflow = GIT_WORKFLOW_DOC.read_text()
+        release_context = RELEASE_CONTEXT_DOC.read_text()
+        combined_docs = git_workflow + "\n" + release_context
+
+        self.assertIn("workflow 변경 PR", combined_docs)
+        self.assertIn("actionlint-only green", combined_docs)
+        self.assertIn("contract-test green", combined_docs)
+        self.assertIn("release/CI/CD workflow", combined_docs)
+        self.assertIn("Docs/runbook contract tests", combined_docs)
+
     def test_operator_docs_name_ops_ci_responsibility(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
         release_context = RELEASE_CONTEXT_DOC.read_text()
@@ -125,9 +170,12 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts/promote-google-play-track.js", doc)
             self.assertIn("scripts/notify-discord-deploy.py", doc)
             self.assertIn("release-helper guardrail", doc)
+            self.assertIn("scripts/release_provenance_manifest.py", doc)
             self.assertIn("scripts/check_workflow_gradle_tasks.py", doc)
             self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", doc)
             self.assertIn("Docs/runbook contract tests", doc)
+            self.assertIn("scripts.tests.test_acquisition_attribution_docs_contract", doc)
+            self.assertIn("scripts.tests.test_review_prompt_post_release_followthrough_docs", doc)
             self.assertIn("docs-only", doc)
 
         # The main operator workflow table should enumerate the full release-helper

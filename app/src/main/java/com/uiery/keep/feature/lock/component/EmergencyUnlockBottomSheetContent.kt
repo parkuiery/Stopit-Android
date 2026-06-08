@@ -51,6 +51,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -136,6 +138,7 @@ fun EmergencyUnlockBottomSheetContent(
                     customReason = state.customReason,
                     stepHelperTextRes = state.stepHelperTextRes,
                     validationHelperTextRes = state.validationHelperTextRes,
+                    selectedReasonReflectionTextRes = state.selectedReasonReflectionTextRes,
                     onReasonSelected = { state = state.selectReason(it) },
                     onCustomReasonChanged = { state = state.changeCustomReason(it) },
                     onNext = { state = state.goNext() },
@@ -214,6 +217,7 @@ private fun ReasonStep(
     customReason: String,
     stepHelperTextRes: Int?,
     validationHelperTextRes: Int?,
+    selectedReasonReflectionTextRes: Int?,
     onReasonSelected: (String) -> Unit,
     onCustomReasonChanged: (String) -> Unit,
     onNext: () -> Unit,
@@ -238,6 +242,7 @@ private fun ReasonStep(
                         if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.08f)
                         else KeepTheme.colors.onSecondary.copy(alpha = 0.5f)
                     )
+                    .testTag("emergency_unlock_reason_${reason.key}")
                     .selectable(
                         selected = isSelected,
                         onClick = { onReasonSelected(reason.key) },
@@ -258,12 +263,14 @@ private fun ReasonStep(
                 )
             }
         }
+        StepHelperText(selectedReasonReflectionTextRes)
         if (selectedReason == "other") {
             OutlinedTextField(
                 value = customReason,
                 onValueChange = onCustomReasonChanged,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("emergency_unlock_reason_other_input")
                     .padding(top = 8.dp),
                 placeholder = {
                     Text(text = stringResource(R.string.emergency_unlock_reason_other_hint))
@@ -404,7 +411,8 @@ private fun DurationStep(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(48.dp)
+                        .testTag("emergency_unlock_duration_$minutes"),
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = KeepTheme.colors.primary.copy(alpha = 0.12f),
@@ -441,6 +449,11 @@ private fun CountdownStep(
     onCancel: () -> Unit,
 ) {
     val latestOnTick by rememberUpdatedState(onTick)
+    val countdownTalkBackDescription = listOf(
+        stringResource(R.string.emergency_unlock_waiting),
+        stringResource(R.string.emergency_unlock_waiting_seconds, seconds),
+        stringResource(R.string.emergency_unlock_cancel),
+    ).joinToString(". ")
 
     LaunchedEffect(Unit) {
         repeat(seconds) {
@@ -458,6 +471,9 @@ private fun CountdownStep(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                contentDescription = countdownTalkBackDescription
+            }
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

@@ -40,7 +40,9 @@ internal enum class GoalLockRuntimeStatus {
 
 internal object GoalLockPolicy {
     fun isValidForCreation(goalLock: GoalLock): Boolean =
-        goalLock.selectedPackages.isNotEmpty() && !goalLock.endDate.isBefore(goalLock.startDate)
+        goalLock.selectedPackages.isNotEmpty() &&
+            !goalLock.endDate.isBefore(goalLock.startDate) &&
+            goalLock.lockMode.isValidForCreation()
 
     fun runtimeStatus(
         goalLock: GoalLock,
@@ -68,38 +70,51 @@ internal object GoalLockPolicy {
     ): Boolean {
         if (!isValidForCreation(goalLock)) return false
         if (packageName !in goalLock.selectedPackages) return false
-        if (runtimeStatus(goalLock, now) != GoalLockRuntimeStatus.Active) return false
+        if (goalLock.status != GoalLockStoredStatus.Active) return false
 
         return when (val mode = goalLock.lockMode) {
-            GoalLockMode.AllDay -> true
-            is GoalLockMode.Scheduled -> isScheduledWindowActive(mode, now)
+            GoalLockMode.AllDay -> runtimeStatus(goalLock, now) == GoalLockRuntimeStatus.Active
+            is GoalLockMode.Scheduled -> isScheduledGoalLockActive(goalLock, mode, now)
         }
     }
 
-    private fun isScheduledWindowActive(
+    private fun isScheduledGoalLockActive(
+        goalLock: GoalLock,
         mode: GoalLockMode.Scheduled,
         now: LocalDateTime,
     ): Boolean {
-        if (mode.repeatDays.isEmpty()) return false
+        val windowStartDate = scheduledWindowStartDate(mode, now) ?: return false
+        return windowStartDate in goalLock.startDate..goalLock.endDate
+    }
 
+    private fun scheduledWindowStartDate(
+        mode: GoalLockMode.Scheduled,
+        now: LocalDateTime,
+    ): LocalDate? {
+        if (mode.repeatDays.isEmpty()) return null
+
+        val today = now.toLocalDate()
         val nowTime = now.toLocalTime()
         val crossesMidnight = !mode.endTime.isAfter(mode.startTime)
 
         if (!crossesMidnight) {
-            return now.dayOfWeek in mode.repeatDays &&
-                !nowTime.isBefore(mode.startTime) &&
-                nowTime.isBefore(mode.endTime)
+            return today.takeIf {
+                now.dayOfWeek in mode.repeatDays &&
+                    !nowTime.isBefore(mode.startTime) &&
+                    nowTime.isBefore(mode.endTime)
+            }
         }
 
-        val previousDay = now.dayOfWeek.previousDay()
-        val inTodayWindow = now.dayOfWeek in mode.repeatDays &&
-            !nowTime.isBefore(mode.startTime)
-        val inPreviousDayWindow = previousDay in mode.repeatDays &&
-            nowTime.isBefore(mode.endTime)
-
-        return inTodayWindow || inPreviousDayWindow
+        val previousDate = today.minusDays(1)
+        return when {
+            now.dayOfWeek in mode.repeatDays && !nowTime.isBefore(mode.startTime) -> today
+            previousDate.dayOfWeek in mode.repeatDays && nowTime.isBefore(mode.endTime) -> previousDate
+            else -> null
+        }
     }
+}
 
-    private fun DayOfWeek.previousDay(): DayOfWeek =
-        if (this == DayOfWeek.MONDAY) DayOfWeek.SUNDAY else DayOfWeek.of(value - 1)
+private fun GoalLockMode.isValidForCreation(): Boolean = when (this) {
+    GoalLockMode.AllDay -> true
+    is GoalLockMode.Scheduled -> repeatDays.isNotEmpty() && startTime != endTime
 }

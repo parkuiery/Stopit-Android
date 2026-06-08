@@ -24,6 +24,7 @@ enum class PeriodType {
 class LockHistoryViewModel @Inject constructor(
     private val lockHistoryRepository: LockHistoryRepository,
     private val analytics: KeepAnalytics,
+    private val focusSummaryShareTextProvider: FocusSummaryShareTextProvider,
 ) : ContainerHost<LockHistoryUiState, LockHistorySideEffect>, ViewModel() {
 
     override val container: Container<LockHistoryUiState, LockHistorySideEffect> =
@@ -101,6 +102,7 @@ class LockHistoryViewModel @Inject constructor(
                     periodType = state.periodType,
                     sessionCount = summary.sessionCount,
                     totalDurationMillis = summary.totalDurationMillis,
+                    textProvider = focusSummaryShareTextProvider,
                 ),
             )
         }

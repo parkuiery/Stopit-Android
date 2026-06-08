@@ -19,7 +19,11 @@ class RoutineCountAnalyticsSync
         }
 
         fun syncFromRoutines(routines: List<RoutineEntity>) {
-            analytics.setRoutinesCount(routines.size)
+            syncCount(routines.size)
+        }
+
+        fun syncCount(count: Int) {
+            analytics.setRoutinesCount(count)
         }
     }
 
