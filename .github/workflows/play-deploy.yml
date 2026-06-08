@@ -34,6 +34,7 @@ on:
 permissions:
   contents: write
   deployments: write
+  actions: read
 
 concurrency:
   group: android-play-deploy-${{ github.ref }}
@@ -123,14 +124,6 @@ jobs:
           test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
 
-      - name: Validate production promotion secrets
-        if: env.DEPLOY_TRACK == 'production'
-        env:
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          set -euo pipefail
-          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
-
       - name: Decode signing, Firebase, and Play credentials
         if: env.DEPLOY_TRACK != 'production'
         env:
@@ -144,15 +137,6 @@ jobs:
           mkdir -p app/src/prod
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
           chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH" app/src/prod/google-services.json
-
-      - name: Decode Play credentials for production promotion
-        if: env.DEPLOY_TRACK == 'production'
-        env:
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
-          chmod 600 "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
 
       - name: Run release unit tests
         if: env.DEPLOY_TRACK != 'production'
@@ -200,6 +184,68 @@ jobs:
 
           echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "Resolved production promotion tag $GITHUB_REF_NAME to versionCode=$version_code"
+
+      - name: Download prior internal provenance artifact
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stopit-prior-internal-provenance
+          run_id="$(gh run list \
+            --workflow 'Android Play Deploy' \
+            --branch "$GITHUB_REF_NAME" \
+            --event push \
+            --status success \
+            --limit 20 \
+            --json databaseId,headSha,conclusion \
+            --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
+            | head -n 1)"
+          if [[ -z "$run_id" ]]; then
+            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA" >&2
+            exit 1
+          fi
+          gh run download "$run_id" \
+            --name stopit-prod-release-signed-aab \
+            --dir /tmp/stopit-prior-internal-provenance
+          test -n "$(find /tmp/stopit-prior-internal-provenance -name release-provenance.json -print -quit)" || {
+            echo "Downloaded prior internal artifact is missing release-provenance.json" >&2
+            exit 1
+          }
+
+      - name: Verify prior internal provenance before production promotion
+        if: env.DEPLOY_TRACK == 'production'
+        run: >-
+          python3 scripts/release_provenance_manifest.py verify
+          --aab-glob '/tmp/stopit-prior-internal-provenance/**/*.aab'
+          --manifest /tmp/stopit-prior-internal-provenance/release-provenance.json
+          --package-name "$PACKAGE_NAME"
+          --upload-mode play-upload
+          --track internal
+          --release-status completed
+          --rollout-fraction ''
+          --expected-version-code "$VERSION_CODE"
+          --expected-git-sha "$GITHUB_SHA"
+          --expected-git-ref "$GITHUB_REF"
+          --expected-git-ref-name "$GITHUB_REF_NAME"
+          --allow-artifact-path-relocation
+
+      - name: Validate production promotion secrets
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
+
+      - name: Decode Play credentials for production promotion
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+          chmod 600 "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
 
       - name: Build signed prod release bundle
         if: env.DEPLOY_TRACK != 'production'
