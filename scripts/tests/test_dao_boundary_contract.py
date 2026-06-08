@@ -116,18 +116,18 @@ class DaoBoundaryContractTest(unittest.TestCase):
 
     def test_menu_viewmodel_uses_routine_repository_boundary(self):
         menu = APP_MAIN / "feature/menu/MenuViewModel.kt"
-        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+        repository = APP_MAIN / "data/routine/RoutineRepository.kt"
         text = menu.read_text()
 
         self.assertTrue(repository.exists(), "RoutineRepository owns menu routine read DAO access")
         self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", text)
         self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
-        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", text)
         self.assertIn("private val routineRepository: RoutineRepository", text)
 
     def test_lock_viewmodel_uses_routine_repository_boundary(self):
         lock = APP_MAIN / "feature/lock/LockViewModel.kt"
-        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+        repository = APP_MAIN / "data/routine/RoutineRepository.kt"
         text = lock.read_text()
 
         self.assertTrue(repository.exists(), "RoutineRepository owns lock routine read DAO access")
@@ -135,7 +135,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", text)
         self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
         self.assertNotIn("import com.uiery.keep.database.entity.EmergencyUnlockEntity", text)
-        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", text)
         self.assertIn("import com.uiery.keep.service.LockHistoryRecorder", text)
         self.assertIn("private val routineRepository: RoutineRepository", text)
         self.assertIn("private val lockHistoryRecorder: LockHistoryRecorder", text)
@@ -158,10 +158,11 @@ class DaoBoundaryContractTest(unittest.TestCase):
             "routine feature sources must depend on RoutineRepository, not RoutineDao directly",
         )
 
-    def test_routine_repository_is_the_feature_allowlisted_dao_boundary(self):
-        repository = APP_MAIN / "feature/routine/RoutineRepository.kt"
+    def test_routine_repository_is_the_data_allowlisted_dao_boundary(self):
+        repository = APP_MAIN / "data/routine/RoutineRepository.kt"
         self.assertTrue(repository.exists(), "RoutineRepository owns routine DAO access")
         text = repository.read_text()
+        self.assertIn("package com.uiery.keep.data.routine", text)
         self.assertIn("interface RoutineRepository", text)
         self.assertIn("class RoomRoutineRepository", text)
         self.assertIn("import com.uiery.keep.database.dao.RoutineDao", text)
@@ -187,7 +188,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
             if import_pattern.search(text):
                 offenders.append(str(relative))
             self.assertIn(
-                "import com.uiery.keep.feature.routine.RoutineRepository",
+                "import com.uiery.keep.data.routine.RoutineRepository",
                 text,
                 f"{relative} must use RoutineRepository for routine persistence",
             )
@@ -206,7 +207,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertNotIn("import com.uiery.keep.database.dao.GoalLockDao", text)
         self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
         self.assertNotIn("import com.uiery.keep.database.entity.GoalLockEntity", text)
-        self.assertIn("import com.uiery.keep.feature.routine.RoutineRepository", text)
+        self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", text)
         self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
         self.assertIn("fun routineRepository(): RoutineRepository", text)
         self.assertIn("fun goalLockRepository(): GoalLockRepository", text)
