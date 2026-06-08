@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">请选择诱惑你的应用</string>
     <string name="app_lock_info">选中的应用将被锁定以防止使用。您可以随时开启和关闭应用锁定。</string>
     <string name="select_apps_button">选择应用</string>
-    <string name="accessibility_permission_required">屏幕使用时间权限必不可少！</string>
-    <string name="accessibility_permission_description">屏幕使用时间权限可以阻止所有诱惑我们的应用。</string>
+    <string name="accessibility_permission_required">需要无障碍权限！</string>
+    <string name="accessibility_permission_description">无障碍权限可让 StopIt 阻止你选择的分心应用。</string>
     <string name="permission_usage_note">权限仅用于阻止应用使用</string>
     <string name="allow_permission">允许权限</string>
     <string name="notification_permission_request">请允许通知以帮助您遵守与StopIt的承诺。</string>

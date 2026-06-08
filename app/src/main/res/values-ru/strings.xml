@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Пожалуйста, выберите приложения, которые вас соблазняют</string>
     <string name="app_lock_info">Выбранные приложения будут заблокированы для предотвращения использования. Вы можете включать и выключать блокировку в любое время.</string>
     <string name="select_apps_button">Выбрать приложения</string>
-    <string name="accessibility_permission_required">Разрешение на Время экрана необходимо!</string>
-    <string name="accessibility_permission_description">Разрешение на Время экрана может заблокировать все соблазняющие приложения.</string>
+    <string name="accessibility_permission_required">Требуется разрешение специальных возможностей!</string>
+    <string name="accessibility_permission_description">Разрешение специальных возможностей позволяет StopIt блокировать выбранные отвлекающие приложения.</string>
     <string name="permission_usage_note">Разрешение используется только для блокировки использования приложений</string>
     <string name="allow_permission">Разрешить доступ</string>
     <string name="notification_permission_request">Пожалуйста, разрешите уведомления, чтобы помочь вам сдерживать обещания с StopIt.</string>

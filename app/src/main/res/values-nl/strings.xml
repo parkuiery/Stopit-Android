@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Selecteer de apps die je verleiden</string>
     <string name="app_lock_info">De geselecteerde apps worden vergrendeld om gebruik te voorkomen. Je kunt de app-vergrendeling op elk moment aan- en uitzetten.</string>
     <string name="select_apps_button">Apps Selecteren</string>
-    <string name="accessibility_permission_required">Schermtijd toestemming is essentieel!</string>
-    <string name="accessibility_permission_description">Schermtijd toestemming kan alle verleidelijke apps blokkeren.</string>
+    <string name="accessibility_permission_required">Toegankelijkheidsmachtiging is vereist!</string>
+    <string name="accessibility_permission_description">Met de toegankelijkheidsmachtiging kan StopIt de afleidende apps blokkeren die je kiest.</string>
     <string name="permission_usage_note">Toestemming wordt alleen gebruikt om app-gebruik te blokkeren</string>
     <string name="allow_permission">Toestemming geven</string>
     <string name="notification_permission_request">Sta notificaties toe om je te helpen je beloftes met StopIt na te komen.</string>

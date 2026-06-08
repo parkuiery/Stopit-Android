@@ -5,8 +5,8 @@
     <string name="select_apps_prompt">Por favor, selecione os aplicativos que te tentam</string>
     <string name="app_lock_info">Os aplicativos selecionados serão bloqueados para evitar o uso. Você pode ativar e desativar o bloqueio a qualquer momento.</string>
     <string name="select_apps_button">Selecionar Apps</string>
-    <string name="accessibility_permission_required">Permissão de Tempo de Tela é essencial!</string>
-    <string name="accessibility_permission_description">Permissão de Tempo de Tela pode bloquear todos os aplicativos que nos tentam.</string>
+    <string name="accessibility_permission_required">A permissão de acessibilidade é necessária!</string>
+    <string name="accessibility_permission_description">A permissão de acessibilidade permite que o StopIt bloqueie os apps de distração que você escolher.</string>
     <string name="permission_usage_note">A permissão é usada apenas para bloquear o uso de aplicativos</string>
     <string name="allow_permission">Permitir permissão</string>
     <string name="notification_permission_request">Por favor, permita notificações para ajudá-lo a manter suas promessas com o StopIt.</string>
