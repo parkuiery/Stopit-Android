@@ -91,6 +91,50 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("app/build/outputs/bundle/prodRelease/*.aab", upload_step)
         self.assertIn("app/build/outputs/bundle/prodRelease/release-provenance.json", upload_step)
 
+    def test_production_promotion_downloads_and_verifies_prior_internal_provenance_before_secrets(self):
+        workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
+        self.assertIn("actions: read", workflow)
+        self.assertLess(
+            workflow.index("- name: Resolve production promotion versionCode from selected tag"),
+            workflow.index("- name: Download prior internal provenance artifact"),
+        )
+        self.assertLess(
+            workflow.index("- name: Download prior internal provenance artifact"),
+            workflow.index("- name: Verify prior internal provenance before production promotion"),
+        )
+        self.assertLess(
+            workflow.index("- name: Verify prior internal provenance before production promotion"),
+            workflow.index("- name: Validate production promotion secrets"),
+        )
+        self.assertLess(
+            workflow.index("- name: Verify prior internal provenance before production promotion"),
+            workflow.index("- name: Decode Play credentials for production promotion"),
+        )
+        self.assertLess(
+            workflow.index("- name: Verify prior internal provenance before production promotion"),
+            workflow.index("- name: Promote internal release to production"),
+        )
+
+        download_step = step_block(workflow, "Download prior internal provenance artifact")
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", download_step)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", download_step)
+        self.assertIn("gh run list", download_step)
+        self.assertIn("--event push", download_step)
+        self.assertIn("gh run download", download_step)
+        self.assertIn("--name stopit-prod-release-signed-aab", download_step)
+        self.assertIn("release-provenance.json", download_step)
+
+        verify_step = step_block(workflow, "Verify prior internal provenance before production promotion")
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", verify_step)
+        self.assertIn("python3 scripts/release_provenance_manifest.py verify", verify_step)
+        self.assertIn("--track internal", verify_step)
+        self.assertIn("--release-status completed", verify_step)
+        self.assertIn("--rollout-fraction ''", verify_step)
+        self.assertIn('"$VERSION_CODE"', verify_step)
+        self.assertIn('"$GITHUB_SHA"', verify_step)
+        self.assertIn('"$GITHUB_REF"', verify_step)
+        self.assertIn('"$GITHUB_REF_NAME"', verify_step)
+
     def test_docs_define_production_promotion_provenance_boundary(self):
         docs = "\n".join(
             path.read_text(encoding="utf-8")
@@ -106,6 +150,8 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "production promotion",
             "prior non-production",
             "internal release",
+            "fail-fast before production secrets",
+            "prior internal provenance gate",
             "before `Upload signed AAB artifact`",
         ):
             self.assertIn(required, docs)
@@ -118,6 +164,24 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("does not include secrets", docs)
         self.assertIn("keystore", docs)
         self.assertIn("service account JSON", docs)
+
+    def test_docs_define_release_readiness_quick_preflight_boundary(self):
+        git_workflow = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+        docs = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (git_workflow, PLAY_DOC, RELEASE_CHECKLIST)
+        )
+        for required in (
+            "scripts/check-release-readiness.sh",
+            "quick preflight",
+            ":app:testProdReleaseUnitTest",
+            ":app:lintProdRelease",
+            "scripts/verify_lint_registry.py",
+            ":app:bundleProdRelease --dry-run",
+            "Signed AAB provenance",
+            "Android Release Build workflow",
+        ):
+            self.assertIn(required, docs)
 
 
 if __name__ == "__main__":

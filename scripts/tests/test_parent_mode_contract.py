@@ -71,6 +71,21 @@ class ParentModeContractTest(unittest.TestCase):
 
         self.assertIn("PARENT_MODE_MVP.md", analytics)
         self.assertIn("아이 이름/앱 이름/package/raw session history 금지", analytics)
+        self.assertIn("manual_keep / timed_lock / routine / goal_lock / parent_mode", analytics)
+
+    def test_runbook_tracks_session_store_and_accessibility_runtime_foothold(self):
+        runbook = RUNBOOK.read_text()
+
+        for phrase in [
+            "ParentModeSessionStore",
+            "PreferencesKey.PARENT_MODE_STARTED_AT",
+            "BackupRestoreDataStoreKeyPolicy",
+            "KeepAccessibilityServiceBlockDecisionTest",
+            "block_source=parent_mode",
+            "시간 만료 후 허용 앱도 차단",
+            "부모 제어 surface는 차단하지 않는다",
+        ]:
+            self.assertIn(phrase, runbook)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
         documents = [

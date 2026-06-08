@@ -13,6 +13,7 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
@@ -59,6 +60,7 @@ class HomeViewModel
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
         private val routineDao: RoutineDao,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val lockHistoryRecorder: LockHistoryRecorder,
         private val goalLockRepository: GoalLockRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
@@ -71,6 +73,7 @@ class HomeViewModel
             getIsKeep()
             getSelectedApp()
             getRoutineCreationCta()
+            syncRoutinesCount()
             getGoalLockCard()
         }
 
@@ -309,6 +312,11 @@ class HomeViewModel
                         )
                     }
                 }
+            }
+
+        private fun syncRoutinesCount() =
+            intent {
+                routineCountAnalyticsSync.syncFromRoom()
             }
 
         private fun getGoalLockCard() =
