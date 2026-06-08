@@ -432,6 +432,7 @@ object AnalyticsBlockSource {
     const val TIMED_LOCK = "timed_lock"
     const val ROUTINE = "routine"
     const val GOAL_LOCK = "goal_lock"
+    const val PARENT_MODE = "parent_mode"
 }
 
 object AnalyticsDeviceRegistrationSkipReason {

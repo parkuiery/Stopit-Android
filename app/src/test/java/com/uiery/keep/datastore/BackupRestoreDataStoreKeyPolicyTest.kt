@@ -57,6 +57,11 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.LAST_BACKGROUNDED_AT_MS,
             PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE,
             PreferencesKey.REPEAT_BLOCK_DISMISSED_SUGGESTIONS,
+            PreferencesKey.PARENT_MODE_STARTED_AT,
+            PreferencesKey.PARENT_MODE_EXPIRES_AT,
+            PreferencesKey.PARENT_MODE_DURATION_MINUTES,
+            PreferencesKey.PARENT_MODE_ALLOWED_APPS,
+            PreferencesKey.PARENT_MODE_STATE,
             PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         )
 
