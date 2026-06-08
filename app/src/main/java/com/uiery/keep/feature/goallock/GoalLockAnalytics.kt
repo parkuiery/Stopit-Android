@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockMode
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 

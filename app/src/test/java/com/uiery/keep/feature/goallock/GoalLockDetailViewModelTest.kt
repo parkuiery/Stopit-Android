@@ -8,6 +8,9 @@ import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow

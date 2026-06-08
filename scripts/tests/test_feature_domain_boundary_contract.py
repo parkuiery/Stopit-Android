@@ -14,19 +14,9 @@ FEATURE_IMPORT_PATTERN = re.compile(
 )
 
 EXPECTED_FEATURE_IMPORTS = {
-    "app/src/main/java/com/uiery/keep/database/entity/GoalLockEntity.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
-        "com.uiery.keep.feature.goallock.GoalLockMode",
-        "com.uiery.keep.feature.goallock.GoalLockStoredStatus",
-    ],
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
         "com.uiery.keep.feature.goallock.GoalLockRepository",
         "com.uiery.keep.feature.routine.RoutineRepository",
-    ],
-    "app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
-        "com.uiery.keep.feature.goallock.GoalLockPolicy",
     ],
     "app/src/main/java/com/uiery/keep/service/LockHistoryRecorder.kt": [
         "com.uiery.keep.feature.lockhistory.LockHistoryRepository",

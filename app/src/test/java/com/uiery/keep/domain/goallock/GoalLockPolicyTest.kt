@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.goallock
+package com.uiery.keep.domain.goallock
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

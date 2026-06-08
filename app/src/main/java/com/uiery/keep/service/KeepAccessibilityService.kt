@@ -12,7 +12,7 @@ import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
-import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel

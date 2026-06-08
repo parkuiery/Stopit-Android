@@ -7,6 +7,10 @@ import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
