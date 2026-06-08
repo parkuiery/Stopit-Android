@@ -132,8 +132,14 @@ internal object ParentModePolicy {
         session: ParentModeSession,
         packageName: String,
         nowMillis: Long,
-    ): Boolean = resolveState(session, nowMillis) == ParentModeSessionState.Active &&
-        packageName !in session.allowedApps
+    ): Boolean = when (resolveState(session, nowMillis)) {
+        ParentModeSessionState.Active -> packageName !in session.allowedApps
+        ParentModeSessionState.Expired -> true
+        ParentModeSessionState.Setup,
+        ParentModeSessionState.UnlockedByPin,
+        ParentModeSessionState.Cancelled,
+        -> false
+    }
 
     fun requestParentAction(
         session: ParentModeSession,

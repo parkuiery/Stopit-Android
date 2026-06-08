@@ -152,6 +152,7 @@ internal fun String?.orDefaultBlockSource(): String =
         AnalyticsBlockSource.MANUAL_KEEP,
         AnalyticsBlockSource.TIMED_LOCK,
         AnalyticsBlockSource.ROUTINE,
-        AnalyticsBlockSource.GOAL_LOCK -> this
+        AnalyticsBlockSource.GOAL_LOCK,
+        AnalyticsBlockSource.PARENT_MODE -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }

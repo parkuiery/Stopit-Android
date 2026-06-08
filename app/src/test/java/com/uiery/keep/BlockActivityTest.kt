@@ -51,6 +51,21 @@ class BlockActivityTest {
     }
 
     @Test
+    fun blockActivityArgsPreserveParentModeBlockSource() {
+        val args = createBlockActivityArgs(
+            packageName = "com.example.child.blocked",
+            blockSource = AnalyticsBlockSource.PARENT_MODE,
+            rawRoutineId = null,
+            rawGoalLockId = null,
+        )
+
+        assertEquals("com.example.child.blocked", args.packageName)
+        assertEquals(AnalyticsBlockSource.PARENT_MODE, args.blockSource)
+        assertNull(args.routineId)
+        assertNull(args.goalLockId)
+    }
+
+    @Test
     fun blockActivityArgsKeepManualAndTimedLockRoutineIdNull() {
         val manualArgs = createBlockActivityArgs(
             packageName = "com.example.manual",

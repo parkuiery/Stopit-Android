@@ -341,7 +341,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `permission_name` | 권한 종류 (`accessibility`, `notifications`) |
 | `outcome` | 권한 결과 (`granted`, `denied`, `settings_opened`) |
 | `source` | 이벤트 발생 출처 (`onboarding`, `home`, `home_timer`, `routine` 등) |
-| `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`) |
+| `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`) |
 | `blocked_app_package` | legacy/deprecated. 차단된 앱 패키지명 원문이며 #611에 따라 GA4 payload/custom dimension 신규 등록 대상에서 제외한다. PR #617 이후 신규 payload가 아니라 historical/legacy baseline으로만 취급한다. |
 | `blocked_app_category_bucket` | 차단된 앱의 privacy-safe category bucket (`social`, `video`, `game`, `communication`, `shopping`, `browser`, `productivity`, `unknown`) |
 | `selected_app_count` | 선택된 앱 개수 |
@@ -423,7 +423,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `permission_name` | `permission_name` | `permission_outcome` | 접근성/알림 권한 병목 분리 |
 | Required | `outcome` | `outcome` | `permission_outcome` | granted / denied / settings_opened 비교 |
 | Required | `source` | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 온보딩/홈/루틴 출처별 행동 비교 |
-| Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine / goal_lock 차단 성공 비교 |
+| Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine / goal_lock / parent_mode 차단 성공 비교 |
 | Required | `blocked_app_category_bucket` | `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 실제 차단 가치가 어느 앱 카테고리에서 발생하는지 privacy-safe bucket으로 확인. `blocked_app_package` 원문은 #611에 따라 등록 금지 |
 | Required | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 앱 선택량과 활성화 상관관계 확인 |
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
