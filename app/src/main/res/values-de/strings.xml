@@ -113,16 +113,16 @@
     <string name="lock_history_routine_session">Routine</string>
     <string name="lock_history_manual_session">Manuell</string>
     <string name="lock_history_no_records">Kein Sperrverlauf für diesen Zeitraum</string>
-    <string name="lock_history_top_apps_empty_supporting">After your next completed block, the apps you protected time from will appear here.</string>
-    <string name="lock_history_top_apps_positive_supporting">These are the apps you blocked most successfully in this period.</string>
-    <string name="lock_history_performance_sessions_supporting">You held your promise %1$d times without judgment or pressure.</string>
-    <string name="lock_history_performance_month_headline">You protected %1$s this month</string>
-    <string name="lock_history_performance_week_headline">You protected %1$s this week</string>
-    <string name="lock_history_performance_low_data_supporting">A small start counts. You can keep building this protected time.</string>
-    <string name="lock_history_performance_low_data_headline">Your first record has started</string>
-    <string name="lock_history_performance_empty_supporting">Complete one block session and your protected time will appear here.</string>
-    <string name="lock_history_performance_empty_month_headline">Ready to start this month\'s record?</string>
-    <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
+    <string name="lock_history_top_apps_empty_supporting">Nach deinem nächsten abgeschlossenen Block erscheinen hier die Apps, vor denen du deine Zeit geschützt hast.</string>
+    <string name="lock_history_top_apps_positive_supporting">Das sind die Apps, die du in diesem Zeitraum am erfolgreichsten blockiert hast.</string>
+    <string name="lock_history_performance_sessions_supporting">Du hast dein Versprechen %1$d-mal gehalten – ohne Bewertung oder Druck.</string>
+    <string name="lock_history_performance_month_headline">Du hast diesen Monat %1$s geschützt</string>
+    <string name="lock_history_performance_week_headline">Du hast diese Woche %1$s geschützt</string>
+    <string name="lock_history_performance_low_data_supporting">Auch ein kleiner Anfang zählt. Du kannst diese geschützte Zeit weiter ausbauen.</string>
+    <string name="lock_history_performance_low_data_headline">Dein erster Eintrag hat begonnen</string>
+    <string name="lock_history_performance_empty_supporting">Schließe eine Block-Sitzung ab, dann erscheint deine geschützte Zeit hier.</string>
+    <string name="lock_history_performance_empty_month_headline">Bereit, den ersten Eintrag dieses Monats zu starten?</string>
+    <string name="lock_history_performance_empty_week_headline">Bereit, den ersten Eintrag dieser Woche zu starten?</string>
     <string name="lock_history_focus_share_button">Fokusrekord dieser Woche teilen</string>
     <string name="lock_history_focus_share_sheet_title">StopIt-Fokusrekord teilen</string>
     <string name="focus_summary_share_payload_text">Diese Woche habe ich mit StopIt %1$d-mal für %2$s Fokus geschützt.\nWenn ich Fokus brauche, pausiere ich kurz die App-Nutzung.\n%3$s</string>
@@ -135,7 +135,7 @@
         <item quantity="one">%1$d Minute</item>
         <item quantity="other">%1$d Minuten</item>
     </plurals>
-    <string name="lock_history_top_apps_title">Apps you protected time from</string>
+    <string name="lock_history_top_apps_title">Apps, vor denen du Zeit geschützt hast</string>
     <string name="lock_history_block_count">%1$d Mal</string>
     <string name="lock_history_duration_short_hour">%1$d Std.%2$d Min.</string>
     <string name="lock_history_duration_short_min">%1$d Min.</string>
@@ -150,6 +150,10 @@
     <string name="cd_state_off">Aus</string>
     <string name="cd_tab_selected">Ausgewählt</string>
     <string name="cd_tab_not_selected">Nicht ausgewählt</string>
+    <string name="cd_lock_history_date_today">Heute</string>
+    <string name="cd_lock_history_date_selected">Ausgewählt</string>
+    <string name="cd_lock_history_date_not_selected">Nicht ausgewählt</string>
+    <string name="cd_lock_history_date_today_selected">Heute, ausgewählt</string>
     <string name="blocked_apps_title">Blockierte Apps</string>
     <string name="routine_alarm_permission_title">Wir erinnern dich, damit du den Start deiner Routine nicht verpasst.</string>
     <string name="routine_alarm_permission_description">Wir senden zur eingestellten Zeit eine Benachrichtigung, damit du deine Routine ganz natürlich beginnen kannst.</string>

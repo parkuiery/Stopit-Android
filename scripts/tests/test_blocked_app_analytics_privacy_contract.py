@@ -23,7 +23,9 @@ class BlockedAppAnalyticsPrivacyContractTest(unittest.TestCase):
             "`blocked_app_category_bucket`을 기본값",
             "GA4 Admin 등록은 `blocked_app_category_bucket`만 대상으로 한다",
             "`blocked_app_package`는 새로 등록하지 않는다",
-            "Android code-lane에서 raw package payload 제거 또는 bucket 전환 구현",
+            "PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료",
+            "PR #615는 이 문서/GA4/Admin/metrics 계약을 먼저 고정했고, PR #617",
+            "남은 작업은 새 Android 구현이 없어서가 아니라 release/tag/Play deploy, GA4 Admin metadata, D+14/D+30 readback 경계다.",
             "배포 후 14일",
             "배포 후 30일",
         ]
@@ -64,7 +66,14 @@ class BlockedAppAnalyticsPrivacyContractTest(unittest.TestCase):
             self.assertNotIn(phrase, combined)
 
         self.assertIn("`blocked_app_package` | Deprecated / 금지", docs["ga4_runbook"])
+        self.assertIn("PR #617 Android payload 전환 완료", docs["ga4_runbook"])
         self.assertIn("`blocked_app_package` | legacy/deprecated", docs["event_dictionary"])
+        self.assertIn("PR #617", docs["event_dictionary"])
+        self.assertIn("PR #617", PRODUCT_DASHBOARD.read_text())
+        self.assertIn("PR #617", METRICS_ANALYSIS.read_text())
+        self.assertNotIn("후속 code-lane은 `blocked_app_category_bucket`", docs["event_dictionary"])
+        self.assertNotIn("code-lane 전환 필요", docs["ga4_runbook"])
+        self.assertNotIn("category bucket 등록/조회로 전환 필요", FIRST_LOCK_RUNBOOK.read_text())
 
     def test_navigation_surfaces_link_the_contract(self):
         for path, phrase in [

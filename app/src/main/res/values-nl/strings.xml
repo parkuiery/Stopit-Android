@@ -113,16 +113,16 @@
     <string name="lock_history_routine_session">Routine</string>
     <string name="lock_history_manual_session">Handmatig</string>
     <string name="lock_history_no_records">Geen vergrendelgeschiedenis voor deze periode</string>
-    <string name="lock_history_top_apps_empty_supporting">After your next completed block, the apps you protected time from will appear here.</string>
-    <string name="lock_history_top_apps_positive_supporting">These are the apps you blocked most successfully in this period.</string>
-    <string name="lock_history_performance_sessions_supporting">You held your promise %1$d times without judgment or pressure.</string>
-    <string name="lock_history_performance_month_headline">You protected %1$s this month</string>
-    <string name="lock_history_performance_week_headline">You protected %1$s this week</string>
-    <string name="lock_history_performance_low_data_supporting">A small start counts. You can keep building this protected time.</string>
-    <string name="lock_history_performance_low_data_headline">Your first record has started</string>
-    <string name="lock_history_performance_empty_supporting">Complete one block session and your protected time will appear here.</string>
-    <string name="lock_history_performance_empty_month_headline">Ready to start this month\'s record?</string>
-    <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
+    <string name="lock_history_top_apps_empty_supporting">Na je volgende voltooide blokkade verschijnen hier de apps waarvoor je tijd hebt beschermd.</string>
+    <string name="lock_history_top_apps_positive_supporting">Dit zijn de apps die je in deze periode het succesvolst hebt geblokkeerd.</string>
+    <string name="lock_history_performance_sessions_supporting">Je hebt je belofte %1$d keer gehouden, zonder oordeel of druk.</string>
+    <string name="lock_history_performance_month_headline">Je hebt deze maand %1$s beschermd</string>
+    <string name="lock_history_performance_week_headline">Je hebt deze week %1$s beschermd</string>
+    <string name="lock_history_performance_low_data_supporting">Ook een klein begin telt. Je kunt deze beschermde tijd blijven opbouwen.</string>
+    <string name="lock_history_performance_low_data_headline">Je eerste record is begonnen</string>
+    <string name="lock_history_performance_empty_supporting">Voltooi één blokkeersessie en je beschermde tijd verschijnt hier.</string>
+    <string name="lock_history_performance_empty_month_headline">Klaar om het eerste record van deze maand te starten?</string>
+    <string name="lock_history_performance_empty_week_headline">Klaar om het eerste record van deze week te starten?</string>
     <string name="lock_history_focus_share_button">Deel het focusrecord van deze week</string>
     <string name="lock_history_focus_share_sheet_title">StopIt-focusrecord delen</string>
     <string name="focus_summary_share_payload_text">Deze week heb ik met StopIt %1$d keer voor %2$s focus beschermd.\nAls ik focus nodig heb, pauzeer ik even mijn appgebruik.\n%3$s</string>
@@ -135,7 +135,7 @@
         <item quantity="one">%1$d minuut</item>
         <item quantity="other">%1$d minuten</item>
     </plurals>
-    <string name="lock_history_top_apps_title">Apps you protected time from</string>
+    <string name="lock_history_top_apps_title">Apps waarvoor je tijd hebt beschermd</string>
     <string name="lock_history_block_count">%1$d keer</string>
     <string name="lock_history_duration_short_hour">%1$du%2$dm</string>
     <string name="lock_history_duration_short_min">%1$dm</string>
@@ -150,6 +150,10 @@
     <string name="cd_state_off">Uit</string>
     <string name="cd_tab_selected">Geselecteerd</string>
     <string name="cd_tab_not_selected">Niet geselecteerd</string>
+    <string name="cd_lock_history_date_today">Vandaag</string>
+    <string name="cd_lock_history_date_selected">Geselecteerd</string>
+    <string name="cd_lock_history_date_not_selected">Niet geselecteerd</string>
+    <string name="cd_lock_history_date_today_selected">Vandaag, geselecteerd</string>
     <string name="blocked_apps_title">Geblokkeerde apps</string>
     <string name="routine_alarm_permission_title">We laten het je weten zodat je het begin van je routine niet mist.</string>
     <string name="routine_alarm_permission_description">We sturen op het ingestelde tijdstip een melding om je te helpen je routine op een natuurlijke manier te starten.</string>

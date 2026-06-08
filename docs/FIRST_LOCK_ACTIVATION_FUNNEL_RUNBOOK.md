@@ -64,7 +64,7 @@ issue #14 코멘트 기준으로 현재 활성화 병목은 분명하지만, 숫
 
 - `permission_outcome` by `customEvent:permission_name`, `customEvent:outcome` → `400 INVALID_ARGUMENT`
 - `first_lock_configured` by `customEvent:source` → `400 INVALID_ARGUMENT`
-- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_category_bucket` → #611 privacy 계약에 따라 raw package가 아니라 category bucket 등록/조회로 전환 필요
+- `app_block_intercepted` by `customEvent:block_source`, `customEvent:blocked_app_category_bucket` → #611 privacy 계약과 PR #617 payload 전환에 따라 raw package가 아니라 category bucket 등록/조회로 운영
 
 따라서 현재는 `first_open`, `app_selection_completed`, `first_lock_configured`, `first_core_action_completed`, `app_block_intercepted` 같은 **상위 이벤트 count/users 비율**은 읽을 수 있어도, 어떤 권한/출처/차단 앱에서 병목이 생기는지 세부 분해 해석은 낮은 confidence로 둬야 한다.
 

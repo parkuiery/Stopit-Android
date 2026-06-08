@@ -62,27 +62,31 @@
 
 | 이벤트 | 기존/legacy 축 | 새 privacy-safe 축 | 전환 상태 |
 | --- | --- | --- | --- |
-| `app_block_intercepted` | `blocked_app_package` | `blocked_app_category_bucket`, `block_source`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
-| `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
-| `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | 이번 code-lane PR에서 raw package payload 제거 및 category bucket 전환 |
+| `app_block_intercepted` | `blocked_app_package` | `blocked_app_category_bucket`, `block_source`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
+| `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
+| `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
 
 `routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 id다. 목표 이름, 루틴 이름, 앱 label/package를 이 id 대신 보내지 않는다.
 
-## code-lane handoff
+## repo-internal 구현 상태
 
-다음 구현 PR은 `Refs #611` 또는 acceptance를 모두 만족하면 `Closes #611`로 처리한다.
+PR #615는 이 문서/GA4/Admin/metrics 계약을 먼저 고정했고, PR #617(`f8eb0ebef5fe31ba81bcb9c913ff13966cdb8f34`)은 Android analytics payload를 같은 계약에 맞췄다.
 
-1. `KeepAnalyticsParam.BLOCKED_APP_PACKAGE`를 deprecated하거나 제거한다.
-2. `KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET` 또는 동등한 상수를 추가한다.
-3. `FirebaseKeepAnalytics.trackAppBlockIntercepted(...)`, `trackFirstCoreActionCompleted(...)`, `trackCoreActionCompleted(...)`가 raw package를 payload에 넣지 않도록 바꾼다.
-4. 차단 앱 package를 category bucket으로 변환하는 helper를 추가한다.
+완료된 repo-internal 범위:
+
+1. `KeepAnalyticsParam.BLOCKED_APP_PACKAGE`는 legacy/deprecated 축으로만 남고 신규 payload/registration 대상이 아니다.
+2. `KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET` 또는 동등한 category bucket 축이 차단 이벤트 payload의 기본 분석 축이다.
+3. `FirebaseKeepAnalytics.trackAppBlockIntercepted(...)`, `trackFirstCoreActionCompleted(...)`, `trackCoreActionCompleted(...)`는 raw package를 GA4/Firebase payload에 넣지 않는다.
+4. 차단 앱 package는 앱 내부에서만 category bucket 판정에 사용한다.
    - 매핑 확신이 없으면 `unknown`으로 보낸다.
    - raw package allowlist를 GA4로 보내는 방식은 기본값이 아니다.
-5. `FirebaseKeepAnalyticsTest` 또는 동등한 analytics payload test가 아래를 잡는다.
+5. analytics payload regression은 아래를 잡아야 한다.
    - `blocked_app_package` 미전송
    - `blocked_app_category_bucket` 전송
    - 앱 이름/package/raw history/raw timestamp 미전송
 6. GA4 Admin 등록은 `blocked_app_category_bucket`만 대상으로 한다. `blocked_app_package`는 새로 등록하지 않는다.
+
+남은 작업은 새 Android 구현이 없어서가 아니라 release/tag/Play deploy, GA4 Admin metadata, D+14/D+30 readback 경계다.
 
 ## #13 / #14 경계
 
@@ -93,14 +97,13 @@
 
 ## release / readback 경계
 
-문서 계약만으로는 #611을 닫지 않는다. 다음 외부/후속 경계가 남는다.
+문서 계약과 Android payload 전환은 #615/#617로 repo 내부에 반영됐다. 그래도 #611은 아직 닫지 않는다. 다음 외부/후속 경계가 남는다.
 
-- Android code-lane에서 raw package payload 제거 또는 bucket 전환 구현
-  - 이번 code-lane PR은 `FirebaseKeepAnalytics` payload에서 `blocked_app_package`를 제거하고, 로컬 package 값을 `blocked_app_category_bucket`으로 변환해 전송하는 repo-internal 구현 경계를 닫는다.
-- release/tag/Play deploy에 해당 구현 포함
+- PR #617 포함 commit이 `origin/main` / SemVer tag / Play deploy에 실제 포함됐는지 확인
 - GA4 Admin에서 `customEvent:blocked_app_category_bucket` 등록 및 metadata 확인
 - 배포 후 14일: `app_block_intercepted` / `first_core_action_completed` / `core_action_completed`가 category bucket으로 조회되는지 확인
 - 배포 후 30일: category bucket이 제품 판단에 충분한지, `unknown` 비율이 과도한지 점검
+- `blocked_app_package`는 신규 등록하지 않고, 기존 live 흔적이 있더라도 legacy baseline으로만 해석
 
 ## 보고 템플릿
 

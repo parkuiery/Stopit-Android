@@ -113,16 +113,16 @@
     <string name="lock_history_routine_session">例程</string>
     <string name="lock_history_manual_session">手动</string>
     <string name="lock_history_no_records">此期间没有锁定记录</string>
-    <string name="lock_history_top_apps_empty_supporting">After your next completed block, the apps you protected time from will appear here.</string>
-    <string name="lock_history_top_apps_positive_supporting">These are the apps you blocked most successfully in this period.</string>
-    <string name="lock_history_performance_sessions_supporting">You held your promise %1$d times without judgment or pressure.</string>
-    <string name="lock_history_performance_month_headline">You protected %1$s this month</string>
-    <string name="lock_history_performance_week_headline">You protected %1$s this week</string>
-    <string name="lock_history_performance_low_data_supporting">A small start counts. You can keep building this protected time.</string>
-    <string name="lock_history_performance_low_data_headline">Your first record has started</string>
-    <string name="lock_history_performance_empty_supporting">Complete one block session and your protected time will appear here.</string>
-    <string name="lock_history_performance_empty_month_headline">Ready to start this month\'s record?</string>
-    <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
+    <string name="lock_history_top_apps_empty_supporting">完成下一次锁定后，你守住时间的应用会显示在这里。</string>
+    <string name="lock_history_top_apps_positive_supporting">这些是你在本周期最成功挡住的应用。</string>
+    <string name="lock_history_performance_sessions_supporting">你已经守住承诺 %1$d 次，没有评判，也没有压力。</string>
+    <string name="lock_history_performance_month_headline">本月你守住了 %1$s</string>
+    <string name="lock_history_performance_week_headline">本周你守住了 %1$s</string>
+    <string name="lock_history_performance_low_data_supporting">小小的开始也算数。你可以继续累积这段被守住的时间。</string>
+    <string name="lock_history_performance_low_data_headline">你的第一条记录已经开始</string>
+    <string name="lock_history_performance_empty_supporting">完成一次锁定后，你守住的时间会显示在这里。</string>
+    <string name="lock_history_performance_empty_month_headline">准备开始本月的第一条记录吗？</string>
+    <string name="lock_history_performance_empty_week_headline">准备开始本周的第一条记录吗？</string>
     <string name="lock_history_focus_share_button">分享本周专注记录</string>
     <string name="lock_history_focus_share_sheet_title">分享 StopIt 专注记录</string>
     <string name="focus_summary_share_payload_text">本周我用 StopIt 守住了 %1$d 次专注，共 %2$s。\n需要专注时，我也会先暂停使用应用。\n%3$s</string>
@@ -133,7 +133,7 @@
     <plurals name="focus_summary_share_duration_minute">
         <item quantity="other">%1$d 分钟</item>
     </plurals>
-    <string name="lock_history_top_apps_title">Apps you protected time from</string>
+    <string name="lock_history_top_apps_title">守住时间的应用</string>
     <string name="lock_history_block_count">%1$d次</string>
     <string name="lock_history_duration_short_hour">%1$d小时%2$d分</string>
     <string name="lock_history_duration_short_min">%1$d分</string>
@@ -148,6 +148,10 @@
     <string name="cd_state_off">已关闭</string>
     <string name="cd_tab_selected">已选择</string>
     <string name="cd_tab_not_selected">未选择</string>
+    <string name="cd_lock_history_date_today">今天</string>
+    <string name="cd_lock_history_date_selected">已选择</string>
+    <string name="cd_lock_history_date_not_selected">未选择</string>
+    <string name="cd_lock_history_date_today_selected">今天，已选择</string>
     <string name="blocked_apps_title">被阻止的应用</string>
     <string name="routine_alarm_permission_title">我们会提醒你，不要错过例行的开始。</string>
     <string name="routine_alarm_permission_description">我们会在设定的时间发送通知，帮助你自然地开始例行。</string>
