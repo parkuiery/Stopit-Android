@@ -1305,6 +1305,7 @@ cd <repo-root>
 - 보호자 PIN 미설정/성공/실패 policy
 - DataStore session persistence와 restore-reset-only key boundary
 - 부모 모드 active/expired/extended/cancelled state transition
+- 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
 - `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
 - 접근성 차단 판단이 허용 앱과 비허용 앱을 구분하고, 시간이 끝난 뒤 허용 앱도 계속 사용할 수 없게 하는지
 - Stopit 앱처럼 보호자 PIN/종료/연장 진입에 필요한 부모 제어 surface를 부모 모드 차단으로 막지 않는지
@@ -1329,7 +1330,8 @@ cd <repo-root>
   - [ ] 허용되지 않은 앱은 차단된다.
   - [ ] 시간이 끝나면 허용 앱도 계속 사용할 수 없다.
   - [ ] PIN 없이 시간 연장/종료가 되지 않는다.
-  - [ ] PIN 성공 시 즉시 종료/연장이 된다.
+  - [ ] PIN 성공 후에도 0분/음수 extension은 거부되고 양수 extension만 만료 시각을 늘린다.
+  - [ ] PIN 성공 시 즉시 종료가 된다.
   - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.
   - [ ] 긴급 전화/필수 시스템 safety path를 부적절하게 막지 않는다.
 - Privacy checks:
