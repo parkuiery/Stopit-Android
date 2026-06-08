@@ -28,9 +28,6 @@ EXPECTED_FEATURE_IMPORTS = {
         "com.uiery.keep.feature.goallock.GoalLock",
         "com.uiery.keep.feature.goallock.GoalLockPolicy",
     ],
-    "app/src/main/java/com/uiery/keep/service/LockHistoryRecorder.kt": [
-        "com.uiery.keep.feature.lockhistory.LockHistoryRepository",
-    ],
     "app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt": [
         "com.uiery.keep.feature.routine.RoutineRepository",
     ],
