@@ -95,7 +95,7 @@ class RoutineBottomSheetViewModelTest {
         viewModel.resetEditState(validRoutine(id = 7L))
         awaitState(viewModel) { it.name == "Morning focus" }
         viewModel.editRoutine(7L)
-        awaitUntil { routineDao.updatedEntity != null }
+        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
         Mockito.verify(routineScheduler).cancelRoutine(7L)
