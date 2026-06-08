@@ -70,10 +70,13 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "top_apps_count_bucket",
             "PR #485 read-model·UI 구현 develop 반영",
             "code-lane instrumentation 추가",
-            "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline develop 반영",
+            "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영",
             "rank/app label/block count/duration",
             "PR #579",
             "f4b499baf9ccb42102fe29be71ee386a310e6fb3",
+            "PR #637",
+            "3d8e8d73b1cdba566a49b554fc6f255bed9aceb9",
+            "shipped non-default locale copy localization",
             "Refs #465",
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
@@ -187,6 +190,9 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("PR #485", source)
         self.assertIn("PR #566", source)
         self.assertIn("PR #579", source)
+        self.assertIn("PR #637", source)
+        self.assertIn("shipped non-default locale copy localization", source)
+        self.assertIn("default English copy 잔존 방지", source)
         self.assertIn("develop`에 반영", source)
         self.assertIn("release/tag/Play deploy", source)
         self.assertIn("14일/30일 readback", source)
