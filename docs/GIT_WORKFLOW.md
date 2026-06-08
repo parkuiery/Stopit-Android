@@ -226,7 +226,7 @@ gh pr create --base develop --fill
 
 ## Flavor-aware Gradle Verification Matrix
 
-`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다.
+`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다. GitHub Actions workflow 안에서는 variant만 명시한 root task inference(`testDevDebugUnitTest`, `lintDevDebug`, `assembleProdDebug`, `connectedDevDebugAndroidTest` 등)도 금지하고, 반드시 `:app:` module-qualified task를 사용합니다.
 
 | 상황 | 권장 명령 | 비고 |
 | --- | --- | --- |
