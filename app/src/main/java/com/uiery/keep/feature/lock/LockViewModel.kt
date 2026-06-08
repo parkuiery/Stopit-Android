@@ -78,8 +78,25 @@ class LockViewModel
             intent {
                 getSelectedApp()
                 checkDailyLimit()
-                if (route.isRoutine) getRoutines() else navigateHome(state.lockTime)
+                if (route.isRoutine) {
+                    getRoutines()
+                } else {
+                    val timerStartTime = resolveManualTimerStartTime(
+                        fallbackStartTime = state.timerStartTime.takeIf { it > 0L } ?: clock.millis(),
+                    )
+                    reduce { state.copy(timerStartTime = timerStartTime) }
+                    navigateHome(state.lockTime)
+                }
             }
+
+        private suspend fun resolveManualTimerStartTime(fallbackStartTime: Long): Long {
+            val persistedStartTime = blockingStateStore.readStartTime()
+            val resolvedStartTime = persistedStartTime ?: fallbackStartTime
+            if (persistedStartTime == null) {
+                blockingStateStore.saveStartTime(resolvedStartTime)
+            }
+            return resolvedStartTime
+        }
 
         private fun getSelectedApp() =
             intent {

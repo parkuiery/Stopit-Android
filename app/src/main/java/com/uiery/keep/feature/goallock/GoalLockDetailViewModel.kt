@@ -2,6 +2,7 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.KeepAnalytics
@@ -44,6 +45,10 @@ internal class GoalLockDetailViewModel
                     state.copy(
                         goalLock = normalizedGoalLock,
                         showEndConfirmation = false,
+                        pendingSelectedApps = emptySet(),
+                        showUpdateAppsConfirmation = false,
+                        pendingGoalName = normalizedGoalLock.goalName,
+                        showUpdateGoalNameConfirmation = false,
                         isEnded = normalizedGoalLock.status == GoalLockStoredStatus.EndedEarly,
                         isCompleted = normalizedGoalLock.status == GoalLockStoredStatus.Completed,
                     )
@@ -59,6 +64,110 @@ internal class GoalLockDetailViewModel
         fun cancelEndGoalLock() =
             intent {
                 reduce { state.copy(showEndConfirmation = false) }
+            }
+
+        fun requestUpdateSelectedApps(selectedApps: Set<String>) =
+            intent {
+                val current = state.goalLock ?: return@intent
+                if (current.status != GoalLockStoredStatus.Active || state.isEnded || state.isCompleted) return@intent
+                val normalizedSelectedApps = selectedApps.normalizedPackages()
+                reduce {
+                    state.copy(
+                        pendingSelectedApps = normalizedSelectedApps,
+                        showUpdateAppsConfirmation = normalizedSelectedApps.isNotEmpty(),
+                    )
+                }
+            }
+
+        fun cancelUpdateSelectedApps() =
+            intent {
+                reduce {
+                    state.copy(
+                        pendingSelectedApps = emptySet(),
+                        showUpdateAppsConfirmation = false,
+                    )
+                }
+            }
+
+        fun confirmUpdateSelectedApps() =
+            intent {
+                val current = state.goalLock ?: return@intent
+                val selectedApps = state.pendingSelectedApps
+                if (current.status != GoalLockStoredStatus.Active || selectedApps.isEmpty()) {
+                    reduce {
+                        state.copy(
+                            pendingSelectedApps = emptySet(),
+                            showUpdateAppsConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+
+                val updated = current.copy(selectedPackages = selectedApps)
+                goalLockRepository.update(updated)
+                analytics.trackGoalLockUpdated(
+                    lockMode = current.lockMode.analyticsLockMode,
+                    changedField = AnalyticsGoalLockChangedField.APPS,
+                )
+                reduce {
+                    state.copy(
+                        goalLock = updated,
+                        pendingSelectedApps = emptySet(),
+                        showUpdateAppsConfirmation = false,
+                    )
+                }
+            }
+
+        fun requestUpdateGoalName(goalName: String) =
+            intent {
+                val current = state.goalLock ?: return@intent
+                if (current.status != GoalLockStoredStatus.Active || state.isEnded || state.isCompleted) return@intent
+                val normalizedGoalName = goalName.trim()
+                reduce {
+                    state.copy(
+                        pendingGoalName = goalName,
+                        showUpdateGoalNameConfirmation = normalizedGoalName.isNotBlank() && normalizedGoalName != current.goalName,
+                    )
+                }
+            }
+
+        fun cancelUpdateGoalName() =
+            intent {
+                reduce {
+                    state.copy(
+                        pendingGoalName = state.goalLock?.goalName.orEmpty(),
+                        showUpdateGoalNameConfirmation = false,
+                    )
+                }
+            }
+
+        fun confirmUpdateGoalName() =
+            intent {
+                val current = state.goalLock ?: return@intent
+                val goalName = state.pendingGoalName.trim()
+                if (current.status != GoalLockStoredStatus.Active || goalName.isBlank() || goalName == current.goalName) {
+                    reduce {
+                        state.copy(
+                            pendingGoalName = current.goalName,
+                            showUpdateGoalNameConfirmation = false,
+                        )
+                    }
+                    return@intent
+                }
+
+                val updated = current.copy(goalName = goalName)
+                goalLockRepository.update(updated)
+                analytics.trackGoalLockUpdated(
+                    lockMode = current.lockMode.analyticsLockMode,
+                    changedField = AnalyticsGoalLockChangedField.NAME,
+                )
+                reduce {
+                    state.copy(
+                        goalLock = updated,
+                        pendingGoalName = updated.goalName,
+                        showUpdateGoalNameConfirmation = false,
+                    )
+                }
             }
 
         fun confirmEndGoalLock(today: LocalDate = LocalDate.now()) =
@@ -113,6 +222,10 @@ internal class GoalLockDetailViewModel
 internal data class GoalLockDetailUiState(
     val goalLock: GoalLock? = null,
     val showEndConfirmation: Boolean = false,
+    val pendingSelectedApps: Set<String> = emptySet(),
+    val showUpdateAppsConfirmation: Boolean = false,
+    val pendingGoalName: String = "",
+    val showUpdateGoalNameConfirmation: Boolean = false,
     val isEnded: Boolean = false,
     val isCompleted: Boolean = false,
 ) {
@@ -142,3 +255,8 @@ private fun elapsedDaysBucket(
     in 7L..14L -> AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN
     else -> AnalyticsGoalLockElapsedDaysBucket.FIFTEEN_PLUS
 }
+
+private fun Set<String>.normalizedPackages(): Set<String> =
+    map { it.trim() }
+        .filter { it.isNotBlank() }
+        .toSet()

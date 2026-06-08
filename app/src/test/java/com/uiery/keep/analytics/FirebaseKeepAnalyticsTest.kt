@@ -589,7 +589,7 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
-    fun goalLockCompletedUsesSafeDurationBucketOnly() {
+    fun goalLockCompletedUsesDurationBucketOnly() {
         analytics.trackGoalLockCompleted(
             lockMode = AnalyticsGoalLockMode.ALL_DAY,
             durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
@@ -605,6 +605,30 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents.single(),
         )
+    }
+
+    @Test
+    fun goalLockUpdatedUsesSafeChangedFieldOnly() {
+        analytics.trackGoalLockUpdated(
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            changedField = AnalyticsGoalLockChangedField.APPS,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.CHANGED_FIELD to AnalyticsGoalLockChangedField.APPS,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+        assertFalse(backend.loggedEvents.single().params.containsKey("goal_name"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("start_date"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("end_date"))
     }
 
     @Test

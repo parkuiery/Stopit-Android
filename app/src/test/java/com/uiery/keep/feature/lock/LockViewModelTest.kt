@@ -195,6 +195,56 @@ class LockViewModelTest {
     }
 
     @Test
+    fun completedHomeTimerRecordsHistoryFromPersistedManualStartTimeAfterReentry() = runBlocking {
+        val analytics = LockRecordingKeepAnalytics()
+        val persistedStartTime = Instant.parse("2026-05-25T09:00:00Z").toEpochMilli()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.START_TIME to persistedStartTime,
+            ),
+        )
+        val emergencyUnlockDao = FakeEmergencyUnlockDao()
+        val lockHistoryDao = LockRecordingHistoryDao()
+        val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
+        val reviewEligibility = ReviewEligibilityEvaluator(
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            remoteConfig = FakeReviewRemoteConfig(enabled = true),
+            accessibilityChecker = FakeAccessibilityChecker(enabled = true),
+            repository = fakeReviewEligibilityRepository(),
+            clock = clock,
+            buildConfig = ReviewBuildConfig(isDebug = false, flavor = "dev"),
+        )
+
+        LockViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2000-01-01T00:00:00", "isRoutine" to false)),
+            routineRepository = FakeRoutineRepository(),
+            lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistoryRepository(lockHistoryDao)),
+            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
+            reviewPromptStateStore = reviewPromptStateStore,
+            emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
+                settingsStore = EmergencyUnlockSettingsStore(dataStore),
+                blockingStateStore = BlockingStateStore(dataStore),
+                repository = EmergencyUnlockRepository(emergencyUnlockDao),
+                analytics = analytics,
+            ),
+            notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
+            analytics = analytics,
+            reviewEligibility = reviewEligibility,
+            clock = clock,
+        )
+        withTimeout(2_000) {
+            while (lockHistoryDao.inserted.isEmpty()) {
+                delay(10)
+            }
+        }
+
+        assertEquals(persistedStartTime, lockHistoryDao.inserted.single().startTimestamp)
+    }
+
+    @Test
     fun routineLockUsesCurrentRoutineWindowStartTimeForSessionAnchor() = runBlocking {
         val analytics = LockRecordingKeepAnalytics()
         val dataStore = FakeDataStore()

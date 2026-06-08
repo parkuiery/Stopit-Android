@@ -16,6 +16,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
+import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.routine.component.RoutineBottomSheetContent
@@ -60,12 +63,14 @@ fun RoutineScreen(
     val routineBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
+    val snackBarHostState = remember { SnackbarHostState() }
     val alarmPermissionBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var showAlarmPermissionBottomSheet by remember { mutableStateOf(false) }
+    val activeRoutineBlockedMessage = stringResource(R.string.routine_active_action_blocked_message)
 
     // Check alarm permission on entry if routines exist (show once ever, persisted)
     LaunchedEffect(state.routines) {
@@ -88,6 +93,11 @@ fun RoutineScreen(
             )
             is RoutineSideEffect.ShowAlarmPermission -> {
                 showAlarmPermissionBottomSheet = true
+            }
+            is RoutineSideEffect.ShowActiveRoutineBlocked -> {
+                coroutineScope.launch {
+                    snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                }
             }
             is RoutineSideEffect.ShareRoutineTemplate -> {
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -247,6 +257,11 @@ fun RoutineScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = KeepTheme.colors.background,
+        snackbarHost = {
+            SnackbarHost(snackBarHostState) {
+                KeepSnackBar(snackbarData = it)
+            }
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {

@@ -4,8 +4,8 @@
     <string name="select_apps_prompt">Please select the apps that tempt you</string>
     <string name="app_lock_info">The selected apps will be locked to prevent usage. You can turn the app lock on and off at any time.</string>
     <string name="select_apps_button">Select Apps</string>
-    <string name="accessibility_permission_required">Screen Time permission is essential!</string>
-    <string name="accessibility_permission_description">Screen Time permission can block all apps that tempt us.</string>
+    <string name="accessibility_permission_required">Accessibility permission is required!</string>
+    <string name="accessibility_permission_description">Accessibility permission lets StopIt block the distracting apps you choose.</string>
     <string name="permission_usage_note">Permission is used only to block app usage</string>
     <string name="allow_permission">Allow permission</string>
     <string name="notification_permission_request">Please allow notifications to help you keep your promises with StopIt.</string>
@@ -86,6 +86,14 @@
     <string name="goal_lock_creation_remove_app">Remove</string>
     <string name="goal_lock_creation_submit">Start goal lock</string>
     <string name="goal_lock_creation_app_label_missing">Could not load the app name</string>
+    <string name="goal_lock_detail_update_apps_cta">Change blocked apps</string>
+    <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
+    <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
+    <string name="goal_lock_detail_update_apps_save">Save changes</string>
+    <string name="goal_lock_detail_goal_name_label">Goal name</string>
+    <string name="goal_lock_detail_update_name_confirmation">Change this goal lock name to %1$s?</string>
+    <string name="goal_lock_detail_update_name_cancel">Cancel</string>
+    <string name="goal_lock_detail_update_name_save">Save name</string>
     <string name="routine_alarm_permission_title">We will notify you so you don\'t miss the start of your routine.</string>
     <string name="routine_alarm_permission_description">We will send a notification at the set time to help you start your routine naturally.</string>
     <string name="routine_alarm_permission_button">Set up notifications</string>
@@ -94,6 +102,7 @@
     <string name="routine_disabled_tag">Off</string>
     <string name="routine_repeat_days_empty">No repeat days</string>
     <string name="routine_next_run_label">Next run: %1$s</string>
+    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="contact_us">Contact Us</string>
     <string name="monetization_interest_menu_title">Want to use StopIt without ads?</string>
     <string name="monetization_interest_menu_message">Tell us if an ad-free option would be useful. No purchase is available yet.</string>

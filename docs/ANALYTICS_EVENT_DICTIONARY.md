@@ -116,7 +116,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel analytics payload 경계에서 문자열로 정규화해 전달한다. `block_source=goal_lock`일 때만 non-null이어야 하며, 수동 Keep/타이머/루틴 차단에서는 null/미전송 상태를 유지한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
-- 차단 앱 analytics privacy 계약은 `docs/BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md`(#611)를 source of truth로 본다. `blocked_app_package` 원문은 GA4 payload/custom dimension 등록 대상에서 퇴역시키고, 후속 code-lane은 `blocked_app_category_bucket` 같은 privacy-safe bucket으로 전환해야 한다.
+- 차단 앱 analytics privacy 계약은 `docs/BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md`(#611)를 source of truth로 본다. PR #617(`f8eb0ebe`) 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 등록 대상에서 퇴역했고, `blocked_app_category_bucket` 같은 privacy-safe bucket만 activation/runtime 세부 해석에 사용한다.
 - 홈 화면 상태/CTA 구조 개선(#463)의 source of truth는 `docs/HOME_STATUS_CTA_STRUCTURE.md`다. Home copy/CTA를 바꾸더라도 `first_lock_configured`는 준비 완료, `first_core_action_completed`는 첫 가치 경험, `app_block_intercepted`는 실제 차단이라는 의미를 유지한다. #463은 새 이벤트를 필수 요구하지 않으며, 새 Home CTA 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다.
 - 차단 화면 카피/액션 위계 개선(#464)의 source of truth는 `docs/BLOCK_SCREEN_COPY_HIERARCHY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. `BlockScreen` copy/CTA/emergency unlock 상태를 바꾸더라도 기존 `app_block_intercepted` → 최초 1회 `first_core_action_completed` → 반복 `core_action_completed` 순서와 `emergency_unlock_used` / `emergency_unlock_completed` 의미를 유지한다.
 - #464에서 별도 copy 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용하고, 앱 이름/package/raw history/raw timestamp를 payload나 query 축으로 쓰지 않는다.
@@ -341,7 +341,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `outcome` | 권한 결과 (`granted`, `denied`, `settings_opened`) |
 | `source` | 이벤트 발생 출처 (`onboarding`, `home`, `home_timer`, `routine` 등) |
 | `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`) |
-| `blocked_app_package` | legacy/deprecated. 차단된 앱 패키지명 원문이며 #611에 따라 GA4 payload/custom dimension 신규 등록 대상에서 제외한다. code-lane 전환 전 기존 코드 흔적으로만 취급한다. |
+| `blocked_app_package` | legacy/deprecated. 차단된 앱 패키지명 원문이며 #611에 따라 GA4 payload/custom dimension 신규 등록 대상에서 제외한다. PR #617 이후 신규 payload가 아니라 historical/legacy baseline으로만 취급한다. |
 | `blocked_app_category_bucket` | 차단된 앱의 privacy-safe category bucket (`social`, `video`, `game`, `communication`, `shopping`, `browser`, `productivity`, `unknown`) |
 | `selected_app_count` | 선택된 앱 개수 |
 | `is_onboarding` | 온보딩 컨텍스트 여부 |
@@ -614,7 +614,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 PR #296/#318 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 post-fix 성과가 아니라 release boundary 전 중간 smoke로만 기록한다.
-- 2026-06-07T16:13:51Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `26,138 / 41,792 = 62.5%`였고 최신 관측 production version `1.7.7` active share도 `199 / 792 = 25.1%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-08T03:23:04Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `26,599 / 42,706 = 62.3%`였고 최신 관측 production version `1.7.7` active share도 `205 / 795 = 25.8%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

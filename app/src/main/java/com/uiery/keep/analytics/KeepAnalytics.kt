@@ -186,6 +186,11 @@ interface KeepAnalytics {
         durationDaysBucket: String,
     ) = Unit
 
+    fun trackGoalLockUpdated(
+        lockMode: String,
+        changedField: String,
+    ) = Unit
+
     fun trackRepeatBlockRoutineSuggestionShown(
         surface: String,
         suggestion: RepeatBlockRoutineSuggestion,
@@ -275,6 +280,7 @@ object KeepAnalyticsEvent {
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
+    const val GOAL_LOCK_UPDATED = "goal_lock_updated"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN = "repeat_block_routine_suggestion_shown"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
@@ -335,6 +341,7 @@ object KeepAnalyticsParam {
     const val GOAL_NAME_TYPE = "goal_name_type"
     const val ELAPSED_DAYS_BUCKET = "elapsed_days_bucket"
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
+    const val CHANGED_FIELD = "changed_field"
     const val SURFACE = "surface"
     const val SUGGESTION_REASON = "suggestion_reason"
     const val TIME_BUCKET = "time_bucket"
@@ -513,6 +520,14 @@ object AnalyticsGoalLockDurationDaysBucket {
     const val EIGHT_TO_FOURTEEN = "8_14"
     const val FIFTEEN_TO_THIRTY = "15_30"
     const val THIRTY_ONE_PLUS = "31_plus"
+}
+
+object AnalyticsGoalLockChangedField {
+    const val DURATION = "duration"
+    const val APPS = "apps"
+    const val SCHEDULE = "schedule"
+    const val NAME = "name"
+    const val LOCK_MODE = "lock_mode"
 }
 
 object AnalyticsGoalLockEndedEarlyReason {

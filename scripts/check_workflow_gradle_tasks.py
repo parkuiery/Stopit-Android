@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Reject flavorless app Gradle task calls in GitHub workflow run commands.
+"""Reject unqualified app Gradle task calls in GitHub workflow run commands.
 
-Stopit has dev/prod flavors, so workflow Gradle calls must use explicit
-variant/module-qualified tasks such as :app:testDevDebugUnitTest instead of
-root task-name inference such as testDebugUnitTest.
+Stopit has dev/prod flavors and multiple Gradle modules, so workflow Gradle
+calls must use explicit module-qualified app tasks such as
+:app:testDevDebugUnitTest instead of root task-name inference such as
+testDevDebugUnitTest or testDebugUnitTest.
 """
 
 from __future__ import annotations
@@ -16,10 +17,18 @@ import shlex
 import sys
 
 
-FORBIDDEN_FLAVORLESS_TASKS = {
+FORBIDDEN_UNQUALIFIED_APP_TASKS = {
+    # Flavorless app tasks are ambiguous in a dev/prod flavored project.
     "testDebugUnitTest",
     "assembleDebug",
     "lintDebug",
+    # Variant-specific app tasks still need the :app: module prefix in workflows
+    # so root task inference cannot accidentally mask the intended app gate.
+    "testDevDebugUnitTest",
+    "lintDevDebug",
+    "lintProdRelease",
+    "assembleProdDebug",
+    "connectedDevDebugAndroidTest",
     "testProdReleaseUnitTest",
     "bundleProdRelease",
 }
@@ -98,7 +107,7 @@ def _contains_forbidden_task(arguments: str) -> bool:
         normalized = token.strip()
         if not normalized or normalized.startswith("-") or ":" in normalized:
             continue
-        if normalized in FORBIDDEN_FLAVORLESS_TASKS:
+        if normalized in FORBIDDEN_UNQUALIFIED_APP_TASKS:
             return True
     return False
 
@@ -120,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
 
     violations = find_flavorless_gradle_task_violations(args.workflow_dir)
     if violations:
-        print("Unqualified app Gradle task found in workflow. Use variant-specific :app tasks instead.")
+        print("Unqualified app Gradle task found in workflow. Use module-qualified :app tasks instead.")
         for violation in violations:
             print(violation.format())
         return 1
