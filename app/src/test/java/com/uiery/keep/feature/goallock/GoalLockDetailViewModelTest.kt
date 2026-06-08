@@ -32,7 +32,14 @@ class GoalLockDetailViewModelTest {
 
         val state = viewModel.container.stateFlow.value
         assertEquals("SNS 줄이기", state.goalLock?.goalName)
-        assertEquals("특정 시간 잠금", state.lockModeLabel)
+        assertEquals(
+            GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+                startTime = LocalTime.of(19, 0),
+                endTime = LocalTime.of(23, 0),
+            ),
+            state.goalLock?.lockMode,
+        )
         assertEquals(3, state.selectedAppCount)
         assertFalse(state.showEndConfirmation)
         assertFalse(state.isEnded)

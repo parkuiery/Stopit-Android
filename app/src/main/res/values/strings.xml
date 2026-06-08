@@ -91,6 +91,16 @@
     <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
     <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
     <string name="goal_lock_detail_update_apps_save">Save changes</string>
+    <string name="goal_lock_detail_title">Goal lock</string>
+    <string name="goal_lock_detail_loading">Loading goal lock.</string>
+    <string name="goal_lock_detail_summary">%1$s · %2$d apps</string>
+    <string name="goal_lock_detail_status_completed">This goal lock is completed.</string>
+    <string name="goal_lock_detail_status_ended">This goal lock has ended.</string>
+    <string name="goal_lock_detail_status_active">This goal lock is in progress.</string>
+    <string name="goal_lock_detail_end_confirmation">Ending this goal lock may let the selected apps open again from today. End it now?</string>
+    <string name="goal_lock_detail_end_cancel">Keep it</string>
+    <string name="goal_lock_detail_end_confirm">End</string>
+    <string name="goal_lock_detail_end_cta">End goal lock</string>
     <string name="goal_lock_detail_goal_name_label">Goal name</string>
     <string name="goal_lock_detail_update_name_confirmation">Change this goal lock name to %1$s?</string>
     <string name="goal_lock_detail_update_name_cancel">Cancel</string>

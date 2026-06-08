@@ -1,5 +1,7 @@
 import pathlib
+import re
 import unittest
+import xml.etree.ElementTree as ET
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -14,6 +16,12 @@ GOAL_LOCK_DETAIL_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / 
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
+RES_ROOT = REPO_ROOT / "app" / "src" / "main" / "res"
+
+
+def _string_resource_names(strings_file: pathlib.Path) -> set[str]:
+    tree = ET.parse(strings_file)
+    return {element.attrib["name"] for element in tree.getroot().findall("string")}
 
 
 class GoalLockContractTest(unittest.TestCase):
@@ -247,6 +255,123 @@ class GoalLockContractTest(unittest.TestCase):
             "평일 저녁 잠금",
         ]:
             self.assertNotIn(hardcoded_copy, screen)
+
+    def test_goal_lock_detail_screen_uses_string_resources_for_status_and_end_flow_copy(self):
+        screen = GOAL_LOCK_DETAIL_SCREEN.read_text()
+
+        required_resources = [
+            "R.string.goal_lock_detail_title",
+            "R.string.cd_navigate_back",
+            "R.string.goal_lock_detail_loading",
+            "R.string.goal_lock_detail_summary",
+            "R.string.goal_lock_detail_status_completed",
+            "R.string.goal_lock_detail_status_ended",
+            "R.string.goal_lock_detail_status_active",
+            "R.string.goal_lock_detail_end_confirmation",
+            "R.string.goal_lock_detail_end_cancel",
+            "R.string.goal_lock_detail_end_confirm",
+            "R.string.goal_lock_detail_end_cta",
+        ]
+        for resource in required_resources:
+            self.assertIn(resource, screen)
+
+        for hardcoded_copy in [
+            "목표 잠금",
+            "뒤로 가기",
+            "목표 잠금을 불러오는 중입니다.",
+            "개 앱",
+            "완료된 목표 잠금입니다.",
+            "종료된 목표 잠금입니다.",
+            "진행 중인 목표 잠금입니다.",
+            "목표 잠금을 끝내면 오늘부터 선택한 앱이 다시 열릴 수 있어요. 지금 종료할까요?",
+            "계속 유지",
+            "종료",
+            "목표 잠금 종료",
+        ]:
+            self.assertNotIn(hardcoded_copy, screen)
+
+        user_visible_string_literals = re.findall(r'text = "([^"]+)"', screen)
+        self.assertEqual(
+            [],
+            user_visible_string_literals,
+            "GoalLockDetailScreen user-visible Text copy must come from stringResource.",
+        )
+
+    def test_goal_lock_detail_viewmodel_does_not_expose_localized_ui_copy(self):
+        viewmodel = (
+            REPO_ROOT
+            / "app"
+            / "src"
+            / "main"
+            / "java"
+            / "com"
+            / "uiery"
+            / "keep"
+            / "feature"
+            / "goallock"
+            / "GoalLockDetailViewModel.kt"
+        ).read_text()
+
+        for hardcoded_copy in [
+            "하루종일 잠금",
+            "특정 시간 잠금",
+        ]:
+            self.assertNotIn(hardcoded_copy, viewmodel)
+
+        self.assertNotIn("detailLabel", viewmodel)
+        self.assertNotIn("lockModeLabel", viewmodel)
+        self.assertNotIn("pendingLockModeLabel", viewmodel)
+
+    def test_goal_lock_detail_locale_resources_exist_in_every_shipped_locale(self):
+        required_keys = {
+            "goal_lock_detail_title",
+            "goal_lock_detail_loading",
+            "goal_lock_detail_summary",
+            "goal_lock_detail_status_completed",
+            "goal_lock_detail_status_ended",
+            "goal_lock_detail_status_active",
+            "goal_lock_detail_end_confirmation",
+            "goal_lock_detail_end_cancel",
+            "goal_lock_detail_end_confirm",
+            "goal_lock_detail_end_cta",
+        }
+
+        for strings_file in sorted(RES_ROOT.glob("values*/strings.xml")):
+            with self.subTest(locale=strings_file.parent.name):
+                names = _string_resource_names(strings_file)
+                self.assertTrue(
+                    required_keys.issubset(names),
+                    f"{strings_file.parent.name} is missing {sorted(required_keys - names)}",
+                )
+
+    def test_goal_lock_detail_default_locale_copy_is_english(self):
+        required_keys = {
+            "goal_lock_detail_title",
+            "goal_lock_detail_loading",
+            "goal_lock_detail_summary",
+            "goal_lock_detail_status_completed",
+            "goal_lock_detail_status_ended",
+            "goal_lock_detail_status_active",
+            "goal_lock_detail_end_confirmation",
+            "goal_lock_detail_end_cancel",
+            "goal_lock_detail_end_confirm",
+            "goal_lock_detail_end_cta",
+        }
+        default_strings = RES_ROOT / "values" / "strings.xml"
+        tree = ET.parse(default_strings)
+        values_by_name = {
+            element.attrib["name"]: "".join(element.itertext())
+            for element in tree.getroot().findall("string")
+            if element.attrib.get("name") in required_keys
+        }
+
+        self.assertEqual(required_keys, set(values_by_name))
+        for name, value in values_by_name.items():
+            with self.subTest(name=name):
+                self.assertIsNone(
+                    re.search(r"[가-힣]", value),
+                    f"Default English locale must not include Korean copy: {name}={value}",
+                )
 
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()
