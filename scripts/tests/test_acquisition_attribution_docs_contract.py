@@ -10,20 +10,20 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-08T23:09:54Z"
+LATEST_TIMESTAMP = "2026-06-09T15:25:30Z"
 LATEST_VALUES = [
     "571",
     "336",
     "236",
     "58.8%",
-    "+65.0%",
-    "-14.7%",
+    "+65.5%",
+    "-13.0%",
 ]
 SCREEN_QUALITY_VALUES = [
-    "44,376",
-    "27,369",
-    "61.7%",
-    "232 / 806 = 28.8%",
+    "44,814",
+    "27,468",
+    "61.3%",
+    "246 / 805 = 30.6%",
 ]
 
 
@@ -80,19 +80,19 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             self.assertIn("release/tag/Play deploy", document)
 
         self.assertIn(LATEST_TIMESTAMP, version_gate)
-        self.assertIn("232 / 806 = 28.8%", version_gate)
-        self.assertIn("주의", version_gate)
-        self.assertIn("30% 미만", version_gate)
+        self.assertIn("246 / 805 = 30.6%", version_gate)
+        self.assertIn("충분", version_gate)
+        self.assertIn("main/tag/Play 포함 여부", version_gate)
 
     def test_play_store_aso_keeps_manual_attribution_boundary_explicit(self):
         play_store_aso = PLAY_STORE_ASO.read_text()
 
-        self.assertIn("2026-06-08 live readback", play_store_aso)
+        self.assertIn("2026-06-09 live readback", play_store_aso)
         self.assertIn("Direct 58.8% 과다 상태 유지", play_store_aso)
         self.assertIn("신규 유입 반등을 ASO 효과로 표현 금지", play_store_aso)
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
-        self.assertIn("활성 18명·세션 156회는 신규 획득 성과로 계산하지 않음", play_store_aso)
+        self.assertIn("활성 19명·세션 149회는 신규 획득 성과로 계산하지 않음", play_store_aso)
 
 
 if __name__ == "__main__":
