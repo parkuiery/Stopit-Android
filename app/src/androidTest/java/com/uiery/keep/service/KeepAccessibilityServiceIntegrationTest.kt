@@ -584,10 +584,16 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun launchPackage(packageName: String) {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         assertNotNull("Expected a launch intent for $packageName", launchIntent)
+        shell("am force-stop $packageName")
         device.pressHome()
-        context.startActivity(
-            launchIntent!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
-        )
+        val launchComponent = launchIntent!!.component?.flattenToShortString()
+        if (launchComponent != null) {
+            shell("am start -W -n $launchComponent")
+        } else {
+            context.startActivity(
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+            )
+        }
     }
 
     private fun launchSelfUninstallFlow() {
