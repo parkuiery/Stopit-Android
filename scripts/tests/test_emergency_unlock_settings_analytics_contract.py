@@ -118,6 +118,7 @@ class EmergencyUnlockSettingsAnalyticsContractTest(unittest.TestCase):
 
     def test_contract_records_android_wiring_without_over_claiming_live_adoption(self):
         doc = read("docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md")
+        dictionary = read("docs/ANALYTICS_EVENT_DICTIONARY.md")
         high_traffic = "\n".join(
             read(path)
             for path in [
@@ -128,10 +129,22 @@ class EmergencyUnlockSettingsAnalyticsContractTest(unittest.TestCase):
         )
 
         self.assertIn("Android analytics wiring 완료", doc)
+        self.assertIn("PR #698", doc)
+        self.assertIn("8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260", doc)
+        self.assertIn("긴급해제 설정 변경 코드 계약", dictionary)
+        self.assertIn("PR #698", dictionary)
         self.assertIn("release/tag/Play deploy", doc)
         self.assertIn("live 0건은 수요 없음으로 해석하지 않는다", doc)
         self.assertIn("release/tag/Play deploy", high_traffic)
         self.assertNotIn("Closes #694", doc)
+        for stale_phrase in [
+            "code-lane wiring 전",
+            "긴급해제 설정 변경 구현 후보",
+            "남은 code/external 경계",
+            "Android analytics API/Firebase adapter/ViewModel wiring이 구현된다.",
+        ]:
+            self.assertNotIn(stale_phrase, doc)
+            self.assertNotIn(stale_phrase, dictionary)
 
 
 if __name__ == "__main__":
