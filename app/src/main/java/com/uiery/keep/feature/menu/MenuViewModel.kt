@@ -102,6 +102,17 @@ class MenuViewModel private constructor(
         )
     }
 
+    fun onSupportContactStarted() {
+        analytics.trackSupportContactStarted(surface = SupportContactSurface.MENU)
+    }
+
+    fun onSupportContactClipboardFallbackUsed() {
+        analytics.trackSupportContactFallbackUsed(
+            surface = SupportContactSurface.MENU,
+            fallbackType = SupportContactFallbackType.CLIPBOARD,
+        )
+    }
+
     private companion object {
         const val MONETIZATION_INTEREST_VARIANT = "default"
     }

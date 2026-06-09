@@ -365,6 +365,26 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackSupportContactStarted(surface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.SUPPORT_CONTACT_STARTED,
+                params = mapOf(KeepAnalyticsParam.SURFACE to surface),
+            )
+        }
+
+        override fun trackSupportContactFallbackUsed(
+            surface: String,
+            fallbackType: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.SUPPORT_CONTACT_FALLBACK_USED,
+                params = mapOf(
+                    KeepAnalyticsParam.SURFACE to surface,
+                    KeepAnalyticsParam.FALLBACK_TYPE to fallbackType,
+                ),
+            )
+        }
+
         override fun trackRoutineTemplateShareTapped(
             templateCategory: String,
             repeatDaysBucket: String,

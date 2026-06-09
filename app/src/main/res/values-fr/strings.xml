@@ -124,6 +124,7 @@
     <string name="monetization_interest_menu_message">Dites-nous si une option sans publicité serait utile. Aucun achat n’est encore disponible.</string>
     <string name="feedback_subject">[StopIt Android] Commentaires</string>
     <string name="email_app_not_installed">Aucune application email installée.</string>
+    <string name="support_contact_fallback_copied">Aucune application email trouvée. L’adresse de support et les diagnostics ont été copiés dans le presse-papiers.</string>
     <string name="feature_request_message">🚀 Nous créerons les fonctionnalités que vous souhaitez !</string>
     <string name="accessibility_setup_guide">● Samsung: Paramètres > Accessibilité > Applications installées > StopIt > Autoriser l\'accessibilité\n● Autres: Paramètres > Accessibilité > StopIt > Autoriser l\'accessibilité</string>
     <string name="lock_screen_routine_running">%1$s \nRoutine en cours</string>

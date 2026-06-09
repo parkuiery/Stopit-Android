@@ -344,6 +344,8 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `ad_banner_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | Stopit 앱 배너 광고 수익 발생. SDK 자동 `ad_revenue`와 섞지 않는다. |
 | `monetization_interest_shown` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 노출 |
 | `monetization_interest_clicked` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 클릭 |
+| `support_contact_started` | `surface` | 문의/지원 연락 흐름 시작. 현재 `surface=menu`만 허용하며 앱 목록·루틴·잠금 기록·사용자 입력 원문은 기록하지 않는다. |
+| `support_contact_fallback_used` | `surface`, `fallback_type` | 이메일 앱 미설치 등으로 기본 메일 intent가 열리지 않아 fallback을 사용. 현재 `fallback_type=clipboard`만 허용한다. |
 
 운영 원칙:
 
@@ -471,7 +473,8 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
-| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 루틴 CTA/추천의 안전한 노출 표면별 반응 비교 |
+| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`, `support_contact_started`, `support_contact_fallback_used` | 루틴 CTA/추천/지원 연락의 안전한 노출 표면별 반응 비교 |
+| Required | `fallback_type` | `fallback_type` | `support_contact_fallback_used` | 이메일 앱 미설치 fallback 방식. 현재 `clipboard`만 허용하며 진단 payload 원문은 analytics에 기록하지 않는다. |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
 | Required | `suggestion_reason` | `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 반복 차단 기반 루틴 추천 이유 비교 |
