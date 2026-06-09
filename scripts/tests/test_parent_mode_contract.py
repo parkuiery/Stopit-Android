@@ -204,11 +204,31 @@ class ParentModeContractTest(unittest.TestCase):
             "KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution",
             qa_checklist,
         )
+        self.assertIn(
+            "KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence",
+            qa_checklist,
+        )
         self.assertIn("observedParentModeState=active", qa_checklist)
+        self.assertIn("observedParentModeState=expired", qa_checklist)
         self.assertIn("lastLaunchedBlockSource=parent_mode", qa_checklist)
+        self.assertIn("nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry", qa_checklist)
+        self.assertIn("expiresAtMillis", qa_checklist)
         self.assertIn("0분/음수 extension은 거부", qa_checklist)
         self.assertIn("Parent mode QA evidence", qa_checklist)
         self.assertIn("same-device / PIN / bypass", qa_checklist)
+
+    def test_runbook_tracks_parent_mode_expiry_runtime_foothold(self):
+        runbook = RUNBOOK.read_text()
+
+        for phrase in [
+            "8차 QA-lane expiry runtime foothold",
+            "nextParentModeExpirationReevaluationDelayMillis",
+            "nextTimeBasedBlockingStartReevaluationDelayMillis",
+            "time-based 재평가",
+            "observedParentModeState=expired",
+            "expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence",
+        ]:
+            self.assertIn(phrase, runbook)
 
     def test_runbook_points_future_lanes_to_contract_regression(self):
         runbook = RUNBOOK.read_text()
