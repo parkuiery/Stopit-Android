@@ -180,10 +180,13 @@ Repo-internal docs-lane 완료 기준:
 - [x] 이벤트 딕셔너리, GA4 등록 runbook, metrics/product/context 문서에서 source of truth를 링크한다.
 - [x] static docs contract test가 source of truth, 금지 payload, GA4/readback 경계를 고정한다.
 
-남은 code/external 경계:
+Repo-internal code-lane 완료 기준:
 
-- [ ] Android analytics API/Firebase adapter/ViewModel wiring이 구현된다.
-- [ ] raw reason/app/package/timestamp가 payload에 포함되지 않음을 JVM 테스트로 보장한다.
+- [x] Android analytics API/Firebase adapter/ViewModel wiring이 구현됐다. (PR #698 / merge commit `8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260`)
+- [x] raw reason/app/package/timestamp/`manualResetAtMillis`가 payload에 포함되지 않음을 JVM 테스트로 보장한다. (`FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`, `EmergencyUnlockSettingsViewModelAnalyticsTest`)
+
+남은 external / release / measurement 경계:
+
 - [ ] GA4 Admin custom dimension 등록과 metadata 확인을 수행한다.
 - [ ] #694 포함 버전이 release/tag/Play deploy된다.
 - [ ] 배포 후 14일 또는 30일 readback으로 setting adoption을 해석한다.
