@@ -117,6 +117,7 @@ class AndroidManifestContractTest(unittest.TestCase):
                 "android.intent.action.MY_PACKAGE_REPLACED",
                 "android.intent.action.TIME_SET",
                 "android.intent.action.TIMEZONE_CHANGED",
+                "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
             },
             self.intent_actions(boot_receiver),
         )

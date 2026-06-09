@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.content.Intent
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduleResult
@@ -34,7 +35,8 @@ object RoutineReceiverPolicy {
         action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == Intent.ACTION_TIME_CHANGED ||
-            action == Intent.ACTION_TIMEZONE_CHANGED
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
 
     fun parseRoutineAlarmTrigger(
         action: String?,
