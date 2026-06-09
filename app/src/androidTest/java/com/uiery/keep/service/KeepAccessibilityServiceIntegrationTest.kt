@@ -13,10 +13,10 @@ import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
