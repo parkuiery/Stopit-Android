@@ -129,6 +129,14 @@
     <string name="lock_screen_routine_running">%1$s \nRoutine en cours</string>
     <string name="lock_screen_routines_running">%1$d routines en cours</string>
     <string name="routine_minimum_duration_message">Les routines doivent être définies pour au moins 15 minutes.</string>
+    <string name="parent_mode_menu_title">Give phone to child</string>
+    <string name="parent_mode_setup_title">Parent Mode</string>
+    <string name="parent_mode_setup_headline">Set a promise before handing over your phone</string>
+    <string name="parent_mode_setup_description">Parent Mode will use your current selected apps as the allowed apps for the first setup foothold.</string>
+    <string name="parent_mode_setup_allowed_apps_summary">Allowed apps from current selection: %1$d</string>
+    <string name="parent_mode_setup_pin_required_notice">Guardian PIN verification is still required before Parent Mode can start.</string>
+    <string name="parent_mode_setup_start_disabled">PIN setup required</string>
+    <string name="parent_mode_setup_back_to_menu">Back to menu</string>
     <string name="lock_history_menu_title">Voir l\'historique de verrouillage</string>
     <string name="lock_history_title">Historique de verrouillage</string>
     <string name="lock_history_week">Semaine</string>

@@ -137,6 +137,14 @@
     <string name="lock_screen_routine_running">%1$s \n루틴 실행 중</string>
     <string name="lock_screen_routines_running">%1$d개의 루틴 실행 중</string>
     <string name="routine_minimum_duration_message">루틴은 최소 15분 이상 설정할 수 있어요.</string>
+    <string name="parent_mode_menu_title">아이에게 폰 주기</string>
+    <string name="parent_mode_setup_title">부모 모드</string>
+    <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>
+    <string name="parent_mode_setup_description">이번 setup foothold는 현재 선택된 차단 앱 목록을 부모 모드 허용 앱 후보로 불러옵니다.</string>
+    <string name="parent_mode_setup_allowed_apps_summary">현재 선택에서 불러온 허용 앱: %1$d개</string>
+    <string name="parent_mode_setup_pin_required_notice">부모 모드를 시작하려면 보호자 PIN 확인 UI가 아직 필요합니다.</string>
+    <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
+    <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>
     <string name="lock_history_title">잠금 기록</string>
     <string name="lock_history_week">주</string>

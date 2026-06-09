@@ -120,13 +120,39 @@ class ParentModeContractTest(unittest.TestCase):
         ]:
             self.assertIn(phrase, qa_checklist)
 
+    def test_runbook_tracks_setup_entry_foothold_and_remaining_boundaries(self):
+        runbook = RUNBOOK.read_text()
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        for phrase in [
+            "4차 code-lane foothold",
+            "Menu의 `아이에게 폰 주기` entrypoint",
+            "ParentModeSetupRoute",
+            "setup 화면 foothold",
+            "현재 선택 앱을 setup allowed-app seed로 읽어오는 경계",
+            "ParentModeSetupViewModelTest",
+            "실제 PIN 입력 UI와 setup CTA enablement",
+            "Parent mode active/expired screen",
+        ]:
+            self.assertIn(phrase, runbook)
+
+        for document in [product_context, metrics_context]:
+            self.assertIn("Menu", document)
+            self.assertIn("setup 화면", document)
+            self.assertIn("실제 PIN", document)
+            self.assertIn("active/expired", document)
+
+        self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
+
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
 
         self.assertIn("PR #519", product_context)
         self.assertIn("PR #584", product_context)
         self.assertIn("policy/analytics/session/Accessibility foothold", product_context)
-        self.assertIn("남은 경계는 MVP 전체 UX", product_context)
+        self.assertIn("setup 화면/ViewModel foothold", product_context)
+        self.assertIn("남은 경계는 실제 PIN 입력 UI", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):

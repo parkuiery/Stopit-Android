@@ -129,6 +129,7 @@ cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" \
+  --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly"
 ```
 
@@ -192,13 +193,21 @@ cd <repo-root>
 - `ParentModeSessionControllerTest`: 시작, invalid setup, PIN 없는 연장 거부, PIN 성공 연장, PIN 성공 즉시 종료를 DataStore 저장값과 analytics call 순서까지 검증한다.
 - `parent_mode_started`, `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_extended`는 raw 앱 package/PIN/session history 없이 bucket/enum만 보낸다.
 
+### 4차 code-lane foothold
+
+2026-06-09 code-lane PR에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 실제 PIN 입력 UI를 열거나 active/expired 화면을 완성하지는 않지만, 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
+
+- `MenuScreen` / `MenuNavigation` / `KeepApp`: Menu에서 부모 모드 setup route로 이동하는 entrypoint를 연결한다.
+- `ParentModeSetupScreen`: 현재 선택 앱 수, PIN 필요 안내, 후속 PIN setup CTA placeholder를 보여주는 setup 화면을 제공한다.
+- `ParentModeSetupViewModelTest`: 현재 차단 선택 앱을 부모 모드 허용 앱으로 seed하고, PIN 미검증 시 session 저장을 막으며, PIN 검증 후에는 `ParentModeSessionController`를 통해 session 저장과 started side effect를 발생시키는 경계를 검증한다.
+
 ### 다음 code-lane 후보
 
-- Home/Menu entrypoint + setup screen
-- Parent mode active/expired screen과 실제 PIN 입력 UI
+- 실제 PIN 입력 UI와 setup CTA enablement
+- Parent mode active/expired screen
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
-남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 시작 진입점, PIN 확인 UI, active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
+남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 실제 PIN 확인 UI, active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 

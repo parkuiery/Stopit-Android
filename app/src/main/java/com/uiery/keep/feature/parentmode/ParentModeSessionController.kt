@@ -2,8 +2,9 @@ package com.uiery.keep.feature.parentmode
 
 import com.uiery.keep.analytics.AnalyticsParentModeEndReason
 import com.uiery.keep.analytics.KeepAnalytics
+import javax.inject.Inject
 
-internal class ParentModeSessionController(
+internal class ParentModeSessionController @Inject constructor(
     private val store: ParentModeSessionStore,
     private val analytics: KeepAnalytics,
 ) {
