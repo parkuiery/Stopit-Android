@@ -244,6 +244,8 @@ gh pr create --base develop --fill
 
 의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, `gradle/libs.versions.toml`과 `app/build.gradle.kts`, `core/kds/build.gradle.kts`의 dependency source-of-truth drift를 함께 확인합니다. 특히 #175 계열 작업은 app 모듈만 보지 말고 `:core:kds`의 direct version 문자열까지 확인합니다.
 
+Dependabot 자동 업데이트 정책(#693)은 `.github/dependabot.yml`이 source of truth입니다. Dependabot은 Gradle(`/`), GitHub Actions(`/`), Firebase Functions npm(`/functions`), ASO screenshot Bun(`/tools/aso-screenshots`) 생태계를 weekly로 감지하고, PR에는 `maintenance`, `automation`, `dependencies` labels를 붙입니다. patch/minor는 weekly group으로 묶되, **major update**는 자동 batch에서 제외하고 수동 검토 대상으로 남깁니다. Dependabot PR은 Play deploy, release secret, signing secret 변경 경계가 아니며, runtime-sensitive dependency가 포함되면 `docs/QA_RUNTIME_CHECKLIST.md` evidence 요구사항을 별도로 확인합니다.
+
 Navigation/Compose custom lint 복구(`issue #156` 유형)에서는 `:app:lintDevDebug` / `:app:lintProdRelease` green만으로 충분하다고 보지 않습니다. Android CI와 Release QA는 둘 다 `scripts/verify_lint_registry.py`로 HTML lint report를 다시 읽어 `androidx.navigation.common`, `androidx.navigation.compose`, `androidx.navigation.runtime` registry와 `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType` issue id가 실제 report에 포함되고, `Requires newer lint; these checks will be skipped!` / `ObsoleteLintCustomCheck`가 없는지까지 확인합니다.
 
 ## Standard Release Flow
