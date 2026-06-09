@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.kds.theme.KeepTheme
@@ -66,6 +67,7 @@ class RoutineListContentIntegrationTest {
                     onEnabledChange = { _, _ -> },
                     onDetailClick = {},
                     onShareClick = {},
+                    onBlockedRoutineAction = {},
                 )
             }
         }
@@ -79,6 +81,45 @@ class RoutineListContentIntegrationTest {
             substring = true,
         ).assertCountEquals(2)
         composeRule.onNodeWithText("Rest day").assertIsDisplayed()
+    }
+
+    @Test
+    fun runningRoutineCardClickSurfacesBlockedActionFeedbackInsteadOfOpeningDetail() {
+        val today = LocalDateTime.now().dayOfWeek
+        var blockedActionCount = 0
+        var detailClickCount = 0
+
+        composeRule.setContent {
+            KeepTheme {
+                RoutineListContent(
+                    routines = listOf(
+                        testRoutine(
+                            id = 9L,
+                            name = "Running focus",
+                            startTime = LocalTime(hour = 0, minute = 0),
+                            endTime = LocalTime(hour = 23, minute = 59),
+                            repeatDays = listOf(today),
+                            isEnabled = true,
+                        ),
+                    ),
+                    onEnabledChange = { _, _ -> },
+                    onDetailClick = { detailClickCount += 1 },
+                    onShareClick = {},
+                    onBlockedRoutineAction = { blockedActionCount += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Running focus").performClick()
+
+        composeRule.runOnIdle {
+            check(blockedActionCount == 1) {
+                "Expected blocked routine tap to surface feedback once, got $blockedActionCount"
+            }
+            check(detailClickCount == 0) {
+                "Blocked routine tap must not open detail, got $detailClickCount detail clicks"
+            }
+        }
     }
 
     private fun testRoutine(

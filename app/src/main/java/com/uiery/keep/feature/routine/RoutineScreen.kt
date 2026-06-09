@@ -316,6 +316,11 @@ fun RoutineScreen(
                     onEnabledChange = viewModel::changeEnabled,
                     onDetailClick = viewModel::getRoutineDetail,
                     onShareClick = viewModel::shareRoutineTemplate,
+                    onBlockedRoutineAction = {
+                        coroutineScope.launch {
+                            snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                        }
+                    },
                 )
             }
         }

@@ -52,6 +52,7 @@ internal fun RoutineListContent(
     onEnabledChange: (Long, Boolean) -> Unit,
     onDetailClick: (Long) -> Unit,
     onShareClick: (Long) -> Unit,
+    onBlockedRoutineAction: () -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -87,8 +88,20 @@ internal fun RoutineListContent(
                     isRunning = isRunning,
                     isLocked = isLocked,
                     changeLockHours = routine.changeLockHours,
-                    onEnabledChange = { if (!isBlocked) onEnabledChange(routine.id, it) },
-                    onClick = { if (!isBlocked) onDetailClick(routine.id) },
+                    onEnabledChange = {
+                        if (isBlocked) {
+                            onBlockedRoutineAction()
+                        } else {
+                            onEnabledChange(routine.id, it)
+                        }
+                    },
+                    onClick = {
+                        if (isBlocked) {
+                            onBlockedRoutineAction()
+                        } else {
+                            onDetailClick(routine.id)
+                        }
+                    },
                     onShareClick = { onShareClick(routine.id) },
                 )
             }
@@ -135,7 +148,7 @@ private fun RoutineItem(
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(enabled = !isBlocked) { onClick() }
+                .clickable { onClick() }
                 .background(
                     color = cardColor,
                     shape = RoundedCornerShape(12.dp),
