@@ -3,7 +3,8 @@ package com.uiery.keep.feature.lockhistory
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.feature.routine.RepeatBlockHistorySample
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicy
@@ -130,7 +131,7 @@ class LockHistoryViewModel @Inject constructor(
         if (suggestion != null) {
             analytics.trackRepeatBlockRoutineSuggestionShown(
                 surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
-                suggestion = suggestion,
+                suggestion = suggestion.toAnalyticsPayload(),
             )
         }
     }
@@ -164,7 +165,7 @@ class LockHistoryViewModel @Inject constructor(
         val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
         analytics.trackRepeatBlockRoutineSuggestionClicked(
             surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
-            suggestion = suggestion,
+            suggestion = suggestion.toAnalyticsPayload(),
         )
         postSideEffect(LockHistorySideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
     }
@@ -177,7 +178,7 @@ class LockHistoryViewModel @Inject constructor(
         )
         analytics.trackRepeatBlockRoutineSuggestionDismissed(
             surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
-            suggestion = suggestion,
+            suggestion = suggestion.toAnalyticsPayload(),
         )
         reduce { state.copy(repeatBlockRoutineSuggestion = null) }
     }
@@ -240,6 +241,15 @@ sealed class LockHistorySideEffect {
         val suggestion: RepeatBlockRoutineSuggestion,
     ) : LockHistorySideEffect()
 }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
 
 private val LockHistoryPerformanceReportState.analyticsValue: String
     get() = when (this) {

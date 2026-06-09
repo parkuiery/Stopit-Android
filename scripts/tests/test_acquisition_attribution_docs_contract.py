@@ -10,20 +10,20 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-08T03:23:04Z"
+LATEST_TIMESTAMP = "2026-06-08T23:09:54Z"
 LATEST_VALUES = [
-    "563",
-    "334",
-    "230",
-    "59.3%",
-    "+57.7%",
-    "-15.8%",
+    "571",
+    "336",
+    "236",
+    "58.8%",
+    "+65.0%",
+    "-14.7%",
 ]
 SCREEN_QUALITY_VALUES = [
-    "42,706",
-    "26,599",
-    "62.3%",
-    "205 / 795 = 25.8%",
+    "44,376",
+    "27,369",
+    "61.7%",
+    "232 / 806 = 28.8%",
 ]
 
 
@@ -46,16 +46,18 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             for value in LATEST_VALUES:
                 self.assertIn(value, document)
 
-        self.assertIn("59.3%", product_context)
+        self.assertIn(LATEST_TIMESTAMP, product_context)
         self.assertIn("Play Console Search/Explore", product_context)
         self.assertIn("external/campaign", product_context)
         self.assertIn("ASO 회복", product_context)
+        for value in LATEST_VALUES:
+            self.assertIn(value, product_context)
 
         self.assertIn(LATEST_TIMESTAMP, review_prompt_followthrough)
-        self.assertIn("Organic Search` 신규 사용자 | 230", review_prompt_followthrough)
-        self.assertIn("Direct` 신규 사용자 | 334", review_prompt_followthrough)
-        self.assertIn("59.3%", review_prompt_followthrough)
-        self.assertIn("| baseline | TODO | TODO | TODO | 230 | TODO |", review_prompt_followthrough)
+        self.assertIn("Organic Search` 신규 사용자 | 236", review_prompt_followthrough)
+        self.assertIn("Direct` 신규 사용자 | 336", review_prompt_followthrough)
+        self.assertIn("58.8%", review_prompt_followthrough)
+        self.assertIn("| baseline | TODO | TODO | TODO | 236 | TODO |", review_prompt_followthrough)
         self.assertNotIn("| baseline | TODO | TODO | TODO | 170 | TODO |", review_prompt_followthrough)
         self.assertIn("Play Console Search/Explore", review_prompt_followthrough)
         self.assertIn("external/campaign", review_prompt_followthrough)
@@ -78,7 +80,7 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             self.assertIn("release/tag/Play deploy", document)
 
         self.assertIn(LATEST_TIMESTAMP, version_gate)
-        self.assertIn("205 / 795 = 25.8%", version_gate)
+        self.assertIn("232 / 806 = 28.8%", version_gate)
         self.assertIn("주의", version_gate)
         self.assertIn("30% 미만", version_gate)
 
@@ -86,11 +88,11 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         play_store_aso = PLAY_STORE_ASO.read_text()
 
         self.assertIn("2026-06-08 live readback", play_store_aso)
-        self.assertIn("Direct 59.3% 과다 상태 유지", play_store_aso)
+        self.assertIn("Direct 58.8% 과다 상태 유지", play_store_aso)
         self.assertIn("신규 유입 반등을 ASO 효과로 표현 금지", play_store_aso)
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
-        self.assertIn("활성 18명·세션 169회는 신규 획득 성과로 계산하지 않음", play_store_aso)
+        self.assertIn("활성 18명·세션 156회는 신규 획득 성과로 계산하지 않음", play_store_aso)
 
 
 if __name__ == "__main__":

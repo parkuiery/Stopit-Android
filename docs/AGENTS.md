@@ -21,7 +21,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md` | #511용 `RoutineStore` / `PreferencesKey.ROUTINES` legacy compatibility cache 유지·퇴역 계약, Room 우선 conflict-winner, receiver/restore QA handoff. |
 | `ROUTINE_CREATION_CTA_EXPERIMENT.md` | #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 실험 계약, analytics/QA/14일·30일 readback 경계. |
 | `REPEAT_BLOCK_ROUTINE_SUGGESTION.md` | #531용 반복 차단 기반 자동 루틴 제안 계약, privacy-safe bucket/prefill, 기존 루틴 coverage guard, analytics/QA evidence template. |
-| `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. `monetization_interest_*` 관심도 CTA 계약과 #250류 AdMob application/ad unit id config handoff도 여기서 추적한다. |
+| `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. `monetization_interest_*` 관심도 CTA 계약, #250류 AdMob application/ad unit id config handoff, #563 이후 KDS/앱 수익화 runtime ownership 경계도 여기서 추적한다. |
 | `PLAY_DEPLOY_SECRETS_RUNBOOK.md` | Play 배포 secret ownership, helper 범위, workflow restore matrix, Firebase Functions 경계 런북. |
 | `REVIEW_PROMPT_LIFECYCLE.md` | #17용 리뷰 프롬프트 eligibility/drain 계약과 queryability guardrail 문서. |
 | `REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` | #307용 리뷰 프롬프트 shown 0 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적 런북. `scripts.tests.test_review_prompt_post_release_followthrough_docs`가 release/GA4/Play Console 경계를 고정한다. |
@@ -38,6 +38,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, 남은 device/release/readback 경계. |
+| `EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` | #694용 긴급해제 설정 변경 privacy-safe analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, enum/bucket 파라미터, 금지 payload, GA4 등록/readback 경계를 고정한다. |
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
 | `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. |
 | `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |

@@ -10,18 +10,19 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
@@ -238,7 +239,7 @@ class HomeViewModel
                 )
                 analytics.trackRepeatBlockRoutineSuggestionDismissed(
                     surface = RepeatBlockRoutineSuggestionSurface.HOME,
-                    suggestion = suggestion,
+                    suggestion = suggestion.toAnalyticsPayload(),
                 )
                 reduce { state.copy(repeatBlockRoutineSuggestion = null) }
             }
@@ -248,7 +249,7 @@ class HomeViewModel
                 val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
                 analytics.trackRepeatBlockRoutineSuggestionClicked(
                     surface = RepeatBlockRoutineSuggestionSurface.HOME,
-                    suggestion = suggestion,
+                    suggestion = suggestion.toAnalyticsPayload(),
                 )
                 postSideEffect(HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
             }
@@ -285,7 +286,7 @@ class HomeViewModel
                 if (suggestion != null) {
                     analytics.trackRepeatBlockRoutineSuggestionShown(
                         surface = RepeatBlockRoutineSuggestionSurface.HOME,
-                        suggestion = suggestion,
+                        suggestion = suggestion.toAnalyticsPayload(),
                     )
                 }
             }
@@ -662,6 +663,15 @@ private val GoalLockMode.homeLabel: String
         GoalLockMode.AllDay -> "하루종일 잠금"
         is GoalLockMode.Scheduled -> "특정 시간 잠금"
     }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
 

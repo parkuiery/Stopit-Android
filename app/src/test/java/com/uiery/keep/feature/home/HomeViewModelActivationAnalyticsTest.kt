@@ -9,6 +9,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsUserProperty
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
@@ -20,10 +21,10 @@ import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
@@ -960,21 +961,21 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackRepeatBlockRoutineSuggestionShown(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         calls += HomeAnalyticsCall.RepeatBlockSuggestionShown(surface = surface)
     }
 
     override fun trackRepeatBlockRoutineSuggestionClicked(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         calls += HomeAnalyticsCall.RepeatBlockSuggestionClicked(surface = surface)
     }
 
     override fun trackRepeatBlockRoutineSuggestionDismissed(
         surface: String,
-        suggestion: RepeatBlockRoutineSuggestion,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         calls += HomeAnalyticsCall.RepeatBlockSuggestionDismissed(surface = surface)
     }

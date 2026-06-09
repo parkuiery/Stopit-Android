@@ -63,6 +63,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
       - name: Set up JDK 17
         if: env.DEPLOY_TRACK != 'production'
         uses: actions/setup-java@v5
@@ -192,6 +195,26 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/stopit-prior-internal-provenance
+          echo "PROVENANCE_VERIFY_MODE=full" >> "$GITHUB_ENV"
+
+          download_durable_fallback() {
+            echo "Attempting durable release-provenance.json fallback from GitHub Release $GITHUB_REF_NAME" >&2
+            if gh release download "$GITHUB_REF_NAME" \
+              --pattern release-provenance.json \
+              --dir /tmp/stopit-prior-internal-provenance \
+              --clobber; then
+              test -f /tmp/stopit-prior-internal-provenance/release-provenance.json || {
+                echo "durable fallback missing: GitHub Release asset download completed but release-provenance.json is absent." >&2
+                return 1
+              }
+              echo "PROVENANCE_VERIFY_MODE=metadata-only" >> "$GITHUB_ENV"
+              echo "Recovered durable release-provenance.json fallback for $GITHUB_REF_NAME; production promotion will run metadata-only provenance verification before secrets." >&2
+              return 0
+            fi
+            echo "durable fallback missing: GitHub Release $GITHUB_REF_NAME has no release-provenance.json asset available to recover expired/missing prior internal artifact evidence." >&2
+            return 1
+          }
+
           run_id="$(gh run list \
             --workflow 'Android Play Deploy' \
             --branch "$GITHUB_REF_NAME" \
@@ -203,32 +226,54 @@ jobs:
             | head -n 1)"
           if [[ -z "$run_id" ]]; then
             echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA" >&2
-            exit 1
+            download_durable_fallback || {
+              echo "Recovery: rerun a non-production Play Deploy for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
+              exit 1
+            }
+            exit 0
           fi
-          gh run download "$run_id" \
+          if ! gh run download "$run_id" \
             --name stopit-prod-release-signed-aab \
-            --dir /tmp/stopit-prior-internal-provenance
+            --dir /tmp/stopit-prior-internal-provenance; then
+            echo "Prior internal provenance artifact expired/missing for run_id=$run_id ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
+            download_durable_fallback || {
+              echo "Recovery: rerun non-production Play Deploy for the same SemVer tag before production promotion." >&2
+              exit 1
+            }
+            exit 0
+          fi
           test -n "$(find /tmp/stopit-prior-internal-provenance -name release-provenance.json -print -quit)" || {
-            echo "Downloaded prior internal artifact is missing release-provenance.json" >&2
-            exit 1
+            echo "Downloaded prior internal artifact is missing release-provenance.json; classify this separately from provenance mismatch." >&2
+            download_durable_fallback || {
+              echo "Recovery: rerun non-production Play Deploy for the same SemVer tag." >&2
+              exit 1
+            }
           }
 
       - name: Verify prior internal provenance before production promotion
         if: env.DEPLOY_TRACK == 'production'
-        run: >-
-          python3 scripts/release_provenance_manifest.py verify
-          --aab-glob '/tmp/stopit-prior-internal-provenance/**/*.aab'
-          --manifest /tmp/stopit-prior-internal-provenance/release-provenance.json
-          --package-name "$PACKAGE_NAME"
-          --upload-mode play-upload
-          --track internal
-          --release-status completed
-          --rollout-fraction ''
-          --expected-version-code "$VERSION_CODE"
-          --expected-git-sha "$GITHUB_SHA"
-          --expected-git-ref "$GITHUB_REF"
-          --expected-git-ref-name "$GITHUB_REF_NAME"
-          --allow-artifact-path-relocation
+        run: |
+          set -euo pipefail
+          args=(
+            verify
+            --aab-glob '/tmp/stopit-prior-internal-provenance/**/*.aab'
+            --manifest /tmp/stopit-prior-internal-provenance/release-provenance.json
+            --artifact-name stopit-prod-release-signed-aab
+            --package-name "$PACKAGE_NAME"
+            --upload-mode play-upload
+            --track internal
+            --release-status completed
+            --rollout-fraction ''
+            --expected-version-code "$VERSION_CODE"
+            --expected-git-sha "$GITHUB_SHA"
+            --expected-git-ref "$GITHUB_REF"
+            --expected-git-ref-name "$GITHUB_REF_NAME"
+            --allow-artifact-path-relocation
+          )
+          if [[ "${PROVENANCE_VERIFY_MODE:-full}" == "metadata-only" ]]; then
+            args+=(--metadata-only)
+          fi
+          python3 scripts/release_provenance_manifest.py "${args[@]}"
 
       - name: Validate production promotion secrets
         if: env.DEPLOY_TRACK == 'production'
@@ -302,6 +347,27 @@ jobs:
           tracks: ${{ env.DEPLOY_TRACK }}
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
+
+      - name: Publish durable provenance fallback to GitHub Release
+        if: env.DEPLOY_TRACK != 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Durable provenance fallback requires a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "GitHub Release $GITHUB_REF_NAME already exists; uploading release-provenance.json fallback."
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "$GITHUB_REF_NAME" \
+              --notes "Stopit $GITHUB_REF_NAME release provenance fallback."
+          fi
+          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber
+          echo "Published durable release-provenance.json fallback for $GITHUB_REF_NAME after successful $DEPLOY_TRACK Play upload."
 
       - name: Promote internal release to production
         if: env.DEPLOY_TRACK == 'production'

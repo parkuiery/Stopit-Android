@@ -80,7 +80,7 @@ Issue: #471
 
 ## Analytics 계약
 
-> 이 표는 구현 전 계약이다. 코드 PR이 들어가기 전에는 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 이 문서가 source of truth이며, GA4 Admin 등록/metadata 확인 전에는 세부 breakdown 결론을 낮은 confidence로 둔다.
+> 이 표는 PR #519의 policy/analytics foothold와 PR #584의 session/accessibility foothold 이후에도 유지되는 source of truth다. 코드에는 일부 `parent_mode_*` API와 `app_block_intercepted.block_source=parent_mode` 경계가 들어갔지만, setup/active UI, release/tag/Play deploy, GA4 Admin 등록/metadata 확인 전에는 세부 breakdown 결론을 낮은 confidence로 둔다.
 
 | 이벤트명 | 주요 파라미터 | 의미 |
 | --- | --- | --- |
@@ -129,6 +129,7 @@ cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
   --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" \
+  --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly"
 ```
 
@@ -145,7 +146,7 @@ cd <repo-root>
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeAccessibilityIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution
 ```
 
 수동 QA evidence는 `docs/QA_RUNTIME_CHECKLIST.md`의 `Parent mode QA evidence` 템플릿을 사용한다.
@@ -158,7 +159,8 @@ cd <repo-root>
   - [ ] 허용되지 않은 앱은 차단된다.
   - [ ] 시간이 끝나면 허용 앱도 계속 사용할 수 없다.
   - [ ] PIN 없이 시간 연장/종료가 되지 않는다.
-  - [ ] PIN 성공 시 즉시 종료/연장이 된다.
+  - [ ] PIN 성공 시 양수 extension만 즉시 연장되고, 0분/음수 extension은 거부된다.
+  - [ ] PIN 성공 시 즉시 종료가 된다.
   - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.
   - [ ] 긴급 전화/필수 시스템 safety path를 부적절하게 막지 않는다.
 
@@ -166,7 +168,7 @@ cd <repo-root>
 
 ### 1차 code-lane foothold
 
-2026-06-06 code-lane에서 첫 repo-internal foothold를 추가했다. 이 foothold는 아직 entrypoint/setup UI/Accessibility runtime 연결은 아니지만, 후속 구현이 공유해야 할 순수 정책과 privacy-safe analytics schema를 코드 계약으로 고정한다.
+2026-06-06 code-lane PR #519에서 첫 repo-internal foothold를 추가했다. 이 foothold는 아직 entrypoint/setup UI/Accessibility runtime 연결은 아니지만, 후속 구현이 공유해야 할 순수 정책과 privacy-safe analytics schema를 코드 계약으로 고정한다.
 
 - `feature/parentmode/ParentModePolicy.kt`: duration/app-count/state transition/pin-result pure policy, active session expiry, allowlist 기반 block decision
 - `ParentModePolicyTest`, `ParentModePinPolicyTest`: RED/GREEN 첫 계약
@@ -175,7 +177,7 @@ cd <repo-root>
 
 ### 2차 code-lane foothold
 
-2026-06-07 code-lane에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
+2026-06-07 code-lane PR #584에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했고, merge commit `b58c6a8dbf2ba4541a748da4d0b948ee8c6a692a`로 `develop`에 반영됐다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
 
 - `ParentModeSessionStore`: `PreferencesKey.PARENT_MODE_STARTED_AT`, `PARENT_MODE_EXPIRES_AT`, `PARENT_MODE_DURATION_MINUTES`, `PARENT_MODE_ALLOWED_APPS`, `PARENT_MODE_STATE`를 DataStore에 저장/관찰한다.
 - `BackupRestoreDataStoreKeyPolicy`: 부모 모드 session key를 restore-reset-only로 유지해 기기 복원 후 아이에게 폰 주기 session이 되살아나지 않게 한다.
@@ -183,11 +185,51 @@ cd <repo-root>
 - `KeepAccessibilityService`: `ParentModeSessionStore.observe()`를 구독하고 foreground 재평가에 부모 모드 session을 전달한다.
 - `AnalyticsBlockSource.PARENT_MODE`: `app_block_intercepted.block_source`에 `parent_mode` 값을 추가했다.
 
+### 3차 code-lane foothold
+
+2026-06-09 code-lane PR에서 `ParentModeSessionController`를 추가해 setup validation → session 저장 → privacy-safe analytics commit, PIN 검증 후 연장/즉시 종료 commit 경계를 한 곳으로 묶었다. 이 foothold는 아직 화면 진입점이나 실제 PIN 입력 UI가 아니지만, 후속 Home/Menu/setup/active 화면은 이 controller를 통해서만 부모 모드 session을 시작·연장·종료해야 한다.
+
+- `ParentModeSessionController`: duration/허용 앱/PIN validation 실패 시 저장·analytics를 하지 않고 `SetupBlocked`를 반환한다.
+- `ParentModeSessionControllerTest`: 시작, invalid setup, PIN 없는 연장 거부, PIN 성공 연장, PIN 성공 즉시 종료, 시간 만료 1회 commit을 DataStore 저장값과 analytics call 순서까지 검증한다.
+- `parent_mode_started`, `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_extended`는 raw 앱 package/PIN/session history 없이 bucket/enum만 보낸다.
+
+### 4차 code-lane foothold
+
+2026-06-09 code-lane PR에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
+
+- `MenuScreen` / `MenuNavigation` / `KeepApp`: Menu에서 부모 모드 setup route로 이동하는 entrypoint를 연결한다.
+- `ParentModeSetupScreen`: 현재 선택 앱 수와 보호자 PIN 입력 필드를 보여주고, verified PIN일 때만 setup CTA를 활성화한다.
+- `ParentModeSetupViewModelTest`: 현재 차단 선택 앱을 부모 모드 허용 앱으로 seed하고, PIN 불일치/미충족 상태에서는 session 저장을 막는 경계를 검증한다.
+
+### 5차 code-lane foothold
+
+2026-06-09 code-lane PR에서 실제 PIN 입력 UI와 setup CTA enablement를 setup 화면에 연결했다. 이 foothold는 active/expired 화면을 완성하지는 않지만, 사용자가 보호자 PIN을 입력·확인한 뒤에만 `ParentModeSessionController`를 통해 session 저장과 `Started` side effect를 발생시키는 runtime setup 경계를 고정한다.
+
+- `ParentModeSetupScreen`: 보호자 PIN / 확인 입력 필드, mismatch helper, numeric password keyboard, verified PIN 기반 시작 CTA를 제공한다.
+- `ParentModeSetupViewModel`: digit-only 4~6자리 PIN 입력을 state에 반영하고, `ParentModePinState.Verified`일 때만 `canAttemptStart`를 true로 만든다.
+- `ParentModeSetupViewModelTest`: PIN mismatch, 짧은 PIN, non-digit filtering, verified PIN start path를 `ParentModeSessionController` 저장/analytics call 경계와 함께 검증한다.
+
+### 6차 code-lane foothold
+
+2026-06-09 code-lane PR에서 `ParentModeSessionController.markExpiredIfNeeded(...)`를 추가해 active session이 만료 시각을 지난 뒤 `expired` 상태와 `parent_mode_completed(end_reason=time_expired)` analytics를 한 번만 commit하도록 고정했다. Accessibility 차단 decision은 이미 만료 세션에서 허용 앱도 차단하지만, 이번 foothold는 persisted session state와 completion analytics가 중복 없이 따라오도록 보강한다.
+
+- `ParentModeSessionController`: active session만 만료 처리하고, 이미 `expired`/`unlocked_by_pin`/`cancelled` 상태인 session은 `NoStateChange`로 둔다.
+- `ParentModeSessionControllerTest.markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce`: 만료 1회 저장, 두 번째 호출 no-op, `time_expired` completion event 1회만 기록되는 경계를 검증한다.
+
+### 7차 QA-lane runtime foothold
+
+2026-06-09 QA-lane PR에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 foothold는 full active/expired UX 화면을 완성하지는 않지만, device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence를 고정한다.
+
+- `KeepAccessibilityServiceDebugState`: 서비스가 관찰한 Parent Mode state와 allowed-app count를 instrumentation evidence로 보존한다.
+- `KeepAccessibilityServiceIntegrationTest.activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`: manual Keep 없이 active Parent Mode DataStore session만으로 비허용 앱 차단 요청이 발생하고, `observedParentModeState=active`, `observedParentModeAllowedAppCount=1`, `lastLaunchedBlockSource=parent_mode`가 기록되는지 검증한다.
+- `docs/QA_RUNTIME_CHECKLIST.md`: Parent Mode runtime baseline command와 evidence 템플릿을 실제 service integration test로 동기화한다.
+
 ### 다음 code-lane 후보
 
-- Home/Menu entrypoint + setup screen
 - Parent mode active/expired screen
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
+
+남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 
@@ -199,8 +241,8 @@ cd <repo-root>
 
 ## Closing discipline
 
-- 이 문서/계약 PR은 구현 전 handoff이므로 `Refs #471`가 맞다.
-- `Closes #471`는 부모 모드 entrypoint, setup, PIN policy, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
+- 이 문서는 PR #519와 PR #584 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
+- `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
 - GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
 
 ## Contract regression

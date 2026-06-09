@@ -51,6 +51,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         }
 
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_title)).assertExists()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_step_purpose)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_required_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsNotEnabled()
@@ -63,11 +64,13 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         composeRule.onNodeWithTag("emergency_unlock_reason_other_input").performTextInput("은행 인증")
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
 
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_step_purpose)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_required_helper)).assertExists()
         composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
 
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_duration_step_purpose)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_duration_helper)).assertExists()
         composeRule.onNodeWithTag("emergency_unlock_duration_10").performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()

@@ -22,6 +22,7 @@
 - `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`: #465용 LockHistory 성과 리포트 UX, empty/low-data 카피, top apps positive framing, privacy-safe analytics/QA 계약
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP, 보호자 PIN, privacy-safe analytics/QA 계약
+- `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. 설정 ON/OFF, daily limit, duration option, reason required, refill mode, manual reset을 enum/bucket만으로 계측하고 GA4/Admin/readback 경계를 분리한다.
 
 ## 소스 오브 트루스
 
@@ -35,9 +36,10 @@
 - 루틴 count user property: `app/src/main/java/com/uiery/keep/analytics/RoutineCountAnalyticsSync.kt` (`KeepAnalyticsUserProperty.ROUTINES_COUNT`, `KeepAnalytics.setRoutinesCount(...)`)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
-- 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
+- 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; 2026-06-08 #651 code-lane에서 analytics boundary는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO로 분리해 feature-local suggestion object를 analytics API/Firebase adapter가 직접 import하지 않는다. Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
-- 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code-lane foothold로 순수 정책 + `parent_mode_*` analytics API 추가)
+- 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSessionStore.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` (PR #519로 순수 정책 + `parent_mode_*` analytics API, PR #584로 session persistence + `block_source=parent_mode` Accessibility decision foothold 추가)
+- 긴급해제 설정 변경 코드 계약: `app/src/main/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModel.kt`, `app/src/main/java/com/uiery/keep/datastore/EmergencyUnlockSettingsStore.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `FirebaseKeepAnalytics.kt` (PR #698 / merge commit `8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260`로 `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` Android wiring과 privacy-safe JVM payload 보장이 `develop`에 반영됨. GA4 Admin 등록, release/tag/Play deploy, D+14/D+30 readback 전까지 live event 0건은 adoption 부재로 해석하지 않는다.)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
@@ -73,7 +75,7 @@
 
 ### 획득 / Install Referrer attribution
 
-Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. PR #586으로 parser, campaign link helper, analytics event/parameter constants와 privacy-safe unit regression foothold가 `develop`에 반영됐고, 이번 QA package로 `InstallReferrerClient` provider + first-launch one-shot reporter wiring까지 추가됐다. 다만 GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`(#581)를 source of truth로 본다. PR #586으로 parser, campaign link helper, analytics event/parameter constants와 privacy-safe unit regression foothold가 `develop`에 반영됐고, PR #590(`ae26293a`)으로 `InstallReferrerClient` provider + first-launch one-shot reporter wiring까지 추가됐다. 다만 GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 GA4 `Direct` 감소나 ASO 회복을 주장하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -239,7 +241,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - `duration_selection_type`: `preset_days`, `custom_days`, `end_date`
 - `lock_mode`: `all_day`, `scheduled`
 - `selected_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
-- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`; 목표 이름 원문은 analytics에 넣지 않는다.
+- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`; 목표 이름 원문은 analytics에 넣지 않는다. Preset CTA는 표시 문자열/locale literal 비교가 아니라 locale-independent preset key로 분류하고, 사용자가 같은 문구를 직접 입력한 경우는 `custom`으로 기록한다.
 - `duration_days_bucket`: `1_6`, `7`, `8_14`, `15_30`, `31_plus`
 - `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
@@ -288,7 +290,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 부모 모드
 
-부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
+부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. PR #519 이후 `parent_mode_*` analytics API와 privacy-safe bucket contract가 코드에 들어갔고, PR #584 이후 active session의 foreground 차단은 `app_block_intercepted.block_source=parent_mode`로 구분된다. 아직 setup/active UI, PIN runtime flow, release/tag/Play deploy, GA4 Admin metadata/readback 전이므로 live product conclusion은 낮은 confidence로 둔다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -311,9 +313,29 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - `block_context`: `disallowed_app`, `settings_surface`, `recent_apps`, `notification_surface`, `unknown`
 - 아이 이름, 앱 이름, package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 부모 모드 payload에 넣지 않는다.
 
+### 긴급해제 설정 변경
+
+긴급해제 설정 변경의 제품/QA 계약은 `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`(#694)를 source of truth로 본다. 현재 `EmergencyUnlockSettingsViewModel`은 `EmergencyUnlockSettingsScreen` screen_view와 아래 설정 변경/manual reset 이벤트를 기록한다. 단, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 live event 0건을 adoption 부재로 해석하지 않고 결론을 보류한다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `emergency_unlock_settings_changed` | `setting_name`, `value_bucket`, `refill_mode`, `duration_count_bucket`, `source` | 긴급해제 기능 ON/OFF, daily limit, duration option, reason required, refill mode 같은 설정 변경 |
+| `emergency_unlock_manual_reset_requested` | `refill_mode`, `remaining_unlocks_bucket`, `source`, `reset_result?` | manual refill mode에서 수동 회복 요청 |
+
+현재 enum/bucket 계약:
+
+- `setting_name`: `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`
+- `value_bucket`: setting별 `on/off`, `1/2/3/4_plus`, `none/short_only/mixed/long_included`, `daily/manual`
+- `refill_mode`: `daily`, `manual`, `not_applicable`
+- `duration_count_bucket`: `0`, `1`, `2_3`, `4_plus`, `not_applicable`
+- `remaining_unlocks_bucket`: `0`, `1`, `2`, `3_plus`, `unknown`
+- `source`: `menu`
+- `reset_result`: `requested`, `completed`, `unavailable` (optional; 결과 구분이 안전할 때만 추가)
+- custom reason 원문, reason display label/custom text, 앱 package/name/list, raw lock/session history, raw timestamp, `manualResetAtMillis` 원문, 설정 snapshot dump는 payload와 GA4 등록 대상에서 금지한다.
+
 ### 광고 / 수익화
 
-AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
+AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 contract가 source of truth다. PR #563 이후 `:core:kds`는 AdMob SDK runtime을 직접 소유하지 않으며, KDS는 디자인 primitive/theme boundary로만 본다. 광고 제거 관심도 실험 이벤트는 `KeepAnalytics.kt` / `FirebaseKeepAnalytics.kt` / `FirebaseKeepAnalyticsTest.kt`에 코드 계약이 추가됐고, 2026-06-04 code-lane에서 `MenuScreen.kt` 메뉴/설정 CTA가 첫 안전 표면으로 연결됐다. 실험 판단 전에는 GA4 Admin 등록 상태와 release/tag/Play 배포 후 14일 관측 창을 먼저 확인한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -322,6 +344,8 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `ad_banner_revenue` | `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`, `ad_currency`, `ad_precision_type`, `ad_value_micros` | Stopit 앱 배너 광고 수익 발생. SDK 자동 `ad_revenue`와 섞지 않는다. |
 | `monetization_interest_shown` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 노출 |
 | `monetization_interest_clicked` | `interest_context`, `interest_surface`, `interest_variant?`, `purchase_available?` | 광고 제거/수익화 관심도 CTA 클릭 |
+| `support_contact_started` | `surface` | 문의/지원 연락 흐름 시작. 현재 `surface=menu`만 허용하며 앱 목록·루틴·잠금 기록·사용자 입력 원문은 기록하지 않는다. |
+| `support_contact_fallback_used` | `surface`, `fallback_type` | 이메일 앱 미설치 등으로 기본 메일 intent가 열리지 않아 fallback을 사용. 현재 `fallback_type=clipboard`만 허용한다. |
 
 운영 원칙:
 
@@ -369,6 +393,12 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `duration_days_bucket` | 목표 잠금 총 기간 bucket (`1_6`, `7`, `8_14`, `15_30`, `31_plus`) |
 | `elapsed_days_bucket` | 조기 종료 시 경과일 bucket (`0`, `1_2`, `3_6`, `7_14`, `15_plus`) |
 | `changed_field` | 목표 잠금 수정 필드 enum (`duration`, `apps`, `schedule`, `name`, `lock_mode`) |
+| `setting_name` | 긴급해제 설정 변경 축 enum (`enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`) |
+| `value_bucket` | 긴급해제 설정 변경 값 bucket. 이벤트별 source of truth는 `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`를 따른다. |
+| `duration_count_bucket` | 긴급해제 duration option 개수 bucket (`0`, `1`, `2_3`, `4_plus`, `not_applicable`) |
+| `remaining_unlocks_bucket` | 긴급해제 manual reset 전 남은 횟수 bucket (`0`, `1`, `2`, `3_plus`, `unknown`) |
+| `refill_mode` | 긴급해제 refill 방식 enum (`daily`, `manual`, `not_applicable`) |
+| `reset_result` | 긴급해제 manual reset 결과 enum 후보 (`requested`, `completed`, `unavailable`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
 | `routine_id` | 루틴 식별자 |
 | `goal_lock_id` | 목표 잠금 식별자. 목표 이름/app package/app label 원문이 아니라 내부 id만 전달하며, goal-lock source 차단성과 디버깅에만 사용한다. |
@@ -443,7 +473,8 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `ad_unit_id` | `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | `(not set)` 원인 추적과 단위별 매핑 |
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
-| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 루틴 CTA/추천의 안전한 노출 표면별 반응 비교 |
+| Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`, `support_contact_started`, `support_contact_fallback_used` | 루틴 CTA/추천/지원 연락의 안전한 노출 표면별 반응 비교 |
+| Required | `fallback_type` | `fallback_type` | `support_contact_fallback_used` | 이메일 앱 미설치 fallback 방식. 현재 `clipboard`만 허용하며 진단 payload 원문은 analytics에 기록하지 않는다. |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
 | Required | `suggestion_reason` | `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | 반복 차단 기반 루틴 추천 이유 비교 |
@@ -615,7 +646,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐고, PR #358 merge commit `6ceaecc4`가 release-boundary 해석을 문서화했으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 `PR #296/#318/#358` 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. #13 closure는 release/tag/Play deploy 후 **D+14 screen quality 재측정**으로 판단한다.
-- 2026-06-08T03:23:04Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `26,599 / 42,706 = 62.3%`였고 최신 관측 production version `1.7.7` active share도 `205 / 795 = 25.8%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-08T23:09:54Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `27,369 / 44,376 = 61.7%`였고 최신 관측 production version `1.7.7` active share도 `232 / 806 = 28.8%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

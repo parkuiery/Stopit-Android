@@ -7,6 +7,7 @@ PLAY_DEPLOY = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 PLAY_DOC = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 
 
 def step_block(text: str, step_name: str) -> str:
@@ -91,6 +92,26 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("app/build/outputs/bundle/prodRelease/*.aab", upload_step)
         self.assertIn("app/build/outputs/bundle/prodRelease/release-provenance.json", upload_step)
 
+    def test_non_production_tag_deploy_publishes_durable_release_provenance_fallback(self):
+        workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
+        self.assertIn("contents: write", workflow)
+        self.assertLess(
+            workflow.index("- name: Verify Play upload provenance manifest"),
+            workflow.index("- name: Upload to Google Play"),
+        )
+        self.assertLess(
+            workflow.index("- name: Upload to Google Play"),
+            workflow.index("- name: Publish durable provenance fallback to GitHub Release"),
+        )
+
+        publish_step = step_block(workflow, "Publish durable provenance fallback to GitHub Release")
+        self.assertIn("if: env.DEPLOY_TRACK != 'production'", publish_step)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", publish_step)
+        self.assertIn("release-provenance.json", publish_step)
+        self.assertIn("gh release view \"$GITHUB_REF_NAME\"", publish_step)
+        self.assertIn("gh release create \"$GITHUB_REF_NAME\"", publish_step)
+        self.assertIn("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber", publish_step)
+
     def test_production_promotion_downloads_and_verifies_prior_internal_provenance_before_secrets(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
         self.assertIn("actions: read", workflow)
@@ -122,11 +143,20 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("--event push", download_step)
         self.assertIn("gh run download", download_step)
         self.assertIn("--name stopit-prod-release-signed-aab", download_step)
+        self.assertIn("gh release download \"$GITHUB_REF_NAME\"", download_step)
+        self.assertIn("--pattern release-provenance.json", download_step)
         self.assertIn("release-provenance.json", download_step)
+        self.assertIn("PROVENANCE_VERIFY_MODE=metadata-only", download_step)
+        self.assertIn("artifact expired/missing", download_step)
+        self.assertIn("durable fallback missing", download_step)
+        self.assertIn("rerun non-production Play Deploy", download_step)
 
         verify_step = step_block(workflow, "Verify prior internal provenance before production promotion")
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", verify_step)
-        self.assertIn("python3 scripts/release_provenance_manifest.py verify", verify_step)
+        self.assertIn("python3 scripts/release_provenance_manifest.py \"${args[@]}\"", verify_step)
+        self.assertIn("args=(", verify_step)
+        self.assertIn("verify", verify_step)
+        self.assertIn("--metadata-only", verify_step)
         self.assertIn("--track internal", verify_step)
         self.assertIn("--release-status completed", verify_step)
         self.assertIn("--rollout-fraction ''", verify_step)
@@ -138,7 +168,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
     def test_docs_define_production_promotion_provenance_boundary(self):
         docs = "\n".join(
             path.read_text(encoding="utf-8")
-            for path in (PLAY_DOC, RELEASE_CHECKLIST, RELEASE_CONTEXT)
+            for path in (PLAY_DOC, RELEASE_CHECKLIST, RELEASE_CONTEXT, GIT_WORKFLOW)
         )
         for required in (
             "release-provenance.json",
@@ -153,6 +183,11 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "fail-fast before production secrets",
             "prior internal provenance gate",
             "before `Upload signed AAB artifact`",
+            "30-day evidence surface",
+            "durable fallback",
+            "artifact expired/missing",
+            "durable fallback missing",
+            "provenance mismatch",
         ):
             self.assertIn(required, docs)
 
