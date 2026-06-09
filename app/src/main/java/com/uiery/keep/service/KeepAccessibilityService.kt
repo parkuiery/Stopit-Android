@@ -14,6 +14,9 @@ import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
@@ -519,10 +522,10 @@ internal fun nextGoalLockStartReevaluationDelayMillis(
 ): Long? = goalLocks
     .asSequence()
     .filter { goalLock ->
-        goalLock.status == com.uiery.keep.feature.goallock.GoalLockStoredStatus.Active &&
+        goalLock.status == GoalLockStoredStatus.Active &&
             goalLock.selectedPackages.isNotEmpty() &&
             !goalLock.startDate.isAfter(goalLock.endDate) &&
-            com.uiery.keep.feature.goallock.GoalLockPolicy.isValidForCreation(goalLock)
+            GoalLockPolicy.isValidForCreation(goalLock)
     }
     .flatMap { goalLock -> nextGoalLockStartCandidates(goalLock = goalLock, now = now).asSequence() }
     .filter { candidateStart -> candidateStart.isAfter(now) }
@@ -533,8 +536,8 @@ private fun nextGoalLockStartCandidates(
     goalLock: GoalLock,
     now: LocalDateTime,
 ): List<LocalDateTime> = when (val mode = goalLock.lockMode) {
-    com.uiery.keep.feature.goallock.GoalLockMode.AllDay -> listOf(goalLock.startDate.atStartOfDay())
-    is com.uiery.keep.feature.goallock.GoalLockMode.Scheduled -> {
+    GoalLockMode.AllDay -> listOf(goalLock.startDate.atStartOfDay())
+    is GoalLockMode.Scheduled -> {
         val firstDate = maxOf(goalLock.startDate, now.toLocalDate())
         if (firstDate.isAfter(goalLock.endDate)) {
             emptyList()

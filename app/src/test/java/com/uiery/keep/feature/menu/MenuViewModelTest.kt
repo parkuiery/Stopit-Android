@@ -5,9 +5,9 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
