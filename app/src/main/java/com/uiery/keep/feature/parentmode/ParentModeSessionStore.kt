@@ -3,13 +3,15 @@ package com.uiery.keep.feature.parentmode
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import com.uiery.keep.KeepDataSource
 import com.uiery.keep.datastore.PreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-internal class ParentModeSessionStore(
-    private val dataStore: DataStore<Preferences>,
+internal class ParentModeSessionStore @Inject constructor(
+    @KeepDataSource private val dataStore: DataStore<Preferences>,
 ) {
     suspend fun save(session: ParentModeSession) {
         dataStore.edit { preferences ->

@@ -136,7 +136,7 @@ Issue: #417
 - `duration_selection_type`: `preset_days`, `custom_days`, `end_date`
 - `lock_mode`: `all_day`, `scheduled`
 - `selected_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
-- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`
+- `goal_name_type`: `preset_exam`, `preset_sns`, `preset_game`, `preset_sleep`, `custom`. Preset CTA 선택은 locale-independent preset key로 분류하고, resource/display text literal 비교에 의존하지 않는다. 사용자가 preset과 같은 문구를 직접 입력한 경우는 custom 입력으로 본다.
 - `duration_days_bucket`: `1_6`, `7`, `8_14`, `15_30`, `31_plus`
 - `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
@@ -200,6 +200,7 @@ Guardrail:
   - 목표별 선택 앱 편집에서 picker selection replace, package trim/dedupe, remove와 0개 validation을 검증.
   - `Created(goalLockId)` side effect.
   - `goal_lock_created` bucket-only analytics 호출.
+  - preset CTA가 English/Korean/다른 locale 표시 문자열과 무관하게 locale-independent `goal_name_type`을 기록하고, 직접 입력한 같은 문구는 `custom`으로 유지한다.
 - `GoalLockSelectedAppUiItemTest`:
   - 목표 잠금 생성 화면의 선택 앱 목록이 package raw text만 노출하지 않고 shared display metadata resolver의 앱 이름을 우선 표시한다.
   - 앱 이름을 못 불러온 package는 fallback 문구와 package 기준 remove payload를 유지한다.

@@ -19,12 +19,12 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.goallock.GoalLockRuntimeStatus
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
 import com.uiery.keep.feature.review.InAppReviewManager

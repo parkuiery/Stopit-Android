@@ -92,6 +92,7 @@ RELEASE_QA_SEQUENCE = [
     "release_remaining_runtime",
     "notification_denied_receiver",
     "notification_denied_emergency_unlock",
+    "notification_channel_disabled",
 ]
 
 ANDROID_CI_SEQUENCE = [

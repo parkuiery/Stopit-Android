@@ -3,6 +3,7 @@ package com.uiery.keep.feature.routine
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
@@ -62,7 +63,7 @@ class RoutineBottomSheetViewModel
         ) = intent {
             analytics.trackRepeatBlockRoutineSuggestionClicked(
                 surface = surface,
-                suggestion = suggestion,
+                suggestion = suggestion.toAnalyticsPayload(),
             )
             reduce {
                 val prefilledState = state.copy(
@@ -145,7 +146,7 @@ class RoutineBottomSheetViewModel
                 if (repeatBlockPrefill != null && repeatBlockSurface != null) {
                     analytics.trackRepeatBlockRoutineSuggestionApplied(
                         surface = repeatBlockSurface,
-                        suggestion = repeatBlockPrefill,
+                        suggestion = repeatBlockPrefill.toAnalyticsPayload(),
                     )
                     reduce {
                         state.copy(
@@ -220,6 +221,15 @@ private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
     val isDaySelected = selectDays.isNotEmpty()
     return isNameValid && isTimeValid && isDaySelected && selectApps.isNotEmpty()
 }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
 
 private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
     RoutineModel(

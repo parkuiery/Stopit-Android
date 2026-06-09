@@ -13,7 +13,10 @@ import com.uiery.keep.R
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.dataStore
-import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
@@ -73,7 +76,7 @@ class KeepAccessibilityService :
     private var emergencyUnlockExpiryRunnable: Runnable? = null
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
-    private var routineStartReevaluationRunnable: Runnable? = null
+    private var timeBasedStartReevaluationRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -112,12 +115,12 @@ class KeepAccessibilityService :
                 .catch {
                     cachedRoutines = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextRoutineStartReevaluation(emptyList())
+                    scheduleNextTimeBasedStartReevaluation()
                 }
                 .collect { routines ->
                     cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextRoutineStartReevaluation(routines)
+                    scheduleNextTimeBasedStartReevaluation()
                 }
         }
         launch {
@@ -125,20 +128,34 @@ class KeepAccessibilityService :
                 .catch {
                     cachedGoalLocks = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextTimeBasedStartReevaluation()
                 }
                 .collect { goalLocks ->
                     cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextTimeBasedStartReevaluation()
                 }
         }
         launch {
             ParentModeSessionStore(applicationContext.dataStore).observe()
                 .catch {
                     cachedParentModeSession = null
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = null,
+                            observedParentModeAllowedAppCount = 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
                 .collect { session ->
                     cachedParentModeSession = session
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = session?.toDebugStateValue(),
+                            observedParentModeAllowedAppCount = session?.allowedApps?.size ?: 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
@@ -175,6 +192,15 @@ class KeepAccessibilityService :
         job.cancel()
     }
 
+    private fun ParentModeSession.toDebugStateValue(): String = when (state.name) {
+        "Setup" -> "setup"
+        "Active" -> "active"
+        "Expired" -> "expired"
+        "UnlockedByPin" -> "unlocked_by_pin"
+        "Cancelled" -> "cancelled"
+        else -> state.name
+    }
+
     private fun blockIfNeeded(
         packageName: String,
         prefs: AccessibilityBlockingSnapshot,
@@ -208,16 +234,19 @@ class KeepAccessibilityService :
         }
     }
 
-    private fun scheduleNextRoutineStartReevaluation(routines: List<RoutineModel>) {
+    private fun scheduleNextTimeBasedStartReevaluation() {
         handler.post {
-            routineStartReevaluationRunnable?.let(handler::removeCallbacks)
-            routineStartReevaluationRunnable = null
-            val delayMillis = nextRoutineStartReevaluationDelayMillis(routines) ?: return@post
+            timeBasedStartReevaluationRunnable?.let(handler::removeCallbacks)
+            timeBasedStartReevaluationRunnable = null
+            val delayMillis = nextTimeBasedBlockingStartReevaluationDelayMillis(
+                routines = cachedRoutines,
+                goalLocks = cachedGoalLocks,
+            ) ?: return@post
             val runnable = Runnable {
                 reevaluateCurrentForegroundAfterStateUpdate()
-                scheduleNextRoutineStartReevaluation(cachedRoutines)
+                scheduleNextTimeBasedStartReevaluation()
             }
-            routineStartReevaluationRunnable = runnable
+            timeBasedStartReevaluationRunnable = runnable
             handler.postDelayed(runnable, delayMillis)
         }
     }
@@ -496,6 +525,50 @@ class KeepAccessibilityService :
             lastBlockElapsedRealtime = now
         }
         return isDuplicate
+    }
+}
+
+internal fun nextTimeBasedBlockingStartReevaluationDelayMillis(
+    routines: List<RoutineModel>,
+    goalLocks: List<GoalLock>,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long? = listOfNotNull(
+    nextRoutineStartReevaluationDelayMillis(routines = routines, now = now),
+    nextGoalLockStartReevaluationDelayMillis(goalLocks = goalLocks, now = now),
+).minOrNull()
+
+internal fun nextGoalLockStartReevaluationDelayMillis(
+    goalLocks: List<GoalLock>,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long? = goalLocks
+    .asSequence()
+    .filter { goalLock ->
+        goalLock.status == GoalLockStoredStatus.Active &&
+            goalLock.selectedPackages.isNotEmpty() &&
+            !goalLock.startDate.isAfter(goalLock.endDate) &&
+            GoalLockPolicy.isValidForCreation(goalLock)
+    }
+    .flatMap { goalLock -> nextGoalLockStartCandidates(goalLock = goalLock, now = now).asSequence() }
+    .filter { candidateStart -> candidateStart.isAfter(now) }
+    .map { candidateStart -> Duration.between(now, candidateStart).toMillis() }
+    .minOrNull()
+
+private fun nextGoalLockStartCandidates(
+    goalLock: GoalLock,
+    now: LocalDateTime,
+): List<LocalDateTime> = when (val mode = goalLock.lockMode) {
+    GoalLockMode.AllDay -> listOf(goalLock.startDate.atStartOfDay())
+    is GoalLockMode.Scheduled -> {
+        val firstDate = maxOf(goalLock.startDate, now.toLocalDate())
+        if (firstDate.isAfter(goalLock.endDate)) {
+            emptyList()
+        } else {
+            val lastDate = minOf(goalLock.endDate, firstDate.plusDays(7))
+            generateSequence(firstDate) { date -> date.plusDays(1).takeIf { !it.isAfter(lastDate) } }
+                .filter { date -> date.dayOfWeek in mode.repeatDays }
+                .map { date -> date.atTime(mode.startTime) }
+                .toList()
+        }
     }
 }
 

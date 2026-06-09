@@ -22,6 +22,7 @@ on:
       - 'scripts/verify_lint_registry.py'
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
+      - 'tools/aso-screenshots/**'
       - '.github/workflows/**'
       - 'docs/**'
       - '**/*.md'
@@ -46,6 +47,7 @@ on:
       - 'scripts/verify_lint_registry.py'
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
+      - 'tools/aso-screenshots/**'
       - '.github/workflows/**'
       - 'docs/**'
       - '**/*.md'
@@ -66,6 +68,7 @@ jobs:
     outputs:
       functions: ${{ steps.filter.outputs.functions }}
       release_helpers: ${{ steps.filter.outputs.release_helpers }}
+      aso_screenshots: ${{ steps.filter.outputs.aso_screenshots }}
       docs_contract: ${{ steps.filter.outputs.docs_contract }}
       workflow_syntax: ${{ steps.filter.outputs.workflow_syntax }}
 
@@ -98,14 +101,18 @@ jobs:
               - 'scripts/verify_lint_registry.py'
               - 'scripts/check_workflow_gradle_tasks.py'
               - 'scripts/tests/**'
+            aso_screenshots:
+              - 'tools/aso-screenshots/**'
             docs_contract:
               - 'docs/**'
               - '**/*.md'
+              - 'scripts/tests/test_aso_screenshots_ci_contract.py'
               - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
               - 'scripts/tests/test_release_build_workflow_scope.py'
               - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
+              - 'scripts/tests/test_readme_version_contract.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_signed_aab_lint_gate.py'
@@ -163,13 +170,39 @@ jobs:
           scripts.tests.test_release_qa_runtime_gate_docs
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
+          scripts.tests.test_readme_version_contract
           scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_signed_aab_lint_gate
           scripts.tests.test_review_prompt_post_release_followthrough_docs
+          scripts.tests.test_aso_screenshots_ci_contract
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
+
+  aso-screenshots:
+    name: ASO screenshots build
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.aso_screenshots == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: tools/aso-screenshots
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install ASO screenshot dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build ASO screenshot generator
+        run: bun run build
 
   functions:
     name: Firebase Functions verification

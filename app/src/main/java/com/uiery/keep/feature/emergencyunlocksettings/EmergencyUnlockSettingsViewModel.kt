@@ -2,6 +2,13 @@ package com.uiery.keep.feature.emergencyunlocksettings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockDurationCountBucket
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockManualResetResult
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockRefillMode
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockRemainingUnlocksBucket
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockSettingName
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockSettingsValueBucket
+import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
@@ -54,33 +61,91 @@ class EmergencyUnlockSettingsViewModel
 
         fun setEnabled(enabled: Boolean) {
             viewModelScope.launch {
-                settingsStore.setEnabled(enabled)
+                applyEnabled(enabled)
             }
+        }
+
+        internal suspend fun applyEnabled(enabled: Boolean) {
+            settingsStore.setEnabled(enabled)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.ENABLED,
+                valueBucket = onOffBucket(enabled),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
         }
 
         fun setDailyLimit(limit: Int) {
             viewModelScope.launch {
-                settingsStore.setDailyLimit(limit)
+                applyDailyLimit(limit)
             }
+        }
+
+        internal suspend fun applyDailyLimit(limit: Int) {
+            settingsStore.setDailyLimit(limit)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.DAILY_LIMIT,
+                valueBucket = dailyLimitBucket(limit),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
         }
 
         fun toggleDuration(minutes: Int) {
             if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
             viewModelScope.launch {
-                settingsStore.toggleDuration(minutes)
+                applyDurationToggle(minutes)
             }
+        }
+
+        internal suspend fun applyDurationToggle(minutes: Int) {
+            if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
+            settingsStore.toggleDuration(minutes)
+            val settings = settingsStore.readSettings()
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+                valueBucket = durationOptionsBucket(settings.durationOptions),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = durationCountBucket(settings.durationOptions.size),
+                source = AnalyticsSource.MENU,
+            )
         }
 
         fun setReasonRequired(required: Boolean) {
             viewModelScope.launch {
-                settingsStore.setReasonRequired(required)
+                applyReasonRequired(required)
             }
+        }
+
+        internal suspend fun applyReasonRequired(required: Boolean) {
+            settingsStore.setReasonRequired(required)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.REASON_REQUIRED,
+                valueBucket = onOffBucket(required),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
         }
 
         fun setAutoResetEnabled(enabled: Boolean) {
             viewModelScope.launch {
-                settingsStore.setAutoResetEnabled(enabled)
+                applyAutoResetEnabled(enabled)
             }
+        }
+
+        internal suspend fun applyAutoResetEnabled(enabled: Boolean) {
+            settingsStore.setAutoResetEnabled(enabled)
+            val refillMode = refillModeBucket(enabled)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.REFILL_MODE,
+                valueBucket = refillMode,
+                refillMode = refillMode,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
         }
 
         fun setRefillMode(mode: EmergencyUnlockRefillMode) {
@@ -89,9 +154,58 @@ class EmergencyUnlockSettingsViewModel
 
         fun markManualReset() {
             viewModelScope.launch {
-                settingsStore.markManualReset()
+                applyManualReset()
             }
         }
+
+        internal suspend fun applyManualReset() {
+            val availability = emergencyUnlockCoordinator.readAvailability()
+            settingsStore.markManualReset()
+            analytics.trackEmergencyUnlockManualResetRequested(
+                remainingUnlocksBucket = remainingUnlocksBucket(availability.dailyUnlockRemaining),
+                source = AnalyticsSource.MENU,
+                resetResult = AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+            )
+        }
+
+        private fun onOffBucket(enabled: Boolean): String =
+            if (enabled) AnalyticsEmergencyUnlockSettingsValueBucket.ON else AnalyticsEmergencyUnlockSettingsValueBucket.OFF
+
+        private fun dailyLimitBucket(limit: Int): String =
+            when (limit.coerceAtLeast(0)) {
+                1 -> AnalyticsEmergencyUnlockSettingsValueBucket.ONE
+                2 -> AnalyticsEmergencyUnlockSettingsValueBucket.TWO
+                3 -> AnalyticsEmergencyUnlockSettingsValueBucket.THREE
+                else -> AnalyticsEmergencyUnlockSettingsValueBucket.FOUR_PLUS
+            }
+
+        private fun durationOptionsBucket(options: List<Int>): String =
+            when {
+                options.isEmpty() -> AnalyticsEmergencyUnlockSettingsValueBucket.NONE
+                options.any { it >= 15 } -> AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED
+                options.all { it <= 5 } -> AnalyticsEmergencyUnlockSettingsValueBucket.SHORT_ONLY
+                else -> AnalyticsEmergencyUnlockSettingsValueBucket.MIXED
+            }
+
+        private fun durationCountBucket(count: Int): String =
+            when (count) {
+                0 -> AnalyticsEmergencyUnlockDurationCountBucket.ZERO
+                1 -> AnalyticsEmergencyUnlockDurationCountBucket.ONE
+                2, 3 -> AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE
+                else -> AnalyticsEmergencyUnlockDurationCountBucket.FOUR_PLUS
+            }
+
+        private fun refillModeBucket(autoResetEnabled: Boolean): String =
+            if (autoResetEnabled) AnalyticsEmergencyUnlockRefillMode.DAILY else AnalyticsEmergencyUnlockRefillMode.MANUAL
+
+        private fun remainingUnlocksBucket(remaining: Int): String =
+            when (remaining) {
+                0 -> AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO
+                1 -> AnalyticsEmergencyUnlockRemainingUnlocksBucket.ONE
+                2 -> AnalyticsEmergencyUnlockRemainingUnlocksBucket.TWO
+                in 3..Int.MAX_VALUE -> AnalyticsEmergencyUnlockRemainingUnlocksBucket.THREE_PLUS
+                else -> AnalyticsEmergencyUnlockRemainingUnlocksBucket.UNKNOWN
+            }
     }
 
 data class EmergencyUnlockSettingsUiState(

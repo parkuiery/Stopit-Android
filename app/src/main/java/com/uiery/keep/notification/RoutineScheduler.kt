@@ -79,10 +79,11 @@ class RoutineScheduler @Inject constructor(
 
         repeatDays.forEach { dayOfWeek ->
             val nextAlarmTime = calculateNextAlarmTime(routine.startTime, dayOfWeek)
-            val requestCode = (routine.id * 10 + dayOfWeek.ordinal).toInt()
+            val requestCode = RoutineIdentifierPolicy.alarmRequestCode(routine.id, dayOfWeek)
 
             val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routine.id, dayOfWeek)
                 putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routine.name)
                 putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routine.id)
             }
@@ -93,6 +94,8 @@ class RoutineScheduler @Inject constructor(
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+
+            cancelLegacyRoutineAlarm(routine.id, dayOfWeek)
 
             try {
                 alarmManager.setExactAndAllowWhileIdle(
@@ -111,10 +114,11 @@ class RoutineScheduler @Inject constructor(
 
     fun cancelRoutine(routineId: Long) {
         DayOfWeek.entries.forEach { dayOfWeek ->
-            val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
+            val requestCode = RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek)
 
             val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
@@ -126,7 +130,23 @@ class RoutineScheduler @Inject constructor(
 
             alarmManager.cancel(pendingIntent)
             pendingIntent.cancel()
+
+            cancelLegacyRoutineAlarm(routineId, dayOfWeek)
         }
+    }
+
+    private fun cancelLegacyRoutineAlarm(routineId: Long, dayOfWeek: DayOfWeek) {
+        val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            RoutineIdentifierPolicy.legacyAlarmRequestCode(routineId, dayOfWeek),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
     }
 
     fun scheduleAllRoutines(routines: List<RoutineModel>) {

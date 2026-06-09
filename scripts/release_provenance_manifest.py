@@ -138,11 +138,54 @@ def _expect(label: str, actual: Any, expected: Any) -> None:
         raise ProvenanceError(f"{label} mismatch: manifest={actual!r}, current={expected!r}")
 
 
+def _expect_required(label: str, actual: Any) -> None:
+    if actual is None or actual == "":
+        raise ProvenanceError(f"{label} is required for metadata-only verification")
+
+
 def verify(args: argparse.Namespace) -> int:
     manifest_path = pathlib.Path(args.manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    aab = _resolve_single_aab(args.aab_glob)
     version_name, version_code = _read_gradle_versions()
+
+    if args.metadata_only:
+        _expect("schema_version", manifest.get("schema_version"), SCHEMA_VERSION)
+        _expect("package_name", manifest.get("package_name"), args.package_name)
+        _expect("artifact_name", manifest.get("artifact_name"), args.artifact_name)
+        artifact = manifest.get("artifact", {})
+        _expect_required("artifact.file_name", artifact.get("file_name"))
+        _expect_required("artifact.sha256", artifact.get("sha256"))
+        _expect_required("artifact.size_bytes", artifact.get("size_bytes"))
+        _expect("android.variant", manifest.get("android", {}).get("variant"), VARIANT)
+        _expect("android.version_name", manifest.get("android", {}).get("version_name"), version_name)
+        _expect("android.version_code", manifest.get("android", {}).get("version_code"), version_code)
+        if args.expected_version_code is not None:
+            _expect("android.version_code", manifest.get("android", {}).get("version_code"), args.expected_version_code)
+        _expect("git.sha", manifest.get("git", {}).get("sha"), args.expected_git_sha or _nullable(os.environ.get("GITHUB_SHA")))
+        _expect("git.ref", manifest.get("git", {}).get("ref"), args.expected_git_ref or _nullable(os.environ.get("GITHUB_REF")))
+        _expect("git.ref_name", manifest.get("git", {}).get("ref_name"), args.expected_git_ref_name or _nullable(os.environ.get("GITHUB_REF_NAME")))
+        _expect("git.ref_type", manifest.get("git", {}).get("ref_type"), _nullable(os.environ.get("GITHUB_REF_TYPE")))
+        github_actions = manifest.get("github_actions", {})
+        _expect_required("github_actions.workflow", github_actions.get("workflow"))
+        _expect_required("github_actions.run_id", github_actions.get("run_id"))
+        _expect_required("github_actions.run_attempt", github_actions.get("run_attempt"))
+        _expect_required("github_actions.run_url", github_actions.get("run_url"))
+        _expect("play.upload_mode", manifest.get("play", {}).get("upload_mode"), args.upload_mode)
+        _expect("play.track", manifest.get("play", {}).get("track"), _nullable(args.track))
+        _expect(
+            "play.release_status",
+            manifest.get("play", {}).get("release_status"),
+            _nullable(args.release_status),
+        )
+        _expect(
+            "play.rollout_fraction",
+            manifest.get("play", {}).get("rollout_fraction"),
+            _nullable(args.rollout_fraction),
+        )
+        print(f"Verified release provenance manifest metadata: {manifest_path}")
+        return 0
+
+    aab = _resolve_single_aab(args.aab_glob)
     stat = aab.stat()
 
     _expect("schema_version", manifest.get("schema_version"), SCHEMA_VERSION)
@@ -219,6 +262,7 @@ def build_parser() -> argparse.ArgumentParser:
     ver.add_argument("--expected-git-ref", default="")
     ver.add_argument("--expected-git-ref-name", default="")
     ver.add_argument("--allow-artifact-path-relocation", action="store_true")
+    ver.add_argument("--metadata-only", action="store_true")
     ver.set_defaults(func=verify)
     return parser
 

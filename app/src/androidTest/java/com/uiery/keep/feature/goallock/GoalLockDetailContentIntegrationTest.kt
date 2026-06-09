@@ -7,6 +7,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

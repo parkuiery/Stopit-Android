@@ -58,6 +58,29 @@ class EmergencyUnlockBottomSheetStateTest {
     }
 
     @Test
+    fun stepPurposeTextExplainsEachNonCountdownStepIntent() {
+        var state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app", "com.game.app"),
+            durationOptions = listOf(10),
+            reasonStepEnabled = true,
+        )
+
+        assertEquals(R.string.emergency_unlock_reason_step_purpose, state.stepPurposeTextRes)
+
+        state = state.selectReason("work").goNext()
+        assertEquals(EmergencyUnlockBottomSheetStep.APPS, state.step)
+        assertEquals(R.string.emergency_unlock_apps_step_purpose, state.stepPurposeTextRes)
+
+        state = state.toggleApp("com.social.app").goNext()
+        assertEquals(EmergencyUnlockBottomSheetStep.DURATION, state.step)
+        assertEquals(R.string.emergency_unlock_duration_step_purpose, state.stepPurposeTextRes)
+
+        state = state.goNext()
+        assertEquals(EmergencyUnlockBottomSheetStep.COUNTDOWN, state.step)
+        assertEquals(null, state.stepPurposeTextRes)
+    }
+
+    @Test
     fun validationHelperTextExplainsWhyNextActionIsUnavailable() {
         var state = EmergencyUnlockBottomSheetState.initial(
             blockedApps = setOf("com.social.app", "com.game.app"),

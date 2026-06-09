@@ -31,6 +31,8 @@ import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSett
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
+import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
+import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
 import com.uiery.keep.feature.routine.routineScreen
 import com.uiery.keep.feature.splash.SplashRoute
@@ -79,6 +81,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateGoalLockCreation = navController::navigateToGoalLockCreation,
+            onNavigateParentModeSetup = navController::navigateToParentModeSetup,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
@@ -96,6 +99,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
+        parentModeSetupScreen(onNavigateBack = navController::navigateUp)
         goalLockCreationScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
