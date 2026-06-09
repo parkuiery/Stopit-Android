@@ -73,7 +73,7 @@ class KeepAccessibilityService :
     private var emergencyUnlockExpiryRunnable: Runnable? = null
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
-    private var routineStartReevaluationRunnable: Runnable? = null
+    private var timeBasedStartReevaluationRunnable: Runnable? = null
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -112,12 +112,12 @@ class KeepAccessibilityService :
                 .catch {
                     cachedRoutines = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextRoutineStartReevaluation(emptyList())
+                    scheduleNextTimeBasedStartReevaluation()
                 }
                 .collect { routines ->
                     cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextRoutineStartReevaluation(routines)
+                    scheduleNextTimeBasedStartReevaluation()
                 }
         }
         launch {
@@ -125,10 +125,12 @@ class KeepAccessibilityService :
                 .catch {
                     cachedGoalLocks = emptyList()
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextTimeBasedStartReevaluation()
                 }
                 .collect { goalLocks ->
                     cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextTimeBasedStartReevaluation()
                 }
         }
         launch {
@@ -208,16 +210,19 @@ class KeepAccessibilityService :
         }
     }
 
-    private fun scheduleNextRoutineStartReevaluation(routines: List<RoutineModel>) {
+    private fun scheduleNextTimeBasedStartReevaluation() {
         handler.post {
-            routineStartReevaluationRunnable?.let(handler::removeCallbacks)
-            routineStartReevaluationRunnable = null
-            val delayMillis = nextRoutineStartReevaluationDelayMillis(routines) ?: return@post
+            timeBasedStartReevaluationRunnable?.let(handler::removeCallbacks)
+            timeBasedStartReevaluationRunnable = null
+            val delayMillis = nextTimeBasedBlockingStartReevaluationDelayMillis(
+                routines = cachedRoutines,
+                goalLocks = cachedGoalLocks,
+            ) ?: return@post
             val runnable = Runnable {
                 reevaluateCurrentForegroundAfterStateUpdate()
-                scheduleNextRoutineStartReevaluation(cachedRoutines)
+                scheduleNextTimeBasedStartReevaluation()
             }
-            routineStartReevaluationRunnable = runnable
+            timeBasedStartReevaluationRunnable = runnable
             handler.postDelayed(runnable, delayMillis)
         }
     }
@@ -496,6 +501,50 @@ class KeepAccessibilityService :
             lastBlockElapsedRealtime = now
         }
         return isDuplicate
+    }
+}
+
+internal fun nextTimeBasedBlockingStartReevaluationDelayMillis(
+    routines: List<RoutineModel>,
+    goalLocks: List<GoalLock>,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long? = listOfNotNull(
+    nextRoutineStartReevaluationDelayMillis(routines = routines, now = now),
+    nextGoalLockStartReevaluationDelayMillis(goalLocks = goalLocks, now = now),
+).minOrNull()
+
+internal fun nextGoalLockStartReevaluationDelayMillis(
+    goalLocks: List<GoalLock>,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long? = goalLocks
+    .asSequence()
+    .filter { goalLock ->
+        goalLock.status == com.uiery.keep.feature.goallock.GoalLockStoredStatus.Active &&
+            goalLock.selectedPackages.isNotEmpty() &&
+            !goalLock.startDate.isAfter(goalLock.endDate) &&
+            com.uiery.keep.feature.goallock.GoalLockPolicy.isValidForCreation(goalLock)
+    }
+    .flatMap { goalLock -> nextGoalLockStartCandidates(goalLock = goalLock, now = now).asSequence() }
+    .filter { candidateStart -> candidateStart.isAfter(now) }
+    .map { candidateStart -> Duration.between(now, candidateStart).toMillis() }
+    .minOrNull()
+
+private fun nextGoalLockStartCandidates(
+    goalLock: GoalLock,
+    now: LocalDateTime,
+): List<LocalDateTime> = when (val mode = goalLock.lockMode) {
+    com.uiery.keep.feature.goallock.GoalLockMode.AllDay -> listOf(goalLock.startDate.atStartOfDay())
+    is com.uiery.keep.feature.goallock.GoalLockMode.Scheduled -> {
+        val firstDate = maxOf(goalLock.startDate, now.toLocalDate())
+        if (firstDate.isAfter(goalLock.endDate)) {
+            emptyList()
+        } else {
+            val lastDate = minOf(goalLock.endDate, firstDate.plusDays(7))
+            generateSequence(firstDate) { date -> date.plusDays(1).takeIf { !it.isAfter(lastDate) } }
+                .filter { date -> date.dayOfWeek in mode.repeatDays }
+                .map { date -> date.atTime(mode.startTime) }
+                .toList()
+        }
     }
 }
 
