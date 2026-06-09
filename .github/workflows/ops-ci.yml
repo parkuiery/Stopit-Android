@@ -106,6 +106,7 @@ jobs:
               - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
+              - 'scripts/tests/test_readme_version_contract.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_signed_aab_lint_gate.py'
@@ -163,6 +164,7 @@ jobs:
           scripts.tests.test_release_qa_runtime_gate_docs
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
+          scripts.tests.test_readme_version_contract
           scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_signed_aab_lint_gate

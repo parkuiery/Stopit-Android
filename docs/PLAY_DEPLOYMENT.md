@@ -214,6 +214,8 @@ scripts/release-tag.sh 1.7.2
 ```
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track only when `.github/workflows/play-deploy.yml` validates the same safety contract again through `scripts/validate-play-deploy-ref.sh`: the SemVer tag must be reachable from `origin/main`, and `scripts/check-latest-production-deployed.sh` must pass while excluding the just-pushed tag from the "latest existing tag" lookup. This keeps a hand-created `v*.*.*` tag from bypassing the `scripts/release-tag.sh` main/production-marker guardrail.
+
+`scripts/release-tag.sh` also re-checks the README contract immediately before tag creation: `README.md`'s `현재 버전` line must match `app/build.gradle.kts` `versionName/versionCode`. `scripts/bump-version.sh` / `scripts/release-start.sh` handle the normal update path, but the tag-time guard is the final stop for #613-style main/tag drift. Closed #558 covered bump-version synchronization; #613 keeps this release-tag guard, operator docs, and Ops CI contract-test coverage aligned.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
 
 Manual dispatch tag-governance contract:

@@ -16,6 +16,9 @@ README_SOURCE = REPO_ROOT / "README.md"
 BUILD_GRADLE_SOURCE = REPO_ROOT / "app" / "build.gradle.kts"
 GIT_WORKFLOW_SOURCE = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CHECKLIST_SOURCE = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
+PLAY_DEPLOYMENT_SOURCE = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
+RELEASE_CONTEXT_SOURCE = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+OPS_CI_WORKFLOW_SOURCE = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
 
 
 README_VERSION_RE = re.compile(
@@ -105,12 +108,26 @@ class ReadmeVersionContractTest(unittest.TestCase):
             [
                 GIT_WORKFLOW_SOURCE.read_text(),
                 RELEASE_CHECKLIST_SOURCE.read_text(),
+                PLAY_DEPLOYMENT_SOURCE.read_text(),
+                RELEASE_CONTEXT_SOURCE.read_text(),
             ]
         )
 
         self.assertIn("README.md 현재 버전 라인", docs)
         self.assertIn("scripts/release-tag.sh", docs)
         self.assertIn("tag 생성 전", docs)
+        self.assertIn("tag 직전", docs)
+        self.assertIn("versionName/versionCode", docs)
+        self.assertIn("#613", docs)
+        self.assertIn("#558", docs)
+
+    def test_docs_contract_job_runs_readme_version_contract(self):
+        workflow = OPS_CI_WORKFLOW_SOURCE.read_text()
+
+        self.assertIn("scripts/tests/test_readme_version_contract.py", workflow)
+        docs_contract_section = workflow.split("Run docs/runbook contract tests", 1)[1]
+        docs_contract_section = docs_contract_section.split("functions:", 1)[0]
+        self.assertIn("scripts.tests.test_readme_version_contract", docs_contract_section)
 
     def _write_bump_fixture(self, repo: pathlib.Path) -> None:
         (repo / "scripts").mkdir(parents=True, exist_ok=True)
