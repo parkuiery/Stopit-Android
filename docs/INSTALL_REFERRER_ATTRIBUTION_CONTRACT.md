@@ -6,14 +6,14 @@ Issue: #581
 
 최근 #65/#242 acquisition readback에서는 `newUsers`가 반등했지만 `Direct` 신규 사용자 비중이 계속 과다해 ASO 효과, 외부 링크, 캠페인, attribution 누락을 분리하기 어렵다. 이 문서는 Play Install Referrer와 UTM link helper를 도입할 때의 **제품/analytics/ops 계약**을 먼저 고정한다.
 
-PR #585는 docs-lane 계약 산출물이었다. PR #586(`7100a45c`) 이후에는 parser, campaign link helper, analytics event/parameter constants, privacy-safe regression test foothold가 `develop`에 반영된 상태로 본다. 이번 QA package는 Play Install Referrer SDK provider wiring과 첫 실행 non-blocking one-shot lookup path까지 repo-internal로 연결한다. 다만 GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
+PR #585는 docs-lane 계약 산출물이었다. PR #586(`7100a45c`) 이후에는 parser, campaign link helper, analytics event/parameter constants, privacy-safe regression test foothold가 `develop`에 반영된 상태로 본다. PR #590(`ae26293a`) 이후에는 Play Install Referrer SDK provider wiring과 첫 실행 non-blocking one-shot lookup path까지 repo-internal로 연결된 상태다. 다만 GA4 Admin 등록, Play Console 확인, release/tag/Play deploy, 14일/30일 readback이 끝나기 전까지 #581 follow-up은 `Refs #581`을 사용한다.
 
 ## 현재 문제
 
-- 2026-06-08T03:23:04Z live readback 기준 `newUsers = 563`이지만 `Direct = 334 / 563 = 59.3%`로 과다하다.
-- `Organic Search = 230 / 563 = 40.9%`로 #65 기준선 178명을 넘었지만, Play Console Search/Explore와 external/campaign source가 확인되지 않아 ASO 회복으로 표현하지 않는다.
-- `Paid Search`는 신규 0명인데 활성 18명·세션 169회가 남아 있어 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상 가능성이 크다.
-- 이번 QA package 전까지 앱 코드는 Play Install Referrer SDK를 사용하지 않았으므로, 이 코드가 release/tag/Play deploy와 GA4 Admin metadata 확인을 넘기 전까지 GA4 `Direct`에는 진짜 direct와 referrer/UTM 손실이 섞일 수 있다.
+- 2026-06-08T23:09:54Z live readback 기준 `newUsers = 571`이지만 `Direct = 336 / 571 = 58.8%`로 과다하다.
+- `Organic Search = 236 / 571 = 41.3%`로 #65 기준선 178명을 넘었지만, Play Console Search/Explore와 external/campaign source가 확인되지 않아 ASO 회복으로 표현하지 않는다.
+- `Paid Search`는 신규 0명인데 활성 18명·세션 156회가 남아 있어 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상 가능성이 크다.
+- PR #590 전까지 앱 코드는 Play Install Referrer SDK를 사용하지 않았으므로, 해당 wiring이 release/tag/Play deploy와 GA4 Admin metadata 확인을 넘기 전까지 GA4 `Direct`에는 진짜 direct와 referrer/UTM 손실이 섞일 수 있다.
 
 ## 범위
 
@@ -29,7 +29,7 @@ PR #585는 docs-lane 계약 산출물이었다. PR #586(`7100a45c`) 이후에는
 
 - PR #585: 이 문서와 high-traffic docs/runbook/static contract test가 `develop`에 반영됐다.
 - PR #586: `AcquisitionAttributionParser`, `CampaignLinkBuilder`, `install_referrer_attribution_checked` analytics contract, raw referrer/URL/PII 금지 regression foothold가 `develop`에 반영됐다.
-- 이번 QA package: `InstallReferrerAttributionReporter`, `PlayInstallReferrerLookup`, one-shot DataStore marker, `KeepApplication` non-blocking launch wiring, SDK dependency가 추가됐다.
+- PR #590(`ae26293a`): `InstallReferrerAttributionReporter`, `PlayInstallReferrerLookup`, one-shot DataStore marker, `KeepApplication` non-blocking launch wiring, SDK dependency가 추가됐다.
 
 ### 제외 / 남은 외부 경계
 
@@ -61,7 +61,7 @@ PR #586(`7100a45c`)로 아래 repo-internal foothold는 이미 반영됐다.
    - `install_referrer_attribution_checked` event contract와 Firebase parameter mapping이 추가됐다.
    - `docs/ANALYTICS_EVENT_DICTIONARY.md`와 이 문서가 같은 bucket set을 공유한다.
 
-### SDK/runtime handoff landed in this QA package
+### SDK/runtime handoff landed in PR #590
 
 1. `PlayInstallReferrerLookup`
    - `InstallReferrerClient` 호출을 `InstallReferrerLookup` seam 뒤에 캡슐화한다.
@@ -77,7 +77,7 @@ PR #586(`7100a45c`)로 아래 repo-internal foothold는 이미 반영됐다.
 
 ## Analytics event contract
 
-후보 이벤트는 code-lane에서 실제 구현 시 event dictionary와 GA4 runbook에 동기화한다.
+이 이벤트는 PR #586/#590 이후 code foothold와 SDK/runtime wiring에 맞춰 event dictionary와 GA4 runbook에 동기화된 상태다.
 
 | 이벤트명 | 발생 시점 | 목적 |
 | --- | --- | --- |
@@ -195,8 +195,8 @@ Code-lane 추가 검증 후보:
 - [x] raw referrer/URL/PII 금지 회귀 테스트가 있다. (PR #586)
 - [x] campaign link helper가 있다. (PR #586)
 - [x] event dictionary와 #581 contract doc이 code foothold 상태에 맞게 동기화됐다. (PR #586)
-- [x] Play Install Referrer SDK provider wiring과 첫 실행 non-blocking one-shot lookup path가 구현됐다. (이번 QA package)
-- [x] lookup 성공/실패/미지원 terminal status가 1회만 analytics에 기록되도록 reporter regression이 있다. (이번 QA package)
+- [x] Play Install Referrer SDK provider wiring과 첫 실행 non-blocking one-shot lookup path가 구현됐다. (PR #590)
+- [x] lookup 성공/실패/미지원 terminal status가 1회만 analytics에 기록되도록 reporter regression이 있다. (PR #590)
 
 남은 경계:
 

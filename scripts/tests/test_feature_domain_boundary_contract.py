@@ -14,28 +14,14 @@ FEATURE_IMPORT_PATTERN = re.compile(
 )
 
 EXPECTED_FEATURE_IMPORTS = {
-    "app/src/main/java/com/uiery/keep/database/entity/GoalLockEntity.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
-        "com.uiery.keep.feature.goallock.GoalLockMode",
-        "com.uiery.keep.feature.goallock.GoalLockStoredStatus",
-    ],
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
         "com.uiery.keep.feature.goallock.GoalLockRepository",
         "com.uiery.keep.feature.parentmode.ParentModeSession",
         "com.uiery.keep.feature.parentmode.ParentModeSessionStore",
     ],
     "app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt": [
-        "com.uiery.keep.feature.goallock.GoalLock",
-        "com.uiery.keep.feature.goallock.GoalLockPolicy",
         "com.uiery.keep.feature.parentmode.ParentModePolicy",
         "com.uiery.keep.feature.parentmode.ParentModeSession",
-    ],
-    "app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt": [
-        "com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion",
-    ],
-    "app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt": [
-        "com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion",
     ],
 }
 
@@ -67,6 +53,9 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         self.assertIn("현재 production drift inventory", runbook)
         self.assertIn("Migration order", runbook)
         self.assertIn("Closes #651", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt", runbook)
+        self.assertIn("RepeatBlockRoutineSuggestionAnalyticsPayload", runbook)
 
         for relative_path, imports in EXPECTED_FEATURE_IMPORTS.items():
             self.assertIn(relative_path, runbook)

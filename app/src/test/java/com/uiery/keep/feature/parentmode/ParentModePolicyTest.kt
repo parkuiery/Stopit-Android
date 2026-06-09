@@ -131,4 +131,31 @@ class ParentModePolicyTest {
             allowed,
         )
     }
+
+    @Test
+    fun parentModeExtensionRejectsNonPositiveDurationsEvenAfterPinVerification() {
+        val activeSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+        )
+
+        val zeroMinuteExtension = ParentModePolicy.requestParentAction(
+            session = activeSession,
+            action = ParentModeParentAction.Extend(extensionMinutes = 0),
+            pinState = ParentModePinState.Verified,
+            nowMillis = 2_000L,
+        )
+        val negativeMinuteExtension = ParentModePolicy.requestParentAction(
+            session = activeSession,
+            action = ParentModeParentAction.Extend(extensionMinutes = -5),
+            pinState = ParentModePinState.Verified,
+            nowMillis = 2_000L,
+        )
+
+        assertEquals(ParentModeActionDecision.InvalidExtension, zeroMinuteExtension)
+        assertEquals(ParentModeActionDecision.InvalidExtension, negativeMinuteExtension)
+    }
 }

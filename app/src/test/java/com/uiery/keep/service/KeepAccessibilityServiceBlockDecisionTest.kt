@@ -2,9 +2,9 @@ package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.ManualLockTimePolicy
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionState
 import com.uiery.keep.model.RoutineModel

@@ -7,6 +7,10 @@ import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
@@ -37,11 +41,24 @@ internal class GoalLockCreationViewModel
                 reduce {
                     state.copy(
                         goalName = goalName,
-                        goalNameType = goalName.analyticsGoalNameType,
+                        goalNameType = AnalyticsGoalLockNameType.CUSTOM,
                     )
                 }
                 updateCreateEnabled()
             }
+
+        internal fun setPresetGoalName(
+            preset: GoalLockPresetGoal,
+            displayName: String,
+        ) = intent {
+            reduce {
+                state.copy(
+                    goalName = displayName,
+                    goalNameType = preset.analyticsGoalNameType,
+                )
+            }
+            updateCreateEnabled()
+        }
 
         internal fun setDateRange(
             startDate: LocalDate,
@@ -212,21 +229,19 @@ private fun GoalLockCreationLockMode.toDomain(): GoalLockMode =
         )
     }
 
+internal enum class GoalLockPresetGoal(
+    val analyticsGoalNameType: String,
+) {
+    Exam(AnalyticsGoalLockNameType.PRESET_EXAM),
+    Sns(AnalyticsGoalLockNameType.PRESET_SNS),
+}
+
 private fun selectedAppCountBucket(selectedAppCount: Int): String =
     when (selectedAppCount) {
         1 -> AnalyticsSelectedAppCountBucket.ONE
         in 2..3 -> AnalyticsSelectedAppCountBucket.TWO_TO_THREE
         in 4..6 -> AnalyticsSelectedAppCountBucket.FOUR_TO_SIX
         else -> AnalyticsSelectedAppCountBucket.SEVEN_PLUS
-    }
-
-private val String.analyticsGoalNameType: String
-    get() = when (trim()) {
-        "시험 준비" -> AnalyticsGoalLockNameType.PRESET_EXAM
-        "SNS 줄이기" -> AnalyticsGoalLockNameType.PRESET_SNS
-        "게임 줄이기" -> AnalyticsGoalLockNameType.PRESET_GAME
-        "수면 습관" -> AnalyticsGoalLockNameType.PRESET_SLEEP
-        else -> AnalyticsGoalLockNameType.CUSTOM
     }
 
 private fun Set<String>.normalizedPackages(): Set<String> =

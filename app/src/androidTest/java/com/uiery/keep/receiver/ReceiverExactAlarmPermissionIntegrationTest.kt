@@ -22,6 +22,7 @@ import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -216,13 +217,13 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post the current routine-start notification even when exact alarm permission is missing") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should disable the routine in DataStore when exact alarm permission is missing") {
             storedRoutineEnabledStates() == listOf(false)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
         assertEquals(listOf(false), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
@@ -266,7 +267,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             storedRoutineEnabledStates() == listOf(false)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
         assertEquals(listOf(false), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
@@ -339,12 +340,12 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         findRoutinePendingIntent(routineId, today)
 
     private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -358,12 +359,12 @@ class ReceiverExactAlarmPermissionIntegrationTest {
 
     private fun seedRoutinePendingIntents(routineId: Long, routineName: String, repeatDays: Iterable<DayOfWeek>) {
         repeatDays.forEach { dayOfWeek ->
-            val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
             PendingIntent.getBroadcast(
                 context,
-                requestCode,
+                RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
                 Intent(context, RoutineAlarmReceiver::class.java).apply {
                     action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                    data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
                     putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routineName)
                     putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routineId)
                 },
@@ -395,10 +396,11 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     private fun findPostedNotification(routineId: Long) =
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .activeNotifications
-            .firstOrNull { it.id == routineId.toInt() }
+            .firstOrNull { it.id == RoutineIdentifierPolicy.routineStartNotificationId(routineId) }
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 

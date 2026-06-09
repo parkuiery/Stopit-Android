@@ -59,6 +59,14 @@ internal data class EmergencyUnlockBottomSheetState(
     val canContinueFromApps: Boolean
         get() = selectedApps.isNotEmpty()
 
+    val stepPurposeTextRes: Int?
+        get() = when (step) {
+            EmergencyUnlockBottomSheetStep.REASON -> R.string.emergency_unlock_reason_step_purpose
+            EmergencyUnlockBottomSheetStep.APPS -> R.string.emergency_unlock_apps_step_purpose
+            EmergencyUnlockBottomSheetStep.DURATION -> R.string.emergency_unlock_duration_step_purpose
+            EmergencyUnlockBottomSheetStep.COUNTDOWN -> null
+        }
+
     val stepHelperTextRes: Int?
         get() = when (step) {
             EmergencyUnlockBottomSheetStep.REASON -> R.string.emergency_unlock_reason_helper

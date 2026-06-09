@@ -2,6 +2,12 @@ package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
 import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
+import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
+import com.uiery.keep.analytics.routine.RoutineAnalyticsParam
+import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
+import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
+import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
+import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -118,6 +124,54 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents[3],
         )
+    }
+
+    @Test
+    fun emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly() {
+        analytics.trackEmergencyUnlockSettingsChanged(
+            settingName = AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+            valueBucket = AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+            refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+            durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+            source = AnalyticsSource.MENU,
+        )
+        analytics.trackEmergencyUnlockManualResetRequested(
+            remainingUnlocksBucket = AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+            source = AnalyticsSource.MENU,
+            resetResult = AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_SETTINGS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.SETTING_NAME to AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+                    KeepAnalyticsParam.VALUE_BUCKET to AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                    KeepAnalyticsParam.DURATION_COUNT_BUCKET to AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[0].params.containsKey("manualResetAtMillis"))
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.MANUAL,
+                    KeepAnalyticsParam.REMAINING_UNLOCKS_BUCKET to AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                    KeepAnalyticsParam.RESET_RESULT to AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[1].params.containsKey("manualResetAtMillis"))
     }
 
     @Test
@@ -301,33 +355,33 @@ class FirebaseKeepAnalyticsTest {
 
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
-                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
-                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
-                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
                 ),
             ),
             backend.loggedEvents[0],
         )
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
-                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
-                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
-                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
                 ),
             ),
             backend.loggedEvents[1],
         )
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
                     KeepAnalyticsParam.REASON to RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
                 ),
             ),

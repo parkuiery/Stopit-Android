@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
@@ -82,12 +83,12 @@ internal fun GoalLockDetailScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = "목표 잠금") },
+                title = { Text(text = stringResource(id = R.string.goal_lock_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = "뒤로 가기",
+                            contentDescription = stringResource(id = R.string.cd_navigate_back),
                             tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
@@ -150,7 +151,7 @@ internal fun GoalLockDetailContent(
     ) {
         if (state.goalLock == null) {
             Text(
-                text = "목표 잠금을 불러오는 중입니다.",
+                text = stringResource(id = R.string.goal_lock_detail_loading),
                 color = KeepTheme.colors.onSurfaceVariant,
             )
             return@Column
@@ -171,16 +172,22 @@ internal fun GoalLockDetailContent(
                     fontSize = 20.sp,
                 )
                 Text(
-                    text = "${state.lockModeLabel} · ${state.selectedAppCount}개 앱",
+                    text = stringResource(
+                        id = R.string.goal_lock_detail_summary,
+                        goalLockModeDetailLabel(lockMode = state.goalLock.lockMode),
+                        state.selectedAppCount,
+                    ),
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = when {
-                        state.isCompleted -> "완료된 목표 잠금입니다."
-                        state.isEnded -> "종료된 목표 잠금입니다."
-                        else -> "진행 중인 목표 잠금입니다."
-                    },
+                    text = stringResource(
+                        id = when {
+                            state.isCompleted -> R.string.goal_lock_detail_status_completed
+                            state.isEnded -> R.string.goal_lock_detail_status_ended
+                            else -> R.string.goal_lock_detail_status_active
+                        },
+                    ),
                     color = KeepTheme.colors.surfaceVariant,
                     fontSize = 13.sp,
                 )
@@ -330,7 +337,7 @@ internal fun GoalLockDetailContent(
                         Text(
                             text = stringResource(
                                 id = R.string.goal_lock_detail_update_lock_mode_confirmation,
-                                state.pendingLockModeLabel,
+                                goalLockModeDetailLabel(lockMode = state.pendingLockMode),
                             ),
                             color = KeepTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
@@ -361,7 +368,7 @@ internal fun GoalLockDetailContent(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(
-                            text = "목표 잠금을 끝내면 오늘부터 선택한 앱이 다시 열릴 수 있어요. 지금 종료할까요?",
+                            text = stringResource(id = R.string.goal_lock_detail_end_confirmation),
                             color = KeepTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
                         )
@@ -369,17 +376,17 @@ internal fun GoalLockDetailContent(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             OutlinedButton(onClick = onCancelEnd) {
-                                Text(text = "계속 유지")
+                                Text(text = stringResource(id = R.string.goal_lock_detail_end_cancel))
                             }
                             Button(onClick = onConfirmEnd) {
-                                Text(text = "종료")
+                                Text(text = stringResource(id = R.string.goal_lock_detail_end_confirm))
                             }
                         }
                     }
                 }
             } else {
                 OutlinedButton(onClick = onRequestEnd) {
-                    Text(text = "목표 잠금 종료")
+                    Text(text = stringResource(id = R.string.goal_lock_detail_end_cta))
                 }
             }
         }
@@ -397,3 +404,10 @@ private fun weekdayEveningGoalLockMode(): GoalLockMode.Scheduled = GoalLockMode.
     startTime = LocalTime.of(19, 0),
     endTime = LocalTime.of(23, 0),
 )
+
+@Composable
+private fun goalLockModeDetailLabel(lockMode: GoalLockMode?): String = when (lockMode) {
+    GoalLockMode.AllDay -> stringResource(id = R.string.goal_lock_detail_lock_mode_all_day)
+    is GoalLockMode.Scheduled -> stringResource(id = R.string.goal_lock_detail_lock_mode_weekday_evening)
+    null -> ""
+}

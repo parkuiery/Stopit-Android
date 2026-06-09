@@ -60,6 +60,14 @@ class BranchHygienePolicyTest(unittest.TestCase):
         self.assertIn("로컬 lane/worktree", combined)
         self.assertIn("PR head", combined)
 
+    def test_dependabot_pr_heads_are_valid_dependency_automation_branches(self):
+        workflow = BRANCH_HYGIENE_WORKFLOW.read_text()
+        validate_step = self._step_block(workflow, "Validate PR routing")
+
+        self.assertIn("dependabot/", validate_step)
+        self.assertIn("Dependabot dependency automation", validate_step)
+        self.assertIn("feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, dependabot/*", validate_step)
+
     def test_docs_contract_gate_covers_branch_hygiene_policy(self):
         workflow = OPS_CI_WORKFLOW.read_text()
         self.assertIn("scripts.tests.test_branch_hygiene_policy", workflow)

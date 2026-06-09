@@ -76,6 +76,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
       - name: Run scripts regression tests
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
@@ -94,28 +97,54 @@ jobs:
       - name: Run KDS module-local verification
         run: ./gradlew --console=plain :core:kds:testDebugUnitTest :core:kds:lintDebug :core:kds:assembleDebug
 
-      - name: Restore Firebase google-services.json for CI variants
+      - name: Check Firebase config availability
+        id: firebase-config
         env:
           GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
+          if [ -n "$GOOGLE_SERVICES_JSON_DEV" ] && [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'available=false' >> "$GITHUB_OUTPUT"
+          if [ "${{ github.actor }}" = 'dependabot[bot]' ]; then
+            {
+              echo '### Dependabot Firebase secret boundary'
+              echo 'Dependabot PR: Firebase secrets are unavailable, so app Gradle verification is deferred.'
+              echo 'Run Android CI with workflow_dispatch from a trusted branch after review to execute app unit/lint/build tasks with repository Firebase secrets.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           test -n "$GOOGLE_SERVICES_JSON_DEV" || { echo 'GOOGLE_SERVICES_JSON_DEV secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
+
+      - name: Restore Firebase google-services.json for CI variants
+        if: steps.firebase-config.outputs.available == 'true'
+        env:
+          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
           mkdir -p app/src/dev app/src/prod
           printf '%s' "$GOOGLE_SERVICES_JSON_DEV" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Run static policy unit tests
+        if: steps.firebase-config.outputs.available == 'true'
         run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_android_manifest_contract scripts.tests.test_compose_icon_button_accessibility scripts.tests.test_locale_string_parity scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
 
       - name: Run app unit tests
+        if: steps.firebase-config.outputs.available == 'true'
         run: ./gradlew --console=plain :app:testDevDebugUnitTest
 
       - name: Run dev lint gate
+        if: steps.firebase-config.outputs.available == 'true'
         run: ./gradlew --console=plain :app:lintDevDebug
 
       - name: Verify Navigation/Compose lint registry coverage
+        if: steps.firebase-config.outputs.available == 'true'
         run: >-
           python3 scripts/verify_lint_registry.py
           --report app/build/reports/lint-results-devDebug.html
@@ -130,9 +159,11 @@ jobs:
           --forbid-text ObsoleteLintCustomCheck
 
       - name: Build prod debug APK
+        if: steps.firebase-config.outputs.available == 'true'
         run: ./gradlew --console=plain :app:assembleProdDebug
 
       - name: Upload prod debug APK
+        if: steps.firebase-config.outputs.available == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
@@ -152,6 +183,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
@@ -164,25 +198,49 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Restore Firebase google-services.json for CI variants
+      - name: Check Firebase config availability
+        id: runtime-firebase-config
         env:
           GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
+          if [ -n "$GOOGLE_SERVICES_JSON_DEV" ] && [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'available=false' >> "$GITHUB_OUTPUT"
+          if [ "${{ github.actor }}" = 'dependabot[bot]' ]; then
+            {
+              echo '### Dependabot Firebase secret boundary'
+              echo 'Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred.'
+              echo 'Run Android CI with workflow_dispatch from a trusted branch after review to execute the emulator runtime smoke with repository Firebase secrets.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           test -n "$GOOGLE_SERVICES_JSON_DEV" || { echo 'GOOGLE_SERVICES_JSON_DEV secret is missing'; exit 1; }
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
+
+      - name: Restore Firebase google-services.json for CI variants
+        if: steps.runtime-firebase-config.outputs.available == 'true'
+        env:
+          GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
           mkdir -p app/src/dev app/src/prod
           printf '%s' "$GOOGLE_SERVICES_JSON_DEV" > app/src/dev/google-services.json
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/src/prod/google-services.json
 
       - name: Enable KVM for Android emulator
+        if: steps.runtime-firebase-config.outputs.available == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
       - name: Run focused Android runtime smoke gate
+        if: steps.runtime-firebase-config.outputs.available == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35

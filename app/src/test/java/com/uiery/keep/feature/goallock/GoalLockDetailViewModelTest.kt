@@ -2,12 +2,16 @@ package com.uiery.keep.feature.goallock
 
 import androidx.lifecycle.SavedStateHandle
 import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
+import com.uiery.keep.analytics.AnalyticsGoalLockDurationDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -31,7 +35,14 @@ class GoalLockDetailViewModelTest {
 
         val state = viewModel.container.stateFlow.value
         assertEquals("SNS 줄이기", state.goalLock?.goalName)
-        assertEquals("특정 시간 잠금", state.lockModeLabel)
+        assertEquals(
+            GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+                startTime = LocalTime.of(19, 0),
+                endTime = LocalTime.of(23, 0),
+            ),
+            state.goalLock?.lockMode,
+        )
         assertEquals(3, state.selectedAppCount)
         assertFalse(state.showEndConfirmation)
         assertFalse(state.isEnded)
@@ -231,6 +242,45 @@ class GoalLockDetailViewModelTest {
                 ),
             ),
             analytics.goalLockUpdatedCalls,
+        )
+    }
+
+    @Test
+    fun confirmDurationUpdateCompletesGoalLockWhenNewEndDateIsPast() = runBlocking {
+        val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
+        val analytics = DetailRecordingKeepAnalytics()
+        val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+
+        viewModel.requestUpdateDurationDays(5)
+        awaitUntil { viewModel.container.stateFlow.value.showUpdateDurationConfirmation }
+        viewModel.confirmUpdateDuration(today = LocalDate.of(2026, 6, 10))
+        awaitUntil { viewModel.container.stateFlow.value.isCompleted }
+
+        val updated = requireNotNull(dao.updatedEntity).toDomain()
+        assertEquals(LocalDate.of(2026, 6, 8), updated.endDate)
+        assertEquals(GoalLockStoredStatus.Completed, updated.status)
+        assertTrue(viewModel.container.stateFlow.value.isCompleted)
+        assertFalse(viewModel.container.stateFlow.value.isEnded)
+        assertFalse(viewModel.container.stateFlow.value.showUpdateDurationConfirmation)
+        assertEquals(
+            listOf(
+                GoalLockUpdatedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    changedField = AnalyticsGoalLockChangedField.DURATION,
+                ),
+            ),
+            analytics.goalLockUpdatedCalls,
+        )
+        assertEquals(
+            listOf(
+                GoalLockCompletedCall(
+                    lockMode = AnalyticsGoalLockMode.ALL_DAY,
+                    durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.ONE_TO_SIX,
+                ),
+            ),
+            analytics.goalLockCompletedCalls,
         )
     }
 

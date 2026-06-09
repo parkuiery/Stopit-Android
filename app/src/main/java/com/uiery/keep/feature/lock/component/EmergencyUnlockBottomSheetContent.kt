@@ -117,6 +117,7 @@ fun EmergencyUnlockBottomSheetContent(
                 currentStep = state.visibleSteps.indexOf(state.step).coerceAtLeast(0),
                 totalSteps = state.visibleSteps.size,
             )
+            StepPurposeText(state.stepPurposeTextRes)
             Spacer(modifier = Modifier.height(20.dp))
         }
 
@@ -209,6 +210,20 @@ private fun StepIndicator(
             )
         }
     }
+}
+
+@Composable
+private fun StepPurposeText(textRes: Int?) {
+    if (textRes == null) return
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = stringResource(textRes),
+        color = KeepTheme.colors.onSurfaceVariant,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

@@ -24,6 +24,7 @@ import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.model.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
@@ -334,7 +335,7 @@ class ReceiverRuntimeIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post a notification") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room") {
             storedRoutineNames() == listOf("Morning focus")
@@ -343,7 +344,7 @@ class ReceiverRuntimeIntegrationTest {
             findRoutinePendingIntent(TEST_ROUTINE_ID) != null
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Morning focus"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
@@ -375,7 +376,7 @@ class ReceiverRuntimeIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post a notification for the multi-day routine") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room for the multi-day routine") {
             storedRoutineNames() == listOf("Morning focus multi-day")
@@ -384,7 +385,7 @@ class ReceiverRuntimeIntegrationTest {
             repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Morning focus multi-day"), storedRoutineNames())
         assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
     }
@@ -469,7 +470,7 @@ class ReceiverRuntimeIntegrationTest {
             storedRoutineEnabledStates() == listOf(false)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
         assertEquals(listOf(false), storedRoutineEnabledStates())
         assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
@@ -537,12 +538,12 @@ class ReceiverRuntimeIntegrationTest {
         routineId: Long,
         dayOfWeek: DayOfWeek = today,
     ): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -571,6 +572,7 @@ class ReceiverRuntimeIntegrationTest {
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 

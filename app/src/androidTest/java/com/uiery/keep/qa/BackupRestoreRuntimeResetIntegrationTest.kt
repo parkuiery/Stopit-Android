@@ -26,6 +26,7 @@ import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.feature.routine.RoutineViewModel
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.BootReceiver
 import com.uiery.keep.receiver.RoutineAlarmReceiver
@@ -126,7 +127,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post routine notification") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should persist restored routines into DataStore") {
             storedRoutineNames() == listOf("Restore alarm routine")
@@ -135,7 +136,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             findRoutinePendingIntent(TEST_ROUTINE_ID) != null
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Restore alarm routine"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
         assertRestoreResetOnlyStateAbsent()
@@ -216,12 +217,12 @@ class BackupRestoreRuntimeResetIntegrationTest {
     }
 
     private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
-        val requestCode = (routineId * 10 + today.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, today),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, today)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -229,6 +230,14 @@ class BackupRestoreRuntimeResetIntegrationTest {
 
     private fun cancelRoutineAlarm(routineId: Long) {
         findRoutinePendingIntent(routineId)?.cancel()
+        PendingIntent.getBroadcast(
+            context,
+            RoutineIdentifierPolicy.legacyAlarmRequestCode(routineId, today),
+            Intent(context, RoutineAlarmReceiver::class.java).apply {
+                action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+            },
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )?.cancel()
     }
 
     private fun activeNotificationIds(): Set<Int> {
@@ -238,6 +247,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 

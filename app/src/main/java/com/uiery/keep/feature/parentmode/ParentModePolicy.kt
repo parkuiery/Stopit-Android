@@ -50,6 +50,8 @@ internal sealed interface ParentModeParentAction {
 internal sealed interface ParentModeActionDecision {
     data object PinRequired : ParentModeActionDecision
 
+    data object InvalidExtension : ParentModeActionDecision
+
     data class End(
         val endedAtMillis: Long,
     ) : ParentModeActionDecision
@@ -151,10 +153,16 @@ internal object ParentModePolicy {
 
         return when (action) {
             ParentModeParentAction.EndNow -> ParentModeActionDecision.End(endedAtMillis = nowMillis)
-            is ParentModeParentAction.Extend -> ParentModeActionDecision.Extend(
-                expiresAtMillis = session.expiresAtMillis + action.extensionMinutes * MILLIS_PER_MINUTE,
-                extensionMinutesBucket = extensionMinutesBucket(action.extensionMinutes),
-            )
+            is ParentModeParentAction.Extend -> {
+                if (action.extensionMinutes <= 0) {
+                    ParentModeActionDecision.InvalidExtension
+                } else {
+                    ParentModeActionDecision.Extend(
+                        expiresAtMillis = session.expiresAtMillis + action.extensionMinutes * MILLIS_PER_MINUTE,
+                        extensionMinutesBucket = extensionMinutesBucket(action.extensionMinutes),
+                    )
+                }
+            }
         }
     }
 
