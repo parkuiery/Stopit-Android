@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -191,6 +192,56 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         assertEquals(listOf(false), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+    }
+
+    @Test
+    fun exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEnabledRoutineFromRoom() = runBlocking {
+        setExactAlarmPermissionAllowed()
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Permission restored"))
+        assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
+
+        waitUntil("Exact-alarm permission restore should reschedule the enabled routine from Room") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
+        assertTrue(hasShownAlarmPermission())
+    }
+
+    @Test
+    fun exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEveryRepeatDayAlarm() = runBlocking {
+        setExactAlarmPermissionAllowed()
+        val repeatDays = multiDayRepeatDays()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Permission restored multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
+
+        waitUntil("Exact-alarm permission restore should reschedule every repeat-day alarm") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+        assertTrue(hasShownAlarmPermission())
     }
 
     @Test

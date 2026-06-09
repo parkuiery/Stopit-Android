@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.content.Intent
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
@@ -20,6 +21,16 @@ class RoutineReceiverPolicyTest {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIME_CHANGED))
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIMEZONE_CHANGED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
+    }
+
+    @Test
+    fun shouldRestoreRoutinesOnBootReturnsTrueForExactAlarmPermissionStateChanged() {
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(
+                AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+            ),
+        )
     }
 
     @Test
