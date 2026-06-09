@@ -206,7 +206,7 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 - `ACTIONLINT_VERSION=1.7.12`에 맞춘 `actionlint` workflow 문법 확인. `actionlint`가 없거나 설치된 `actionlint --version`이 pinned `1.7.12`와 다르면 release readiness는 skip하지 않고 중단하므로, 로컬 preflight 전에 같은 pinned version을 설치한 뒤 재시도한다.
 - quick preflight로 `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `scripts/verify_lint_registry.py`, `:app:bundleProdRelease --dry-run` 실행
 - Signed AAB provenance 생성/검증은 로컬 quick preflight가 아니라 Android Release Build workflow가 실제 signed artifact 옆의 `release-provenance.json`으로 검증한다.
-- production promotion은 prior internal Play Deploy artifact의 `release-provenance.json`을 검증한다. 해당 `stopit-prod-release-signed-aab` artifact는 30-day evidence surface이므로, 그 이후 승격은 secret-free durable fallback(GitHub Release asset/provenance ledger) 또는 같은 SemVer tag의 non-production Play Deploy 재실행으로 prior provenance를 복구한 뒤 진행한다.
+- production promotion은 prior internal Play Deploy artifact의 `release-provenance.json`을 검증한다. 해당 `stopit-prod-release-signed-aab` artifact는 30-day evidence surface이므로, 그 이후 승격은 same-tag GitHub Release asset의 secret-free `release-provenance.json` durable fallback을 metadata-only로 검증하거나 같은 SemVer tag의 non-production Play Deploy 재실행으로 prior provenance를 복구한 뒤 진행한다.
 
 ## Standard Development Flow
 
