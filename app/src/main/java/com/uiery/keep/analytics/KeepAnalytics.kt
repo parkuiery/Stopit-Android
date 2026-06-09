@@ -1,21 +1,17 @@
 package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
-
-data class RepeatBlockRoutineSuggestionAnalyticsPayload(
-    val reason: String,
-    val timeBucket: String,
-    val dayType: String,
-    val categoryBucket: String,
-    val repeatCountBucket: String,
-    val routineCoverageState: String,
-)
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 
 interface KeepAnalytics {
     fun logEvent(
         name: String,
         params: Map<String, Any?> = emptyMap(),
     )
+
+    fun log(event: AnalyticsEvent) {
+        logEvent(name = event.name, params = event.params)
+    }
 
     fun logScreenView(screenName: String)
 
@@ -306,18 +302,11 @@ object KeepAnalyticsEvent {
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
     const val SUPPORT_CONTACT_STARTED = "support_contact_started"
     const val SUPPORT_CONTACT_FALLBACK_USED = "support_contact_fallback_used"
-    const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
-    const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
-    const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
     const val GOAL_LOCK_CREATE_STARTED = "goal_lock_create_started"
     const val GOAL_LOCK_CREATED = "goal_lock_created"
     const val GOAL_LOCK_ENDED_EARLY = "goal_lock_ended_early"
     const val GOAL_LOCK_COMPLETED = "goal_lock_completed"
     const val GOAL_LOCK_UPDATED = "goal_lock_updated"
-    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN = "repeat_block_routine_suggestion_shown"
-    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
-    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
-    const val REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED = "repeat_block_routine_suggestion_applied"
     const val PARENT_MODE_DURATION_SELECTED = "parent_mode_duration_selected"
     const val PARENT_MODE_ALLOWED_APPS_SELECTED = "parent_mode_allowed_apps_selected"
     const val PARENT_MODE_STARTED = "parent_mode_started"
@@ -363,10 +352,6 @@ object KeepAnalyticsParam {
     const val INTEREST_CONTEXT = "interest_context"
     const val INTEREST_VARIANT = "interest_variant"
     const val PURCHASE_AVAILABLE = "purchase_available"
-    const val TEMPLATE_CATEGORY = "template_category"
-    const val REPEAT_DAYS_BUCKET = "repeat_days_bucket"
-    const val TIME_WINDOW_BUCKET = "time_window_bucket"
-    const val ROUTINE_NAME_INCLUDED = "routine_name_included"
     const val DURATION_SELECTION_TYPE = "duration_selection_type"
     const val ENTRY_SURFACE = "entry_surface"
     const val LOCK_MODE = "lock_mode"
@@ -376,13 +361,6 @@ object KeepAnalyticsParam {
     const val DURATION_DAYS_BUCKET = "duration_days_bucket"
     const val CHANGED_FIELD = "changed_field"
     const val SURFACE = "surface"
-    const val SUGGESTION_REASON = "suggestion_reason"
-    const val TIME_BUCKET = "time_bucket"
-    const val DAY_TYPE = "day_type"
-    const val CATEGORY_BUCKET = "category_bucket"
-    const val REPEAT_COUNT_BUCKET = "repeat_count_bucket"
-    const val ROUTINE_COVERAGE_STATE = "routine_coverage_state"
-    const val SUGGESTION_VARIANT = "suggestion_variant"
     const val ALLOWED_APP_COUNT_BUCKET = "allowed_app_count_bucket"
     const val PIN_RESULT = "pin_result"
     const val EXTENSION_MINUTES_BUCKET = "extension_minutes_bucket"
@@ -537,35 +515,6 @@ object AnalyticsMonetizationInterestContext {
     const val AD_MANAGEMENT = "ad_management"
 }
 
-object RoutineTemplateCategoryName {
-    const val STUDY = "study"
-    const val WORK = "work"
-    const val NIGHT_FOCUS = "night_focus"
-    const val CUSTOM = "custom"
-}
-
-object RoutineTemplateRepeatDaysBucketName {
-    const val WEEKDAY = "weekday"
-    const val WEEKEND = "weekend"
-    const val DAILY = "daily"
-    const val CUSTOM_DAYS = "custom_days"
-    const val NONE = "none"
-}
-
-object RoutineTemplateTimeWindowBucketName {
-    const val MORNING = "morning"
-    const val AFTERNOON = "afternoon"
-    const val EVENING = "evening"
-    const val NIGHT = "night"
-    const val OVERNIGHT = "overnight"
-    const val CUSTOM_WINDOW = "custom_window"
-}
-
-object RoutineTemplateShareFailureReason {
-    const val ACTIVITY_NOT_FOUND = "activity_not_found"
-    const val INVALID_TEMPLATE = "invalid_template"
-}
-
 object AnalyticsGoalLockDurationSelectionType {
     const val PRESET_DAYS = "preset_days"
     const val CUSTOM_DAYS = "custom_days"
@@ -627,14 +576,6 @@ object AnalyticsGoalLockEndedEarlyReason {
     const val USER_CONFIRMED = "user_confirmed"
     const val VALIDATION_RESET = "validation_reset"
     const val UNKNOWN = "unknown"
-}
-
-object RepeatBlockRoutineSuggestionSurface {
-    const val HOME = "home"
-}
-
-object RepeatBlockSuggestionVariant {
-    const val DEFAULT = "default"
 }
 
 object AnalyticsParentModeDurationBucket {

@@ -1,6 +1,8 @@
 package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineAnalyticsEvents
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -426,9 +428,8 @@ class FirebaseKeepAnalytics
             timeWindowBucket: String,
             routineNameIncluded: Boolean,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
-                params = routineTemplateShareParams(
+            log(
+                RoutineAnalyticsEvents.templateShareTapped(
                     templateCategory = templateCategory,
                     repeatDaysBucket = repeatDaysBucket,
                     timeWindowBucket = timeWindowBucket,
@@ -443,9 +444,8 @@ class FirebaseKeepAnalytics
             timeWindowBucket: String,
             routineNameIncluded: Boolean,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
-                params = routineTemplateShareParams(
+            log(
+                RoutineAnalyticsEvents.templateShareSheetOpened(
                     templateCategory = templateCategory,
                     repeatDaysBucket = repeatDaysBucket,
                     timeWindowBucket = timeWindowBucket,
@@ -458,11 +458,10 @@ class FirebaseKeepAnalytics
             templateCategory: String,
             reason: String,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
-                params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to templateCategory,
-                    KeepAnalyticsParam.REASON to reason,
+            log(
+                RoutineAnalyticsEvents.templateShareFailed(
+                    templateCategory = templateCategory,
+                    reason = reason,
                 ),
             )
         }
@@ -610,40 +609,28 @@ class FirebaseKeepAnalytics
             surface: String,
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_SHOWN,
-                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
-            )
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionShown(surface, suggestion))
         }
 
         override fun trackRepeatBlockRoutineSuggestionClicked(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED,
-                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
-            )
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionClicked(surface, suggestion))
         }
 
         override fun trackRepeatBlockRoutineSuggestionDismissed(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED,
-                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
-            )
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionDismissed(surface, suggestion))
         }
 
         override fun trackRepeatBlockRoutineSuggestionApplied(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
-            backend.logEvent(
-                name = KeepAnalyticsEvent.REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED,
-                params = repeatBlockRoutineSuggestionParams(surface, suggestion),
-            )
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionApplied(surface, suggestion))
         }
 
         override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {
@@ -674,32 +661,6 @@ class FirebaseKeepAnalytics
             interestVariant?.let { put(KeepAnalyticsParam.INTEREST_VARIANT, it) }
             purchaseAvailable?.let { put(KeepAnalyticsParam.PURCHASE_AVAILABLE, it) }
         }
-
-        private fun routineTemplateShareParams(
-            templateCategory: String,
-            repeatDaysBucket: String,
-            timeWindowBucket: String,
-            routineNameIncluded: Boolean,
-        ) = mapOf(
-            KeepAnalyticsParam.TEMPLATE_CATEGORY to templateCategory,
-            KeepAnalyticsParam.REPEAT_DAYS_BUCKET to repeatDaysBucket,
-            KeepAnalyticsParam.TIME_WINDOW_BUCKET to timeWindowBucket,
-            KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to routineNameIncluded,
-        )
-
-        private fun repeatBlockRoutineSuggestionParams(
-            surface: String,
-            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
-        ) = mapOf(
-            KeepAnalyticsParam.SURFACE to surface,
-            KeepAnalyticsParam.SUGGESTION_REASON to suggestion.reason,
-            KeepAnalyticsParam.TIME_BUCKET to suggestion.timeBucket,
-            KeepAnalyticsParam.DAY_TYPE to suggestion.dayType,
-            KeepAnalyticsParam.CATEGORY_BUCKET to suggestion.categoryBucket,
-            KeepAnalyticsParam.REPEAT_COUNT_BUCKET to suggestion.repeatCountBucket,
-            KeepAnalyticsParam.ROUTINE_COVERAGE_STATE to suggestion.routineCoverageState,
-            KeepAnalyticsParam.SUGGESTION_VARIANT to RepeatBlockSuggestionVariant.DEFAULT,
-        )
 
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,

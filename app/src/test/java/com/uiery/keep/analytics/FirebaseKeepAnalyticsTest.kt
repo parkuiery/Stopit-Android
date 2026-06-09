@@ -2,6 +2,12 @@ package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
 import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
+import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
+import com.uiery.keep.analytics.routine.RoutineAnalyticsParam
+import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
+import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
+import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
+import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -349,33 +355,33 @@ class FirebaseKeepAnalyticsTest {
 
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
-                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
-                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
-                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
                 ),
             ),
             backend.loggedEvents[0],
         )
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
-                    KeepAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
-                    KeepAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
-                    KeepAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
                 ),
             ),
             backend.loggedEvents[1],
         )
         assertEquals(
             LoggedEvent(
-                name = KeepAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
                 params = mapOf(
-                    KeepAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
                     KeepAnalyticsParam.REASON to RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
                 ),
             ),
