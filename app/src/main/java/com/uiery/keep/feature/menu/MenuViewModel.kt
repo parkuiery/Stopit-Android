@@ -29,9 +29,10 @@ import javax.inject.Inject
 @HiltViewModel
 class MenuViewModel private constructor(
     private val blockingStateStore: BlockingStateStore,
-    routines: Flow<List<com.uiery.keep.model.RoutineModel>>,
+    private val routineRepository: RoutineRepository,
     goalLocks: Flow<List<GoalLock>>,
     private val analytics: KeepAnalytics,
+    @Suppress("UNUSED_PARAMETER") private val constructorMarker: Unit,
 ) : ViewModel() {
     @Inject
     constructor(
@@ -41,9 +42,10 @@ class MenuViewModel private constructor(
         analytics: KeepAnalytics,
     ) : this(
         blockingStateStore = blockingStateStore,
-        routines = routineRepository.fetchAll(),
+        routineRepository = routineRepository,
         goalLocks = goalLockRepository.fetchAll(),
         analytics = analytics,
+        constructorMarker = Unit,
     )
 
     internal constructor(
@@ -53,9 +55,10 @@ class MenuViewModel private constructor(
         analytics: KeepAnalytics,
     ) : this(
         blockingStateStore = blockingStateStore,
-        routines = routineRepository.fetchAll(),
+        routineRepository = routineRepository,
         goalLocks = goalLocks,
         analytics = analytics,
+        constructorMarker = Unit,
     )
 
     init {
@@ -68,7 +71,7 @@ class MenuViewModel private constructor(
 
     val isBlocking: StateFlow<Boolean> = combine(
         blockingStateStore.accessibilitySnapshot,
-        routines,
+        routineRepository.fetchAll(),
         goalLocks,
     ) { snapshot, routines, goalLocks ->
             isBlockingActive(snapshot = snapshot, routines = routines, goalLocks = goalLocks)
