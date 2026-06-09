@@ -42,19 +42,19 @@ Issue: #651
 
 | Layer | 파일 | 현재 feature import | code-lane migration 방향 |
 | --- | --- | --- | --- |
-| database | `app/src/main/java/com/uiery/keep/database/entity/GoalLockEntity.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockMode`, `feature.goallock.GoalLockStoredStatus` | `GoalLock` domain model / mode / status를 shared domain package로 이동하고 entity mapper는 shared domain을 반환한다. |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockRepository`, `feature.parentmode.ParentModeSession`, `feature.parentmode.ParentModeSessionStore`, `feature.routine.RoutineRepository` | AccessibilityService가 shared lock-state / parent-mode session read repository 또는 runtime-facing use case에 의존하도록 분리한다. |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.goallock.GoalLock`, `feature.goallock.GoalLockPolicy`, `feature.parentmode.ParentModePolicy`, `feature.parentmode.ParentModeSession` | foreground block decision의 입력 model/policy를 shared domain boundary로 이동한다. |
+| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLockRepository`, `feature.parentmode.ParentModeSession`, `feature.parentmode.ParentModeSessionStore`, `feature.routine.RoutineRepository` | AccessibilityService가 shared lock-state / parent-mode session / routine runtime-facing use case에 의존하도록 분리한다. `GoalLock` model import는 `domain.goallock`으로 이동 완료. |
+| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.parentmode.ParentModePolicy`, `feature.parentmode.ParentModeSession` | foreground block decision의 parent-mode 입력 model/policy를 shared domain boundary로 이동한다. GoalLock model/policy는 `domain.goallock`으로 이동 완료. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt` | `feature.routine.RoutineRepository` | boot/package/time-change restore가 shared routine runtime repository/use case를 사용하게 한다. |
 | receiver | `app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt` | `feature.routine.RoutineRepository` | alarm receiver가 shared routine runtime repository/use case를 사용하게 한다. |
 
 
 ## Migration order
 
-1. **GoalLock domain first**
-   - `GoalLock`, `GoalLockMode`, `GoalLockStoredStatus`, `GoalLockPolicy`를 shared domain boundary로 이동한다.
-   - `GoalLockEntity` mapper, Home, AccessibilityService, detail/creation ViewModel이 같은 shared model을 참조하도록 한다.
-   - focused 검증 후보: `GoalLockPolicyTest`, `GoalLockPersistenceMapperTest`, `KeepAccessibilityServiceIntegrationTest` 주변 JVM/androidTest.
+1. **GoalLock domain first — repo-internal foothold complete**
+   - `GoalLock`, `GoalLockMode`, `GoalLockStoredStatus`, `GoalLockRuntimeStatus`, `GoalLockPolicy`는 `domain.goallock` shared domain boundary로 이동했다.
+   - `GoalLockEntity` mapper, Home, AccessibilityService block decision, detail/creation ViewModel이 같은 shared model을 참조한다.
+   - 남은 GoalLock 관련 feature import는 app/service/runtime entrypoint가 아직 `GoalLockRepository` feature repository에 의존하는 경계다.
+   - focused 검증 후보: `GoalLockPolicyTest`, `GoalLockPersistenceMapperTest`, `KeepAccessibilityServiceBlockDecisionTest`, `KeepAccessibilityServiceIntegrationTest` 주변 JVM/androidTest.
 2. **ParentMode runtime session boundary**
    - `ParentModeSession`, `ParentModePolicy`, `ParentModeSessionStore`를 feature-private implementation에서 runtime-facing shared domain/session boundary로 분리한다.
    - AccessibilityService와 block decision helper가 feature package import 없이 parent-mode bypass state를 판정하도록 한다.
@@ -84,7 +84,7 @@ Issue: #651
 - 이 docs-lane PR은 migration 계약과 current-drift guard를 만드는 범위라 `Refs #651`이 맞다.
 - `Closes #651`는 아래가 모두 만족될 때만 사용한다.
   - `database/service/receiver/analytics` production source에서 feature-private domain/repository imports가 제거되거나 명시된 shared boundary allowlist로 축소된다.
-  - `GoalLockEntity` mapper와 AccessibilityService block decision이 shared domain contract를 사용한다.
+  - `GoalLockEntity` mapper와 AccessibilityService block decision이 shared domain contract를 사용한다. (2026-06 code-lane foothold 완료)
   - parent-mode session/policy/store가 shared runtime boundary를 사용한다.
   - analytics API가 feature-local suggestion object 대신 shared analytics DTO/read-model contract를 받는다.
   - static guard가 더 이상 debt inventory allowlist에 의존하지 않고 새 역방향 의존을 차단한다.
@@ -98,7 +98,7 @@ Issue: #651
 - PR:
 - Head SHA:
 - 변경 범위:
-  - [ ] GoalLock shared domain boundary
+  - [x] GoalLock shared domain boundary
   - [ ] Routine runtime repository/use-case boundary
   - [x] RepeatBlock analytics DTO boundary
   - [ ] LockHistory runtime recording boundary

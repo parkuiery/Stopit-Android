@@ -169,6 +169,13 @@ interface KeepAnalytics {
         purchaseAvailable: Boolean? = null,
     ) = Unit
 
+    fun trackSupportContactStarted(surface: String) = Unit
+
+    fun trackSupportContactFallbackUsed(
+        surface: String,
+        fallbackType: String,
+    ) = Unit
+
     fun trackRoutineTemplateShareTapped(
         templateCategory: String,
         repeatDaysBucket: String,
@@ -297,6 +304,8 @@ object KeepAnalyticsEvent {
     const val LOCK_HISTORY_TOP_APPS_VIEWED = "lock_history_top_apps_viewed"
     const val MONETIZATION_INTEREST_SHOWN = "monetization_interest_shown"
     const val MONETIZATION_INTEREST_CLICKED = "monetization_interest_clicked"
+    const val SUPPORT_CONTACT_STARTED = "support_contact_started"
+    const val SUPPORT_CONTACT_FALLBACK_USED = "support_contact_fallback_used"
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
     const val ROUTINE_TEMPLATE_SHARE_FAILED = "routine_template_share_failed"
@@ -384,6 +393,7 @@ object KeepAnalyticsParam {
     const val CAMPAIGN_BUCKET = "campaign_bucket"
     const val LINK_SURFACE = "link_surface"
     const val LOOKUP_LATENCY_BUCKET = "lookup_latency_bucket"
+    const val FALLBACK_TYPE = "fallback_type"
     const val SETTING_NAME = "setting_name"
     const val VALUE_BUCKET = "value_bucket"
     const val REFILL_MODE = "refill_mode"
