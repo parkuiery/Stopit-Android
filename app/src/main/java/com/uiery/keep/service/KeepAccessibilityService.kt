@@ -18,9 +18,7 @@ import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.parentmode.ParentModePolicy
 import com.uiery.keep.feature.parentmode.ParentModeSession
-import com.uiery.keep.feature.parentmode.ParentModeSessionState
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
@@ -199,14 +197,17 @@ class KeepAccessibilityService :
         }
     }
 
-    private fun ParentModeSession.toDebugStateValue(nowMillis: Long = System.currentTimeMillis()): String = when (
-        ParentModePolicy.resolveState(session = this, nowMillis = nowMillis)
-    ) {
-        ParentModeSessionState.Setup -> "setup"
-        ParentModeSessionState.Active -> "active"
-        ParentModeSessionState.Expired -> "expired"
-        ParentModeSessionState.UnlockedByPin -> "unlocked_by_pin"
-        ParentModeSessionState.Cancelled -> "cancelled"
+    private fun ParentModeSession.toDebugStateValue(nowMillis: Long = System.currentTimeMillis()): String {
+        val stateName = state.name
+        return when {
+            stateName == "Active" && expiresAtMillis <= nowMillis -> "expired"
+            stateName == "Setup" -> "setup"
+            stateName == "Active" -> "active"
+            stateName == "Expired" -> "expired"
+            stateName == "UnlockedByPin" -> "unlocked_by_pin"
+            stateName == "Cancelled" -> "cancelled"
+            else -> stateName
+        }
     }
 
     private fun blockIfNeeded(
@@ -558,7 +559,7 @@ internal fun nextParentModeExpirationReevaluationDelayMillis(
     nowMillis: Long = System.currentTimeMillis(),
 ): Long? {
     val session = parentModeSession ?: return null
-    if (session.state != ParentModeSessionState.Active) return null
+    if (session.state.name != "Active") return null
     val delayMillis = session.expiresAtMillis - nowMillis
     return delayMillis.takeIf { it > 0L }
 }
