@@ -584,7 +584,9 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun launchPackage(packageName: String) {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         assertNotNull("Expected a launch intent for $packageName", launchIntent)
-        shell("am force-stop $packageName")
+        if (packageName != appPackage) {
+            shell("am force-stop $packageName")
+        }
         device.pressHome()
         val launchComponent = launchIntent!!.component?.flattenToShortString()
         if (launchComponent != null) {
