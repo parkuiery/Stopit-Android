@@ -58,6 +58,7 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
 
         self.assertIn("#581", play_store_aso)
         self.assertIn("PR #586", play_store_aso)
+        self.assertIn("PR #590", play_store_aso)
         self.assertIn("parser/helper/analytics foothold", play_store_aso)
         self.assertIn("SDK provider/첫 실행 one-shot lookup", play_store_aso)
         self.assertIn("GA4 Admin", play_store_aso)
@@ -78,14 +79,18 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         ]:
             self.assertIn(dimension, ga4_runbook)
         self.assertIn("PR #586의 parser/helper/analytics foothold", ga4_runbook)
+        self.assertIn("PR #590", ga4_runbook)
         self.assertIn("SDK provider/첫 실행 one-shot lookup wiring", ga4_runbook)
         self.assertIn("metadata 확인", ga4_runbook)
         self.assertIn("release/tag/Play deploy", ga4_runbook)
 
     def test_contract_names_pr_586_landed_foothold_and_remaining_runtime_boundary(self):
         contract = CONTRACT.read_text()
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
 
         self.assertIn("PR #586(`7100a45c`)", contract)
+        self.assertIn("PR #590(`ae26293a`)", contract)
         self.assertIn("AcquisitionAttributionParser", contract)
         self.assertIn("CampaignLinkBuilder", contract)
         self.assertIn("KeepAnalytics.trackInstallReferrerAttributionChecked", contract)
@@ -93,6 +98,9 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         self.assertIn("PlayInstallReferrerLookup", contract)
         self.assertIn("PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION", contract)
         self.assertIn("문서 계약 + parser/helper/analytics foothold + SDK provider/runtime one-shot wiring 완료", contract)
+        self.assertIn("PR #590(`ae26293a`)의 provider/first-run one-shot lookup wiring", product_context)
+        self.assertIn("PR #590(`ae26293a`)으로 SDK provider/첫 실행 one-shot lookup wiring", metrics_context)
+        self.assertNotIn("이번 QA package", contract)
 
 
 if __name__ == "__main__":
