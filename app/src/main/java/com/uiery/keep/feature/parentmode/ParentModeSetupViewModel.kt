@@ -93,6 +93,8 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 }
                 is ParentModeSessionControllerResult.Extended,
                 is ParentModeSessionControllerResult.Ended,
+                is ParentModeSessionControllerResult.Expired,
+                is ParentModeSessionControllerResult.NoStateChange,
                 ParentModeSessionControllerResult.InvalidExtension,
                 ParentModeSessionControllerResult.PinRequired,
                 ParentModeSessionControllerResult.NoActiveSession,

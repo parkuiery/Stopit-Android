@@ -115,6 +115,24 @@ internal class ParentModeSessionController @Inject constructor(
             ParentModeActionDecision.PinRequired -> ParentModeSessionControllerResult.PinRequired
         }
     }
+
+    suspend fun markExpiredIfNeeded(nowMillis: Long): ParentModeSessionControllerResult {
+        val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
+        if (session.state != ParentModeSessionState.Active) {
+            return ParentModeSessionControllerResult.NoStateChange(session)
+        }
+        if (ParentModePolicy.resolveState(session, nowMillis) != ParentModeSessionState.Expired) {
+            return ParentModeSessionControllerResult.NoStateChange(session)
+        }
+
+        val expiredSession = session.copy(state = ParentModeSessionState.Expired)
+        store.save(expiredSession)
+        analytics.trackParentModeCompleted(
+            durationMinutesBucket = ParentModePolicy.durationBucket(session.durationMinutes),
+            endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+        )
+        return ParentModeSessionControllerResult.Expired(expiredSession)
+    }
 }
 
 internal sealed interface ParentModeSessionControllerResult {
@@ -131,6 +149,14 @@ internal sealed interface ParentModeSessionControllerResult {
     ) : ParentModeSessionControllerResult
 
     data class Ended(
+        val session: ParentModeSession,
+    ) : ParentModeSessionControllerResult
+
+    data class Expired(
+        val session: ParentModeSession,
+    ) : ParentModeSessionControllerResult
+
+    data class NoStateChange(
         val session: ParentModeSession,
     ) : ParentModeSessionControllerResult
 

@@ -109,6 +109,7 @@ class ParentModeContractTest(unittest.TestCase):
             "invalid setup",
             "PIN 없는 연장 거부",
             "PIN 성공 즉시 종료",
+            "시간 만료 1회 commit",
             "ParentModeSessionControllerTest",
         ]:
             self.assertIn(phrase, runbook)
@@ -117,6 +118,7 @@ class ParentModeContractTest(unittest.TestCase):
             "ParentModeSessionControllerTest",
             "setup validation 실패 시 저장/analytics를 하지 않고",
             "PIN 성공 후 연장/즉시 종료만 저장",
+            "parent_mode_completed(end_reason=time_expired)`로 한 번만 commit",
         ]:
             self.assertIn(phrase, qa_checklist)
 
@@ -136,6 +138,8 @@ class ParentModeContractTest(unittest.TestCase):
             "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
             "ParentModeSetupViewModelTest",
             "Parent mode active/expired screen",
+            "6차 code-lane foothold",
+            "markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce",
         ]:
             self.assertIn(phrase, runbook)
 
