@@ -109,6 +109,7 @@ class ParentModeContractTest(unittest.TestCase):
             "invalid setup",
             "PIN 없는 연장 거부",
             "PIN 성공 즉시 종료",
+            "시간 만료 1회 commit",
             "ParentModeSessionControllerTest",
         ]:
             self.assertIn(phrase, runbook)
@@ -117,8 +118,38 @@ class ParentModeContractTest(unittest.TestCase):
             "ParentModeSessionControllerTest",
             "setup validation 실패 시 저장/analytics를 하지 않고",
             "PIN 성공 후 연장/즉시 종료만 저장",
+            "parent_mode_completed(end_reason=time_expired)`로 한 번만 commit",
         ]:
             self.assertIn(phrase, qa_checklist)
+
+    def test_runbook_tracks_setup_entry_foothold_and_remaining_boundaries(self):
+        runbook = RUNBOOK.read_text()
+        product_context = PRODUCT_CONTEXT.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        for phrase in [
+            "4차 code-lane foothold",
+            "Menu의 `아이에게 폰 주기` entrypoint",
+            "ParentModeSetupRoute",
+            "setup 화면 foothold",
+            "현재 선택 앱을 setup allowed-app seed로 읽어오는 경계",
+            "5차 code-lane foothold",
+            "실제 PIN 입력 UI와 setup CTA enablement",
+            "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
+            "ParentModeSetupViewModelTest",
+            "Parent mode active/expired screen",
+            "6차 code-lane foothold",
+            "markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce",
+        ]:
+            self.assertIn(phrase, runbook)
+
+        for document in [product_context, metrics_context]:
+            self.assertIn("Menu", document)
+            self.assertIn("setup 화면", document)
+            self.assertIn("PIN 입력 UI", document)
+            self.assertIn("active/expired", document)
+
+        self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
 
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
@@ -126,7 +157,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #519", product_context)
         self.assertIn("PR #584", product_context)
         self.assertIn("policy/analytics/session/Accessibility foothold", product_context)
-        self.assertIn("남은 경계는 MVP 전체 UX", product_context)
+        self.assertIn("setup 화면/ViewModel foothold", product_context)
+        self.assertIn("PIN 입력 UI와 setup CTA enablement", product_context)
+        self.assertIn("남은 경계는 active/expired 화면", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
