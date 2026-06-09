@@ -399,7 +399,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
 Source of truth: `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`
 Issue: #694
 
-Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. Until that code lands, this checklist is a contract handoff: do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
+Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. The Android wiring is repo-internal, but until the commit is included in a release/tag/Play deploy and GA4 Admin dimensions are registered, do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
 
 ```md
 ## Emergency unlock settings analytics QA evidence

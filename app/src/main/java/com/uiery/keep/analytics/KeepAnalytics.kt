@@ -82,6 +82,20 @@ interface KeepAnalytics {
         remainingUnlocks: Int,
     ) = Unit
 
+    fun trackEmergencyUnlockSettingsChanged(
+        settingName: String,
+        valueBucket: String,
+        refillMode: String,
+        durationCountBucket: String,
+        source: String,
+    ) = Unit
+
+    fun trackEmergencyUnlockManualResetRequested(
+        remainingUnlocksBucket: String,
+        source: String,
+        resetResult: String? = null,
+    ) = Unit
+
     fun trackFirstCoreActionCompleted(
         elapsedSinceFirstOpenSeconds: Long,
         blockingMode: String,
@@ -260,6 +274,8 @@ object KeepAnalyticsEvent {
     const val LOCK_SCHEDULED = "lock_scheduled"
     const val APP_BLOCK_INTERCEPTED = "app_block_intercepted"
     const val EMERGENCY_UNLOCK_COMPLETED = "emergency_unlock_completed"
+    const val EMERGENCY_UNLOCK_SETTINGS_CHANGED = "emergency_unlock_settings_changed"
+    const val EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED = "emergency_unlock_manual_reset_requested"
     const val FIRST_CORE_ACTION_COMPLETED = "first_core_action_completed"
     const val CORE_ACTION_COMPLETED = "core_action_completed"
     const val FCM_TOKEN_CAPTURED = "fcm_token_captured"
@@ -368,6 +384,12 @@ object KeepAnalyticsParam {
     const val CAMPAIGN_BUCKET = "campaign_bucket"
     const val LINK_SURFACE = "link_surface"
     const val LOOKUP_LATENCY_BUCKET = "lookup_latency_bucket"
+    const val SETTING_NAME = "setting_name"
+    const val VALUE_BUCKET = "value_bucket"
+    const val REFILL_MODE = "refill_mode"
+    const val DURATION_COUNT_BUCKET = "duration_count_bucket"
+    const val REMAINING_UNLOCKS_BUCKET = "remaining_unlocks_bucket"
+    const val RESET_RESULT = "reset_result"
 }
 
 object OnboardingStepName {
@@ -403,6 +425,58 @@ object AnalyticsSource {
     const val ROUTINE_ALARM = "routine_alarm"
     const val LOCK_SCREEN = "lock_screen"
     const val BLOCK_SCREEN = "block_screen"
+    const val MENU = "menu"
+}
+
+object AnalyticsEmergencyUnlockSettingName {
+    const val ENABLED = "enabled"
+    const val DAILY_LIMIT = "daily_limit"
+    const val DURATION_OPTIONS = "duration_options"
+    const val REASON_REQUIRED = "reason_required"
+    const val REFILL_MODE = "refill_mode"
+}
+
+object AnalyticsEmergencyUnlockSettingsValueBucket {
+    const val ON = "on"
+    const val OFF = "off"
+    const val ONE = "1"
+    const val TWO = "2"
+    const val THREE = "3"
+    const val FOUR_PLUS = "4_plus"
+    const val NONE = "none"
+    const val SHORT_ONLY = "short_only"
+    const val MIXED = "mixed"
+    const val LONG_INCLUDED = "long_included"
+    const val DAILY = "daily"
+    const val MANUAL = "manual"
+}
+
+object AnalyticsEmergencyUnlockRefillMode {
+    const val DAILY = "daily"
+    const val MANUAL = "manual"
+    const val NOT_APPLICABLE = "not_applicable"
+}
+
+object AnalyticsEmergencyUnlockDurationCountBucket {
+    const val ZERO = "0"
+    const val ONE = "1"
+    const val TWO_TO_THREE = "2_3"
+    const val FOUR_PLUS = "4_plus"
+    const val NOT_APPLICABLE = "not_applicable"
+}
+
+object AnalyticsEmergencyUnlockRemainingUnlocksBucket {
+    const val ZERO = "0"
+    const val ONE = "1"
+    const val TWO = "2"
+    const val THREE_PLUS = "3_plus"
+    const val UNKNOWN = "unknown"
+}
+
+object AnalyticsEmergencyUnlockManualResetResult {
+    const val REQUESTED = "requested"
+    const val COMPLETED = "completed"
+    const val UNAVAILABLE = "unavailable"
 }
 
 object AnalyticsPermissionName {

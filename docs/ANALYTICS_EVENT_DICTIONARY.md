@@ -315,7 +315,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 긴급해제 설정 변경
 
-긴급해제 설정 변경의 제품/QA 계약은 `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`(#694)를 source of truth로 본다. 현재 `EmergencyUnlockSettingsViewModel`은 `EmergencyUnlockSettingsScreen` screen_view만 기록하므로, 아래 이벤트는 code-lane 구현 전 계약이다. 구현 전 live event 0건은 수요 없음이 아니라 미계측이며, 구현 후에도 GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 adoption 결론을 보류한다.
+긴급해제 설정 변경의 제품/QA 계약은 `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`(#694)를 source of truth로 본다. 현재 `EmergencyUnlockSettingsViewModel`은 `EmergencyUnlockSettingsScreen` screen_view와 아래 설정 변경/manual reset 이벤트를 기록한다. 단, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 전에는 live event 0건을 adoption 부재로 해석하지 않고 결론을 보류한다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |

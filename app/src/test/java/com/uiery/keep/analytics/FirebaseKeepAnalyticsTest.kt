@@ -121,6 +121,54 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly() {
+        analytics.trackEmergencyUnlockSettingsChanged(
+            settingName = AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+            valueBucket = AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+            refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+            durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+            source = AnalyticsSource.MENU,
+        )
+        analytics.trackEmergencyUnlockManualResetRequested(
+            remainingUnlocksBucket = AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+            source = AnalyticsSource.MENU,
+            resetResult = AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_SETTINGS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.SETTING_NAME to AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+                    KeepAnalyticsParam.VALUE_BUCKET to AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                    KeepAnalyticsParam.DURATION_COUNT_BUCKET to AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[0].params.containsKey("manualResetAtMillis"))
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.MANUAL,
+                    KeepAnalyticsParam.REMAINING_UNLOCKS_BUCKET to AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                    KeepAnalyticsParam.RESET_RESULT to AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[1].params.containsKey("manualResetAtMillis"))
+    }
+
+    @Test
     fun dpcBaselineEventsUseRequiredNamesAndParams() {
         analytics.trackAppSelectionCompleted(
             selectedAppCount = 2,
