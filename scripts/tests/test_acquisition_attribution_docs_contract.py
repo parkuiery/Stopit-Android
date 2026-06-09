@@ -46,10 +46,12 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             for value in LATEST_VALUES:
                 self.assertIn(value, document)
 
-        self.assertIn("58.8%", product_context)
+        self.assertIn(LATEST_TIMESTAMP, product_context)
         self.assertIn("Play Console Search/Explore", product_context)
         self.assertIn("external/campaign", product_context)
         self.assertIn("ASO 회복", product_context)
+        for value in LATEST_VALUES:
+            self.assertIn(value, product_context)
 
         self.assertIn(LATEST_TIMESTAMP, review_prompt_followthrough)
         self.assertIn("Organic Search` 신규 사용자 | 236", review_prompt_followthrough)
