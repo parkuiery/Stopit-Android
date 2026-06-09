@@ -304,6 +304,7 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 운영 기준:
 
 - Dependabot PR에는 `maintenance`, `automation`, `dependencies` labels를 붙인다.
+- Dependabot PR head는 `dependabot/*` 형태가 정상이며, Branch Hygiene는 이 자동화 브랜치를 `develop` 대상으로 허용해야 한다. `dependabot/*` 실패는 dependency 자체 문제가 아니라 branch-routing 정책 drift로 먼저 분류한다.
 - patch/minor update는 ecosystem별 weekly group으로 묶어 backlog 소음을 제한한다.
 - **major update**는 자동 그룹 PR로 밀지 않고 `version-update:semver-major` ignore로 막아 별도 수동 검토 대상으로 남긴다.
 - major update가 필요하면 이 런북의 “Coordinated stack upgrade” 또는 “Deferred / product-risk review needed” 분류에 따라 별도 이슈/PR로 처리한다.

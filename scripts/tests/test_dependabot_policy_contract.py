@@ -61,6 +61,8 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "Play deploy",
             "release secret",
             ".github/dependabot.yml",
+            "dependabot/*",
+            "Branch Hygiene",
         ]:
             with self.subTest(required=required):
                 self.assertIn(required, docs)
