@@ -55,6 +55,7 @@
 해석 규칙:
 - `GOOGLE_SERVICES_JSON`을 “모든 flavor 공용 secret” 또는 “모든 Play Deploy 경로에서 쓰는 secret”으로 이해하면 dev/prod `applicationId` 분리 후 Android CI / Release QA 실패와 production promotion 실패 원인을 놓치기 쉽다.
 - 현재 steady-state에서는 Android CI / Release QA가 dev+prod 둘 다를 요구하지만, dev는 `GOOGLE_SERVICES_JSON_DEV`, prod는 `GOOGLE_SERVICES_JSON`를 복원한다.
+- Dependabot PR에서는 GitHub repository secret이 노출되지 않을 수 있다. Android CI는 actor가 `dependabot[bot]`이고 `GOOGLE_SERVICES_JSON_DEV` / `GOOGLE_SERVICES_JSON`가 비어 있으면 app Gradle verification과 emulator `runtime smoke`를 `Dependabot Firebase secret boundary`로 neutral-deferred 처리하고, job summary에 수동 `workflow_dispatch` 재실행 지시를 남긴다. 일반 PR / 내부 브랜치 / 수동 실행에서는 같은 Firebase secret 누락을 계속 hard fail로 유지한다.
 - Release Build / Play Deploy non-production build/upload는 prod만 요구하므로 계속 `GOOGLE_SERVICES_JSON`만 사용한다.
 - Play Deploy non-production staged rollout 입력 검증은 secret 복원보다 먼저 실패해야 한다. `release_status=inProgress`이면 `rollout_fraction`이 숫자이고 `0 < rollout_fraction <= 1`이어야 하며, `completed`/`draft`/`halted`는 `rollout_fraction`을 비워야 한다.
 - Play Deploy production staged rollout 입력 검증도 production promotion secret boundary보다 먼저 실패해야 한다. `release_status=inProgress`이면 `rollout_fraction`이 숫자이고 `0 < rollout_fraction <= 1`이어야 하며, `completed`/`draft`/`halted`는 `rollout_fraction`을 비워야 한다. 이 검증은 before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` presence check/decode 단계에서 실행되어 잘못된 수동 production dispatch가 Play API 호출까지 진행하지 않게 한다.

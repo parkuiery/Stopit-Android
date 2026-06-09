@@ -77,6 +77,34 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn(":core:kds:lintDebug", workflow)
         self.assertIn(":core:kds:testDebugUnitTest", workflow)
 
+    def test_android_ci_keeps_dependabot_firebase_secret_boundary_neutral(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("Check Firebase config availability", workflow)
+        self.assertIn("id: firebase-config", workflow)
+        self.assertIn("id: runtime-firebase-config", workflow)
+        self.assertIn("${{ github.actor }}\" = 'dependabot[bot]'", workflow)
+        self.assertIn("Dependabot PR: Firebase secrets are unavailable, so app Gradle verification is deferred", workflow)
+        self.assertIn("Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred", workflow)
+        self.assertIn("steps.firebase-config.outputs.available == 'true'", workflow)
+        self.assertIn("steps.runtime-firebase-config.outputs.available == 'true'", workflow)
+        self.assertIn("GOOGLE_SERVICES_JSON_DEV secret is missing", workflow)
+        self.assertIn("GOOGLE_SERVICES_JSON secret is missing", workflow)
+
+    def test_docs_explain_dependabot_firebase_secret_boundary(self):
+        docs = [
+            WORKFLOW_DOC_PATH.read_text(),
+            (REPO_ROOT / "docs" / "PLAY_DEPLOY_SECRETS_RUNBOOK.md").read_text(),
+            RELEASE_CONTEXT_PATH.read_text(),
+        ]
+
+        for doc in docs:
+            with self.subTest():
+                self.assertIn("Dependabot", doc)
+                self.assertIn("Firebase secret", doc)
+                self.assertIn("runtime smoke", doc)
+                self.assertIn("workflow_dispatch", doc)
+
     def test_release_context_documents_kds_module_local_ci_gate(self):
         doc = RELEASE_CONTEXT_PATH.read_text()
 
