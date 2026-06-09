@@ -116,7 +116,7 @@ class EmergencyUnlockSettingsAnalyticsContractTest(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)
 
-    def test_contract_does_not_over_claim_implementation_or_live_adoption(self):
+    def test_contract_records_android_wiring_without_over_claiming_live_adoption(self):
         doc = read("docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md")
         high_traffic = "\n".join(
             read(path)
@@ -127,10 +127,10 @@ class EmergencyUnlockSettingsAnalyticsContractTest(unittest.TestCase):
             ]
         )
 
-        self.assertIn("현재는 문서 계약 단계", doc)
-        self.assertIn("Android wiring 전", doc)
+        self.assertIn("Android analytics wiring 완료", doc)
+        self.assertIn("release/tag/Play deploy", doc)
         self.assertIn("live 0건은 수요 없음으로 해석하지 않는다", doc)
-        self.assertIn("live event 0건은 미계측으로 본다", high_traffic)
+        self.assertIn("release/tag/Play deploy", high_traffic)
         self.assertNotIn("Closes #694", doc)
 
 

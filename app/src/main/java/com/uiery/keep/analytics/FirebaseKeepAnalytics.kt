@@ -183,6 +183,41 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackEmergencyUnlockSettingsChanged(
+            settingName: String,
+            valueBucket: String,
+            refillMode: String,
+            durationCountBucket: String,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_SETTINGS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.SETTING_NAME to settingName,
+                    KeepAnalyticsParam.VALUE_BUCKET to valueBucket,
+                    KeepAnalyticsParam.REFILL_MODE to refillMode,
+                    KeepAnalyticsParam.DURATION_COUNT_BUCKET to durationCountBucket,
+                    KeepAnalyticsParam.SOURCE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockManualResetRequested(
+            remainingUnlocksBucket: String,
+            source: String,
+            resetResult: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED,
+                params = buildMap {
+                    put(KeepAnalyticsParam.REFILL_MODE, AnalyticsEmergencyUnlockRefillMode.MANUAL)
+                    put(KeepAnalyticsParam.REMAINING_UNLOCKS_BUCKET, remainingUnlocksBucket)
+                    put(KeepAnalyticsParam.SOURCE, source)
+                    resetResult?.let { put(KeepAnalyticsParam.RESET_RESULT, it) }
+                },
+            )
+        }
+
         override fun trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,
