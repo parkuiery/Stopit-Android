@@ -56,6 +56,24 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### 지원 문의 fallback baseline
+
+issue #695 계열 PR은 메뉴의 문의/광고 제거 관심도 문의 진입점에서 이메일 앱이 없을 때 지원 주소와 privacy-safe 진단 템플릿이 클립보드에 남는지 확인한다. 진단 템플릿에는 앱 version, Android OS/SDK, device model만 포함하고 앱 package list, 루틴 이름/ID, 잠금 기록, 긴급해제 reason 원문은 넣지 않는다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.menu.SupportContactFallbackTest'
+python3 -m unittest scripts.tests.test_locale_string_parity -v
+```
+
+수동 QA evidence:
+- 이메일 앱이 설치된 기기: 메뉴 `Contact Us`가 기존 메일 작성 화면을 열고 제목/진단 템플릿이 채워진다.
+- 이메일 앱이 없는 기기/프로필: Toast가 fallback 복사를 안내하고 클립보드에 지원 이메일 + version/OS/device model 진단 템플릿이 들어간다.
+- 클립보드/analytics 확인: `support_contact_fallback_used(surface=menu, fallback_type=clipboard)`만 기록되고 진단 payload 원문이나 사용자 민감 정보는 analytics에 기록되지 않는다.
+- 모든 shipped `values*/strings.xml`에 `support_contact_fallback_copied` string parity가 유지된다.
+
 ### 기능성 control stateDescription locale baseline
 
 issue #570/#628 계열 PR은 TalkBack이 읽는 상태 문구와 요일/날짜 라벨도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`, `"Today"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다. Android 13+ per-app language를 켠 경우 `Locale.getDefault()`가 시스템 언어를 가리킬 수 있으므로, 루틴 요일/잠금 기록 주간 캘린더는 `LocalConfiguration.current.locales[0]` 또는 동등한 앱 configuration locale을 사용한다.
@@ -391,6 +409,47 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
   - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
+- Decision: pass / fail / needs follow-up
+```
+
+### Emergency unlock settings analytics QA baseline
+
+Source of truth: `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`
+Issue: #694
+
+Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. Until that code lands, this checklist is a contract handoff: do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
+
+```md
+## Emergency unlock settings analytics QA evidence
+- Issue: #694
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / en / changed locales:
+- Release ancestry:
+  - #694 Android analytics wiring PR included in tested build: yes / no / unknown
+  - SemVer tag / Play track:
+- Setting changes exercised:
+  - enabled ON/OFF: pass / fail / n/a
+  - daily limit bucket (`1`, `2`, `3`, `4_plus`): pass / fail / n/a
+  - duration option count bucket (`0`, `1`, `2_3`, `4_plus`): pass / fail / n/a
+  - reason required ON/OFF: pass / fail / n/a
+  - refill mode daily/manual: pass / fail / n/a
+  - manual reset request: pass / fail / n/a
+- Analytics payload contract:
+  - `setting_name` uses only `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`: pass / fail
+  - `value_bucket`, `duration_count_bucket`, `remaining_unlocks_bucket`, `refill_mode`, `source=menu` use documented enum/bucket values: pass / fail
+  - no custom reason, display label/custom text, app package/name/list, raw timestamp/history, `manualResetAtMillis`, or full settings snapshot is sent: pass / fail
+- GA4/Admin:
+  - `customEvent:setting_name`: registered / missing / unknown
+  - `customEvent:value_bucket`: registered / missing / unknown
+  - `customEvent:refill_mode`: registered / missing / unknown
+  - `customEvent:duration_count_bucket`: registered / missing / unknown
+  - `customEvent:remaining_unlocks_bucket`: registered / missing / unknown
+  - `customEvent:reset_result`: registered / missing / unknown / not used
+- Verification:
+  - `python3 -m unittest scripts.tests.test_emergency_unlock_settings_analytics_contract -v`
+  - Android focused analytics tests, if present:
+  - GA4 metadata/runReport evidence URL or command output:
 - Decision: pass / fail / needs follow-up
 ```
 
@@ -773,6 +832,9 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' \
   --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' \
   --tests 'com.uiery.keep.KeepAppNavigationPolicyTest' \
+  --tests 'com.uiery.keep.service.GoalLockStartReevaluationPolicyTest' \
+  --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock' \
+  --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'
 python3 -m unittest scripts.tests.test_goal_lock_contract -v
@@ -801,6 +863,8 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 실제 AccessibilityService bind 후 수동 Keep이 꺼진 상태에서도 active all-day 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고, instrumentation debug state가 `block_source=goal_lock` / `goal_lock_id`를 남기는지 검증한다.
 - `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 같은 실제 AccessibilityService bind 경로에서 현재 요일 scheduled window의 active 목표 잠금도 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고 동일한 `block_source=goal_lock` / `goal_lock_id` attribution을 남기는지 검증한다.
 - `KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`는 저장 상태가 `active`로 남아 있더라도 종료일이 지난 목표 잠금이 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 보내지 않고, debug state에 `block_source=goal_lock` attribution을 남기지 않는지 검증한다.
+- `GoalLockStartReevaluationPolicyTest`는 #691 회귀 baseline이다. Goal Lock이 아직 foreground 이벤트를 만들지 않은 상태에서 `all_day` 시작일 자정, same-day scheduled 시작시간, overnight scheduled 시작시간, 다음 반복요일, 루틴+Goal Lock 조합 중 가장 빠른 시작 시각을 `KeepAccessibilityService`의 foreground 재평가 예약 대상으로 계산하는지 검증한다. 완료/invalid/expired/선택 앱 0개 Goal Lock은 예약 대상에서 제외되어야 한다.
+- `MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock` / `isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking`는 메뉴/설정의 active blocking 판단이 manual Keep·루틴뿐 아니라 현재 실제로 차단 중인 Goal Lock과도 일치하는지 검증한다. 이 값이 false로 남으면 `prevent_uninstall` 토글 가능 여부가 Goal Lock 강제 잠금 상태와 어긋날 수 있다.
 - Accessibility/blocking runtime은 expiration 경계까지 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
 
 수동 QA evidence template:
@@ -813,6 +877,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Entry point: home / routine / menu
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.GoalLockStartReevaluationPolicyTest' --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock' --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking'`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`

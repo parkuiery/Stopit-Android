@@ -124,6 +124,7 @@
     <string name="monetization_interest_menu_message">Сообщите, полезна ли опция без рекламы. Покупка пока недоступна.</string>
     <string name="feedback_subject">[StopIt Android] Обратная связь</string>
     <string name="email_app_not_installed">Приложение для электронной почты не установлено.</string>
+    <string name="support_contact_fallback_copied">Почтовое приложение не найдено. Адрес поддержки и диагностические данные скопированы в буфер обмена.</string>
     <string name="feature_request_message">🚀 Мы создадим функции, которые вы хотите!</string>
     <string name="accessibility_setup_guide">● Samsung: Настройки > Специальные возможности > Установленные приложения > StopIt > Разрешить специальные возможности\n● Другие: Настройки > Специальные возможности > StopIt > Разрешить специальные возможности</string>
     <string name="lock_screen_routine_running">%1$s \nВыполняется рутина</string>

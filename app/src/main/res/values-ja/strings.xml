@@ -124,6 +124,7 @@
     <string name="monetization_interest_menu_message">広告なしオプションが役立つか教えてください。まだ購入はできません。</string>
     <string name="feedback_subject">[StopIt Android] フィードバック</string>
     <string name="email_app_not_installed">メールアプリがインストールされていません。</string>
+    <string name="support_contact_fallback_copied">メールアプリが見つからないため、サポートメールと診断情報をクリップボードにコピーしました。</string>
     <string name="feature_request_message">🚀 ご希望の機能を作成いたします！</string>
     <string name="accessibility_setup_guide">● サムスン: 設定 > アクセシビリティ > インストール済みアプリ > StopIt > アクセシビリティを許可\n● その他: 設定 > アクセシビリティ > StopIt > アクセシビリティを許可</string>
     <string name="lock_screen_routine_running">%1$s \nルーティン実行中</string>

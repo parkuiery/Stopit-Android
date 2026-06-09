@@ -213,6 +213,21 @@
 - 아이 이름, 앱 이름/package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 GA4 payload와 registration ledger 모두에서 금지한다.
 - #471 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 부모 모드 setup/완료율과 가족 사용 확장 효과를 낮은 confidence로 둔다.
 
+### 11순위: 긴급해제 설정 변경 조회성
+
+- `setting_name`
+- `value_bucket`
+- `refill_mode`
+- `duration_count_bucket`
+- `remaining_unlocks_bucket`
+- `reset_result` (Recommended)
+
+이 묶음이 필요한 이유:
+
+- `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`(#694)의 긴급해제 설정 변경 계약이 구현된 뒤, 사용자가 긴급해제를 끄는지, daily/manual refill을 선택하는지, reason required를 끄는지, duration option을 줄이는지 enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- custom reason 원문, 앱 이름/package/list, raw lock/session history, raw timestamp, `manualResetAtMillis` 원문, 설정 snapshot dump는 GA4 payload와 registration ledger 모두에서 금지한다.
+- #694 문서 계약은 repo-internal foothold이며, Android analytics API/ViewModel wiring, GA4 Admin 등록·metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `emergency_unlock_settings_changed` 0건을 adoption 부재로 해석하지 않는다.
+
 ### Install Referrer / UTM attribution 조회성
 
 - `referrer_status`
@@ -294,6 +309,11 @@ GA4 Admin 증적 후보:
 | `pin_result` | `parent_mode_unlocked_by_pin` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
 | `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
 | `block_context` | `parent_mode_block_intercepted` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
+| `setting_name` | `emergency_unlock_settings_changed` | #694 문서 계약 추가 / Android analytics wiring 전 | 긴급해제 설정 변경 축별 adoption 비교. 설정 snapshot dump 금지 | `customEvent:setting_name` |
+| `value_bucket` | `emergency_unlock_settings_changed` | #694 문서 계약 추가 / Android analytics wiring 전 | ON/OFF, daily limit, reason required, duration option, refill mode 값을 enum/bucket으로만 비교 | `customEvent:value_bucket` |
+| `refill_mode` | `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` | #694 문서 계약 추가 / Android analytics wiring 전 | daily/manual refill adoption과 manual reset 요청 비교 | `customEvent:refill_mode` |
+| `duration_count_bucket` | `emergency_unlock_settings_changed` | #694 문서 계약 추가 / Android analytics wiring 전 | duration option 개수 변경. raw duration list 금지 | `customEvent:duration_count_bucket` |
+| `remaining_unlocks_bucket` | `emergency_unlock_manual_reset_requested` | #694 문서 계약 추가 / Android analytics wiring 전 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 | `customEvent:remaining_unlocks_bucket` |
 
 ### 2) Recommended 이벤트 차원
 
@@ -310,6 +330,7 @@ GA4 Admin 증적 후보:
 | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
 | `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
 | `suggestion_variant` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 문서 계약 추가 / 필요 시 등록 | 반복 차단 루틴 추천 copy/placement 비교가 필요할 때 |
+| `reset_result` | `emergency_unlock_manual_reset_requested` | #694 문서 계약 추가 / Android analytics wiring 전 | manual reset 요청과 완료/불가 상태를 안전하게 구분할 때 |
 
 ### 3) Recommended 이벤트 지표
 
@@ -401,6 +422,12 @@ GA4 Admin 증적 후보:
 | `pin_result` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:pin_result` 확인 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 |
 | `block_context` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:block_context` 확인 필요 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
 | `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 코드 계약 포함 버전의 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
+| `setting_name` | Required dimension | 등록 필요 | #694 Android analytics wiring 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:setting_name` 확인 필요 | 긴급해제 설정 변경 축. 설정 snapshot dump 금지 |
+| `value_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:value_bucket` 확인 필요 | ON/OFF, daily limit, duration option, reason required, refill mode 값을 enum/bucket으로만 기록 |
+| `refill_mode` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:refill_mode` 확인 필요 | daily/manual refill adoption과 manual reset 요청 비교 |
+| `duration_count_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_count_bucket` 확인 필요 | duration option 개수 bucket. raw duration list 금지 |
+| `remaining_unlocks_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:remaining_unlocks_bucket` 확인 필요 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 |
+| `reset_result` | Recommended dimension | 필요 시 등록 | manual reset 결과 구분 필요 시 | GA4 Admin 수동 | `customEvent:reset_result` 확인 필요 | requested/completed/unavailable enum만 허용 |
 
 ### metadata 확인 로그 템플릿
 

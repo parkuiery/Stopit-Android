@@ -124,6 +124,7 @@
     <string name="monetization_interest_menu_message">Laat ons weten of een advertentievrije optie nuttig is. Kopen is nog niet beschikbaar.</string>
     <string name="feedback_subject">[StopIt Android] Feedback</string>
     <string name="email_app_not_installed">Geen e-mailapp geïnstalleerd.</string>
+    <string name="support_contact_fallback_copied">Geen e-mailapp gevonden. Supportmail en diagnostiek zijn naar het klembord gekopieerd.</string>
     <string name="feature_request_message">🚀 We maken de functies die je wilt!</string>
     <string name="accessibility_setup_guide">● Samsung: Instellingen > Toegankelijkheid > Geïnstalleerde apps > StopIt > Toegankelijkheid toestaan\n● Anderen: Instellingen > Toegankelijkheid > StopIt > Toegankelijkheid toestaan</string>
     <string name="lock_screen_routine_running">%1$s \nroutine wordt uitgevoerd</string>

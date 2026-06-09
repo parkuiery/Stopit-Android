@@ -124,6 +124,7 @@
     <string name="monetization_interest_menu_message">如果无广告选项对你有帮助，请告诉我们。目前尚未提供购买。</string>
     <string name="feedback_subject">[StopIt Android] 反馈</string>
     <string name="email_app_not_installed">未安装邮件应用。</string>
+    <string name="support_contact_fallback_copied">未找到邮件应用。支持邮箱和诊断信息已复制到剪贴板。</string>
     <string name="feature_request_message">🚀 我们会为您创建想要的功能！</string>
     <string name="accessibility_setup_guide">● 三星：设置 > 辅助功能 > 已安装的应用 > StopIt > 允许辅助功能\n● 其他：设置 > 辅助功能 > StopIt > 允许辅助功能</string>
     <string name="lock_screen_routine_running">%1$s \n例程运行中</string>
