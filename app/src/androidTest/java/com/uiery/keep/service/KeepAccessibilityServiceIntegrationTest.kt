@@ -187,6 +187,27 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence() = runBlocking {
+        val allowedPackage = resolveLaunchablePackages().first()
+        configureExpiredActiveParentMode(allowedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(allowedPackage)
+        waitForWindowEvent(allowedPackage)
+
+        waitUntil(
+            message = "Expected expired Parent Mode to block previously allowed app with expired state evidence for $allowedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.observedParentModeState == "expired" &&
+                snapshot.observedParentModeAllowedAppCount == 1 &&
+                snapshot.lastLaunchedBlockPackage == allowedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.PARENT_MODE
+        }
+    }
+
+    @Test
     fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         configureExpiredGoalLockBlock(blockedPackage)
@@ -438,6 +459,23 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences[PreferencesKey.PARENT_MODE_EXPIRES_AT] = nowMillis + PARENT_MODE_RUNTIME_WINDOW_MS
             preferences[PreferencesKey.PARENT_MODE_DURATION_MINUTES] = 10
             preferences[PreferencesKey.PARENT_MODE_ALLOWED_APPS] = setOf(appPackage)
+            preferences[PreferencesKey.PARENT_MODE_STATE] = "active"
+        }
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+    }
+
+    private suspend fun configureExpiredActiveParentMode(allowedPackage: String) {
+        val nowMillis = System.currentTimeMillis()
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+            preferences[PreferencesKey.PARENT_MODE_STARTED_AT] = nowMillis - PARENT_MODE_RUNTIME_WINDOW_MS
+            preferences[PreferencesKey.PARENT_MODE_EXPIRES_AT] = nowMillis - 1_000L
+            preferences[PreferencesKey.PARENT_MODE_DURATION_MINUTES] = 10
+            preferences[PreferencesKey.PARENT_MODE_ALLOWED_APPS] = setOf(allowedPackage)
             preferences[PreferencesKey.PARENT_MODE_STATE] = "active"
         }
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
