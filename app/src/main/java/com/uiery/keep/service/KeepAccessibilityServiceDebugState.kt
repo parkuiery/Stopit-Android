@@ -15,6 +15,8 @@ object KeepAccessibilityServiceDebugState {
         val observedSelectedAppPackages: Set<String> = emptySet(),
         val observedEmergencyUnlockApps: Set<String> = emptySet(),
         val observedEmergencyUnlockExpireTimeMillis: Long = 0L,
+        val observedParentModeState: String? = null,
+        val observedParentModeAllowedAppCount: Int = 0,
         val lastCountdownNotificationExpireTimeMillis: Long = 0L,
         val lastCountdownNotificationPostResult: String? = null,
         val lastWindowStateChangedPackage: String? = null,
@@ -48,6 +50,7 @@ object KeepAccessibilityServiceDebugState {
         if (parts.size < 8) return Snapshot()
         val hasNotificationFields = parts.size >= 11
         val hasLaunchAttributionFields = parts.size >= 14
+        val hasParentModeFields = parts.size >= 16
         return Snapshot(
             isServiceConnected = parts[0].toBoolean(),
             observedIsKeep = parts[1].toBoolean(),
@@ -63,6 +66,8 @@ object KeepAccessibilityServiceDebugState {
             lastLaunchedRoutineId = if (hasLaunchAttributionFields) parts[12].ifBlank { null } else null,
             lastLaunchedGoalLockId = if (hasLaunchAttributionFields) parts[13].ifBlank { null } else null,
             lastDismissedUninstallPackage = parts[if (hasNotificationFields) 10 else 7].ifBlank { null },
+            observedParentModeState = if (hasParentModeFields) parts[14].ifBlank { null } else null,
+            observedParentModeAllowedAppCount = if (hasParentModeFields) parts[15].toIntOrNull() ?: 0 else 0,
         )
     }
 
@@ -85,7 +90,9 @@ object KeepAccessibilityServiceDebugState {
                 appendLine(snapshot.lastDismissedUninstallPackage.orEmpty())
                 appendLine(snapshot.lastLaunchedBlockSource.orEmpty())
                 appendLine(snapshot.lastLaunchedRoutineId.orEmpty())
-                append(snapshot.lastLaunchedGoalLockId.orEmpty())
+                appendLine(snapshot.lastLaunchedGoalLockId.orEmpty())
+                appendLine(snapshot.observedParentModeState.orEmpty())
+                append(snapshot.observedParentModeAllowedAppCount)
             },
         )
     }

@@ -146,7 +146,7 @@ cd <repo-root>
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeAccessibilityIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution
 ```
 
 수동 QA evidence는 `docs/QA_RUNTIME_CHECKLIST.md`의 `Parent mode QA evidence` 템플릿을 사용한다.
@@ -215,6 +215,14 @@ cd <repo-root>
 
 - `ParentModeSessionController`: active session만 만료 처리하고, 이미 `expired`/`unlocked_by_pin`/`cancelled` 상태인 session은 `NoStateChange`로 둔다.
 - `ParentModeSessionControllerTest.markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce`: 만료 1회 저장, 두 번째 호출 no-op, `time_expired` completion event 1회만 기록되는 경계를 검증한다.
+
+### 7차 QA-lane runtime foothold
+
+2026-06-09 QA-lane PR에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 foothold는 full active/expired UX 화면을 완성하지는 않지만, device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence를 고정한다.
+
+- `KeepAccessibilityServiceDebugState`: 서비스가 관찰한 Parent Mode state와 allowed-app count를 instrumentation evidence로 보존한다.
+- `KeepAccessibilityServiceIntegrationTest.activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`: manual Keep 없이 active Parent Mode DataStore session만으로 비허용 앱 차단 요청이 발생하고, `observedParentModeState=active`, `observedParentModeAllowedAppCount=1`, `lastLaunchedBlockSource=parent_mode`가 기록되는지 검증한다.
+- `docs/QA_RUNTIME_CHECKLIST.md`: Parent Mode runtime baseline command와 evidence 템플릿을 실제 service integration test로 동기화한다.
 
 ### 다음 code-lane 후보
 

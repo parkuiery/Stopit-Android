@@ -19,6 +19,7 @@ import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.parentmode.ParentModeSession
+import com.uiery.keep.feature.parentmode.ParentModeSessionState
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
@@ -140,10 +141,22 @@ class KeepAccessibilityService :
             ParentModeSessionStore(applicationContext.dataStore).observe()
                 .catch {
                     cachedParentModeSession = null
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = null,
+                            observedParentModeAllowedAppCount = 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
                 .collect { session ->
                     cachedParentModeSession = session
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = session?.state?.toDebugValue(),
+                            observedParentModeAllowedAppCount = session?.allowedApps?.size ?: 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
@@ -178,6 +191,14 @@ class KeepAccessibilityService :
         handler.removeCallbacksAndMessages(null)
         KeepAccessibilityServiceDebugState.reset(applicationContext)
         job.cancel()
+    }
+
+    private fun ParentModeSessionState.toDebugValue(): String = when (this) {
+        ParentModeSessionState.Setup -> "setup"
+        ParentModeSessionState.Active -> "active"
+        ParentModeSessionState.Expired -> "expired"
+        ParentModeSessionState.UnlockedByPin -> "unlocked_by_pin"
+        ParentModeSessionState.Cancelled -> "cancelled"
     }
 
     private fun blockIfNeeded(
