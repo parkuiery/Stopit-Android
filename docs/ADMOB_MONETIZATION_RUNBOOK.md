@@ -51,6 +51,7 @@ issue #16에 기록된 최근 30일 기준선:
 - `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`
 - `docs/ops/stopit/metrics-context.md`
 - 광고 화면/노출 문맥을 담는 analytics 및 UI 코드 (`TrackedBannerAd.kt` / `TrackedBannerAdTest.kt`)
+- KDS/앱 수익화 경계 (`core/kds/README.md`, `DESIGN.md`, `scripts/tests/test_kds_admob_boundary.py`)
 - 광고 앱 ID / 광고 단위 ID 설정 표면 (`app/build.gradle.kts`, `app/src/main/AndroidManifest.xml`, `app/src/main/java/com/uiery/keep/analytics/AdPlacement.kt`)
 - GA4 Analytics Data API / AdMob 보고서
 
@@ -445,6 +446,35 @@ rg -n 'ad_banner_impression|ad_banner_click|ad_banner_revenue|customEvent:ad_pla
 - 코드 기준 call site는 모두 `TrackedBannerAd`를 지나므로 Stopit 앱 소유 배너 이벤트(`ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue`)에는 `screen_name`, `screen_context`, `ad_placement`, `ad_format`, `ad_unit_id`가 붙어야 한다.
 - 그런데 GA4/AdMob의 `adUnitName` 기준으로 `(not set)` + empty가 40.7%라면, 우선순위는 **새 광고 실험**이 아니라 **AdMob 단위 이름/GA4 linkage/custom dimension/SDK 자동 수집 이벤트와 앱 custom 이벤트의 매핑 차이 진단**이다.
 - `adUnitName`은 AdMob/GA4가 보여주는 광고 단위 표시명이고, `ad_unit_id`는 앱 custom event 파라미터다. 둘을 같은 필드처럼 해석하지 않는다. 두 표를 연결하려면 `ad_unit_id` custom dimension 등록 여부와 AdMob unit 이름 매핑을 먼저 확인한다.
+
+## KDS / 앱 수익화 runtime ownership 경계
+
+PR #563(`36cee46158f6b2f11f6b841b2eb191a0871ccf1c`)에서 #557 package가 `develop`에 merge되면서 `:core:kds`의 AdMob SDK runtime 의존은 제거됐다. 이후 #16 수익화/placement 분석은 **KDS component audit**가 아니라 앱 monetization/analytics 경계 audit로 진행한다.
+
+현재 계약:
+
+1. `:core:kds`는 디자인 시스템 primitive와 theme/token만 소유한다.
+   - `core/kds/build.gradle.kts`는 `libs.google.play.services.ads`를 갖지 않는다.
+   - `core/kds/src/main/**`는 `com.google.android.gms.ads`를 import하지 않는다.
+2. AdMob SDK lifecycle, banner request, paid event callback, impression/click/revenue analytics는 앱 경계가 소유한다.
+   - source of truth: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
+   - placement/source mapping: `app/src/main/java/com/uiery/keep/analytics/AdPlacement.kt`
+3. KDS 문서/디자인 문서는 “KDS는 AdMob runtime을 직접 소유하지 않는다”는 원칙만 유지한다.
+   - KDS에 광고 wrapper를 다시 추가하는 PR은 #16 guardrail을 우회하는 것이 아니라 `scripts.tests.test_kds_admob_boundary` 실패로 막혀야 한다.
+4. release boundary는 아직 남아 있다.
+   - 2026-06-09 확인 기준 PR #563 merge commit은 `origin/develop`에는 있지만 `origin/main`/latest production tag `v1.7.7`에는 없다.
+   - 따라서 production 광고 성과 변화가 보이더라도 PR #563의 runtime boundary 정리 효과로 단정하지 않는다. #16 수익화 판단은 여전히 CTA/placement helper/source split 포함 release/tag/Play deploy 후 14일 이상 재조회가 필요하다.
+
+검증:
+
+```bash
+python3 -m unittest scripts.tests.test_kds_admob_boundary -v
+rg -n 'com.google.android.gms.ads|libs.google.play.services.ads|KeepBannerAd' core/kds
+# 아래 ancestry 확인은 첫 번째만 성공, origin/main/tag 확인은 release 전까지 실패해야 정상이다.
+git merge-base --is-ancestor 36cee46158f6b2f11f6b841b2eb191a0871ccf1c origin/develop
+git merge-base --is-ancestor 36cee46158f6b2f11f6b841b2eb191a0871ccf1c origin/main
+git merge-base --is-ancestor 36cee46158f6b2f11f6b841b2eb191a0871ccf1c v1.7.7
+```
 
 ## issue #250: flavor별 광고 설정 계약
 
