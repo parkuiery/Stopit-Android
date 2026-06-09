@@ -1,6 +1,9 @@
 package com.uiery.keep.feature.goallock
 
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.DayOfWeek

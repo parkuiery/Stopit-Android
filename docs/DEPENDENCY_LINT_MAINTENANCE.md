@@ -288,6 +288,48 @@ Navigation Compose custom lint가 `ObsoleteLintCustomCheck` 또는 `Requires new
   - deferred items:
 ```
 
+## Dependabot 자동 업데이트 정책 (#693)
+
+Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설정으로 사용한다. 설정 목적은 “최신 버전을 무조건 빨리 올리는 것”이 아니라, Android/Functions/ASO/GitHub Actions 드리프트를 **weekly**로 감지하고 PR 소음을 제한하면서 사람이 triage할 수 있는 evidence를 만들기 위함이다.
+
+등록 ecosystem:
+
+| Ecosystem | Directory | 기대 CI / 검토 포인트 |
+| --- | --- | --- |
+| Gradle version catalog / wrapper | `/` | Android CI fast verification, lint baseline, release-impact 검토 |
+| GitHub Actions | `/` | Branch Hygiene / Ops CI workflow syntax + docs-contract drift 검토 |
+| Firebase Functions npm | `/functions` | Ops CI Functions job: Node 22 `npm ci`, lint, test |
+| ASO screenshot tool Bun lockfile | `/tools/aso-screenshots` | 도구 빌드/스크린샷 workflow 영향 검토 |
+
+운영 기준:
+
+- Dependabot PR에는 `maintenance`, `automation`, `dependencies` labels를 붙인다.
+- Dependabot PR head는 `dependabot/*` 형태가 정상이며, Branch Hygiene는 이 자동화 브랜치를 `develop` 대상으로 허용해야 한다. `dependabot/*` 실패는 dependency 자체 문제가 아니라 branch-routing 정책 drift로 먼저 분류한다.
+- patch/minor update는 ecosystem별 weekly group으로 묶어 backlog 소음을 제한한다.
+- **major update**는 자동 그룹 PR로 밀지 않고 `version-update:semver-major` ignore로 막아 별도 수동 검토 대상으로 남긴다.
+- major update가 필요하면 이 런북의 “Coordinated stack upgrade” 또는 “Deferred / product-risk review needed” 분류에 따라 별도 이슈/PR로 처리한다.
+- Dependabot PR이 Play deploy, release secret, signing secret, Firebase service account secret을 변경하거나 요구하는 형태로 확장되면 안 된다. 의존성 PR의 기본 경계는 코드/빌드 검증이며, Play deploy/release secret 설정은 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 릴리즈 workflow가 별도로 소유한다.
+- Android/runtime-sensitive dependency가 포함되면 PR 본문에 `docs/QA_RUNTIME_CHECKLIST.md`에서 필요한 device/emulator evidence를 명시한다.
+
+PR triage checklist:
+
+```md
+## Dependabot / dependency automation triage
+- Source PR: Dependabot / manual
+- Ecosystem: gradle / github-actions / npm(functions) / bun(aso)
+- Update type: patch / minor / major
+- Group: weekly grouped / single manual review
+- Labels present: maintenance, automation, dependencies
+- Verification:
+  - Android / Ops CI materialized: yes / no / n/a
+  - Required checks green: yes / no
+  - Runtime/release manual QA needed: yes / no
+- Release boundary:
+  - Play deploy touched: no
+  - release secret touched: no
+  - signed artifact / production path touched: no
+```
+
 ## docs-lane에서 허용되는 작은 slice 예시
 
 이 lane에서는 아래처럼 **운영 문서만** 다루는 것이 안전하다.

@@ -392,6 +392,18 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 - 긴급 해제는 소개하되, 차단 강도를 약하게 보이게 만들지 않는다.
 - 기록 화면은 단순 통계보다 "집중을 이어온 증거"로 표현한다.
 
+### 스크린샷 생성기 / CI 검증
+
+스크린샷 편집 source는 `tools/aso-screenshots`의 Next/Bun 생성기다. 생성기 코드, 템플릿, 캡처 asset, `package.json`, `bun.lock`을 바꾼 PR은 Play Console 반영과 별개로 로컬/CI build 증적을 남긴다.
+
+```bash
+cd tools/aso-screenshots
+bun install --frozen-lockfile
+bun run build
+```
+
+Ops CI의 `ASO screenshots build` job이 같은 명령을 실행한다. 이 gate는 Android 앱 빌드와 분리된 스크린샷 생성기 검증이며, Gradle/Firebase signing/Play deploy secret을 요구하지 않는다.
+
 ### 스크린샷 자산 체크리스트
 
 | 슬롯 | 필요 화면 | 캡션 확정 | 실제 캡처 | 최종 편집본 | Play Console 반영 |
