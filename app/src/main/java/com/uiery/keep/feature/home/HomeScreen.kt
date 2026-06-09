@@ -94,6 +94,7 @@ fun HomeScreen(
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
     onNavigateLockHistory: () -> Unit,
+    onNavigateRoutine: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
@@ -134,6 +135,7 @@ fun HomeScreen(
             }
 
             is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
+            HomeSideEffect.MoveToRoutine -> onNavigateRoutine()
         }
     }
 
@@ -293,6 +295,7 @@ fun HomeScreen(
                 isKeep = uiState.isKeep,
                 selectedAppCount = uiState.selectedAppPackage.size,
                 showFirstLockActivationCta = uiState.showFirstLockActivationCta,
+                showRoutineCreationCta = uiState.showRoutineCreationCta,
                 hasGoalLockCard = uiState.goalLockCard != null,
             )
             HomeStatusCtaCard(
@@ -319,6 +322,7 @@ fun HomeScreen(
                 onChangeAppsClick = viewModel::showCategoryBottomSheet,
                 onTimerClick = viewModel::showTimeBottomSheet,
                 onLockHistoryClick = onNavigateLockHistory,
+                onRoutineCreationClick = viewModel::onRoutineCreationCtaClick,
             )
             uiState.goalLockCard?.let { goalLockCard ->
                 GoalLockProgressCard(
@@ -503,6 +507,7 @@ internal fun HomeStatusCtaCard(
     onChangeAppsClick: () -> Unit,
     onTimerClick: () -> Unit,
     onLockHistoryClick: () -> Unit,
+    onRoutineCreationClick: () -> Unit,
 ) {
     Card(
         modifier = modifier.testTag("home_status_cta_card"),
@@ -550,6 +555,11 @@ internal fun HomeStatusCtaCard(
                 if (model.showLockHistorySecondary) {
                     TextButton(onClick = onLockHistoryClick) {
                         Text(text = stringResource(R.string.home_secondary_lock_history))
+                    }
+                }
+                if (model.showRoutineCreationSecondary) {
+                    TextButton(onClick = onRoutineCreationClick) {
+                        Text(text = stringResource(R.string.home_secondary_create_routine))
                     }
                 }
             }

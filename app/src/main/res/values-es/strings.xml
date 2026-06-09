@@ -319,6 +319,7 @@
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
+    <string name="home_secondary_create_routine">Create routine</string>
     <string name="first_lock_activation_cta_title">¿Probamos tu primer bloqueo?</string>
     <string name="first_lock_activation_cta_description">Ya elegiste apps. Activa StopIt ahora para sentir el bloqueo.</string>
     <string name="first_lock_activation_cta_action">Iniciar</string>

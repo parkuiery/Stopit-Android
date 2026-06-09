@@ -295,9 +295,9 @@ GA4 Admin 증적 후보:
 | `goal_name_type` | `goal_lock_created` | #417 code-lane 생성 ViewModel/analytics 계약 추가, #662 preset CTA locale-independent key 분류 추가, release/GA4 등록 전 | 목표 이름 원문을 보내지 않고 preset/custom enum만 확인. 표시 문자열/번역 literal 비교가 아니라 CTA preset key 기준으로 분류 | `customEvent:goal_name_type` |
 | `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
 | `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
-| `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #455 문서 계약 추가 / #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 루틴 CTA/추천 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
-| `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 동일 | `customEvent:activation_stage` |
-| `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 코드 구현 전 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
+| `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #455 Home code-lane 구현 추가 (`home_secondary`) + #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 루틴 CTA/추천 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:surface` |
+| `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 (`post_first_core_action`) / GA4 등록 필요 | 동일 | `customEvent:activation_stage` |
+| `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 / GA4 등록 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
 | `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 반복 차단 기반 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 | `customEvent:suggestion_reason` |
 | `time_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | 추천 시간대별 반응 비교. raw timestamp 금지 | `customEvent:time_bucket` |
 | `day_type` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537 policy+analytics, PR #552 prefill, PR #555 dismiss store foothold 추가 / CTA UI wiring·release·GA4 등록 전 | weekday/weekend/daily/custom 패턴 비교 | `customEvent:day_type` |
@@ -328,7 +328,7 @@ GA4 Admin 증적 후보:
 | `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
 | `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | CTA copy/variant 비교가 필요할 때 |
 | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
-| `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 문서 계약 추가 / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
+| `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 Home code-lane 구현 추가 (`soft_default`) / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
 | `suggestion_variant` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 문서 계약 추가 / 필요 시 등록 | 반복 차단 루틴 추천 copy/placement 비교가 필요할 때 |
 | `reset_result` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 요청과 완료/불가 상태를 안전하게 구분할 때 |
 
@@ -406,10 +406,10 @@ GA4 Admin 증적 후보:
 | `repeat_days_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_days_bucket` 확인 필요 | 요일 패턴별 공유 의도 비교. enum/bucket만 허용 |
 | `time_window_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_window_bucket` 확인 필요 | 시간대 패턴별 공유 의도 비교. raw time/session history 금지 |
 | `routine_name_included` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_name_included` 확인 필요 | 이름 원문 대신 opt-in 여부 boolean만 기록 |
-| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA와 #531 반복 차단 루틴 추천의 Home/History/post-block 표면별 반응 비교 |
+| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)와 #531 반복 차단 루틴 추천의 Home/History/post-block 표면별 반응 비교 |
 | `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
 | `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
-| `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | MVP는 `default` 단일 variant로 시작 |
+| `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | #455 MVP는 `soft_default` 단일 variant로 시작 |
 | `suggestion_reason` | Required dimension | 등록 필요 | 반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:suggestion_reason` 확인 필요 | #531 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 |
 | `time_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_bucket` 확인 필요 | 추천 시간대별 반응 비교. raw timestamp 금지 |
 | `day_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:day_type` 확인 필요 | weekday/weekend/daily/custom 패턴 비교 |

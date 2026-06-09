@@ -139,6 +139,7 @@ class HomeViewModelReviewTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
+            routineDao = EmptyHomeRoutineDao(),
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             goalLockRepository = GoalLockRepository(EmptyGoalLockDao()),

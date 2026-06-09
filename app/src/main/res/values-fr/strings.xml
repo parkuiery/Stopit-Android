@@ -320,6 +320,7 @@
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
+    <string name="home_secondary_create_routine">Create routine</string>
     <string name="first_lock_activation_cta_title">Prêt pour votre premier verrouillage ?</string>
     <string name="first_lock_activation_cta_description">Vous avez choisi des applis. Activez StopIt pour tester le blocage.</string>
     <string name="first_lock_activation_cta_action">Démarrer</string>

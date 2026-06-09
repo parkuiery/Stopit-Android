@@ -317,6 +317,7 @@
     <string name="home_secondary_change_apps">차단 앱 변경</string>
     <string name="home_secondary_timer">타이머 설정</string>
     <string name="home_secondary_lock_history">지킨 기록 보기</string>
+    <string name="home_secondary_create_routine">루틴 만들기</string>
     <string name="first_lock_activation_cta_title">첫 잠금을 바로 시작해볼까요?</string>
     <string name="first_lock_activation_cta_description">앱 선택은 끝났어요. 스탑잇을 켜서 실제 차단을 경험해보세요.</string>
     <string name="first_lock_activation_cta_action">시작</string>
