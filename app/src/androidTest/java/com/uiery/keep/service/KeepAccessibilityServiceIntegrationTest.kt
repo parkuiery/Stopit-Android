@@ -166,6 +166,27 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        configureActiveParentModeBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(blockedPackage)
+        waitForWindowEvent(blockedPackage)
+
+        waitUntil(
+            message = "Expected KeepAccessibilityService to observe active Parent Mode and request BlockActivity with parent-mode attribution for $blockedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.observedParentModeState == "active" &&
+                snapshot.observedParentModeAllowedAppCount == 1 &&
+                snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.PARENT_MODE
+        }
+    }
+
+    @Test
     fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         configureExpiredGoalLockBlock(blockedPackage)
@@ -405,6 +426,23 @@ class KeepAccessibilityServiceIntegrationTest {
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
+    private suspend fun configureActiveParentModeBlock(blockedPackage: String) {
+        val nowMillis = System.currentTimeMillis()
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+            preferences[PreferencesKey.PARENT_MODE_STARTED_AT] = nowMillis - 1_000L
+            preferences[PreferencesKey.PARENT_MODE_EXPIRES_AT] = nowMillis + PARENT_MODE_RUNTIME_WINDOW_MS
+            preferences[PreferencesKey.PARENT_MODE_DURATION_MINUTES] = 10
+            preferences[PreferencesKey.PARENT_MODE_ALLOWED_APPS] = setOf(appPackage)
+            preferences[PreferencesKey.PARENT_MODE_STATE] = "active"
+        }
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+    }
+
     private fun goalLockRepository(): GoalLockRepository = EntryPointAccessors.fromApplication(
         context.applicationContext,
         KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
@@ -437,6 +475,11 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.PREVENT_UNINSTALL)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+            preferences.remove(PreferencesKey.PARENT_MODE_STARTED_AT)
+            preferences.remove(PreferencesKey.PARENT_MODE_EXPIRES_AT)
+            preferences.remove(PreferencesKey.PARENT_MODE_DURATION_MINUTES)
+            preferences.remove(PreferencesKey.PARENT_MODE_ALLOWED_APPS)
+            preferences.remove(PreferencesKey.PARENT_MODE_STATE)
         }
         clearGoalLockRuntimeBlock()
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
@@ -757,6 +800,8 @@ class KeepAccessibilityServiceIntegrationTest {
                 observedPreventUninstall = true,
                 observedSelectedAppPackages = emptySet(),
                 observedEmergencyUnlockApps = emptySet(),
+                observedParentModeState = null,
+                observedParentModeAllowedAppCount = 0,
                 lastWindowStateChangedPackage = null,
                 lastLaunchedBlockPackage = null,
                 lastLaunchedBlockSource = null,
@@ -782,6 +827,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val PACKAGE_VISIBILITY_TIMEOUT_MS = 5_000L
         const val UNINSTALL_DISMISS_TIMEOUT_MS = 12_000L
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L
+        const val PARENT_MODE_RUNTIME_WINDOW_MS = 60_000L
         const val GOAL_LOCK_RUNTIME_TEST_ID = 417_001L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L

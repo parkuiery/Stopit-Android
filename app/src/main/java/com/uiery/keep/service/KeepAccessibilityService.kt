@@ -140,10 +140,22 @@ class KeepAccessibilityService :
             ParentModeSessionStore(applicationContext.dataStore).observe()
                 .catch {
                     cachedParentModeSession = null
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = null,
+                            observedParentModeAllowedAppCount = 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
                 .collect { session ->
                     cachedParentModeSession = session
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedParentModeState = session?.toDebugStateValue(),
+                            observedParentModeAllowedAppCount = session?.allowedApps?.size ?: 0,
+                        )
+                    }
                     reevaluateCurrentForegroundAfterStateUpdate()
                 }
         }
@@ -178,6 +190,15 @@ class KeepAccessibilityService :
         handler.removeCallbacksAndMessages(null)
         KeepAccessibilityServiceDebugState.reset(applicationContext)
         job.cancel()
+    }
+
+    private fun ParentModeSession.toDebugStateValue(): String = when (state.name) {
+        "Setup" -> "setup"
+        "Active" -> "active"
+        "Expired" -> "expired"
+        "UnlockedByPin" -> "unlocked_by_pin"
+        "Cancelled" -> "cancelled"
+        else -> state.name
     }
 
     private fun blockIfNeeded(
