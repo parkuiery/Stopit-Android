@@ -68,7 +68,7 @@ class NotificationHelper @Inject constructor(
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(routineId.toInt(), notification)
+        notificationManager.notify(RoutineIdentifierPolicy.routineStartNotificationId(routineId), notification)
         return RoutineStartNotificationResult.Posted
     }
 

@@ -17,6 +17,7 @@ import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.RoutineAlarmReceiver
 import kotlinx.coroutines.flow.first
@@ -292,12 +293,12 @@ class RoutineExactAlarmPermissionIntegrationTest {
         findRoutinePendingIntent(routineId, today)
 
     private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )

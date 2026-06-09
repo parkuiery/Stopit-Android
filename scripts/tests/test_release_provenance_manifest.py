@@ -183,6 +183,73 @@ android {
 
         self.assertIn("Verified release provenance manifest", result.stdout)
 
+    def test_verify_metadata_only_accepts_durable_manifest_without_downloaded_aab(self):
+        self.generate()
+        self.aab.unlink()
+
+        result = self.run_script(
+            "verify",
+            "--aab-glob",
+            "app/build/outputs/bundle/prodRelease/*.aab",
+            "--manifest",
+            "app/build/outputs/bundle/prodRelease/release-provenance.json",
+            "--artifact-name",
+            "stopit-prod-release-signed-aab",
+            "--package-name",
+            "com.uiery.keep",
+            "--upload-mode",
+            "play-upload",
+            "--track",
+            "internal",
+            "--release-status",
+            "completed",
+            "--rollout-fraction",
+            "",
+            "--expected-version-code",
+            "42",
+            "--expected-git-sha",
+            "abc123",
+            "--expected-git-ref",
+            "refs/tags/v1.2.3",
+            "--expected-git-ref-name",
+            "v1.2.3",
+            "--metadata-only",
+        )
+
+        self.assertIn("Verified release provenance manifest metadata", result.stdout)
+
+    def test_verify_metadata_only_rejects_missing_artifact_checksum_metadata(self):
+        self.generate()
+        self.aab.unlink()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["artifact"].pop("sha256")
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.run_script(
+            "verify",
+            "--aab-glob",
+            "app/build/outputs/bundle/prodRelease/*.aab",
+            "--manifest",
+            "app/build/outputs/bundle/prodRelease/release-provenance.json",
+            "--artifact-name",
+            "stopit-prod-release-signed-aab",
+            "--package-name",
+            "com.uiery.keep",
+            "--upload-mode",
+            "play-upload",
+            "--track",
+            "internal",
+            "--release-status",
+            "completed",
+            "--rollout-fraction",
+            "",
+            "--metadata-only",
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifact.sha256 is required for metadata-only verification", result.stderr)
+
     def test_verify_rejects_checksum_drift(self):
         self.generate()
         self.aab.write_bytes(b"changed bytes")

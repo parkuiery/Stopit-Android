@@ -33,7 +33,11 @@ import java.time.ZoneId
 
 private const val SECONDS_PER_DAY = 86_400
 
-internal fun countdownDayPrefixCount(totalSeconds: Int): Int = totalSeconds / SECONDS_PER_DAY
+internal fun countdownDisplaySeconds(totalSeconds: Int): Int = totalSeconds.coerceAtLeast(0)
+
+internal fun countdownDayPrefixCount(totalSeconds: Int): Int = countdownDisplaySeconds(totalSeconds) / SECONDS_PER_DAY
+
+internal fun countdownRemainingSecondsWithinDay(totalSeconds: Int): Int = countdownDisplaySeconds(totalSeconds) % SECONDS_PER_DAY
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -45,19 +49,19 @@ fun CountDownContent(
     val endEpochSeconds = endTime.atZone(zone).toEpochSecond()
     val nowEpochSeconds = System.currentTimeMillis() / 1000
 
-    val endSeconds = (endEpochSeconds - nowEpochSeconds).toInt()
+    val endSeconds = countdownDisplaySeconds((endEpochSeconds - nowEpochSeconds).toInt())
     var seconds by remember { mutableIntStateOf(endSeconds) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(1000)
-            seconds--
+            seconds = countdownDisplaySeconds(seconds - 1)
         }
     }
 
     val days = remember(seconds) { countdownDayPrefixCount(seconds) }
     val formattedTime = remember(seconds) {
-        formatHourAwareCountdown(seconds % SECONDS_PER_DAY)
+        formatHourAwareCountdown(countdownRemainingSecondsWithinDay(seconds))
     }
 
     Row(
