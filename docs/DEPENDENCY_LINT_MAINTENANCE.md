@@ -32,7 +32,7 @@
 - 이 저장소는 버전 카탈로그를 **원칙적인 source of truth**로 둔다.
 - dependency와 Gradle plugin 드리프트를 함께 봐야 한다.
 - Room library/runtime/compiler/testing과 Room Gradle plugin은 같은 `room` version ref를 쓴다.
-- Firebase Crashlytics Gradle plugin은 `firebaseCrashlytics` version ref를 쓴다.
+- Firebase Crashlytics Gradle plugin은 `firebaseCrashlytics` version ref를 쓴다. `scripts.tests.test_gradle_version_catalog_contract`는 key/alias/ref 계약을 고정하되 `3.0.6` 같은 특정 patch 값은 고정하지 않는다. Dependabot patch bump는 catalog alias/ref가 유지되면 통과해야 한다.
 - 앱/루트 Gradle 파일에 새 직접 버전 문자열이 들어오면, 먼저 `gradle/libs.versions.toml` alias로 이동할 수 있는지 확인한다.
 - 2026-06-01 기준 `core/kds/build.gradle.kts`의 기존 direct version drift는 catalog alias로 이동됐다.
   - `org.jetbrains.kotlinx:kotlinx-datetime:0.6.1` → `libs.kotlinx.datetime`

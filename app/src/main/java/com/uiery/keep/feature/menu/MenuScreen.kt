@@ -1,8 +1,9 @@
 package com.uiery.keep.feature.menu
 
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -49,7 +50,6 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,7 +153,13 @@ fun MenuScreen(
             MenuItem(
                 icon = R.drawable.ic_letter,
                 title = stringResource(id = R.string.contact_us),
-                onClick = { sendCustomerEmail(context) }
+                onClick = {
+                    menuViewModel.onSupportContactStarted()
+                    sendCustomerEmail(
+                        context = context,
+                        onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                    )
+                }
             )
             Card(
                 modifier = Modifier
@@ -165,7 +171,11 @@ fun MenuScreen(
                     }
                     .clickable(onClick = {
                         menuViewModel.onMonetizationInterestCardClicked()
-                        sendCustomerEmail(context)
+                        menuViewModel.onSupportContactStarted()
+                        sendCustomerEmail(
+                            context = context,
+                            onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                        )
                     }),
                 colors = CardDefaults.cardColors(
                     containerColor = KeepTheme.colors.onTertiary,
@@ -224,26 +234,41 @@ fun MenuScreen(
     }
 }
 
-private fun sendCustomerEmail(context: Context) {
+private fun sendCustomerEmail(
+    context: Context,
+    onFallbackUsed: () -> Unit,
+) {
+    val diagnostics = buildSupportContactDiagnostics(
+        versionName = BuildConfig.VERSION_NAME,
+        androidRelease = Build.VERSION.RELEASE,
+        sdkInt = Build.VERSION.SDK_INT,
+        deviceModel = Build.MODEL,
+    )
     val emailSelectorIntent = Intent(Intent.ACTION_SENDTO).apply {
         data = "mailto:".toUri()
     }
     val intent = Intent(Intent.ACTION_SEND).apply {
-        putExtra(Intent.EXTRA_EMAIL, arrayOf("parkuiery@gmail.com"))
+        putExtra(Intent.EXTRA_EMAIL, arrayOf(STOPIT_SUPPORT_EMAIL))
         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.feedback_subject))
-        putExtra(
-            Intent.EXTRA_TEXT,
-            "\n\n\n\n-\nVersion ${BuildConfig.VERSION_NAME}\nAndroid OS ${Build.VERSION.RELEASE} (${Build.VERSION.SDK_INT}),${Build.MODEL}"
-        )
+        putExtra(Intent.EXTRA_TEXT, "\n\n\n\n-\n$diagnostics")
         selector = emailSelectorIntent
     }
 
     if (intent.resolveActivity(context.packageManager) != null) {
         context.startActivity(intent)
     } else {
+        val fallbackText = buildSupportContactFallbackText(
+            supportEmail = STOPIT_SUPPORT_EMAIL,
+            diagnostics = diagnostics,
+        )
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(context.getString(R.string.contact_us), fallbackText),
+        )
+        onFallbackUsed()
         Toast.makeText(
             context,
-            context.getString(R.string.email_app_not_installed),
+            context.getString(R.string.support_contact_fallback_copied),
             Toast.LENGTH_SHORT
         ).show()
     }

@@ -1,8 +1,8 @@
 package com.uiery.keep.service
 
-import com.uiery.keep.feature.goallock.GoalLock
-import com.uiery.keep.feature.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockStoredStatus
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

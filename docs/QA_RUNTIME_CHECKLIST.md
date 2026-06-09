@@ -56,6 +56,24 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### 지원 문의 fallback baseline
+
+issue #695 계열 PR은 메뉴의 문의/광고 제거 관심도 문의 진입점에서 이메일 앱이 없을 때 지원 주소와 privacy-safe 진단 템플릿이 클립보드에 남는지 확인한다. 진단 템플릿에는 앱 version, Android OS/SDK, device model만 포함하고 앱 package list, 루틴 이름/ID, 잠금 기록, 긴급해제 reason 원문은 넣지 않는다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.menu.SupportContactFallbackTest'
+python3 -m unittest scripts.tests.test_locale_string_parity -v
+```
+
+수동 QA evidence:
+- 이메일 앱이 설치된 기기: 메뉴 `Contact Us`가 기존 메일 작성 화면을 열고 제목/진단 템플릿이 채워진다.
+- 이메일 앱이 없는 기기/프로필: Toast가 fallback 복사를 안내하고 클립보드에 지원 이메일 + version/OS/device model 진단 템플릿이 들어간다.
+- 클립보드/analytics 확인: `support_contact_fallback_used(surface=menu, fallback_type=clipboard)`만 기록되고 진단 payload 원문이나 사용자 민감 정보는 analytics에 기록되지 않는다.
+- 모든 shipped `values*/strings.xml`에 `support_contact_fallback_copied` string parity가 유지된다.
+
 ### 기능성 control stateDescription locale baseline
 
 issue #570/#628 계열 PR은 TalkBack이 읽는 상태 문구와 요일/날짜 라벨도 화면 locale을 따라야 한다. 기능성 control의 `stateDescription`에는 영어 리터럴(`"On"`, `"Off"`, `"Selected"`, `"Not selected"`, `"Today"`)을 직접 넣지 말고 `stringResource(R.string...)` 기반 리소스를 사용한다. Android 13+ per-app language를 켠 경우 `Locale.getDefault()`가 시스템 언어를 가리킬 수 있으므로, 루틴 요일/잠금 기록 주간 캘린더는 `LocalConfiguration.current.locales[0]` 또는 동등한 앱 configuration locale을 사용한다.
@@ -399,7 +417,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
 Source of truth: `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`
 Issue: #694
 
-Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. Until that code lands, this checklist is a contract handoff: do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
+Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. The Android wiring is repo-internal, but until the commit is included in a release/tag/Play deploy and GA4 Admin dimensions are registered, do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
 
 ```md
 ## Emergency unlock settings analytics QA evidence
