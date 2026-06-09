@@ -2,8 +2,12 @@ package com.uiery.keep.feature.menu
 
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.feature.goallock.GoalLock
+import com.uiery.keep.feature.goallock.GoalLockMode
+import com.uiery.keep.feature.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
@@ -11,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -64,6 +69,52 @@ class MenuViewModelTest {
         assertFalse(
             dataStore.snapshot()[PreferencesKey.PREVENT_UNINSTALL] ?: true,
         )
+    }
+
+    @Test
+    fun isBlockingIncludesActiveAllDayGoalLock() = runBlocking {
+        val isBlocking = isBlockingActive(
+            snapshot = AccessibilityBlockingSnapshot(),
+            routines = emptyList(),
+            goalLocks = listOf(
+                goalLock(
+                    startDate = LocalDate.now().minusDays(1),
+                    endDate = LocalDate.now().plusDays(1),
+                    lockMode = GoalLockMode.AllDay,
+                ),
+            ),
+        )
+
+        assertTrue(isBlocking)
+    }
+
+    @Test
+    fun isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking() = runBlocking {
+        val isBlocking = isBlockingActive(
+            snapshot = AccessibilityBlockingSnapshot(),
+            routines = emptyList(),
+            goalLocks = listOf(
+                goalLock(
+                    startDate = LocalDate.now().plusDays(1),
+                    endDate = LocalDate.now().plusDays(2),
+                    lockMode = GoalLockMode.AllDay,
+                ),
+                goalLock(
+                    id = 2L,
+                    startDate = LocalDate.now().minusDays(1),
+                    endDate = LocalDate.now().plusDays(1),
+                    selectedPackages = emptySet(),
+                ),
+                goalLock(
+                    id = 3L,
+                    startDate = LocalDate.now().minusDays(1),
+                    endDate = LocalDate.now().plusDays(1),
+                    status = GoalLockStoredStatus.Completed,
+                ),
+            ),
+        )
+
+        assertFalse(isBlocking)
     }
 
     @Test
@@ -124,6 +175,23 @@ private class FakeMenuRoutineRepository(
 
     override fun fetchAll(): Flow<List<RoutineModel>> = state
 }
+
+private fun goalLock(
+    id: Long = 1L,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    lockMode: GoalLockMode = GoalLockMode.AllDay,
+    selectedPackages: Set<String> = setOf("com.video.app"),
+    status: GoalLockStoredStatus = GoalLockStoredStatus.Active,
+) = GoalLock(
+    id = id,
+    goalName = "Goal $id",
+    startDate = startDate,
+    endDate = endDate,
+    lockMode = lockMode,
+    selectedPackages = selectedPackages,
+    status = status,
+)
 
 private data class MonetizationInterestEvent(
     val type: String,
