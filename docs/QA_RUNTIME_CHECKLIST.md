@@ -120,6 +120,25 @@ python3 -m unittest scripts.tests.test_countdown_day_locale_contract -v
 - TalkBack: countdown 숫자와 남은 시간 문맥이 화면 locale과 충돌하지 않는다.
 - #464 차단 화면 copy/action hierarchy와 visual hierarchy가 충돌하지 않는다.
 
+### Lock countdown expired-display QA evidence
+
+issue #679 계열 PR은 Lock 화면 countdown이 deadline 도달 이후 `-1`, `00:-1`, `-1:-01` 같은 음수 표시로 흐르지 않고 `00:00`에 고정되는지 확인한다. ViewModel의 `MoveToHome` side effect가 지연되거나 Activity/Compose가 resume되더라도 화면 표시 helper와 formatter가 모두 음수 입력을 0으로 clamp해야 한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.util.CountdownFormatTest' \
+  --tests 'com.uiery.keep.feature.lock.component.CountDownContentTest'
+```
+
+수동 QA evidence:
+- 이미 지난 `lockTime` 또는 만료 직전 Lock 화면 resume 상태에서도 countdown 숫자는 `00:00` 아래로 내려가지 않는다.
+- 1초 남은 상태는 `00:01`로 보이고 다음 tick에서 `00:00`으로 고정된다.
+- 24시간 이상 countdown day prefix QA와 혼동하지 않는다. day prefix는 locale/plural 계약이고, expired-display 계약은 음수 방지/0 clamp 계약이다.
+- `MoveToHome` 전환이 늦더라도 사용자는 음수 countdown을 보지 않는다.
+
 ### 홈 타이머 CTA duration baseline
 
 issue #187 계열 PR에서는 홈 타이머 바텀시트가 실제 `현재 시각 -> 목표 시각` 차이와 같은 값을 CTA에 표시하는지 JVM 계약 테스트를 기본 evidence로 남긴다.
