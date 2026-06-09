@@ -2,8 +2,8 @@ package com.uiery.keep.feature.routine
 
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsPayload
-import com.uiery.keep.analytics.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel

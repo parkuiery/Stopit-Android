@@ -7,7 +7,7 @@ import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
-import com.uiery.keep.analytics.RoutineTemplateShareFailureReason
+import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
