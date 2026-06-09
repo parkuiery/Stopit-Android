@@ -142,7 +142,12 @@
     <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>
     <string name="parent_mode_setup_description">이번 setup foothold는 현재 선택된 차단 앱 목록을 부모 모드 허용 앱 후보로 불러옵니다.</string>
     <string name="parent_mode_setup_allowed_apps_summary">현재 선택에서 불러온 허용 앱: %1$d개</string>
-    <string name="parent_mode_setup_pin_required_notice">부모 모드를 시작하려면 보호자 PIN 확인 UI가 아직 필요합니다.</string>
+    <string name="parent_mode_setup_pin_required_notice">보호자 PIN 4자리 이상을 두 번 입력하면 부모 모드를 시작할 수 있어요.</string>
+    <string name="parent_mode_setup_pin_label">보호자 PIN</string>
+    <string name="parent_mode_setup_pin_confirm_label">보호자 PIN 확인</string>
+    <string name="parent_mode_setup_pin_helper">숫자 4~6자리로 설정해요. PIN 값은 세션에 저장하지 않습니다.</string>
+    <string name="parent_mode_setup_pin_mismatch">PIN이 일치하지 않아요.</string>
+    <string name="parent_mode_setup_start">부모 모드 시작</string>
     <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
     <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>

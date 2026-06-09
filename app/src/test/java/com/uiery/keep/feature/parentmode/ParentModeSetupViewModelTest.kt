@@ -24,7 +24,53 @@ class ParentModeSetupViewModelTest {
 
         assertEquals(setOf("com.video.app", "com.kids.app"), viewModel.state.value.allowedApps)
         assertEquals(10, viewModel.state.value.durationMinutes)
+        assertTrue(viewModel.state.value.canAttemptStart.not())
+    }
+
+    @Test
+    fun matchingGuardianPinEnablesStartAttemptWithoutExposingPinInSession() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { 1_000L },
+        )
+        viewModel.setAllowedApps(setOf("com.video.app"))
+
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+
         assertTrue(viewModel.state.value.canAttemptStart)
+
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        assertEquals(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 601_000L,
+                durationMinutes = 10,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+            ),
+            store.read(),
+        )
+    }
+
+    @Test
+    fun mismatchedGuardianPinBlocksStartAndKeepsSessionUnpersisted() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(sessionStore = store)
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("9999")
+
+        assertTrue(viewModel.state.value.canAttemptStart.not())
+
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.state.value.setupIssues.isNotEmpty() }
+
+        assertEquals(setOf(ParentModeSetupIssue.PinNotVerified), viewModel.state.value.setupIssues)
+        assertNull(store.read())
     }
 
     @Test

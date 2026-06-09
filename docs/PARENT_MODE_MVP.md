@@ -195,19 +195,26 @@ cd <repo-root>
 
 ### 4차 code-lane foothold
 
-2026-06-09 code-lane PR에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 실제 PIN 입력 UI를 열거나 active/expired 화면을 완성하지는 않지만, 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
+2026-06-09 code-lane PR에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
 
 - `MenuScreen` / `MenuNavigation` / `KeepApp`: Menu에서 부모 모드 setup route로 이동하는 entrypoint를 연결한다.
-- `ParentModeSetupScreen`: 현재 선택 앱 수, PIN 필요 안내, 후속 PIN setup CTA placeholder를 보여주는 setup 화면을 제공한다.
-- `ParentModeSetupViewModelTest`: 현재 차단 선택 앱을 부모 모드 허용 앱으로 seed하고, PIN 미검증 시 session 저장을 막으며, PIN 검증 후에는 `ParentModeSessionController`를 통해 session 저장과 started side effect를 발생시키는 경계를 검증한다.
+- `ParentModeSetupScreen`: 현재 선택 앱 수와 보호자 PIN 입력 필드를 보여주고, verified PIN일 때만 setup CTA를 활성화한다.
+- `ParentModeSetupViewModelTest`: 현재 차단 선택 앱을 부모 모드 허용 앱으로 seed하고, PIN 불일치/미충족 상태에서는 session 저장을 막는 경계를 검증한다.
+
+### 5차 code-lane foothold
+
+2026-06-09 code-lane PR에서 실제 PIN 입력 UI와 setup CTA enablement를 setup 화면에 연결했다. 이 foothold는 active/expired 화면을 완성하지는 않지만, 사용자가 보호자 PIN을 입력·확인한 뒤에만 `ParentModeSessionController`를 통해 session 저장과 `Started` side effect를 발생시키는 runtime setup 경계를 고정한다.
+
+- `ParentModeSetupScreen`: 보호자 PIN / 확인 입력 필드, mismatch helper, numeric password keyboard, verified PIN 기반 시작 CTA를 제공한다.
+- `ParentModeSetupViewModel`: digit-only 4~6자리 PIN 입력을 state에 반영하고, `ParentModePinState.Verified`일 때만 `canAttemptStart`를 true로 만든다.
+- `ParentModeSetupViewModelTest`: PIN mismatch, 짧은 PIN, non-digit filtering, verified PIN start path를 `ParentModeSessionController` 저장/analytics call 경계와 함께 검증한다.
 
 ### 다음 code-lane 후보
 
-- 실제 PIN 입력 UI와 setup CTA enablement
 - Parent mode active/expired screen
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
-남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 실제 PIN 확인 UI, active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
+남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 

@@ -131,8 +131,10 @@ class ParentModeContractTest(unittest.TestCase):
             "ParentModeSetupRoute",
             "setup 화면 foothold",
             "현재 선택 앱을 setup allowed-app seed로 읽어오는 경계",
-            "ParentModeSetupViewModelTest",
+            "5차 code-lane foothold",
             "실제 PIN 입력 UI와 setup CTA enablement",
+            "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
+            "ParentModeSetupViewModelTest",
             "Parent mode active/expired screen",
         ]:
             self.assertIn(phrase, runbook)
@@ -140,7 +142,7 @@ class ParentModeContractTest(unittest.TestCase):
         for document in [product_context, metrics_context]:
             self.assertIn("Menu", document)
             self.assertIn("setup 화면", document)
-            self.assertIn("실제 PIN", document)
+            self.assertIn("PIN 입력 UI", document)
             self.assertIn("active/expired", document)
 
         self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
@@ -152,7 +154,8 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #584", product_context)
         self.assertIn("policy/analytics/session/Accessibility foothold", product_context)
         self.assertIn("setup 화면/ViewModel foothold", product_context)
-        self.assertIn("남은 경계는 실제 PIN 입력 UI", product_context)
+        self.assertIn("PIN 입력 UI와 setup CTA enablement", product_context)
+        self.assertIn("남은 경계는 active/expired 화면", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):

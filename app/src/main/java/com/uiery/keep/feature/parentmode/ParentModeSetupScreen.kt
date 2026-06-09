@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -23,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,13 +93,38 @@ internal fun ParentModeSetupScreen(
                 text = stringResource(id = R.string.parent_mode_setup_pin_required_notice),
                 color = KeepTheme.colors.onSurfaceVariant,
             )
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = state.guardianPin,
+                onValueChange = viewModel::updateGuardianPin,
+                label = { Text(text = stringResource(id = R.string.parent_mode_setup_pin_label)) },
+                supportingText = { Text(text = stringResource(id = R.string.parent_mode_setup_pin_helper)) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            )
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = state.guardianPinConfirmation,
+                onValueChange = viewModel::updateGuardianPinConfirmation,
+                label = { Text(text = stringResource(id = R.string.parent_mode_setup_pin_confirm_label)) },
+                isError = state.guardianPinConfirmation.isNotEmpty() && state.pinState == ParentModePinState.Failed,
+                supportingText = {
+                    if (state.guardianPinConfirmation.isNotEmpty() && state.pinState == ParentModePinState.Failed) {
+                        Text(text = stringResource(id = R.string.parent_mode_setup_pin_mismatch))
+                    }
+                },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-                onClick = {},
+                enabled = state.canAttemptStart,
+                onClick = viewModel::startParentModeFromSetupInput,
             ) {
-                Text(text = stringResource(id = R.string.parent_mode_setup_start_disabled))
+                Text(text = stringResource(id = R.string.parent_mode_setup_start))
             }
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
