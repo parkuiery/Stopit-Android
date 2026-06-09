@@ -394,6 +394,47 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
 - Decision: pass / fail / needs follow-up
 ```
 
+### Emergency unlock settings analytics QA baseline
+
+Source of truth: `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`
+Issue: #694
+
+Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. Until that code lands, this checklist is a contract handoff: do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
+
+```md
+## Emergency unlock settings analytics QA evidence
+- Issue: #694
+- Build / variant:
+- Device / Android version / OEM:
+- Locale(s): ko / en / changed locales:
+- Release ancestry:
+  - #694 Android analytics wiring PR included in tested build: yes / no / unknown
+  - SemVer tag / Play track:
+- Setting changes exercised:
+  - enabled ON/OFF: pass / fail / n/a
+  - daily limit bucket (`1`, `2`, `3`, `4_plus`): pass / fail / n/a
+  - duration option count bucket (`0`, `1`, `2_3`, `4_plus`): pass / fail / n/a
+  - reason required ON/OFF: pass / fail / n/a
+  - refill mode daily/manual: pass / fail / n/a
+  - manual reset request: pass / fail / n/a
+- Analytics payload contract:
+  - `setting_name` uses only `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`: pass / fail
+  - `value_bucket`, `duration_count_bucket`, `remaining_unlocks_bucket`, `refill_mode`, `source=menu` use documented enum/bucket values: pass / fail
+  - no custom reason, display label/custom text, app package/name/list, raw timestamp/history, `manualResetAtMillis`, or full settings snapshot is sent: pass / fail
+- GA4/Admin:
+  - `customEvent:setting_name`: registered / missing / unknown
+  - `customEvent:value_bucket`: registered / missing / unknown
+  - `customEvent:refill_mode`: registered / missing / unknown
+  - `customEvent:duration_count_bucket`: registered / missing / unknown
+  - `customEvent:remaining_unlocks_bucket`: registered / missing / unknown
+  - `customEvent:reset_result`: registered / missing / unknown / not used
+- Verification:
+  - `python3 -m unittest scripts.tests.test_emergency_unlock_settings_analytics_contract -v`
+  - Android focused analytics tests, if present:
+  - GA4 metadata/runReport evidence URL or command output:
+- Decision: pass / fail / needs follow-up
+```
+
 ### LockHistory 성과 리포트 QA baseline
 
 issue #465 계열 구현 PR은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 삼고, `LockHistory`가 단순 로그가 아니라 긍정적인 성과 리포트로 읽히는지 자동/수동 증거를 함께 남긴다. 이 기능은 #211 공유 CTA와 같은 화면을 쓰더라도 1차 목표가 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다.
