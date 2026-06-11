@@ -15,7 +15,8 @@
   - Play Console listing copy 반영
   - Play Console 스크린샷 업로드
 - 후속 수동 기록 작업:
-  - listing 전환율 / 평점 / 리뷰 수 기록
+  - listing 전환율은 Play Console Cloud Storage `store_performance` CSV로 자동 조회 가능
+  - 평점 / 리뷰 수 기록
   - 반영 당시 실제 노출값과 저장소 문서 일치 여부 재확인
 
 > 운영 메모: 이 이슈의 실제 Play Console 반영은 저장소 CI가 아니라 대표님 수동 배포로 처리될 수 있다. 따라서 repo/CI 자동화 흔적이 없다는 이유만으로 미반영으로 판단하지 않는다.
@@ -25,7 +26,7 @@
 이번 run 기준으로 저장소 안에서 더 밀 수 있는 문서 계약은 정리했다. 남은 항목은 모두 **Play Console 수동 확인 또는 시간 경과 후 측정**이 필요한 외부 경계다.
 
 - Play Console 현재 노출값을 열어 정확한 반영 시각/범위/스크린샷 버전명을 기록해야 함
-- listing 전환율 / 평점 / 리뷰 수 / 최근 리뷰 톤은 저장소에서 자동 조회할 수 없어 수동 확인이 필요함
+- listing 전환율은 Play Console Cloud Storage 보고서로 조회 가능함. 평점 / 리뷰 수 / 최근 리뷰 톤 / 실제 노출 copy·스크린샷 버전은 여전히 Play Console 수동 확인이 필요함
 - 14일·30일 성과 비교는 실제 시간이 지나야 채울 수 있음
 
 따라서 이 문서는 이제 "반영 여부 의심" 문서가 아니라, **이미 반영된 수동 작업의 사후 복원 기록 + 후속 측정 런북**으로 해석한다.
@@ -199,6 +200,40 @@
 5. campaign 집행이 없었다는 운영 확인이 있으면 `Paid Search` 활성/세션 잔상은 신규 획득 성과에서 제외한다.
 6. 외부 링크/캠페인 운영 규칙이 실제로 필요해진 뒤에는 #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`를 source of truth로 본다. 현재 상태는 PR #586 parser/helper/analytics foothold와 PR #590 SDK provider/첫 실행 one-shot lookup wiring 완료, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 대기이므로 Direct 감소나 ASO 회복을 주장하지 않는다.
 7. #242/#65 acquisition snapshot 또는 #581 Install Referrer/UTM 계약을 고칠 때는 downstream 문서 drift를 막기 위해 `python3 -m unittest scripts.tests.test_acquisition_attribution_docs_contract -v`와 `python3 -m unittest scripts.tests.test_install_referrer_attribution_contract -v`를 함께 실행한다.
+
+### 2026-06-11 Play Console Store performance Cloud Storage readback
+
+- 확인 시각: `2026-06-11 KST`
+- 명령:
+  - `export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH"`
+  - `gsutil -m cp 'gs://pubsite_prod_4966532873904693612/stats/store_performance/*store_performance_com.uiery.keep_*.csv' /tmp/stopit_store_performance_20260611_144739/`
+- 분석 파일: `store_performance_com.uiery.keep_202508~202606_{country,traffic_source}.csv` 및 `total_store_performance_*`
+- 분석 기간: `2025-08-01..2026-06-04` (`2026-06`은 4일치 부분월, Play 보고서 지연 3~7일 감안)
+
+이 readback으로 기존 `TODO: Play Console 수동 확인` 중 **listing visitors / acquisitions / conversion rate**는 저장소 밖 Play Console UI가 아니라 Cloud Storage CSV로 확인 가능해졌다. 다만 Play Console UI의 현재 노출 copy·스크린샷 버전, 평점/리뷰 수, 캠페인 집행 여부는 여전히 수동 확인 경계다.
+
+| 월 | 방문자 | 등록정보 획득 | 전환율 | 해석 |
+| --- | ---: | ---: | ---: | --- |
+| 2026-01 | 863 | 242 | 28.0% | 1월부터 유입 규모 확대 |
+| 2026-02 | 1,611 | 358 | 22.2% | 방문자는 최고점이나 전환율은 낮아 유입 품질/매칭 확인 필요 |
+| 2026-03 | 1,432 | 354 | 24.7% | 유입 유지, 전환율 일부 회복 |
+| 2026-04 | 1,112 | 319 | 28.7% | 전환율 양호, 방문자 감소 시작 |
+| 2026-05 | 521 | 154 | 29.6% | 방문자 -53.1%, 전환율 +0.9p — 병목은 listing 설득력보다 유입/노출 감소 |
+| 2026-06 partial | 89 | 25 | 28.1% | 4일치 부분 데이터, 전환율은 5월과 유사 |
+
+#### Play Console readback 판정
+
+- `2026-04 -> 2026-05`: 방문자 `1,112 -> 521` (`-53.1%`), 등록정보 획득 `319 -> 154` (`-51.7%`), 전환율 `28.7% -> 29.6%` (`+0.9p`).
+- 따라서 5월 성과 악화는 **전환율 하락이 아니라 store listing visitor 급감**으로 본다.
+- 최근 7일(`2026-05-29..2026-06-04`)은 직전 7일 대비 visitors `+55.3%`, acquisitions `+125.9%`, CVR `34.5%`로 단기 반등 신호가 있으나, 6월 데이터가 아직 4일치라 월간 회복으로 단정하지 않는다.
+- Traffic source CSV는 `Other`가 전체 visitors의 `97.0%`로 thresholding되어 Search/Explore/external을 세밀하게 분리하지 못한다. 노출 회복 원인은 Play Console UI 또는 후속 attribution readback과 결합해 판정한다.
+- KR 전환율은 전체 기간 `468 / 1,942 = 24.1%`, Other는 `1,341 / 5,103 = 26.3%`로 KR listing copy/screenshot 개선 여지는 있으나, 우선순위는 **5월 visitor 급감 원인 확인과 유입 회복**이다.
+
+#### 후속 실행 우선순위
+
+1. #65의 +14일 체크에는 위 Cloud Storage readback을 baseline으로 넣고, `2026-06-10 KST 이후` 누적 데이터가 충분히 쌓이면 같은 `store_performance` CSV로 다시 비교한다.
+2. 한국어 listing은 전면 개편보다 1~2개 메시지/스크린샷 실험으로 제한한다. 목표는 KR CVR `24.1% -> 27%+`다.
+3. ASO 회복 목표는 전환율이 아니라 방문자/일 회복으로 잡는다. 5월 `16.8 visitors/day`에서 4월 `37.1 visitors/day` 근처, 1차 목표 `30 visitors/day`를 기준으로 본다.
 
 #### Play Console 수동 확인 템플릿
 
@@ -417,7 +452,7 @@ Ops CI의 `ASO screenshots build` job이 같은 명령을 실행한다. 이 gate
 
 ## baseline / 사후 복원 기록
 
-원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
+원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`은 Play Console Cloud Storage `store_performance` CSV로 조회할 수 있다. `평점`, `리뷰 수`, `현재 listing copy`와 스크린샷 버전은 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
 
 ### 수동 복원 우선순위
 
@@ -431,7 +466,7 @@ Ops CI의 `ASO screenshots build` job이 같은 명령을 실행한다. 이 gate
 - [ ] Play Console `Main store listing` 현재 KR 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
 - [ ] Play Console `Main store listing` 현재 EN 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
 - [ ] 스크린샷 6장 순서와 실제 노출 자산이 이 문서 구성안과 일치하는지 확인
-- [ ] `Store listing performance`에서 listing 전환율을 기록
+- [x] `Store listing performance` Cloud Storage CSV에서 listing visitors/acquisitions/conversion rate를 기록 (`2026-06-11` readback)
 - [ ] 현재 평점/리뷰 수와 최근 리뷰 5~10개 톤 요약을 기록
 - [ ] 가능하면 대표님 메모/히스토리 기준으로 정확한 반영 날짜·시각을 보강
 
@@ -449,7 +484,7 @@ Ops CI의 `ASO screenshots build` job이 같은 명령을 실행한다. 이 gate
 | 최근 30일 `Organic Search` 신규 사용자 | `178` | issue #65 기준 |
 | 최근 30일 `activeUsers` | `457` | issue #65 기준 |
 | 최근 30일 `sessions` | `4,636` | issue #65 기준 |
-| listing 전환율 | `TODO` | Play Console 수동 확인 |
+| listing 전환율 | `2026-05: 154 / 521 = 29.6%`; `2026-06 partial: 25 / 89 = 28.1%` | Play Console Cloud Storage `store_performance` CSV |
 | rating count | `TODO` | Play Console 수동 확인 |
 | 평균 평점 | `TODO` | Play Console 수동 확인 |
 | 최근 리뷰 톤 메모 | `TODO` | 최근 리뷰 5~10개 수동 요약 |

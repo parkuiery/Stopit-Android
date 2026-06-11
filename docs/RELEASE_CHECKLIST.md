@@ -67,6 +67,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
   - Android CI focused runtime smoke (PR/manual) is a separate, lower-risk PR gate; cite the current `.github/workflows/android-ci.yml` run URL instead of copying an old class list into the release PR.
   - Release/hotfix runtime evidence comes from `Android Release QA / Release instrumentation QA` below; use that exact list when documenting main-target release readiness.
   - If Android CI and Release QA differ, record them as different layers rather than treating the Android CI smoke list as the release instrumentation list.
+  - If runtime smoke fails, attach the short-retention diagnostic artifact first: Android CI `stopit-runtime-smoke-diagnostics`, Release QA `stopit-release-instrumentation-diagnostics`. Triage order is `app/build/reports/androidTests` → `app/build/outputs/androidTest-results` → `runtime-diagnostics/**` (`logcat`, `dumpsys alarm`, `dumpsys accessibility`). These uploads use `retention-days: 7` and are non-blocking so an artifact/quota failure is not reported as the app test failure.
 - [ ] Android Release QA exact alarm evidence is explicit in the PR body:
   - `adb shell cmd appops reset com.uiery.keep.dev`
   - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
