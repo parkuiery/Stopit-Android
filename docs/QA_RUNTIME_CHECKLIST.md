@@ -904,6 +904,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 실제 AccessibilityService bind 후 수동 Keep이 꺼진 상태에서도 active all-day 목표 잠금이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고, instrumentation debug state가 `block_source=goal_lock` / `goal_lock_id`를 남기는지 검증한다.
 - `KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`는 같은 실제 AccessibilityService bind 경로에서 현재 요일 scheduled window의 active 목표 잠금도 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 연결하고 동일한 `block_source=goal_lock` / `goal_lock_id` attribution을 남기는지 검증한다.
 - `KeepAccessibilityServiceIntegrationTest.expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution`는 저장 상태가 `active`로 남아 있더라도 종료일이 지난 목표 잠금이 수동 Keep 없이 선택 앱 foreground 전환을 `BlockActivity`로 보내지 않고, debug state에 `block_source=goal_lock` attribution을 남기지 않는지 검증한다.
+- 위 Goal Lock Accessibility smoke는 launch 가능한 첫 후보가 launcher나 다른 foreground로 되돌아가는 emulator image에서도 다음 후보를 재설정/재시도해야 하며, 모든 후보가 실패하면 후보별 `am start -W` 결과, `KeepAccessibilityServiceDebugState`, resumed activity, focused window를 실패 메시지에 남겨 launch 후보 flake와 실제 차단 회귀를 구분한다.
 - `GoalLockStartReevaluationPolicyTest`는 #691 회귀 baseline이다. Goal Lock이 아직 foreground 이벤트를 만들지 않은 상태에서 `all_day` 시작일 자정, same-day scheduled 시작시간, overnight scheduled 시작시간, 다음 반복요일, 루틴+Goal Lock 조합 중 가장 빠른 시작 시각을 `KeepAccessibilityService`의 foreground 재평가 예약 대상으로 계산하는지 검증한다. 완료/invalid/expired/선택 앱 0개 Goal Lock은 예약 대상에서 제외되어야 한다.
 - `MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock` / `isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking`는 메뉴/설정의 active blocking 판단이 manual Keep·루틴뿐 아니라 현재 실제로 차단 중인 Goal Lock과도 일치하는지 검증한다. 이 값이 false로 남으면 `prevent_uninstall` 토글 가능 여부가 Goal Lock 강제 잠금 상태와 어긋날 수 있다.
 - Accessibility/blocking runtime은 expiration 경계까지 선택 앱 차단 여부가 정책 helper와 일치해야 한다.
@@ -1444,6 +1445,7 @@ cd <repo-root>
 - AccessibilityService가 active Parent Mode session의 `expiresAtMillis`에 맞춰 foreground 재평가를 예약해 같은 앱이 foreground에 남아 있어도 만료 후 차단으로 전환하는지
 - active Parent Mode session을 `KeepAccessibilityService`가 device/emulator에서 관찰하고, 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는지
 - expired Parent Mode session을 `KeepAccessibilityService`가 device/emulator에서 resolved `observedParentModeState=expired` evidence로 남기고, 기존 허용 앱도 `block_source=parent_mode`로 차단하는지
+- Parent Mode Accessibility smoke는 첫 launch 후보가 launcher나 다른 foreground로 튕기면 다음 launchable 후보에 대해 session state를 다시 설정하고 재시도해야 한다. 모든 후보가 실패한 경우 후보별 launch 결과, debug snapshot, resumed activity, focused window를 기록해 환경 flake와 parent-mode 차단 회귀를 분리한다.
 - Stopit 앱처럼 보호자 PIN/종료/연장 진입에 필요한 부모 제어 surface를 부모 모드 차단으로 막지 않는지
 
 ### Parent mode QA evidence
