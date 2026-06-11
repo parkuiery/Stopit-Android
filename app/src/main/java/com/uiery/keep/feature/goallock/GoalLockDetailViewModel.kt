@@ -6,6 +6,7 @@ import com.uiery.keep.analytics.AnalyticsGoalLockChangedField
 import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockPolicy
@@ -36,6 +37,10 @@ internal class GoalLockDetailViewModel
 
         override val container: Container<GoalLockDetailUiState, GoalLockDetailSideEffect> =
             container(GoalLockDetailUiState())
+
+        init {
+            analytics.logScreenView(KeepAnalyticsScreen.GOAL_LOCK_DETAIL)
+        }
 
         fun loadGoalLock(today: LocalDate = LocalDate.now()) =
             intent {

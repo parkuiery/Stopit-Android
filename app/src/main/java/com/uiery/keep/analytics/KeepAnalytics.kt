@@ -427,6 +427,8 @@ object KeepAnalyticsScreen {
     const val ROUTINE = "RoutineScreen"
     const val EMERGENCY_UNLOCK_SETTINGS = "EmergencyUnlockSettingsScreen"
     const val DEV_TOOL = "DevToolScreen"
+    const val GOAL_LOCK_CREATION = "GoalLockCreationScreen"
+    const val GOAL_LOCK_DETAIL = "GoalLockDetailScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
 }
