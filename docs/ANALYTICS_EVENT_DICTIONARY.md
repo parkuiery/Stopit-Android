@@ -130,7 +130,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | --- | --- | --- |
 | `lock_session_start` | `source`, `is_routine?` | 잠금 세션 시작 |
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
-| `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약 |
+| `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약. 홈 countdown은 선택한 `day/hour/minute` duration 자체를 분 단위로 기록하고, timer는 예약 deadline까지 남은 시간을 기록한다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
 | `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
