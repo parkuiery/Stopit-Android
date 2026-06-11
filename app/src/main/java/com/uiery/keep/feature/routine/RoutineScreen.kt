@@ -250,6 +250,11 @@ fun RoutineScreen(
                 onRequireAlarmPermission = {
                     showAlarmPermissionBottomSheet = true
                 },
+                onActiveRoutineBlocked = {
+                    coroutineScope.launch {
+                        snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                    }
+                },
             )
         }
     }
