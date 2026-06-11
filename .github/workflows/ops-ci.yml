@@ -116,6 +116,8 @@ jobs:
               - 'scripts/tests/test_readme_version_contract.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
+              - 'scripts/tests/test_ga4_custom_dimension_registration_docs.py'
+              - 'scripts/tests/test_monetization_interest_contract.py'
               - 'scripts/tests/test_signed_aab_lint_gate.py'
               - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
               - 'scripts/tests/test_workflow_gradle_task_guard.py'
@@ -178,6 +180,8 @@ jobs:
           scripts.tests.test_readme_version_contract
           scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_acquisition_attribution_docs_contract
+          scripts.tests.test_ga4_custom_dimension_registration_docs
+          scripts.tests.test_monetization_interest_contract
           scripts.tests.test_signed_aab_lint_gate
           scripts.tests.test_review_prompt_post_release_followthrough_docs
           scripts.tests.test_workflow_gradle_task_guard
