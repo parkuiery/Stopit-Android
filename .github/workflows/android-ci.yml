@@ -252,9 +252,10 @@ jobs:
             set -eu
             mkdir -p runtime-diagnostics
             trap 'adb logcat -d > runtime-diagnostics/android-ci-logcat.txt || true; adb shell dumpsys alarm > runtime-diagnostics/android-ci-alarm.txt || true; adb shell dumpsys accessibility > runtime-diagnostics/android-ci-accessibility.txt || true' EXIT
-            python3 scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke
-            python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
-            python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled
+            # Aggregate suites: android_ci_focused_runtime_smoke, notification_denied_receiver,
+            # notification_denied_emergency_unlock, notification_channel_disabled.
+            # Notification denied setup remains: adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore.
+            python3 scripts/android_runtime_suites.py run-android-ci
 
       - name: Upload runtime smoke diagnostics
         if: always() && steps.runtime-firebase-config.outputs.available == 'true'

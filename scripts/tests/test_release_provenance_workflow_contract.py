@@ -111,6 +111,13 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("gh release view \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release create \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber", publish_step)
+        self.assertIn("post_upload_failure()", publish_step)
+        self.assertIn("Post-upload durable provenance publish failure", publish_step)
+        self.assertIn("evidence-publish failure, not as proof that the Play upload failed", publish_step)
+        self.assertIn("Do not blindly re-upload the same versionCode", publish_step)
+        self.assertIn("same-tag non-production Play Deploy", publish_step)
+        self.assertIn("|| post_upload_failure \"GitHub Release create failed", publish_step)
+        self.assertIn("|| post_upload_failure \"GitHub Release upload failed", publish_step)
 
     def test_production_promotion_downloads_and_verifies_prior_internal_provenance_before_secrets(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
@@ -140,7 +147,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", download_step)
         self.assertIn("GH_TOKEN: ${{ github.token }}", download_step)
         self.assertIn("gh run list", download_step)
-        self.assertIn("--event push", download_step)
+        self.assertIn("for event_name in push workflow_dispatch", download_step)
+        self.assertIn("--event \"$event_name\"", download_step)
+        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$run_event", download_step)
+        self.assertIn("Selected prior internal Play Deploy run", download_step)
         self.assertIn("gh run download", download_step)
         self.assertIn("--name stopit-prod-release-signed-aab", download_step)
         self.assertIn("gh release download \"$GITHUB_REF_NAME\"", download_step)
@@ -182,11 +192,17 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "internal release",
             "fail-fast before production secrets",
             "prior internal provenance gate",
+            "tag push artifact",
+            "manual deploy artifact",
+            "workflow_dispatch",
             "before `Upload signed AAB artifact`",
             "30-day evidence surface",
             "durable fallback",
             "artifact expired/missing",
             "durable fallback missing",
+            "post-upload durable provenance publish failure",
+            "evidence-publish failure",
+            "do not blindly re-upload the same `versionCode`",
             "provenance mismatch",
         ):
             self.assertIn(required, docs)

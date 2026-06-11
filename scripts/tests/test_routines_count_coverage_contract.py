@@ -21,7 +21,8 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
 
         for phrase in [
             "Issue: #479",
-            "code-lane 중앙 sync 구현 PR 준비",
+            "PR #525 중앙 sync 구현 develop 반영 완료",
+            "PR #525(`3246b088`)",
             "560 / 865 = 64.7%",
             "routines_count=(not set)",
             "RoutineCountAnalyticsSync",
@@ -91,6 +92,25 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
         contract = CONTRACT.read_text()
         self.assertIn("HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry", contract)
         self.assertIn("SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation", contract)
+
+    def test_stale_pre_implementation_wording_is_not_reintroduced(self):
+        combined = "\n".join(
+            document.read_text()
+            for document in [
+                CONTRACT,
+                ANALYTICS_DICTIONARY,
+                PRODUCT_DASHBOARD,
+                METRICS_ANALYSIS,
+            ]
+        )
+
+        for stale_phrase in [
+            "code-lane 중앙 sync 구현 PR 준비",
+            "#479 완료 전",
+            "현재 구현은 `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`",
+            "#479 이후에는 앱 실행/Home 진입",
+        ]:
+            self.assertNotIn(stale_phrase, combined)
 
 
 if __name__ == "__main__":
