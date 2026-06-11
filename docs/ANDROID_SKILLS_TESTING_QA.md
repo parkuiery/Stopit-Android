@@ -109,6 +109,8 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
 
 `main` 대상 PR에서는 `Version Guard`가 항상 보여야 하며, 정상적인 release/hotfix PR은 `Full release QA`, `Release instrumentation QA`, `Android Release Build`, `Version Guard`, `Branch Hygiene`가 모두 green이 되기 전 `main`으로 merge하지 않는다.
 
+Runtime smoke 실패 triage artifact는 두 workflow가 같은 경계로 남긴다. Android CI focused runtime smoke는 `stopit-runtime-smoke-diagnostics`, Release instrumentation QA는 `stopit-release-instrumentation-diagnostics` artifact를 `retention-days: 7`로 업로드한다. 이 artifact upload는 테스트 실패를 가리지 않는 non-blocking 단계이며, 먼저 `app/build/reports/androidTests` report를 보고, 다음으로 `app/build/outputs/androidTest-results` raw result, 마지막으로 `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility`를 확인한다.
+
 ## Android CLI 활용
 
 로컬 기기/에뮬레이터 evidence 수집 시 `android-cli` skill을 기준으로 다음 도구를 우선 사용한다.

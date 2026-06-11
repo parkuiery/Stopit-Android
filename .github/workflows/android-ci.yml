@@ -250,6 +250,26 @@ jobs:
           disable-animations: true
           script: |
             set -eu
+            mkdir -p runtime-diagnostics
+            capture_runtime_diagnostics() {
+              adb logcat -d > runtime-diagnostics/android-ci-logcat.txt || true
+              adb shell dumpsys alarm > runtime-diagnostics/android-ci-alarm.txt || true
+              adb shell dumpsys accessibility > runtime-diagnostics/android-ci-accessibility.txt || true
+            }
+            trap capture_runtime_diagnostics EXIT
             python3 scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke
             python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
             python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled
+
+      - name: Upload runtime smoke diagnostics
+        if: always() && steps.runtime-firebase-config.outputs.available == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-runtime-smoke-diagnostics
+          path: |
+            app/build/reports/androidTests/**
+            app/build/outputs/androidTest-results/**
+            runtime-diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 7

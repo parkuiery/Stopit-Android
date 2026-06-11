@@ -137,6 +137,13 @@ jobs:
           disable-animations: true
           script: |
             set -eu
+            mkdir -p runtime-diagnostics
+            capture_runtime_diagnostics() {
+              adb logcat -d > runtime-diagnostics/release-qa-logcat.txt || true
+              adb shell dumpsys alarm > runtime-diagnostics/release-qa-alarm.txt || true
+              adb shell dumpsys accessibility > runtime-diagnostics/release-qa-accessibility.txt || true
+            }
+            trap capture_runtime_diagnostics EXIT
             python3 scripts/android_runtime_suites.py run-connected release_focused_ui_smoke --before "./gradlew --console=plain :app:installDevDebug"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_default --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell cmd appops reset com.uiery.keep.dev"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_denied --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny"
@@ -144,3 +151,16 @@ jobs:
             python3 scripts/android_runtime_suites.py run-connected release_remaining_runtime
             python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
             python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled --before "./gradlew --console=plain :app:installDevDebug"
+
+      - name: Upload release instrumentation diagnostics
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-release-instrumentation-diagnostics
+          path: |
+            app/build/reports/androidTests/**
+            app/build/outputs/androidTest-results/**
+            runtime-diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 7
