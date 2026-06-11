@@ -95,9 +95,9 @@
     <string name="goal_lock_detail_title">Goal lock</string>
     <string name="goal_lock_detail_loading">Loading goal lock.</string>
     <string name="goal_lock_detail_summary">%1$s · %2$d apps</string>
-    <string name="goal_lock_detail_status_completed">This goal lock is completed.</string>
-    <string name="goal_lock_detail_status_ended">This goal lock has ended.</string>
-    <string name="goal_lock_detail_status_active">This goal lock is in progress.</string>
+    <string name="goal_lock_detail_status_completed">Ce verrouillage d’objectif est terminé.</string>
+    <string name="goal_lock_detail_status_ended">Ce verrouillage d’objectif a pris fin.</string>
+    <string name="goal_lock_detail_status_active">Ce verrouillage d’objectif est en cours.</string>
     <string name="goal_lock_detail_end_confirmation">Ending this goal lock may let the selected apps open again from today. End it now?</string>
     <string name="goal_lock_detail_end_cancel">Continue</string>
     <string name="goal_lock_detail_end_confirm">End</string>
@@ -306,7 +306,7 @@
     <string name="emergency_unlock_notification_channel_description">Affiche le compte à rebours pendant le déverrouillage d\'urgence</string>
     <string name="emergency_unlock_remaining_count">%1$d/%2$d restants</string>
     <string name="emergency_unlock_waiting_seconds_label">secondes</string>
-    <string name="home_status_no_selected_apps_title">Choose apps to block first</string>
+    <string name="home_status_no_selected_apps_title">Choisissez d’abord les apps à bloquer</string>
     <string name="home_status_no_selected_apps_description">StopIt a besoin au minimum d’une appli sélectionnée avant de pouvoir protéger ton temps.</string>
     <string name="home_status_first_lock_ready_title">%1$d apps are ready to block</string>
     <string name="home_status_first_lock_ready_description">Démarre maintenant pour confirmer ton premier vrai blocage, ou règle un minuteur pour plus tard.</string>
@@ -314,8 +314,8 @@
     <string name="home_status_ready_description">Démarre le blocage maintenant, change les applis ou règle un minuteur pour une session prévue.</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
     <string name="home_status_keep_active_description">StopIt protège ton temps. Utilise les actions secondaires seulement si tu dois ajuster la session.</string>
-    <string name="home_primary_cta_select_apps">Select apps to block</string>
-    <string name="home_primary_cta_start_now">Start blocking now</string>
+    <string name="home_primary_cta_select_apps">Sélectionner les apps à bloquer</string>
+    <string name="home_primary_cta_start_now">Commencer le blocage maintenant</string>
     <string name="home_primary_status_keep_active">Protection is active</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
