@@ -1,10 +1,15 @@
 package com.uiery.keep.feature.goallock
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.goallock.GoalLock
@@ -62,6 +67,39 @@ class GoalLockDetailContentIntegrationTest {
         assertEquals(1, confirmCount)
         assertEquals(0, cancelCount)
         assertEquals(emptyList<Set<String>>(), updateRequests)
+    }
+
+    @Test
+    fun compactHeightDetailContentScrollsToEndAction() {
+        lateinit var endText: String
+
+        composeRule.setContent {
+            endText = composeRule.activity.getString(R.string.goal_lock_detail_end_cta)
+            KeepTheme {
+                Box(modifier = Modifier.height(320.dp)) {
+                    GoalLockDetailContent(
+                        state = GoalLockDetailUiState(goalLock = activeGoalLock()),
+                        onRequestEnd = {},
+                        onCancelEnd = {},
+                        onConfirmEnd = {},
+                        onGoalNameChange = {},
+                        onCancelUpdateGoalName = {},
+                        onConfirmUpdateGoalName = {},
+                        onRequestUpdateApps = {},
+                        onCancelUpdateApps = {},
+                        onConfirmUpdateApps = {},
+                        onDurationDaysChange = {},
+                        onCancelUpdateDuration = {},
+                        onConfirmUpdateDuration = {},
+                        onLockModeChange = {},
+                        onCancelUpdateLockMode = {},
+                        onConfirmUpdateLockMode = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText(endText).performScrollTo().assertIsDisplayed()
     }
 }
 

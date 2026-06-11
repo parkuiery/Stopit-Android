@@ -151,6 +151,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationContentIntegrationTest", qa_checklist)
         self.assertIn("compact-height", qa_checklist)
         self.assertIn("목표 잠금 시작", qa_checklist)
+        self.assertIn("GoalLockDetailContentIntegrationTest", qa_checklist)
+        self.assertIn("목표 잠금 종료", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
