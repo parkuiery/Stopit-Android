@@ -53,9 +53,8 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         release_qa = RELEASE_QA_WORKFLOW.read_text()
 
-        self.assertIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", android_ci)
-        self.assertIn("scripts/android_runtime_suites.py run-connected notification_channel_disabled", android_ci)
+        self.assertIn("scripts/android_runtime_suites.py run-android-ci", android_ci)
+        self.assertNotIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
@@ -86,6 +85,52 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             run.call_args_list[2].args[0],
         )
 
+    def test_run_connected_continue_on_failure_runs_later_selectors_and_returns_failure(self):
+        first_failure = mock.Mock(returncode=7)
+        later_success = mock.Mock(returncode=0)
+        with mock.patch.object(
+            android_runtime_suites.subprocess,
+            "run",
+            side_effect=[first_failure, later_success],
+        ) as run:
+            result = android_runtime_suites.run_connected_tests(
+                ["notification_denied_receiver", "notification_denied_emergency_unlock"],
+                continue_on_failure=True,
+            )
+
+        self.assertEqual(7, result)
+        self.assertEqual(2, run.call_count)
+        self.assertIn(
+            "ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine",
+            run.call_args_list[0].args[0][-1],
+        )
+        self.assertIn(
+            "EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
+            run.call_args_list[1].args[0][-1],
+        )
+
+    def test_android_ci_aggregate_runner_keeps_notification_suites_after_first_suite_failure(self):
+        completed = mock.Mock(returncode=0)
+        first_failure = mock.Mock(returncode=9)
+        calls: list[list[str]] = []
+
+        def fake_run(command, cwd):
+            calls.append(command)
+            if any("StopitReleaseSmokeTest" in part for part in command):
+                return first_failure
+            return completed
+
+        with mock.patch.object(android_runtime_suites.subprocess, "run", side_effect=fake_run):
+            result = android_runtime_suites.run_android_ci_sequence()
+
+        self.assertEqual(9, result)
+        connected_commands = [call for call in calls if ":app:connectedDevDebugAndroidTest" in call]
+        self.assertTrue(any("StopitReleaseSmokeTest" in call[-1] for call in connected_commands))
+        self.assertTrue(any("routineAlarmReceiverWithoutPostNotificationsPermission" in call[-1] for call in connected_commands))
+        self.assertTrue(any("NotificationChannelDisabledIntegrationTest" in call[-1] for call in connected_commands))
+        self.assertTrue(any(call[:3] == ["./gradlew", "--console=plain", ":app:installDevDebug"] for call in calls))
+        self.assertTrue(any(call[:6] == ["adb", "shell", "appops", "set", "com.uiery.keep.dev", "POST_NOTIFICATION"] for call in calls))
+
     def test_runtime_suite_manifest_changes_materialize_ci_scopes(self):
         android_ci = ANDROID_CI_WORKFLOW.read_text()
         self.assertIn("scripts/android_runtime_suites.py", android_ci)
@@ -101,7 +146,7 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             with self.subTest(workflow=name):
                 self.assertNotIn("xargs", content)
                 self.assertNotIn("while IFS= read -r selector", content)
-                self.assertIn("scripts/android_runtime_suites.py run-connected", content)
+                self.assertRegex(content, r"scripts/android_runtime_suites.py run-(connected|android-ci)")
 
 
 if __name__ == "__main__":

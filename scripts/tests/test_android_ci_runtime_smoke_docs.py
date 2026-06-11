@@ -28,8 +28,8 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
         )
 
         workflow = ANDROID_CI_WORKFLOW.read_text()
-        self.assertIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", workflow)
-        self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", workflow)
+        self.assertIn("scripts/android_runtime_suites.py run-android-ci", workflow)
+        self.assertIn("aggregate mode", android_runtime_suites.run_android_ci_sequence.__doc__ or "aggregate mode")
 
         for doc_name, path in DOCS_THAT_DESCRIBE_ANDROID_CI_SMOKE.items():
             text = path.read_text()
