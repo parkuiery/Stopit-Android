@@ -191,8 +191,9 @@ class KeepAccessibilityServiceIntegrationTest {
         val allowedPackage = resolveLaunchablePackages().first()
         configureExpiredActiveParentMode(allowedPackage)
         waitForServiceStatePropagation()
+        resetDebugStateRetainingConnectionFlag()
 
-        launchPackage(allowedPackage)
+        launchPackage(allowedPackage, pressHomeBeforeLaunch = false)
         waitForWindowEvent(allowedPackage)
 
         waitUntil(
@@ -581,7 +582,10 @@ class KeepAccessibilityServiceIntegrationTest {
         return packages.take(2)
     }
 
-    private fun launchPackage(packageName: String) {
+    private fun launchPackage(
+        packageName: String,
+        pressHomeBeforeLaunch: Boolean = true,
+    ) {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         assertNotNull("Expected a launch intent for $packageName", launchIntent)
         val launchComponent = launchIntent!!.component?.flattenToShortString()
@@ -589,7 +593,9 @@ class KeepAccessibilityServiceIntegrationTest {
             if (packageName != appPackage) {
                 shell("am force-stop $packageName")
             }
-            device.pressHome()
+            if (pressHomeBeforeLaunch) {
+                device.pressHome()
+            }
             val launchResult = if (launchComponent != null) {
                 shell("am start -W -n $launchComponent")
             } else {
