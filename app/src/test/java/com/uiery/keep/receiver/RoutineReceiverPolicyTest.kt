@@ -9,7 +9,9 @@ import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineReceiverPolicyTest {
@@ -140,6 +142,31 @@ class RoutineReceiverPolicyTest {
         )
 
         assertNull(routine)
+    }
+
+    @Test
+    fun shouldShowRoutineStartNoticeReturnsTrueOnlyForMatchingEnabledRoutine() {
+        val enabled = routine(id = 7L, name = "Enabled", isEnabled = true)
+        val disabled = routine(id = 8L, name = "Disabled", isEnabled = false)
+
+        assertTrue(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 7L,
+            ),
+        )
+        assertFalse(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 8L,
+            ),
+        )
+        assertFalse(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 99L,
+            ),
+        )
     }
 
     @Test

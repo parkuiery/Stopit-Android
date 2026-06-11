@@ -72,17 +72,6 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             routineId = routineId,
         ) ?: return
 
-        val notificationResult = notificationHelper.showRoutineStartNotification(
-            trigger.routineName,
-            trigger.routineId,
-        )
-        RoutineReceiverPolicy.buildPendingRoutineStartNotice(
-            notificationResult = notificationResult,
-            fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
-        )?.let { pendingNotice ->
-            RoutineNoticeStore(dataStore).enqueuePendingRoutineStartNotice(pendingNotice)
-        }
-
         val routineStore = RoutineStore(dataStore)
         val storedRoutines = routineStore.readCachedRoutines()
         val databaseRoutines = routineRepository.fetchAllOnce()
@@ -91,14 +80,33 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             databaseRoutines = databaseRoutines,
         )
 
+        val routineToReschedule = RoutineReceiverPolicy.findEnabledRoutineToReschedule(
+            routines = routines,
+            routineId = trigger.routineId,
+        )
+
+        if (RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = routines,
+                routineId = trigger.routineId,
+            )
+        ) {
+            val notificationResult = notificationHelper.showRoutineStartNotification(
+                trigger.routineName,
+                trigger.routineId,
+            )
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = notificationResult,
+                fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
+            )?.let { pendingNotice ->
+                RoutineNoticeStore(dataStore).enqueuePendingRoutineStartNotice(pendingNotice)
+            }
+        }
+
         var updatedRoutines = routines
         val disabledRoutineIds = linkedSetOf<Long>()
         var shouldResetAlarmPermissionPrompt = false
 
-        RoutineReceiverPolicy.findEnabledRoutineToReschedule(
-            routines = routines,
-            routineId = trigger.routineId,
-        )?.let { routine ->
+        routineToReschedule?.let { routine ->
             val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
                 routines = updatedRoutines,
                 routineId = routine.id,

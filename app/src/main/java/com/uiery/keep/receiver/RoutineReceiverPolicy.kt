@@ -89,6 +89,11 @@ object RoutineReceiverPolicy {
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
 
+    fun shouldShowRoutineStartNotice(
+        routines: List<RoutineModel>,
+        routineId: Long,
+    ): Boolean = findEnabledRoutineToReschedule(routines, routineId) != null
+
     fun applyScheduleResult(
         routines: List<RoutineModel>,
         routineId: Long,
