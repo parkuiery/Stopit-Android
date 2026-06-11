@@ -20,7 +20,8 @@
 - 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - open issue: `#13`
 - 앱 코드 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
-- Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase facade: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase `screen_view` payload adapter: `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`, `FirebaseScreenViewPayload.kt`
 - 광고 계측 구현: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 
 ## 왜 별도 런북이 필요한가
@@ -55,6 +56,12 @@
 - PR #318에서 dev/debug 내부 진단 surface인 `DevToolScreen` 명시적 `screen_view` 계측도 추가됐다.
 - 따라서 2026-05-29 screen 품질 baseline은 위 네 화면 보강 전 기준선이다. 같은 화면에 대해 새 code-lane 작업을 다시 열기 전에, PR #296/#318 포함 버전 배포 후 14일 창에서 `(not set)` / blank `unifiedScreenName`가 실제로 남는지 먼저 재측정한다. 이때 최신 버전 active share는 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준으로 함께 판정한다. `DevToolScreen`은 dev/debug 전용 route이므로 production 사용자 screen 품질 판정의 주요 분모로 과대해석하지 않는다.
 - PR #358 merge commit `6ceaecc4`는 이 판단을 고정한 docs-only release-boundary PR이다. 이후 high-traffic docs는 `PR #296/#318/#358` 묶음을 같은 #13 screen-quality package로 표기하고, 2026-06-03 live smoke `13,780 / 22,584 = 61.0%`는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 본다. #13 closure는 PR #296/#318/#358 포함 release/tag/Play deploy 확인 뒤 **D+14 screen quality 재측정**으로 판단한다.
+
+2026-06-12 code-lane 기준 추가 확인:
+
+- `FirebaseScreenViewPayload`가 모든 Firebase `screen_view` payload에 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 넣도록 계약화했다.
+- 이 변경은 특정 화면 호출 누락을 다시 추가하는 작업이 아니라, Firebase backend adapter의 공통 payload shape를 고정해 GA4 `unifiedScreenName` 회복 가능성을 높이는 repo-internal 보강이다.
+- live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 같은 쿼리 창 재측정 전까지 보류한다.
 
 해석:
 
