@@ -341,7 +341,7 @@
 - #307 리뷰 프롬프트 shown 0 post-release follow-through (`docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` 참조; PR #308/#312 포함 버전의 release/tag/Play deploy 후 14일·30일 관측 경계)
 - #119 Usage Access 선택형 개인화 discovery gate (`docs/USAGE_STATS_PERSONALIZATION_MVP.md` 참조; #82는 기존 아이디어 정리 이력)
 - #407 루틴 템플릿 공유 discovery / privacy-safe MVP 계약 (`docs/ROUTINE_TEMPLATE_SHARE_MVP.md` 참조)
-- #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, enum/bucket analytics, Accessibility/expiration/compact-height 생성 CTA 자동 QA baseline, 남은 TalkBack·실기기/release·GA4/readback 경계)
+- #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, 상세 앱/이름/기간/잠금 방식 수정, enum/bucket analytics, Accessibility/expiration/compact-height 생성·상세 CTA 자동 QA baseline, 남은 TalkBack·실기기/release·GA4/readback 경계)
 - #471 부모 모드 / 아이에게 폰 주기 same-device MVP 계약 (`docs/PARENT_MODE_MVP.md` 참조; 보호자 PIN, 허용 앱, 시간 만료, privacy-safe analytics와 QA baseline)
 - #531 반복 차단 기반 자동 루틴 제안 계약 (`docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` 참조; 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, #455와 slot 충돌 방지, privacy-safe analytics와 QA baseline)
 - #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고 custom reason/app package/raw timestamp/snapshot dump 금지)
@@ -357,7 +357,7 @@
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 shown 0 post-release 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적. PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐으므로, 이제 코드 PR 대기가 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 확인과 배포 후 14일/30일 관측 경계로 본다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일, QA evidence, child issue 분리 기준 포함.
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP 계약. Android share sheet 텍스트 공유, privacy-safe payload, analytics event 초안, deep link/import decision gate, 14일/30일 측정 기준 포함.
-- `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, `goal_lock_*` analytics, runtime QA baseline, compact-height 생성 CTA 자동 baseline, 구현 후 `Closes #417` 경계 포함.
+- `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, 상세 앱/이름/기간/잠금 방식 수정, `goal_lock_*` analytics, runtime QA baseline, compact-height 생성·상세 CTA 자동 baseline, 구현 후 `Closes #417` 경계 포함.
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약. 보호자 PIN, 허용 앱, 시간 만료, `parent_mode_*` analytics, runtime QA baseline, 원격 자녀 기기 관리 후속 gate 포함.
 - `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`: #531용 반복 차단 기반 자동 루틴 제안 계약. 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, 기존 루틴 coverage guard, #455/#407/광고 CTA slot 충돌 방지, `repeat_block_routine_suggestion_*` analytics와 QA evidence template 포함.
 - `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, privacy-safe enum/bucket 파라미터, GA4 Admin/release/readback 경계를 정의한다.

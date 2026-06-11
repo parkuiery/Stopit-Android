@@ -55,6 +55,10 @@ class GoalLockContractTest(unittest.TestCase):
             "Home expiration completion foothold",
             "PR #489",
             "goal_lock_completed",
+            "detail duration / lock-mode update foothold",
+            "goal_lock_updated(changed_field=duration)",
+            "goal_lock_updated(changed_field=schedule)",
+            "goal_lock_updated(changed_field=lock_mode)",
             "Accessibility runtime QA foothold",
             "KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
             "KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
@@ -176,14 +180,18 @@ class GoalLockContractTest(unittest.TestCase):
 
         for document in [product_context, metrics_context]:
             self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion", document)
-            self.assertIn("compact-height creation CTA", document)
+            self.assertIn("상세 앱/이름/기간/잠금 방식 수정", document)
+            self.assertIn("goal_lock_updated changed_field=apps|name|duration|schedule|lock_mode", document)
+            self.assertIn("compact-height creation/detail CTA", document)
             self.assertIn("TalkBack", document)
             self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
+            self.assertNotIn("기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check", document)
 
         dashboard = PRODUCT_DASHBOARD.read_text()
         self.assertIn("Home completion foothold", dashboard)
         self.assertIn("`develop` 반영 상태", dashboard)
-        self.assertIn("compact-height 생성 CTA", dashboard)
+        self.assertIn("상세 앱/이름/기간/잠금 방식 수정", dashboard)
+        self.assertIn("compact-height 생성·상세 CTA", dashboard)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()
