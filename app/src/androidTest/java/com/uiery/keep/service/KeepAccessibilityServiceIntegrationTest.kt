@@ -77,6 +77,43 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun launchCandidateSelection_fallsBackToNextObservedPackageAndRetainsDiagnostics() {
+        val results = listOf(
+            LaunchCandidateResult(
+                packageName = "com.example.first",
+                launchComponent = "com.example.first/.MainActivity",
+                attemptResults = listOf("first stayed on launcher"),
+                observedLaunchSignal = false,
+                snapshot = "lastWindowStateChangedPackage=com.android.launcher",
+                activity = "mResumedActivity com.android.launcher/.Launcher",
+                window = "mCurrentFocus com.android.launcher/.Launcher",
+            ),
+            LaunchCandidateResult(
+                packageName = "com.example.second",
+                launchComponent = "com.example.second/.MainActivity",
+                attemptResults = listOf("second reached foreground"),
+                observedLaunchSignal = true,
+                snapshot = "lastWindowStateChangedPackage=com.example.second",
+                activity = "mResumedActivity com.example.second/.MainActivity",
+                window = "mCurrentFocus com.example.second/.MainActivity",
+            ),
+        )
+
+        val selected = selectFirstObservedLaunchCandidate(
+            purpose = "synthetic fallback regression",
+            launchResults = results.asSequence(),
+        )
+
+        assertEquals("com.example.second", selected.packageName)
+        assertTrue(
+            "Expected failed candidate diagnostics to be retained. diagnostics=${selected.priorCandidateDiagnostics}",
+            selected.priorCandidateDiagnostics.contains("com.example.first") &&
+                selected.priorCandidateDiagnostics.contains("first stayed on launcher") &&
+                selected.priorCandidateDiagnostics.contains("com.android.launcher"),
+        )
+    }
+
+    @Test
     fun selectedAppForegroundBeforeServiceConnects_launchesBlockActivityAfterServiceConnects() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         disableAccessibilityServiceIfEnabled()
@@ -109,12 +146,11 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun selectedAppWithManualKeep_launchesBlockActivity() = runBlocking {
-        val blockedPackage = resolveLaunchablePackages().first()
-        configureManualKeepBlock(blockedPackage)
-        waitForServiceStatePropagation()
-        waitForServiceToObserveSelectedPackage(blockedPackage)
-
-        launchPackage(blockedPackage)
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "manual Keep selected-app block smoke",
+            configureCandidate = { candidate -> configureManualKeepBlock(candidate) },
+            waitForCandidateReady = { candidate -> waitForServiceToObserveSelectedPackage(candidate) },
+        )
         waitForWindowEvent(blockedPackage)
 
         waitUntil(
@@ -127,11 +163,11 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
-        val blockedPackage = resolveLaunchablePackages().first()
-        val goalLockId = configureAllDayGoalLockBlock(blockedPackage)
-        waitForServiceStatePropagation()
-
-        launchPackage(blockedPackage)
+        var goalLockId = GOAL_LOCK_RUNTIME_TEST_ID
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "all-day Goal Lock block smoke",
+            configureCandidate = { candidate -> goalLockId = configureAllDayGoalLockBlock(candidate) },
+        )
         waitForWindowEvent(blockedPackage)
 
         waitUntil(
@@ -147,11 +183,11 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
-        val blockedPackage = resolveLaunchablePackages().first()
-        val goalLockId = configureScheduledGoalLockBlock(blockedPackage)
-        waitForServiceStatePropagation()
-
-        launchPackage(blockedPackage)
+        var goalLockId = GOAL_LOCK_RUNTIME_TEST_ID
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "scheduled Goal Lock block smoke",
+            configureCandidate = { candidate -> goalLockId = configureScheduledGoalLockBlock(candidate) },
+        )
         waitForWindowEvent(blockedPackage)
 
         waitUntil(
@@ -167,11 +203,10 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution() = runBlocking {
-        val blockedPackage = resolveLaunchablePackages().first()
-        configureActiveParentModeBlock(blockedPackage)
-        waitForServiceStatePropagation()
-
-        launchPackage(blockedPackage)
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "active Parent Mode block smoke",
+            configureCandidate = { candidate -> configureActiveParentModeBlock(candidate) },
+        )
         waitForWindowEvent(blockedPackage)
 
         waitUntil(
@@ -188,11 +223,10 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence() = runBlocking {
-        val allowedPackage = resolveLaunchablePackages().first()
-        configureExpiredActiveParentMode(allowedPackage)
-        waitForServiceStatePropagation()
-
-        launchPackage(allowedPackage)
+        val allowedPackage = launchFirstConfiguredPackage(
+            purpose = "expired Parent Mode previously-allowed app block smoke",
+            configureCandidate = { candidate -> configureExpiredActiveParentMode(candidate) },
+        )
         waitForWindowEvent(allowedPackage)
 
         waitUntil(
@@ -209,11 +243,10 @@ class KeepAccessibilityServiceIntegrationTest {
 
     @Test
     fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
-        val blockedPackage = resolveLaunchablePackages().first()
-        configureExpiredGoalLockBlock(blockedPackage)
-        waitForServiceStatePropagation()
-
-        launchPackage(blockedPackage)
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "expired Goal Lock foreground smoke",
+            configureCandidate = { candidate -> configureExpiredGoalLockBlock(candidate) },
+        )
         waitForWindowEvent(blockedPackage)
         waitForPackageForeground(
             packageName = blockedPackage,
@@ -581,11 +614,103 @@ class KeepAccessibilityServiceIntegrationTest {
         return packages.take(2)
     }
 
+    private data class LaunchCandidateResult(
+        val packageName: String,
+        val launchComponent: String?,
+        val attemptResults: List<String>,
+        val observedLaunchSignal: Boolean,
+        val snapshot: String,
+        val activity: String,
+        val window: String,
+        val priorCandidateDiagnostics: String = "",
+    ) {
+        fun diagnosticSummary(): String = buildString {
+            append("package=").append(packageName)
+            append("; launchComponent=").append(launchComponent)
+            append("; observedLaunchSignal=").append(observedLaunchSignal)
+            append("; attemptResults=").append(attemptResults.joinToString(" || "))
+            append("; snapshot=").append(snapshot)
+            append("; activity=").append(activity)
+            append("; window=").append(window)
+        }
+    }
+
+    private fun selectFirstObservedLaunchCandidate(
+        purpose: String,
+        launchResults: Sequence<LaunchCandidateResult>,
+    ): LaunchCandidateResult {
+        val failedCandidateDiagnostics = mutableListOf<String>()
+        launchResults.forEach { result ->
+            if (result.observedLaunchSignal) {
+                return result.copy(
+                    priorCandidateDiagnostics = failedCandidateDiagnostics.joinToString(separator = "\n"),
+                )
+            }
+            failedCandidateDiagnostics += result.diagnosticSummary()
+        }
+
+        fail(
+            "Expected at least one launch candidate to produce a foreground/window/block signal for $purpose. " +
+                "candidateDiagnostics=${failedCandidateDiagnostics.joinToString(separator = "\n")}",
+        )
+        throw AssertionError("unreachable")
+    }
+
+    private suspend fun launchFirstConfiguredPackage(
+        purpose: String,
+        configureCandidate: suspend (String) -> Unit,
+        waitForCandidateReady: suspend (String) -> Unit = {},
+    ): String {
+        val launchResults = mutableListOf<LaunchCandidateResult>()
+        resolveLaunchablePackages().forEach { candidate ->
+            device.pressHome()
+            resetDebugStateRetainingConnectionFlag()
+            configureCandidate(candidate)
+            waitForServiceStatePropagation()
+            waitForCandidateReady(candidate)
+            val result = tryLaunchPackage(candidate)
+            launchResults += result
+            if (result.observedLaunchSignal) {
+                return selectFirstObservedLaunchCandidate(
+                    purpose = purpose,
+                    launchResults = launchResults.asSequence(),
+                ).packageName
+            }
+        }
+        return selectFirstObservedLaunchCandidate(
+            purpose = purpose,
+            launchResults = launchResults.asSequence(),
+        ).packageName
+    }
+
     private fun launchPackage(packageName: String) {
+        selectFirstObservedLaunchCandidate(
+            purpose = "specific package launch for $packageName",
+            launchResults = sequenceOf(tryLaunchPackage(packageName)),
+        )
+    }
+
+    private fun tryLaunchPackage(packageName: String): LaunchCandidateResult {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-        assertNotNull("Expected a launch intent for $packageName", launchIntent)
-        val launchComponent = launchIntent!!.component?.flattenToShortString()
+        if (launchIntent == null) {
+            return LaunchCandidateResult(
+                packageName = packageName,
+                launchComponent = null,
+                attemptResults = listOf("missing launch intent"),
+                observedLaunchSignal = false,
+                snapshot = KeepAccessibilityServiceDebugState.read(context).toString(),
+                activity = resumedActivityDump(),
+                window = focusedWindowDump(),
+            )
+        }
+
+        val launchComponent = launchIntent.component?.flattenToShortString()
+        val attemptResults = mutableListOf<String>()
+        var observedLaunchSignal = false
         repeat(LAUNCH_ATTEMPTS) { attempt ->
+            if (observedLaunchSignal) {
+                return@repeat
+            }
             if (packageName != appPackage) {
                 shell("am force-stop $packageName")
             }
@@ -598,18 +723,22 @@ class KeepAccessibilityServiceIntegrationTest {
                 )
                 "started via context.startActivity"
             }
+            attemptResults += "attempt=${attempt + 1}; result=${launchResult.trim()}"
             if (waitForLaunchSignal(packageName, LAUNCH_SETTLE_TIMEOUT_MS)) {
-                return
-            }
-            if (attempt == LAUNCH_ATTEMPTS - 1) {
-                fail(
-                    "Expected launch signal for $packageName after ${attempt + 1} attempts. " +
-                        "lastLaunchResult=$launchResult; snapshot=${KeepAccessibilityServiceDebugState.read(context)}; " +
-                        "activity=${shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'").trim()}; " +
-                        "window=${shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'").trim()}",
-                )
+                observedLaunchSignal = true
+                return@repeat
             }
         }
+
+        return LaunchCandidateResult(
+            packageName = packageName,
+            launchComponent = launchComponent,
+            attemptResults = attemptResults,
+            observedLaunchSignal = observedLaunchSignal,
+            snapshot = KeepAccessibilityServiceDebugState.read(context).toString(),
+            activity = resumedActivityDump(),
+            window = focusedWindowDump(),
+        )
     }
 
     private fun waitForLaunchSignal(packageName: String, timeoutMs: Long): Boolean {
@@ -841,14 +970,18 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun isPackageForeground(packageName: String): Boolean {
-        if (shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'")
-                .contains("$packageName/")) {
+        if (resumedActivityDump().contains("$packageName/")) {
             return true
         }
 
-        return shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'")
-            .contains(packageName)
+        return focusedWindowDump().contains(packageName)
     }
+
+    private fun resumedActivityDump(): String =
+        shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'").trim()
+
+    private fun focusedWindowDump(): String =
+        shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'").trim()
 
     private fun isUninstallSurfaceForeground(): Boolean =
         KNOWN_UNINSTALL_PACKAGES.any(::isPackageForeground)
