@@ -307,13 +307,13 @@
     <string name="emergency_unlock_remaining_count">%1$d/%2$d restantes</string>
     <string name="emergency_unlock_waiting_seconds_label">segundos</string>
     <string name="home_status_no_selected_apps_title">Choose apps to block first</string>
-    <string name="home_status_no_selected_apps_description">StopIt needs at least one selected app before it can start protecting your time.</string>
+    <string name="home_status_no_selected_apps_description">O StopIt precisa de pelo menos uma app selecionada antes de poder proteger o teu tempo.</string>
     <string name="home_status_first_lock_ready_title">%1$d apps are ready to block</string>
-    <string name="home_status_first_lock_ready_description">Start now to confirm your first real block, or set a timer for later.</string>
+    <string name="home_status_first_lock_ready_description">Começa agora para confirmar o teu primeiro bloqueio real, ou define um temporizador para mais tarde.</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
-    <string name="home_status_ready_description">Start blocking now, change apps, or set a timer for a planned session.</string>
+    <string name="home_status_ready_description">Começa a bloquear agora, muda as apps ou define um temporizador para uma sessão planeada.</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
-    <string name="home_status_keep_active_description">StopIt is protecting your time. Use secondary actions only when you need to adjust the session.</string>
+    <string name="home_status_keep_active_description">O StopIt está a proteger o teu tempo. Usa ações secundárias apenas quando precisares de ajustar a sessão.</string>
     <string name="home_primary_cta_select_apps">Select apps to block</string>
     <string name="home_primary_cta_start_now">Start blocking now</string>
     <string name="home_primary_status_keep_active">Protection is active</string>

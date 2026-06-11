@@ -300,6 +300,25 @@ python3 -m unittest scripts.tests.test_kds_dependency_catalog_contract -v
 
 issue #404 계열 PR은 사용자 노출 문자열에서 legacy `Keep` 브랜드가 다시 보이지 않는지 자동 계약과 실제 화면 evidence를 함께 남긴다. 리소스 key 이름(`keep_*`)은 내부 legacy identifier로 남을 수 있지만, 화면에 보이는 copy는 StopIt/스탑잇 기준으로 통일한다.
 
+### Locale string quality / high-traffic Home status copy
+
+Issue: #729. `docs/LOCALE_STRING_QUALITY.md`는 shipped locale의 브랜드 표기, 한국어 오타, Home high-traffic 상태 설명 fallback guard의 source of truth다. Home 상태 copy는 권한/잠금 신뢰와 연결되므로 `home_status_*_description`을 non-default locale에서 default English 그대로 두지 않는다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_locale_string_quality_contract -v
+python3 -m unittest scripts.tests.test_locale_string_parity scripts.tests.test_user_facing_brand_strings scripts.tests.test_korean_brand_copy_contract -v
+./gradlew -q help --task :app:assembleProdDebug
+```
+
+검증 범위:
+- `home_status_no_selected_apps_description`, `home_status_first_lock_ready_description`, `home_status_ready_description`, `home_status_keep_active_description`가 shipped `values-*`에서 default English 복사본으로 남지 않는다.
+- `values-ko/strings.xml`에는 확인된 오타 `함꼐`, `잠궈줘요`가 재유입되지 않는다.
+- 한국어 사용자 노출 브랜드는 `스탑잇`, 영문/비한국어 제품명은 `StopIt`을 기본으로 한다.
+- 정책 민감 copy의 의미(최소 1개 앱 선택, 첫 실제 차단 확인, 지금 차단/앱 변경/타이머, 보호 활성 상태)는 번역 후에도 보존한다.
+
 자동 baseline:
 
 ```bash
