@@ -109,6 +109,15 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("목표 이름 원문/app package/app label 금지", analytics)
         self.assertIn("locale-independent preset key", analytics)
         self.assertIn("직접 입력한 경우는 `custom`", analytics)
+        self.assertIn("목표 잠금 코드 계약", analytics)
+        self.assertIn("app/src/main/java/com/uiery/keep/domain/goallock/GoalLockPolicy.kt", analytics)
+        self.assertIn("GoalLockCreationViewModel.kt", analytics)
+        self.assertIn("GoalLockDetailViewModel.kt", analytics)
+        self.assertIn("GoalLockAnalytics.kt", analytics)
+        self.assertIn("KeepAccessibilityService", analytics)
+        self.assertIn("repo-internal `develop` 상태", analytics)
+        self.assertNotIn("목표 잠금 구현 후보", analytics)
+        self.assertNotIn("GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)", analytics)
 
     def test_high_traffic_docs_link_to_goal_lock_source_of_truth(self):
         documents = [
@@ -140,6 +149,10 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("목표 잠금 조회성", ga4_runbook)
         self.assertIn("goal lock check", ga4_runbook)
         self.assertIn("목표 이름 원문/app package/app label", ga4_runbook)
+        self.assertIn("creation ViewModel/analytics 계약이 `develop`에 반영됨", ga4_runbook)
+        self.assertIn("detail duration·schedule·lock-mode update runtime call이 `develop`에 반영됨", ga4_runbook)
+        self.assertNotIn("#417 code-lane 생성 ViewModel/analytics 계약 추가", ga4_runbook)
+        self.assertNotIn("`goal_lock_created` 코드 계약 추가, detail 종료 path", ga4_runbook)
 
     def test_qa_checklist_defines_goal_lock_runtime_evidence(self):
         qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
