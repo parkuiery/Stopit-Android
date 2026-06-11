@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -159,8 +161,28 @@ internal fun GoalLockDetailContent(
             return@Column
         }
 
+        val summaryText = stringResource(
+            id = R.string.goal_lock_detail_summary,
+            goalLockModeDetailLabel(lockMode = state.goalLock.lockMode),
+            state.selectedAppCount,
+        )
+        val statusText = stringResource(
+            id = when {
+                state.isCompleted -> R.string.goal_lock_detail_status_completed
+                state.isEnded -> R.string.goal_lock_detail_status_ended
+                else -> R.string.goal_lock_detail_status_active
+            },
+        )
+        val detailAccessibilityDescription = buildGoalLockDetailAccessibilityDescription(
+            goalName = state.goalName,
+            summaryText = summaryText,
+            statusText = statusText,
+        )
+
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = detailAccessibilityDescription },
             colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
         ) {
             Column(
@@ -174,22 +196,12 @@ internal fun GoalLockDetailContent(
                     fontSize = 20.sp,
                 )
                 Text(
-                    text = stringResource(
-                        id = R.string.goal_lock_detail_summary,
-                        goalLockModeDetailLabel(lockMode = state.goalLock.lockMode),
-                        state.selectedAppCount,
-                    ),
+                    text = summaryText,
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = stringResource(
-                        id = when {
-                            state.isCompleted -> R.string.goal_lock_detail_status_completed
-                            state.isEnded -> R.string.goal_lock_detail_status_ended
-                            else -> R.string.goal_lock_detail_status_active
-                        },
-                    ),
+                    text = statusText,
                     color = KeepTheme.colors.surfaceVariant,
                     fontSize = 13.sp,
                 )
@@ -406,6 +418,18 @@ private fun weekdayEveningGoalLockMode(): GoalLockMode.Scheduled = GoalLockMode.
     startTime = LocalTime.of(19, 0),
     endTime = LocalTime.of(23, 0),
 )
+
+fun buildGoalLockDetailAccessibilityDescription(
+    goalName: String,
+    summaryText: String,
+    statusText: String,
+): String = listOf(
+    goalName.trim(),
+    summaryText.trim(),
+    statusText.trim(),
+)
+    .filter { it.isNotBlank() }
+    .joinToString(", ")
 
 @Composable
 private fun goalLockModeDetailLabel(lockMode: GoalLockMode?): String = when (lockMode) {
