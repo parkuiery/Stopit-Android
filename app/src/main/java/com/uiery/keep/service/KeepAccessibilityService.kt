@@ -19,7 +19,7 @@ import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
-import com.uiery.keep.feature.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toDayOfWeekList

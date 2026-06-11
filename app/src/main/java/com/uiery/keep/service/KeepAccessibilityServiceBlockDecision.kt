@@ -4,8 +4,8 @@ import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockPolicy
-import com.uiery.keep.feature.parentmode.ParentModePolicy
-import com.uiery.keep.feature.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeRuntimePolicy
+import com.uiery.keep.domain.parentmode.ParentModeSession
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.RoutineRuntimePolicy
 import com.uiery.keep.util.isRoutineActiveNow
@@ -91,7 +91,7 @@ internal fun resolveForegroundBlockRequest(
     val isShouldGoalLockBlock = blockingGoalLock != null
     val nowMillis = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     val isShouldParentModeBlock = parentModeSession?.let { session ->
-        ParentModePolicy.shouldBlockPackage(
+        ParentModeRuntimePolicy.shouldBlockPackage(
             session = session,
             packageName = packageName,
             nowMillis = nowMillis,

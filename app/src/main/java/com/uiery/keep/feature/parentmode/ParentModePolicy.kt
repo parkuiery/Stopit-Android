@@ -4,22 +4,9 @@ import com.uiery.keep.analytics.AnalyticsParentModeAllowedAppCountBucket
 import com.uiery.keep.analytics.AnalyticsParentModeDurationBucket
 import com.uiery.keep.analytics.AnalyticsParentModeExtensionMinutesBucket
 import com.uiery.keep.analytics.AnalyticsParentModePinResult
-
-internal data class ParentModeSession(
-    val startedAtMillis: Long,
-    val expiresAtMillis: Long,
-    val durationMinutes: Int,
-    val allowedApps: Set<String>,
-    val state: ParentModeSessionState,
-)
-
-internal enum class ParentModeSessionState {
-    Setup,
-    Active,
-    Expired,
-    UnlockedByPin,
-    Cancelled,
-}
+import com.uiery.keep.domain.parentmode.ParentModeRuntimePolicy
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 
 internal enum class ParentModePinState {
     NotConfigured,
@@ -121,27 +108,17 @@ internal object ParentModePolicy {
     fun resolveState(
         session: ParentModeSession,
         nowMillis: Long,
-    ): ParentModeSessionState = when (session.state) {
-        ParentModeSessionState.Active -> if (nowMillis >= session.expiresAtMillis) {
-            ParentModeSessionState.Expired
-        } else {
-            ParentModeSessionState.Active
-        }
-        else -> session.state
-    }
+    ): ParentModeSessionState = ParentModeRuntimePolicy.resolveState(session, nowMillis)
 
     fun shouldBlockPackage(
         session: ParentModeSession,
         packageName: String,
         nowMillis: Long,
-    ): Boolean = when (resolveState(session, nowMillis)) {
-        ParentModeSessionState.Active -> packageName !in session.allowedApps
-        ParentModeSessionState.Expired -> true
-        ParentModeSessionState.Setup,
-        ParentModeSessionState.UnlockedByPin,
-        ParentModeSessionState.Cancelled,
-        -> false
-    }
+    ): Boolean = ParentModeRuntimePolicy.shouldBlockPackage(
+        session = session,
+        packageName = packageName,
+        nowMillis = nowMillis,
+    )
 
     fun requestParentAction(
         session: ParentModeSession,
