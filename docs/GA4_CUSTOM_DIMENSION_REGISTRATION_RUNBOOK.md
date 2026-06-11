@@ -337,7 +337,7 @@ GA4 Admin 증적 후보:
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 등록 시점 |
 | --- | --- | --- | --- |
 | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 미확인 | 앱 선택량 분포를 정량 비교할 때 |
-| `scheduled_duration_minutes` | `lock_scheduled` | 미확인 | 타이머/루틴 시간 길이 분석이 필요할 때 |
+| `scheduled_duration_minutes` | `lock_scheduled` | 미확인 | 타이머/루틴 시간 길이 분석이 필요할 때. 홈 countdown은 선택한 `day/hour/minute` duration 자체, timer는 예약 deadline까지 남은 시간이다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `duration_minutes` | `emergency_unlock_completed` | 미확인 | 긴급해제 사용 길이 분포를 볼 때 |
 | `remaining_unlocks` | `emergency_unlock_completed` | 미확인 | 잔여 긴급해제 수 패턴을 볼 때 |
 | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 미확인 | first value latency를 분석할 때 |

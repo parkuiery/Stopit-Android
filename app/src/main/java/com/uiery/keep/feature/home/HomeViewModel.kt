@@ -515,6 +515,9 @@ class HomeViewModel
                     }
                     return@intent
                 }
+                if (state.manualLockMode == ManualLockMode.COUNTDOWN && state.countdownDurationIsZero()) {
+                    return@intent
+                }
                 val sessionStartTime = System.currentTimeMillis()
                 val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
@@ -526,11 +529,14 @@ class HomeViewModel
                 blockingStateStore.saveLockTime(encodedDeadline)
                 blockingStateStore.saveStartTime(sessionStartTime)
                 reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline) }
-                val lockedDuration =
+                val lockedDurationMinutes = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
+                    state.countdownDurationMinutes()
+                } else {
                     Duration
                         .between(java.time.Instant.now(), targetLockInstant)
                         .toMillis()
-                        .coerceAtLeast(0L)
+                        .coerceAtLeast(0L) / 60_000L
+                }
                 if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
                     if (!firstLockScheduledMessage.isNullOrBlank()) {
                         postSideEffect(HomeSideEffect.ShowSnackBar(firstLockScheduledMessage))
@@ -550,7 +556,7 @@ class HomeViewModel
                     } else {
                         AnalyticsScheduleType.TIMER
                     },
-                    scheduledDurationMinutes = lockedDuration / 60_000L,
+                    scheduledDurationMinutes = lockedDurationMinutes,
                 )
                 analytics.trackLockSessionStart(
                     source = AnalyticsSource.HOME_TIMER,
@@ -632,7 +638,7 @@ data class HomeUiState(
     val searchContent: String = "",
     val isSelectAll: Boolean = true,
     val blockTime: LocalTime = timeNow,
-    val countdownTime: LocalTime = timeNow,
+    val countdownTime: LocalTime = LocalTime(0, 0),
     val timerTime: LocalTime = timeNow,
     val manualLockMode: ManualLockMode = ManualLockMode.COUNTDOWN,
     val countdownDays: Int = 0,
@@ -642,7 +648,13 @@ data class HomeUiState(
     val routineCount: Int = 0,
     val pendingManualLockRouteDeadline: String? = null,
     val goalLockCard: HomeGoalLockCardState? = null,
-)
+) {
+    fun countdownDurationIsZero(): Boolean =
+        countdownDurationMinutes() == 0L
+
+    fun countdownDurationMinutes(): Long =
+        countdownDays * 24L * 60L + countdownTime.hour * 60L + countdownTime.minute
+}
 
 private data class HomeGoalLockCardCandidate(
     val goalLock: GoalLock,

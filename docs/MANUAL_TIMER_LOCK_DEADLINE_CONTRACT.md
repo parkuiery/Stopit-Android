@@ -9,6 +9,8 @@
 - 기존 설치에 남아 있을 수 있는 timezone-less `LocalDateTime` 문자열(`2026-06-02T19:00:00`)은 현재 device timezone 기준으로 fallback 해석한다.
 - Splash, Menu, AccessibilityService 차단 판단, Lock 화면 route는 모두 `ManualLockTimePolicy`를 통해 같은 기준으로 해석한다.
 - Home timer 예약 후 bottom sheet hide / navigation 사이에 시간이 지나거나 화면 state가 바뀌어도 Lock 화면 route는 `lockTime()`이 `LOCK_TIME`에 저장한 동일 encoded deadline을 재사용한다. `moveToLock()`에서 target을 다시 계산해 다른 만료 시각을 만들면 안 된다.
+- Home countdown mode의 초기 상태는 **0일 0시간 0분 countdown**이다. 이 상태는 아직 사용자가 duration을 선택하지 않은 상태이므로 `lockTime()`은 `LOCK_TIME` / `START_TIME` 저장과 `lock_scheduled` 계측을 하지 않는다. 차단 앱이 선택되어 있어도 0 duration countdown은 schedulable lock이 아니다.
+- Countdown 예약의 `scheduled_duration_minutes`는 선택한 day/hour/minute duration 자체를 기록한다. Timer 예약은 특정 deadline까지 남은 시간을 기록하므로, countdown과 timer analytics duration 의미를 섞어 해석하지 않는다.
 
 ## 자동 회귀 증적
 
@@ -26,6 +28,8 @@ cd <repo-root>
 - legacy `LocalDateTime` deadline은 기존 저장값 호환을 위해 현재 timezone 기준으로 fallback 된다.
 - AccessibilityService의 foreground 차단 판단은 신규 `Instant` deadline에서도 `TIMED_LOCK` source를 유지한다.
 - 홈 타이머 예약은 `LOCK_TIME`에 active deadline을 저장한다.
+- 0일 0시간 0분 countdown은 `HomeViewModelActivationAnalyticsTest.lockTimeIgnoresZeroDurationCountdownWithoutPersistingOrTrackingSchedule` 기준으로 저장/계측하지 않는다.
+- 선택된 countdown duration은 `HomeViewModelActivationAnalyticsTest.lockTimeUsesSelectedCountdownDurationForScheduleAnalyticsAndDeadline` 기준으로 `day/hour/minute` 합산 분 단위로 `lock_scheduled.scheduled_duration_minutes`에 기록한다.
 - 홈 타이머 예약 뒤 navigation 전 timer state가 바뀌어도 Lock route deadline은 저장된 `LOCK_TIME`과 같은 문자열을 사용한다.
 
 ## 수동 QA 시나리오

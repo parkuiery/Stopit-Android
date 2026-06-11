@@ -129,6 +129,46 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun countdownManualLockDefaultsToZeroDurationUntilUserChoosesDuration() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(ManualLockMode.COUNTDOWN, state.manualLockMode)
+        assertEquals(0, state.countdownDays)
+        assertEquals(LocalTime(0, 0), state.countdownTime)
+    }
+
+    @Test
+    fun lockTimeIgnoresZeroDurationCountdownWithoutPersistingOrTrackingSchedule() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.lockTime()
+        delay(50)
+
+        val snapshot = dataStore.snapshot()
+        assertEquals(null, snapshot[PreferencesKey.LOCK_TIME])
+        assertEquals(null, snapshot[PreferencesKey.START_TIME])
+        assertEquals(null, snapshot[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, viewModel.container.stateFlow.value.pendingManualLockRouteDeadline)
+    }
+
+    @Test
     fun lockTimeTracksFirstLockConfiguredFromHomeTimerOnce() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
@@ -160,6 +200,33 @@ class HomeViewModelActivationAnalyticsTest {
             analytics.calls[2],
         )
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun lockTimeUsesSelectedCountdownDurationForScheduleAnalyticsAndDeadline() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 2, minute = 30))
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals(HomeAnalyticsCall.LockScheduled(AnalyticsScheduleType.COUNTDOWN), analytics.calls[0])
+        assertEquals(
+            HomeScheduledLockCall(
+                scheduleType = AnalyticsScheduleType.COUNTDOWN,
+                scheduledDurationMinutes = 1_590L,
+            ),
+            analytics.scheduledLockCalls.single(),
+        )
+        assertEquals(true, ManualLockTimePolicy.isActiveAt(dataStore.snapshot()[PreferencesKey.LOCK_TIME]))
     }
 
     @Test
@@ -876,9 +943,15 @@ private sealed interface HomeAnalyticsCall {
     data object RoutineCreationCtaClicked : HomeAnalyticsCall
 }
 
+private data class HomeScheduledLockCall(
+    val scheduleType: String,
+    val scheduledDurationMinutes: Long,
+)
+
 private class HomeRecordingKeepAnalytics : KeepAnalytics {
     val calls = mutableListOf<HomeAnalyticsCall>()
     val userProperties = mutableListOf<Pair<String, String>>()
+    val scheduledLockCalls = mutableListOf<HomeScheduledLockCall>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
@@ -920,6 +993,10 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         calls += HomeAnalyticsCall.LockScheduled(scheduleType = scheduleType)
+        scheduledLockCalls += HomeScheduledLockCall(
+            scheduleType = scheduleType,
+            scheduledDurationMinutes = scheduledDurationMinutes,
+        )
     }
 
     override fun trackGoalLockCompleted(lockMode: String, durationDaysBucket: String) {
