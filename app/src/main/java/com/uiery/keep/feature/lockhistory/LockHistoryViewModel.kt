@@ -9,7 +9,7 @@ import com.uiery.keep.feature.routine.RepeatBlockHistorySample
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicy
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.service.summarizeLockHistoryLedger
 import dagger.hilt.android.lifecycle.HiltViewModel

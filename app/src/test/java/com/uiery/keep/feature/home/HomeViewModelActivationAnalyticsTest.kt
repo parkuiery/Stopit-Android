@@ -12,6 +12,7 @@ import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
@@ -28,7 +29,7 @@ import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -133,6 +134,46 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun countdownManualLockDefaultsToZeroDurationUntilUserChoosesDuration() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+
+        val state = viewModel.container.stateFlow.value
+        assertEquals(ManualLockMode.COUNTDOWN, state.manualLockMode)
+        assertEquals(0, state.countdownDays)
+        assertEquals(LocalTime(0, 0), state.countdownTime)
+    }
+
+    @Test
+    fun lockTimeIgnoresZeroDurationCountdownWithoutPersistingOrTrackingSchedule() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.lockTime()
+        delay(50)
+
+        val snapshot = dataStore.snapshot()
+        assertEquals(null, snapshot[PreferencesKey.LOCK_TIME])
+        assertEquals(null, snapshot[PreferencesKey.START_TIME])
+        assertEquals(null, snapshot[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+        assertEquals(null, viewModel.container.stateFlow.value.pendingManualLockRouteDeadline)
+    }
+
+    @Test
     fun lockTimeTracksFirstLockConfiguredFromHomeTimerOnce() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
@@ -164,6 +205,33 @@ class HomeViewModelActivationAnalyticsTest {
             analytics.calls[2],
         )
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun lockTimeUsesSelectedCountdownDurationForScheduleAnalyticsAndDeadline() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        delay(50)
+        viewModel.updateCountdownDuration(CountdownDuration(day = 1, hour = 2, minute = 30))
+        viewModel.lockTime()
+        delay(50)
+
+        assertEquals(HomeAnalyticsCall.LockScheduled(AnalyticsScheduleType.COUNTDOWN), analytics.calls[0])
+        assertEquals(
+            HomeScheduledLockCall(
+                scheduleType = AnalyticsScheduleType.COUNTDOWN,
+                scheduledDurationMinutes = 1_590L,
+            ),
+            analytics.scheduledLockCalls.single(),
+        )
+        assertEquals(true, ManualLockTimePolicy.isActiveAt(dataStore.snapshot()[PreferencesKey.LOCK_TIME]))
     }
 
     @Test
@@ -368,6 +436,92 @@ class HomeViewModelActivationAnalyticsTest {
         delay(50)
 
         assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun routineCreationCtaAppearsAfterFirstCoreActionWhenNoRoutineExistsAndTracksShownOnce() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            routineDao = FakeHomeRoutineDao(emptyList()),
+        )
+
+        delay(50)
+        viewModel.selectCategoryComplete(setOf("com.example.one", "com.example.two"))
+        delay(50)
+
+        assertEquals(true, viewModel.container.stateFlow.value.showRoutineCreationCta)
+        assertEquals(
+            listOf(HomeAnalyticsCall.RoutineCreationCtaShown),
+            analytics.calls,
+        )
+    }
+
+    @Test
+    fun routineCreationCtaStaysHiddenBeforeFirstCoreActionOrWhenRoutineExists() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val preCoreActionViewModel = createViewModel(
+            dataStore = FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                    PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                ),
+            ),
+            analytics = analytics,
+            routineDao = FakeHomeRoutineDao(emptyList()),
+        )
+        val hasRoutineViewModel = createViewModel(
+            dataStore = FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                    PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                    PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+                ),
+            ),
+            analytics = analytics,
+            routineDao = FakeHomeRoutineDao(listOf(routineEntity())),
+        )
+
+        delay(50)
+
+        assertEquals(false, preCoreActionViewModel.container.stateFlow.value.showRoutineCreationCta)
+        assertEquals(false, hasRoutineViewModel.container.stateFlow.value.showRoutineCreationCta)
+    }
+
+    @Test
+    fun routineCreationCtaClickTracksClickedEventOnlyWhenVisible() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                    PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                    PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+                ),
+            ),
+            analytics = analytics,
+            routineDao = FakeHomeRoutineDao(emptyList()),
+        )
+
+        delay(50)
+        viewModel.onRoutineCreationCtaClick()
+        delay(50)
+
+        assertEquals(
+            listOf(
+                HomeAnalyticsCall.RoutineCreationCtaShown,
+                HomeAnalyticsCall.RoutineCreationCtaClicked,
+            ),
+            analytics.calls,
+        )
     }
 
     @Test
@@ -747,6 +901,7 @@ class HomeViewModelActivationAnalyticsTest {
         goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
         routineRepository: RoutineRepository = FakeHomeRoutineRepository(emptyList()),
         routines: List<RoutineEntity> = emptyList(),
+        routineDao: RoutineDao = FakeHomeRoutineDao(routines),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         return HomeViewModel(
@@ -755,7 +910,8 @@ class HomeViewModelActivationAnalyticsTest {
             reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(routines), analytics),
+            routineDao = routineDao,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(goalLockDao),
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
@@ -779,6 +935,16 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 }
+
+private fun routineEntity() = RoutineEntity(
+    id = 42L,
+    name = "평일 공부",
+    startTime = LocalTime(hour = 9, minute = 0),
+    endTime = LocalTime(hour = 11, minute = 0),
+    repeatDays = emptyList(),
+    lockApplications = listOf("com.example.one"),
+    isEnabled = true,
+)
 
 private class FakeHomeGoalLockDao(
     private val goalLocks: List<GoalLockEntity> = emptyList(),
@@ -904,11 +1070,21 @@ private sealed interface HomeAnalyticsCall {
     data class RepeatBlockSuggestionClicked(
         val surface: String,
     ) : HomeAnalyticsCall
+
+    data object RoutineCreationCtaShown : HomeAnalyticsCall
+
+    data object RoutineCreationCtaClicked : HomeAnalyticsCall
 }
+
+private data class HomeScheduledLockCall(
+    val scheduleType: String,
+    val scheduledDurationMinutes: Long,
+)
 
 private class HomeRecordingKeepAnalytics : KeepAnalytics {
     val calls = mutableListOf<HomeAnalyticsCall>()
     val userProperties = mutableListOf<Pair<String, String>>()
+    val scheduledLockCalls = mutableListOf<HomeScheduledLockCall>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
@@ -950,6 +1126,10 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         calls += HomeAnalyticsCall.LockScheduled(scheduleType = scheduleType)
+        scheduledLockCalls += HomeScheduledLockCall(
+            scheduleType = scheduleType,
+            scheduledDurationMinutes = scheduledDurationMinutes,
+        )
     }
 
     override fun trackGoalLockCompleted(lockMode: String, durationDaysBucket: String) {
@@ -978,5 +1158,23 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         calls += HomeAnalyticsCall.RepeatBlockSuggestionDismissed(surface = surface)
+    }
+
+    override fun trackRoutineCreationCtaShown(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String?,
+    ) {
+        calls += HomeAnalyticsCall.RoutineCreationCtaShown
+    }
+
+    override fun trackRoutineCreationCtaClicked(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String?,
+    ) {
+        calls += HomeAnalyticsCall.RoutineCreationCtaClicked
     }
 }

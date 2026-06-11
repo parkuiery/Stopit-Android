@@ -7,7 +7,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

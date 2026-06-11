@@ -324,6 +324,7 @@
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
+    <string name="home_secondary_create_routine">Create routine</string>
     <string name="first_lock_activation_cta_title">要试试第一次锁定吗？</string>
     <string name="first_lock_activation_cta_description">你已经选择了应用。现在开启 StopIt，体验真正的拦截。</string>
     <string name="first_lock_activation_cta_action">开始</string>

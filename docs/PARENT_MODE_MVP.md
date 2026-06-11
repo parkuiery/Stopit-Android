@@ -224,6 +224,15 @@ cd <repo-root>
 - `KeepAccessibilityServiceIntegrationTest.activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`: manual Keep 없이 active Parent Mode DataStore session만으로 비허용 앱 차단 요청이 발생하고, `observedParentModeState=active`, `observedParentModeAllowedAppCount=1`, `lastLaunchedBlockSource=parent_mode`가 기록되는지 검증한다.
 - `docs/QA_RUNTIME_CHECKLIST.md`: Parent Mode runtime baseline command와 evidence 템플릿을 실제 service integration test로 동기화한다.
 
+### 8차 QA-lane expiry runtime foothold
+
+2026-06-09 QA-lane PR에서 Parent Mode active session이 foreground 앱을 허용한 채 만료되는 순간에도 AccessibilityService가 time-based 재평가를 예약하도록 보강했다. 이전 foothold는 새 window event가 들어오면 expired policy로 차단할 수 있었지만, 같은 앱이 계속 foreground에 머무르는 동안 만료 시각을 지나는 케이스는 서비스가 다시 판단해야 하는 runtime 경계가 남아 있었다.
+
+- `nextParentModeExpirationReevaluationDelayMillis(...)`: active Parent Mode session의 `expiresAtMillis`까지 남은 시간을 계산하고, 이미 만료됐거나 active가 아닌 session은 timer를 만들지 않는다.
+- `nextTimeBasedBlockingStartReevaluationDelayMillis(...)`: Routine/Goal Lock 시작 시각뿐 아니라 Parent Mode 만료 시각도 다음 foreground 재평가 후보에 포함한다.
+- `KeepAccessibilityService`: Parent Mode session 관찰 후 time-based 재평가 timer를 다시 예약하고, debug state는 persisted `active` 값만 쓰지 않고 현재 시각 기준 resolved `expired` state를 evidence로 남긴다.
+- `KeepAccessibilityServiceIntegrationTest.expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`: 저장된 active session의 만료 시각이 지난 경우, 원래 허용 앱도 `block_source=parent_mode`로 차단되고 `observedParentModeState=expired`가 기록되는 device/emulator baseline을 추가한다.
+
 ### 다음 code-lane 후보
 
 - Parent mode active/expired screen

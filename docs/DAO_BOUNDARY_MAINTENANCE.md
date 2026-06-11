@@ -59,7 +59,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 #### 허용 경계
 
-- `RoutineRepository`가 routine feature의 Room `RoutineDao` read 접근 허용 경계다.
+- `RoutineRepository`가 routine data boundary의 Room `RoutineDao` read 접근 허용 경계다.
 - `MenuViewModel`은 수동 잠금/Keep 상태와 repository가 제공하는 routine domain model list만 조합해 `isBlocking`을 계산한다.
 - `RoomRoutineRepository`는 Room entity → `RoutineModel` mapping을 소유하므로 메뉴 테스트 fixture는 DAO fake 대신 repository fake에 결합한다.
 

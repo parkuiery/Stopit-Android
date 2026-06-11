@@ -35,7 +35,7 @@
 - 잠금 기록 성과 리포트 구현: `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryScreen.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryPerformanceReportReadModel.kt`, `app/src/main/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModel.kt` (PR #485로 UI/read model develop 반영; 2026-06-05 code-lane instrumentation으로 `lock_history_*` event 코드 계약 추가)
 - 루틴 count user property: `app/src/main/java/com/uiery/keep/analytics/RoutineCountAnalyticsSync.kt` (`KeepAnalyticsUserProperty.ROUTINES_COUNT`, `KeepAnalytics.setRoutinesCount(...)`)
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
-- 루틴 생성 CTA 구현 후보: `HomeViewModel` / `LockHistoryViewModel` / `RoutineViewModel` navigation contract(구현 시 추가)
+- 루틴 생성 CTA 구현: `HomeViewModel` / `HomeStatusCtaReadModel` / `HomeScreen` / `FirebaseKeepAnalytics` (`home_secondary` soft CTA → Routine route)
 - 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; 2026-06-08 #651 code-lane에서 analytics boundary는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO로 분리해 feature-local suggestion object를 analytics API/Firebase adapter가 직접 import하지 않는다. Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
 - 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
 - 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSessionStore.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` (PR #519로 순수 정책 + `parent_mode_*` analytics API, PR #584로 session persistence + `block_source=parent_mode` Accessibility decision foothold 추가)
@@ -130,7 +130,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | --- | --- | --- |
 | `lock_session_start` | `source`, `is_routine?` | 잠금 세션 시작 |
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
-| `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약 |
+| `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약. 홈 countdown은 선택한 `day/hour/minute` duration 자체를 분 단위로 기록하고, timer는 예약 deadline까지 남은 시간을 기록한다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
 | `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
@@ -259,10 +259,10 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 현재 enum 계약:
 
-- `surface`: `home`, `lock_history`, `post_block_success`
+- `surface`: `home_secondary`(현재 Home 보조 CTA 구현값), `lock_history`, `post_block_success`
 - `activation_stage`: `post_first_core_action`, `returning_blocked_user`
 - `has_routine`: MVP에서는 `false`만 허용한다. 루틴 보유자에게 보이면 QA 실패다.
-- `cta_variant`: `default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
+- `cta_variant`: `soft_default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
 
 ### 반복 차단 기반 자동 루틴 제안
@@ -646,7 +646,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐고, PR #358 merge commit `6ceaecc4`가 release-boundary 해석을 문서화했으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 `PR #296/#318/#358` 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. #13 closure는 release/tag/Play deploy 후 **D+14 screen quality 재측정**으로 판단한다.
-- 2026-06-08T23:09:54Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `27,369 / 44,376 = 61.7%`였고 최신 관측 production version `1.7.7` active share도 `232 / 806 = 28.8%`(`주의`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-09T15:25:30Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `27,468 / 44,814 = 61.3%`였고 최신 관측 production version `1.7.7` active share도 `246 / 805 = 30.6%`(`충분`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

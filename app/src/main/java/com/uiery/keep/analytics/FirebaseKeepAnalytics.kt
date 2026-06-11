@@ -605,6 +605,57 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackRoutineCreationCtaShown(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_SHOWN,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
+        override fun trackRoutineCreationCtaClicked(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_CLICKED,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
+        override fun trackRoutineCreationCtaDismissed(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_DISMISSED,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
         override fun trackRepeatBlockRoutineSuggestionShown(
             surface: String,
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
@@ -662,6 +713,17 @@ class FirebaseKeepAnalytics
             purchaseAvailable?.let { put(KeepAnalyticsParam.PURCHASE_AVAILABLE, it) }
         }
 
+        private fun routineCreationCtaParams(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ): Map<String, Any?> = buildMap {
+            put(KeepAnalyticsParam.SURFACE, surface)
+            put(KeepAnalyticsParam.ACTIVATION_STAGE, activationStage)
+            put(KeepAnalyticsParam.HAS_ROUTINE, hasRoutine)
+            ctaVariant?.let { put(KeepAnalyticsParam.CTA_VARIANT, it) }
+        }
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,

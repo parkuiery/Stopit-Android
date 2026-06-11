@@ -19,7 +19,7 @@ import com.uiery.keep.feature.review.FakeReviewRemoteConfig
 import com.uiery.keep.feature.review.ReviewBuildConfig
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator

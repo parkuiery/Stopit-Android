@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.splash
 
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
@@ -8,7 +9,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
-import com.uiery.keep.feature.routine.RoomRoutineRepository
+import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.Flow

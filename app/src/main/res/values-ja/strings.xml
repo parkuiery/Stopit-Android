@@ -324,6 +324,7 @@
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
+    <string name="home_secondary_create_routine">Create routine</string>
     <string name="first_lock_activation_cta_title">最初のロックを試してみますか？</string>
     <string name="first_lock_activation_cta_description">アプリの選択は完了しました。StopItをオンにしてブロックを体験しましょう。</string>
     <string name="first_lock_activation_cta_action">開始</string>

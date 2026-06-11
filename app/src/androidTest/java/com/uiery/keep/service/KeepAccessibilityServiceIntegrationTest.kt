@@ -187,6 +187,27 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence() = runBlocking {
+        val allowedPackage = resolveLaunchablePackages().first()
+        configureExpiredActiveParentMode(allowedPackage)
+        waitForServiceStatePropagation()
+
+        launchPackage(allowedPackage)
+        waitForWindowEvent(allowedPackage)
+
+        waitUntil(
+            message = "Expected expired Parent Mode to block previously allowed app with expired state evidence for $allowedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.observedParentModeState == "expired" &&
+                snapshot.observedParentModeAllowedAppCount == 1 &&
+                snapshot.lastLaunchedBlockPackage == allowedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.PARENT_MODE
+        }
+    }
+
+    @Test
     fun expiredGoalLockWithoutManualKeep_keepsTargetForegroundWithoutGoalLockAttribution() = runBlocking {
         val blockedPackage = resolveLaunchablePackages().first()
         configureExpiredGoalLockBlock(blockedPackage)
@@ -443,6 +464,23 @@ class KeepAccessibilityServiceIntegrationTest {
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
     }
 
+    private suspend fun configureExpiredActiveParentMode(allowedPackage: String) {
+        val nowMillis = System.currentTimeMillis()
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+            preferences[PreferencesKey.PARENT_MODE_STARTED_AT] = nowMillis - PARENT_MODE_RUNTIME_WINDOW_MS
+            preferences[PreferencesKey.PARENT_MODE_EXPIRES_AT] = nowMillis - 1_000L
+            preferences[PreferencesKey.PARENT_MODE_DURATION_MINUTES] = 10
+            preferences[PreferencesKey.PARENT_MODE_ALLOWED_APPS] = setOf(allowedPackage)
+            preferences[PreferencesKey.PARENT_MODE_STATE] = "active"
+        }
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+    }
+
     private fun goalLockRepository(): GoalLockRepository = EntryPointAccessors.fromApplication(
         context.applicationContext,
         KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
@@ -546,10 +584,47 @@ class KeepAccessibilityServiceIntegrationTest {
     private fun launchPackage(packageName: String) {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         assertNotNull("Expected a launch intent for $packageName", launchIntent)
-        device.pressHome()
-        context.startActivity(
-            launchIntent!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
-        )
+        val launchComponent = launchIntent!!.component?.flattenToShortString()
+        repeat(LAUNCH_ATTEMPTS) { attempt ->
+            if (packageName != appPackage) {
+                shell("am force-stop $packageName")
+            }
+            device.pressHome()
+            val launchResult = if (launchComponent != null) {
+                shell("am start -W -n $launchComponent")
+            } else {
+                context.startActivity(
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+                )
+                "started via context.startActivity"
+            }
+            if (waitForLaunchSignal(packageName, LAUNCH_SETTLE_TIMEOUT_MS)) {
+                return
+            }
+            if (attempt == LAUNCH_ATTEMPTS - 1) {
+                fail(
+                    "Expected launch signal for $packageName after ${attempt + 1} attempts. " +
+                        "lastLaunchResult=$launchResult; snapshot=${KeepAccessibilityServiceDebugState.read(context)}; " +
+                        "activity=${shell("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'").trim()}; " +
+                        "window=${shell("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'").trim()}",
+                )
+            }
+        }
+    }
+
+    private fun waitForLaunchSignal(packageName: String, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            if (snapshot.lastWindowStateChangedPackage == packageName ||
+                snapshot.lastLaunchedBlockPackage == packageName ||
+                isPackageForeground(packageName)
+            ) {
+                return true
+            }
+            Thread.sleep(250)
+        }
+        return false
     }
 
     private fun launchSelfUninstallFlow() {
@@ -831,6 +906,8 @@ class KeepAccessibilityServiceIntegrationTest {
         const val GOAL_LOCK_RUNTIME_TEST_ID = 417_001L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
+        const val LAUNCH_ATTEMPTS = 3
+        const val LAUNCH_SETTLE_TIMEOUT_MS = 2_000L
         const val SETTINGS_PACKAGE = "com.android.settings"
         val UNINSTALL_ACTION_PATTERN: Pattern = Pattern.compile("(?i)(uninstall|delete|remove)(\\s+app)?")
         val KNOWN_UNINSTALL_PACKAGES = setOf(

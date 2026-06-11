@@ -14,6 +14,7 @@ data class HomeStatusCtaModel(
     val timerEnabled: Boolean,
     val showChangeAppsSecondary: Boolean,
     val showLockHistorySecondary: Boolean,
+    val showRoutineCreationSecondary: Boolean,
     val showGoalLockStatus: Boolean,
 )
 
@@ -28,6 +29,7 @@ fun buildHomeStatusCtaModel(
     isKeep: Boolean,
     selectedAppCount: Int,
     showFirstLockActivationCta: Boolean,
+    showRoutineCreationCta: Boolean,
     hasGoalLockCard: Boolean,
 ): HomeStatusCtaModel {
     val hasSelectedApps = selectedAppCount > 0
@@ -50,6 +52,7 @@ fun buildHomeStatusCtaModel(
             timerEnabled = false,
             showChangeAppsSecondary = false,
             showLockHistorySecondary = false,
+            showRoutineCreationSecondary = false,
             showGoalLockStatus = hasGoalLockCard,
         )
         HomeStatusKind.FIRST_LOCK_READY -> HomeStatusCtaModel(
@@ -63,6 +66,7 @@ fun buildHomeStatusCtaModel(
             timerEnabled = true,
             showChangeAppsSecondary = true,
             showLockHistorySecondary = false,
+            showRoutineCreationSecondary = false,
             showGoalLockStatus = hasGoalLockCard,
         )
         HomeStatusKind.READY -> HomeStatusCtaModel(
@@ -76,6 +80,7 @@ fun buildHomeStatusCtaModel(
             timerEnabled = true,
             showChangeAppsSecondary = true,
             showLockHistorySecondary = true,
+            showRoutineCreationSecondary = showRoutineCreationCta,
             showGoalLockStatus = hasGoalLockCard,
         )
         HomeStatusKind.KEEP_ACTIVE -> HomeStatusCtaModel(
@@ -89,6 +94,7 @@ fun buildHomeStatusCtaModel(
             timerEnabled = false,
             showChangeAppsSecondary = true,
             showLockHistorySecondary = true,
+            showRoutineCreationSecondary = false,
             showGoalLockStatus = hasGoalLockCard,
         )
     }

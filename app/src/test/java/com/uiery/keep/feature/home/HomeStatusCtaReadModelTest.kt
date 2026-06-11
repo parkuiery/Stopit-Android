@@ -13,6 +13,7 @@ class HomeStatusCtaReadModelTest {
             isKeep = false,
             selectedAppCount = 0,
             showFirstLockActivationCta = false,
+            showRoutineCreationCta = false,
             hasGoalLockCard = false,
         )
 
@@ -31,6 +32,7 @@ class HomeStatusCtaReadModelTest {
             isKeep = false,
             selectedAppCount = 3,
             showFirstLockActivationCta = true,
+            showRoutineCreationCta = false,
             hasGoalLockCard = false,
         )
 
@@ -49,6 +51,7 @@ class HomeStatusCtaReadModelTest {
             isKeep = true,
             selectedAppCount = 2,
             showFirstLockActivationCta = false,
+            showRoutineCreationCta = false,
             hasGoalLockCard = false,
         )
 
@@ -67,6 +70,7 @@ class HomeStatusCtaReadModelTest {
             isKeep = false,
             selectedAppCount = 1,
             showFirstLockActivationCta = true,
+            showRoutineCreationCta = false,
             hasGoalLockCard = true,
         )
 
@@ -74,5 +78,36 @@ class HomeStatusCtaReadModelTest {
         assertEquals(R.string.home_primary_cta_start_now, model.primaryCtaResId)
         assertTrue(model.showGoalLockStatus)
         assertTrue(model.shouldToggleKeep)
+    }
+
+    @Test
+    fun routineCreationCtaIsSecondaryAfterFirstCoreActionWithoutStealingPrimaryLockCta() {
+        val model = buildHomeStatusCtaModel(
+            isKeep = false,
+            selectedAppCount = 2,
+            showFirstLockActivationCta = false,
+            showRoutineCreationCta = true,
+            hasGoalLockCard = false,
+        )
+
+        assertEquals(HomeStatusKind.READY, model.statusKind)
+        assertEquals(R.string.home_primary_cta_start_now, model.primaryCtaResId)
+        assertTrue(model.shouldToggleKeep)
+        assertTrue(model.timerEnabled)
+        assertTrue(model.showLockHistorySecondary)
+        assertTrue(model.showRoutineCreationSecondary)
+    }
+
+    @Test
+    fun routineCreationCtaDoesNotAppearBeforeFirstCoreAction() {
+        val model = buildHomeStatusCtaModel(
+            isKeep = false,
+            selectedAppCount = 2,
+            showFirstLockActivationCta = false,
+            showRoutineCreationCta = false,
+            hasGoalLockCard = false,
+        )
+
+        assertFalse(model.showRoutineCreationSecondary)
     }
 }

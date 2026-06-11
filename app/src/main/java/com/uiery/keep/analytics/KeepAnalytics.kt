@@ -262,6 +262,27 @@ interface KeepAnalytics {
     fun trackParentModeCancelled(endReason: String) = Unit
 
     fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) = Unit
+
+    fun trackRoutineCreationCtaShown(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
+
+    fun trackRoutineCreationCtaClicked(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
+
+    fun trackRoutineCreationCtaDismissed(
+        surface: String,
+        activationStage: String,
+        hasRoutine: Boolean,
+        ctaVariant: String? = null,
+    ) = Unit
 }
 
 object KeepAnalyticsEvent {
@@ -316,6 +337,9 @@ object KeepAnalyticsEvent {
     const val PARENT_MODE_BLOCK_INTERCEPTED = "parent_mode_block_intercepted"
     const val PARENT_MODE_CANCELLED = "parent_mode_cancelled"
     const val INSTALL_REFERRER_ATTRIBUTION_CHECKED = "install_referrer_attribution_checked"
+    const val ROUTINE_CREATION_CTA_SHOWN = "routine_creation_cta_shown"
+    const val ROUTINE_CREATION_CTA_CLICKED = "routine_creation_cta_clicked"
+    const val ROUTINE_CREATION_CTA_DISMISSED = "routine_creation_cta_dismissed"
 }
 
 object KeepAnalyticsParam {
@@ -371,6 +395,9 @@ object KeepAnalyticsParam {
     const val CAMPAIGN_BUCKET = "campaign_bucket"
     const val LINK_SURFACE = "link_surface"
     const val LOOKUP_LATENCY_BUCKET = "lookup_latency_bucket"
+    const val ACTIVATION_STAGE = "activation_stage"
+    const val HAS_ROUTINE = "has_routine"
+    const val CTA_VARIANT = "cta_variant"
     const val FALLBACK_TYPE = "fallback_type"
     const val SETTING_NAME = "setting_name"
     const val VALUE_BUCKET = "value_bucket"
@@ -624,4 +651,16 @@ object AnalyticsParentModeBlockContext {
     const val RECENT_APPS = "recent_apps"
     const val NOTIFICATION_SURFACE = "notification_surface"
     const val UNKNOWN = "unknown"
+}
+
+object AnalyticsRoutineCreationCtaSurface {
+    const val HOME_SECONDARY = "home_secondary"
+}
+
+object AnalyticsRoutineCreationCtaActivationStage {
+    const val POST_FIRST_CORE_ACTION = "post_first_core_action"
+}
+
+object AnalyticsRoutineCreationCtaVariant {
+    const val SOFT_DEFAULT = "soft_default"
 }

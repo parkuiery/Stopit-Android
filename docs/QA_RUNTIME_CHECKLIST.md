@@ -196,6 +196,28 @@ python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
 - 타이머 예약/실행 중: 즉시 차단과 타이머의 역할이 문구로 구분된다.
 - 목표 잠금 진행 중: `GoalLockProgressCard`류 상태 표면이 Home primary status와 충돌하지 않는다.
 
+### Routine creation CTA QA evidence
+
+issue #455 계열 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 본다. CTA는 onboarding/pre-first-lock이 아니라 첫 핵심 행동 이후(`post_first_core_action`) 루틴 0개 사용자에게만 Home 보조 slot으로 노출되어야 하며, 클릭하면 Routine 생성 흐름으로 이동해야 한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
+  --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'
+./gradlew --console=plain :app:lintProdRelease
+```
+
+수동 QA matrix:
+- 루틴 0개 + 선택 앱 있음 + 첫 핵심 행동 완료: Home 보조 CTA가 보이고 문구가 처벌/감시가 아니라 반복 자동화 도움으로 읽힌다.
+- pre-first-lock / 첫 핵심 행동 전: 루틴 생성 CTA가 보이지 않는다.
+- 루틴 1개 이상: 루틴 생성 CTA가 보이지 않는다.
+- CTA 클릭: Routine 화면/생성 흐름으로 이동한다.
+- analytics debug/log evidence가 가능하면 `routine_creation_cta_shown` / `routine_creation_cta_clicked` payload에 `surface=home_secondary`, `activation_stage=post_first_core_action`, `has_routine=false`, `cta_variant=soft_default`만 포함되는지 확인한다.
+
 ```md
 ## Home status/CTA QA evidence
 - Issue: #463
@@ -940,6 +962,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-required ON/OFF flow의 reason/custom reason validation → 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
 - `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
+- `RoutineStartNotificationTapIntegrationTest`: 루틴 시작 알림 builder가 `contentIntent`를 포함하고 `ACTION_ROUTINE_START_NOTIFICATION_TAP`, `routineId`, `NOTIFICATION_SOURCE_ROUTINE_START`를 `MainActivity` 복귀 intent로 전달하는 계약. 실제 posted-path는 channel-disabled suite와 섞이면 Android가 동일 channel을 다시 올릴 수 없어 순서 의존 skip이 생길 수 있으므로, device QA에서는 fresh install/notification settings reset 상태에서 별도로 탭 동작을 확인한다.
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `EmergencyUnlockPolicyTest`: `EMERGENCY_UNLOCK_EXPIRE_TIME`에 저장된 만료 시각만으로 남은 초를 재계산하고 countdown notification tick을 재예약하는 JVM 계약. Lock 화면/ViewModel coroutine이 사라져도 AccessibilityService가 DataStore snapshot 기준으로 countdown 알림을 계속 동기화해야 한다.
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
@@ -1190,7 +1213,7 @@ adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm,com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent,com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEnabledRoutineFromRoom,com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEveryRepeatDayAlarm
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.manifest.ManifestContractIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest
 ./gradlew :app:installDevDebug
@@ -1206,7 +1229,7 @@ adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest
 ```
 
-즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel(3개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate -> notification-channel-disabled gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
+즉, release candidate baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel/permission-change restore(5개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate -> notification-channel-disabled gate` 순서다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서로 유지해야 한다.
 
 issue #580 계열 exact alarm 권한 안내 QA에서는 루틴 생성/활성화가 `ShowAlarmPermission`을 발생시켜 sheet가 보였다는 사실과, 사용자가 설정 이동 버튼을 명시적으로 눌러 OS 설정으로 나가려 했다는 사실을 분리해 기록한다. 단순 dismiss만 한 경우 `HAS_SHOWN_ALARM_PERMISSION`을 영구 true로 저장하면 안 되며, 이후 권한이 여전히 없으면 화면 재진입/루틴 활성화 경로에서 다시 안내될 수 있어야 한다. 설정 Activity가 OEM/프로필 환경에서 열리지 않으면 앱 상세 설정 fallback으로 이동하고, 그마저 실패해도 crash 없이 권한 없음/disabled routine 상태를 유지해야 한다.
 
@@ -1361,7 +1384,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`로 active Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1373,6 +1396,9 @@ cd <repo-root>
   --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" \
   --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" \
+  --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" \
+  --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" \
+  --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"
 ```
@@ -1382,7 +1408,7 @@ cd <repo-root>
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence
 ```
 
 검증 범위:
@@ -1398,7 +1424,9 @@ cd <repo-root>
 - 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
 - `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
 - 접근성 차단 판단이 허용 앱과 비허용 앱을 구분하고, 시간이 끝난 뒤 허용 앱도 계속 사용할 수 없게 하는지
+- AccessibilityService가 active Parent Mode session의 `expiresAtMillis`에 맞춰 foreground 재평가를 예약해 같은 앱이 foreground에 남아 있어도 만료 후 차단으로 전환하는지
 - active Parent Mode session을 `KeepAccessibilityService`가 device/emulator에서 관찰하고, 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는지
+- expired Parent Mode session을 `KeepAccessibilityService`가 device/emulator에서 resolved `observedParentModeState=expired` evidence로 남기고, 기존 허용 앱도 `block_source=parent_mode`로 차단하는지
 - Stopit 앱처럼 보호자 PIN/종료/연장 진입에 필요한 부모 제어 surface를 부모 모드 차단으로 막지 않는지
 
 ### Parent mode QA evidence
@@ -1413,14 +1441,16 @@ cd <repo-root>
 - Allowed app count bucket: 1 / 2_3 / 4_6 / 7_plus
 - PIN state before start: not_configured / configured
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`
 - same-device / PIN / bypass checks:
   - [ ] 보호자 PIN 확인 후에만 부모 모드가 시작된다.
   - [ ] 선택한 허용 앱은 시간 안에서 열 수 있다.
   - [ ] 허용되지 않은 앱은 차단된다.
   - [ ] AccessibilityService debug evidence가 `observedParentModeState=active`, 허용 앱 count, `lastLaunchedBlockSource=parent_mode`를 남긴다.
   - [ ] 시간이 끝나면 허용 앱도 계속 사용할 수 없다.
+  - [ ] AccessibilityService debug evidence가 `observedParentModeState=expired`와 `lastLaunchedBlockSource=parent_mode`를 남긴다.
+  - [ ] 같은 앱이 foreground에 남아 있어도 `expiresAtMillis` 기반 time-based 재평가로 만료 후 차단 전환이 예약된다.
   - [ ] PIN 없이 시간 연장/종료가 되지 않는다.
   - [ ] PIN 성공 후에도 0분/음수 extension은 거부되고 양수 extension만 만료 시각을 늘린다.
   - [ ] PIN 성공 시 즉시 종료가 된다.

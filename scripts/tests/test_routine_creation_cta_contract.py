@@ -31,6 +31,8 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "Routine empty state",
             "광고 배너",
             "#407 루틴 템플릿 공유 CTA",
+            "PR #533 / merge commit `b7cf06f20aaf551f513e0684142577149b1c4550`",
+            "Home CTA·navigation·analytics 구현 완료",
             "Refs #455",
         ]
         for phrase in required_phrases:
@@ -41,6 +43,8 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "전체 retention 결론",
             "강제 CTA",
             "modal gate",
+            "code-lane 구현 진행",
+            "신규 이벤트 후보",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
@@ -109,6 +113,8 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
 
         self.assertIn("루틴 생성 CTA 조회성", ga4_runbook)
         self.assertIn("routine creation CTA check", ga4_runbook)
+        self.assertIn("#455 PR #533 Home CTA UI/navigation/analytics 구현 완료", ga4_runbook)
+        self.assertIn("#531 CTA UI wiring·공통 release·GA4 등록 전", ga4_runbook)
         self.assertIn("post_first_core_action", analytics)
 
     def test_qa_checklist_defines_non_intrusive_routine_cta_evidence(self):

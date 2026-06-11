@@ -12,7 +12,7 @@ import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
-import com.uiery.keep.feature.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.feature.review.AnalyticsEventRecord
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -143,6 +143,7 @@ class HomeViewModelReviewTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
+            routineDao = EmptyHomeRoutineDao(),
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             goalLockRepository = GoalLockRepository(EmptyGoalLockDao()),

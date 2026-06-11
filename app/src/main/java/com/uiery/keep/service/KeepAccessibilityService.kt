@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.dataStore
@@ -20,7 +21,6 @@ import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
-import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.EntryPoint
@@ -150,13 +150,9 @@ class KeepAccessibilityService :
                 }
                 .collect { session ->
                     cachedParentModeSession = session
-                    KeepAccessibilityServiceDebugState.update(applicationContext) {
-                        it.copy(
-                            observedParentModeState = session?.toDebugStateValue(),
-                            observedParentModeAllowedAppCount = session?.allowedApps?.size ?: 0,
-                        )
-                    }
+                    updateParentModeDebugState(session)
                     reevaluateCurrentForegroundAfterStateUpdate()
+                    scheduleNextTimeBasedStartReevaluation()
                 }
         }
     }
@@ -192,13 +188,26 @@ class KeepAccessibilityService :
         job.cancel()
     }
 
-    private fun ParentModeSession.toDebugStateValue(): String = when (state.name) {
-        "Setup" -> "setup"
-        "Active" -> "active"
-        "Expired" -> "expired"
-        "UnlockedByPin" -> "unlocked_by_pin"
-        "Cancelled" -> "cancelled"
-        else -> state.name
+    private fun updateParentModeDebugState(session: ParentModeSession?) {
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(
+                observedParentModeState = session?.toDebugStateValue(),
+                observedParentModeAllowedAppCount = session?.allowedApps?.size ?: 0,
+            )
+        }
+    }
+
+    private fun ParentModeSession.toDebugStateValue(nowMillis: Long = System.currentTimeMillis()): String {
+        val stateName = state.name
+        return when {
+            stateName == "Active" && expiresAtMillis <= nowMillis -> "expired"
+            stateName == "Setup" -> "setup"
+            stateName == "Active" -> "active"
+            stateName == "Expired" -> "expired"
+            stateName == "UnlockedByPin" -> "unlocked_by_pin"
+            stateName == "Cancelled" -> "cancelled"
+            else -> stateName
+        }
     }
 
     private fun blockIfNeeded(
@@ -241,8 +250,10 @@ class KeepAccessibilityService :
             val delayMillis = nextTimeBasedBlockingStartReevaluationDelayMillis(
                 routines = cachedRoutines,
                 goalLocks = cachedGoalLocks,
+                parentModeSession = cachedParentModeSession,
             ) ?: return@post
             val runnable = Runnable {
+                updateParentModeDebugState(cachedParentModeSession)
                 reevaluateCurrentForegroundAfterStateUpdate()
                 scheduleNextTimeBasedStartReevaluation()
             }
@@ -531,11 +542,27 @@ class KeepAccessibilityService :
 internal fun nextTimeBasedBlockingStartReevaluationDelayMillis(
     routines: List<RoutineModel>,
     goalLocks: List<GoalLock>,
+    parentModeSession: ParentModeSession? = null,
     now: LocalDateTime = LocalDateTime.now(),
+    nowMillis: Long = System.currentTimeMillis(),
 ): Long? = listOfNotNull(
     nextRoutineStartReevaluationDelayMillis(routines = routines, now = now),
     nextGoalLockStartReevaluationDelayMillis(goalLocks = goalLocks, now = now),
+    nextParentModeExpirationReevaluationDelayMillis(
+        parentModeSession = parentModeSession,
+        nowMillis = nowMillis,
+    ),
 ).minOrNull()
+
+internal fun nextParentModeExpirationReevaluationDelayMillis(
+    parentModeSession: ParentModeSession?,
+    nowMillis: Long = System.currentTimeMillis(),
+): Long? {
+    val session = parentModeSession ?: return null
+    if (session.state.name != "Active") return null
+    val delayMillis = session.expiresAtMillis - nowMillis
+    return delayMillis.takeIf { it > 0L }
+}
 
 internal fun nextGoalLockStartReevaluationDelayMillis(
     goalLocks: List<GoalLock>,
