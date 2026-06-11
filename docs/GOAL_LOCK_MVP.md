@@ -128,7 +128,7 @@ Issue: #417
 | `goal_lock_created` | 유효한 목표 잠금 저장 완료 | `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` | enum/bucket만 허용 |
 | `goal_lock_completed` | 종료일 경과 후 자동 완료 상태 처리 | `lock_mode`, `duration_days_bucket` | raw 날짜/앱 목록 금지 |
 | `goal_lock_ended_early` | 사용자가 기간 전 종료 | `lock_mode`, `elapsed_days_bucket`, `reason?` | reason은 enum만 허용 |
-| `goal_lock_updated` | 기간/앱/시간대 수정 저장 | `lock_mode`, `changed_field` | changed_field는 enum만 허용 |
+| `goal_lock_updated` | 기간/앱/시간대/이름/잠금 방식 수정 저장 | `lock_mode`, `changed_field` | changed_field는 enum만 허용 |
 
 권장 enum/bucket:
 
@@ -222,6 +222,7 @@ Guardrail:
   - `goal_lock_updated` 이벤트가 `lock_mode`, `changed_field`만 기록하고 raw 목표명/package/날짜를 보내지 않는다.
 - `GoalLockDetailContentIntegrationTest`:
   - 진행 중인 상세 화면에서 `목표 이름` 입력, `차단 앱 변경` CTA와 변경 확인 copy/`변경 저장` 액션을 Compose instrumentation compile/runtime surface로 고정한다.
+  - 작은 화면 높이에서도 상세 화면이 스크롤되어 하단 `목표 잠금 종료` CTA까지 접근 가능한지 Compose instrumentation으로 검증한다.
 
 ### ViewModel/UI state 테스트
 
@@ -311,7 +312,19 @@ Code lane에서 PR #625(`b714422b`)로 `GoalLockCreationScreen` 본문을 스크
 
 Code lane에서 상세 화면의 `차단 앱 변경` CTA를 기존 `CategoryBottomSheetContent` picker에 연결하고, 앱 변경 저장 전 별도 확인 copy를 추가했다. `GoalLockDetailViewModel`은 선택 package를 trim/dedupe한 뒤 목표명·기간·잠금 방식·상태는 보존하고 `selectedPackages`만 교체하며, 성공 시 `goal_lock_updated(lock_mode, changed_field=apps)`를 기록한다. 빈 선택은 저장·계측 없이 확인 상태를 닫는다. 이후 같은 detail-update package에서 `목표 이름` 입력/저장 확인도 추가해 입력값을 trim하고 기존 기간·잠금 방식·앱 목록·상태를 보존하면서 이름만 교체하며, 성공 시 `goal_lock_updated(lock_mode, changed_field=name)`을 기록한다. 빈 이름 또는 기존 이름과 같은 입력은 저장·계측 없이 확인 상태를 닫는다. `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 `goal_lock_updated` payload가 `lock_mode`/`changed_field`만 포함하고 raw 목표명/package/날짜를 보내지 않음을 고정한다.
 
-이 foothold 이후 #417을 “상세 화면에서 앱 목록 수정 저장/`goal_lock_updated` apps 계측 없음” 또는 “상세 화면에서 이름 수정 저장/`goal_lock_updated` name 계측 없음” 상태로 되돌리지 않는다. 다만 기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부 또는 후속 repo-internal 경계다.
+이 foothold 이후 #417을 “상세 화면에서 앱 목록 수정 저장/`goal_lock_updated` apps 계측 없음” 또는 “상세 화면에서 이름 수정 저장/`goal_lock_updated` name 계측 없음” 상태로 되돌리지 않는다.
+
+### 2026-06-08 detail duration / lock-mode update foothold
+
+Code lane에서 상세 화면의 기간 변경과 잠금 방식 변경을 연결했다. `GoalLockDetailViewModel`은 기존 목표 이름·앱 목록·상태를 보존하면서 기간 preset을 저장하면 종료일을 다시 계산하고 `goal_lock_updated(changed_field=duration)`을 기록한다. 잠금 방식을 all-day 또는 weekday-evening scheduled로 바꾸면 `lock_mode`를 갱신하고, scheduled 변경은 `goal_lock_updated(changed_field=schedule)`, all-day/scheduled 전환은 `goal_lock_updated(changed_field=lock_mode)`로 기록한다.
+
+이 foothold 이후 #417을 “상세 화면 기간/schedule/lock_mode 수정 UI 미구현” 또는 “`goal_lock_updated`가 apps/name만 지원” 상태로 되돌리지 않는다. 실제 release-candidate 기기 screenshot/TalkBack spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부/manual 경계다.
+
+### 2026-06-11 detail compact-height QA foothold
+
+Code lane에서 `GoalLockDetailScreen` 본문을 스크롤 가능하게 만들고 `GoalLockDetailContentIntegrationTest.compactHeightDetailContentScrollsToEndAction`을 추가했다. 이 Compose instrumentation baseline은 320dp 높이의 compact surface에서도 상세 화면 하단 `목표 잠금 종료` CTA까지 접근 가능한지 검증한다.
+
+이 foothold 이후 #417을 “상세 화면 작은 화면/큰 글꼴 접근성 미검증” 상태로 되돌리지 않는다. 다만 실제 release-candidate 기기 screenshot/TalkBack spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부/manual 경계다.
 
 ## 외부/manual 경계
 

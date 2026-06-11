@@ -72,6 +72,27 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("post-release 창 전에는 event 0을 수요 없음으로 해석 금지", admob_runbook)
         self.assertNotIn("| `interest_context` | Required dimension | `TODO`", ga4_runbook)
 
+    def test_admob_latest_readback_keeps_smoke_separate_from_production_measurement(self):
+        admob_runbook = ADMOB_RUNBOOK.read_text()
+        metrics_analysis = METRICS_ANALYSIS.read_text()
+        product_dashboard = PRODUCT_DASHBOARD.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+        product_context = PRODUCT_CONTEXT.read_text()
+
+        for doc in [admob_runbook, metrics_analysis, product_dashboard, metrics_context, product_context]:
+            self.assertIn("2026-06-11", doc)
+            self.assertIn("source-split queryability smoke", doc)
+            self.assertIn("13,459", doc)
+            self.assertIn("48.2%", doc)
+            self.assertIn("release/tag/Play", doc)
+
+        self.assertIn("`ad_banner_impression` 125건", metrics_analysis)
+        self.assertIn("`ad_banner_revenue` 124건", metrics_analysis)
+        self.assertIn("appVersion = 1.7.5", admob_runbook)
+        self.assertIn("20260602..20260605", admob_runbook)
+        self.assertIn("원인 분리", admob_runbook)
+        self.assertIn("placement 실험보다", metrics_context)
+
     def test_banner_placement_contract_is_documented(self):
         admob_runbook = ADMOB_RUNBOOK.read_text()
         ad_placement = (REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "AdPlacement.kt").read_text()

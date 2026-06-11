@@ -46,6 +46,20 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
                 for snippet in required_snippets:
                     self.assertIn(snippet, text)
 
+    def test_screen_quality_payload_package_is_tracked_separately_from_screen_call_coverage(self):
+        required_snippets = [
+            "PR #755",
+            "08d31da3",
+            "Firebase `screen_view` backend payload",
+            "`screen_name`과 `screen_class`",
+            "release/tag/Play deploy",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
 
 if __name__ == "__main__":
     unittest.main()

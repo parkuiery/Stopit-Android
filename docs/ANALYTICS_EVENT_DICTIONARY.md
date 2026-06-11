@@ -27,7 +27,8 @@
 ## 소스 오브 트루스
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
-- Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase facade: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase backend payload adapter: `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`, `FirebaseScreenViewPayload.kt`
 - AdMob 배너 계측 래퍼: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
@@ -37,10 +38,11 @@
 - 루틴 템플릿 공유 구현 후보: `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`, `RoutineTemplateSharePayload` helper(구현 시 추가)
 - 루틴 생성 CTA 구현: `HomeViewModel` / `HomeStatusCtaReadModel` / `HomeScreen` / `FirebaseKeepAnalytics` (`home_secondary` soft CTA → Routine route)
 - 반복 차단 루틴 추천 구현 foothold: `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionPolicy.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RepeatBlockRoutineSuggestionStore.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineNavigation.kt`, `app/src/main/java/com/uiery/keep/feature/routine/RoutineBottomSheetViewModel.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` (2026-06-06 code/QA lane에서 policy + analytics event contract, RoutineRoute prefill 적용, dismiss local store 추가; 2026-06-08 #651 code-lane에서 analytics boundary는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO로 분리해 feature-local suggestion object를 analytics API/Firebase adapter가 직접 import하지 않는다. Home/LockHistory CTA UI wiring/release/GA4 등록 전까지 live event 0건은 수요 없음으로 해석하지 않는다.)
-- 목표 잠금 구현 후보: `GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)
+- 목표 잠금 코드 계약: `app/src/main/java/com/uiery/keep/domain/goallock/GoalLockPolicy.kt`, `app/src/main/java/com/uiery/keep/database/entity/GoalLockEntity.kt`, `app/src/main/java/com/uiery/keep/database/dao/GoalLockDao.kt`, `app/src/main/java/com/uiery/keep/feature/goallock/GoalLockRepository.kt`, `GoalLockCreationViewModel.kt`, `GoalLockDetailViewModel.kt`, `GoalLockAnalytics.kt`, Home goal-lock card/read-model wiring, `KeepAccessibilityService` goal-lock attribution (policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail update/early-end/Home completion/compact-height QA footholds are repo-internal `develop` 상태. release/tag/Play deploy, GA4 Admin metadata, D+14/D+30 readback 전까지 live `goal_lock_*` 0건은 adoption 부재로 해석하지 않는다.)
 - 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSessionStore.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` (PR #519로 순수 정책 + `parent_mode_*` analytics API, PR #584로 session persistence + `block_source=parent_mode` Accessibility decision foothold 추가)
 - 긴급해제 설정 변경 코드 계약: `app/src/main/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModel.kt`, `app/src/main/java/com/uiery/keep/datastore/EmergencyUnlockSettingsStore.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `FirebaseKeepAnalytics.kt` (PR #698 / merge commit `8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260`로 `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` Android wiring과 privacy-safe JVM payload 보장이 `develop`에 반영됨. GA4 Admin 등록, release/tag/Play deploy, D+14/D+30 readback 전까지 live event 0건은 adoption 부재로 해석하지 않는다.)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- Firebase `screen_view` payload 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseScreenViewPayloadTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 - 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
@@ -69,6 +71,8 @@
 
 - 화면 진입 시 `logScreenView(screenName)`를 먼저 호출하고, 필요하면 이어서 step/event를 기록한다.
 - 새 화면을 추가할 때는 문자열을 임의로 만들지 말고 `KeepAnalytics.kt`에 상수로 추가한다.
+- Firebase `screen_view` backend payload는 PR #755(`08d31da3`) 이후 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 기록한다. GA4 `unifiedScreenName`이 `(not set)`/blank로 남는지 볼 때는 화면별 호출 누락뿐 아니라 backend payload 계약(`FirebaseScreenViewPayloadTest`)도 같이 확인한다.
+- PR #755는 특정 화면 호출 coverage가 아니라 Firebase `screen_view` backend payload shape 보강이므로, `PR #296/#318/#358` 화면 호출 coverage package와 별도 축으로 보고 release/tag/Play deploy 후 같은 D+14 창에서 함께 재측정한다.
 - GA4에서 `(not set)` 비율이 높아지면 새 화면/분기에서 `logScreenView` 누락을 먼저 의심한다.
 
 ## 이벤트 딕셔너리
@@ -136,7 +140,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 
-긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline이 선택 사유 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
+긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline과 PR #675(`d2fab054`)의 step purpose copy baseline이 선택 사유/단계 목적 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 
 #467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp.
 

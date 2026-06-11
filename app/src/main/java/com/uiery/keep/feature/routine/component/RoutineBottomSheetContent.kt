@@ -65,6 +65,7 @@ fun RoutineBottomSheetContent(
     repeatBlockSuggestionSurface: String? = null,
     repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onRequireAlarmPermission: () -> Unit = { },
+    onActiveRoutineBlocked: () -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
     val state by viewModel.collectAsState()
@@ -107,6 +108,8 @@ fun RoutineBottomSheetContent(
     viewModel.collectSideEffect { sideEffect ->
         when (sideEffect) {
             RoutineBottomSheetSideEffect.ShowAlarmPermission -> onRequireAlarmPermission()
+            RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked -> onActiveRoutineBlocked()
+            RoutineBottomSheetSideEffect.CloseBottomSheet -> onCloseBottomSheet()
         }
     }
 
@@ -136,7 +139,6 @@ fun RoutineBottomSheetContent(
                     viewModel.addRoutine()
                 },
                 onEditRoutine = {
-                    onCloseBottomSheet()
                     viewModel.editRoutine(routine?.id)
                 }
             )

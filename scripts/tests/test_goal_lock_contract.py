@@ -55,6 +55,10 @@ class GoalLockContractTest(unittest.TestCase):
             "Home expiration completion foothold",
             "PR #489",
             "goal_lock_completed",
+            "detail duration / lock-mode update foothold",
+            "goal_lock_updated(changed_field=duration)",
+            "goal_lock_updated(changed_field=schedule)",
+            "goal_lock_updated(changed_field=lock_mode)",
             "Accessibility runtime QA foothold",
             "KeepAccessibilityServiceIntegrationTest.activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
             "KeepAccessibilityServiceIntegrationTest.activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution",
@@ -105,6 +109,15 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("목표 이름 원문/app package/app label 금지", analytics)
         self.assertIn("locale-independent preset key", analytics)
         self.assertIn("직접 입력한 경우는 `custom`", analytics)
+        self.assertIn("목표 잠금 코드 계약", analytics)
+        self.assertIn("app/src/main/java/com/uiery/keep/domain/goallock/GoalLockPolicy.kt", analytics)
+        self.assertIn("GoalLockCreationViewModel.kt", analytics)
+        self.assertIn("GoalLockDetailViewModel.kt", analytics)
+        self.assertIn("GoalLockAnalytics.kt", analytics)
+        self.assertIn("KeepAccessibilityService", analytics)
+        self.assertIn("repo-internal `develop` 상태", analytics)
+        self.assertNotIn("목표 잠금 구현 후보", analytics)
+        self.assertNotIn("GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)", analytics)
 
     def test_high_traffic_docs_link_to_goal_lock_source_of_truth(self):
         documents = [
@@ -136,6 +149,10 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("목표 잠금 조회성", ga4_runbook)
         self.assertIn("goal lock check", ga4_runbook)
         self.assertIn("목표 이름 원문/app package/app label", ga4_runbook)
+        self.assertIn("creation ViewModel/analytics 계약이 `develop`에 반영됨", ga4_runbook)
+        self.assertIn("detail duration·schedule·lock-mode update runtime call이 `develop`에 반영됨", ga4_runbook)
+        self.assertNotIn("#417 code-lane 생성 ViewModel/analytics 계약 추가", ga4_runbook)
+        self.assertNotIn("`goal_lock_created` 코드 계약 추가, detail 종료 path", ga4_runbook)
 
     def test_qa_checklist_defines_goal_lock_runtime_evidence(self):
         qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
@@ -151,6 +168,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationContentIntegrationTest", qa_checklist)
         self.assertIn("compact-height", qa_checklist)
         self.assertIn("목표 잠금 시작", qa_checklist)
+        self.assertIn("GoalLockDetailContentIntegrationTest", qa_checklist)
+        self.assertIn("목표 잠금 종료", qa_checklist)
         self.assertIn("custom days/end date 기간 선택", qa_checklist)
         self.assertIn("KeepAppNavigationPolicyTest", qa_checklist)
         self.assertIn("GoalLockCreationRoute", qa_checklist)
@@ -174,14 +193,18 @@ class GoalLockContractTest(unittest.TestCase):
 
         for document in [product_context, metrics_context]:
             self.assertIn("policy/persistence/creation UI/navigation/Home/Accessibility blocking/detail/early-end/Home completion", document)
-            self.assertIn("compact-height creation CTA", document)
+            self.assertIn("상세 앱/이름/기간/잠금 방식 수정", document)
+            self.assertIn("goal_lock_updated changed_field=apps|name|duration|schedule|lock_mode", document)
+            self.assertIn("compact-height creation/detail CTA", document)
             self.assertIn("TalkBack", document)
             self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
+            self.assertNotIn("기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check", document)
 
         dashboard = PRODUCT_DASHBOARD.read_text()
         self.assertIn("Home completion foothold", dashboard)
         self.assertIn("`develop` 반영 상태", dashboard)
-        self.assertIn("compact-height 생성 CTA", dashboard)
+        self.assertIn("상세 앱/이름/기간/잠금 방식 수정", dashboard)
+        self.assertIn("compact-height 생성·상세 CTA", dashboard)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()
