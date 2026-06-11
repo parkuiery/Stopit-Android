@@ -6,6 +6,8 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.util.isChangeLocked
+import com.uiery.keep.util.isRunningNow
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -165,6 +167,12 @@ class RoutineBottomSheetViewModel
             intent {
                 id?.let {
                     runCatching {
+                        val storedRoutine = routineRepository.fetch(it)
+                        if (storedRoutine.isRunningNow() || storedRoutine.isChangeLocked()) {
+                            postSideEffect(RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked)
+                            return@runCatching
+                        }
+
                         val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel(id = it))
                         routineRepository.update(resolvedRoutine.routine)
                         exactAlarmOrchestrator.cancelRoutine(id)
@@ -184,6 +192,7 @@ class RoutineBottomSheetViewModel
                         if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                             postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                         }
+                        postSideEffect(RoutineBottomSheetSideEffect.CloseBottomSheet)
                     }
                 }
             }
@@ -246,4 +255,6 @@ private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
 
 sealed interface RoutineBottomSheetSideEffect {
     data object ShowAlarmPermission : RoutineBottomSheetSideEffect
+    data object ShowActiveRoutineBlocked : RoutineBottomSheetSideEffect
+    data object CloseBottomSheet : RoutineBottomSheetSideEffect
 }
