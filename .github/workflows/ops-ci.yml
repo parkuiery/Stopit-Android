@@ -109,6 +109,7 @@ jobs:
               - 'scripts/tests/test_aso_screenshots_ci_contract.py'
               - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
               - 'scripts/tests/test_release_build_workflow_scope.py'
+              - 'scripts/tests/test_release_qa_workflow_scope.py'
               - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
@@ -168,6 +169,7 @@ jobs:
           python3 -m unittest
           scripts.tests.test_play_deploy_secret_contract_runbook
           scripts.tests.test_release_build_workflow_scope
+          scripts.tests.test_release_qa_workflow_scope
           scripts.tests.test_release_qa_runtime_gate_docs
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
