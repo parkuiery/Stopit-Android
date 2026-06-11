@@ -27,7 +27,8 @@
 ## 소스 오브 트루스
 
 - 이벤트/파라미터 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
-- Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase facade: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase backend payload adapter: `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`, `FirebaseScreenViewPayload.kt`
 - AdMob 배너 계측 래퍼: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 - 리뷰 eligibility/launch 구현: `app/src/main/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluator.kt`, `app/src/main/java/com/uiery/keep/feature/review/InAppReviewManager.kt`
 - 리뷰 drain 지점: `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`, `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
@@ -41,6 +42,7 @@
 - 부모 모드 코드 계약: `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModePolicy.kt`, `app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSessionStore.kt`, `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`, `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` (PR #519로 순수 정책 + `parent_mode_*` analytics API, PR #584로 session persistence + `block_source=parent_mode` Accessibility decision foothold 추가)
 - 긴급해제 설정 변경 코드 계약: `app/src/main/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModel.kt`, `app/src/main/java/com/uiery/keep/datastore/EmergencyUnlockSettingsStore.kt`, `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `FirebaseKeepAnalytics.kt` (PR #698 / merge commit `8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260`로 `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` Android wiring과 privacy-safe JVM payload 보장이 `develop`에 반영됨. GA4 Admin 등록, release/tag/Play deploy, D+14/D+30 readback 전까지 live event 0건은 adoption 부재로 해석하지 않는다.)
 - 단위 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
+- Firebase `screen_view` payload 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseScreenViewPayloadTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
 - 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
@@ -69,6 +71,7 @@
 
 - 화면 진입 시 `logScreenView(screenName)`를 먼저 호출하고, 필요하면 이어서 step/event를 기록한다.
 - 새 화면을 추가할 때는 문자열을 임의로 만들지 말고 `KeepAnalytics.kt`에 상수로 추가한다.
+- Firebase `screen_view` backend payload는 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 기록한다. GA4 `unifiedScreenName`이 `(not set)`/blank로 남는지 볼 때는 화면별 호출 누락뿐 아니라 backend payload 계약(`FirebaseScreenViewPayloadTest`)도 같이 확인한다.
 - GA4에서 `(not set)` 비율이 높아지면 새 화면/분기에서 `logScreenView` 누락을 먼저 의심한다.
 
 ## 이벤트 딕셔너리
