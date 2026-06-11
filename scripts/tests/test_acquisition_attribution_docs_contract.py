@@ -25,6 +25,17 @@ SCREEN_QUALITY_VALUES = [
     "61.3%",
     "246 / 805 = 30.6%",
 ]
+STORE_PERFORMANCE_VALUES = [
+    "2026-06-11",
+    "store_performance",
+    "1,112 -> 521",
+    "-53.1%",
+    "319 -> 154",
+    "-51.7%",
+    "28.7% -> 29.6%",
+    "+0.9p",
+    "97.0%",
+]
 
 
 class AcquisitionAttributionDocsContractTest(unittest.TestCase):
@@ -93,6 +104,23 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
         self.assertIn("활성 19명·세션 149회는 신규 획득 성과로 계산하지 않음", play_store_aso)
+
+    def test_play_store_performance_readback_is_consistent_across_pm_context_docs(self):
+        documents = [
+            PLAY_STORE_ASO.read_text(),
+            METRICS_ANALYSIS.read_text(),
+            PRODUCT_DASHBOARD.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+            METRICS_CONTEXT.read_text(),
+        ]
+
+        for document in documents:
+            for value in STORE_PERFORMANCE_VALUES:
+                self.assertIn(value, document)
+            self.assertIn("전환율 하락", document)
+            self.assertIn("방문자", document)
+            self.assertIn("Search/Explore", document)
+            self.assertIn("external", document)
 
     def test_play_store_aso_records_cloud_storage_store_performance_readback(self):
         play_store_aso = PLAY_STORE_ASO.read_text()
