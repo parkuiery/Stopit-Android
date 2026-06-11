@@ -960,6 +960,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-required ON/OFF flow의 reason/custom reason validation → 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
 - `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
+- `RoutineStartNotificationTapIntegrationTest`: 루틴 시작 알림 builder가 `contentIntent`를 포함하고 `ACTION_ROUTINE_START_NOTIFICATION_TAP`, `routineId`, `NOTIFICATION_SOURCE_ROUTINE_START`를 `MainActivity` 복귀 intent로 전달하는 계약. 실제 posted-path는 channel-disabled suite와 섞이면 Android가 동일 channel을 다시 올릴 수 없어 순서 의존 skip이 생길 수 있으므로, device QA에서는 fresh install/notification settings reset 상태에서 별도로 탭 동작을 확인한다.
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `EmergencyUnlockPolicyTest`: `EMERGENCY_UNLOCK_EXPIRE_TIME`에 저장된 만료 시각만으로 남은 초를 재계산하고 countdown notification tick을 재예약하는 JVM 계약. Lock 화면/ViewModel coroutine이 사라져도 AccessibilityService가 DataStore snapshot 기준으로 countdown 알림을 계속 동기화해야 한다.
 - `KeepMessagingServiceIntegrationTest`: FCM token regeneration storage wiring
