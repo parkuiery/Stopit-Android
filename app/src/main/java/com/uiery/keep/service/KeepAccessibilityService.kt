@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.datastore.AccessibilityBlockingSnapshot
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.dataStore
@@ -20,7 +21,6 @@ import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.feature.parentmode.ParentModeSession
 import com.uiery.keep.feature.parentmode.ParentModeSessionStore
-import com.uiery.keep.feature.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toDayOfWeekList
 import dagger.hilt.EntryPoint

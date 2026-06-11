@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.routine
+package com.uiery.keep.data.routine
 
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.model.RoutineModel

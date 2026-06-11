@@ -42,11 +42,8 @@ Issue: #651
 
 | Layer | 파일 | 현재 feature import | code-lane migration 방향 |
 | --- | --- | --- | --- |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLockRepository`, `feature.parentmode.ParentModeSession`, `feature.parentmode.ParentModeSessionStore`, `feature.routine.RoutineRepository` | AccessibilityService가 shared lock-state / parent-mode session / routine runtime-facing use case에 의존하도록 분리한다. `GoalLock` model import는 `domain.goallock`으로 이동 완료. |
+| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLockRepository`, `feature.parentmode.ParentModeSession`, `feature.parentmode.ParentModeSessionStore` | AccessibilityService가 shared lock-state / parent-mode session에 의존하도록 분리한다. `GoalLock` model import는 `domain.goallock`으로, routine repository read contract는 `data.routine.RoutineRepository`로 이동 완료. |
 | service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.parentmode.ParentModePolicy`, `feature.parentmode.ParentModeSession` | foreground block decision의 parent-mode 입력 model/policy를 shared domain boundary로 이동한다. GoalLock model/policy는 `domain.goallock`으로 이동 완료. |
-| receiver | `app/src/main/java/com/uiery/keep/receiver/BootReceiver.kt` | `feature.routine.RoutineRepository` | boot/package/time-change restore가 shared routine runtime repository/use case를 사용하게 한다. |
-| receiver | `app/src/main/java/com/uiery/keep/receiver/RoutineAlarmReceiver.kt` | `feature.routine.RoutineRepository` | alarm receiver가 shared routine runtime repository/use case를 사용하게 한다. |
-
 
 ## Migration order
 
@@ -59,9 +56,9 @@ Issue: #651
    - `ParentModeSession`, `ParentModePolicy`, `ParentModeSessionStore`를 feature-private implementation에서 runtime-facing shared domain/session boundary로 분리한다.
    - AccessibilityService와 block decision helper가 feature package import 없이 parent-mode bypass state를 판정하도록 한다.
    - focused 검증 후보: `ParentModeSessionStoreTest`, `KeepAccessibilityServiceBlockDecisionTest`, parent-mode accessibility integration suites.
-3. **Routine runtime repository boundary**
-   - `RoutineRepository`를 feature UI repository에서 app/runtime read/write contract로 분리하거나 runtime-facing use case를 둔다.
-   - Boot/Package/RoutineAlarm receiver와 AccessibilityService가 feature package import 없이 restore/reschedule/cache를 수행하도록 한다.
+3. **Routine runtime repository boundary — repo-internal foothold complete**
+   - `RoutineRepository` / `RoomRoutineRepository`는 `data.routine` shared data boundary로 이동했다.
+   - Boot/Package/RoutineAlarm receiver와 AccessibilityService는 feature package import 없이 restore/reschedule/cache를 수행한다.
    - focused 검증 후보: `RoutineReceiverPolicyTest`, `ReceiverRuntimeIntegrationTest`, exact-alarm receiver suites.
 4. **Analytics DTO boundary**
    - 완료: `KeepAnalytics` / `FirebaseKeepAnalytics`는 feature-local `RepeatBlockRoutineSuggestion` 대신 `RepeatBlockRoutineSuggestionAnalyticsPayload`를 받는다.
