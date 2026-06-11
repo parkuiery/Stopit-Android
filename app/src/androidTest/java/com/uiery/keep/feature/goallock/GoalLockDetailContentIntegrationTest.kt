@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -100,6 +101,44 @@ class GoalLockDetailContentIntegrationTest {
         }
 
         composeRule.onNodeWithText(endText).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun detailContentExposesTalkBackSummaryForGoalStatusModeAndSelectedApps() {
+        val expectedDescription = listOf(
+            "시험 준비",
+            composeRule.activity.getString(
+                R.string.goal_lock_detail_summary,
+                composeRule.activity.getString(R.string.goal_lock_detail_lock_mode_all_day),
+                2,
+            ),
+            composeRule.activity.getString(R.string.goal_lock_detail_status_active),
+        ).joinToString(", ")
+
+        composeRule.setContent {
+            KeepTheme {
+                GoalLockDetailContent(
+                    state = GoalLockDetailUiState(goalLock = activeGoalLock()),
+                    onRequestEnd = {},
+                    onCancelEnd = {},
+                    onConfirmEnd = {},
+                    onGoalNameChange = {},
+                    onCancelUpdateGoalName = {},
+                    onConfirmUpdateGoalName = {},
+                    onRequestUpdateApps = {},
+                    onCancelUpdateApps = {},
+                    onConfirmUpdateApps = {},
+                    onDurationDaysChange = {},
+                    onCancelUpdateDuration = {},
+                    onConfirmUpdateDuration = {},
+                    onLockModeChange = {},
+                    onCancelUpdateLockMode = {},
+                    onConfirmUpdateLockMode = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription(expectedDescription).assertIsDisplayed()
     }
 }
 

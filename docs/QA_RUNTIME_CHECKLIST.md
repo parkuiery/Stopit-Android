@@ -879,6 +879,7 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' \
   --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' \
   --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' \
+  --tests 'com.uiery.keep.feature.goallock.GoalLockAccessibilityDescriptionTest' \
   --tests 'com.uiery.keep.KeepAppNavigationPolicyTest' \
   --tests 'com.uiery.keep.service.GoalLockStartReevaluationPolicyTest' \
   --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock' \
@@ -900,8 +901,9 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, 동일 시작/종료 scheduled 생성 disabled + 안내 상태, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
 - `GoalLockSelectedAppUiItemTest`는 생성 화면의 선택 앱 목록이 package raw text만 보여주지 않고 shared display metadata resolver의 앱 이름을 우선 표시하며, fallback package와 remove payload를 안정적으로 유지하는지 검증한다.
-- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이(compact-height)에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지 실제 Compose instrumentation으로 검증한다.
-- `GoalLockDetailContentIntegrationTest`는 진행 중인 상세 화면에서 `목표 이름` 입력, `차단 앱 변경` CTA, 앱 변경 확인 copy, `변경 저장` 액션이 노출되는지, compact-height 상세 화면이 하단 `목표 잠금 종료` CTA까지 스크롤되는지 실제 Compose instrumentation surface로 검증한다.
+- `GoalLockAccessibilityDescriptionTest`는 생성/상세 화면 summary content description이 목표 이름, 기간/요약, 잠금 방식, 선택 앱 수, 진행 상태를 누락하지 않는지 빠른 JVM 계약으로 검증한다.
+- `GoalLockCreationContentIntegrationTest`는 작은 화면 높이(compact-height)에서도 생성 플로우가 스크롤되어 하단 `목표 잠금 시작` CTA까지 접근 가능한지, 생성 summary card가 목표 이름/기간/잠금 방식/선택 앱 수를 하나의 content description으로 노출하는지 실제 Compose instrumentation으로 검증한다.
+- `GoalLockDetailContentIntegrationTest`는 진행 중인 상세 화면에서 `목표 이름` 입력, `차단 앱 변경` CTA, 앱 변경 확인 copy, `변경 저장` 액션이 노출되는지, compact-height 상세 화면이 하단 `목표 잠금 종료` CTA까지 스크롤되는지, 상세 summary card가 목표 이름/요약/진행 상태를 하나의 content description으로 노출하는지 실제 Compose instrumentation surface로 검증한다.
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`, `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`, `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 상세 화면 상태, 종료 확인/취소, 앱 변경 저장/빈 선택 거절, 이름 변경 저장/빈·동일 이름 거절, duration update recalculates end date, lock mode update tracks lock_mode vs schedule changed_field, 동일 시작/종료 scheduled update 저장/analytics 거절, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload, `goal_lock_updated(changed_field=apps|name|duration|lock_mode|schedule)` privacy-safe payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
@@ -925,7 +927,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - Device / Android version / OEM:
 - Entry point: home / routine / menu
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockPolicyTest' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly' --tests 'com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest' --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockAccessibilityDescriptionTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce'`
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.GoalLockStartReevaluationPolicyTest' --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIncludesActiveAllDayGoalLock' --tests 'com.uiery.keep.feature.menu.MenuViewModelTest.isBlockingIgnoresGoalLocksThatAreNotCurrentlyBlocking'`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeScheduledGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution`
@@ -943,6 +945,10 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
   - goal name / remaining period / lock mode / selected app count visible:
   - active / completed / ended_early status correct:
   - TalkBack label understandable:
+- Creation/detail summary TalkBack:
+  - creation summary contentDescription includes goal name / date range / lock mode / selected app count: pass / fail
+  - detail summary contentDescription includes goal name / mode+app count summary / active-completed-ended state: pass / fail
+  - actual screen reader/screenshot spot-check: pass / fail / not collected
 - End/update confirmation copy:
   - non-punitive tone: pass / fail
   - app update confirmation shows changed app count and explicit save/cancel actions: pass / fail
