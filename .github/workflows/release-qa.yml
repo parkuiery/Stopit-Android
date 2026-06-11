@@ -138,12 +138,7 @@ jobs:
           script: |
             set -eu
             mkdir -p runtime-diagnostics
-            capture_runtime_diagnostics() {
-              adb logcat -d > runtime-diagnostics/release-qa-logcat.txt || true
-              adb shell dumpsys alarm > runtime-diagnostics/release-qa-alarm.txt || true
-              adb shell dumpsys accessibility > runtime-diagnostics/release-qa-accessibility.txt || true
-            }
-            trap capture_runtime_diagnostics EXIT
+            trap 'adb logcat -d > runtime-diagnostics/release-qa-logcat.txt || true; adb shell dumpsys alarm > runtime-diagnostics/release-qa-alarm.txt || true; adb shell dumpsys accessibility > runtime-diagnostics/release-qa-accessibility.txt || true' EXIT
             python3 scripts/android_runtime_suites.py run-connected release_focused_ui_smoke --before "./gradlew --console=plain :app:installDevDebug"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_default --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell cmd appops reset com.uiery.keep.dev"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_denied --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny"
