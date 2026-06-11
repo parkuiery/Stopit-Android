@@ -112,6 +112,94 @@ class ParentModeSetupViewModelTest {
         assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
     }
 
+    @Test
+    fun activeSessionCanBeExtendedWithVerifiedPinFromSetupScreen() = runBlocking {
+        var now = 1_000L
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { now },
+        )
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        now = 120_000L
+        viewModel.extendActiveSessionByTenMinutes()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Extended }
+
+        val expectedSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 1_201_000L,
+            durationMinutes = 20,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+        )
+        assertEquals(expectedSession, viewModel.state.value.activeSession)
+        assertEquals(expectedSession, store.read())
+    }
+
+    @Test
+    fun activeSessionCanBeEndedWithVerifiedPinFromSetupScreen() = runBlocking {
+        var now = 1_000L
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { now },
+        )
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        now = 300_000L
+        viewModel.endActiveSessionFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Ended }
+
+        val expectedSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 300_000L,
+            durationMinutes = 10,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.UnlockedByPin,
+        )
+        assertEquals(expectedSession, viewModel.state.value.activeSession)
+        assertEquals(expectedSession, store.read())
+    }
+
+    @Test
+    fun expiredActiveSessionIsMarkedBeforeRenderingControls() = runBlocking {
+        var now = 1_000L
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { now },
+        )
+        viewModel.setDurationMinutes(1)
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        now = 61_000L
+        viewModel.refreshActiveSessionStatus()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Expired }
+
+        val expectedSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Expired,
+        )
+        assertEquals(expectedSession, viewModel.state.value.activeSession)
+        assertEquals(expectedSession, store.read())
+    }
+
     private fun createViewModel(
         blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
         sessionStore: ParentModeSessionStore = ParentModeSessionStore(FakeDataStore()),

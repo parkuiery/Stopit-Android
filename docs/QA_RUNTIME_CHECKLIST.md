@@ -1404,7 +1404,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, 2026-06-11 code-lane PR은 setup 화면에 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control을 연결했다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1415,6 +1415,7 @@ cd <repo-root>
   --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" \
+  --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" \
   --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" \
   --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" \
   --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" \
@@ -1440,6 +1441,7 @@ cd <repo-root>
 - `ParentModeSessionController`가 setup validation 실패 시 저장/analytics를 하지 않고, 성공 시 session 저장과 `parent_mode_started` bucket event를 함께 commit하는지
 - `ParentModeSessionController`가 PIN 성공 후 연장/즉시 종료만 저장하고 PIN 실패/미설정 상태에서는 session과 analytics를 바꾸지 않는지
 - `ParentModeSessionController.markExpiredIfNeeded(...)`가 active session의 시간 만료를 `expired` state와 `parent_mode_completed(end_reason=time_expired)`로 한 번만 commit하고, 재호출/비활성 state에서는 no-op인지
+- `ParentModeSetupViewModel`이 setup 화면의 10/20/30분 preset, active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
 - 부모 모드 active/expired/extended/cancelled state transition
 - 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
 - `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
@@ -1462,7 +1464,7 @@ cd <repo-root>
 - Allowed app count bucket: 1 / 2_3 / 4_6 / 7_plus
 - PIN state before start: not_configured / configured
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`
 - same-device / PIN / bypass checks:
   - [ ] 보호자 PIN 확인 후에만 부모 모드가 시작된다.
@@ -1473,6 +1475,9 @@ cd <repo-root>
   - [ ] AccessibilityService debug evidence가 `observedParentModeState=expired`와 `lastLaunchedBlockSource=parent_mode`를 남긴다.
   - [ ] 같은 앱이 foreground에 남아 있어도 `expiresAtMillis` 기반 time-based 재평가로 만료 후 차단 전환이 예약된다.
   - [ ] PIN 없이 시간 연장/종료가 되지 않는다.
+  - [ ] setup/active 화면에서 10/20/30분 preset이 선택되고, active 상태에서는 10분 연장/즉시 종료 CTA가 보인다.
+  - [ ] verified guardian PIN 상태에서 10분 연장 CTA는 session 만료 시각과 `parent_mode_extended` evidence를 갱신한다.
+  - [ ] verified guardian PIN 상태에서 즉시 종료 CTA는 session state를 `unlocked_by_pin`으로 바꾸고 `parent_mode_completed(end_reason=pin_unlocked)` evidence를 남긴다.
   - [ ] PIN 성공 후에도 0분/음수 extension은 거부되고 양수 extension만 만료 시각을 늘린다.
   - [ ] PIN 성공 시 즉시 종료가 된다.
   - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.
@@ -1487,7 +1492,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”으로 되돌리지 않는다. 남은 실제 경계는 MVP 전체 UX(entrypoint/setup/active/expired/PIN runtime flow), device/emulator evidence, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”으로 되돌리지 않는다. 남은 실제 경계는 active/expired 화면 device evidence, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 
