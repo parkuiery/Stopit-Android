@@ -374,6 +374,51 @@ print('Coverage rule: custom-covered rows exclude', custom_placement_present_fil
 
 `ad_banner_click` 행은 없었다. 이 smoke는 “GA4 Admin/metadata 또는 event name이 완전히 막혀 있다”는 오래된 진단을 되살리지 않게 하는 증거로만 사용한다. placement별 CTR/eCPM, 광고 제거 관심도 실험, 저효율 placement 제거/확대 판단은 여전히 PR #293 포함 production release 이후 14일 창에서 `publisherAdImpressions`/`publisherAdClicks`/`totalAdRevenue` 표와 앱 custom-event coverage를 분리 재조회한 뒤 결정한다.
 
+### 2026-06-11 `ad_banner_*` live readback: 아직 production post-split 창 아님
+
+2026-06-11 docs-lane에서 같은 GA4 property(`properties/502544175`)를 `30daysAgo..yesterday`로 재조회했다. 결과는 새 이벤트명의 queryability가 계속 살아 있음을 보여주지만, 모든 `ad_banner_*` 행이 `appVersion = 1.7.5`와 `20260602..20260605`에만 묶여 있고 PR #293 split commit은 여전히 `origin/main`/`v1.7.7`에 없다. 따라서 이 값도 **production post-split 14일 measurement가 아니라 release boundary 전 source-split smoke**다.
+
+Publisher surface 30일 요약:
+
+| 지표 | 값 |
+| --- | ---: |
+| totalAdRevenue | `$1.908564` |
+| publisherAdImpressions | `27,899` |
+| publisherAdClicks | `17` |
+| activeUsers | `821` |
+| ARPU | `$0.002325` |
+| CTR | `0.061%` |
+| eCPM | `$0.068` |
+| `(not set)` + empty `adUnitName` impressions | `13,459 / 27,899 = 48.2%` |
+
+Publisher surface 상위 행:
+
+| adUnitName | adFormat | impressions | clicks | CTR | revenue | eCPM | 해석 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `(not set)` | banner | 13,447 | 0 | 0.000% | `$0.000000` | `$0.000` | 여전히 가장 큰 매핑/표시명 gap. placement 실험보다 원인 분리가 우선. |
+| 블락 상단 배너 | Banner | 10,145 | 5 | 0.049% | `$1.124981` | `$0.111` | 수익 기여는 크지만 차단 경험 인접 trust guardrail 대상. |
+| 홈 하단 배너 | Banner | 1,907 | 3 | 0.157% | `$0.357834` | `$0.188` | 비교적 안전한 후보지만 아직 post-split 실험 근거는 아님. |
+| 메뉴 하단 배너 | Banner | 1,060 | 1 | 0.094% | `$0.148316` | `$0.140` | 설정/신뢰 흐름 방해 여부 확인 필요. |
+| 잠금 하단 배너 | Banner | 647 | 7 | 1.082% | `$0.176415` | `$0.273` | CTR/eCPM은 높아 보여도 긴급해제 인접 위치라 실험 확대 금지/guardrail 우선. |
+
+Stopit app custom-event coverage 30일 요약:
+
+| 이벤트 | placement | appVersion | eventCount | totalUsers | 해석 |
+| --- | --- | --- | ---: | ---: | --- |
+| `ad_banner_impression` | `home_bottom` | `1.7.5` | 113 | 54 | queryability smoke. |
+| `ad_banner_impression` | `block_top` | `1.7.5` | 12 | 11 | queryability smoke. |
+| `ad_banner_revenue` | `home_bottom` | `1.7.5` | 113 | 54 | queryability smoke. |
+| `ad_banner_revenue` | `block_top` | `1.7.5` | 11 | 10 | queryability smoke. |
+| `ad_banner_click` | — | — | 0 | 0 | 클릭 coverage 판단 불가. |
+
+날짜 분포는 `20260602` 52 impressions/52 revenue, `20260603` 20/20, `20260604` 50/49, `20260605` 3/3으로 제한됐다. 30일 publisher impressions `27,899` 대비 앱 custom `ad_banner_impression`은 `125`건뿐이므로(`0.45%`), 이 smoke를 placement 성과표와 합산하거나 CTR/eCPM 산식에 섞지 않는다.
+
+운영 판단:
+
+- #16의 다음 action은 새 광고 실험이 아니라 **PR #293/#402/#461/#563/#699 포함 release/tag/Play deploy 확인 후 14일 재조회**다.
+- 2026-06-11 기준 `(not set)` + empty `adUnitName`이 `48.2%`로 더 커졌기 때문에, post-release 창에서도 이 비중이 유지되면 placement 최적화보다 AdMob unit naming / GA4 linkage / SDK automatic event surface / app custom event materialization 원인 분리를 먼저 한다.
+- `잠금 하단 배너`처럼 CTR/eCPM이 좋아 보이는 행도 긴급해제/잠금 인접 trust-sensitive surface이므로 실험 확대 후보로 승격하지 않는다.
+
 다음 재조회 시작 조건:
 
 ```bash
