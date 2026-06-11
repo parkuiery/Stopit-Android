@@ -17,6 +17,7 @@ REQUIRED_STATIC_POLICY_MODULES = (
     "scripts.tests.test_android_manifest_contract",
     "scripts.tests.test_compose_icon_button_accessibility",
     "scripts.tests.test_locale_string_parity",
+    "scripts.tests.test_locale_string_quality_contract",
     "scripts.tests.test_verify_lint_registry",
     "scripts.tests.test_lint_registry_workflows",
 )

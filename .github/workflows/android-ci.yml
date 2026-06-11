@@ -133,7 +133,7 @@ jobs:
 
       - name: Run static policy unit tests
         if: steps.firebase-config.outputs.available == 'true'
-        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_android_manifest_contract scripts.tests.test_compose_icon_button_accessibility scripts.tests.test_locale_string_parity scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
+        run: python3 -m unittest scripts.tests.test_compose_compiler_gradle_contract scripts.tests.test_kds_dependency_catalog_contract scripts.tests.test_sensitive_logging_policy scripts.tests.test_android_manifest_contract scripts.tests.test_compose_icon_button_accessibility scripts.tests.test_locale_string_parity scripts.tests.test_locale_string_quality_contract scripts.tests.test_verify_lint_registry scripts.tests.test_lint_registry_workflows
 
       - name: Run app unit tests
         if: steps.firebase-config.outputs.available == 'true'

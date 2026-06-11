@@ -48,7 +48,7 @@
     <string name="permission_dialog_confirm">동의하고 계속할게요</string>
     <string name="permission_dialog_cancel">거부할래요</string>
     <string name="view_keep_usage_history">스탑잇 사용기록 보기</string>
-    <string name="history_title">스탑잇과 함꼐 이겨낸 시간이에요</string>
+    <string name="history_title">스탑잇과 함께 이겨낸 시간이에요</string>
     <string name="history_subtitle">앞으로도 계속 함께해 주실 거죠?</string>
     <string name="history_total_time">스탑잇과 함께한 시간</string>
     <string name="history_longest_time">가장 오래 이겨낸 시간</string>
@@ -60,7 +60,7 @@
     <string name="select_apps_to_lock">잠글 앱을 선택해 주세요.</string>
     <string name="repeat_days">반복 요일</string>
     <string name="start_time">시작 시간</string>
-    <string name="routine_no_content_message">루틴을 추가하여 앱 잠금을 더 편리하게!\n스탑잇이 알아서 앱을 잠궈줘요.</string>
+    <string name="routine_no_content_message">루틴을 추가하여 앱 잠금을 더 편리하게!\n스탑잇이 알아서 앱을 잠가줘요.</string>
     <string name="routine">루틴</string>
     <string name="goal_lock_menu_title">목표 잠금</string>
     <string name="goal_lock_creation_title">목표 잠금 만들기</string>
