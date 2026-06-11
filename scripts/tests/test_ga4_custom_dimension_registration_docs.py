@@ -60,6 +60,20 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
                 for snippet in required_snippets:
                     self.assertIn(snippet, text)
 
+    def test_goal_lock_screen_view_package_is_tracked_in_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #769",
+            "07c7bc0a",
+            "`GoalLockCreationScreen`",
+            "`GoalLockDetailScreen`",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
 
 if __name__ == "__main__":
     unittest.main()

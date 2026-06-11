@@ -75,6 +75,7 @@
 - 새 화면을 추가할 때는 문자열을 임의로 만들지 말고 `KeepAnalytics.kt`에 상수로 추가한다.
 - Firebase `screen_view` backend payload는 PR #755(`08d31da3`) 이후 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 기록한다. GA4 `unifiedScreenName`이 `(not set)`/blank로 남는지 볼 때는 화면별 호출 누락뿐 아니라 backend payload 계약(`FirebaseScreenViewPayloadTest`)도 같이 확인한다.
 - PR #755는 특정 화면 호출 coverage가 아니라 Firebase `screen_view` backend payload shape 보강이므로, `PR #296/#318/#358` 화면 호출 coverage package와 별도 축으로 보고 release/tag/Play deploy 후 같은 D+14 창에서 함께 재측정한다.
+- PR #769(`07c7bc0a`) 이후 목표 잠금 생성/상세 진입은 각각 `GoalLockCreationScreen` / `GoalLockDetailScreen` canonical `screen_view`를 기록한다. 이 package는 #417 기능 adoption 계측의 선행 screen coverage이면서 #13 screen 품질 보강이므로, release/tag/Play deploy 포함과 D+14 screen quality 재측정 전에는 live 0건이나 `(not set)` 잔여분을 목표 잠금 수요 없음/개선 완료로 해석하지 않는다.
 - GA4에서 `(not set)` 비율이 높아지면 새 화면/분기에서 `logScreenView` 누락을 먼저 의심한다.
 
 ## 이벤트 딕셔너리
