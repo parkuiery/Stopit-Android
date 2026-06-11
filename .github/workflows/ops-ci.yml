@@ -117,6 +117,8 @@ jobs:
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_signed_aab_lint_gate.py'
               - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
+              - 'scripts/tests/test_workflow_gradle_task_guard.py'
+              - 'scripts/tests/test_release_gradle_task_contract.py'
               - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
@@ -175,6 +177,8 @@ jobs:
           scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_signed_aab_lint_gate
           scripts.tests.test_review_prompt_post_release_followthrough_docs
+          scripts.tests.test_workflow_gradle_task_guard
+          scripts.tests.test_release_gradle_task_contract
           scripts.tests.test_aso_screenshots_ci_contract
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow

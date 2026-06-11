@@ -105,10 +105,14 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_signed_aab_lint_gate", workflow)
         self.assertIn("scripts.tests.test_ops_ci_workflow", workflow)
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
+        self.assertIn("scripts.tests.test_workflow_gradle_task_guard", workflow)
+        self.assertIn("scripts.tests.test_release_gradle_task_contract", workflow)
         docs_contract_filter = self._filter_block(workflow, "docs_contract")
         self.assertIn("'scripts/tests/test_acquisition_attribution_docs_contract.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_signed_aab_lint_gate.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_workflow_gradle_task_guard.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_release_gradle_task_contract.py'", docs_contract_filter)
         docs_contract_job = self._job_block(workflow, "docs-contract")
         self.assertNotRegex(
             docs_contract_job,
@@ -147,6 +151,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts.tests.test_review_prompt_post_release_followthrough_docs",
             "scripts.tests.test_play_deploy_secret_contract_runbook",
             "scripts.tests.test_release_guard_hotfix_sync",
+            "scripts.tests.test_workflow_gradle_task_guard",
+            "scripts.tests.test_release_gradle_task_contract",
         ]
         for module in expected_contract_modules:
             with self.subTest(job="docs-contract", module=module):
@@ -180,6 +186,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts.tests.test_acquisition_attribution_docs_contract", doc)
             self.assertIn("scripts.tests.test_signed_aab_lint_gate", doc)
             self.assertIn("scripts.tests.test_review_prompt_post_release_followthrough_docs", doc)
+            self.assertIn("scripts.tests.test_workflow_gradle_task_guard", doc)
+            self.assertIn("scripts.tests.test_release_gradle_task_contract", doc)
             self.assertIn("docs-only", doc)
 
         # The main operator workflow table should enumerate the full release-helper
