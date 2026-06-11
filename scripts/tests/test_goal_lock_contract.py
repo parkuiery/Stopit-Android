@@ -166,6 +166,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationViewModelTest", qa_checklist)
         self.assertIn("GoalLockSelectedAppUiItemTest", qa_checklist)
         self.assertIn("GoalLockCreationContentIntegrationTest", qa_checklist)
+        self.assertIn("GoalLockAccessibilityDescriptionTest", qa_checklist)
+        self.assertIn("summary contentDescription", qa_checklist)
         self.assertIn("compact-height", qa_checklist)
         self.assertIn("목표 잠금 시작", qa_checklist)
         self.assertIn("GoalLockDetailContentIntegrationTest", qa_checklist)
@@ -196,7 +198,11 @@ class GoalLockContractTest(unittest.TestCase):
             self.assertIn("상세 앱/이름/기간/잠금 방식 수정", document)
             self.assertIn("goal_lock_updated changed_field=apps|name|duration|schedule|lock_mode", document)
             self.assertIn("compact-height creation/detail CTA", document)
+            self.assertIn("PR #760", document)
+            self.assertIn("summary", document)
+            self.assertIn("contentDescription", document)
             self.assertIn("TalkBack", document)
+            self.assertIn("실기기/release-candidate screenshot", document)
             self.assertNotIn("#417 목표 잠금 MVP 계약. 기간 기반 `all_day`/`scheduled` 장기 잠금, Home 진행 카드/섹션, privacy-safe analytics, runtime QA baseline을 구현 전 handoff", document)
             self.assertNotIn("기간/schedule/lock_mode 수정 UI, TalkBack 실기기 spot-check", document)
 
@@ -205,6 +211,10 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("`develop` 반영 상태", dashboard)
         self.assertIn("상세 앱/이름/기간/잠금 방식 수정", dashboard)
         self.assertIn("compact-height 생성·상세 CTA", dashboard)
+
+        docs_agents = DOCS_AGENTS.read_text()
+        self.assertIn("PR #760", docs_agents)
+        self.assertIn("summary TalkBack contentDescription", docs_agents)
 
     def test_goal_lock_creation_uses_picker_style_app_selection(self):
         screen = GOAL_LOCK_CREATION_SCREEN.read_text()

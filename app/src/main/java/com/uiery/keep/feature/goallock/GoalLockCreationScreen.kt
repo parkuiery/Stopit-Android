@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -172,13 +174,39 @@ internal fun GoalLockCreationContent(
         resolveLabel = { packageName -> appDisplayMetadataResolver.resolve(packageName).label },
         unknownAppDescription = unknownAppDescription,
     )
+    val durationRangeText = stringResource(
+        id = R.string.goal_lock_creation_duration_range,
+        state.startDate,
+        state.endDate,
+    )
+    val currentLockModeText = when (val mode = state.lockMode) {
+        GoalLockCreationLockMode.AllDay -> stringResource(id = R.string.goal_lock_creation_current_mode_all_day)
+        is GoalLockCreationLockMode.Scheduled -> stringResource(
+            id = R.string.goal_lock_creation_current_mode_scheduled,
+            mode.repeatDays.size,
+            mode.startTime,
+            mode.endTime,
+        )
+    }
+    val selectedAppsText = stringResource(
+        id = R.string.goal_lock_creation_selected_apps_helper,
+        state.selectedApps.size,
+    )
+    val creationAccessibilityDescription = buildGoalLockCreationAccessibilityDescription(
+        goalName = state.goalName,
+        durationRangeText = durationRangeText,
+        lockModeText = currentLockModeText,
+        selectedAppsText = selectedAppsText,
+    )
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = creationAccessibilityDescription },
             colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
         ) {
             Column(
@@ -220,11 +248,7 @@ internal fun GoalLockCreationContent(
                     fontSize = 16.sp,
                 )
                 Text(
-                    text = stringResource(
-                        id = R.string.goal_lock_creation_duration_range,
-                        state.startDate,
-                        state.endDate,
-                    ),
+                    text = durationRangeText,
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 14.sp,
                 )
@@ -279,15 +303,7 @@ internal fun GoalLockCreationContent(
                     }
                 }
                 Text(
-                    text = when (val mode = state.lockMode) {
-                        GoalLockCreationLockMode.AllDay -> stringResource(id = R.string.goal_lock_creation_current_mode_all_day)
-                        is GoalLockCreationLockMode.Scheduled -> stringResource(
-                            id = R.string.goal_lock_creation_current_mode_scheduled,
-                            mode.repeatDays.size,
-                            mode.startTime,
-                            mode.endTime,
-                        )
-                    },
+                    text = currentLockModeText,
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 13.sp,
                 )
@@ -299,10 +315,7 @@ internal fun GoalLockCreationContent(
                     )
                 }
                 Text(
-                    text = stringResource(
-                        id = R.string.goal_lock_creation_selected_apps_helper,
-                        state.selectedApps.size,
-                    ),
+                    text = selectedAppsText,
                     color = KeepTheme.colors.surfaceVariant,
                     fontSize = 13.sp,
                 )
@@ -381,3 +394,17 @@ fun buildGoalLockSelectedAppItems(
                 .thenBy { it.label.lowercase() }
                 .thenBy { it.packageName },
         )
+
+fun buildGoalLockCreationAccessibilityDescription(
+    goalName: String,
+    durationRangeText: String,
+    lockModeText: String,
+    selectedAppsText: String,
+): String = listOf(
+    goalName.trim(),
+    durationRangeText.trim(),
+    lockModeText.trim(),
+    selectedAppsText.trim(),
+)
+    .filter { it.isNotBlank() }
+    .joinToString(", ")
