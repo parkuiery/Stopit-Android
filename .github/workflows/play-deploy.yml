@@ -215,27 +215,38 @@ jobs:
             return 1
           }
 
-          run_id="$(gh run list \
-            --workflow 'Android Play Deploy' \
-            --branch "$GITHUB_REF_NAME" \
-            --event push \
-            --status success \
-            --limit 20 \
-            --json databaseId,headSha,conclusion \
-            --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
-            | head -n 1)"
+          run_id=""
+          run_event=""
+          for event_name in push workflow_dispatch; do
+            candidate_run_id="$(gh run list \
+              --workflow 'Android Play Deploy' \
+              --branch "$GITHUB_REF_NAME" \
+              --event "$event_name" \
+              --status success \
+              --limit 20 \
+              --json databaseId,headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
+              | head -n 1)"
+            if [[ -n "$candidate_run_id" ]]; then
+              run_id="$candidate_run_id"
+              run_event="$event_name"
+              break
+            fi
+          done
           if [[ -z "$run_id" ]]; then
-            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA" >&2
+            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA across push or workflow_dispatch events" >&2
             download_durable_fallback || {
               echo "Recovery: rerun a non-production Play Deploy for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
               exit 1
             }
             exit 0
           fi
+          echo "PRIOR_PROVENANCE_RUN_EVENT=$run_event" >> "$GITHUB_ENV"
+          echo "Selected prior internal Play Deploy run_id=$run_id from event=$run_event for $GITHUB_REF_NAME / $GITHUB_SHA"
           if ! gh run download "$run_id" \
             --name stopit-prod-release-signed-aab \
             --dir /tmp/stopit-prior-internal-provenance; then
-            echo "Prior internal provenance artifact expired/missing for run_id=$run_id ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
+            echo "Prior internal provenance artifact expired/missing for run_id=$run_id event=$run_event ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
             download_durable_fallback || {
               echo "Recovery: rerun non-production Play Deploy for the same SemVer tag before production promotion." >&2
               exit 1
@@ -354,9 +365,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Durable provenance fallback requires a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+
+          post_upload_failure() {
+            local reason="$1"
+            {
+              echo "## Post-upload durable provenance publish failure"
+              echo ""
+              echo "Google Play upload already completed before this step, but publishing the durable GitHub Release \`release-provenance.json\` fallback failed: $reason"
+              echo ""
+              echo "Treat this as an evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same versionCode. Recover by rerunning the same-tag non-production Play Deploy or by attaching the verified \`release-provenance.json\` fallback before production promotion."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "post-upload durable provenance publish failure: $reason" >&2
+            echo "Play upload succeeded earlier in this job; classify recovery separately from Google Play upload failure and avoid blind same-versionCode re-upload." >&2
             exit 1
+          }
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            post_upload_failure "SemVer tag ref is required; got $GITHUB_REF_NAME"
           fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "GitHub Release $GITHUB_REF_NAME already exists; uploading release-provenance.json fallback."
@@ -364,9 +389,11 @@ jobs:
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
               --title "$GITHUB_REF_NAME" \
-              --notes "Stopit $GITHUB_REF_NAME release provenance fallback."
+              --notes "Stopit $GITHUB_REF_NAME release provenance fallback." \
+              || post_upload_failure "GitHub Release create failed for $GITHUB_REF_NAME"
           fi
-          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber
+          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber \
+            || post_upload_failure "GitHub Release upload failed for release-provenance.json"
           echo "Published durable release-provenance.json fallback for $GITHUB_REF_NAME after successful $DEPLOY_TRACK Play upload."
 
       - name: Promote internal release to production

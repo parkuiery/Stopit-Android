@@ -10,20 +10,31 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 REVIEW_PROMPT_FOLLOWTHROUGH = REPO_ROOT / "docs" / "REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md"
 
-LATEST_TIMESTAMP = "2026-06-09T15:25:30Z"
+LATEST_TIMESTAMP = "2026-06-11T00:10:19Z"
 LATEST_VALUES = [
-    "571",
-    "336",
-    "236",
-    "58.8%",
-    "+65.5%",
-    "-13.0%",
+    "568",
+    "333",
+    "235",
+    "58.6%",
+    "+90.6%",
+    "-6.5%",
 ]
 SCREEN_QUALITY_VALUES = [
-    "44,814",
-    "27,468",
-    "61.3%",
-    "246 / 805 = 30.6%",
+    "46,694",
+    "28,316",
+    "60.6%",
+    "267 / 821 = 32.5%",
+]
+STORE_PERFORMANCE_VALUES = [
+    "2026-06-11",
+    "store_performance",
+    "1,112 -> 521",
+    "-53.1%",
+    "319 -> 154",
+    "-51.7%",
+    "28.7% -> 29.6%",
+    "+0.9p",
+    "97.0%",
 ]
 
 
@@ -54,10 +65,10 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             self.assertIn(value, product_context)
 
         self.assertIn(LATEST_TIMESTAMP, review_prompt_followthrough)
-        self.assertIn("Organic Search` 신규 사용자 | 236", review_prompt_followthrough)
-        self.assertIn("Direct` 신규 사용자 | 336", review_prompt_followthrough)
-        self.assertIn("58.8%", review_prompt_followthrough)
-        self.assertIn("| baseline | TODO | TODO | TODO | 236 | TODO |", review_prompt_followthrough)
+        self.assertIn("Organic Search` 신규 사용자 | 235", review_prompt_followthrough)
+        self.assertIn("Direct` 신규 사용자 | 333", review_prompt_followthrough)
+        self.assertIn("58.6%", review_prompt_followthrough)
+        self.assertIn("| baseline | TODO | TODO | TODO | 235 | TODO |", review_prompt_followthrough)
         self.assertNotIn("| baseline | TODO | TODO | TODO | 170 | TODO |", review_prompt_followthrough)
         self.assertIn("Play Console Search/Explore", review_prompt_followthrough)
         self.assertIn("external/campaign", review_prompt_followthrough)
@@ -80,19 +91,49 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
             self.assertIn("release/tag/Play deploy", document)
 
         self.assertIn(LATEST_TIMESTAMP, version_gate)
-        self.assertIn("246 / 805 = 30.6%", version_gate)
+        self.assertIn("267 / 821 = 32.5%", version_gate)
         self.assertIn("충분", version_gate)
         self.assertIn("main/tag/Play 포함 여부", version_gate)
 
     def test_play_store_aso_keeps_manual_attribution_boundary_explicit(self):
         play_store_aso = PLAY_STORE_ASO.read_text()
 
-        self.assertIn("2026-06-09 live readback", play_store_aso)
-        self.assertIn("Direct 58.8% 과다 상태 유지", play_store_aso)
+        self.assertIn("2026-06-11 live readback", play_store_aso)
+        self.assertIn("Direct 58.6% 과다 상태 유지", play_store_aso)
         self.assertIn("신규 유입 반등을 ASO 효과로 표현 금지", play_store_aso)
         self.assertIn("TODO: Play Console 수동 확인", play_store_aso)
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
-        self.assertIn("활성 19명·세션 149회는 신규 획득 성과로 계산하지 않음", play_store_aso)
+        self.assertIn("활성 18명·세션 148회는 신규 획득 성과로 계산하지 않음", play_store_aso)
+
+    def test_play_store_performance_readback_is_consistent_across_pm_context_docs(self):
+        documents = [
+            PLAY_STORE_ASO.read_text(),
+            METRICS_ANALYSIS.read_text(),
+            PRODUCT_DASHBOARD.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+            METRICS_CONTEXT.read_text(),
+        ]
+
+        for document in documents:
+            for value in STORE_PERFORMANCE_VALUES:
+                self.assertIn(value, document)
+            self.assertIn("전환율 하락", document)
+            self.assertIn("방문자", document)
+            self.assertIn("Search/Explore", document)
+            self.assertIn("external", document)
+
+    def test_play_store_aso_records_cloud_storage_store_performance_readback(self):
+        play_store_aso = PLAY_STORE_ASO.read_text()
+
+        self.assertIn("2026-06-11 Play Console Store performance Cloud Storage readback", play_store_aso)
+        self.assertIn("gs://pubsite_prod_4966532873904693612/stats/store_performance", play_store_aso)
+        self.assertIn("방문자 `1,112 -> 521` (`-53.1%`)", play_store_aso)
+        self.assertIn("등록정보 획득 `319 -> 154` (`-51.7%`)", play_store_aso)
+        self.assertIn("전환율 `28.7% -> 29.6%` (`+0.9p`)", play_store_aso)
+        self.assertIn("전환율 하락이 아니라 store listing visitor 급감", play_store_aso)
+        self.assertIn("Traffic source CSV는 `Other`가 전체 visitors의 `97.0%`", play_store_aso)
+        self.assertIn("KR CVR `24.1% -> 27%+`", play_store_aso)
+        self.assertIn("1차 목표 `30 visitors/day`", play_store_aso)
 
 
 if __name__ == "__main__":

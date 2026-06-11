@@ -432,7 +432,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 | user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
 | --- | --- | --- | --- |
-| `routines_count` | 현재 구현은 `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`; #479 목표 source of truth는 `KeepAnalytics` 계층의 중앙 API/상수 + 앱/Home/restore 공통 sync 경로 | 현재는 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때. #479 이후에는 앱 실행/Home 진입, 루틴 생성/수정/삭제, backup/restore 또는 boot rehydrate 이후에도 `0` 또는 실제 Room count를 명시적으로 설정해야 한다. | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. #479 완료 전에는 `routines_count=(not set)` coverage gap을 별도 cohort로 유지한다. |
+| `routines_count` | PR #525 이후 source of truth는 `app/src/main/java/com/uiery/keep/analytics/RoutineCountAnalyticsSync.kt`의 `KeepAnalyticsUserProperty.ROUTINES_COUNT` / `RoutineCountAnalyticsSync` / `KeepAnalytics.setRoutinesCount(...)` 중앙 API다. | `RoutineViewModel` 루틴 collect 경로, Home init 경로, Splash restore-aftercare 경로가 Room count 기반으로 `0` 또는 실제 루틴 수를 명시적으로 설정한다. Routine 화면을 거치지 않은 active user도 Home/Splash 경로에서 갱신된다. | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. PR #525 포함 release/tag/Play deploy와 D+14/D+30 readback 전에는 `routines_count=(not set)` coverage gap을 별도 cohort로 유지한다. |
 
 운영 원칙:
 
@@ -646,7 +646,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐고, PR #358 merge commit `6ceaecc4`가 release-boundary 해석을 문서화했으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 `PR #296/#318/#358` 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. #13 closure는 release/tag/Play deploy 후 **D+14 screen quality 재측정**으로 판단한다.
-- 2026-06-09T15:25:30Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `27,468 / 44,814 = 61.3%`였고 최신 관측 production version `1.7.7` active share도 `246 / 805 = 30.6%`(`충분`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-11T00:10:19Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `28,316 / 46,694 = 60.6%`였고 최신 관측 production version `1.7.7` active share도 `267 / 821 = 32.5%`(`충분`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

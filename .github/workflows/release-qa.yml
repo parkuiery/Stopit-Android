@@ -43,6 +43,25 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Validate manual release QA ref
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          allowed=false
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            case "$GITHUB_REF_NAME" in
+              "main"|release/*|hotfix/*) allowed=true ;;
+            esac
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              allowed=true
+            fi
+          fi
+          if [ "$allowed" != "true" ]; then
+            echo "Android Release QA manual dispatch is allowed only from main, release/*, hotfix/*, or SemVer tag refs. This run will not restore Firebase secrets or run release QA."
+            exit 1
+          fi
+
       - name: Restore Firebase google-services.json files
         env:
           GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
@@ -109,6 +128,25 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Validate manual release QA ref
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          allowed=false
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            case "$GITHUB_REF_NAME" in
+              "main"|release/*|hotfix/*) allowed=true ;;
+            esac
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              allowed=true
+            fi
+          fi
+          if [ "$allowed" != "true" ]; then
+            echo "Android Release QA manual dispatch is allowed only from main, release/*, hotfix/*, or SemVer tag refs. This run will not restore Firebase secrets or run release QA."
+            exit 1
+          fi
+
       - name: Restore Firebase google-services.json files
         env:
           GOOGLE_SERVICES_JSON_DEV: ${{ secrets.GOOGLE_SERVICES_JSON_DEV }}
@@ -137,6 +175,8 @@ jobs:
           disable-animations: true
           script: |
             set -eu
+            mkdir -p runtime-diagnostics
+            trap 'adb logcat -d > runtime-diagnostics/release-qa-logcat.txt || true; adb shell dumpsys alarm > runtime-diagnostics/release-qa-alarm.txt || true; adb shell dumpsys accessibility > runtime-diagnostics/release-qa-accessibility.txt || true' EXIT
             python3 scripts/android_runtime_suites.py run-connected release_focused_ui_smoke --before "./gradlew --console=plain :app:installDevDebug"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_default --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell cmd appops reset com.uiery.keep.dev"
             python3 scripts/android_runtime_suites.py run-connected release_exact_alarm_denied --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny"
@@ -144,3 +184,16 @@ jobs:
             python3 scripts/android_runtime_suites.py run-connected release_remaining_runtime
             python3 scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock --before "./gradlew --console=plain :app:installDevDebug" --before "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore"
             python3 scripts/android_runtime_suites.py run-connected notification_channel_disabled --before "./gradlew --console=plain :app:installDevDebug"
+
+      - name: Upload release instrumentation diagnostics
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-release-instrumentation-diagnostics
+          path: |
+            app/build/reports/androidTests/**
+            app/build/outputs/androidTest-results/**
+            runtime-diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 7

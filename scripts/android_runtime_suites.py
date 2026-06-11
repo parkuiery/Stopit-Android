@@ -150,14 +150,33 @@ def render_markdown(suite_names: Iterable[str]) -> str:
     return "\n".join(lines).rstrip()
 
 
-def run_connected_tests(suite_names: Iterable[str], before: Iterable[str] = ()) -> int:
+def run_connected_tests(
+    suite_names: Iterable[str],
+    before: Iterable[str] = (),
+    *,
+    continue_on_failure: bool = False,
+) -> int:
     selectors = selectors_for(suite_names)
     before_commands = [shlex.split(command) for command in before]
+    first_failure = 0
+    failed_steps: list[str] = []
+
     for selector in selectors:
+        before_failed = False
         for command in before_commands:
             completed = subprocess.run(command, cwd=REPO_ROOT)
             if completed.returncode:
-                return completed.returncode
+                if not first_failure:
+                    first_failure = completed.returncode
+                failed_steps.append(f"before {shlex.join(command)} -> {completed.returncode}")
+                before_failed = True
+                if not continue_on_failure:
+                    return completed.returncode
+                break
+        if before_failed:
+            print(f"[android-runtime-suite] SKIP selector after before failure: {selector}", file=sys.stderr)
+            continue
+
         completed = subprocess.run(
             [
                 "./gradlew",
@@ -168,8 +187,47 @@ def run_connected_tests(suite_names: Iterable[str], before: Iterable[str] = ()) 
             cwd=REPO_ROOT,
         )
         if completed.returncode:
-            return completed.returncode
-    return 0
+            if not first_failure:
+                first_failure = completed.returncode
+            failed_steps.append(f"selector {selector} -> {completed.returncode}")
+            if not continue_on_failure:
+                return completed.returncode
+
+    if failed_steps:
+        print("[android-runtime-suite] Aggregate failures:", file=sys.stderr)
+        for failure in failed_steps:
+            print(f"- {failure}", file=sys.stderr)
+    return first_failure
+
+
+ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
+    "notification_denied_receiver": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+    "notification_denied_emergency_unlock": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+}
+
+
+def run_android_ci_sequence() -> int:
+    """Run Android CI runtime smoke suites in aggregate mode."""
+    first_failure = 0
+    print("[android-runtime-suite] Android CI aggregate mode: running all runtime smoke suites before final failure.")
+    for suite_name in ANDROID_CI_SEQUENCE:
+        print(f"[android-runtime-suite] Running suite: {suite_name}")
+        result = run_connected_tests(
+            [suite_name],
+            before=ANDROID_CI_BEFORE_COMMANDS.get(suite_name, []),
+            continue_on_failure=True,
+        )
+        if result and not first_failure:
+            first_failure = result
+    if first_failure:
+        print(f"[android-runtime-suite] Android CI aggregate mode completed with failure: {first_failure}", file=sys.stderr)
+    return first_failure
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -192,7 +250,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser = subparsers.add_parser("run-connected", help="Run each selector as a separate connectedDevDebugAndroidTest Gradle invocation")
     run_parser.add_argument("suite", nargs="+")
     run_parser.add_argument("--before", action="append", default=[], help="Command to run before each selector; may be supplied multiple times")
+    run_parser.add_argument(
+        "--continue-on-failure",
+        action="store_true",
+        help="Run remaining selectors and print an aggregate failure summary before returning non-zero",
+    )
 
+    subparsers.add_parser("run-android-ci", help="Run Android CI runtime smoke suites in aggregate diagnostic mode")
     subparsers.add_parser("list-suites", help="Print known suite names")
     subparsers.add_parser("validate-sources", help="Verify selectors point to existing androidTest classes/methods")
     return parser.parse_args(argv)
@@ -214,7 +278,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "markdown":
         print(render_markdown(args.suite))
     elif args.command == "run-connected":
-        return run_connected_tests(args.suite, before=args.before)
+        return run_connected_tests(args.suite, before=args.before, continue_on_failure=args.continue_on_failure)
+    elif args.command == "run-android-ci":
+        return run_android_ci_sequence()
     elif args.command == "list-suites":
         print("\n".join(SUITES.keys()))
     elif args.command == "validate-sources":

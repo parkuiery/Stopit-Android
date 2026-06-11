@@ -97,6 +97,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("Run docs/runbook contract tests", workflow)
         self.assertIn("scripts.tests.test_play_deploy_secret_contract_runbook", workflow)
         self.assertIn("scripts.tests.test_release_build_workflow_scope", workflow)
+        self.assertIn("scripts.tests.test_release_qa_workflow_scope", workflow)
         self.assertIn("scripts.tests.test_release_qa_runtime_gate_docs", workflow)
         self.assertIn("scripts.tests.test_android_ci_runtime_smoke_docs", workflow)
         self.assertIn("scripts.tests.test_release_guard_hotfix_sync", workflow)
@@ -143,6 +144,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
 
         expected_contract_modules = [
             "scripts.tests.test_release_qa_runtime_gate_docs",
+            "scripts.tests.test_release_qa_workflow_scope",
             "scripts.tests.test_android_ci_runtime_smoke_docs",
             "scripts.tests.test_release_build_workflow_scope",
             "scripts.tests.test_release_provenance_workflow_contract",
