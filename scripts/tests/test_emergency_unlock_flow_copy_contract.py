@@ -19,6 +19,7 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
             "PR #575(`1a7c677`)",
             "PR #593(`79fdee8`)",
             "PR #604(`3e97f548`)",
+            "PR #675(`d2fab054`)",
             "EmergencyUnlockBottomSheetContent.kt",
             "reason → app selection → duration → countdown",
             "필요하면 빠르게, 습관이면 한 번 멈춤",
@@ -111,12 +112,15 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
         self.assertIn("PR #575(`1a7c677`)", source)
         self.assertIn("PR #593(`79fdee8`)", source)
         self.assertIn("PR #604(`3e97f548`)", source)
+        self.assertIn("PR #675(`d2fab054`)", source)
         self.assertIn("countdown TalkBack baseline", high_traffic)
         self.assertIn("selected reason reflection helper baseline", high_traffic)
+        self.assertIn("step purpose copy baseline", high_traffic)
         self.assertIn("Compose UI flow baseline", high_traffic)
         self.assertIn("`develop`에 반영", high_traffic)
         self.assertIn("release/tag/Play deploy", high_traffic)
         self.assertNotIn("Closes #467를 사용한다", source)
+        self.assertNotIn("이번 code-lane PR", source)
 
     def test_runtime_qa_checklist_tracks_post_implementation_evidence_boundary(self):
         checklist = read("docs/QA_RUNTIME_CHECKLIST.md")
@@ -125,10 +129,13 @@ class EmergencyUnlockFlowCopyContractTest(unittest.TestCase):
         self.assertIn("PR #575(`1a7c677`)", checklist)
         self.assertIn("PR #593(`79fdee8`)", checklist)
         self.assertIn("PR #604(`3e97f548`)", checklist)
+        self.assertIn("PR #675(`d2fab054`)", checklist)
         self.assertIn("device/screenshot/TalkBack evidence", checklist)
         self.assertIn("PR #517 merge commit included in tested build", checklist)
         self.assertIn("PR #575 UI QA baseline included in tested build", checklist)
+        self.assertIn("PR #593 countdown TalkBack baseline included in tested build", checklist)
         self.assertIn("PR #604 selected reason reflection helper baseline included in tested build", checklist)
+        self.assertIn("PR #675 step purpose copy baseline included in tested build", checklist)
         self.assertIn(
             "countdown TalkBack includes waiting copy, remaining seconds, and cancel affordance together",
             checklist,
