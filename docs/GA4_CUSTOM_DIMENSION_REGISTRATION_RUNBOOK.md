@@ -63,6 +63,12 @@
 - 이 변경은 특정 화면 호출 누락을 다시 추가하는 작업이 아니라, Firebase backend adapter의 공통 payload shape를 고정해 GA4 `unifiedScreenName` 회복 가능성을 높이는 repo-internal 보강이다.
 - live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 같은 쿼리 창 재측정 전까지 보류한다.
 
+2026-06-12 code-lane 기준 추가 확인(PR #769 / merge commit `07c7bc0a`):
+
+- 목표 잠금 생성/상세 ViewModel 진입 시 `GoalLockCreationScreen` / `GoalLockDetailScreen` canonical `screen_view`를 기록하도록 `KeepAnalyticsScreen` 상수와 focused ViewModel regressions가 추가됐다.
+- 이 변경은 #417 목표 잠금 adoption funnel의 screen coverage를 보강하는 동시에 #13 screen 품질 package에 들어가는 repo-internal 화면 호출 coverage다.
+- live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다. 목표 잠금 event/screen 0건은 GA4 Admin 등록·배포·관측 창 전에는 수요 없음으로 해석하지 않는다.
+
 해석:
 
 - 현재 #13은 단순 문서 부재 문제가 아니라 **GA4 Admin 등록, 이벤트 source split, 배포 후 계측 품질 회복이 아직 모두 끝나지 않은 상태**다.
