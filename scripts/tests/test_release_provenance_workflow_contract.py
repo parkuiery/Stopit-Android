@@ -111,6 +111,13 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("gh release view \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release create \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber", publish_step)
+        self.assertIn("post_upload_failure()", publish_step)
+        self.assertIn("Post-upload durable provenance publish failure", publish_step)
+        self.assertIn("evidence-publish failure, not as proof that the Play upload failed", publish_step)
+        self.assertIn("Do not blindly re-upload the same versionCode", publish_step)
+        self.assertIn("same-tag non-production Play Deploy", publish_step)
+        self.assertIn("|| post_upload_failure \"GitHub Release create failed", publish_step)
+        self.assertIn("|| post_upload_failure \"GitHub Release upload failed", publish_step)
 
     def test_production_promotion_downloads_and_verifies_prior_internal_provenance_before_secrets(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
@@ -187,6 +194,9 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "durable fallback",
             "artifact expired/missing",
             "durable fallback missing",
+            "post-upload durable provenance publish failure",
+            "evidence-publish failure",
+            "do not blindly re-upload the same `versionCode`",
             "provenance mismatch",
         ):
             self.assertIn(required, docs)

@@ -354,9 +354,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Durable provenance fallback requires a SemVer tag ref; got $GITHUB_REF_NAME" >&2
+
+          post_upload_failure() {
+            local reason="$1"
+            {
+              echo "## Post-upload durable provenance publish failure"
+              echo ""
+              echo "Google Play upload already completed before this step, but publishing the durable GitHub Release \`release-provenance.json\` fallback failed: $reason"
+              echo ""
+              echo "Treat this as an evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same versionCode. Recover by rerunning the same-tag non-production Play Deploy or by attaching the verified \`release-provenance.json\` fallback before production promotion."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "post-upload durable provenance publish failure: $reason" >&2
+            echo "Play upload succeeded earlier in this job; classify recovery separately from Google Play upload failure and avoid blind same-versionCode re-upload." >&2
             exit 1
+          }
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            post_upload_failure "SemVer tag ref is required; got $GITHUB_REF_NAME"
           fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "GitHub Release $GITHUB_REF_NAME already exists; uploading release-provenance.json fallback."
@@ -364,9 +378,11 @@ jobs:
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
               --title "$GITHUB_REF_NAME" \
-              --notes "Stopit $GITHUB_REF_NAME release provenance fallback."
+              --notes "Stopit $GITHUB_REF_NAME release provenance fallback." \
+              || post_upload_failure "GitHub Release create failed for $GITHUB_REF_NAME"
           fi
-          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber
+          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber \
+            || post_upload_failure "GitHub Release upload failed for release-provenance.json"
           echo "Published durable release-provenance.json fallback for $GITHUB_REF_NAME after successful $DEPLOY_TRACK Play upload."
 
       - name: Promote internal release to production
