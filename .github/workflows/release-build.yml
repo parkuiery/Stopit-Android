@@ -150,6 +150,20 @@ jobs:
           --release-status ''
           --rollout-fraction ''
 
+      - name: Upload release build diagnostics
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-release-build-diagnostics
+          path: |
+            app/build/reports/**
+            app/build/test-results/**
+            app/build/outputs/logs/**
+            app/build/outputs/mapping/prodRelease/**
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v7
         with:

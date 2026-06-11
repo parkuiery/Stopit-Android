@@ -337,6 +337,20 @@ jobs:
           --release-status "$RELEASE_STATUS"
           --rollout-fraction "$ROLLOUT_FRACTION"
 
+      - name: Upload Play deploy release diagnostics
+        if: always() && env.DEPLOY_TRACK != 'production'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-play-deploy-release-diagnostics
+          path: |
+            app/build/reports/**
+            app/build/test-results/**
+            app/build/outputs/logs/**
+            app/build/outputs/mapping/prodRelease/**
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload signed AAB artifact
         if: env.DEPLOY_TRACK != 'production'
         uses: actions/upload-artifact@v7

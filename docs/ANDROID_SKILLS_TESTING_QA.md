@@ -111,6 +111,8 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
 
 Runtime smoke 실패 triage artifact는 두 workflow가 같은 경계로 남긴다. Android CI focused runtime smoke는 `stopit-runtime-smoke-diagnostics`, Release instrumentation QA는 `stopit-release-instrumentation-diagnostics` artifact를 `retention-days: 7`로 업로드한다. 이 artifact upload는 테스트 실패를 가리지 않는 non-blocking 단계이며, 먼저 `app/build/reports/androidTests` report를 보고, 다음으로 `app/build/outputs/androidTest-results` raw result, 마지막으로 `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility`를 확인한다.
 
+Signed release build / non-production Play deploy 실패 triage artifact는 runtime smoke와 분리한다. Android Release Build는 `stopit-release-build-diagnostics`, non-production Android Play Deploy는 `stopit-play-deploy-release-diagnostics` artifact를 `retention-days: 7`로 업로드한다. 이 upload는 `if-no-files-found: ignore`와 `continue-on-error: true`를 쓰는 non-blocking 진단 단계이며, 먼저 `app/build/reports`의 prodRelease lint/test report, 다음으로 `app/build/test-results`, 그 다음 `app/build/outputs/logs`, 마지막으로 `app/build/outputs/mapping/prodRelease`를 확인한다. Production promotion은 새 AAB를 빌드하지 않으므로 이 release diagnostics artifact 대상이 아니다.
+
 ## Android CLI 활용
 
 로컬 기기/에뮬레이터 evidence 수집 시 `android-cli` skill을 기준으로 다음 도구를 우선 사용한다.
