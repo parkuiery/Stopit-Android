@@ -6,6 +6,8 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ANDROID_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "android-ci.yml"
 RELEASE_QA_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-qa.yml"
+RELEASE_BUILD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-build.yml"
+PLAY_DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "play-deploy.yml"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 ANDROID_SKILLS_TESTING_QA = REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
@@ -56,12 +58,48 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("app/build/outputs/androidTest-results/**", upload_step)
         self.assertIn("runtime-diagnostics/**", upload_step)
 
+    def test_release_build_uploads_release_diagnostics_even_after_failure(self):
+        workflow = RELEASE_BUILD_WORKFLOW.read_text()
+        upload_step = self._step_block(workflow, "Upload release build diagnostics")
+
+        self.assertIn("if: always()", upload_step)
+        self.assertIn("continue-on-error: true", upload_step)
+        self.assertIn("uses: actions/upload-artifact@v7", upload_step)
+        self.assertIn("name: stopit-release-build-diagnostics", upload_step)
+        self.assertIn("retention-days: 7", upload_step)
+        self.assertIn("if-no-files-found: ignore", upload_step)
+        self.assertIn("app/build/reports/**", upload_step)
+        self.assertIn("app/build/test-results/**", upload_step)
+        self.assertIn("app/build/outputs/logs/**", upload_step)
+        self.assertIn("app/build/outputs/mapping/prodRelease/**", upload_step)
+
+    def test_play_deploy_uploads_non_production_release_diagnostics_even_after_failure(self):
+        workflow = PLAY_DEPLOY_WORKFLOW.read_text()
+        upload_step = self._step_block(workflow, "Upload Play deploy release diagnostics")
+
+        self.assertIn("if: always() && env.DEPLOY_TRACK != 'production'", upload_step)
+        self.assertIn("continue-on-error: true", upload_step)
+        self.assertIn("uses: actions/upload-artifact@v7", upload_step)
+        self.assertIn("name: stopit-play-deploy-release-diagnostics", upload_step)
+        self.assertIn("retention-days: 7", upload_step)
+        self.assertIn("if-no-files-found: ignore", upload_step)
+        self.assertIn("app/build/reports/**", upload_step)
+        self.assertIn("app/build/test-results/**", upload_step)
+        self.assertIn("app/build/outputs/logs/**", upload_step)
+        self.assertIn("app/build/outputs/mapping/prodRelease/**", upload_step)
+
     def test_operator_docs_explain_runtime_diagnostic_artifact_triage_order(self):
         required = [
             "stopit-runtime-smoke-diagnostics",
             "stopit-release-instrumentation-diagnostics",
+            "stopit-release-build-diagnostics",
+            "stopit-play-deploy-release-diagnostics",
             "app/build/reports/androidTests",
             "app/build/outputs/androidTest-results",
+            "app/build/reports",
+            "app/build/test-results",
+            "app/build/outputs/logs",
+            "app/build/outputs/mapping/prodRelease",
             "logcat",
             "dumpsys alarm",
             "dumpsys accessibility",
