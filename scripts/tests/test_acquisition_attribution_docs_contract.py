@@ -94,6 +94,19 @@ class AcquisitionAttributionDocsContractTest(unittest.TestCase):
         self.assertIn("TODO: 캠페인 운영 확인", play_store_aso)
         self.assertIn("활성 19명·세션 149회는 신규 획득 성과로 계산하지 않음", play_store_aso)
 
+    def test_play_store_aso_records_cloud_storage_store_performance_readback(self):
+        play_store_aso = PLAY_STORE_ASO.read_text()
+
+        self.assertIn("2026-06-11 Play Console Store performance Cloud Storage readback", play_store_aso)
+        self.assertIn("gs://pubsite_prod_4966532873904693612/stats/store_performance", play_store_aso)
+        self.assertIn("방문자 `1,112 -> 521` (`-53.1%`)", play_store_aso)
+        self.assertIn("등록정보 획득 `319 -> 154` (`-51.7%`)", play_store_aso)
+        self.assertIn("전환율 `28.7% -> 29.6%` (`+0.9p`)", play_store_aso)
+        self.assertIn("전환율 하락이 아니라 store listing visitor 급감", play_store_aso)
+        self.assertIn("Traffic source CSV는 `Other`가 전체 visitors의 `97.0%`", play_store_aso)
+        self.assertIn("KR CVR `24.1% -> 27%+`", play_store_aso)
+        self.assertIn("1차 목표 `30 visitors/day`", play_store_aso)
+
 
 if __name__ == "__main__":
     unittest.main()
