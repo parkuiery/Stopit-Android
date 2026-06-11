@@ -15,6 +15,16 @@ HOME_STATUS_DESCRIPTION_KEYS = [
     "home_status_keep_active_description",
 ]
 
+HIGH_TRAFFIC_NON_DEFAULT_ENGLISH_FORBIDDEN_KEYS = [
+    *HOME_STATUS_DESCRIPTION_KEYS,
+    "home_status_no_selected_apps_title",
+    "home_primary_cta_select_apps",
+    "home_primary_cta_start_now",
+    "goal_lock_detail_status_completed",
+    "goal_lock_detail_status_ended",
+    "goal_lock_detail_status_active",
+]
+
 FORBIDDEN_KOREAN_TYPOS = ["함꼐", "잠궈줘요"]
 
 
@@ -27,9 +37,12 @@ def load_strings(strings_xml: pathlib.Path) -> dict[str, str]:
 
 
 class LocaleStringQualityContractTest(unittest.TestCase):
-    def test_home_status_descriptions_are_not_default_english_in_shipped_locales(self) -> None:
+    def test_high_traffic_home_and_goal_lock_strings_are_not_default_english_in_shipped_locales(self) -> None:
         default_strings = load_strings(RES_DIR / "values" / "strings.xml")
-        default_values = {key: default_strings[key] for key in HOME_STATUS_DESCRIPTION_KEYS}
+        default_values = {
+            key: default_strings[key]
+            for key in HIGH_TRAFFIC_NON_DEFAULT_ENGLISH_FORBIDDEN_KEYS
+        }
 
         offenders: list[str] = []
         for strings_xml in sorted(RES_DIR.glob("values-*/strings.xml")):
@@ -43,7 +56,7 @@ class LocaleStringQualityContractTest(unittest.TestCase):
         self.assertEqual(
             [],
             offenders,
-            "High-traffic Home status descriptions must not ship as copied default English in localized values-* resources.",
+            "High-traffic Home title/CTA/status and Goal Lock status strings must not ship as copied default English in localized values-* resources.",
         )
 
     def test_korean_confirmed_typos_do_not_regress(self) -> None:
@@ -59,10 +72,17 @@ class LocaleStringQualityContractTest(unittest.TestCase):
 
         required_contract_terms = [
             "#729",
+            "#764",
             "home_status_no_selected_apps_description",
             "home_status_first_lock_ready_description",
             "home_status_ready_description",
             "home_status_keep_active_description",
+            "home_status_no_selected_apps_title",
+            "home_primary_cta_select_apps",
+            "home_primary_cta_start_now",
+            "goal_lock_detail_status_completed",
+            "goal_lock_detail_status_ended",
+            "goal_lock_detail_status_active",
             "StopIt",
             "스탑잇",
             "scripts.tests.test_locale_string_quality_contract",
