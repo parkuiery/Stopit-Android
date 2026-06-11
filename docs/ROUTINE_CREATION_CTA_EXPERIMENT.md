@@ -1,7 +1,7 @@
 # 루틴 생성 CTA 실험 계약
 
 Issue: #455
-상태: **code-lane 구현 진행 / repo 내부 CTA·navigation·analytics 계약 추가**
+상태: **Home CTA·navigation·analytics 구현 완료 / GA4 Admin·release·14일·30일 readback 전**
 
 이 문서는 첫 차단 성공을 이미 경험했지만 아직 루틴이 없는 사용자에게 루틴 생성 흐름을 부드럽게 제안하는 `post-first-core-action` CTA 실험의 source of truth다. 목적은 루틴 보유자의 반복 사용 신호를 제품 실험으로 연결하되, onboarding/첫 가치 경험/광고/공유 CTA를 방해하지 않는 것이다.
 
@@ -45,7 +45,7 @@ Issue: #455
 
 ## Analytics 계약
 
-신규 이벤트 후보:
+구현된 이벤트:
 
 | 이벤트명 | 필수 파라미터 | 의미 |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Privacy guardrail:
 - 루틴 생성 전환: `routine_created` users / `routine_creation_cta_clicked` users (`routine_created users / routine_creation_cta_clicked users`)
 - 루틴 보유 전환: 실험 노출 cohort 중 `routines_count >= 1` users / `routine_creation_cta_shown` users
 
-`routine_created` 코드 이벤트가 아직 없다면 구현 PR에서 `RoutineViewModel.storeRoutine(...)` 완료 시점 또는 동등한 저장 완료 지점의 privacy-safe 이벤트 계약을 함께 정의해야 한다. 그 전에는 `routines_count` 전환만 낮은 confidence 보조 지표로 본다.
+`routine_created` 별도 코드 이벤트는 아직 없다. 현재 #455의 루틴 생성 전환은 CTA click 이후 `routines_count >= 1` user property 전환과 Routine 화면/저장 흐름 evidence를 함께 낮은 confidence로 본다. 별도 `routine_created` 이벤트가 필요해지면 `RoutineViewModel.storeRoutine(...)` 완료 시점 또는 동등한 저장 완료 지점의 privacy-safe 이벤트 계약을 새 scope로 정의한다.
 
 ### Secondary
 
@@ -101,7 +101,8 @@ Privacy guardrail:
 
 - `routine_creation_cta_*` 이벤트가 코드/문서에 추가되어도 GA4 Admin에서 `surface`, `activation_stage`, `has_routine`, `cta_variant`가 custom dimension으로 등록되고 metadata에서 확인되기 전에는 세부 breakdown confidence를 낮춘다.
 - CTA 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
-- code-lane 구현 PR은 repo 내부 CTA UI, navigation, analytics adapter/ViewModel 테스트를 포함할 수 있지만, GA4 Admin 등록, release/tag/Play deploy, 14일·30일 측정 표가 남아 있으면 `Refs #455`를 사용한다. issue closing keyword는 CTA UI, navigation, analytics adapter/ViewModel 테스트, GA4/release/14일·30일 측정 표까지 acceptance가 실제로 충족될 때만 쓴다.
+- PR #533 / merge commit `b7cf06f20aaf551f513e0684142577149b1c4550`로 Home 보조 CTA UI, Routine 화면 이동, dismiss/루틴 보유 숨김, analytics adapter/ViewModel 테스트가 `develop`에 반영됐다.
+- 따라서 repo-internal CTA 구현은 다시 “구현 전”으로 되돌리지 않는다. 다만 GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일·30일 측정 표가 남아 있으면 `Refs #455`를 사용한다. issue closing keyword는 GA4/release/14일·30일 readback까지 acceptance가 실제로 충족될 때만 쓴다.
 
 ## 구현 handoff checklist
 
