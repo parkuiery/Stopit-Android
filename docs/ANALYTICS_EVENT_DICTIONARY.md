@@ -432,7 +432,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 | user property | 코드 source of truth | 언제 갱신되는가 | 의미 / 해석 주의사항 |
 | --- | --- | --- | --- |
-| `routines_count` | 현재 구현은 `app/src/main/java/com/uiery/keep/feature/routine/RoutineViewModel.kt`; #479 목표 source of truth는 `KeepAnalytics` 계층의 중앙 API/상수 + 앱/Home/restore 공통 sync 경로 | 현재는 루틴 목록을 구독해 `routines` 상태를 반영하고 `storeRoutine(...)`까지 끝낸 뒤 `analytics.setUserProperty("routines_count", routines.size.toString())`를 호출할 때. #479 이후에는 앱 실행/Home 진입, 루틴 생성/수정/삭제, backup/restore 또는 boot rehydrate 이후에도 `0` 또는 실제 Room count를 명시적으로 설정해야 한다. | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. #479 완료 전에는 `routines_count=(not set)` coverage gap을 별도 cohort로 유지한다. |
+| `routines_count` | PR #525 이후 source of truth는 `app/src/main/java/com/uiery/keep/analytics/RoutineCountAnalyticsSync.kt`의 `KeepAnalyticsUserProperty.ROUTINES_COUNT` / `RoutineCountAnalyticsSync` / `KeepAnalytics.setRoutinesCount(...)` 중앙 API다. | `RoutineViewModel` 루틴 collect 경로, Home init 경로, Splash restore-aftercare 경로가 Room count 기반으로 `0` 또는 실제 루틴 수를 명시적으로 설정한다. Routine 화면을 거치지 않은 active user도 Home/Splash 경로에서 갱신된다. | 현재 사용자가 보유한 루틴 개수의 스냅샷이다. 이벤트처럼 시점별 히스토리가 아니라 최신 상태를 덮어쓰므로, `activeUsers` 분모 대비 “루틴 1개 이상 보유 사용자 비율” 같은 보조 지표 해석에만 쓰고 특정 세션/화면 전환의 직접 원인처럼 과해석하지 않는다. PR #525 포함 release/tag/Play deploy와 D+14/D+30 readback 전에는 `routines_count=(not set)` coverage gap을 별도 cohort로 유지한다. |
 
 운영 원칙:
 
