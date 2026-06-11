@@ -147,7 +147,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", download_step)
         self.assertIn("GH_TOKEN: ${{ github.token }}", download_step)
         self.assertIn("gh run list", download_step)
-        self.assertIn("--event push", download_step)
+        self.assertIn("for event_name in push workflow_dispatch", download_step)
+        self.assertIn("--event \"$event_name\"", download_step)
+        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$run_event", download_step)
+        self.assertIn("Selected prior internal Play Deploy run", download_step)
         self.assertIn("gh run download", download_step)
         self.assertIn("--name stopit-prod-release-signed-aab", download_step)
         self.assertIn("gh release download \"$GITHUB_REF_NAME\"", download_step)
@@ -189,6 +192,9 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "internal release",
             "fail-fast before production secrets",
             "prior internal provenance gate",
+            "tag push artifact",
+            "manual deploy artifact",
+            "workflow_dispatch",
             "before `Upload signed AAB artifact`",
             "30-day evidence surface",
             "durable fallback",

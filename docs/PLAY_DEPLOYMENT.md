@@ -86,6 +86,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard: branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, and the selected tag must be origin/main reachable with the previous SemVer production completion marker present.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 - Production promotion does not build or upload a new AAB, so its provenance boundary is the prior non-production `release-provenance.json` generated for the matching internal release. When auditing a production promotion, compare the tag `versionCode` and internal release with the manifest's `versionCode`, AAB `sha256`, git SHA/ref, and workflow run URL instead of expecting a new production AAB manifest.
+- Production promotion searches prior non-production evidence from the same SemVer tag and git SHA across both the automatic tag push artifact and an allowed manual deploy artifact created by `workflow_dispatch`. The full Actions-artifact path is preferred before the durable fallback so a manual internal deploy on the tag is not downgraded to metadata-only recovery unnecessarily.
 
 ## Production promotion provenance retention / recovery
 

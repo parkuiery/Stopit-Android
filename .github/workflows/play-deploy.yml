@@ -215,27 +215,38 @@ jobs:
             return 1
           }
 
-          run_id="$(gh run list \
-            --workflow 'Android Play Deploy' \
-            --branch "$GITHUB_REF_NAME" \
-            --event push \
-            --status success \
-            --limit 20 \
-            --json databaseId,headSha,conclusion \
-            --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
-            | head -n 1)"
+          run_id=""
+          run_event=""
+          for event_name in push workflow_dispatch; do
+            candidate_run_id="$(gh run list \
+              --workflow 'Android Play Deploy' \
+              --branch "$GITHUB_REF_NAME" \
+              --event "$event_name" \
+              --status success \
+              --limit 20 \
+              --json databaseId,headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
+              | head -n 1)"
+            if [[ -n "$candidate_run_id" ]]; then
+              run_id="$candidate_run_id"
+              run_event="$event_name"
+              break
+            fi
+          done
           if [[ -z "$run_id" ]]; then
-            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA" >&2
+            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA across push or workflow_dispatch events" >&2
             download_durable_fallback || {
               echo "Recovery: rerun a non-production Play Deploy for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
               exit 1
             }
             exit 0
           fi
+          echo "PRIOR_PROVENANCE_RUN_EVENT=$run_event" >> "$GITHUB_ENV"
+          echo "Selected prior internal Play Deploy run_id=$run_id from event=$run_event for $GITHUB_REF_NAME / $GITHUB_SHA"
           if ! gh run download "$run_id" \
             --name stopit-prod-release-signed-aab \
             --dir /tmp/stopit-prior-internal-provenance; then
-            echo "Prior internal provenance artifact expired/missing for run_id=$run_id ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
+            echo "Prior internal provenance artifact expired/missing for run_id=$run_id event=$run_event ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
             download_durable_fallback || {
               echo "Recovery: rerun non-production Play Deploy for the same SemVer tag before production promotion." >&2
               exit 1
