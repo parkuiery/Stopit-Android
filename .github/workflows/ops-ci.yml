@@ -120,6 +120,7 @@ jobs:
               - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
+              - 'scripts/tests/test_runtime_diagnostic_artifacts.py'
               - '.github/workflows/branch-hygiene.yml'
               - '.github/workflows/android-ci.yml'
               - '.github/workflows/ops-ci.yml'
@@ -179,6 +180,7 @@ jobs:
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow
           scripts.tests.test_actionlint_gate
+          scripts.tests.test_runtime_diagnostic_artifacts
 
   aso-screenshots:
     name: ASO screenshots build
