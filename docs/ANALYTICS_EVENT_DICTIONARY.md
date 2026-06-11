@@ -45,7 +45,7 @@
 - Firebase `screen_view` payload 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseScreenViewPayloadTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockCreationViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockDetailViewModelTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -60,6 +60,8 @@
 | 루틴 | `RoutineScreen` | `RoutineViewModel` |
 | 긴급해제 설정 | `EmergencyUnlockSettingsScreen` | `EmergencyUnlockSettingsViewModel` |
 | 개발자 도구(dev 전용) | `DevToolScreen` | `DevToolViewModel` |
+| 목표 잠금 생성 | `GoalLockCreationScreen` | `GoalLockCreationViewModel` |
+| 목표 잠금 상세 | `GoalLockDetailScreen` | `GoalLockDetailViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
 | 온보딩 소개 | `OnboardingIntroScreen` | `IntroViewModel.onStepViewed()` |
