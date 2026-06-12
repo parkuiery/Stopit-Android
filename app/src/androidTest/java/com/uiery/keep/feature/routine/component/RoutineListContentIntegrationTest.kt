@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -118,6 +119,45 @@ class RoutineListContentIntegrationTest {
             }
             check(detailClickCount == 0) {
                 "Blocked routine tap must not open detail, got $detailClickCount detail clicks"
+            }
+        }
+    }
+
+    @Test
+    fun runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState() {
+        val today = LocalDateTime.now().dayOfWeek
+        var blockedActionCount = 0
+        var enabledChangeCount = 0
+
+        composeRule.setContent {
+            KeepTheme {
+                RoutineListContent(
+                    routines = listOf(
+                        testRoutine(
+                            id = 609L,
+                            name = "Running focus",
+                            startTime = LocalTime(hour = 0, minute = 0),
+                            endTime = LocalTime(hour = 23, minute = 59),
+                            repeatDays = listOf(today),
+                            isEnabled = true,
+                        ),
+                    ),
+                    onEnabledChange = { _, _ -> enabledChangeCount += 1 },
+                    onDetailClick = {},
+                    onShareClick = {},
+                    onBlockedRoutineAction = { blockedActionCount += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("routine-enabled-switch-609").performClick()
+
+        composeRule.runOnIdle {
+            check(blockedActionCount == 1) {
+                "Expected blocked routine switch tap to surface feedback once, got $blockedActionCount"
+            }
+            check(enabledChangeCount == 0) {
+                "Blocked routine switch tap must not toggle the routine, got $enabledChangeCount changes"
             }
         }
     }
