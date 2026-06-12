@@ -208,7 +208,7 @@
     <string name="routine_disabled_tag">Uit</string>
     <string name="routine_repeat_days_empty">Geen herhaaldagen</string>
     <string name="routine_next_run_label">Volgende uitvoering: %1$s</string>
-    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
+    <string name="routine_active_action_blocked_message">Deze routine loopt nu, dus bewerken, verwijderen en uitschakelen zijn vergrendeld. Gebruik Noodontgrendeling als je tijdelijk een uitzondering nodig hebt.</string>
     <string name="prevent_uninstall">Verwijderingsbescherming</string>
     <string name="prevent_uninstall_subtitle">Beschermt StopIt tegen verwijdering</string>
     <string name="prevent_uninstall_enabled">Verwijderingsbescherming is nu actief</string>

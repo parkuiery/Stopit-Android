@@ -842,7 +842,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - edit sheet가 열린 뒤 루틴 시간이 시작된 경우에도 저장 직전에 Room의 최신 routine 상태를 다시 확인하고, 활성/변경잠금 상태면 `RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked`만 발생하며 update/cancel/reschedule을 수행하지 않는다.
 - Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
 - 안내 문구는 긴급 해제를 안전한 임시 예외로 안내하되 사용자를 비난하거나 처벌하는 톤을 쓰지 않는다.
-- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 한다.
+- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 하며, localized resources에 default English copy가 그대로 남으면 `scripts.tests.test_active_routine_enforcement_contract`가 실패해야 한다.
 
 수동 QA evidence template:
 

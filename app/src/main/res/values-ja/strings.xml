@@ -206,7 +206,7 @@
     <string name="routine_disabled_tag">無効</string>
     <string name="routine_repeat_days_empty">繰り返し曜日なし</string>
     <string name="routine_next_run_label">次回実行: %1$s</string>
-    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
+    <string name="routine_active_action_blocked_message">このルーティンは実行中のため、編集・削除・オフはロックされています。一時的な例外が必要な場合は緊急解除を使ってください。</string>
     <string name="prevent_uninstall">アンインストール防止</string>
     <string name="prevent_uninstall_subtitle">StopItのアンインストールを防止します</string>
     <string name="prevent_uninstall_enabled">アンインストール防止が有効になりました</string>

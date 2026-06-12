@@ -208,7 +208,7 @@
     <string name="routine_disabled_tag">Desativada</string>
     <string name="routine_repeat_days_empty">Sem dias de repetição</string>
     <string name="routine_next_run_label">Próxima execução: %1$s</string>
-    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
+    <string name="routine_active_action_blocked_message">Esta rotina está em execução, então editar, excluir e desativar estão bloqueados. Use o desbloqueio de emergência se precisar de uma exceção temporária.</string>
     <string name="prevent_uninstall">Proteção contra desinstalação</string>
     <string name="prevent_uninstall_subtitle">Protege o StopIt de ser desinstalado</string>
     <string name="prevent_uninstall_enabled">A proteção contra desinstalação está ativa</string>
