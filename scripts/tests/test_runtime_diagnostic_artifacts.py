@@ -36,6 +36,21 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("app/build/outputs/androidTest-results/**", upload_step)
         self.assertIn("runtime-diagnostics/**", upload_step)
 
+    def test_full_release_qa_uploads_jvm_lint_build_diagnostics_even_after_failure(self):
+        workflow = RELEASE_QA_WORKFLOW.read_text()
+        upload_step = self._step_block(workflow, "Upload full release QA diagnostics")
+
+        self.assertIn("if: always()", upload_step)
+        self.assertIn("continue-on-error: true", upload_step)
+        self.assertIn("uses: actions/upload-artifact@v7", upload_step)
+        self.assertIn("name: stopit-release-qa-build-diagnostics", upload_step)
+        self.assertIn("retention-days: 7", upload_step)
+        self.assertIn("if-no-files-found: ignore", upload_step)
+        self.assertIn("app/build/reports/**", upload_step)
+        self.assertIn("app/build/test-results/**", upload_step)
+        self.assertIn("app/build/outputs/logs/**", upload_step)
+        self.assertIn("app/build/outputs/mapping/prodRelease/**", upload_step)
+
     def test_release_instrumentation_qa_uploads_diagnostics_even_after_failure(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         run_step = self._step_block(workflow, "Run Android testing skill UI smoke and runtime QA")
@@ -92,6 +107,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         required = [
             "stopit-runtime-smoke-diagnostics",
             "stopit-release-instrumentation-diagnostics",
+            "stopit-release-qa-build-diagnostics",
             "stopit-release-build-diagnostics",
             "stopit-play-deploy-release-diagnostics",
             "app/build/reports/androidTests",
