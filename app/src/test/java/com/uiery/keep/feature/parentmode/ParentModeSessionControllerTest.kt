@@ -6,6 +6,8 @@ import com.uiery.keep.analytics.AnalyticsParentModeEndReason
 import com.uiery.keep.analytics.AnalyticsParentModeExtensionMinutesBucket
 import com.uiery.keep.analytics.AnalyticsParentModePinResult
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

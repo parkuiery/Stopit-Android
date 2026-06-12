@@ -250,6 +250,7 @@ class KeepAccessibilityServiceIntegrationTest {
         val allowedPackage = launchFirstConfiguredPackage(
             purpose = "expired Parent Mode previously-allowed app block smoke",
             configureCandidate = { candidate -> configureExpiredActiveParentMode(candidate) },
+            pressHomeBeforeLaunch = false,
         )
         waitForWindowEvent(allowedPackage)
 
@@ -720,6 +721,7 @@ class KeepAccessibilityServiceIntegrationTest {
         purpose: String,
         configureCandidate: suspend (String) -> Unit,
         waitForCandidateReady: suspend (String) -> Unit = {},
+        pressHomeBeforeLaunch: Boolean = true,
     ): String {
         val launchResults = mutableListOf<LaunchCandidateResult>()
         resolveLaunchablePackages().forEach { candidate ->
@@ -728,7 +730,10 @@ class KeepAccessibilityServiceIntegrationTest {
             configureCandidate(candidate)
             waitForServiceStatePropagation()
             waitForCandidateReady(candidate)
-            val result = tryLaunchPackage(candidate)
+            val result = tryLaunchPackage(
+                packageName = candidate,
+                pressHomeBeforeLaunch = pressHomeBeforeLaunch,
+            )
             launchResults += result
             if (result.observedLaunchSignal) {
                 return selectFirstObservedLaunchCandidate(
@@ -750,7 +755,10 @@ class KeepAccessibilityServiceIntegrationTest {
         )
     }
 
-    private fun tryLaunchPackage(packageName: String): LaunchCandidateResult {
+    private fun tryLaunchPackage(
+        packageName: String,
+        pressHomeBeforeLaunch: Boolean = true,
+    ): LaunchCandidateResult {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent == null) {
             return LaunchCandidateResult(
@@ -774,7 +782,9 @@ class KeepAccessibilityServiceIntegrationTest {
             if (packageName != appPackage) {
                 shell("am force-stop $packageName")
             }
-            device.pressHome()
+            if (pressHomeBeforeLaunch) {
+                device.pressHome()
+            }
             val launchResult = if (launchComponent != null) {
                 shell("am start -W -n $launchComponent")
             } else {
