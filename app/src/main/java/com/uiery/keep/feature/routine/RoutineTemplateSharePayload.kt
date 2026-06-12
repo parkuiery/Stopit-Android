@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.routine
 
+import android.content.Context
+import com.uiery.keep.R
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.toDayOfWeekList
@@ -9,44 +11,135 @@ import java.time.DayOfWeek
 private const val STOPIT_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.uiery.keep"
 
 data class RoutineTemplateSharePayload(
-    val text: String,
     val templateCategory: RoutineTemplateCategory,
     val repeatDaysBucket: RoutineTemplateRepeatDaysBucket,
     val timeWindowBucket: RoutineTemplateTimeWindowBucket,
     val routineNameIncluded: Boolean,
+    val routineName: String?,
+    val durationMinutes: Long,
 )
 
 enum class RoutineTemplateCategory(
     val analyticsValue: String,
-    val label: String,
 ) {
-    STUDY("study", "공부"),
-    WORK("work", "업무"),
-    NIGHT_FOCUS("night_focus", "야간 집중"),
-    CUSTOM("custom", "집중"),
+    STUDY("study"),
+    WORK("work"),
+    NIGHT_FOCUS("night_focus"),
+    CUSTOM("custom"),
 }
 
 enum class RoutineTemplateRepeatDaysBucket(
     val analyticsValue: String,
-    val label: String,
 ) {
-    WEEKDAY("weekday", "평일"),
-    WEEKEND("weekend", "주말"),
-    DAILY("daily", "매일"),
-    CUSTOM_DAYS("custom_days", "선택 요일"),
-    NONE("none", "요일 미설정"),
+    WEEKDAY("weekday"),
+    WEEKEND("weekend"),
+    DAILY("daily"),
+    CUSTOM_DAYS("custom_days"),
+    NONE("none"),
 }
 
 enum class RoutineTemplateTimeWindowBucket(
     val analyticsValue: String,
-    val label: String,
 ) {
-    MORNING("morning", "아침"),
-    AFTERNOON("afternoon", "오후"),
-    EVENING("evening", "저녁"),
-    NIGHT("night", "밤"),
-    OVERNIGHT("overnight", "밤샘"),
-    CUSTOM_WINDOW("custom_window", "선택 시간"),
+    MORNING("morning"),
+    AFTERNOON("afternoon"),
+    EVENING("evening"),
+    NIGHT("night"),
+    OVERNIGHT("overnight"),
+    CUSTOM_WINDOW("custom_window"),
+}
+
+interface RoutineTemplateShareTextProvider {
+    fun title(): String
+
+    fun categoryLabel(category: RoutineTemplateCategory): String
+
+    fun repeatDaysLabel(bucket: RoutineTemplateRepeatDaysBucket): String
+
+    fun timeWindowLabel(bucket: RoutineTemplateTimeWindowBucket): String
+
+    fun durationText(totalMinutes: Long): String
+
+    fun callToAction(): String
+}
+
+class AndroidRoutineTemplateShareTextProvider(
+    private val context: Context,
+) : RoutineTemplateShareTextProvider {
+    override fun title(): String = context.getString(R.string.routine_template_share_payload_title)
+
+    override fun categoryLabel(category: RoutineTemplateCategory): String =
+        context.getString(
+            when (category) {
+                RoutineTemplateCategory.STUDY -> R.string.routine_template_share_category_study
+                RoutineTemplateCategory.WORK -> R.string.routine_template_share_category_work
+                RoutineTemplateCategory.NIGHT_FOCUS -> R.string.routine_template_share_category_night_focus
+                RoutineTemplateCategory.CUSTOM -> R.string.routine_template_share_category_custom
+            },
+        )
+
+    override fun repeatDaysLabel(bucket: RoutineTemplateRepeatDaysBucket): String =
+        context.getString(
+            when (bucket) {
+                RoutineTemplateRepeatDaysBucket.WEEKDAY -> R.string.routine_template_share_repeat_weekday
+                RoutineTemplateRepeatDaysBucket.WEEKEND -> R.string.routine_template_share_repeat_weekend
+                RoutineTemplateRepeatDaysBucket.DAILY -> R.string.routine_template_share_repeat_daily
+                RoutineTemplateRepeatDaysBucket.CUSTOM_DAYS -> R.string.routine_template_share_repeat_custom_days
+                RoutineTemplateRepeatDaysBucket.NONE -> R.string.routine_template_share_repeat_none
+            },
+        )
+
+    override fun timeWindowLabel(bucket: RoutineTemplateTimeWindowBucket): String =
+        context.getString(
+            when (bucket) {
+                RoutineTemplateTimeWindowBucket.MORNING -> R.string.routine_template_share_time_morning
+                RoutineTemplateTimeWindowBucket.AFTERNOON -> R.string.routine_template_share_time_afternoon
+                RoutineTemplateTimeWindowBucket.EVENING -> R.string.routine_template_share_time_evening
+                RoutineTemplateTimeWindowBucket.NIGHT -> R.string.routine_template_share_time_night
+                RoutineTemplateTimeWindowBucket.OVERNIGHT -> R.string.routine_template_share_time_overnight
+                RoutineTemplateTimeWindowBucket.CUSTOM_WINDOW -> R.string.routine_template_share_time_custom_window
+            },
+        )
+
+    override fun durationText(totalMinutes: Long): String {
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return when {
+            hours > 0 && minutes > 0 -> context.getString(
+                R.string.routine_template_share_duration_hours_minutes,
+                hours,
+                minutes,
+            )
+            hours > 0L -> context.resources.getQuantityString(
+                R.plurals.routine_template_share_duration_hours,
+                hours.toInt(),
+                hours,
+            )
+            else -> context.resources.getQuantityString(
+                R.plurals.routine_template_share_duration_minutes,
+                minutes.toInt(),
+                minutes,
+            )
+        }
+    }
+
+    override fun callToAction(): String = context.getString(R.string.routine_template_share_payload_cta)
+}
+
+fun RoutineTemplateSharePayload.buildShareText(textProvider: RoutineTemplateShareTextProvider): String {
+    val summary = listOf(
+        textProvider.categoryLabel(templateCategory),
+        textProvider.repeatDaysLabel(repeatDaysBucket),
+        "${textProvider.timeWindowLabel(timeWindowBucket)} ${textProvider.durationText(durationMinutes)}",
+    ).joinToString(" · ")
+
+    return buildString {
+        appendLine(textProvider.title())
+        routineName?.let { appendLine(it) }
+        appendLine(summary)
+        appendLine(textProvider.callToAction())
+        append(STOPIT_PLAY_STORE_URL)
+    }
 }
 
 internal fun buildRoutineTemplateSharePayload(
@@ -60,29 +153,16 @@ internal fun buildRoutineTemplateSharePayload(
     val category = routine.resolveTemplateCategory()
     val repeatBucket = repeatDays.resolveRepeatDaysBucket()
     val timeWindowBucket = resolveTimeWindowBucket(routine.startTime, routine.endTime)
-    val durationText = formatDurationText(routineDurationMinutes(routine.startTime, routine.endTime))
+    val durationMinutes = routineDurationMinutes(routine.startTime, routine.endTime)
     val safeRoutineName = routine.name.trim().takeIf { includeRoutineName && it.isNotEmpty() && it.length <= 40 }
 
-    val summary = buildList {
-        add(category.label)
-        add(repeatBucket.label)
-        add("${timeWindowBucket.label} $durationText")
-    }.joinToString(" · ")
-
-    val text = buildString {
-        appendLine("스탑잇 집중 루틴 템플릿")
-        safeRoutineName?.let { appendLine(it) }
-        appendLine(summary)
-        appendLine("나도 집중이 필요한 시간에 앱 사용을 잠깐 멈춰요.")
-        append(STOPIT_PLAY_STORE_URL)
-    }
-
     return RoutineTemplateSharePayload(
-        text = text,
         templateCategory = category,
         repeatDaysBucket = repeatBucket,
         timeWindowBucket = timeWindowBucket,
         routineNameIncluded = safeRoutineName != null,
+        routineName = safeRoutineName,
+        durationMinutes = durationMinutes,
     )
 }
 
@@ -125,13 +205,3 @@ private fun resolveTimeWindowBucket(
         startTime.hour >= 22 || startTime.hour < 5 -> RoutineTemplateTimeWindowBucket.NIGHT
         else -> RoutineTemplateTimeWindowBucket.CUSTOM_WINDOW
     }
-
-private fun formatDurationText(totalMinutes: Long): String {
-    val hours = totalMinutes / 60
-    val minutes = totalMinutes % 60
-    return when {
-        hours > 0 && minutes > 0 -> "${hours}시간 ${minutes}분"
-        hours > 0L -> "${hours}시간"
-        else -> "${minutes}분"
-    }
-}

@@ -323,6 +323,30 @@
     <string name="first_lock_activation_cta_action">시작</string>
     <string name="first_lock_keep_started_guidance">스탑잇이 켜졌어요. 선택한 앱을 열면 첫 차단을 확인할 수 있어요.</string>
     <string name="first_lock_timer_scheduled_guidance">첫 잠금이 예약됐어요. 시간이 되면 선택한 앱을 열어 차단을 확인해보세요.</string>
+    <string name="routine_template_share_payload_title">스탑잇 집중 루틴 템플릿</string>
+    <string name="routine_template_share_payload_cta">나도 집중이 필요한 시간에 앱 사용을 잠깐 멈춰요.</string>
+    <string name="routine_template_share_category_study">공부</string>
+    <string name="routine_template_share_category_work">업무</string>
+    <string name="routine_template_share_category_night_focus">야간 집중</string>
+    <string name="routine_template_share_category_custom">집중</string>
+    <string name="routine_template_share_repeat_weekday">평일</string>
+    <string name="routine_template_share_repeat_weekend">주말</string>
+    <string name="routine_template_share_repeat_daily">매일</string>
+    <string name="routine_template_share_repeat_custom_days">선택 요일</string>
+    <string name="routine_template_share_repeat_none">요일 미설정</string>
+    <string name="routine_template_share_time_morning">아침</string>
+    <string name="routine_template_share_time_afternoon">오후</string>
+    <string name="routine_template_share_time_evening">저녁</string>
+    <string name="routine_template_share_time_night">밤</string>
+    <string name="routine_template_share_time_overnight">밤샘</string>
+    <string name="routine_template_share_time_custom_window">선택 시간</string>
+    <plurals name="routine_template_share_duration_hours">
+        <item quantity="other">%1$d시간</item>
+    </plurals>
+    <plurals name="routine_template_share_duration_minutes">
+        <item quantity="other">%1$d분</item>
+    </plurals>
+    <string name="routine_template_share_duration_hours_minutes">%1$d시간 %2$d분</string>
     <string name="routine_template_share_chooser_title">루틴 템플릿 공유</string>
     <string name="cd_share_routine_template">루틴 템플릿 공유</string>
 </resources>
