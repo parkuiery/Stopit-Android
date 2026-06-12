@@ -4,6 +4,9 @@ import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
 import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
 import com.uiery.keep.analytics.routine.RoutineAnalyticsParam
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
 import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
 import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
@@ -451,6 +454,43 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents[2],
         )
+    }
+
+    @Test
+    fun routineSavedEventUsesPrivacySafeBucketsOnly() {
+        analytics.trackRoutineSaved(
+            RoutineSavedAnalyticsPayload(
+                entrySurface = "routine",
+                creationSource = RoutineSavedCreationSource.MANUAL,
+                selectedAppCountBucket = "2_3",
+                repeatDaysBucket = "weekday",
+                timeWindowBucket = "morning",
+                scheduleState = RoutineSavedScheduleState.ENABLED,
+            ),
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_SAVED,
+                params = mapOf(
+                    KeepAnalyticsParam.ENTRY_SURFACE to "routine",
+                    RoutineAnalyticsParam.CREATION_SOURCE to RoutineSavedCreationSource.MANUAL,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to "2_3",
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to "weekday",
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to "morning",
+                    RoutineAnalyticsParam.SCHEDULE_STATE to RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        val params = backend.loggedEvents[0].params
+        assertFalse(params.containsKey("routine_name"))
+        assertFalse(params.containsKey("routine_id"))
+        assertFalse(params.containsKey("app_package"))
+        assertFalse(params.containsKey("app_packages"))
+        assertFalse(params.containsKey("start_time"))
+        assertFalse(params.containsKey("end_time"))
+        assertFalse(params.containsKey("history"))
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 
 interface KeepAnalytics {
     fun logEvent(
@@ -255,6 +256,8 @@ interface KeepAnalytics {
         surface: String,
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
+
+    fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) = Unit
 
     fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit
 

@@ -81,6 +81,18 @@ object RoutineAnalyticsEvents {
         suggestion = suggestion,
     )
 
+    fun routineSaved(payload: RoutineSavedAnalyticsPayload) = AnalyticsEvent(
+        name = RoutineAnalyticsEvent.ROUTINE_SAVED,
+        params = mapOf(
+            KeepAnalyticsParam.ENTRY_SURFACE to payload.entrySurface,
+            RoutineAnalyticsParam.CREATION_SOURCE to payload.creationSource,
+            KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to payload.selectedAppCountBucket,
+            RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to payload.repeatDaysBucket,
+            RoutineAnalyticsParam.TIME_WINDOW_BUCKET to payload.timeWindowBucket,
+            RoutineAnalyticsParam.SCHEDULE_STATE to payload.scheduleState,
+        ),
+    )
+
     private fun routineTemplateShareParams(
         templateCategory: String,
         repeatDaysBucket: String,
@@ -121,6 +133,15 @@ data class RepeatBlockRoutineSuggestionAnalyticsPayload(
     val routineCoverageState: String,
 )
 
+data class RoutineSavedAnalyticsPayload(
+    val entrySurface: String,
+    val creationSource: String,
+    val selectedAppCountBucket: String,
+    val repeatDaysBucket: String,
+    val timeWindowBucket: String,
+    val scheduleState: String,
+)
+
 object RoutineAnalyticsEvent {
     const val ROUTINE_TEMPLATE_SHARE_TAPPED = "routine_template_share_tapped"
     const val ROUTINE_TEMPLATE_SHARE_SHEET_OPENED = "routine_template_share_sheet_opened"
@@ -129,6 +150,7 @@ object RoutineAnalyticsEvent {
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_CLICKED = "repeat_block_routine_suggestion_clicked"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_DISMISSED = "repeat_block_routine_suggestion_dismissed"
     const val REPEAT_BLOCK_ROUTINE_SUGGESTION_APPLIED = "repeat_block_routine_suggestion_applied"
+    const val ROUTINE_SAVED = "routine_saved"
 }
 
 object RoutineAnalyticsParam {
@@ -143,6 +165,19 @@ object RoutineAnalyticsParam {
     const val REPEAT_COUNT_BUCKET = "repeat_count_bucket"
     const val ROUTINE_COVERAGE_STATE = "routine_coverage_state"
     const val SUGGESTION_VARIANT = "suggestion_variant"
+    const val CREATION_SOURCE = "creation_source"
+    const val SCHEDULE_STATE = "schedule_state"
+}
+
+object RoutineSavedCreationSource {
+    const val MANUAL = "manual"
+    const val REPEAT_BLOCK_PREFILL = "repeat_block_prefill"
+}
+
+object RoutineSavedScheduleState {
+    const val ENABLED = "enabled"
+    const val DISABLED = "disabled"
+    const val DISABLED_EXACT_ALARM_MISSING = "disabled_exact_alarm_missing"
 }
 
 object RoutineTemplateCategoryName {

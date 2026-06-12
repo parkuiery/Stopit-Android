@@ -6,6 +6,9 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
@@ -169,6 +172,19 @@ class RoutineBottomSheetViewModelTest {
             analytics.lockScheduledCalls,
         )
         assertEquals(
+            listOf(
+                RoutineSavedAnalyticsPayload(
+                    entrySurface = "routine",
+                    creationSource = RoutineSavedCreationSource.MANUAL,
+                    selectedAppCountBucket = "1",
+                    repeatDaysBucket = "custom_days",
+                    timeWindowBucket = "morning",
+                    scheduleState = RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            analytics.routineSavedCalls,
+        )
+        assertEquals(
             listOf(RoutineBottomSheetSideEffect.CloseBottomSheet),
             withTimeout(1_000) { sideEffects.await() },
         )
@@ -177,11 +193,13 @@ class RoutineBottomSheetViewModelTest {
     @Test
     fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermissionBeforeClosingSheet() = runBlocking {
         val routineDao = RecordingRoutineDao(insertedId = 43L)
+        val analytics = RecordingKeepAnalytics()
         val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
         Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(false)
         val viewModel = createViewModel(
             routineDao = routineDao,
             routineScheduler = routineScheduler,
+            analytics = analytics,
         )
         val sideEffects = async { viewModel.container.sideEffectFlow.take(2).toList() }
 
@@ -191,6 +209,10 @@ class RoutineBottomSheetViewModelTest {
 
         assertEquals(false, routineDao.insertedEntity?.isEnabled)
         Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
+        assertEquals(
+            listOf(RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING),
+            analytics.routineSavedCalls.map { it.scheduleState },
+        )
         assertEquals(
             listOf(
                 RoutineBottomSheetSideEffect.ShowAlarmPermission,
@@ -250,6 +272,19 @@ class RoutineBottomSheetViewModelTest {
         assertEquals(
             listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
             analytics.repeatBlockAppliedCalls,
+        )
+        assertEquals(
+            listOf(
+                RoutineSavedAnalyticsPayload(
+                    entrySurface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    creationSource = RoutineSavedCreationSource.REPEAT_BLOCK_PREFILL,
+                    selectedAppCountBucket = "2_3",
+                    repeatDaysBucket = "weekday",
+                    timeWindowBucket = "overnight",
+                    scheduleState = RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            analytics.routineSavedCalls,
         )
     }
 
@@ -412,6 +447,7 @@ private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
     val lockScheduledCalls = mutableListOf<Pair<String, Long>>()
     val repeatBlockClickedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
     val repeatBlockAppliedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
+    val routineSavedCalls = mutableListOf<RoutineSavedAnalyticsPayload>()
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         lockScheduledCalls += scheduleType to scheduledDurationMinutes
@@ -429,6 +465,10 @@ private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         repeatBlockAppliedCalls += surface to suggestion
+    }
+
+    override fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) {
+        routineSavedCalls += payload
     }
 }
 
