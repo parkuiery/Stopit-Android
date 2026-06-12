@@ -61,6 +61,7 @@ class HomeStatusCtaReadModelTest {
         assertEquals(R.string.home_primary_status_keep_active, model.primaryCtaResId)
         assertFalse(model.shouldToggleKeep)
         assertFalse(model.timerEnabled)
+        assertFalse(model.showChangeAppsSecondary)
         assertTrue(model.showLockHistorySecondary)
     }
 
