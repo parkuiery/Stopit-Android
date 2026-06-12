@@ -143,13 +143,13 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
-| `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. #779 Android 구현/GA4 등록 전에는 live 0건을 병목 부재로 해석하지 않는다. |
+| `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. PR #783 Android wiring은 `develop`에 반영됐지만 GA4 등록·release 전 live 0건은 병목 부재로 해석하지 않는다. |
 | `emergency_unlock_validation_blocked` | `step_name`, `validation_reason`, `reason_required_enabled`, `entry_surface` | reason/app/duration 단계의 필수 선택·입력 부족으로 다음 단계 진행이 막힌 시점. |
 | `emergency_unlock_cancelled` | `step_name`, `cancel_source`, `reason_required_enabled`, `entry_surface` | 실제 임시 해제 완료 전 sheet dismiss/back/cancel/system 중단. countdown cancel은 실패가 아니라 중립/긍정 자기통제 신호일 수 있다. |
 
 긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline과 PR #675(`d2fab054`)의 step purpose copy baseline이 선택 사유/단계 목적 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 
-#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. #779의 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`는 이 후속 계측을 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled`로 구체화한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp, raw duration option list, 설정 snapshot dump.
+#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. #779의 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`는 이 후속 계측을 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled`로 구체화한다. PR #783 이후 #779 Android analytics wiring 완료 상태이며, GA4 Admin 등록·release/tag/Play deploy·D+14/D+30 readback 전 live 0건은 UX 병목 부재가 아니라 미관측 경계로 본다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp, raw duration option list, 설정 snapshot dump.
 
 ### 디바이스 등록/푸시
 

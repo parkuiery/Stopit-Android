@@ -1599,7 +1599,7 @@ python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract 
 - reason-required ON/OFF: OFF flow에서는 reason step viewed나 missing reason/custom reason validation이 나오지 않아야 한다.
 - Privacy: no custom reason raw text, no app name/package/list, no raw timestamp/history/duration list/settings snapshot.
 - GA4: `customEvent:step_name`, `customEvent:validation_reason`, `customEvent:reason_required_enabled`, `customEvent:entry_surface`, `customEvent:cancel_source` GA4 Admin metadata 확인 전에는 세부 breakdown을 제품 결론으로 쓰지 않는다.
-- Readback: Android 구현 포함 release/tag/Play deploy 후 14-day readback을 예약하고, 30-day window에서 reason-required ON/OFF와 entry surface별 guardrail을 재확인한다.
+- Readback: PR #783 Android 구현 포함 release/tag/Play deploy 후 14-day readback을 예약하고, 30-day window에서 reason-required ON/OFF와 entry surface별 guardrail을 재확인한다.
 
 ### 긴급해제 완료/만료 scriptable baseline
 
