@@ -5,6 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
 import androidx.navigation.compose.composable
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -24,6 +25,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateLockHistory: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
+    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
 ) {
     composable<HomeRoute> {
         HomeScreen(
@@ -32,6 +34,7 @@ fun NavGraphBuilder.homeScreen(
             onNavigateLockHistory = onNavigateLockHistory,
             onNavigateRoutine = onNavigateRoutine,
             onNavigateGoalLockDetail = onNavigateGoalLockDetail,
+            onNavigateRoutineWithRepeatBlockPrefill = onNavigateRoutineWithRepeatBlockPrefill,
         )
     }
 }

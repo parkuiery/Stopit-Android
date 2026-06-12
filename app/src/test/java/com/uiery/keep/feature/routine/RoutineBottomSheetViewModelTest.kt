@@ -78,7 +78,7 @@ class RoutineBottomSheetViewModelTest {
             awaitUntil { routineDao.updatedEntity != null }
 
             assertEquals(false, routineDao.updatedEntity?.isEnabled)
-            Mockito.verify(routineScheduler).cancelRoutine(7L)
+            awaitRoutineCancelled(routineScheduler, 7L)
             Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
         }
     }
@@ -104,8 +104,8 @@ class RoutineBottomSheetViewModelTest {
         awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
-        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).cancelRoutine(7L)
-        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).scheduleRoutine(anyRoutine())
+        awaitRoutineCancelled(routineScheduler, 7L)
+        awaitRoutineScheduled(routineScheduler)
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
@@ -157,7 +157,7 @@ class RoutineBottomSheetViewModelTest {
         awaitUntil { routineDao.insertedEntity != null }
 
         assertEquals("Morning focus", routineDao.insertedEntity?.name)
-        Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+        awaitRoutineScheduled(routineScheduler)
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
@@ -274,6 +274,26 @@ class RoutineBottomSheetViewModelTest {
         repeat(20) {
             if (predicate()) return
             delay(10)
+        }
+        error("Timed out waiting for asynchronous RoutineBottomSheetViewModel intent")
+    }
+
+    private suspend fun awaitRoutineCancelled(
+        routineScheduler: RoutineScheduler,
+        id: Long,
+    ) {
+        awaitUntil {
+            runCatching {
+                Mockito.verify(routineScheduler).cancelRoutine(id)
+            }.isSuccess
+        }
+    }
+
+    private suspend fun awaitRoutineScheduled(routineScheduler: RoutineScheduler) {
+        awaitUntil {
+            runCatching {
+                Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+            }.isSuccess
         }
     }
 

@@ -34,9 +34,11 @@ import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
 import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
 import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
+import com.uiery.keep.feature.routine.navigateToRoutineWithRepeatBlockPrefill
 import com.uiery.keep.feature.routine.routineScreen
 import com.uiery.keep.feature.splash.SplashRoute
 import com.uiery.keep.feature.splash.splashScreen
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 
 @Composable
 internal fun KeepApp(modifier: Modifier = Modifier) {
@@ -71,6 +73,12 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
+            onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
+                navController.navigateToRoutineWithRepeatBlockPrefill(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion,
+                )
+            },
         )
         menuScreen(
             onNavigateDevTool = if (isDevToolEnabled) {
@@ -96,6 +104,12 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         lockHistoryScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateBlockedApps = navController::navigateToBlockedApps,
+            onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
+                navController.navigateToRoutineWithRepeatBlockPrefill(
+                    surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
+                    suggestion = suggestion,
+                )
+            },
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)

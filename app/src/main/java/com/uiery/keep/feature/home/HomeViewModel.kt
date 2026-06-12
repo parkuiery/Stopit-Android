@@ -13,6 +13,8 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
@@ -27,6 +29,12 @@ import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
+import com.uiery.keep.feature.routine.RepeatBlockHistorySample
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -36,6 +44,7 @@ import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalTime
@@ -63,6 +72,9 @@ class HomeViewModel
         private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val lockHistoryRecorder: LockHistoryRecorder,
         private val goalLockRepository: GoalLockRepository,
+        private val lockHistoryRepository: LockHistoryRepository,
+        private val routineRepository: RoutineRepository,
+        private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -75,6 +87,7 @@ class HomeViewModel
             getRoutineCreationCta()
             syncRoutinesCount()
             getGoalLockCard()
+            loadRepeatBlockRoutineSuggestion()
         }
 
         internal fun changeIsKeep(
@@ -228,6 +241,67 @@ class HomeViewModel
             if (sheetVisible) return null
             return routineNoticeStore.drainNextPendingRoutineStartNotice()
         }
+
+        internal fun dismissRepeatBlockRoutineSuggestion() =
+            intent {
+                val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+                repeatBlockSuggestionStore.recordDismissed(
+                    suggestion = suggestion,
+                    dismissedAt = LocalDateTime.now(),
+                )
+                analytics.trackRepeatBlockRoutineSuggestionDismissed(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+                reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+            }
+
+        internal fun openRepeatBlockRoutineSuggestion() =
+            intent {
+                val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+                analytics.trackRepeatBlockRoutineSuggestionClicked(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+                postSideEffect(HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
+            }
+
+        private fun loadRepeatBlockRoutineSuggestion() =
+            intent {
+                val now = LocalDateTime.now()
+                val startMillis = now.minusDays(14)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                val endMillis = now.plusDays(1)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
+                    .firstOrNull()
+                    .orEmpty()
+                    .map { history ->
+                        RepeatBlockHistorySample(
+                            startDateTime = history.startDateTime,
+                            blockedPackages = history.lockedApps,
+                        )
+                    }
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
+                val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+                    histories = histories,
+                    activeRoutines = routines,
+                    dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+                    now = now,
+                )
+
+                reduce { state.copy(repeatBlockRoutineSuggestion = suggestion) }
+                if (suggestion != null) {
+                    analytics.trackRepeatBlockRoutineSuggestionShown(
+                        surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                        suggestion = suggestion.toAnalyticsPayload(),
+                    )
+                }
+            }
 
         internal fun moveToLock() =
             intent {
@@ -648,6 +722,7 @@ data class HomeUiState(
     val routineCount: Int = 0,
     val pendingManualLockRouteDeadline: String? = null,
     val goalLockCard: HomeGoalLockCardState? = null,
+    val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
 ) {
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
@@ -707,6 +782,15 @@ private val GoalLockMode.homeLabel: String
         is GoalLockMode.Scheduled -> "특정 시간 잠금"
     }
 
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
+
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
 
 enum class ManualLockMode {
@@ -725,4 +809,8 @@ sealed class HomeSideEffect {
     ) : HomeSideEffect()
 
     data object MoveToRoutine : HomeSideEffect()
+
+    data class NavigateToRoutineWithRepeatBlockPrefill(
+        val suggestion: RepeatBlockRoutineSuggestion,
+    ) : HomeSideEffect()
 }

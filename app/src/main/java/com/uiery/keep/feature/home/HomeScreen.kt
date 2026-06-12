@@ -77,6 +77,7 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
@@ -96,6 +97,7 @@ fun HomeScreen(
     onNavigateLockHistory: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
+    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -136,6 +138,9 @@ fun HomeScreen(
 
             is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
             HomeSideEffect.MoveToRoutine -> onNavigateRoutine()
+            is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill -> {
+                onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
+            }
         }
     }
 
@@ -333,6 +338,16 @@ fun HomeScreen(
                     onClick = { onNavigateGoalLockDetail(goalLockCard.goalLockId) },
                 )
             }
+            uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
+                RepeatBlockRoutineSuggestionCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    suggestion = suggestion,
+                    onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
+                    onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
+                )
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
@@ -458,6 +473,54 @@ fun HomeScreen(
                             screenContext = "main",
                         ),
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepeatBlockRoutineSuggestionCard(
+    modifier: Modifier = Modifier,
+    suggestion: RepeatBlockRoutineSuggestion,
+    onApplyClick: () -> Unit,
+    onDismissClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.repeat_block_suggestion_home_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(
+                    R.string.repeat_block_suggestion_home_message,
+                    suggestion.prefillPackages.size,
+                    suggestion.prefillStartTime,
+                    suggestion.prefillEndTime,
+                ),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                KeepButton(
+                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
+                    onClick = onApplyClick,
+                )
+                TextButton(onClick = onDismissClick) {
+                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
                 }
             }
         }
