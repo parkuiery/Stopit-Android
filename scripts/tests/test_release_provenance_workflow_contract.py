@@ -8,6 +8,9 @@ PLAY_DOC = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+PINNED_UPLOAD_GOOGLE_PLAY_SHA = "eb49699984a39f23558439581660aa6f088acfd6"
+FLOATING_UPLOAD_GOOGLE_PLAY_REF = "r0adkll/upload-google-play@v1"
+PINNED_UPLOAD_GOOGLE_PLAY_REF = f"r0adkll/upload-google-play@{PINNED_UPLOAD_GOOGLE_PLAY_SHA}"
 
 
 def step_block(text: str, step_name: str) -> str:
@@ -91,6 +94,22 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         upload_step = step_block(workflow, "Upload signed AAB artifact")
         self.assertIn("app/build/outputs/bundle/prodRelease/*.aab", upload_step)
         self.assertIn("app/build/outputs/bundle/prodRelease/release-provenance.json", upload_step)
+
+    def test_play_deploy_upload_google_play_action_is_sha_pinned(self):
+        workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
+        upload_step = step_block(workflow, "Upload to Google Play")
+
+        self.assertIn(PINNED_UPLOAD_GOOGLE_PLAY_REF, upload_step)
+        self.assertNotIn(FLOATING_UPLOAD_GOOGLE_PLAY_REF, upload_step)
+        self.assertIn("Release-critical deploy action", upload_step)
+        self.assertIn("reviewed provenance PR", upload_step)
+
+        for line in workflow.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("uses: r0adkll/upload-google-play@"):
+                ref = stripped.split("@", 1)[1]
+                self.assertRegex(ref, r"^[0-9a-f]{40}$")
+                self.assertEqual(PINNED_UPLOAD_GOOGLE_PLAY_SHA, ref)
 
     def test_non_production_tag_deploy_publishes_durable_release_provenance_fallback(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
@@ -204,6 +223,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "evidence-publish failure",
             "do not blindly re-upload the same `versionCode`",
             "provenance mismatch",
+            "r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6",
+            "floating major tag",
+            "reviewed release-provenance PR",
+            "repo-owned promotion helper",
         ):
             self.assertIn(required, docs)
 
