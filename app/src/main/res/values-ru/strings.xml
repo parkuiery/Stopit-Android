@@ -212,7 +212,7 @@
     <string name="routine_disabled_tag">Отключено</string>
     <string name="routine_repeat_days_empty">Нет дней повтора</string>
     <string name="routine_next_run_label">Следующий запуск: %1$s</string>
-    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
+    <string name="routine_active_action_blocked_message">Эта рутина сейчас выполняется, поэтому редактирование, удаление и отключение заблокированы. Используйте экстренную разблокировку, если нужно временное исключение.</string>
     <string name="prevent_uninstall">Защита от удаления</string>
     <string name="prevent_uninstall_subtitle">Защищает StopIt от удаления</string>
     <string name="prevent_uninstall_enabled">Защита от удаления активирована</string>
