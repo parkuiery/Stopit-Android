@@ -279,10 +279,12 @@ firebase deploy --only functions:promoteProductionFromDiscord
 
 ## Local release build check
 
-Without signing environment variables, local release builds fall back to debug signing so normal build checks remain easy:
+`prodRelease` release artifact tasks must never use debug signing fallback. Without all release signing environment variables, Gradle fails `:app:bundleProdRelease`, `:app:assembleProdRelease`, and related `prodRelease` artifact signing/packaging tasks before an AAB/APK can be created:
 
 ```bash
+unset ANDROID_KEYSTORE_PATH ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD
 ./gradlew :app:bundleProdRelease
+# Fails: Debug signing fallback is not allowed for prodRelease artifacts.
 ```
 
 With real signing credentials:
@@ -295,7 +297,7 @@ export ANDROID_KEY_PASSWORD='***'
 ./gradlew :app:bundleProdRelease
 ```
 
-Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
+Debug/smoke paths still do not require release signing secrets. Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
 
 ## Safety notes
 
