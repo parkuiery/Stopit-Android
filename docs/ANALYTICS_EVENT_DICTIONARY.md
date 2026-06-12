@@ -23,6 +23,7 @@
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP, 기간 기반 장기 잠금, Home card, analytics/QA 계약
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP, 보호자 PIN, privacy-safe analytics/QA 계약
 - `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. 설정 ON/OFF, daily limit, duration option, reason required, refill mode, manual reset을 enum/bucket만으로 계측하고 GA4/Admin/readback 경계를 분리한다.
+- `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`: #779용 긴급해제 단계별 이탈·검증 실패 analytics 계약. reason/app/duration/countdown 단계 노출, validation blocked, cancel을 enum-only payload로 계측하고 raw reason/app/timestamp/history를 금지한다.
 
 ## 소스 오브 트루스
 
@@ -142,10 +143,13 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
+| `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. #779 Android 구현/GA4 등록 전에는 live 0건을 병목 부재로 해석하지 않는다. |
+| `emergency_unlock_validation_blocked` | `step_name`, `validation_reason`, `reason_required_enabled`, `entry_surface` | reason/app/duration 단계의 필수 선택·입력 부족으로 다음 단계 진행이 막힌 시점. |
+| `emergency_unlock_cancelled` | `step_name`, `cancel_source`, `reason_required_enabled`, `entry_surface` | 실제 임시 해제 완료 전 sheet dismiss/back/cancel/system 중단. countdown cancel은 실패가 아니라 중립/긍정 자기통제 신호일 수 있다. |
 
 긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline과 PR #675(`d2fab054`)의 step purpose copy baseline이 선택 사유/단계 목적 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 
-#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp.
+#467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. #779의 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`는 이 후속 계측을 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled`로 구체화한다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp, raw duration option list, 설정 snapshot dump.
 
 ### 디바이스 등록/푸시
 
@@ -403,6 +407,11 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `setting_name` | 긴급해제 설정 변경 축 enum (`enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`) |
 | `value_bucket` | 긴급해제 설정 변경 값 bucket. 이벤트별 source of truth는 `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`를 따른다. |
 | `duration_count_bucket` | 긴급해제 duration option 개수 bucket (`0`, `1`, `2_3`, `4_plus`, `not_applicable`) |
+| `step_name` | 긴급해제 단계 enum (`reason`, `app_selection`, `duration`, `countdown`) |
+| `validation_reason` | 긴급해제 validation 실패 enum (`missing_reason`, `missing_custom_reason`, `missing_app_selection`, `missing_duration`, `duration_options_unavailable`, `unknown`) |
+| `reason_required_enabled` | 긴급해제 reason step 설정 boolean/string enum (`true`, `false`) |
+| `entry_surface` | 긴급해제 진입 표면 enum (`lock_screen`, `block_screen`, `unknown`) |
+| `cancel_source` | 긴급해제 취소 source enum (`sheet_dismiss`, `back`, `cancel_button`, `outside_tap`, `system`, `unknown`) |
 | `remaining_unlocks_bucket` | 긴급해제 manual reset 전 남은 횟수 bucket (`0`, `1`, `2`, `3_plus`, `unknown`) |
 | `refill_mode` | 긴급해제 refill 방식 enum (`daily`, `manual`, `not_applicable`) |
 | `reset_result` | 긴급해제 manual reset 결과 enum 후보 (`requested`, `completed`, `unavailable`) |
