@@ -8,7 +8,7 @@ import org.junit.Test
 class EmergencyUnlockPolicyTest {
 
     @Test
-    fun emergencyUnlockNotificationPostResultRequiresEnabledNotificationsPermissionAndChannel() {
+    fun emergencyUnlockNotificationPostResultDistinguishesPermissionDeniedFromChannelDisabled() {
         assertEquals(
             EmergencyUnlockNotificationPostResult.PermissionDenied,
             resolveEmergencyUnlockNotificationPostResult(
@@ -26,7 +26,7 @@ class EmergencyUnlockPolicyTest {
             )
         )
         assertEquals(
-            EmergencyUnlockNotificationPostResult.PermissionDenied,
+            EmergencyUnlockNotificationPostResult.ChannelDisabled,
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = true,
                 postNotificationsPermissionGranted = true,
