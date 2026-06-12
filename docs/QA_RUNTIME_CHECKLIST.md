@@ -1000,6 +1000,9 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
     - `python3 scripts/android_runtime_suites.py markdown android_ci_exact_alarm_default android_ci_exact_alarm_denied android_ci_exact_alarm_allowed`
     - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
 - exact-alarm host-side appops run:
+  - 루틴 추가/수정 bottom sheet는 ViewModel side effect 순서를 source of truth로 본다. 권한 없음 add flow는 `ShowAlarmPermission`을 먼저 내보낸 뒤 `CloseBottomSheet`로 닫아야 하며, UI에서 `addRoutine()` 전에 sheet를 선행 close하면 collector가 제거되어 권한 안내가 유실될 수 있다. #580 dismiss/설정 실패 복구 계약은 안내가 표시된 뒤의 재안내 정책이고, #799는 안내가 표시되기 전 side-effect 순서 계약이다.
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest.addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermissionBeforeClosingSheet'`
+  - `./gradlew :app:compileDevDebugAndroidTestKotlin`으로 `RoutineExactAlarmPermissionIntegrationTest`의 add/multi-day denied side-effect 순서 계약이 컴파일되는지 확인한다.
   - `./gradlew :app:installDevDebug`
   - `adb shell cmd appops reset com.uiery.keep.dev`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_default)"`

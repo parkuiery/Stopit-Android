@@ -230,6 +230,7 @@ class KeepAccessibilityServiceIntegrationTest {
         val blockedPackage = launchFirstConfiguredPackage(
             purpose = "active Parent Mode block smoke",
             configureCandidate = { candidate -> configureActiveParentModeBlock(candidate) },
+            pressHomeBeforeLaunch = false,
         )
         waitForWindowEvent(blockedPackage)
 

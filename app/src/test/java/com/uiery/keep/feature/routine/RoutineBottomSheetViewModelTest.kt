@@ -18,7 +18,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -152,20 +155,27 @@ class RoutineBottomSheetViewModelTest {
             analytics = analytics,
         )
 
+        val sideEffects = async { viewModel.container.sideEffectFlow.take(1).toList() }
+
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
         awaitUntil { routineDao.insertedEntity != null }
 
         assertEquals("Morning focus", routineDao.insertedEntity?.name)
         awaitRoutineScheduled(routineScheduler)
+        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
         )
+        assertEquals(
+            listOf(RoutineBottomSheetSideEffect.CloseBottomSheet),
+            withTimeout(1_000) { sideEffects.await() },
+        )
     }
 
     @Test
-    fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermission() = runBlocking {
+    fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermissionBeforeClosingSheet() = runBlocking {
         val routineDao = RecordingRoutineDao(insertedId = 43L)
         val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
         Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(false)
@@ -173,7 +183,7 @@ class RoutineBottomSheetViewModelTest {
             routineDao = routineDao,
             routineScheduler = routineScheduler,
         )
-        val sideEffect = async { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = async { viewModel.container.sideEffectFlow.take(2).toList() }
 
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
@@ -181,7 +191,13 @@ class RoutineBottomSheetViewModelTest {
 
         assertEquals(false, routineDao.insertedEntity?.isEnabled)
         Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect.await())
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            withTimeout(1_000) { sideEffects.await() },
+        )
     }
 
     @Test
