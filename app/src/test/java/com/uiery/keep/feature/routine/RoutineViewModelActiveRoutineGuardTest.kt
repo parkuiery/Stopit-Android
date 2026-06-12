@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -73,6 +74,46 @@ class RoutineViewModelActiveRoutineGuardTest {
         assertEquals(routine, repository.routines.value.single())
     }
 
+    @Test
+    fun deleteRechecksStoredRoutineAndBlocksWhenRoutineBecameProtectedAfterListLoaded() = runBlocking {
+        val protectedRoutine = changeLockedRoutine()
+        val staleListRoutine = protectedRoutine.copy(changeLockHours = 0)
+        val repository = GuardRoutineRepository(
+            initialRoutines = listOf(staleListRoutine),
+            fetchedRoutines = mapOf(protectedRoutine.id to protectedRoutine),
+        )
+        val viewModel = createViewModel(repository)
+        waitFor { viewModel.container.stateFlow.value.routines == listOf(staleListRoutine) }
+        val sideEffectDeferred = async { viewModel.container.sideEffectFlow.first() }
+        delay(20)
+
+        viewModel.deleteRoutine(protectedRoutine.id)
+
+        assertEquals(RoutineSideEffect.ShowActiveRoutineBlocked, withTimeout(1_000) { sideEffectDeferred.await() })
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+        assertEquals(listOf(protectedRoutine.id), repository.fetchCalls)
+    }
+
+    @Test
+    fun disableRechecksStoredRoutineAndBlocksWhenRoutineBecameProtectedAfterListLoaded() = runBlocking {
+        val protectedRoutine = changeLockedRoutine()
+        val staleListRoutine = protectedRoutine.copy(changeLockHours = 0)
+        val repository = GuardRoutineRepository(
+            initialRoutines = listOf(staleListRoutine),
+            fetchedRoutines = mapOf(protectedRoutine.id to protectedRoutine),
+        )
+        val viewModel = createViewModel(repository)
+        waitFor { viewModel.container.stateFlow.value.routines == listOf(staleListRoutine) }
+        val sideEffectDeferred = async { viewModel.container.sideEffectFlow.first() }
+        delay(20)
+
+        viewModel.changeEnabled(protectedRoutine.id, isEnabled = false)
+
+        assertEquals(RoutineSideEffect.ShowActiveRoutineBlocked, withTimeout(1_000) { sideEffectDeferred.await() })
+        assertEquals(emptyList<Pair<Long, Boolean>>(), repository.enabledUpdates)
+        assertEquals(listOf(protectedRoutine.id), repository.fetchCalls)
+    }
+
     private fun createViewModel(repository: GuardRoutineRepository): RoutineViewModel {
         val dataStore = FakeDataStore(emptyPreferences())
         val scheduler = Mockito.mock(RoutineScheduler::class.java)
@@ -112,6 +153,22 @@ class RoutineViewModelActiveRoutineGuardTest {
         )
     }
 
+    private fun changeLockedRoutine(): RoutineModel {
+        val now = LocalDateTime.now()
+        val start = now.plusMinutes(30)
+        val end = now.plusMinutes(90)
+        return RoutineModel(
+            id = 610L,
+            name = "Protected routine guard",
+            startTime = LocalTime(hour = start.hour, minute = start.minute),
+            endTime = LocalTime(hour = end.hour, minute = end.minute),
+            repeatDays = listOf(start.dayOfWeek).toRepeatDaysBinary(),
+            lockApplications = listOf("com.example.blocked"),
+            isEnabled = true,
+            changeLockHours = 1,
+        )
+    }
+
     private fun anyRoutine(): RoutineModel =
         Mockito.any(RoutineModel::class.java) ?: activeRoutine()
 
@@ -125,13 +182,18 @@ class RoutineViewModelActiveRoutineGuardTest {
 
 private class GuardRoutineRepository(
     initialRoutines: List<RoutineModel>,
+    private val fetchedRoutines: Map<Long, RoutineModel> = emptyMap(),
 ) : RoutineRepository {
     val routines = MutableStateFlow(initialRoutines)
     val deletedIds = mutableListOf<Long>()
     val enabledUpdates = mutableListOf<Pair<Long, Boolean>>()
+    val fetchCalls = mutableListOf<Long>()
 
     override fun fetchAll(): Flow<List<RoutineModel>> = routines
-    override suspend fun fetch(id: Long): RoutineModel = routines.value.first { it.id == id }
+    override suspend fun fetch(id: Long): RoutineModel {
+        fetchCalls += id
+        return fetchedRoutines[id] ?: routines.value.first { it.id == id }
+    }
 
     override suspend fun deleteById(id: Long) {
         deletedIds += id
