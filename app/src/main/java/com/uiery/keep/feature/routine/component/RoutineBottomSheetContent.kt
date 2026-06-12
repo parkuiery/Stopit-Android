@@ -135,7 +135,6 @@ fun RoutineBottomSheetContent(
                 onSelectDay = viewModel::setSelectDays,
                 onChangeLockHoursChanged = viewModel::setChangeLockHours,
                 onAddRoutine = {
-                    onCloseBottomSheet()
                     viewModel.addRoutine()
                 },
                 onEditRoutine = {
