@@ -520,6 +520,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
 - 세션 1개 또는 짧은 duration은 `low_data` 상태로 작은 성공을 인정한다.
 - 기록 있음은 `has_history` 상태로 주/월 기간에 맞는 성취형 headline을 보여준다.
 - top apps heading/supporting copy는 `위험 앱`이 아니라 `막아낸 성과`로 읽힌다.
+- Top apps count는 앱이 차단된 session 수 기준이다. 같은 session 안에 duplicate lockedApps entry가 있어도 per-session dedupe로 앱별 한 번만 세고, 중복 원문 리스트를 성과로 과대계상하지 않는다.
 - summary card와 top apps card는 TalkBack에서 성과형 headline/supporting copy가 하나의 content description으로 전달되는지 focused Compose instrumentation으로 확인한다. PR #579 이후 Top apps card는 실제 표시되는 top app rank/app label/block count/duration까지 같은 content description에 포함해야 한다.
 - 새 analytics를 추가할 경우 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 전송하고 앱 이름/package/raw session/raw timestamp/raw duration은 전송하지 않는다.
 
@@ -546,6 +547,7 @@ python3 -m unittest scripts.tests.test_lock_history_performance_report_contract 
   - week/month period correct: pass / fail
 - Top apps section:
   - positive framing: pass / fail
+  - per-session dedupe for duplicate lockedApps entry: pass / fail
   - app package/raw history absent from analytics spot-check: pass / fail
 - TalkBack summary/top apps meaning:
   - focused contentDescription regression passed: pass / fail

@@ -72,6 +72,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "code-lane instrumentation 추가",
             "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영",
             "rank/app label/block count/duration",
+            "per-session dedupe",
+            "duplicate lockedApps entry",
             "PR #579",
             "f4b499baf9ccb42102fe29be71ee386a310e6fb3",
             "PR #637",
@@ -170,6 +172,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
             "LockHistoryPerformanceReportAccessibilityTest",
             "top app rank/app label/block count/duration",
+            "per-session dedupe",
+            "duplicate lockedApps entry",
             "focused contentDescription regression passed",
         ]
         for phrase in required_phrases:
