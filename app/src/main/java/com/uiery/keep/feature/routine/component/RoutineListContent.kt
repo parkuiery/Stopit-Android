@@ -3,7 +3,6 @@ package com.uiery.keep.feature.routine.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -263,23 +262,12 @@ private fun RoutineItem(
                 tint = if (isBlocked) KeepTheme.colors.surfaceVariant else KeepTheme.colors.primary,
             )
         }
-        Box(
-            modifier = Modifier
-                .testTag("routine-enabled-switch-$routineId")
-                .then(
-                    if (isBlocked) {
-                        Modifier.clickable { onEnabledChange(!isEnabled) }
-                    } else {
-                        Modifier
-                    },
-                ),
-        ) {
-            KeepSwitch(
-                checked = isEnabled,
-                enabled = !isBlocked,
-                onCheckedChange = onEnabledChange,
-            )
-        }
+        KeepSwitch(
+            checked = isEnabled,
+            modifier = Modifier.testTag("routine-enabled-switch-$routineId"),
+            enabled = true,
+            onCheckedChange = onEnabledChange,
+        )
     }
 }
 
