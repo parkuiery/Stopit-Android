@@ -2,6 +2,7 @@ package com.uiery.keep
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockCancelSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -101,6 +102,35 @@ class BlockViewModel
 
         internal fun hideEmergencyUnlockSheet() = intent {
             reduce { state.copy(isShowEmergencyUnlockSheet = false) }
+        }
+
+        internal fun trackEmergencyUnlockStepViewed(stepName: String) {
+            analytics.trackEmergencyUnlockStepViewed(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockValidationBlocked(
+            stepName: String,
+            validationReason: String,
+        ) {
+            analytics.trackEmergencyUnlockValidationBlocked(
+                stepName = stepName,
+                validationReason = validationReason,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockCancelled(stepName: String) {
+            analytics.trackEmergencyUnlockCancelled(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+                cancelSource = AnalyticsEmergencyUnlockCancelSource.CANCEL_BUTTON,
+            )
         }
 
         internal fun emergencyUnlock(

@@ -175,6 +175,70 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun emergencyUnlockStepEventsUsePrivacySafeEnumsOnly() {
+        analytics.trackEmergencyUnlockStepViewed(
+            stepName = AnalyticsEmergencyUnlockStepName.REASON,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockValidationBlocked(
+            stepName = AnalyticsEmergencyUnlockStepName.APPS,
+            validationReason = AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockCancelled(
+            stepName = AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+            reasonRequiredEnabled = false,
+            source = AnalyticsSource.BLOCK_SCREEN,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_STEP_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.REASON,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_VALIDATION_BLOCKED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.APPS,
+                    KeepAnalyticsParam.VALIDATION_REASON to AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_CANCELLED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to false,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.BLOCK_SCREEN,
+                    KeepAnalyticsParam.CANCEL_SOURCE to AnalyticsEmergencyUnlockCancelSource.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+        backend.loggedEvents.forEach { event ->
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.REASON))
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey("custom_reason"))
+            assertFalse(event.params.containsKey("app_package"))
+            assertFalse(event.params.containsKey("duration_minutes"))
+            assertFalse(event.params.containsKey("timestamp"))
+        }
+    }
+
+    @Test
     fun dpcBaselineEventsUseRequiredNamesAndParams() {
         analytics.trackAppSelectionCompleted(
             selectedAppCount = 2,

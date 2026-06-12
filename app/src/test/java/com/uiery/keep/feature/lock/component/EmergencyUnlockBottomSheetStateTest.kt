@@ -90,17 +90,41 @@ class EmergencyUnlockBottomSheetStateTest {
 
         assertEquals(R.string.emergency_unlock_reason_helper, state.stepHelperTextRes)
         assertEquals(R.string.emergency_unlock_reason_required_helper, state.validationHelperTextRes)
+        assertEquals("missing_reason", state.validationReason)
 
         state = state.selectReason("other")
         assertEquals(R.string.emergency_unlock_reason_other_required_helper, state.validationHelperTextRes)
+        assertEquals("missing_custom_reason", state.validationReason)
 
         state = state.changeCustomReason("urgent family call").goNext()
         assertEquals(EmergencyUnlockBottomSheetStep.APPS, state.step)
         assertEquals(R.string.emergency_unlock_apps_helper, state.stepHelperTextRes)
         assertEquals(R.string.emergency_unlock_apps_required_helper, state.validationHelperTextRes)
+        assertEquals("missing_app_selection", state.validationReason)
 
         state = state.toggleApp("com.social.app")
         assertEquals(null, state.validationHelperTextRes)
+        assertEquals(null, state.validationReason)
+    }
+
+    @Test
+    fun analyticsStepNameUsesStablePrivacySafeEnums() {
+        var state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app"),
+            durationOptions = listOf(10),
+            reasonStepEnabled = true,
+        )
+
+        assertEquals("reason", state.analyticsStepName)
+
+        state = state.selectReason("work").goNext()
+        assertEquals("app_selection", state.analyticsStepName)
+
+        state = state.toggleApp("com.social.app").goNext()
+        assertEquals("duration", state.analyticsStepName)
+
+        state = state.goNext()
+        assertEquals("countdown", state.analyticsStepName)
     }
 
     @Test

@@ -220,6 +220,55 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackEmergencyUnlockStepViewed(
+            stepName: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_STEP_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockValidationBlocked(
+            stepName: String,
+            validationReason: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_VALIDATION_BLOCKED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.VALIDATION_REASON to validationReason,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockCancelled(
+            stepName: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+            cancelSource: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_CANCELLED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                    KeepAnalyticsParam.CANCEL_SOURCE to cancelSource,
+                ),
+            )
+        }
+
         override fun trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,
