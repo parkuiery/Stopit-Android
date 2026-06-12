@@ -827,11 +827,15 @@ cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.feature.routine.RoutineViewModelActiveRoutineGuardTest' \
   --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution
+python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 ./gradlew --console=plain :app:lintProdRelease
 ```
 
 검증 범위:
 - 실행 중인 루틴을 탭해 상세/수정 bottom sheet를 열려고 하면 `RoutineSideEffect.ShowActiveRoutineBlocked`가 발생하고 edit sheet가 열리지 않는다.
+- 활성 루틴 대상 앱이 이미 foreground에 있거나 foreground로 전환될 때 `KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution`가 `block_source=routine`과 `routine_id` attribution으로 `BlockActivity` 요청을 고정한다.
 - 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시킨다.
 - 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
 - 루틴 목록 state가 잠시 stale이어도 삭제/OFF action 직전에 repository의 최신 routine을 다시 읽어, 그 사이 활성/변경잠금 상태가 된 루틴이면 delete/update/cancel/reschedule을 수행하지 않는다.
@@ -848,6 +852,10 @@ cd <repo-root>
 - Build / variant:
 - Device / Android version / OEM:
 - Active routine setup: repeat day / start time / end time / selected apps:
+- Foreground block runtime:
+  - focused command run: pass / fail
+  - target app foreground observed before block: pass / fail
+  - `block_source=routine` and `routine_id` attribution recorded: pass / fail
 - Edit attempt while active:
   - edit sheet not opened: pass / fail
   - snackbar visible: pass / fail
