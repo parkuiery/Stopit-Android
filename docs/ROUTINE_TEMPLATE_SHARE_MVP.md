@@ -2,7 +2,7 @@
 
 Issue: #407
 Follow-up debt: #778
-상태: **#407 repo-internal 구현/검증 완료, #778 공유문 resource-template 전환 대기, 외부·post-release 경계 대기**
+상태: **#407 repo-internal 구현/검증 완료, #778 공유문 resource-template 런타임 전환 완료(PR 검증/merge 대기), 외부·post-release 경계 대기**
 
 이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. PR #428에서 Android share sheet MVP가 `origin/develop`에 구현·검증됐으므로, 현재 source of truth는 코드, `docs/ANALYTICS_EVENT_DICTIONARY.md`, 이 runbook이다. 다만 GA4 Admin 등록·metadata readback·release/tag/Play deploy 포함 여부 확인·배포 후 14/30일 측정 전까지는 효과 판정을 외부/manual 경계로 둔다. #778은 이 MVP의 별도 현지화 debt로, share sheet chooser title 현지화와 실제 공유 payload 본문 현지화를 같은 완료 상태로 보지 않는다.
 
@@ -80,7 +80,14 @@ https://play.google.com/store/apps/details?id=com.uiery.keep
 
 ### 공유문 locale/resource-template 계약 (#778)
 
-#778의 목표는 `RoutineTemplateSharePayload.kt`에 하드코딩된 한국어 공유 본문과 label/duration 조합을 Android resource-backed template/provider로 옮기는 것이다. 이 작업은 analytics schema 변경이 아니라 사용자 노출 공유문 현지화/QA 계약이다.
+#778의 런타임 구현은 `RoutineTemplateSharePayload.kt`의 하드코딩 한국어 공유 본문과 label/duration 조합을 Android resource-backed template/provider로 옮기는 것이다. 이 작업은 analytics schema 변경이 아니라 사용자 노출 공유문 현지화/QA 계약이다.
+
+현재 구현 기준:
+
+- `RoutineTemplateSharePayload`는 analytics-safe enum/bucket/routine-name opt-in/duration metadata만 보관하고, raw rendered text를 canonical field로 보관하지 않는다.
+- `AndroidRoutineTemplateShareTextProvider`가 현재 Android `Context`의 string/plural resource로 title, CTA, category/repeat/time-window label, duration grammar를 만든다.
+- `RoutineScreen`은 share intent 직전에 `payload.buildShareText(AndroidRoutineTemplateShareTextProvider(context))`를 호출하므로 chooser title뿐 아니라 실제 외부 공유 본문도 resource-backed 경로를 따른다.
+- 기본/한국어 리소스가 payload body key를 제공하며, 다른 shipped locale은 default resource fallback을 사용한다. locale별 품질 확장은 #729류 locale-quality gate로 별도 판단한다.
 
 필수 계약:
 
@@ -113,7 +120,7 @@ https://play.google.com/store/apps/details?id=com.uiery.keep
 4. `routine_template_share_*` analytics event name과 enum/bucket/boolean parameter 계약은 유지한다.
 5. `scripts.tests.test_routine_template_share_contract`가 payload locale debt가 다시 문서/코드에서 흐려지지 않도록 고정한다.
 
-문서/ops/static-contract PR은 `Refs #778`을 사용한다. 위 runtime resource-template 전환, locale parity, formatter tests, privacy guardrail이 모두 끝난 code-lane PR에서만 `Closes #778`을 사용한다.
+#778 런타임 구현 PR은 acceptance를 충족할 때 `Closes #778`를 사용할 수 있다. 문서/ops/static-contract만 바꾸는 PR은 `Refs #778`을 사용한다.
 
 ### 루틴 이름 처리
 

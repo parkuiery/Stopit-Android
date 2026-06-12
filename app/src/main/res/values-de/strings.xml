@@ -332,6 +332,32 @@
     <string name="first_lock_activation_cta_action">Starten</string>
     <string name="first_lock_keep_started_guidance">StopIt ist aktiviert. Öffne eine ausgewählte App, um die erste Blockierung zu bestätigen.</string>
     <string name="first_lock_timer_scheduled_guidance">Deine erste Sperre ist geplant. Öffne zur geplanten Zeit eine ausgewählte App, um die Blockierung zu bestätigen.</string>
+    <string name="routine_template_share_payload_title">StopIt-Fokusroutine-Vorlage</string>
+    <string name="routine_template_share_payload_cta">Pausiere Apps, wenn du dich konzentrieren möchtest.</string>
+    <string name="routine_template_share_category_study">Lernen</string>
+    <string name="routine_template_share_category_work">Arbeit</string>
+    <string name="routine_template_share_category_night_focus">Nachtfokus</string>
+    <string name="routine_template_share_category_custom">Fokus</string>
+    <string name="routine_template_share_repeat_weekday">Wochentage</string>
+    <string name="routine_template_share_repeat_weekend">Wochenende</string>
+    <string name="routine_template_share_repeat_daily">Jeden Tag</string>
+    <string name="routine_template_share_repeat_custom_days">Ausgewählte Tage</string>
+    <string name="routine_template_share_repeat_none">Keine Tage ausgewählt</string>
+    <string name="routine_template_share_time_morning">Morgen</string>
+    <string name="routine_template_share_time_afternoon">Nachmittag</string>
+    <string name="routine_template_share_time_evening">Abend</string>
+    <string name="routine_template_share_time_night">Nacht</string>
+    <string name="routine_template_share_time_overnight">Über Nacht</string>
+    <string name="routine_template_share_time_custom_window">Benutzerdefinierte Zeit</string>
+    <plurals name="routine_template_share_duration_hours">
+        <item quantity="one">%1$d Stunde</item>
+        <item quantity="other">%1$d Stunden</item>
+    </plurals>
+    <plurals name="routine_template_share_duration_minutes">
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minuten</item>
+    </plurals>
+    <string name="routine_template_share_duration_hours_minutes">%1$d Stunden %2$d Minuten</string>
     <string name="routine_template_share_chooser_title">Routinenvorlage teilen</string>
     <string name="cd_share_routine_template">Routinenvorlage teilen</string>
 </resources>

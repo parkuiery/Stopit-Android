@@ -672,7 +672,7 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 - 루틴 이름은 기본 제외이며, opt-in variant가 있더라도 analytics에는 원문 대신 `routine_name_included=true/false`만 남긴다.
 - `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed`는 `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` 같은 enum/bucket/boolean 파라미터만 사용한다.
 - invalid routine에서는 CTA가 숨겨지거나 payload 생성이 실패하고, 실패 reason은 `activity_not_found` / `invalid_template` 같은 enum으로만 기록된다.
-- #778 현지화 PR에서는 payload title/body, category/repeat/time-window label, duration grammar가 Android string/plural resource 또는 resource-backed provider에서 나오며, `RoutineTemplateSharePayload.kt`의 한국어 literal은 canonical runtime source가 아니다.
+- #778 현지화 PR에서는 payload title/body, category/repeat/time-window label, duration grammar가 Android string/plural resource 또는 resource-backed provider에서 나오며, `RoutineTemplateSharePayload.kt`의 한국어 literal은 canonical runtime source가 아니다. 현재 런타임은 `AndroidRoutineTemplateShareTextProvider(context)` + `payload.buildShareText(...)` 경로로 intent text를 만든다.
 - #778은 analytics schema 변경이 아니므로 raw rendered share text, raw duration string, locale-specific body를 GA4 payload/custom dimension으로 추가하지 않는다.
 
 수동 QA evidence template:

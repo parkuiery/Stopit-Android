@@ -100,9 +100,12 @@ fun RoutineScreen(
                 }
             }
             is RoutineSideEffect.ShareRoutineTemplate -> {
+                val shareText = sideEffect.payload.buildShareText(
+                    AndroidRoutineTemplateShareTextProvider(context),
+                )
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, sideEffect.payload.text)
+                    putExtra(Intent.EXTRA_TEXT, shareText)
                 }
                 val chooser = Intent.createChooser(
                     shareIntent,
