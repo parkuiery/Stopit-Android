@@ -1560,9 +1560,31 @@ issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child is
 - Notes:
 ```
 
+### Emergency unlock step analytics QA baseline
+
+Issue: #779 계열 PR은 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`를 source of truth로 두고 reason/app selection/duration/countdown 단계 노출, validation blocked, cancel source가 privacy-safe enum-only payload로 기록되는지 확인한다. 이 baseline은 #467 copy/step QA와 연결되지만, #694 설정 변경 analytics와 섞지 않는다.
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract -v
+./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
+```
+
+확인:
+
+- `emergency_unlock_step_viewed`: reason-required ON/OFF에 맞게 `step_name=reason|app_selection|duration|countdown`, `reason_required_enabled`, `entry_surface`만 기록한다.
+- `emergency_unlock_validation_blocked`: `validation_reason=missing_reason|missing_custom_reason|missing_app_selection|missing_duration|duration_options_unavailable|unknown` enum만 기록한다.
+- `emergency_unlock_cancelled`: sheet dismiss/back/cancel button/outside/system을 `cancel_source` enum으로만 기록하고, countdown cancel은 `emergency_unlock_completed`로 과장하지 않는다.
+- reason-required ON/OFF: OFF flow에서는 reason step viewed나 missing reason/custom reason validation이 나오지 않아야 한다.
+- Privacy: no custom reason raw text, no app name/package/list, no raw timestamp/history/duration list/settings snapshot.
+- GA4: `customEvent:step_name`, `customEvent:validation_reason`, `customEvent:reason_required_enabled`, `customEvent:entry_surface`, `customEvent:cancel_source` GA4 Admin metadata 확인 전에는 세부 breakdown을 제품 결론으로 쓰지 않는다.
+- Readback: Android 구현 포함 release/tag/Play deploy 후 14-day readback을 예약하고, 30-day window에서 reason-required ON/OFF와 entry surface별 guardrail을 재확인한다.
+
 ### 긴급해제 완료/만료 scriptable baseline
 
-issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다. issue #424 계열처럼 bottom sheet 단계/선택 상태를 건드리는 PR은 같은 묶음에서 `EmergencyUnlockBottomSheetStateTest`를 먼저 실행해 UI state machine 계약을 고정하고, 실제 Compose bottom sheet click-through는 focused instrumentation baseline으로 확인한다.
+issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다. issue #424/#779 계열처럼 bottom sheet 단계/선택 상태 또는 step analytics를 건드리는 PR은 같은 묶음에서 `EmergencyUnlockBottomSheetStateTest`와 `test_emergency_unlock_step_analytics_contract`를 먼저 실행해 UI state machine과 privacy-safe analytics 계약을 고정하고, 실제 Compose bottom sheet click-through는 focused instrumentation baseline으로 확인한다.
 
 ```bash
 cd <repo-root>
