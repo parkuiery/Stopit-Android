@@ -1,6 +1,8 @@
 package com.uiery.keep.ui.component
 
-import android.graphics.drawable.ColorDrawable
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -97,6 +99,9 @@ class CategoryBottomSheetContentIntegrationTest {
         isChecked = false,
         packageName = packageName,
         appName = appName,
-        appIcon = ColorDrawable(0xFF123456.toInt()),
+        appIcon = BitmapDrawable(
+            Resources.getSystem(),
+            Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888),
+        ),
     )
 }
