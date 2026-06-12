@@ -10,6 +10,12 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+val requiredReleaseSigningEnvVars = listOf(
+    "ANDROID_KEYSTORE_PATH",
+    "ANDROID_KEYSTORE_PASSWORD",
+    "ANDROID_KEY_ALIAS",
+    "ANDROID_KEY_PASSWORD",
+)
 val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
@@ -20,6 +26,26 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword,
 ).all { !it.isNullOrBlank() }
+val prodReleaseArtifactTaskName = Regex("^(bundle|assemble|sign)ProdRelease.*|^packageProdReleaseBundle$")
+
+fun ensureReleaseSigningForProdReleaseArtifacts(requestedTaskNames: List<String>) {
+    val prodReleaseArtifactTasks = requestedTaskNames
+        .map { it.substringAfterLast(":") }
+        .filter { prodReleaseArtifactTaskName.matches(it) }
+        .sorted()
+
+    if (prodReleaseArtifactTasks.isNotEmpty() && !hasReleaseSigning) {
+        throw GradleException(
+            "Debug signing fallback is not allowed for prodRelease artifacts. " +
+                "Set ${requiredReleaseSigningEnvVars.joinToString(", ")} before running " +
+                prodReleaseArtifactTasks.joinToString(", ") + "."
+        )
+    }
+}
+
+gradle.taskGraph.whenReady {
+    ensureReleaseSigningForProdReleaseArtifacts(gradle.startParameter.taskNames)
+}
 
 fun com.android.build.api.dsl.ProductFlavor.setAdMobConfig(
     applicationId: String,
@@ -104,7 +130,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName(if (hasReleaseSigning) "release" else "debug")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         debug {
