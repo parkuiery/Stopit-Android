@@ -25,6 +25,7 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest",
         "com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest",
         "com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest",
+        "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
         "com.uiery.keep.ui.component.TimerPickerIntegrationTest",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",
