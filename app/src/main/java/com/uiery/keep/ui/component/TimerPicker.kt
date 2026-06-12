@@ -27,7 +27,6 @@ import com.uiery.keep.R
 import com.uiery.keep.rememberPickerState
 import com.uiery.keep.util.timeNow
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.toJavaLocalTime
 
 @Composable
 fun TimerPicker(
@@ -42,6 +41,7 @@ fun TimerPicker(
     val timerPeriodsPickerState = rememberPickerState()
     val hourPickerState = rememberPickerState()
     val minutePickerState = rememberPickerState()
+    val currentSelection = timerPickerSelection(time)
 
     LaunchedEffect(timerPeriodsPickerState.selectedItem,hourPickerState.selectedItem,minutePickerState.selectedItem) {
         if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
@@ -78,7 +78,7 @@ fun TimerPicker(
             Picker(
                 state = timerPeriodsPickerState,
                 items = timePeriodsValues,
-                startIndex = if(time.toJavaLocalTime().isBefore(java.time.LocalTime.NOON)) 0 else 1,
+                startIndex = if(currentSelection.isPm) 1 else 0,
                 visibleItemsCount = 3,
                 isInfinity = true,
                 color = KeepTheme.colors.onSurfaceVariant,
@@ -93,7 +93,7 @@ fun TimerPicker(
                 modifier = Modifier.widthIn(min = 28.dp),
                 state = hourPickerState,
                 items = hourValues,
-                startIndex = timerPickerStartIndex(time),
+                startIndex = hourValues.indexOf(currentSelection.hourLabel),
                 visibleItemsCount = 7,
                 color = KeepTheme.colors.onSurfaceVariant,
                 textStyle = TextStyle(
@@ -107,7 +107,7 @@ fun TimerPicker(
                 modifier = Modifier.widthIn(min = 28.dp),
                 state = minutePickerState,
                 items = minuteValues,
-                startIndex = time.minute,
+                startIndex = currentSelection.minuteLabel.toInt(),
                 visibleItemsCount = 7,
                 color = KeepTheme.colors.onSurfaceVariant,
                 textStyle = TextStyle(
@@ -122,6 +122,21 @@ fun TimerPicker(
 
 internal fun timerPickerHourLabels(): List<String> =
     listOf("12") + (1..11).map { it.toString() }
+
+internal data class TimerPickerSelection(
+    val isPm: Boolean,
+    val hourLabel: String,
+    val minuteLabel: String,
+)
+
+internal fun timerPickerSelection(time: LocalTime): TimerPickerSelection {
+    val hourLabels = timerPickerHourLabels()
+    return TimerPickerSelection(
+        isPm = time.hour >= HOURS_PER_PERIOD,
+        hourLabel = hourLabels[timerPickerStartIndex(time)],
+        minuteLabel = time.minute.toString(),
+    )
+}
 
 internal fun timerPickerStartIndex(time: LocalTime): Int = time.hour % HOURS_PER_PERIOD
 

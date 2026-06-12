@@ -36,4 +36,16 @@ class TimerPickerContractTest {
             timerPickerSelectedTime(isPm = true, hourLabel = "1", minute = 5),
         )
     }
+
+    @Test
+    fun timerPickerSelectionFollowsExternallyProvidedTime() {
+        assertEquals(
+            TimerPickerSelection(isPm = false, hourLabel = "12", minuteLabel = "0"),
+            timerPickerSelection(LocalTime(hour = 0, minute = 0)),
+        )
+        assertEquals(
+            TimerPickerSelection(isPm = true, hourLabel = "3", minuteLabel = "45"),
+            timerPickerSelection(LocalTime(hour = 15, minute = 45)),
+        )
+    }
 }

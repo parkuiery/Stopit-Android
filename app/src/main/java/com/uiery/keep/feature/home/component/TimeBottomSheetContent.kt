@@ -125,7 +125,10 @@ fun TimeBottomSheetContent(
             ) {
                 when(it) {
                     0 -> CountDownPicker(onChangeCountdownDuration = onChangeCountdownDuration)
-                    1 -> TimerPicker(onChangeTimerTime = onChangeTimerTIme)
+                    1 -> TimerPicker(
+                        time = blockTime,
+                        onChangeTimerTime = onChangeTimerTIme,
+                    )
                 }
             }
         }
