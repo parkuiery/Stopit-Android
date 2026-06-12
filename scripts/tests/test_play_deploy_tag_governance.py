@@ -41,6 +41,15 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("origin/main reachable", doc)
         self.assertIn("previous SemVer production completion marker", doc)
 
+    def test_play_deployment_doc_mentions_node22_helper_runtime(self):
+        docs = "\n--- docs/PLAY_DEPLOYMENT.md ---\n" + PLAY_DOC_PATH.read_text()
+        docs += "\n--- docs/ops/stopit/release-context.md ---\n" + RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("Node 22", docs)
+        self.assertIn("actions/setup-node@v5", docs)
+        self.assertIn("validate-play-rollout-inputs.js", docs)
+        self.assertIn("promote-google-play-track.js", docs)
+
     def test_play_deployment_doc_defines_completion_marker_as_completed_production_only(self):
         doc = PLAY_DOC_PATH.read_text()
 
@@ -101,6 +110,22 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("inputs.track == 'production'", workflow)
         self.assertIn("production", workflow)
         self.assertIn("play-deploy-non-production", workflow)
+
+    def test_play_deploy_pins_node22_before_js_helper_steps(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("- name: Set up Node 22", workflow)
+        node_setup_step = workflow.split("- name: Set up Node 22", 1)[1].split("- name:", 1)[0]
+        node_setup_index = workflow.index("- name: Set up Node 22")
+        guardrail_index = workflow.index("- name: Validate Play deploy release guardrails")
+        non_production_rollout_index = workflow.index("- name: Validate non-production staged rollout inputs")
+        production_rollout_index = workflow.index("- name: Validate production staged rollout inputs")
+
+        self.assertLess(node_setup_index, guardrail_index)
+        self.assertLess(node_setup_index, non_production_rollout_index)
+        self.assertLess(node_setup_index, production_rollout_index)
+        self.assertIn("uses: actions/setup-node@v5", node_setup_step)
+        self.assertIn("node-version: '22'", node_setup_step)
 
     def test_non_production_staged_rollout_inputs_are_validated_before_secret_decode(self):
         workflow = WORKFLOW_PATH.read_text()
