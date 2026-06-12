@@ -13,12 +13,7 @@ FEATURE_IMPORT_PATTERN = re.compile(
     re.MULTILINE,
 )
 
-EXPECTED_FEATURE_IMPORTS = {
-    "app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt": [
-        "com.uiery.keep.feature.goallock.GoalLockRepository",
-        "com.uiery.keep.feature.parentmode.ParentModeSessionStore",
-    ],
-}
+EXPECTED_FEATURE_IMPORTS = {}
 
 
 class FeatureDomainBoundaryContractTest(unittest.TestCase):

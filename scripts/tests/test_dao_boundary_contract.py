@@ -92,10 +92,11 @@ class DaoBoundaryContractTest(unittest.TestCase):
             "goal-lock UI must depend on GoalLockRepository, not Room DAO directly",
         )
 
-    def test_goal_lock_repository_is_the_feature_allowlisted_dao_boundary(self):
-        repository = APP_MAIN / "feature/goallock/GoalLockRepository.kt"
-        self.assertTrue(repository.exists(), "GoalLockRepository owns feature goal-lock DAO access")
+    def test_goal_lock_repository_is_the_data_allowlisted_dao_boundary(self):
+        repository = APP_MAIN / "data/goallock/GoalLockRepository.kt"
+        self.assertTrue(repository.exists(), "GoalLockRepository owns data goal-lock DAO access")
         text = repository.read_text()
+        self.assertIn("package com.uiery.keep.data.goallock", text)
         self.assertIn("class GoalLockRepository", text)
         self.assertIn("import com.uiery.keep.database.dao.GoalLockDao", text)
         self.assertIn("fun create", text)
@@ -109,7 +110,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
 
         self.assertNotIn("import com.uiery.keep.database.dao.GoalLockDao", text)
         self.assertNotIn("import com.uiery.keep.database.entity.GoalLockEntity", text)
-        self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
+        self.assertIn("import com.uiery.keep.data.goallock.GoalLockRepository", text)
         self.assertIn("import com.uiery.keep.service.LockHistoryRecorder", text)
         self.assertIn("private val goalLockRepository: GoalLockRepository", text)
         self.assertIn("private val lockHistoryRecorder: LockHistoryRecorder", text)
@@ -208,7 +209,7 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", text)
         self.assertNotIn("import com.uiery.keep.database.entity.GoalLockEntity", text)
         self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", text)
-        self.assertIn("import com.uiery.keep.feature.goallock.GoalLockRepository", text)
+        self.assertIn("import com.uiery.keep.data.goallock.GoalLockRepository", text)
         self.assertIn("fun routineRepository(): RoutineRepository", text)
         self.assertIn("fun goalLockRepository(): GoalLockRepository", text)
 

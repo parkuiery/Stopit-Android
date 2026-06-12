@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.parentmode
+package com.uiery.keep.data.parentmode
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
