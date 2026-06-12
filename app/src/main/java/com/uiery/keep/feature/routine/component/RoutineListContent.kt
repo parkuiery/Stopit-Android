@@ -3,6 +3,7 @@ package com.uiery.keep.feature.routine.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +38,8 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.feature.routine.RoutineCardStatus
+import com.uiery.keep.feature.routine.RoutineListAction
+import com.uiery.keep.feature.routine.resolveRoutineEnabledSwitchAction
 import com.uiery.keep.feature.routine.toRoutineCardReadModel
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.formatLockEndTime
@@ -75,6 +79,7 @@ internal fun RoutineListContent(
                 val isBlocked = isRunning || isLocked
                 RoutineItem(
                     name = routine.name,
+                    routineId = routine.id,
                     startTime = routine.startTime,
                     status = readModel.status,
                     repeatDaysLabel = readModel.repeatDays.toRoutineRepeatDaysLabel(),
@@ -88,11 +93,19 @@ internal fun RoutineListContent(
                     isRunning = isRunning,
                     isLocked = isLocked,
                     changeLockHours = routine.changeLockHours,
-                    onEnabledChange = {
-                        if (isBlocked) {
-                            onBlockedRoutineAction()
-                        } else {
-                            onEnabledChange(routine.id, it)
+                    onEnabledChange = { requestedEnabled ->
+                        when (
+                            val action = resolveRoutineEnabledSwitchAction(
+                                routineId = routine.id,
+                                requestedEnabled = requestedEnabled,
+                                isBlocked = isBlocked,
+                            )
+                        ) {
+                            RoutineListAction.Blocked -> onBlockedRoutineAction()
+                            is RoutineListAction.ToggleEnabled -> onEnabledChange(
+                                action.routineId,
+                                action.isEnabled,
+                            )
                         }
                     },
                     onClick = {
@@ -120,6 +133,7 @@ internal fun RoutineListContent(
 private fun RoutineItem(
     modifier: Modifier = Modifier,
     name: String,
+    routineId: Long,
     startTime: LocalTime,
     status: RoutineCardStatus,
     repeatDaysLabel: String,
@@ -249,11 +263,23 @@ private fun RoutineItem(
                 tint = if (isBlocked) KeepTheme.colors.surfaceVariant else KeepTheme.colors.primary,
             )
         }
-        KeepSwitch(
-            checked = isEnabled,
-            enabled = !isBlocked,
-            onCheckedChange = onEnabledChange,
-        )
+        Box(
+            modifier = Modifier
+                .testTag("routine-enabled-switch-$routineId")
+                .then(
+                    if (isBlocked) {
+                        Modifier.clickable { onEnabledChange(!isEnabled) }
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            KeepSwitch(
+                checked = isEnabled,
+                enabled = !isBlocked,
+                onCheckedChange = onEnabledChange,
+            )
+        }
     }
 }
 

@@ -7,6 +7,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 OPS_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
 GIT_WORKFLOW_DOC = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CONTEXT_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+AUTOMATION_OPS_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "automation-ops.md"
 
 
 class OpsCiWorkflowTest(unittest.TestCase):
@@ -110,6 +111,10 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
         self.assertIn("scripts.tests.test_workflow_gradle_task_guard", workflow)
         self.assertIn("scripts.tests.test_release_gradle_task_contract", workflow)
+        self.assertIn("scripts.tests.test_android_ci_artifact_retention", workflow)
+        self.assertIn("scripts.tests.test_android_ci_path_gating", workflow)
+        self.assertIn("scripts.tests.test_play_deploy_tag_governance", workflow)
+        self.assertIn("scripts.tests.test_release_gate_retarget_triggers", workflow)
         docs_contract_filter = self._filter_block(workflow, "docs_contract")
         self.assertIn("'scripts/tests/test_acquisition_attribution_docs_contract.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_ga4_custom_dimension_registration_docs.py'", docs_contract_filter)
@@ -118,6 +123,10 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("'scripts/tests/test_signed_aab_lint_gate.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_workflow_gradle_task_guard.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_release_gradle_task_contract.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_android_ci_artifact_retention.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_android_ci_path_gating.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_play_deploy_tag_governance.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_release_gate_retarget_triggers.py'", docs_contract_filter)
         docs_contract_job = self._job_block(workflow, "docs-contract")
         self.assertNotRegex(
             docs_contract_job,
@@ -161,6 +170,10 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts.tests.test_release_guard_hotfix_sync",
             "scripts.tests.test_workflow_gradle_task_guard",
             "scripts.tests.test_release_gradle_task_contract",
+            "scripts.tests.test_android_ci_artifact_retention",
+            "scripts.tests.test_android_ci_path_gating",
+            "scripts.tests.test_play_deploy_tag_governance",
+            "scripts.tests.test_release_gate_retarget_triggers",
         ]
         for module in expected_contract_modules:
             with self.subTest(job="docs-contract", module=module):
@@ -169,13 +182,18 @@ class OpsCiWorkflowTest(unittest.TestCase):
     def test_operator_docs_name_workflow_contract_materialization_boundary(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
         release_context = RELEASE_CONTEXT_DOC.read_text()
-        combined_docs = git_workflow + "\n" + release_context
+        automation_ops = AUTOMATION_OPS_DOC.read_text()
+        combined_docs = git_workflow + "\n" + release_context + "\n" + automation_ops
 
         self.assertIn("workflow 변경 PR", combined_docs)
         self.assertIn("actionlint-only green", combined_docs)
         self.assertIn("contract-test green", combined_docs)
         self.assertIn("release/CI/CD workflow", combined_docs)
         self.assertIn("Docs/runbook contract tests", combined_docs)
+        self.assertIn("test_android_ci_path_gating", combined_docs)
+        self.assertIn("test_play_deploy_tag_governance", combined_docs)
+        self.assertIn("test_release_gate_retarget_triggers", combined_docs)
+        self.assertIn("test_android_ci_artifact_retention", combined_docs)
 
     def test_operator_docs_name_ops_ci_responsibility(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()

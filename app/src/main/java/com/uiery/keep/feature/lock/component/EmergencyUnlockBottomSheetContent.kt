@@ -82,6 +82,9 @@ fun EmergencyUnlockBottomSheetContent(
     blockedApps: Set<String>,
     durationOptions: List<Int>,
     reasonStepEnabled: Boolean,
+    onStepViewed: (stepName: String) -> Unit = {},
+    onValidationBlocked: (stepName: String, validationReason: String) -> Unit = { _, _ -> },
+    onCancelled: (stepName: String) -> Unit = {},
     onUnlock: (reason: String, customReason: String?, apps: Set<String>, durationMinutes: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -93,6 +96,16 @@ fun EmergencyUnlockBottomSheetContent(
                 reasonStepEnabled = reasonStepEnabled,
             )
         )
+    }
+
+    LaunchedEffect(state.analyticsStepName) {
+        onStepViewed(state.analyticsStepName)
+    }
+
+    LaunchedEffect(state.analyticsStepName, state.validationReason) {
+        state.validationReason?.let { reason ->
+            onValidationBlocked(state.analyticsStepName, reason)
+        }
     }
 
     fun submitUnlock() {
@@ -170,6 +183,7 @@ fun EmergencyUnlockBottomSheetContent(
                     },
                     onCancel = {
                         val transition = state.cancelCountdown()
+                        onCancelled(state.analyticsStepName)
                         state = transition.state
                         if (transition.effect == EmergencyUnlockBottomSheetEffect.Dismiss) {
                             onDismiss()

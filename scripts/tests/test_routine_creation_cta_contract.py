@@ -91,6 +91,15 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             self.assertIn("ROUTINE_CREATION_CTA_EXPERIMENT.md", document)
             self.assertIn("#455", document)
 
+    def test_product_dashboard_does_not_overclaim_routine_created_event(self):
+        dashboard = PRODUCT_DASHBOARD.read_text()
+
+        self.assertIn("첫 차단 후 루틴 CTA 전환", dashboard)
+        self.assertIn("노출 cohort의 `routines_count >= 1` users", dashboard)
+        self.assertIn("별도 `routine_created` 코드 이벤트는 아직 없으므로", dashboard)
+        self.assertIn("낮은 confidence 보조 지표", dashboard)
+        self.assertNotIn("`routine_created` users / clicked users", dashboard)
+
     def test_analytics_dictionary_and_ga4_runbook_track_routine_cta_events(self):
         analytics = ANALYTICS_DICTIONARY.read_text()
         ga4_runbook = GA4_RUNBOOK.read_text()

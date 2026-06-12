@@ -161,6 +161,7 @@ class RoutineBottomSheetViewModel
                 if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                     postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                 }
+                postSideEffect(RoutineBottomSheetSideEffect.CloseBottomSheet)
             }
 
         internal fun editRoutine(id: Long?) =

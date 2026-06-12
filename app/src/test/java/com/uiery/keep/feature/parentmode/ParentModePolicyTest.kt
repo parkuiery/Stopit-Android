@@ -3,6 +3,8 @@ package com.uiery.keep.feature.parentmode
 import com.uiery.keep.analytics.AnalyticsParentModeAllowedAppCountBucket
 import com.uiery.keep.analytics.AnalyticsParentModeDurationBucket
 import com.uiery.keep.analytics.AnalyticsParentModeExtensionMinutesBucket
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

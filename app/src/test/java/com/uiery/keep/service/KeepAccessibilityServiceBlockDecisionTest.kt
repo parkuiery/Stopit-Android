@@ -5,8 +5,8 @@ import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
-import com.uiery.keep.feature.parentmode.ParentModeSession
-import com.uiery.keep.feature.parentmode.ParentModeSessionState
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import com.uiery.keep.model.RoutineModel
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals

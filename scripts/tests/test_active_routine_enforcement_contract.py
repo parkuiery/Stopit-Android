@@ -19,6 +19,33 @@ ACCESSIBILITY_RUNTIME_TEST = (
     / "service"
     / "KeepAccessibilityServiceIntegrationTest.kt"
 )
+ROUTINE_LIST_CONTENT_TEST = (
+    REPO_ROOT
+    / "app"
+    / "src"
+    / "androidTest"
+    / "java"
+    / "com"
+    / "uiery"
+    / "keep"
+    / "feature"
+    / "routine"
+    / "component"
+    / "RoutineListContentIntegrationTest.kt"
+)
+ROUTINE_LIST_POLICY_TEST = (
+    REPO_ROOT
+    / "app"
+    / "src"
+    / "test"
+    / "java"
+    / "com"
+    / "uiery"
+    / "keep"
+    / "feature"
+    / "routine"
+    / "RoutineListActionPolicyTest.kt"
+)
 
 
 def _strings(path: pathlib.Path) -> dict[str, str]:
@@ -53,6 +80,30 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
         self.assertIn("AnalyticsBlockSource.ROUTINE", source)
         self.assertIn("lastLaunchedRoutineId", source)
         self.assertIn("ROUTINE_RUNTIME_TEST_ID", source)
+
+    def test_accessibility_runtime_test_covers_foreground_when_routine_starts_later(self):
+        source = ACCESSIBILITY_RUNTIME_TEST.read_text()
+        checklist = QA_CHECKLIST.read_text()
+        test_name = "foregroundAppBecomesBlockedWhenRoutineStartTimeArrives"
+
+        self.assertIn(f"fun {test_name}()", source)
+        self.assertIn("configureFutureRoutineBlock", source)
+        self.assertIn("waitForPackageForeground", source)
+        self.assertIn("lastLaunchedBlockSource == AnalyticsBlockSource.ROUTINE", source)
+        self.assertIn(f"KeepAccessibilityServiceIntegrationTest#{test_name}", checklist)
+        self.assertIn("루틴 시간이 도래", checklist)
+
+    def test_routine_list_switch_tap_surfaces_blocked_feedback(self):
+        policy_test = ROUTINE_LIST_POLICY_TEST.read_text()
+        content_test = ROUTINE_LIST_CONTENT_TEST.read_text()
+        checklist = QA_CHECKLIST.read_text()
+
+        self.assertIn("runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState", content_test)
+        self.assertIn("routine-enabled-switch-609", content_test)
+        self.assertIn("resolveRoutineEnabledSwitchAction", policy_test)
+        self.assertIn("RoutineListAction.Blocked", policy_test)
+        self.assertIn("RoutineListActionPolicyTest", checklist)
+        self.assertIn("RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState", checklist)
 
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"

@@ -29,10 +29,11 @@ Stopit separates CI, release artifact building, and deployment so failures are e
     - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는지
     - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring 오탐 없이 actual service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
     - `ReceiverRuntimeIntegrationTest`: boot/package-replaced 재수화, 루틴 시작 알림·재예약, notification-denied fallback notice contract
+    - Android CI exact-alarm smoke: `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`로 default/deny/allow 대표 루틴 권한 경로를 PR 단계에서 먼저 고정
     - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
     - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
     - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 차단 진입, emergency unlock 우회, self-uninstall interception safety 계약
-  - release/hotfix 전용 exact alarm deny/allow 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
+  - release/hotfix 전용 full exact alarm deny/allow multi-day·receiver 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
 - Release candidates targeting `main` also run Android Release QA before merge. Manual dispatch scope is release evidence only: release/* -> main, hotfix/* -> main, or manual dispatch from main/release/*/hotfix/*/SemVer tag refs. Feature/docs/automation ref manual runs fail before Firebase secret restore and emulator setup, and will not restore Firebase secrets or run release QA:
   - `Full release QA`: `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
   - `Release instrumentation QA`: single-day and multi-day exact-alarm/runtime gates below run on a GitHub-hosted Android emulator.
@@ -73,6 +74,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - tag must be origin/main reachable
   - previous SemVer production completion marker must already exist
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
+  - Play Deploy pins JS helper execution with `actions/setup-node@v5` / Node 22 before `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, or `scripts/promote-google-play-track.js` run, so the deployment runtime matches Ops CI's release-helper validation runtime instead of inheriting a mutable runner default Node version.
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
   - non-production Play Deploy generates `release-provenance.json`, verifies it before `Upload signed AAB artifact`, and only then uploads the verified AAB/manifest artifact before `Upload to Google Play`; operators should use that manifest as the prior non-production signed-AAB evidence for any later production promotion because it ties the internal release to AAB `sha256`, `versionCode`, `artifact_name`, git SHA/ref, track/status, GitHub Actions `run_id`, and workflow run URL
   - the release-critical Google Play upload action is SHA-pinned (`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`, the audited v1 commit) rather than a floating major tag. Update it only through a reviewed release-provenance PR that refreshes `scripts.tests.test_release_provenance_workflow_contract`; production promotion remains repo-owned helper promotion and does not use this upload action.

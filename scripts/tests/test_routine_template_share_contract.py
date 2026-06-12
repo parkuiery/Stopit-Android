@@ -13,6 +13,10 @@ PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 LOCALE_STRING_QUALITY = REPO_ROOT / "docs" / "LOCALE_STRING_QUALITY.md"
+PAYLOAD_SOURCE = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "routine" / "RoutineTemplateSharePayload.kt"
+ROUTINE_SCREEN_SOURCE = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "routine" / "RoutineScreen.kt"
+DEFAULT_STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values" / "strings.xml"
+KOREAN_STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values-ko" / "strings.xml"
 
 
 class RoutineTemplateShareContractTest(unittest.TestCase):
@@ -57,8 +61,8 @@ class RoutineTemplateShareContractTest(unittest.TestCase):
             "string/plural resource",
             "raw rendered share text",
             "raw duration string",
-            "문서/ops/static-contract PR은 `Refs #778`",
-            "code-lane PR에서만 `Closes #778`",
+            "문서/ops/static-contract만 바꾸는 PR은 `Refs #778`",
+            "#778 런타임 구현 PR은 acceptance를 충족할 때 `Closes #778`",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
@@ -151,6 +155,42 @@ class RoutineTemplateShareContractTest(unittest.TestCase):
         self.assertIn("#778 계열 현지화 PR", qa_checklist)
         self.assertIn("payload body follows current locale", qa_checklist)
         self.assertIn("raw rendered text / raw duration string / locale-specific body", qa_checklist)
+
+    def test_payload_runtime_uses_resource_backed_text_provider(self):
+        payload_source = PAYLOAD_SOURCE.read_text()
+        routine_screen = ROUTINE_SCREEN_SOURCE.read_text()
+        default_strings = DEFAULT_STRINGS.read_text()
+        korean_strings = KOREAN_STRINGS.read_text()
+
+        self.assertIn("interface RoutineTemplateShareTextProvider", payload_source)
+        self.assertIn("class AndroidRoutineTemplateShareTextProvider", payload_source)
+        self.assertIn("buildShareText", payload_source)
+        self.assertIn("AndroidRoutineTemplateShareTextProvider(context)", routine_screen)
+        self.assertIn("putExtra(Intent.EXTRA_TEXT, shareText)", routine_screen)
+
+        forbidden_runtime_patterns = [
+            "val label: String",
+            "val text: String",
+            "appendLine(\"스탑잇 집중 루틴 템플릿\")",
+            "appendLine(\"나도 집중이 필요한 시간",
+            "${hours}시간",
+            "${minutes}분",
+        ]
+        for pattern in forbidden_runtime_patterns:
+            self.assertNotIn(pattern, payload_source)
+
+        for resource_name in [
+            "routine_template_share_payload_title",
+            "routine_template_share_payload_cta",
+            "routine_template_share_category_study",
+            "routine_template_share_repeat_weekday",
+            "routine_template_share_time_evening",
+            "routine_template_share_duration_hours",
+            "routine_template_share_duration_minutes",
+            "routine_template_share_duration_hours_minutes",
+        ]:
+            self.assertIn(resource_name, default_strings)
+            self.assertIn(resource_name, korean_strings)
 
 
 if __name__ == "__main__":

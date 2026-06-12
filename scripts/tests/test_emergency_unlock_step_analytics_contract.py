@@ -25,9 +25,10 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
             "cancel_source",
             "reason → app selection → duration → countdown",
             "reason-required OFF",
-            "Android 구현 전 계약",
+            "PR #783(`12c47108`)",
+            "repo-internal Android wiring은 완료 상태",
+            "PR #783 / merge commit `12c4710815746e79bde1a94fd5ad5f5d52fb81b7`",
             "GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문제로 해석하지 않는다",
-            "후속 구현 PR은 acceptance를 모두 만족하기 전까지 `Refs #779`를 사용한다",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, doc)
@@ -66,6 +67,8 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
             self.assertIn("cancel_source", text)
             self.assertIn("custom reason 원문", text)
             self.assertIn("raw timestamp", text)
+            self.assertIn("PR #783", text)
+            self.assertIn("Android analytics wiring 완료", text)
 
     def test_high_traffic_docs_link_step_analytics_contract(self):
         files = [

@@ -3,8 +3,10 @@ package com.uiery.keep.feature.routine
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import com.uiery.keep.KeepDataSource
 import com.uiery.keep.datastore.PreferencesKey
 import java.time.LocalDateTime
+import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 private const val DISMISSED_SUGGESTION_FIELD_COUNT = 4
@@ -16,8 +18,8 @@ private const val MAX_DISMISSED_SUGGESTIONS = 20
  * The stored value intentionally keeps only privacy-safe buckets plus the dismissal timestamp.
  * Raw app names/packages from [RepeatBlockRoutineSuggestion.prefillPackages] never enter this store.
  */
-class RepeatBlockRoutineSuggestionStore(
-    private val dataStore: DataStore<Preferences>,
+class RepeatBlockRoutineSuggestionStore @Inject constructor(
+    @KeepDataSource private val dataStore: DataStore<Preferences>,
 ) {
     suspend fun readDismissedSuggestions(): List<RepeatBlockDismissedSuggestion> =
         dataStore.data.first()[PreferencesKey.REPEAT_BLOCK_DISMISSED_SUGGESTIONS]

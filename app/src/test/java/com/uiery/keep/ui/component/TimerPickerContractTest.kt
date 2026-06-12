@@ -36,4 +36,43 @@ class TimerPickerContractTest {
             timerPickerSelectedTime(isPm = true, hourLabel = "1", minute = 5),
         )
     }
+
+    @Test
+    fun timerPickerSelectionFollowsExternallyProvidedTime() {
+        assertEquals(
+            TimerPickerSelection(isPm = false, hourLabel = "12", minuteLabel = "0"),
+            timerPickerSelection(LocalTime(hour = 0, minute = 0)),
+        )
+        assertEquals(
+            TimerPickerSelection(isPm = true, hourLabel = "3", minuteLabel = "45"),
+            timerPickerSelection(LocalTime(hour = 15, minute = 45)),
+        )
+    }
+
+    @Test
+    fun timerPickerSuppressesCallbackWhenPickerSelectionMatchesExternalTime() {
+        assertEquals(
+            null,
+            timerPickerSelectionOrNull(
+                hasPeriodSelection = false,
+                isPm = false,
+                hourLabel = "9",
+                minute = 30,
+            ),
+        )
+        assertEquals(
+            null,
+            timerPickerChangedTimeOrNull(
+                externalTime = LocalTime(hour = 9, minute = 30),
+                pickerSelection = TimerPickerSelection(isPm = false, hourLabel = "9", minuteLabel = "30"),
+            ),
+        )
+        assertEquals(
+            LocalTime(hour = 10, minute = 30),
+            timerPickerChangedTimeOrNull(
+                externalTime = LocalTime(hour = 9, minute = 30),
+                pickerSelection = TimerPickerSelection(isPm = false, hourLabel = "10", minuteLabel = "30"),
+            ),
+        )
+    }
 }

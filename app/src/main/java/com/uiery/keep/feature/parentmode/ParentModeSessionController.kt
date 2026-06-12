@@ -2,6 +2,9 @@ package com.uiery.keep.feature.parentmode
 
 import com.uiery.keep.analytics.AnalyticsParentModeEndReason
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.domain.parentmode.ParentModeRuntimePolicy
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import javax.inject.Inject
 
 internal class ParentModeSessionController @Inject constructor(
@@ -121,7 +124,7 @@ internal class ParentModeSessionController @Inject constructor(
         if (session.state != ParentModeSessionState.Active) {
             return ParentModeSessionControllerResult.NoStateChange(session)
         }
-        if (ParentModePolicy.resolveState(session, nowMillis) != ParentModeSessionState.Expired) {
+        if (ParentModeRuntimePolicy.resolveState(session, nowMillis) != ParentModeSessionState.Expired) {
             return ParentModeSessionControllerResult.NoStateChange(session)
         }
 

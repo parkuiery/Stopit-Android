@@ -36,12 +36,37 @@ class RoutineTemplateSharePayloadTest {
         assertEquals(RoutineTemplateRepeatDaysBucket.WEEKDAY, payload.repeatDaysBucket)
         assertEquals(RoutineTemplateTimeWindowBucket.EVENING, payload.timeWindowBucket)
         assertFalse(payload.routineNameIncluded)
-        assertTrue(payload.text.contains("스탑잇 집중 루틴 템플릿"))
-        assertTrue(payload.text.contains("공부 · 평일 · 저녁 2시간"))
-        assertTrue(payload.text.contains("https://play.google.com/store/apps/details?id=com.uiery.keep"))
-        assertFalse(payload.text.contains("Secret exam detox"))
-        assertFalse(payload.text.contains("com.youtube.android"))
-        assertFalse(payload.text.contains("Instagram"))
+
+        val text = payload.buildShareText(fakeEnglishTextProvider())
+
+        assertTrue(text.contains("StopIt focus routine template"))
+        assertTrue(text.contains("Study · Weekdays · Evening 2 hours"))
+        assertTrue(text.contains("https://play.google.com/store/apps/details?id=com.uiery.keep"))
+        assertFalse(text.contains("Secret exam detox"))
+        assertFalse(text.contains("com.youtube.android"))
+        assertFalse(text.contains("Instagram"))
+    }
+
+    @Test
+    fun buildRoutineTemplateSharePayloadUsesTextProviderForLocaleSpecificLabelsAndTemplate() {
+        val routine = routine(
+            name = "업무 루틴",
+            repeatDays = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+            startTime = LocalTime(hour = 9, minute = 0),
+            endTime = LocalTime(hour = 10, minute = 30),
+        )
+
+        val payload = buildRoutineTemplateSharePayload(routine)
+
+        assertNotNull(payload)
+        requireNotNull(payload)
+        val text = payload.buildShareText(fakeSpanishTextProvider())
+        assertTrue(text.contains("Plantilla de rutina de enfoque de StopIt"))
+        assertTrue(text.contains("Trabajo · Fin de semana · Mañana 1 hora 30 minutos"))
+        assertTrue(text.contains("Pausa apps cuando necesitas enfocarte."))
+        assertFalse(text.contains("업무"))
+        assertFalse(text.contains("평일"))
+        assertFalse(text.contains("시간"))
     }
 
     @Test
@@ -65,8 +90,9 @@ class RoutineTemplateSharePayloadTest {
         assertEquals(RoutineTemplateRepeatDaysBucket.WEEKEND, payload.repeatDaysBucket)
         assertEquals(RoutineTemplateTimeWindowBucket.OVERNIGHT, payload.timeWindowBucket)
         assertTrue(payload.routineNameIncluded)
-        assertTrue(payload.text.contains("Night writing"))
-        assertFalse(payload.text.contains("com.example.private"))
+        val text = payload.buildShareText(fakeEnglishTextProvider())
+        assertTrue(text.contains("Night writing"))
+        assertFalse(text.contains("com.example.private"))
     }
 
     @Test
@@ -96,4 +122,91 @@ class RoutineTemplateSharePayloadTest {
         lockApplications = lockApplications,
         isEnabled = true,
     )
+
+    private fun fakeEnglishTextProvider() =
+        FakeRoutineTemplateShareTextProvider(
+            title = "StopIt focus routine template",
+            cta = "Pause apps when you need focus.",
+            categoryLabels = mapOf(
+                RoutineTemplateCategory.STUDY to "Study",
+                RoutineTemplateCategory.WORK to "Work",
+                RoutineTemplateCategory.NIGHT_FOCUS to "Night focus",
+                RoutineTemplateCategory.CUSTOM to "Focus",
+            ),
+            repeatLabels = mapOf(
+                RoutineTemplateRepeatDaysBucket.WEEKDAY to "Weekdays",
+                RoutineTemplateRepeatDaysBucket.WEEKEND to "Weekend",
+                RoutineTemplateRepeatDaysBucket.DAILY to "Every day",
+                RoutineTemplateRepeatDaysBucket.CUSTOM_DAYS to "Selected days",
+                RoutineTemplateRepeatDaysBucket.NONE to "No days",
+            ),
+            timeWindowLabels = mapOf(
+                RoutineTemplateTimeWindowBucket.MORNING to "Morning",
+                RoutineTemplateTimeWindowBucket.AFTERNOON to "Afternoon",
+                RoutineTemplateTimeWindowBucket.EVENING to "Evening",
+                RoutineTemplateTimeWindowBucket.NIGHT to "Night",
+                RoutineTemplateTimeWindowBucket.OVERNIGHT to "Overnight",
+                RoutineTemplateTimeWindowBucket.CUSTOM_WINDOW to "Custom time",
+            ),
+            durationFormatter = { minutes ->
+                when (minutes) {
+                    120L -> "2 hours"
+                    else -> "$minutes minutes"
+                }
+            },
+        )
+
+    private fun fakeSpanishTextProvider() =
+        FakeRoutineTemplateShareTextProvider(
+            title = "Plantilla de rutina de enfoque de StopIt",
+            cta = "Pausa apps cuando necesitas enfocarte.",
+            categoryLabels = mapOf(
+                RoutineTemplateCategory.STUDY to "Estudio",
+                RoutineTemplateCategory.WORK to "Trabajo",
+                RoutineTemplateCategory.NIGHT_FOCUS to "Enfoque nocturno",
+                RoutineTemplateCategory.CUSTOM to "Enfoque",
+            ),
+            repeatLabels = mapOf(
+                RoutineTemplateRepeatDaysBucket.WEEKDAY to "Entre semana",
+                RoutineTemplateRepeatDaysBucket.WEEKEND to "Fin de semana",
+                RoutineTemplateRepeatDaysBucket.DAILY to "Cada día",
+                RoutineTemplateRepeatDaysBucket.CUSTOM_DAYS to "Días elegidos",
+                RoutineTemplateRepeatDaysBucket.NONE to "Sin días",
+            ),
+            timeWindowLabels = mapOf(
+                RoutineTemplateTimeWindowBucket.MORNING to "Mañana",
+                RoutineTemplateTimeWindowBucket.AFTERNOON to "Tarde",
+                RoutineTemplateTimeWindowBucket.EVENING to "Noche",
+                RoutineTemplateTimeWindowBucket.NIGHT to "Madrugada",
+                RoutineTemplateTimeWindowBucket.OVERNIGHT to "Toda la noche",
+                RoutineTemplateTimeWindowBucket.CUSTOM_WINDOW to "Horario elegido",
+            ),
+            durationFormatter = { minutes ->
+                when (minutes) {
+                    90L -> "1 hora 30 minutos"
+                    else -> "$minutes minutos"
+                }
+            },
+        )
+
+    private class FakeRoutineTemplateShareTextProvider(
+        private val title: String,
+        private val cta: String,
+        private val categoryLabels: Map<RoutineTemplateCategory, String>,
+        private val repeatLabels: Map<RoutineTemplateRepeatDaysBucket, String>,
+        private val timeWindowLabels: Map<RoutineTemplateTimeWindowBucket, String>,
+        private val durationFormatter: (Long) -> String,
+    ) : RoutineTemplateShareTextProvider {
+        override fun title(): String = title
+
+        override fun categoryLabel(category: RoutineTemplateCategory): String = categoryLabels.getValue(category)
+
+        override fun repeatDaysLabel(bucket: RoutineTemplateRepeatDaysBucket): String = repeatLabels.getValue(bucket)
+
+        override fun timeWindowLabel(bucket: RoutineTemplateTimeWindowBucket): String = timeWindowLabels.getValue(bucket)
+
+        override fun durationText(totalMinutes: Long): String = durationFormatter(totalMinutes)
+
+        override fun callToAction(): String = cta
+    }
 }
