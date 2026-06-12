@@ -654,7 +654,7 @@ cd <repo-root>
 
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
-issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
+issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다. #778 계열 현지화 PR은 share sheet chooser title resource화만으로 payload body localization이 완료됐다고 보지 않고, 실제 외부 공유 본문·category/repeat/time-window/duration label이 resource-backed template/provider를 따르는지 별도 증거를 남긴다.
 
 자동 baseline:
 
@@ -672,20 +672,24 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 - 루틴 이름은 기본 제외이며, opt-in variant가 있더라도 analytics에는 원문 대신 `routine_name_included=true/false`만 남긴다.
 - `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed`는 `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` 같은 enum/bucket/boolean 파라미터만 사용한다.
 - invalid routine에서는 CTA가 숨겨지거나 payload 생성이 실패하고, 실패 reason은 `activity_not_found` / `invalid_template` 같은 enum으로만 기록된다.
+- #778 현지화 PR에서는 payload title/body, category/repeat/time-window label, duration grammar가 Android string/plural resource 또는 resource-backed provider에서 나오며, `RoutineTemplateSharePayload.kt`의 한국어 literal은 canonical runtime source가 아니다.
+- #778은 analytics schema 변경이 아니므로 raw rendered share text, raw duration string, locale-specific body를 GA4 payload/custom dimension으로 추가하지 않는다.
 
 수동 QA evidence template:
 
 ```md
 ## Routine template share QA evidence
-- Issue: #407
+- Issue: #407 / #778 when payload localization is touched
 - Build / variant:
 - Device / Android version / OEM:
+- Locale(s): ko / en / ja / zh / other changed locale
 - Entry point: routine list / routine detail
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_routine_template_share_contract -v`
 - Shared text preview:
-  - category / repeat / time window present:
+  - payload body follows current locale, not only chooser title:
+  - category / repeat / time window / duration grammar present:
   - Play Store link present:
   - app names / package names / lockApplications absent:
   - raw history / raw usage time absent:
@@ -694,6 +698,7 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
   - no target / failed intent fallback: pass / fail
 - Accessibility label:
 - Analytics payload spot-check:
+  - enum/bucket/boolean only; no raw rendered text / raw duration string / locale-specific body:
 - Decision: pass / fail / needs follow-up
 - Notes:
 ```

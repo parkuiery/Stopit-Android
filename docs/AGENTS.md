@@ -30,7 +30,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
 | `INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` | #581용 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` Play Install Referrer / UTM attribution 계약, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계. |
 | `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. #597 공유 payload locale resource/template debt와 `scripts.tests.test_focus_summary_share_contract` static guard도 여기서 추적한다. |
-| `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. |
+| `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. #778 payload body/label/duration resource-template debt와 `scripts.tests.test_routine_template_share_contract` static guard도 여기서 추적한다. |
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. PR #760 이후 생성/상세 summary TalkBack contentDescription 자동 baseline과 남은 실기기/release/readback 경계를 함께 추적한다. |
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |

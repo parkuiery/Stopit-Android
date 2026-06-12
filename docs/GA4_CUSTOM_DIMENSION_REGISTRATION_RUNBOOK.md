@@ -149,6 +149,7 @@
 이 묶음이 필요한 이유:
 
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)의 Android share sheet MVP가 구현된 뒤, 공유 CTA 의도와 share sheet 전환을 privacy-safe enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- #778 payload body/label/duration resource-template 전환은 새 GA4 registration 항목을 만들지 않는다. 공유문 locale, raw rendered share text, raw duration string, locale-specific body는 GA4 payload/custom dimension 대상이 아니다.
 - `lockApplications`, package name, 앱 이름, raw session history, 루틴 이름 원문은 GA4 payload와 registration ledger 모두에서 금지한다.
 - #407 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 루틴 템플릿 공유의 획득/retention 효과를 낮은 confidence로 둔다.
 
