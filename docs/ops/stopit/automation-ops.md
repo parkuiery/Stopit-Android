@@ -191,6 +191,21 @@ gh issue list --state open --limit 50 --json number,title,labels,url
 gh pr list --state open --limit 30 --json number,title,headRefName,baseRefName,url,isDraft
 ```
 
+### Ops CI docs-contract 연결 확인
+
+workflow 변경 PR은 `actionlint-only green`만으로 운영 계약이 안전하다고 해석하지 않는다. YAML 문법 검증은 `Workflow syntax lint`가 담당하고, 릴리즈/CI/CD workflow와 운영 문서의 source-of-truth drift는 `Docs/runbook contract tests`가 담당한다. 특히 아래 기존 workflow contract 테스트는 docs/workflow-only 변경에서도 Ops CI `docs_contract` 경로로 materialize되어야 한다.
+
+```bash
+python3 -m unittest \
+  scripts.tests.test_android_ci_artifact_retention \
+  scripts.tests.test_android_ci_path_gating \
+  scripts.tests.test_play_deploy_tag_governance \
+  scripts.tests.test_release_gate_retarget_triggers \
+  scripts.tests.test_ops_ci_workflow -v
+```
+
+이 묶음은 Android CI artifact retention, Android CI path gating, Play Deploy tag governance, release PR retarget trigger 계약을 고정한다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter와 `Docs/runbook contract tests` 실행 목록, 그리고 `scripts.tests.test_ops_ci_workflow` meta-contract를 함께 업데이트한다.
+
 ## 이 문서가 다루지 않는 것
 
 이 문서는 다음을 설명하지 않는다.
