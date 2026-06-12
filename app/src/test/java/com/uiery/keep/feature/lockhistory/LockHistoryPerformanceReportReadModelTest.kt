@@ -152,6 +152,42 @@ class LockHistoryPerformanceReportReadModelTest {
     }
 
     @Test
+    fun selectedDateTopAppsCountsEachAppOncePerSession() {
+        val selectedDate = LocalDate.of(2026, 6, 6)
+        val groupedSessions = mapOf(
+            selectedDate to listOf(
+                lockHistory(
+                    id = 1,
+                    date = selectedDate,
+                    durationMinutes = 30,
+                    lockedApps = listOf("app.video", "app.video", "app.social"),
+                ),
+                lockHistory(
+                    id = 2,
+                    date = selectedDate,
+                    durationMinutes = 30,
+                    lockedApps = listOf("app.video"),
+                ),
+            ),
+        )
+
+        val displayReport = buildLockHistoryDisplayReport(
+            groupedSessions = groupedSessions,
+            selectedDate = selectedDate,
+            periodType = PeriodType.WEEK,
+            fallbackReport = buildLockHistoryPerformanceReport(
+                periodType = PeriodType.WEEK,
+                totalDurationMillis = 60 * 60 * 1000L,
+                sessionCount = 2,
+                topApps = listOf("app.video" to 2, "app.social" to 1),
+            ),
+        )
+
+        assertEquals(listOf("app.video" to 2, "app.social" to 1), displayReport.topApps)
+        assertEquals("2_3", displayReport.performanceReport.topAppsCountBucket)
+    }
+
+    @Test
     fun unselectedDisplayReportKeepsPeriodFallbackReport() {
         val report = buildLockHistoryPerformanceReport(
             periodType = PeriodType.MONTH,

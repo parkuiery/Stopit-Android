@@ -58,6 +58,7 @@ Issue: #465
 - 주/월 segmented control, calendar, session list는 기존 사용 습관을 깨지 않는다.
 - 상단 summary card copy/read model을 먼저 바꾸고, session row나 calendar semantics는 필요한 만큼만 보강한다.
 - Top apps가 비어 있으면 빈 목록을 강조하지 말고 다음 차단 완료 후 채워진다는 안내를 제공한다.
+- Top apps 성과 수치는 앱이 차단된 session 수를 의미한다. 같은 session 안에 duplicate lockedApps entry가 들어와도 per-session dedupe로 앱별 한 번만 세고, 중복 원문 리스트를 사용자의 성과로 과대계상하지 않는다.
 - #211 공유 CTA가 이미 있거나 후속으로 붙을 경우, CTA는 성과 해석 아래의 선택형 행동이어야 하며 리뷰/광고/공유를 압박하지 않는다.
 
 ## Privacy / trust guardrail
@@ -126,6 +127,7 @@ Issue: #465
   - 기록 있음 → 기간별 duration/session headline.
   - week/month `period_type` copy가 서로 섞이지 않는다.
   - top apps count bucket이 앱 이름/package를 analytics parameter로 노출하지 않는다.
+  - top apps count는 duplicate lockedApps entry를 per-session dedupe해서 같은 session의 중복 앱을 한 번만 센다.
 - `LockHistoryViewModel`/state test:
   - 기존 week/month/calendar/session list state를 유지하면서 summary read model만 추가된다.
   - 기존 #211 공유 state가 있다면 공유 CTA 노출 조건과 충돌하지 않는다.

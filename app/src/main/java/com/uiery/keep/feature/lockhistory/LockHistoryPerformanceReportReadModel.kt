@@ -48,7 +48,7 @@ internal fun buildLockHistoryDisplayReport(
     val displayTotalDuration = displaySessions.sumOf { it.durationMillis }
     val displaySessionCount = displaySessions.size
     val displayTopApps = displaySessions
-        .flatMap { it.lockedApps }
+        .flatMap { it.lockedApps.distinct() }
         .groupingBy { it }
         .eachCount()
         .entries
