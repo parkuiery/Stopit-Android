@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">Завершите одну сессию блокировки, и ваше защищенное время появится здесь.</string>
     <string name="lock_history_performance_empty_month_headline">Готовы начать первую запись этого месяца?</string>
     <string name="lock_history_performance_empty_week_headline">Готовы начать первую запись этой недели?</string>
+    <string name="lock_history_performance_selected_date_headline">В этот день вы защитили %1$s</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">В выбранный день вы сдержали обещание %1$d раз.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">В этот день пока нет защищенного времени</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">Выберите другой день или завершите одну сессию блокировки, чтобы увидеть здесь дневную запись.</string>
     <string name="lock_history_focus_share_button">Поделиться записью фокуса за неделю</string>
     <string name="lock_history_focus_share_sheet_title">Поделиться записью фокуса StopIt</string>
     <string name="focus_summary_share_payload_text">На этой неделе я защищал(а) фокус с StopIt %1$d раз(а), всего %2$s.\nКогда мне нужно сосредоточиться, я ненадолго останавливаю использование приложений.\n%3$s</string>

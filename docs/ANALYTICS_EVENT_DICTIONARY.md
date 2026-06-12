@@ -196,7 +196,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 현재 bucket 계약:
 
-- `period_type`: `week`, `month`
+- `period_type`: `week`, `month`, `selected_date` (`selected_date`는 LockHistory calendar에서 선택한 하루만 표시되는 상태)
 - `report_state`: `empty`, `low_data`, `has_history`
 - `session_count_bucket`: `0`, `1`, `2_3`, `4_6`, `7_plus`
 - `duration_minutes_bucket`: `0`, `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`

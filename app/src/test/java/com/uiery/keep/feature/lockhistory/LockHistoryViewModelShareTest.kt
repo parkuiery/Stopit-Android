@@ -147,6 +147,54 @@ class LockHistoryViewModelShareTest {
         assertEquals(LockHistoryPerformanceReportState.EMPTY, viewModel.container.stateFlow.value.performanceReport.state)
     }
 
+    @Test
+    fun selectingDateTracksSelectedDatePerformanceSummaryAndTopApps() = runBlocking {
+        val analytics = RecordingLockHistoryAnalytics()
+        val selectedDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val viewModel = createViewModel(
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        sessionInCurrentWeek(durationMillis = 45 * 60 * 1000L),
+                        sessionInCurrentWeek(durationMillis = 10 * 60 * 1000L),
+                    ),
+                ),
+            ),
+            analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
+        )
+
+        waitForHistoryLoad(viewModel)
+        waitForAnalyticsEventCount(analytics, 2)
+
+        viewModel.selectDate(selectedDate)
+        waitForAnalyticsEventCount(analytics, 4)
+
+        assertEquals(
+            listOf(
+                ShareAnalyticsEvent(
+                    name = "performance_summary_viewed",
+                    periodType = "selected_date",
+                    reportState = "has_history",
+                    sessionCountBucket = "2_3",
+                    durationMinutesBucket = "30_59",
+                    topAppsCountBucket = null,
+                    reason = null,
+                ),
+                ShareAnalyticsEvent(
+                    name = "top_apps_viewed",
+                    periodType = "selected_date",
+                    reportState = null,
+                    sessionCountBucket = null,
+                    durationMinutesBucket = null,
+                    topAppsCountBucket = "1",
+                    reason = null,
+                ),
+            ),
+            analytics.events.takeLast(2),
+        )
+    }
+
     private fun createViewModel(
         lockHistoryRepository: LockHistoryRepository,
         analytics: RecordingLockHistoryAnalytics,

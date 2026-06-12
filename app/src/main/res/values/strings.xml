@@ -173,6 +173,10 @@
     <string name="lock_history_performance_empty_supporting">Complete one block session and your protected time will appear here.</string>
     <string name="lock_history_performance_empty_month_headline">Ready to start this month\'s record?</string>
     <string name="lock_history_performance_empty_week_headline">Ready to start this week\'s record?</string>
+    <string name="lock_history_performance_selected_date_headline">You protected %1$s on this day</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">You kept your promise %1$d times on the selected day.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">No protected time on this day yet</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">Choose another day or complete a block session to see a daily record here.</string>
     <string name="lock_history_focus_share_button">Share this week\'s focus record</string>
     <string name="lock_history_focus_share_sheet_title">Share StopIt focus record</string>
     <string name="focus_summary_share_payload_text">This week, I protected focus %1$d times for %2$s with StopIt.\nI pause app use when I need focus.\n%3$s</string>

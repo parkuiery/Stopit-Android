@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">Voltooi één blokkeersessie en je beschermde tijd verschijnt hier.</string>
     <string name="lock_history_performance_empty_month_headline">Klaar om het eerste record van deze maand te starten?</string>
     <string name="lock_history_performance_empty_week_headline">Klaar om het eerste record van deze week te starten?</string>
+    <string name="lock_history_performance_selected_date_headline">Je hebt op deze dag %1$s beschermd</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">Je hebt je belofte op de geselecteerde dag %1$d keer gehouden.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">Nog geen beschermde tijd op deze dag</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">Kies een andere dag of voltooi een blokkeersessie om hier een dagrecord te zien.</string>
     <string name="lock_history_focus_share_button">Deel het focusrecord van deze week</string>
     <string name="lock_history_focus_share_sheet_title">StopIt-focusrecord delen</string>
     <string name="focus_summary_share_payload_text">Deze week heb ik met StopIt %1$d keer voor %2$s focus beschermd.\nAls ik focus nodig heb, pauzeer ik even mijn appgebruik.\n%3$s</string>

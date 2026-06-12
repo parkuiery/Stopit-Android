@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">完成一次锁定后，你守住的时间会显示在这里。</string>
     <string name="lock_history_performance_empty_month_headline">准备开始本月的第一条记录吗？</string>
     <string name="lock_history_performance_empty_week_headline">准备开始本周的第一条记录吗？</string>
+    <string name="lock_history_performance_selected_date_headline">这一天你守住了 %1$s</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">选中的这一天，你守住承诺 %1$d 次。</string>
+    <string name="lock_history_performance_selected_date_empty_headline">这一天还没有守住的时间</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">选择另一天，或完成一次锁定后，这里会显示每日记录。</string>
     <string name="lock_history_focus_share_button">分享本周专注记录</string>
     <string name="lock_history_focus_share_sheet_title">分享 StopIt 专注记录</string>
     <string name="focus_summary_share_payload_text">本周我用 StopIt 守住了 %1$d 次专注，共 %2$s。\n需要专注时，我也会先暂停使用应用。\n%3$s</string>

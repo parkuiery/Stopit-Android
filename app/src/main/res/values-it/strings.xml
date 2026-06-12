@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">Completa una sessione di blocco e il tuo tempo protetto apparirà qui.</string>
     <string name="lock_history_performance_empty_month_headline">Pronto a iniziare il primo registro di questo mese?</string>
     <string name="lock_history_performance_empty_week_headline">Pronto a iniziare il primo registro di questa settimana?</string>
+    <string name="lock_history_performance_selected_date_headline">Hai protetto %1$s in questo giorno</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">Hai mantenuto la promessa %1$d volte nel giorno selezionato.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">Nessun tempo protetto in questo giorno</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">Scegli un altro giorno o completa una sessione di blocco per vedere qui un registro giornaliero.</string>
     <string name="lock_history_focus_share_button">Condividi il record di concentrazione settimanale</string>
     <string name="lock_history_focus_share_sheet_title">Condividi il record di concentrazione StopIt</string>
     <string name="focus_summary_share_payload_text">Questa settimana ho protetto la concentrazione %1$d volte per %2$s con StopIt.\nQuando ho bisogno di concentrarmi, metto in pausa l’uso delle app.\n%3$s</string>
