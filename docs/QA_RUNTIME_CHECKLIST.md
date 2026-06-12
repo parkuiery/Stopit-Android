@@ -19,9 +19,9 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), Android CI exact-alarm 최소 smoke(`android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 >
-> Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
+> Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`, `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
 >
 > Signed release build / non-production Play deploy 실패 triage는 runtime smoke artifact와 분리한다. Android Release Build는 `stopit-release-build-diagnostics`, non-production Android Play Deploy는 `stopit-play-deploy-release-diagnostics`를 `retention-days: 7`로 남긴다. 이 artifact upload도 non-blocking이며 `if-no-files-found: ignore`로 report가 아직 생성되지 않은 초반 실패를 가리지 않는다. 확인 순서는 `app/build/reports`의 prodRelease lint/test report → `app/build/test-results` → `app/build/outputs/logs` → `app/build/outputs/mapping/prodRelease`다. Production promotion은 새 AAB를 빌드하지 않으므로 release diagnostics artifact 대상이 아니다.
 
@@ -988,11 +988,21 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `./gradlew :app:assembleProdDebug`
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
+  - exact-alarm 최소 smoke: `android_ci_exact_alarm_default` + `android_ci_exact_alarm_denied` + `android_ci_exact_alarm_allowed`
   - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
   - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`)
   - 현재 selector 출력:
     - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
+    - `python3 scripts/android_runtime_suites.py markdown android_ci_exact_alarm_default android_ci_exact_alarm_denied android_ci_exact_alarm_allowed`
     - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
+- exact-alarm host-side appops run:
+  - `./gradlew :app:installDevDebug`
+  - `adb shell cmd appops reset com.uiery.keep.dev`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_default)"`
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_denied)"`
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_allowed)"`
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
