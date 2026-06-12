@@ -18,6 +18,7 @@ import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.MAX_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.MIN_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +67,7 @@ class EmergencyUnlockSettingsViewModel
         }
 
         internal suspend fun applyEnabled(enabled: Boolean) {
+            if (settingsStore.readSettings().enabled == enabled) return
             settingsStore.setEnabled(enabled)
             analytics.trackEmergencyUnlockSettingsChanged(
                 settingName = AnalyticsEmergencyUnlockSettingName.ENABLED,
@@ -83,10 +85,12 @@ class EmergencyUnlockSettingsViewModel
         }
 
         internal suspend fun applyDailyLimit(limit: Int) {
+            val sanitizedLimit = sanitizeEmergencyUnlockDailyLimit(limit)
+            if (settingsStore.readSettings().dailyLimit == sanitizedLimit) return
             settingsStore.setDailyLimit(limit)
             analytics.trackEmergencyUnlockSettingsChanged(
                 settingName = AnalyticsEmergencyUnlockSettingName.DAILY_LIMIT,
-                valueBucket = dailyLimitBucket(limit),
+                valueBucket = dailyLimitBucket(sanitizedLimit),
                 refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
                 durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
                 source = AnalyticsSource.MENU,
@@ -102,8 +106,10 @@ class EmergencyUnlockSettingsViewModel
 
         internal suspend fun applyDurationToggle(minutes: Int) {
             if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
+            val before = settingsStore.readSettings().durationOptions
             settingsStore.toggleDuration(minutes)
             val settings = settingsStore.readSettings()
+            if (settings.durationOptions == before) return
             analytics.trackEmergencyUnlockSettingsChanged(
                 settingName = AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
                 valueBucket = durationOptionsBucket(settings.durationOptions),
@@ -120,6 +126,7 @@ class EmergencyUnlockSettingsViewModel
         }
 
         internal suspend fun applyReasonRequired(required: Boolean) {
+            if (settingsStore.readSettings().reasonRequired == required) return
             settingsStore.setReasonRequired(required)
             analytics.trackEmergencyUnlockSettingsChanged(
                 settingName = AnalyticsEmergencyUnlockSettingName.REASON_REQUIRED,
@@ -137,6 +144,7 @@ class EmergencyUnlockSettingsViewModel
         }
 
         internal suspend fun applyAutoResetEnabled(enabled: Boolean) {
+            if (settingsStore.readSettings().autoResetEnabled == enabled) return
             settingsStore.setAutoResetEnabled(enabled)
             val refillMode = refillModeBucket(enabled)
             analytics.trackEmergencyUnlockSettingsChanged(
