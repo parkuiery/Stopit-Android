@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,11 +61,6 @@ fun CategoryBottomSheetContent(
     }
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var selectedAppPackages by remember(storeSelectApps) { mutableStateOf(storeSelectApps.toSet()) }
-    val allAppPackages = remember(apps) { apps.map { it.packageName } }
-    val isSelectAll = areAllSelectableAppsSelected(selectedAppPackages, allAppPackages)
-    var searchContent by remember { mutableStateOf("") }
-
     LaunchedEffect(installedAppRepository) {
         val loadedApps = withContext(Dispatchers.IO) {
             installedAppRepository.loadSelectableApps()
@@ -72,6 +68,28 @@ fun CategoryBottomSheetContent(
         apps = loadedApps
         isLoading = false
     }
+
+    CategoryBottomSheetLoadedContent(
+        modifier = modifier,
+        apps = apps,
+        storeSelectApps = storeSelectApps,
+        isLoading = isLoading,
+        onComplete = onComplete,
+    )
+}
+
+@Composable
+fun CategoryBottomSheetLoadedContent(
+    modifier: Modifier = Modifier,
+    apps: List<AppInfo>,
+    storeSelectApps: Set<String>,
+    isLoading: Boolean = false,
+    onComplete: (Set<String>) -> Unit,
+) {
+    var selectedAppPackages by remember(storeSelectApps) { mutableStateOf(storeSelectApps.toSet()) }
+    val allAppPackages = remember(apps) { apps.map { it.packageName } }
+    val isSelectAll = areAllSelectableAppsSelected(selectedAppPackages, allAppPackages)
+    var searchContent by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -114,18 +132,22 @@ fun CategoryBottomSheetContent(
                 if (searchContent.isEmpty()) {
                     item {
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                selectedAppPackages = toggleAllSelectableAppsSelection(
-                                    currentSelection = selectedAppPackages,
-                                    allAppPackages = allAppPackages,
-                                    checked = !isSelectAll,
-                                )
-                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("category_select_all_row")
+                                .clickable {
+                                    selectedAppPackages = toggleAllSelectableAppsSelection(
+                                        currentSelection = selectedAppPackages,
+                                        allAppPackages = allAppPackages,
+                                        checked = !isSelectAll,
+                                    )
+                                },
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             KeepCheckbox(
                                 checked = isSelectAll,
+                                modifier = Modifier.testTag("category_select_all_checkbox"),
                                 onCheckedChange = { checked ->
                                     selectedAppPackages = toggleAllSelectableAppsSelection(
                                         currentSelection = selectedAppPackages,
@@ -155,6 +177,8 @@ fun CategoryBottomSheetContent(
                     key = { it.packageName }
                 ) { app ->
                     AppItem(
+                        modifier = Modifier.testTag("category_app_row_${app.packageName}"),
+                        checkboxModifier = Modifier.testTag("category_app_checkbox_${app.packageName}"),
                         image = app.appIcon.toBitmap().asImageBitmap(),
                         name = app.appName,
                         checked = isSelectAll || selectedAppPackages.contains(app.packageName),
@@ -171,6 +195,7 @@ fun CategoryBottomSheetContent(
         Button(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("category_selection_complete")
                 .padding(top = 18.dp, bottom = 24.dp),
             onClick = { onComplete(selectedAppPackages) },
             shape = RoundedCornerShape(12.dp),
