@@ -103,7 +103,7 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
    - 목적: 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이므로, dev flavor package(`com.uiery.keep.dev`)에서 긴급해제 만료 알림 helper가 permission-denied로 안전하게 종료되는지 분리 검증
 12. notification-channel-disabled gate
    - `./gradlew :app:installDevDebug && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest`
-   - 목적: 앱 전체 알림/`POST_NOTIFICATIONS`는 허용된 상태에서 루틴·긴급해제 notification channel만 `IMPORTANCE_NONE`인 경우 fallback/cancel 계약을 release baseline에서도 검증
+   - 목적: 앱 전체 알림/`POST_NOTIFICATIONS`는 허용된 상태에서 루틴·긴급해제 notification channel만 `IMPORTANCE_NONE`인 경우 fallback/cancel 계약을 release baseline에서도 검증한다. 이 경로는 `POST_NOTIFICATION ignore`의 `PermissionDenied`가 아니라 긴급해제 `EmergencyUnlockNotificationPostResult.ChannelDisabled` 결과를 기대한다.
 
 정리하면 release candidate runtime baseline은 `focused UI smoke -> exact alarm default(MODE_DEFAULT) -> exact alarm deny(8개, multi-day 포함) -> exact alarm allow/cancel/permission-change restore(5개) -> remaining connected suite -> notification-denied receiver gate -> notification-denied emergency-unlock gate -> notification-channel-disabled gate` 순서다. Android CI focused runtime smoke는 별도 PR gate이므로 release/hotfix 증거에는 `.github/workflows/release-qa.yml`의 Release instrumentation QA 목록을 기준으로 기록한다. exact alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로, 권한 상태 변경은 테스트 메서드 안이 아니라 **host ADB 명령 → focused instrumentation 실행** 순서를 유지해야 한다. Android 12L 이하 legacy 설정 왕복과 `settings_opened` 기반 notification onboarding 검증은 historical / out of scope이며, minSdk를 다시 낮출 때만 현재 검증 대상으로 복원한다.
 

@@ -984,7 +984,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
   - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
-  - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`)
+  - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`; 긴급해제 결과는 `ChannelDisabled`로 기록하고 `POST_NOTIFICATION ignore`의 `PermissionDenied`와 분리)
   - 현재 selector 출력:
     - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
     - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
@@ -1003,7 +1003,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring false positive 없이 실제 service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
 - `EmergencyUnlockBottomSheetContentIntegrationTest`: 긴급해제 bottom sheet reason-required ON/OFF flow의 reason/custom reason validation → 앱 선택 → duration → countdown → cancel/submit click-through가 실제 Compose 렌더링에서도 유지되는지
 - focused `ReceiverRuntimeIntegrationTest`: Boot/package-replaced/time/timezone 변경 후 Room 재수화, 단일·다중 요일 루틴 exact alarm 재예약, 루틴 시작 재예약, notification-denied fallback notice contract
-- `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약
+- `NotificationChannelDisabledIntegrationTest`: 앱 전체 알림과 `POST_NOTIFICATIONS`는 허용된 상태에서 `ROUTINE_CHANNEL` / `emergency_unlock` channel importance가 `IMPORTANCE_NONE`일 때 루틴 fallback notice와 긴급해제 stale notification cancel 계약. 긴급해제 알림은 이 상태를 `EmergencyUnlockNotificationPostResult.ChannelDisabled`로 반환해야 하며, 권한/앱 전체 알림 차단의 `PermissionDenied`와 섞지 않는다.
 - `RoutineStartNotificationTapIntegrationTest`: 루틴 시작 알림 builder가 `contentIntent`를 포함하고 `ACTION_ROUTINE_START_NOTIFICATION_TAP`, `routineId`, `NOTIFICATION_SOURCE_ROUTINE_START`를 `MainActivity` 복귀 intent로 전달하는 계약. 실제 posted-path는 channel-disabled suite와 섞이면 Android가 동일 channel을 다시 올릴 수 없어 순서 의존 skip이 생길 수 있으므로, device QA에서는 fresh install/notification settings reset 상태에서 별도로 탭 동작을 확인한다.
 - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 판정 + stale notification cleanup, 별도 deny focused 메서드로 `POST_NOTIFICATION` guard 계약
 - `EmergencyUnlockPolicyTest`: `EMERGENCY_UNLOCK_EXPIRE_TIME`에 저장된 만료 시각만으로 남은 초를 재계산하고 countdown notification tick을 재예약하는 JVM 계약. Lock 화면/ViewModel coroutine이 사라져도 AccessibilityService가 DataStore snapshot 기준으로 countdown 알림을 계속 동기화해야 한다.

@@ -51,7 +51,7 @@ class NotificationChannelDisabledIntegrationTest {
     }
 
     @Test
-    fun emergencyUnlockCountdownReturnsPermissionDeniedAndDoesNotPostWhenChannelImportanceNone() {
+    fun emergencyUnlockCountdownReturnsChannelDisabledAndDoesNotPostWhenChannelImportanceNone() {
         disableNotificationChannel(EmergencyUnlockNotificationHelper.CHANNEL_ID)
 
         val result = EmergencyUnlockNotificationHelper(context).showCountdown(
@@ -59,7 +59,7 @@ class NotificationChannelDisabledIntegrationTest {
             totalSeconds = 60,
         )
 
-        assertEquals(EmergencyUnlockNotificationPostResult.PermissionDenied, result)
+        assertEquals(EmergencyUnlockNotificationPostResult.ChannelDisabled, result)
         assertFalse(activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID))
     }
 
