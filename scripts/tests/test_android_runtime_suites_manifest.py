@@ -41,6 +41,12 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
         )
 
+    def test_timer_picker_external_time_regression_runs_in_android_ci_smoke(self):
+        self.assertIn(
+            "com.uiery.keep.ui.component.TimerPickerIntegrationTest",
+            android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
+        )
+
     def test_cli_class_arg_preserves_comma_separated_selector_contract(self):
         class_arg = android_runtime_suites.class_arg([
             "notification_denied_receiver",

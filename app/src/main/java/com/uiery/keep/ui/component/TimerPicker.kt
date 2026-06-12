@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,15 +45,34 @@ fun TimerPicker(
     val hourPickerState = rememberPickerState()
     val minutePickerState = rememberPickerState()
     val currentSelection = timerPickerSelection(time)
+    var pendingExternalSelection by remember { mutableStateOf<TimerPickerSelection?>(currentSelection) }
 
-    LaunchedEffect(timerPeriodsPickerState.selectedItem,hourPickerState.selectedItem,minutePickerState.selectedItem) {
-        if(hourPickerState.selectedItem.isNotEmpty() && minutePickerState.selectedItem.isNotEmpty()) {
-            val hour = timerPickerSelectedTime(
-                isPm = timerPeriodsPickerState.selectedItem == context.getString(R.string.pm),
-                hourLabel = hourPickerState.selectedItem,
-                minute = minutePickerState.selectedItem.toInt(),
-            ).hour
-            onChangeTimerTime(LocalTime(hour,minutePickerState.selectedItem.toInt()))
+    LaunchedEffect(time) {
+        pendingExternalSelection = timerPickerSelection(time)
+    }
+
+    LaunchedEffect(timerPeriodsPickerState.selectedItem,hourPickerState.selectedItem,minutePickerState.selectedItem,time) {
+        val pickerSelection = timerPickerSelectionOrNull(
+            hasPeriodSelection = timerPeriodsPickerState.selectedItem.isNotEmpty(),
+            isPm = timerPeriodsPickerState.selectedItem == context.getString(R.string.pm),
+            hourLabel = hourPickerState.selectedItem,
+            minute = minutePickerState.selectedItem.toIntOrNull(),
+        ) ?: return@LaunchedEffect
+
+        val externalSelection = pendingExternalSelection
+        if (externalSelection != null) {
+            if (pickerSelection == externalSelection) {
+                pendingExternalSelection = null
+            }
+            return@LaunchedEffect
+        }
+
+        val selectedTime = timerPickerChangedTimeOrNull(
+            externalTime = time,
+            pickerSelection = pickerSelection,
+        )
+        if (selectedTime != null) {
+            onChangeTimerTime(selectedTime)
         }
     }
 
@@ -150,6 +172,32 @@ internal fun timerPickerSelectedTime(
     val hour = if (isPm) baseHour + HOURS_PER_PERIOD else baseHour
 
     return LocalTime(hour = hour, minute = minute)
+}
+
+internal fun timerPickerSelectionOrNull(
+    hasPeriodSelection: Boolean = true,
+    isPm: Boolean,
+    hourLabel: String,
+    minute: Int?,
+): TimerPickerSelection? {
+    if (!hasPeriodSelection || hourLabel.isEmpty() || minute == null) return null
+    return TimerPickerSelection(
+        isPm = isPm,
+        hourLabel = hourLabel,
+        minuteLabel = minute.toString(),
+    )
+}
+
+internal fun timerPickerChangedTimeOrNull(
+    externalTime: LocalTime,
+    pickerSelection: TimerPickerSelection,
+): LocalTime? {
+    val selectedTime = timerPickerSelectedTime(
+        isPm = pickerSelection.isPm,
+        hourLabel = pickerSelection.hourLabel,
+        minute = pickerSelection.minuteLabel.toInt(),
+    )
+    return selectedTime.takeUnless { it == externalTime }
 }
 
 private const val HOURS_PER_PERIOD = 12

@@ -48,4 +48,31 @@ class TimerPickerContractTest {
             timerPickerSelection(LocalTime(hour = 15, minute = 45)),
         )
     }
+
+    @Test
+    fun timerPickerSuppressesCallbackWhenPickerSelectionMatchesExternalTime() {
+        assertEquals(
+            null,
+            timerPickerSelectionOrNull(
+                hasPeriodSelection = false,
+                isPm = false,
+                hourLabel = "9",
+                minute = 30,
+            ),
+        )
+        assertEquals(
+            null,
+            timerPickerChangedTimeOrNull(
+                externalTime = LocalTime(hour = 9, minute = 30),
+                pickerSelection = TimerPickerSelection(isPm = false, hourLabel = "9", minuteLabel = "30"),
+            ),
+        )
+        assertEquals(
+            LocalTime(hour = 10, minute = 30),
+            timerPickerChangedTimeOrNull(
+                externalTime = LocalTime(hour = 9, minute = 30),
+                pickerSelection = TimerPickerSelection(isPm = false, hourLabel = "10", minuteLabel = "30"),
+            ),
+        )
+    }
 }
