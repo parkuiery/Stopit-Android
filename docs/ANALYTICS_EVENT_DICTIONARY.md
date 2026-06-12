@@ -218,7 +218,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 루틴 템플릿 공유
 
-루틴 템플릿 공유 MVP의 제품/QA 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP는 Android share sheet 기반 텍스트 공유이며, deep link/import는 별도 결정 게이트 전까지 구현-ready로 보지 않는다. 공유문과 이벤트 파라미터에는 앱 이름/package/lockApplications/raw session history 금지 원칙을 적용하고 enum/bucket/boolean만 남긴다.
+루틴 템플릿 공유 MVP의 제품/QA 계약은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 본다. MVP는 Android share sheet 기반 텍스트 공유이며, deep link/import는 별도 결정 게이트 전까지 구현-ready로 보지 않는다. 공유문과 이벤트 파라미터에는 앱 이름/package/lockApplications/raw session history 금지 원칙을 적용하고 enum/bucket/boolean만 남긴다. #778은 공유 payload body/label/duration의 locale resource-template debt이며 analytics schema 변경 이슈가 아니다. raw rendered share text, raw duration string, locale-specific body는 GA4 payload/custom dimension 대상이 아니다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
