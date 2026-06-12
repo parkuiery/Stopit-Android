@@ -276,6 +276,26 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - `cta_variant`: `soft_default`부터 시작한다. copy/placement 실험 전에는 다중 variant로 해석하지 않는다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp, `routine_id`는 CTA shown/clicked/dismissed payload에 넣지 않는다.
 
+### 루틴 저장 완료 이벤트
+
+Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 추천 prefill, 그리고 수동 루틴 생성의 “실제 저장 완료” 분모를 맞추기 위한 후속 analytics 계약이다. 수동 루틴 생성과 CTA/추천 prefill 저장 완료를 같은 저장 완료 분모로 묶는다. Android wiring 전에는 문서 계약일 뿐이며, GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live 0건을 루틴 생성 수요 없음으로 해석하지 않는다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `routine_saved` | `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state` | 루틴 insert가 성공한 뒤 한 번만 남기는 generic 저장 완료 이벤트. CTA/추천/수동 생성 전환 분모로 사용한다. |
+
+현재 enum/bucket 계약:
+
+- `entry_surface`: `routine`, `home_secondary`, `home`, `lock_history`, `post_block_success`, `performance_report`, `repeat_block_suggestion`
+- `creation_source`: `manual`, `post_first_block_cta`, `repeat_block_prefill`, `unknown`
+- `selected_app_count_bucket`: `1`, `2_3`, `4_6`, `7_plus`
+- `repeat_days_bucket`: `1`, `2_3`, `4_6`, `7`
+- `time_window_bucket`: `morning`, `afternoon`, `evening`, `night`, `overnight`, `all_day`, `custom`
+- `schedule_state`: `enabled`, `disabled_exact_alarm_missing`, `disabled_user_choice`, `disabled_unknown`
+- `repeat_block_routine_suggestion_applied`는 추천 적용 이벤트로 유지하고, `routine_saved`는 generic 저장 완료 이벤트로 함께 전송한다. 두 이벤트는 같은 저장 성공에서 함께 발생할 수 있지만 의미가 다르다.
+- `lock_scheduled`는 예약 성공 이벤트이므로 exact alarm 권한 부족으로 disabled 저장된 루틴의 저장 완료 분모로 쓰지 않는다. 권한 부족 저장은 `routine_saved.schedule_state=disabled_exact_alarm_missing`로만 구분한다.
+- 금지 payload/query 축: routine name, app package/name/list, `lockApplications`, raw start/end time, routine id, raw history, raw timestamp, raw rendered text.
+
 ### 반복 차단 기반 자동 루틴 제안
 
 반복 차단 패턴 기반 자동 루틴 제안의 제품/QA 계약은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 본다. MVP는 기존 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 계산하고, 기존 활성 루틴과 겹치지 않는 후보 1개만 루틴 생성 prefill로 제안한다. 2026-06-06 code/QA lane에서 `RepeatBlockRoutineSuggestionPolicy`, `repeat_block_routine_suggestion_*` analytics method/constant, `RoutineRoute`/`RoutineBottomSheetViewModel` prefill 적용, `RepeatBlockRoutineSuggestionStore` dismiss persistence 계약이 추가됐다. 이번 code-lane PR은 Home/LockHistory CTA UI wiring과 apply/dismiss flow를 연결한다. 아직 성과 리포트/post-block success 표면, release/tag/Play deploy, GA4 Admin 등록, 수동 device/locale/TalkBack QA 전에는 live event 0건을 수요 없음이나 UX 실패로 해석하지 않는다. onboarding / pre-first-lock 사용자는 제외하고, 비난형 copy와 앱 이름/package/raw history/raw timestamp payload 및 dismiss store 저장을 금지한다.
@@ -480,8 +500,6 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `session_count_bucket` | `session_count_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened` | 세션 수별 공유 의도 비교(privacy-safe bucket) |
 | Required | `duration_minutes_bucket` | `duration_minutes_bucket` | `focus_summary_share_tapped`, `focus_summary_share_sheet_opened`, `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | 집중 요약/부모 모드 duration bucket 비교. 각 이벤트별 bucket 계약을 따른다 |
 | Required | `template_category` | `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | 루틴 템플릿 카테고리별 공유 의도 비교(privacy-safe enum) |
-| Required | `repeat_days_bucket` | `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 요일 패턴별 공유 의도 비교(privacy-safe bucket) |
-| Required | `time_window_bucket` | `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 시간대 패턴별 공유 의도 비교(privacy-safe bucket) |
 | Required | `routine_name_included` | `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | 이름 opt-in 여부와 공유 전환 비교. 이름 원문은 금지 |
 | Required | `screen_context` | `screen_context` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 같은 화면 안 Stopit 앱 배너 광고 문맥별 성과 비교 |
 | Required | `ad_placement` | `ad_placement` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 제품 위치별 Stopit 앱 배너 CTR/eCPM 감사 |
@@ -490,6 +508,12 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `interest_context` | `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 광고 제거/수익화 관심도 CTA의 문맥별 반응 비교 |
 | Required | `interest_surface` | `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 안전한 노출 표면별 관심 클릭률 비교 |
 | Required | `surface` | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`, `support_contact_started`, `support_contact_fallback_used` | 루틴 CTA/추천/지원 연락의 안전한 노출 표면별 반응 비교 |
+| Required | `entry_surface` | `entry_surface` | `routine_saved`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | event별 진입 표면 비교. `routine_saved`는 `routine/home_secondary/home/lock_history/post_block_success/performance_report/repeat_block_suggestion`, 긴급해제 step analytics는 Lock/Block 진입 표면 계약을 각각 따른다. raw route/path 금지 |
+| Required | `creation_source` | `creation_source` | `routine_saved` | 루틴 저장 완료가 수동 생성, post-first-block CTA, repeat-block prefill 중 어디서 온 전환인지 분리 |
+| Required | `selected_app_count_bucket` | `selected_app_count_bucket` | `routine_saved`, `goal_lock_created` | 선택 앱 수 bucket. 루틴 저장은 `1/2_3/4_6/7_plus`, 목표 잠금은 해당 문서의 event별 계약을 따른다. 앱 package/name/list 금지 |
+| Required | `repeat_days_bucket` | `repeat_days_bucket` | `routine_saved`, `routine_template_share_tapped`, `routine_template_share_sheet_opened` | event별 요일 bucket. `routine_saved`는 반복 요일 수(`1/2_3/4_6/7`), 루틴 템플릿 공유는 공유 템플릿 패턴 계약을 따른다. raw weekday list 금지 |
+| Required | `time_window_bucket` | `time_window_bucket` | `routine_saved`, `routine_template_share_tapped`, `routine_template_share_sheet_opened` | event별 시간대 bucket. `routine_saved`는 `morning/afternoon/evening/night/overnight/all_day/custom`; raw start/end time 금지 |
+| Required | `schedule_state` | `schedule_state` | `routine_saved` | 루틴 저장 완료 후 enabled/disabled 상태 구분. exact alarm 권한 부족 disabled 저장은 `disabled_exact_alarm_missing`으로 분리하고 `lock_scheduled`와 혼동하지 않는다 |
 | Required | `fallback_type` | `fallback_type` | `support_contact_fallback_used` | 이메일 앱 미설치 fallback 방식. 현재 `clipboard`만 허용하며 진단 payload 원문은 analytics에 기록하지 않는다. |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |
