@@ -6,7 +6,7 @@ Issue: #779
 
 긴급해제 플로우는 신뢰/안전 민감 흐름이다. 기존 `emergency_unlock_used`와 `emergency_unlock_completed`만으로는 사용자가 reason → app selection → duration → countdown 중 어느 단계에서 멈추는지, 어떤 검증 실패가 실제 병목인지 알기 어렵다.
 
-이 문서는 #779의 docs-lane source of truth다. Android 구현 전 계약을 먼저 고정해 code-lane이 privacy-safe 이벤트 API, payload 테스트, reason-required ON/OFF flow 테스트, GA4 등록/runbook을 한 번에 맞출 수 있게 한다. 이 PR은 문서/운영 계약이며 Android runtime 이벤트 구현은 아직 완료로 주장하지 않는다. 후속 구현 PR은 acceptance를 모두 만족하기 전까지 `Refs #779`를 사용한다.
+이 문서는 #779의 source of truth다. PR #781은 Android 구현 전 계약을 먼저 고정했고, 이번 code-lane PR에서 Android `KeepAnalytics` / `FirebaseKeepAnalytics` API, `EmergencyUnlockBottomSheetContent` 단계/검증/취소 wiring, privacy-safe payload 테스트를 추가했다. 남은 경계는 GA4 Admin 등록, release/tag/Play deploy 포함, 배포 후 14일/30일 readback이다. 후속 구현 PR은 acceptance를 모두 만족하기 전까지 `Refs #779`를 사용한다. 후속 repo-internal acceptance가 추가되지 않는 한 이 이슈는 `Refs #779` 상태로 외부/측정 경계를 추적한다.
 
 ## 현재 기준선
 
@@ -125,7 +125,7 @@ Required custom dimensions:
 
 등록/측정 순서:
 
-1. Android code-lane이 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` API와 payload 테스트를 추가한다.
+1. Android code-lane이 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` API와 payload 테스트를 추가한다. (repo-internal 완료: 이번 code-lane PR)
 2. GA4 Admin에서 위 custom dimensions를 등록한다.
 3. metadata에서 `customEvent:*` 조회 가능성을 확인한다.
 4. 해당 code 포함 release/tag/Play deploy 후 최소 14일 창에서 funnel/readback을 수행한다.
@@ -133,16 +133,21 @@ Required custom dimensions:
 
 GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문제로 해석하지 않는다.
 
-## Code-lane handoff
+## Code-lane implementation status
 
-추천 구현 범위:
+완료된 repo-internal wiring:
 
 - `KeepAnalytics` / `FirebaseKeepAnalytics`에 세 이벤트 API 추가.
-- enum/constant helper로 `step_name`, `validation_reason`, `cancel_source`, `entry_surface` 값을 제한.
-- `EmergencyUnlockBottomSheetContent` 또는 ViewModel/state owner에서 session-local step dedupe 처리.
-- reason-required ON/OFF Compose flow 테스트에 신규 이벤트 sequence assertion 추가.
-- analytics payload 테스트에서 금지 key/value 부재를 고정.
-- `docs/ANALYTICS_EVENT_DICTIONARY.md`, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`, 이 문서, `docs/QA_RUNTIME_CHECKLIST.md`를 같은 PR에서 동기화.
+- `AnalyticsEmergencyUnlockStepName`, `AnalyticsEmergencyUnlockValidationReason`, `AnalyticsEmergencyUnlockCancelSource`로 `step_name`, `validation_reason`, `cancel_source`, `entry_surface` 값을 제한.
+- `EmergencyUnlockBottomSheetState`가 stable `analyticsStepName` / `validationReason`을 제공하고, `EmergencyUnlockBottomSheetContent`가 step view, validation-blocked state, countdown cancel을 ViewModel analytics callback으로 전달한다.
+- `BlockScreen`은 `entry_surface=block_screen`, `LockScreen`은 `entry_surface=lock_screen`으로 기록한다.
+- `FirebaseKeepAnalyticsTest`, `EmergencyUnlockBottomSheetStateTest`, `BlockViewModelTest`가 payload/enum/source contract를 고정한다.
+
+남은 경계:
+
+- GA4 Admin custom dimension 등록과 metadata 재확인.
+- SemVer release/tag/Play deploy 포함.
+- 배포 후 D+14/D+30 readback.
 
 ## QA evidence template
 
