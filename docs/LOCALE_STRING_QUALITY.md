@@ -15,6 +15,8 @@
 
 #729에서 시작한 `home_status_*_description` guard는 #764 이후 Home title/primary CTA와 Goal Lock detail status까지 포함한다. 홈 첫 진입·앱 선택 없음·보호 활성 상태, 그리고 목표 잠금 완료/종료/진행 상태는 사용자가 잠금 신뢰도를 바로 판단하는 high-traffic surface이므로 지원 locale에서 default English 원문을 그대로 복사해 두지 않는다.
 
+#778의 루틴 템플릿 공유 payload는 화면 안 copy가 아니라 앱 밖으로 나가는 성장 루프 공유문이므로 같은 품질 기준을 적용한다. `routine_template_share_chooser_title`만 resource-backed인 상태를 payload localization 완료로 보지 않고, payload title/body/category/repeat/time-window/duration label까지 resource-backed template/provider로 검증한다.
+
 현재 자동 guard 대상:
 
 - `home_status_no_selected_apps_description`

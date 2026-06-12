@@ -19,9 +19,9 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 - Play Console 수동 프로모션 절차
 - 대규모 instrumented test 구현
 
-> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
+> 현재 저장소의 `androidTest` 자동화는 release 전체를 대체하지는 않지만, 기본 Android CI focused runtime smoke가 이미 핵심 런타임 계약을 자동 검증한다: `StopitReleaseSmokeTest`(앱 기동 smoke), `BackupRestoreRuntimeResetIntegrationTest`(복원 후 reset-only state 미복원), `HomeAccessibilityPermissionIntegrationTest`(홈 접근성 권한 경고 재동기화 + substring false positive 방지), focused `ReceiverRuntimeIntegrationTest` 메서드들(boot/package/time/timezone 재수화, multi-day 반복요일, 루틴 시작 재예약), Android CI exact-alarm 최소 smoke(`android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`), 별도 `POST_NOTIFICATION ignore` receiver fallback notice 메서드, `EmergencyUnlockExpiryIntegrationTest`(긴급해제 만료 cleanup + 재차단 대상), `KeepMessagingServiceIntegrationTest`(stale FCM token overwrite), `KeepAccessibilityServiceIntegrationTest`(cross-app foreground 차단 + emergency unlock 우회 + self-uninstall interception safety). 이 체크리스트는 그 자동화가 아직 덮지 못하는 cold boot, 실제 사용자 앱 조합별 foreground 전환 같은 수동 증거를 release 전에 반복하기 위한 최소 기준이다.
 >
-> Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
+> Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`, `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
 >
 > Signed release build / non-production Play deploy 실패 triage는 runtime smoke artifact와 분리한다. Android Release Build는 `stopit-release-build-diagnostics`, non-production Android Play Deploy는 `stopit-play-deploy-release-diagnostics`를 `retention-days: 7`로 남긴다. 이 artifact upload도 non-blocking이며 `if-no-files-found: ignore`로 report가 아직 생성되지 않은 초반 실패를 가리지 않는다. 확인 순서는 `app/build/reports`의 prodRelease lint/test report → `app/build/test-results` → `app/build/outputs/logs` → `app/build/outputs/mapping/prodRelease`다. Production promotion은 새 AAB를 빌드하지 않으므로 release diagnostics artifact 대상이 아니다.
 
@@ -654,7 +654,7 @@ cd <repo-root>
 
 ### 루틴 템플릿 공유 privacy-safe QA baseline
 
-issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다.
+issue #407 계열 구현 PR은 `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`를 source of truth로 삼고, Android share sheet 텍스트 공유가 민감 정보를 노출하지 않는지 자동/수동 증거를 함께 남긴다. 이 기능은 성장 루프 후보지만, 앱 사용 문제나 차단 앱 목록을 외부에 드러내면 제품 신뢰를 해칠 수 있으므로 privacy guardrail을 release evidence와 같은 수준으로 기록한다. #778 계열 현지화 PR은 share sheet chooser title resource화만으로 payload body localization이 완료됐다고 보지 않고, 실제 외부 공유 본문·category/repeat/time-window/duration label이 resource-backed template/provider를 따르는지 별도 증거를 남긴다.
 
 자동 baseline:
 
@@ -672,20 +672,24 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
 - 루틴 이름은 기본 제외이며, opt-in variant가 있더라도 analytics에는 원문 대신 `routine_name_included=true/false`만 남긴다.
 - `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed`는 `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included` 같은 enum/bucket/boolean 파라미터만 사용한다.
 - invalid routine에서는 CTA가 숨겨지거나 payload 생성이 실패하고, 실패 reason은 `activity_not_found` / `invalid_template` 같은 enum으로만 기록된다.
+- #778 현지화 PR에서는 payload title/body, category/repeat/time-window label, duration grammar가 Android string/plural resource 또는 resource-backed provider에서 나오며, `RoutineTemplateSharePayload.kt`의 한국어 literal은 canonical runtime source가 아니다.
+- #778은 analytics schema 변경이 아니므로 raw rendered share text, raw duration string, locale-specific body를 GA4 payload/custom dimension으로 추가하지 않는다.
 
 수동 QA evidence template:
 
 ```md
 ## Routine template share QA evidence
-- Issue: #407
+- Issue: #407 / #778 when payload localization is touched
 - Build / variant:
 - Device / Android version / OEM:
+- Locale(s): ko / en / ja / zh / other changed locale
 - Entry point: routine list / routine detail
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineTemplateSharePayloadTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.analytics.RoutineTemplateShareAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_routine_template_share_contract -v`
 - Shared text preview:
-  - category / repeat / time window present:
+  - payload body follows current locale, not only chooser title:
+  - category / repeat / time window / duration grammar present:
   - Play Store link present:
   - app names / package names / lockApplications absent:
   - raw history / raw usage time absent:
@@ -694,6 +698,7 @@ python3 -m unittest scripts.tests.test_routine_template_share_contract -v
   - no target / failed intent fallback: pass / fail
 - Accessibility label:
 - Analytics payload spot-check:
+  - enum/bucket/boolean only; no raw rendered text / raw duration string / locale-specific body:
 - Decision: pass / fail / needs follow-up
 - Notes:
 ```
@@ -844,7 +849,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - edit sheet가 열린 뒤 루틴 시간이 시작된 경우에도 저장 직전에 Room의 최신 routine 상태를 다시 확인하고, 활성/변경잠금 상태면 `RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked`만 발생하며 update/cancel/reschedule을 수행하지 않는다.
 - Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
 - 안내 문구는 긴급 해제를 안전한 임시 예외로 안내하되 사용자를 비난하거나 처벌하는 톤을 쓰지 않는다.
-- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 한다.
+- locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 하며, localized resources에 default English copy가 그대로 남으면 `scripts.tests.test_active_routine_enforcement_contract`가 실패해야 한다.
 
 수동 QA evidence template:
 
@@ -983,11 +988,21 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `./gradlew :app:assembleProdDebug`
 - focused runtime smoke class/method set은 `scripts/android_runtime_suites.py`가 source of truth다. 문서가 selector를 복붙하지 말고 suite 이름과 run URL을 기록한다.
   - `android_ci_focused_runtime_smoke`
+  - exact-alarm 최소 smoke: `android_ci_exact_alarm_default` + `android_ci_exact_alarm_denied` + `android_ci_exact_alarm_allowed`
   - 별도 host-side appops run: `notification_denied_receiver` + `notification_denied_emergency_unlock`
   - channel-disabled run: `notification_channel_disabled` (앱 전체 알림/`POST_NOTIFICATIONS`는 허용, 루틴·긴급해제 channel만 `IMPORTANCE_NONE`; 긴급해제 결과는 `ChannelDisabled`로 기록하고 `POST_NOTIFICATION ignore`의 `PermissionDenied`와 분리)
   - 현재 selector 출력:
     - `python3 scripts/android_runtime_suites.py markdown android_ci_focused_runtime_smoke`
+    - `python3 scripts/android_runtime_suites.py markdown android_ci_exact_alarm_default android_ci_exact_alarm_denied android_ci_exact_alarm_allowed`
     - `python3 scripts/android_runtime_suites.py markdown notification_denied_receiver notification_denied_emergency_unlock notification_channel_disabled`
+- exact-alarm host-side appops run:
+  - `./gradlew :app:installDevDebug`
+  - `adb shell cmd appops reset com.uiery.keep.dev`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_default)"`
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_denied)"`
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_allowed)"`
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
@@ -1560,9 +1575,31 @@ issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child is
 - Notes:
 ```
 
+### Emergency unlock step analytics QA baseline
+
+Issue: #779 계열 PR은 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`를 source of truth로 두고 reason/app selection/duration/countdown 단계 노출, validation blocked, cancel source가 privacy-safe enum-only payload로 기록되는지 확인한다. 이 baseline은 #467 copy/step QA와 연결되지만, #694 설정 변경 analytics와 섞지 않는다.
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract -v
+./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'
+./gradlew --console=plain :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
+```
+
+확인:
+
+- `emergency_unlock_step_viewed`: reason-required ON/OFF에 맞게 `step_name=reason|app_selection|duration|countdown`, `reason_required_enabled`, `entry_surface`만 기록한다.
+- `emergency_unlock_validation_blocked`: `validation_reason=missing_reason|missing_custom_reason|missing_app_selection|missing_duration|duration_options_unavailable|unknown` enum만 기록한다.
+- `emergency_unlock_cancelled`: sheet dismiss/back/cancel button/outside/system을 `cancel_source` enum으로만 기록하고, countdown cancel은 `emergency_unlock_completed`로 과장하지 않는다.
+- reason-required ON/OFF: OFF flow에서는 reason step viewed나 missing reason/custom reason validation이 나오지 않아야 한다.
+- Privacy: no custom reason raw text, no app name/package/list, no raw timestamp/history/duration list/settings snapshot.
+- GA4: `customEvent:step_name`, `customEvent:validation_reason`, `customEvent:reason_required_enabled`, `customEvent:entry_surface`, `customEvent:cancel_source` GA4 Admin metadata 확인 전에는 세부 breakdown을 제품 결론으로 쓰지 않는다.
+- Readback: Android 구현 포함 release/tag/Play deploy 후 14-day readback을 예약하고, 30-day window에서 reason-required ON/OFF와 entry surface별 guardrail을 재확인한다.
+
 ### 긴급해제 완료/만료 scriptable baseline
 
-issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다. issue #424 계열처럼 bottom sheet 단계/선택 상태를 건드리는 PR은 같은 묶음에서 `EmergencyUnlockBottomSheetStateTest`를 먼저 실행해 UI state machine 계약을 고정하고, 실제 Compose bottom sheet click-through는 focused instrumentation baseline으로 확인한다.
+issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다. issue #424/#779 계열처럼 bottom sheet 단계/선택 상태 또는 step analytics를 건드리는 PR은 같은 묶음에서 `EmergencyUnlockBottomSheetStateTest`와 `test_emergency_unlock_step_analytics_contract`를 먼저 실행해 UI state machine과 privacy-safe analytics 계약을 고정하고, 실제 Compose bottom sheet click-through는 focused instrumentation baseline으로 확인한다.
 
 ```bash
 cd <repo-root>

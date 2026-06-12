@@ -36,6 +36,15 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.service.KeepMessagingServiceIntegrationTest",
         "com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest",
     ],
+    "android_ci_exact_alarm_default": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability",
+    ],
+    "android_ci_exact_alarm_denied": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt",
+    ],
+    "android_ci_exact_alarm_allowed": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm",
+    ],
     "release_focused_ui_smoke": [
         "com.uiery.keep.qa.StopitReleaseSmokeTest",
     ],
@@ -99,6 +108,9 @@ RELEASE_QA_SEQUENCE = [
 
 ANDROID_CI_SEQUENCE = [
     "android_ci_focused_runtime_smoke",
+    "android_ci_exact_alarm_default",
+    "android_ci_exact_alarm_denied",
+    "android_ci_exact_alarm_allowed",
     "notification_denied_receiver",
     "notification_denied_emergency_unlock",
     "notification_channel_disabled",
@@ -201,6 +213,18 @@ def run_connected_tests(
 
 
 ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
+    "android_ci_exact_alarm_default": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell cmd appops reset com.uiery.keep.dev",
+    ],
+    "android_ci_exact_alarm_denied": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny",
+    ],
+    "android_ci_exact_alarm_allowed": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow",
+    ],
     "notification_denied_receiver": [
         "./gradlew --console=plain :app:installDevDebug",
         "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",

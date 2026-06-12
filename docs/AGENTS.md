@@ -30,7 +30,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
 | `INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` | #581용 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` Play Install Referrer / UTM attribution 계약, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계. |
 | `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. #597 공유 payload locale resource/template debt와 `scripts.tests.test_focus_summary_share_contract` static guard도 여기서 추적한다. |
-| `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. |
+| `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. #778 payload body/label/duration resource-template debt와 `scripts.tests.test_routine_template_share_contract` static guard도 여기서 추적한다. |
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. PR #760 이후 생성/상세 summary TalkBack contentDescription 자동 baseline과 남은 실기기/release/readback 경계를 함께 추적한다. |
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
@@ -39,6 +39,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, PR #675 이후 step purpose copy baseline, 남은 device/release/readback 경계. |
 | `EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` | #694용 긴급해제 설정 변경 privacy-safe analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, enum/bucket 파라미터, 금지 payload, GA4 등록/readback 경계를 고정한다. |
+| `EMERGENCY_UNLOCK_STEP_ANALYTICS.md` | #779용 긴급해제 단계별 이탈·검증 실패 privacy-safe analytics 계약. `emergency_unlock_step_viewed` / `emergency_unlock_validation_blocked` / `emergency_unlock_cancelled`, enum-only 파라미터, reason-required ON/OFF 분모, GA4 등록/readback 경계를 고정한다. |
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계, PermissionSettingDialog/TimerPicker code-lane handoff, static guard 기준. |
 | `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. |
 | `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |

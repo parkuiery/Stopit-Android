@@ -206,7 +206,7 @@
     <string name="routine_disabled_tag">已关闭</string>
     <string name="routine_repeat_days_empty">无重复日期</string>
     <string name="routine_next_run_label">下次执行：%1$s</string>
-    <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
+    <string name="routine_active_action_blocked_message">此例程正在运行，因此编辑、删除和关闭操作已锁定。如需临时例外，请使用紧急解锁。</string>
     <string name="prevent_uninstall">卸载保护</string>
     <string name="prevent_uninstall_subtitle">防止StopIt被卸载</string>
     <string name="prevent_uninstall_enabled">卸载保护已启用</string>

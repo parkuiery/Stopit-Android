@@ -252,8 +252,12 @@ jobs:
             set -eu
             mkdir -p runtime-diagnostics
             trap 'adb logcat -d > runtime-diagnostics/android-ci-logcat.txt || true; adb shell dumpsys alarm > runtime-diagnostics/android-ci-alarm.txt || true; adb shell dumpsys accessibility > runtime-diagnostics/android-ci-accessibility.txt || true' EXIT
-            # Aggregate suites: android_ci_focused_runtime_smoke, notification_denied_receiver,
-            # notification_denied_emergency_unlock, notification_channel_disabled.
+            # Aggregate suites: android_ci_focused_runtime_smoke, android_ci_exact_alarm_default,
+            # android_ci_exact_alarm_denied, android_ci_exact_alarm_allowed,
+            # notification_denied_receiver, notification_denied_emergency_unlock,
+            # notification_channel_disabled.
+            # Exact alarm setup remains: adb shell cmd appops reset com.uiery.keep.dev,
+            # adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny|allow.
             # Notification denied setup remains: adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore.
             python3 scripts/android_runtime_suites.py run-android-ci
 

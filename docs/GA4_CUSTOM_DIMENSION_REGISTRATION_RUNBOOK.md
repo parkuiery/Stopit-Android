@@ -149,6 +149,7 @@
 이 묶음이 필요한 이유:
 
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)의 Android share sheet MVP가 구현된 뒤, 공유 CTA 의도와 share sheet 전환을 privacy-safe enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- #778 payload body/label/duration resource-template 전환은 새 GA4 registration 항목을 만들지 않는다. 공유문 locale, raw rendered share text, raw duration string, locale-specific body는 GA4 payload/custom dimension 대상이 아니다.
 - `lockApplications`, package name, 앱 이름, raw session history, 루틴 이름 원문은 GA4 payload와 registration ledger 모두에서 금지한다.
 - #407 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 루틴 템플릿 공유의 획득/retention 효과를 낮은 confidence로 둔다.
 
@@ -241,6 +242,20 @@
 - custom reason 원문, 앱 이름/package/list, raw lock/session history, raw timestamp, `manualResetAtMillis` 원문, 설정 snapshot dump는 GA4 payload와 registration ledger 모두에서 금지한다.
 - #694 Android analytics API/ViewModel wiring은 repo-internal로 완료됐으며, GA4 Admin 등록·metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `emergency_unlock_settings_changed` 0건을 adoption 부재로 해석하지 않는다.
 
+### 12순위: 긴급해제 단계별 이탈·검증 실패 조회성
+
+- `step_name`
+- `validation_reason`
+- `reason_required_enabled`
+- `entry_surface`
+- `cancel_source`
+
+이 묶음이 필요한 이유:
+
+- `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`(#779)의 단계별 이탈·검증 실패 계약이 구현된 뒤, reason → app selection → duration → countdown 중 어느 단계에서 사용자가 멈추는지 enum 기준으로만 비교하기 위한 최소 집합이다.
+- custom reason 원문, 앱 이름/package/list, raw lock/session history, raw timestamp, raw duration option list, 설정 snapshot dump는 GA4 payload와 registration ledger 모두에서 금지한다.
+- #779 Android analytics API/UI wiring 전에는 위 이벤트 0건을 UX 병목 부재로 해석하지 않는다. Android wiring, GA4 Admin 등록·metadata 확인, release/tag/Play deploy, 14일/30일 readback을 분리해 기록한다.
+
 ### Install Referrer / UTM attribution 조회성
 
 - `referrer_status`
@@ -274,7 +289,7 @@ GA4 Admin 증적 후보:
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
 | --- | --- | --- | --- | --- |
-| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:step_name` |
+| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인. #779 구현 후에는 긴급해제 reason/app_selection/duration/countdown 단계에도 같은 dimension을 쓴다. | `customEvent:step_name` |
 | `permission_name` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:permission_name` |
 | `outcome` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:outcome` |
 | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 미확인/등록 필요 | 동일 | `customEvent:source` |
@@ -327,6 +342,10 @@ GA4 Admin 증적 후보:
 | `refill_mode` | `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | daily/manual refill adoption과 manual reset 요청 비교 | `customEvent:refill_mode` |
 | `duration_count_bucket` | `emergency_unlock_settings_changed` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | duration option 개수 변경. raw duration list 금지 | `customEvent:duration_count_bucket` |
 | `remaining_unlocks_bucket` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 | `customEvent:remaining_unlocks_bucket` |
+| `validation_reason` | `emergency_unlock_validation_blocked` | #779 문서 계약 추가 / Android wiring·GA4 Admin·release 전 | missing_reason/custom_reason/app_selection/duration/options 실패 종류. custom reason/app 원문 금지 | `customEvent:validation_reason` |
+| `reason_required_enabled` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 문서 계약 추가 / Android wiring·GA4 Admin·release 전 | reason-required ON/OFF 분모와 reason distribution confidence 분리 | `customEvent:reason_required_enabled` |
+| `entry_surface` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 문서 계약 추가 / Android wiring·GA4 Admin·release 전 | Lock/Block 진입 표면별 friction 비교. raw route/path 금지 | `customEvent:entry_surface` |
+| `cancel_source` | `emergency_unlock_cancelled` | #779 문서 계약 추가 / Android wiring·GA4 Admin·release 전 | sheet dismiss/back/cancel/outside/system 중단을 bucket으로 비교 | `customEvent:cancel_source` |
 
 ### 2) Recommended 이벤트 차원
 

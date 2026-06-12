@@ -1,9 +1,12 @@
 import pathlib
 import unittest
+import xml.etree.ElementTree as ET
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 QA_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
+DEFAULT_STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values" / "strings.xml"
+LOCALIZED_STRING_DIRS = sorted((REPO_ROOT / "app" / "src" / "main" / "res").glob("values-*"))
 ACCESSIBILITY_RUNTIME_TEST = (
     REPO_ROOT
     / "app"
@@ -16,6 +19,14 @@ ACCESSIBILITY_RUNTIME_TEST = (
     / "service"
     / "KeepAccessibilityServiceIntegrationTest.kt"
 )
+
+
+def _strings(path: pathlib.Path) -> dict[str, str]:
+    root = ET.parse(path).getroot()
+    return {
+        element.attrib["name"]: (element.text or "")
+        for element in root.findall("string")
+    }
 
 
 class ActiveRoutineEnforcementContractTest(unittest.TestCase):
@@ -42,6 +53,25 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
         self.assertIn("AnalyticsBlockSource.ROUTINE", source)
         self.assertIn("lastLaunchedRoutineId", source)
         self.assertIn("ROUTINE_RUNTIME_TEST_ID", source)
+
+    def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
+        key = "routine_active_action_blocked_message"
+        default_text = _strings(DEFAULT_STRINGS)[key]
+        offenders = []
+
+        for values_dir in LOCALIZED_STRING_DIRS:
+            strings_path = values_dir / "strings.xml"
+            if not strings_path.exists():
+                continue
+            localized_text = _strings(strings_path).get(key)
+            if localized_text == default_text:
+                offenders.append(values_dir.name)
+
+        self.assertEqual(
+            [],
+            offenders,
+            "Active routine block guidance is high-trust #609 copy and must not ship as copied default English in localized resources.",
+        )
 
 
 if __name__ == "__main__":
