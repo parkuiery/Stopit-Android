@@ -17,9 +17,13 @@ import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
+import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.util.toRepeatDaysBinary
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalTime as KotlinLocalTime
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -158,6 +162,26 @@ class KeepAccessibilityServiceIntegrationTest {
             timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
         ) {
             KeepAccessibilityServiceDebugState.read(context).lastLaunchedBlockPackage == blockedPackage
+        }
+    }
+
+    @Test
+    fun activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution() = runBlocking {
+        var routineId = ROUTINE_RUNTIME_TEST_ID
+        val blockedPackage = launchFirstConfiguredPackage(
+            purpose = "active routine foreground block smoke",
+            configureCandidate = { candidate -> routineId = configureActiveRoutineBlock(candidate) },
+        )
+        waitForWindowEvent(blockedPackage)
+
+        waitUntil(
+            message = "Expected active Routine to request BlockActivity with routine attribution for $blockedPackage",
+            timeoutMs = PACKAGE_VISIBILITY_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.ROUTINE &&
+                snapshot.lastLaunchedRoutineId == routineId.toString()
         }
     }
 
@@ -519,6 +543,37 @@ class KeepAccessibilityServiceIntegrationTest {
         KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
     ).goalLockRepository()
 
+    private fun routineRepository() = EntryPointAccessors.fromApplication(
+        context.applicationContext,
+        KeepAccessibilityService.RoutineRuntimeEntryPoint::class.java,
+    ).routineRepository()
+
+    private suspend fun configureActiveRoutineBlock(blockedPackage: String): Long {
+        val now = LocalDateTime.now()
+        val routine = RoutineModel(
+            id = ROUTINE_RUNTIME_TEST_ID,
+            name = "Runtime active routine",
+            startTime = now.minusMinutes(5).toKotlinTime(),
+            endTime = now.plusMinutes(55).toKotlinTime(),
+            repeatDays = listOf(now.dayOfWeek).toRepeatDaysBinary(),
+            lockApplications = listOf(blockedPackage),
+            isEnabled = true,
+        )
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        routineRepository().insert(routine)
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        return routine.id
+    }
+
+    private fun LocalDateTime.toKotlinTime(): KotlinLocalTime =
+        KotlinLocalTime(hour = hour, minute = minute)
+
     private suspend fun configureEmergencyUnlock(packageName: String): Long {
         val expireTimeMillis = System.currentTimeMillis() + EMERGENCY_UNLOCK_WINDOW_MS
         context.dataStore.edit { preferences ->
@@ -553,9 +608,14 @@ class KeepAccessibilityServiceIntegrationTest {
             preferences.remove(PreferencesKey.PARENT_MODE_STATE)
         }
         clearGoalLockRuntimeBlock()
+        clearRoutineRuntimeBlock()
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
         EmergencyUnlockNotificationHelper(context).cancel()
         KeepAccessibilityServiceDebugState.reset(context)
+    }
+
+    private suspend fun clearRoutineRuntimeBlock() {
+        runCatching { routineRepository().deleteById(ROUTINE_RUNTIME_TEST_ID) }
     }
 
     private fun clearGoalLockRuntimeBlock() {
@@ -1037,6 +1097,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val EMERGENCY_UNLOCK_WINDOW_MS = 60_000L
         const val PARENT_MODE_RUNTIME_WINDOW_MS = 60_000L
         const val GOAL_LOCK_RUNTIME_TEST_ID = 417_001L
+        const val ROUTINE_RUNTIME_TEST_ID = 609_001L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
         const val LAUNCH_ATTEMPTS = 3
