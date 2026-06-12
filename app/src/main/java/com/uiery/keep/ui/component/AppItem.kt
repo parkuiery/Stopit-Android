@@ -21,6 +21,7 @@ import com.uiery.kds.theme.KeepTheme
 @Composable
 fun AppItem(
     modifier: Modifier = Modifier,
+    checkboxModifier: Modifier = Modifier,
     image: ImageBitmap,
     name: String,
     checked: Boolean,
@@ -34,6 +35,7 @@ fun AppItem(
         KeepCheckbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            modifier = checkboxModifier,
         )
         Image(
             modifier = Modifier.size(30.dp),
