@@ -122,6 +122,10 @@ jobs:
               - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
               - 'scripts/tests/test_workflow_gradle_task_guard.py'
               - 'scripts/tests/test_release_gradle_task_contract.py'
+              - 'scripts/tests/test_android_ci_artifact_retention.py'
+              - 'scripts/tests/test_android_ci_path_gating.py'
+              - 'scripts/tests/test_play_deploy_tag_governance.py'
+              - 'scripts/tests/test_release_gate_retarget_triggers.py'
               - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
@@ -201,6 +205,10 @@ jobs:
           scripts.tests.test_review_prompt_post_release_followthrough_docs
           scripts.tests.test_workflow_gradle_task_guard
           scripts.tests.test_release_gradle_task_contract
+          scripts.tests.test_android_ci_artifact_retention
+          scripts.tests.test_android_ci_path_gating
+          scripts.tests.test_play_deploy_tag_governance
+          scripts.tests.test_release_gate_retarget_triggers
           scripts.tests.test_aso_screenshots_ci_contract
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow
