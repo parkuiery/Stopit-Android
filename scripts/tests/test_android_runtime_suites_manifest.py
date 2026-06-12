@@ -35,6 +35,12 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
     def test_all_selectors_exist_in_android_test_sources(self):
         self.assertEqual([], android_runtime_suites.validate_sources())
 
+    def test_category_selection_compose_regression_runs_in_android_ci_smoke(self):
+        self.assertIn(
+            "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
+            android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
+        )
+
     def test_cli_class_arg_preserves_comma_separated_selector_contract(self):
         class_arg = android_runtime_suites.class_arg([
             "notification_denied_receiver",
