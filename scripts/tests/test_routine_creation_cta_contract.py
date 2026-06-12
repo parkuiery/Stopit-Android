@@ -44,7 +44,6 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "강제 CTA",
             "modal gate",
             "code-lane 구현 진행",
-            "신규 이벤트 후보",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
@@ -71,7 +70,7 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "14일 체크",
             "30일 체크",
             "routine_creation_cta_clicked users / routine_creation_cta_shown users",
-            "routine_created users / routine_creation_cta_clicked users",
+            "routine_saved users / routine_creation_cta_clicked users",
             "emergency_unlock_completed users / active blocked users",
             "Play Console rating/review",
         ]:
@@ -96,8 +95,8 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
 
         self.assertIn("첫 차단 후 루틴 CTA 전환", dashboard)
         self.assertIn("노출 cohort의 `routines_count >= 1` users", dashboard)
-        self.assertIn("별도 `routine_created` 코드 이벤트는 아직 없으므로", dashboard)
-        self.assertIn("낮은 confidence 보조 지표", dashboard)
+        self.assertIn("#810 저장 완료 계측", dashboard)
+        self.assertIn("Android wiring 전에는 `routines_count >= 1` 전환을 보조 지표로 유지", dashboard)
         self.assertNotIn("`routine_created` users / clicked users", dashboard)
 
     def test_analytics_dictionary_and_ga4_runbook_track_routine_cta_events(self):

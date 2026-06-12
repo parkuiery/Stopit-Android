@@ -71,10 +71,10 @@ Privacy guardrail:
 ### Primary
 
 - CTA 클릭률: `routine_creation_cta_clicked` users / `routine_creation_cta_shown` users (`routine_creation_cta_clicked users / routine_creation_cta_shown users`)
-- 루틴 생성 전환: `routine_created` users / `routine_creation_cta_clicked` users (`routine_created users / routine_creation_cta_clicked users`)
+- 루틴 저장 완료 전환: `routine_saved(creation_source=post_first_block_cta)` users / `routine_creation_cta_clicked` users (`routine_saved users / routine_creation_cta_clicked users`, filtered by `creation_source=post_first_block_cta`)
 - 루틴 보유 전환: 실험 노출 cohort 중 `routines_count >= 1` users / `routine_creation_cta_shown` users
 
-`routine_created` 별도 코드 이벤트는 아직 없다. 현재 #455의 루틴 생성 전환은 CTA click 이후 `routines_count >= 1` user property 전환과 Routine 화면/저장 흐름 evidence를 함께 낮은 confidence로 본다. 별도 `routine_created` 이벤트가 필요해지면 `RoutineViewModel.storeRoutine(...)` 완료 시점 또는 동등한 저장 완료 지점의 privacy-safe 이벤트 계약을 새 scope로 정의한다.
+`routine_saved`는 #810에서 정의한 generic 루틴 저장 완료 이벤트 계약이다. Android wiring 전에는 아직 live code event가 아니므로, 현재 #455의 루틴 생성 전환은 CTA click 이후 `routines_count >= 1` user property 전환과 Routine 화면/저장 흐름 evidence를 함께 낮은 confidence로 본다. Android wiring 전에는 `routines_count >= 1` 전환을 보조 지표로 유지한다. #810 구현 후에는 `creation_source=post_first_block_cta`, `entry_surface=home_secondary|lock_history|post_block_success`, `schedule_state`를 함께 보되, GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지는 event 0건을 CTA 실패로 해석하지 않는다.
 
 ### Secondary
 
@@ -100,7 +100,8 @@ Privacy guardrail:
 ## GA4 / release 경계
 
 - `routine_creation_cta_*` 이벤트가 코드/문서에 추가되어도 GA4 Admin에서 `surface`, `activation_stage`, `has_routine`, `cta_variant`가 custom dimension으로 등록되고 metadata에서 확인되기 전에는 세부 breakdown confidence를 낮춘다.
-- CTA 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
+- #810 `routine_saved` Android wiring이 추가되어도 GA4 Admin에서 `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`가 등록되고 metadata에서 확인되기 전에는 CTA click → 저장 완료 breakdown confidence를 낮춘다.
+- CTA 및 #810 routine_saved 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
 - PR #533 / merge commit `b7cf06f20aaf551f513e0684142577149b1c4550`로 Home 보조 CTA UI, Routine 화면 이동, dismiss/루틴 보유 숨김, analytics adapter/ViewModel 테스트가 `develop`에 반영됐다.
 - 따라서 repo-internal CTA 구현은 다시 “구현 전”으로 되돌리지 않는다. 다만 GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일·30일 측정 표가 남아 있으면 `Refs #455`를 사용한다. issue closing keyword는 GA4/release/14일·30일 readback까지 acceptance가 실제로 충족될 때만 쓴다.
 

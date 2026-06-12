@@ -114,7 +114,10 @@ Privacy guardrail:
 
 - 추천 클릭률: `repeat_block_routine_suggestion_clicked` users / `repeat_block_routine_suggestion_shown` users
 - 추천 적용률: `repeat_block_routine_suggestion_applied` users / `repeat_block_routine_suggestion_clicked` users
+- 추천 저장 완료율: `routine_saved(creation_source=repeat_block_prefill)` users / `repeat_block_routine_suggestion_clicked` users, 단 `entry_surface=repeat_block_suggestion|home|lock_history|performance_report`로 제한
 - 추천 cohort의 루틴 보유 전환: 추천 노출 users 중 `routines_count >= 1` users / suggestion shown users
+
+`routine_saved`는 #810 generic 루틴 저장 완료 이벤트다. #531의 `repeat_block_routine_suggestion_applied`는 추천 prefill이 저장 완료까지 이어졌다는 추천-specific 이벤트로 유지하고, #810 구현 후에는 같은 저장 성공에서 generic `routine_saved`도 함께 남겨 수동/CTA/추천 저장 완료 분모를 비교한다. Android wiring·GA4 Admin·release/tag/Play deploy 전에는 `routine_saved` 0건을 추천 실패로 해석하지 않고, 기존 `repeat_block_routine_suggestion_applied`와 `routines_count >= 1` 전환을 보조 지표로 유지한다.
 
 ### Secondary
 
@@ -133,7 +136,8 @@ Privacy guardrail:
 ## GA4 / release 경계
 
 - `repeat_block_routine_suggestion_*` 이벤트가 코드에 추가되어도 GA4 Admin에서 `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant`가 custom dimension으로 등록되고 metadata에서 확인되기 전에는 breakdown confidence를 낮춘다.
-- 추천 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
+- #810 `routine_saved` Android wiring이 추가되어도 GA4 Admin에서 `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`가 등록되고 metadata에서 확인되기 전에는 추천 click → 저장 완료 breakdown confidence를 낮춘다.
+- 추천 및 #810 routine_saved 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
 - 최신 버전 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 10% 미만이면 `보류`, 10~30%면 `주의`, 30% 이상이면 `충분`으로 표시한다.
 - 14일 체크는 추천 포함 버전의 배포/GA4 Admin 등록/metadata 확인이 끝난 뒤 시작한다.
 - 30일 체크는 이벤트 의미와 추천 임계치가 같은 window에서만 비교한다.
