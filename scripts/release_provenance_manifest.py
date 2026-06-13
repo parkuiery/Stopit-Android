@@ -143,6 +143,65 @@ def _expect_required(label: str, actual: Any) -> None:
         raise ProvenanceError(f"{label} is required for metadata-only verification")
 
 
+def _manifest_value(manifest: dict[str, Any], path: str) -> Any:
+    value: Any = manifest
+    for part in path.split("."):
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+
+def compare(args: argparse.Namespace) -> int:
+    """Compare an existing durable fallback manifest with the current manifest.
+
+    This is used before `gh release upload --clobber`: a same-tag internal
+    completed rerun may have a new run_id/run_attempt/run_url, but it must not
+    overwrite the durable fallback if the artifact, Android version, git ref, or
+    Play upload identity differs.
+    """
+
+    existing_path = pathlib.Path(args.existing_manifest)
+    current_path = pathlib.Path(args.current_manifest)
+    existing = json.loads(existing_path.read_text(encoding="utf-8"))
+    current = json.loads(current_path.read_text(encoding="utf-8"))
+
+    comparable_paths = (
+        "schema_version",
+        "package_name",
+        "artifact_name",
+        "artifact.file_name",
+        "artifact.sha256",
+        "artifact.size_bytes",
+        "android.variant",
+        "android.version_name",
+        "android.version_code",
+        "git.sha",
+        "git.ref",
+        "git.ref_name",
+        "git.ref_type",
+        "github_actions.workflow",
+        "play.upload_mode",
+        "play.track",
+        "play.release_status",
+        "play.rollout_fraction",
+    )
+    for path in comparable_paths:
+        _expect(path, _manifest_value(existing, path), _manifest_value(current, path))
+
+    for label, manifest in (("existing", existing), ("current", current)):
+        github_actions = manifest.get("github_actions", {})
+        _expect_required(f"{label}.github_actions.run_id", github_actions.get("run_id"))
+        _expect_required(f"{label}.github_actions.run_attempt", github_actions.get("run_attempt"))
+        _expect_required(f"{label}.github_actions.run_url", github_actions.get("run_url"))
+
+    print(
+        "Verified durable internal provenance fallback identity before clobber: "
+        f"existing={existing_path} current={current_path}"
+    )
+    return 0
+
+
 def verify(args: argparse.Namespace) -> int:
     manifest_path = pathlib.Path(args.manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -264,6 +323,11 @@ def build_parser() -> argparse.ArgumentParser:
     ver.add_argument("--allow-artifact-path-relocation", action="store_true")
     ver.add_argument("--metadata-only", action="store_true")
     ver.set_defaults(func=verify)
+
+    cmp = subparsers.add_parser("compare")
+    cmp.add_argument("--existing-manifest", required=True)
+    cmp.add_argument("--current-manifest", required=True)
+    cmp.set_defaults(func=compare)
     return parser
 
 
