@@ -441,7 +441,22 @@ jobs:
             post_upload_failure "SemVer tag ref is required; got $GITHUB_REF_NAME"
           fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "GitHub Release $GITHUB_REF_NAME already exists; uploading internal release-provenance.json fallback."
+            echo "GitHub Release $GITHUB_REF_NAME already exists; checking existing internal release-provenance.json fallback before clobber."
+            existing_fallback_dir="$(mktemp -d)"
+            if gh release download "$GITHUB_REF_NAME" \
+              --pattern release-provenance.json \
+              --dir "$existing_fallback_dir"; then
+              existing_fallback_manifest="$existing_fallback_dir/release-provenance.json"
+              test -f "$existing_fallback_manifest" \
+                || post_upload_failure "Existing release-provenance.json asset download completed but the manifest file is absent; refusing to clobber"
+              python3 scripts/release_provenance_manifest.py compare \
+                --existing-manifest "$existing_fallback_manifest" \
+                --current-manifest app/build/outputs/bundle/prodRelease/release-provenance.json \
+                || post_upload_failure "Existing durable fallback identity mismatch; refusing to clobber release-provenance.json"
+              echo "Existing durable internal fallback identity matches this internal completed manifest; clobber is safe."
+            else
+              echo "GitHub Release $GITHUB_REF_NAME exists without release-provenance.json; first durable fallback publish will upload the verified internal completed manifest."
+            fi
           else
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \

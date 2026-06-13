@@ -115,6 +115,16 @@ android {
             args.extend(["--expected-git-ref-name", overrides["expected_git_ref_name"]])
         return self.run_script(*args, check=overrides.get("check", True))
 
+    def compare(self, existing_manifest, current_manifest=None, check=True):
+        return self.run_script(
+            "compare",
+            "--existing-manifest",
+            str(existing_manifest),
+            "--current-manifest",
+            str(current_manifest or self.manifest),
+            check=check,
+        )
+
     def test_generate_writes_secret_free_manifest_with_artifact_version_and_run_metadata(self):
         self.generate()
 
@@ -333,6 +343,54 @@ android {
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("github_actions.run_id mismatch", result.stderr)
+
+    def test_compare_accepts_same_internal_identity_with_new_run_instance(self):
+        self.generate()
+        existing = self.root / "existing-release-provenance.json"
+        existing.write_text(self.manifest.read_text(encoding="utf-8"), encoding="utf-8")
+
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["github_actions"]["run_id"] = "789012"
+        manifest["github_actions"]["run_attempt"] = "1"
+        manifest["github_actions"]["run_url"] = "https://github.com/parkuiery/Stopit-Android/actions/runs/789012"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.compare(existing)
+
+        self.assertIn("Verified durable internal provenance fallback identity before clobber", result.stdout)
+
+    def test_compare_rejects_track_status_git_or_artifact_identity_drift(self):
+        self.generate()
+        existing = self.root / "existing-release-provenance.json"
+        existing.write_text(self.manifest.read_text(encoding="utf-8"), encoding="utf-8")
+
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["play"]["track"] = "alpha"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.compare(existing, check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("play.track mismatch", result.stderr)
+
+        manifest["play"]["track"] = "internal"
+        manifest["artifact"]["sha256"] = "0" * 64
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+        result = self.compare(existing, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifact.sha256 mismatch", result.stderr)
+
+    def test_compare_rejects_missing_existing_run_identity(self):
+        self.generate()
+        existing_manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        existing_manifest["github_actions"].pop("run_url")
+        existing = self.root / "existing-release-provenance.json"
+        existing.write_text(json.dumps(existing_manifest), encoding="utf-8")
+
+        result = self.compare(existing, check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("existing.github_actions.run_url is required", result.stderr)
 
     def test_generate_rejects_missing_or_ambiguous_aab_glob(self):
         self.aab.unlink()
