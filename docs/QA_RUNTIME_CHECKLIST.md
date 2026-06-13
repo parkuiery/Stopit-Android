@@ -810,7 +810,7 @@ python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
 
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 
-issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card가 있으면 현재 보호 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card가 있으면 현재 보호 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. 현재 구현 완료 surface는 `home` / `lock_history`이고, `post_block_success` / `performance_report`는 예약 enum이자 미구현 표면이므로 해당 UI wiring PR 전에는 수동 QA evidence에서 구현 완료로 체크하지 않는다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 

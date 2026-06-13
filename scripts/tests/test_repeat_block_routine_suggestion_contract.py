@@ -34,9 +34,15 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "30일 체크",
             "RepeatBlockRoutineSuggestionStore",
             "PR #561",
+            "PR #835",
             "Home과 LockHistory CTA 표면에서 추천 카드를 실제로 노출",
             "apply는 루틴 prefill navigation",
             "dismiss는 privacy-safe store",
+            "예약 enum / 미구현 표면",
+            "Surface sequencing 계약",
+            "post_block_success",
+            "performance_report",
+            "entry_surface=repeat_block_suggestion|home|lock_history|post_block_success|performance_report",
             "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
         ]
         for phrase in required_phrases:
@@ -134,6 +140,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("PR #561", ga4_runbook)
         self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
         self.assertIn("Home/LockHistory", ga4_runbook)
+        self.assertIn("post_block_success", analytics)
+        self.assertIn("performance_report", analytics)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
 
     def test_high_traffic_docs_link_to_repeat_block_suggestion_source_of_truth(self):
@@ -167,6 +175,10 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("RepeatBlockRoutineSuggestionStore", document)
             self.assertIn("PR #561", document)
             self.assertIn("Home/LockHistory CTA", document)
+            self.assertIn("PR #835", document)
+            self.assertIn("예약 enum", document)
+            self.assertIn("post_block_success", document)
+            self.assertIn("performance_report", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)
             self.assertIn("수요 없음", document)
