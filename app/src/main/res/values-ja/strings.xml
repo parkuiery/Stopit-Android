@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">ブロックを1回完了すると、守れた時間がここに表示されます。</string>
     <string name="lock_history_performance_empty_month_headline">今月の最初の記録を始めますか？</string>
     <string name="lock_history_performance_empty_week_headline">今週の最初の記録を始めますか？</string>
+    <string name="lock_history_performance_selected_date_headline">この日は%1$sを守りました</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">選択した日に%1$d回約束を守れました。</string>
+    <string name="lock_history_performance_selected_date_empty_headline">この日はまだ守れた時間がありません</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">別の日を選ぶか、ブロックを1回完了すると日別の記録が表示されます。</string>
     <string name="lock_history_focus_share_button">今週の集中記録を共有</string>
     <string name="lock_history_focus_share_sheet_title">StopItの集中記録を共有</string>
     <string name="focus_summary_share_payload_text">今週はStopItで%1$d回、合計%2$sの集中を守りました。\n集中したいときは、私もアプリ利用を少し止めています。\n%3$s</string>

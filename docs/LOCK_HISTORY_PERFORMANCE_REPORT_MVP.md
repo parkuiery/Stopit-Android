@@ -45,6 +45,7 @@ Issue: #465
 | low-data (`sessionCount=1` 또는 짧은 duration) | 작은 성공 인정 | `첫 기록이 시작됐어요` / `오늘 지킨 시간을 계속 쌓아볼 수 있어요.` |
 | 기록 있음 | 성취형 headline | `이번 주 {durationText}을 지켰어요` / `{sessionCount}번 유혹을 막아냈어요` |
 | 월간 탭 | 기간만 바꾼 같은 긍정 프레임 | `이번 달 {durationText}을 지켰어요` |
+| 선택 날짜 | 선택한 하루만의 성과/빈 상태를 기간 headline과 분리 | `선택한 날 {durationText}을 지켰어요` / `선택한 날은 아직 지킨 시간이 없어요` |
 
 카피 원칙:
 
@@ -81,7 +82,7 @@ Issue: #465
 
 권장 enum/bucket:
 
-- `period_type`: `week`, `month`
+- `period_type`: `week`, `month`, `selected_date` (`selected_date`는 주간 calendar에서 하루를 선택해 summary/top apps가 해당 날짜만 표시될 때 사용한다)
 - `report_state`: `empty`, `low_data`, `has_history`
 - `session_count_bucket`: `0`, `1`, `2_3`, `4_6`, `7_plus`
 - `duration_minutes_bucket`: `0`, `1_29`, `30_59`, `60_119`, `120_239`, `240_plus`
@@ -125,7 +126,7 @@ Issue: #465
   - 기록 없음 → `report_state=empty`, 격려 copy, CTA/Top apps 비활성 상태.
   - 세션 1개 또는 짧은 duration → `low_data`, 첫 기록 copy.
   - 기록 있음 → 기간별 duration/session headline.
-  - week/month `period_type` copy가 서로 섞이지 않는다.
+  - week/month/selected-date `period_type` copy가 서로 섞이지 않는다.
   - top apps count bucket이 앱 이름/package를 analytics parameter로 노출하지 않는다.
   - top apps count는 duplicate lockedApps entry를 per-session dedupe해서 같은 session의 중복 앱을 한 번만 센다.
 - `LockHistoryViewModel`/state test:
@@ -150,7 +151,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 
 1. `LockHistoryPerformanceReportReadModel` helper와 focused JVM regression이 추가됐다.
 2. empty / low-data / has-history / week-month / top-apps copy 계약이 read model 테스트로 고정됐다.
-3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다.
+3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다. 이번 code-lane package는 선택 날짜가 켜진 상태에서 summary headline/supporting copy와 `period_type=selected_date`를 주/월 전체 기간 copy와 분리하고, 선택한 날짜에 기록이 없을 때도 일별 empty copy를 보여주도록 read model/string parity/test 계약을 보강한다.
 4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy가 성취형/긍정 프레이밍으로 바뀌었다.
 5. 기본 string resource parity와 `:app:lintProdRelease` 검증이 완료됐다. 이후 PR #637(`docs(lockhistory): 성과 리포트 locale copy 계약 동기화`, merge commit `3d8e8d73b1cdba566a49b554fc6f255bed9aceb9`)로 shipped non-default locale copy localization과 default English copy 잔존 방지 회귀 테스트가 추가됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.

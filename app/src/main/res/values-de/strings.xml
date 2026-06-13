@@ -165,6 +165,10 @@
     <string name="lock_history_performance_empty_supporting">Schließe eine Block-Sitzung ab, dann erscheint deine geschützte Zeit hier.</string>
     <string name="lock_history_performance_empty_month_headline">Bereit, den ersten Eintrag dieses Monats zu starten?</string>
     <string name="lock_history_performance_empty_week_headline">Bereit, den ersten Eintrag dieser Woche zu starten?</string>
+    <string name="lock_history_performance_selected_date_headline">Du hast an diesem Tag %1$s geschützt</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">Du hast dein Versprechen am ausgewählten Tag %1$d-mal gehalten.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">An diesem Tag gibt es noch keine geschützte Zeit</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">Wähle einen anderen Tag oder schließe eine Block-Sitzung ab, um hier einen Tagesbericht zu sehen.</string>
     <string name="lock_history_focus_share_button">Fokusrekord dieser Woche teilen</string>
     <string name="lock_history_focus_share_sheet_title">StopIt-Fokusrekord teilen</string>
     <string name="focus_summary_share_payload_text">Diese Woche habe ich mit StopIt %1$d-mal für %2$s Fokus geschützt.\nWenn ich Fokus brauche, pausiere ich kurz die App-Nutzung.\n%3$s</string>

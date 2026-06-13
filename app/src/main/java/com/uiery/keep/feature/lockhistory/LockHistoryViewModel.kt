@@ -76,7 +76,16 @@ class LockHistoryViewModel @Inject constructor(
 
     internal fun selectDate(date: LocalDate) = intent {
         val newSelectedDate = if (state.selectedDate == date) null else date
+        val selectedDateReport = newSelectedDate?.let { selected ->
+            buildLockHistoryDisplayReport(
+                groupedSessions = state.groupedSessions,
+                selectedDate = selected,
+                periodType = state.periodType,
+                fallbackReport = state.performanceReport,
+            ).performanceReport
+        }
         reduce { state.copy(selectedDate = newSelectedDate) }
+        selectedDateReport?.let(::trackPerformanceReportViewed)
     }
 
     private fun loadHistory() = intent {

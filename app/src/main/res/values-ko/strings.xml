@@ -173,6 +173,10 @@
     <string name="lock_history_performance_empty_supporting">차단을 한 번 완료하면 여기에서 지킨 시간이 보여요.</string>
     <string name="lock_history_performance_empty_month_headline">이번 달 첫 기록을 시작해볼까요?</string>
     <string name="lock_history_performance_empty_week_headline">이번 주 첫 기록을 시작해볼까요?</string>
+    <string name="lock_history_performance_selected_date_headline">선택한 날 %1$s을 지켰어요</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">선택한 날 %1$d번 약속을 지켰어요.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">선택한 날은 아직 지킨 시간이 없어요</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">다른 날짜를 보거나 차단을 한 번 완료하면 일별 기록이 보여요.</string>
     <string name="lock_history_focus_share_button">이번 주 집중 기록 공유</string>
     <string name="lock_history_focus_share_sheet_title">스탑잇 집중 기록 공유</string>
     <string name="focus_summary_share_payload_text">이번 주 스탑잇으로 %1$d번, 총 %2$s 집중을 지켰어요.\n나도 집중이 필요할 때 앱 사용을 잠깐 멈춰요.\n%3$s</string>
