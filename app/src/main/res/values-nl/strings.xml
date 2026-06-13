@@ -209,6 +209,7 @@
     <string name="notification_routine_start_title">De routine %1$s is gestart</string>
     <string name="notification_routine_start_message">Het gebruik van apps is vergrendeld om je te helpen focussen.</string>
     <string name="routine_notification_permission_fallback_message">Routine %1$s is gestart, maar meldingsrechten staan uit, dus StopIt herinnert je in plaats daarvan in de app.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">Routine %1$s is gestart, maar het meldingskanaal voor routines staat uit, dus StopIt herinnert je in plaats daarvan in de app.</string>
     <string name="routine_running_tag">Actief</string>
     <string name="routine_enabled_tag">Aan</string>
     <string name="routine_disabled_tag">Uit</string>

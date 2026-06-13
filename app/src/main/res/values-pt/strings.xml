@@ -209,6 +209,7 @@
     <string name="notification_routine_start_title">A rotina %1$s começou</string>
     <string name="notification_routine_start_message">O uso de apps foi bloqueado para ajudar você a se concentrar.</string>
     <string name="routine_notification_permission_fallback_message">A rotina %1$s começou, mas a permissão de notificações está desativada, então o StopIt vai avisar você dentro do app.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">A rotina %1$s começou, mas o canal de notificações de rotinas está desativado, então o StopIt vai avisar você dentro do app.</string>
     <string name="routine_running_tag">Em andamento</string>
     <string name="routine_enabled_tag">Ativa</string>
     <string name="routine_disabled_tag">Desativada</string>

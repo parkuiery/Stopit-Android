@@ -214,6 +214,7 @@
     <string name="notification_routine_start_title">%1$s 루틴이 시작됐어요</string>
     <string name="notification_routine_start_message">집중을 위해 앱 사용이 잠겼어요.</string>
     <string name="routine_notification_permission_fallback_message">%1$s 루틴이 시작됐지만 알림 권한이 꺼져 있어 스탑잇이 앱 안에서 대신 알려드려요.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">%1$s 루틴이 시작됐지만 루틴 알림 채널이 꺼져 있어 스탑잇이 앱 안에서 대신 알려드려요.</string>
     <string name="prevent_uninstall">삭제 방지</string>
     <string name="prevent_uninstall_subtitle">스탑잇이 삭제되지 않도록 보호해요</string>
     <string name="prevent_uninstall_enabled">삭제 방지가 활성화되었어요</string>

@@ -13,6 +13,7 @@ import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -96,7 +97,10 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             )
             RoutineReceiverPolicy.buildPendingRoutineStartNotice(
                 notificationResult = notificationResult,
-                fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
+                fallbackMessage = dataStoreFallbackMessage(
+                    routineName = trigger.routineName,
+                    notificationResult = notificationResult,
+                ),
             )?.let { pendingNotice ->
                 RoutineNoticeStore(dataStore).enqueuePendingRoutineStartNotice(pendingNotice)
             }
@@ -136,8 +140,20 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun dataStoreFallbackMessage(routineName: String): String =
-        appContext.getString(R.string.routine_notification_permission_fallback_message, routineName)
+    private fun dataStoreFallbackMessage(
+        routineName: String,
+        notificationResult: RoutineStartNotificationResult,
+    ): String = RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+        notificationResult = notificationResult,
+        permissionDeniedMessage = appContext.getString(
+            R.string.routine_notification_permission_fallback_message,
+            routineName,
+        ),
+        channelDisabledMessage = appContext.getString(
+            R.string.routine_notification_channel_disabled_fallback_message,
+            routineName,
+        ),
+    )
 
     companion object {
         const val EXTRA_ROUTINE_NAME = "extra_routine_name"

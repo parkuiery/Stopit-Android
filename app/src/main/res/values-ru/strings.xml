@@ -213,6 +213,7 @@
     <string name="notification_routine_start_title">Рутина «%1$s» началась</string>
     <string name="notification_routine_start_message">Для концентрации использование приложений заблокировано.</string>
     <string name="routine_notification_permission_fallback_message">Рутина «%1$s» началась, но разрешение на уведомления отключено, поэтому StopIt напомнит об этом внутри приложения.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">Рутина «%1$s» началась, но канал уведомлений о рутинах отключен, поэтому StopIt напомнит об этом внутри приложения.</string>
     <string name="routine_running_tag">Выполняется</string>
     <string name="routine_enabled_tag">Активно</string>
     <string name="routine_disabled_tag">Отключено</string>
