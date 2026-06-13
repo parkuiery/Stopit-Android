@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
 class KeepAccessibilityService :
@@ -403,12 +404,13 @@ class KeepAccessibilityService :
             isCleaningUp.compareAndSet(false, true)) {
             EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
             launch {
-                val entryPoint = EntryPointAccessors.fromApplication(
-                    applicationContext,
-                    RoutineRuntimeEntryPoint::class.java,
-                )
-                entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
-                isCleaningUp.set(false)
+                clearExpiredEmergencyUnlockRuntimeStateAndReleaseLatch(isCleaningUp) {
+                    val entryPoint = EntryPointAccessors.fromApplication(
+                        applicationContext,
+                        RoutineRuntimeEntryPoint::class.java,
+                    )
+                    entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
+                }
             }
         }
     }
@@ -623,6 +625,17 @@ internal fun nextRoutineStartReevaluationDelayMillis(
         }
     }
     .minOrNull()
+
+internal suspend fun clearExpiredEmergencyUnlockRuntimeStateAndReleaseLatch(
+    isCleaningUp: AtomicBoolean,
+    clearExpiredEmergencyUnlockState: suspend () -> Unit,
+) {
+    try {
+        clearExpiredEmergencyUnlockState()
+    } finally {
+        isCleaningUp.set(false)
+    }
+}
 
 private fun nextDateForDayOfWeek(
     dayOfWeek: java.time.DayOfWeek,
