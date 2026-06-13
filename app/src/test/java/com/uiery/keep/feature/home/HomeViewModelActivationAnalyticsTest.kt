@@ -9,6 +9,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsUserProperty
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -23,9 +24,13 @@ import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeLockHistoryDao
@@ -576,6 +581,98 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun repeatedBlockPatternExposesRoutineSuggestionAndTracksShownOnce() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val now = System.currentTimeMillis()
+        val lockHistoryDao = HomeRecordingLockHistoryDao(
+            sessions = listOf(
+                lockHistoryEntity(now - 1_000L, listOf("com.instagram.android")),
+                lockHistoryEntity(now - 86_400_000L, listOf("com.instagram.android")),
+                lockHistoryEntity(now - 172_800_000L, listOf("com.instagram.android")),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = lockHistoryDao,
+            routineRepository = FakeHomeRoutineRepository(emptyList()),
+        )
+
+        delay(100)
+
+        val suggestion = viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion
+        assertEquals(true, suggestion != null)
+        assertEquals(
+            listOf(HomeAnalyticsCall.RepeatBlockSuggestionShown(surface = "home")),
+            analytics.calls.filterIsInstance<HomeAnalyticsCall.RepeatBlockSuggestionShown>(),
+        )
+    }
+
+    @Test
+    fun dismissingRepeatedBlockRoutineSuggestionHidesItAndPersistsSuppression() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val now = System.currentTimeMillis()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = HomeRecordingLockHistoryDao(
+                sessions = listOf(
+                    lockHistoryEntity(now - 1_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 86_400_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 172_800_000L, listOf("com.instagram.android")),
+                ),
+            ),
+            routineRepository = FakeHomeRoutineRepository(emptyList()),
+        )
+
+        delay(100)
+        viewModel.dismissRepeatBlockRoutineSuggestion()
+        delay(100)
+
+        assertEquals(null, viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+        assertEquals(
+            listOf(HomeAnalyticsCall.RepeatBlockSuggestionDismissed(surface = "home")),
+            analytics.calls.filterIsInstance<HomeAnalyticsCall.RepeatBlockSuggestionDismissed>(),
+        )
+        assertEquals(1, RepeatBlockRoutineSuggestionStore(dataStore).readDismissedSuggestions().size)
+    }
+
+    @Test
+    fun clickingRepeatedBlockRoutineSuggestionPostsRoutinePrefillNavigation() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val now = System.currentTimeMillis()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = HomeRecordingLockHistoryDao(
+                sessions = listOf(
+                    lockHistoryEntity(now - 1_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 86_400_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 172_800_000L, listOf("com.instagram.android")),
+                ),
+            ),
+            routineRepository = FakeHomeRoutineRepository(emptyList()),
+        )
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(100)
+        viewModel.openRepeatBlockRoutineSuggestion()
+        delay(100)
+
+        assertEquals(
+            HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill(
+                requireNotNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion),
+            ),
+            sideEffects.filterIsInstance<HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill>().single(),
+        )
+        sideEffectJob.cancel()
+    }
+
+    @Test
     fun activeGoalLockExposesHomeProgressCardState() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(mutablePreferencesOf())
@@ -802,6 +899,7 @@ class HomeViewModelActivationAnalyticsTest {
         analytics: HomeRecordingKeepAnalytics,
         lockHistoryDao: LockHistoryDao = FakeLockHistoryDao(),
         goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
+        routineRepository: RoutineRepository = FakeHomeRoutineRepository(emptyList()),
         routines: List<RoutineEntity> = emptyList(),
         routineDao: RoutineDao = FakeHomeRoutineDao(routines),
     ): HomeViewModel {
@@ -816,6 +914,9 @@ class HomeViewModelActivationAnalyticsTest {
             routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(goalLockDao),
+            lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
+            routineRepository = routineRepository,
+            repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
@@ -881,22 +982,42 @@ private fun goalLockEntity(
     ),
 )
 
-private class HomeRecordingLockHistoryDao : LockHistoryDao {
+private class HomeRecordingLockHistoryDao(
+    private val sessions: List<LockHistoryEntity> = emptyList(),
+) : LockHistoryDao {
     val inserted = mutableListOf<LockHistoryEntity>()
 
     override suspend fun insert(entity: LockHistoryEntity) {
         inserted += entity
     }
 
-    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> = emptyFlow()
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> =
+        flowOf(sessions.filter { it.startTimestamp in startMillis..endMillis })
 
-    override fun fetchAll(): Flow<List<LockHistoryEntity>> = emptyFlow()
+    override fun fetchAll(): Flow<List<LockHistoryEntity>> = flowOf(sessions)
 
-    override suspend fun countSuccessfulSessions(): Int = inserted.size
+    override suspend fun countSuccessfulSessions(): Int = inserted.size + sessions.size
 
     override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
-        inserted.count { it.startTimestamp >= timestampMillis }
+        (inserted + sessions).count { it.startTimestamp >= timestampMillis }
 }
+
+private class FakeHomeRoutineRepository(
+    private val routines: List<RoutineModel>,
+) : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(routines)
+}
+
+private fun lockHistoryEntity(
+    startTimestamp: Long,
+    lockedApps: List<String>,
+): LockHistoryEntity = LockHistoryEntity(
+    startTimestamp = startTimestamp,
+    endTimestamp = startTimestamp + 30 * 60 * 1_000L,
+    durationMillis = 30 * 60 * 1_000L,
+    lockedApps = lockedApps,
+    isRoutine = false,
+)
 
 private fun homeRoutineEntity(id: Long): RoutineEntity = RoutineEntity(
     id = id,
@@ -936,6 +1057,18 @@ private sealed interface HomeAnalyticsCall {
     data class GoalLockCompleted(
         val lockMode: String,
         val durationDaysBucket: String,
+    ) : HomeAnalyticsCall
+
+    data class RepeatBlockSuggestionShown(
+        val surface: String,
+    ) : HomeAnalyticsCall
+
+    data class RepeatBlockSuggestionDismissed(
+        val surface: String,
+    ) : HomeAnalyticsCall
+
+    data class RepeatBlockSuggestionClicked(
+        val surface: String,
     ) : HomeAnalyticsCall
 
     data object RoutineCreationCtaShown : HomeAnalyticsCall
@@ -1004,6 +1137,27 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
             lockMode = lockMode,
             durationDaysBucket = durationDaysBucket,
         )
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionShown(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        calls += HomeAnalyticsCall.RepeatBlockSuggestionShown(surface = surface)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        calls += HomeAnalyticsCall.RepeatBlockSuggestionClicked(surface = surface)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionDismissed(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        calls += HomeAnalyticsCall.RepeatBlockSuggestionDismissed(surface = surface)
     }
 
     override fun trackRoutineCreationCtaShown(

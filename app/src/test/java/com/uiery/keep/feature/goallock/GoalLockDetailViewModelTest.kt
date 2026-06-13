@@ -7,8 +7,10 @@ import com.uiery.keep.analytics.AnalyticsGoalLockElapsedDaysBucket
 import com.uiery.keep.analytics.AnalyticsGoalLockEndedEarlyReason
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
@@ -46,6 +48,18 @@ class GoalLockDetailViewModelTest {
         assertEquals(3, state.selectedAppCount)
         assertFalse(state.showEndConfirmation)
         assertFalse(state.isEnded)
+    }
+
+    @Test
+    fun detailFlowLogsCanonicalGoalLockDetailScreenViewOnCreation() {
+        val analytics = DetailRecordingKeepAnalytics()
+
+        goalLockDetailViewModel(goalLockDao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity()), analytics = analytics)
+
+        assertEquals(
+            listOf(KeepAnalyticsScreen.GOAL_LOCK_DETAIL),
+            analytics.screenViews,
+        )
     }
 
     @Test
@@ -461,6 +475,7 @@ private data class GoalLockUpdatedCall(
 )
 
 private class DetailRecordingKeepAnalytics : KeepAnalytics {
+    val screenViews = mutableListOf<String>()
     val goalLockEndedEarlyCalls = mutableListOf<GoalLockEndedEarlyCall>()
     val goalLockCompletedCalls = mutableListOf<GoalLockCompletedCall>()
     val goalLockUpdatedCalls = mutableListOf<GoalLockUpdatedCall>()
@@ -470,7 +485,9 @@ private class DetailRecordingKeepAnalytics : KeepAnalytics {
         params: Map<String, Any?>,
     ) = Unit
 
-    override fun logScreenView(screenName: String) = Unit
+    override fun logScreenView(screenName: String) {
+        screenViews += screenName
+    }
 
     override fun setUserProperty(
         name: String,

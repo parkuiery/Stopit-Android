@@ -1,9 +1,10 @@
 # 루틴 템플릿 공유 MVP
 
 Issue: #407
-상태: **repo-internal 구현/검증 완료, 외부·post-release 경계 대기**
+Follow-up debt: #778
+상태: **#407 repo-internal 구현/검증 완료, #778 공유문 resource-template 런타임 전환 완료(PR 검증/merge 대기), 외부·post-release 경계 대기**
 
-이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. PR #428에서 Android share sheet MVP가 `origin/develop`에 구현·검증됐으므로, 현재 source of truth는 코드, `docs/ANALYTICS_EVENT_DICTIONARY.md`, 이 runbook이다. 다만 GA4 Admin 등록·metadata readback·release/tag/Play deploy 포함 여부 확인·배포 후 14/30일 측정 전까지는 효과 판정을 외부/manual 경계로 둔다.
+이 문서는 `RoutineModel` 기반 루틴을 privacy-safe한 선택형 공유 MVP로 운영하기 위한 제품/analytics/QA/implementation 계약을 고정한다. PR #428에서 Android share sheet MVP가 `origin/develop`에 구현·검증됐으므로, 현재 source of truth는 코드, `docs/ANALYTICS_EVENT_DICTIONARY.md`, 이 runbook이다. 다만 GA4 Admin 등록·metadata readback·release/tag/Play deploy 포함 여부 확인·배포 후 14/30일 측정 전까지는 효과 판정을 외부/manual 경계로 둔다. #778은 이 MVP의 별도 현지화 debt로, share sheet chooser title 현지화와 실제 공유 payload 본문 현지화를 같은 완료 상태로 보지 않는다.
 
 ## 한 줄 목표
 
@@ -57,7 +58,7 @@ Issue: #407
 - 접근성 설명: `루틴 시간대와 요일 템플릿을 다른 앱으로 공유`
 - share sheet title: `스탑잇 루틴 템플릿 공유`
 
-### 기본 공유문
+### 기본 공유문 / 현재 한국어 예시
 
 ```text
 스탑잇 집중 루틴 템플릿
@@ -74,6 +75,52 @@ Issue: #407
 나도 집중이 필요한 시간에 앱 사용을 잠깐 멈춰요.
 https://play.google.com/store/apps/details?id=com.uiery.keep
 ```
+
+위 한국어 문구는 현재 MVP payload shape를 설명하는 예시다. #778이 닫히기 전까지 runtime canonical source로 보지 않는다. 실제 외부 공유 본문은 아래 `공유문 locale/resource-template 계약`을 통과해야 한다.
+
+### 공유문 locale/resource-template 계약 (#778)
+
+#778의 런타임 구현은 `RoutineTemplateSharePayload.kt`의 하드코딩 한국어 공유 본문과 label/duration 조합을 Android resource-backed template/provider로 옮기는 것이다. 이 작업은 analytics schema 변경이 아니라 사용자 노출 공유문 현지화/QA 계약이다.
+
+현재 구현 기준:
+
+- `RoutineTemplateSharePayload`는 analytics-safe enum/bucket/routine-name opt-in/duration metadata만 보관하고, raw rendered text를 canonical field로 보관하지 않는다.
+- `AndroidRoutineTemplateShareTextProvider`가 현재 Android `Context`의 string/plural resource로 title, CTA, category/repeat/time-window label, duration grammar를 만든다.
+- `RoutineScreen`은 share intent 직전에 `payload.buildShareText(AndroidRoutineTemplateShareTextProvider(context))`를 호출하므로 chooser title뿐 아니라 실제 외부 공유 본문도 resource-backed 경로를 따른다.
+- 기본/한국어 리소스가 payload body key를 제공하며, 다른 shipped locale은 default resource fallback을 사용한다. locale별 품질 확장은 #729류 locale-quality gate로 별도 판단한다.
+
+필수 계약:
+
+- 공유 payload title, CTA line, category label, repeat-days label, time-window label, duration text는 Kotlin literal이 아니라 resource-backed text provider에서 생성한다.
+- 기본/한국어 리소스는 반드시 제공하고, 이미 shipped된 locale은 key parity와 fallback 정책을 명확히 한다.
+- duration grammar는 `"${hours}시간"`, `"${minutes}분"`처럼 한국어 조사를 코드에서 직접 조합하지 않고 locale-aware string/plural resource를 따른다.
+- `RoutineScreen`의 `routine_template_share_chooser_title`은 이미 resource-backed chooser title이므로, payload body localization 완료 증거로 쓰지 않는다.
+
+권장 placeholder:
+
+| Placeholder | 의미 | privacy 경계 |
+| --- | --- | --- |
+| `{categoryLabel}` | `study`/`work`/`night_focus`/`custom`의 표시 label | enum label만 허용 |
+| `{repeatDaysText}` | `weekday`/`weekend`/`daily`/`custom_days`/`none`의 표시 label | raw 날짜·캘린더 이력 금지 |
+| `{timeWindowText}` | 시간대 bucket + duration 표시 | raw timestamp 금지 |
+| `{playStoreUrl}` | Play Store 링크 | 고정 앱 링크만 허용 |
+| `{routineName}` | opt-in variant에서만 사용자 루틴 이름 | analytics 전송 금지, 기본 제외 |
+
+금지 항목:
+
+- `lockApplications`, package name, 앱 이름, raw session history, raw usage time.
+- raw rendered share text, raw duration string, locale-specific body를 GA4 custom dimension/event parameter로 보내는 것.
+- 사용자의 실패/중독/감시 뉘앙스를 강화하는 공유 copy.
+
+#778 code-lane 완료 기준:
+
+1. `RoutineTemplateSharePayload.kt`가 resource-backed text provider를 사용하고 사용자 노출 한국어 literal을 canonical payload로 고정하지 않는다.
+2. category/repeat/time-window/duration label이 string/plural resource 또는 동등한 locale-aware provider에서 나온다.
+3. `RoutineTemplateSharePayloadTest`가 locale template, Play Store URL, routine name opt-in, invalid routine fallback, privacy guardrail을 검증한다.
+4. `routine_template_share_*` analytics event name과 enum/bucket/boolean parameter 계약은 유지한다.
+5. `scripts.tests.test_routine_template_share_contract`가 payload locale debt가 다시 문서/코드에서 흐려지지 않도록 고정한다.
+
+#778 런타임 구현 PR은 acceptance를 충족할 때 `Closes #778`를 사용할 수 있다. 문서/ops/static-contract만 바꾸는 PR은 `Refs #778`을 사용한다.
 
 ### 루틴 이름 처리
 

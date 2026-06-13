@@ -1,17 +1,19 @@
 package com.uiery.keep.feature.goallock
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsGoalLockDurationSelectionType
 import com.uiery.keep.analytics.AnalyticsGoalLockEntrySurface
 import com.uiery.keep.analytics.AnalyticsGoalLockMode
 import com.uiery.keep.analytics.AnalyticsGoalLockNameType
 import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.goallock.GoalLockMode
@@ -40,6 +42,18 @@ class GoalLockCreationViewModelTest {
         assertEquals(
             listOf(AnalyticsGoalLockEntrySurface.MENU),
             analytics.goalLockCreateStartedCalls,
+        )
+    }
+
+    @Test
+    fun creationFlowLogsCanonicalGoalLockCreationScreenViewOnce() {
+        val analytics = RecordingKeepAnalytics()
+
+        createViewModel(analytics = analytics)
+
+        assertEquals(
+            listOf(KeepAnalyticsScreen.GOAL_LOCK_CREATION),
+            analytics.screenViews,
         )
     }
 
@@ -364,6 +378,7 @@ private data class GoalLockCreatedCall(
 )
 
 private class RecordingKeepAnalytics : KeepAnalytics {
+    val screenViews = mutableListOf<String>()
     val goalLockCreateStartedCalls = mutableListOf<String>()
     val goalLockCreatedCalls = mutableListOf<GoalLockCreatedCall>()
 
@@ -372,7 +387,9 @@ private class RecordingKeepAnalytics : KeepAnalytics {
         params: Map<String, Any?>,
     ) = Unit
 
-    override fun logScreenView(screenName: String) = Unit
+    override fun logScreenView(screenName: String) {
+        screenViews += screenName
+    }
 
     override fun setUserProperty(
         name: String,

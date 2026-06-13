@@ -11,6 +11,7 @@ internal val DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS = listOf(3, 5, 10)
 internal enum class EmergencyUnlockNotificationPostResult {
     Posted,
     PermissionDenied,
+    ChannelDisabled,
 }
 
 internal sealed interface EmergencyUnlockNotificationSyncPlan {
@@ -110,10 +111,12 @@ internal fun resolveEmergencyUnlockNotificationPostResult(
     postNotificationsPermissionGranted: Boolean,
     notificationChannelEnabled: Boolean,
 ): EmergencyUnlockNotificationPostResult =
-    if (notificationsEnabled && postNotificationsPermissionGranted && notificationChannelEnabled) {
-        EmergencyUnlockNotificationPostResult.Posted
-    } else {
-        EmergencyUnlockNotificationPostResult.PermissionDenied
+    when {
+        !notificationsEnabled || !postNotificationsPermissionGranted ->
+            EmergencyUnlockNotificationPostResult.PermissionDenied
+        !notificationChannelEnabled ->
+            EmergencyUnlockNotificationPostResult.ChannelDisabled
+        else -> EmergencyUnlockNotificationPostResult.Posted
     }
 
 internal fun emergencyUnlockExpiryDelayMillis(

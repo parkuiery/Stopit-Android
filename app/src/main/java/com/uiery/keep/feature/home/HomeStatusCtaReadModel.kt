@@ -92,7 +92,8 @@ fun buildHomeStatusCtaModel(
             shouldOpenAppSelection = false,
             shouldToggleKeep = false,
             timerEnabled = false,
-            showChangeAppsSecondary = true,
+            // 잠금 활성 중에는 차단 앱을 변경할 수 없어야 한다 (변경은 우회 경로가 된다).
+            showChangeAppsSecondary = false,
             showLockHistorySecondary = true,
             showRoutineCreationSecondary = false,
             showGoalLockStatus = hasGoalLockCard,

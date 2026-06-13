@@ -97,7 +97,7 @@ class RoutineViewModel
 
         internal fun deleteRoutine(id: Long) =
             intent {
-                val routine = state.routines.find { it.id == id }
+                val routine = fetchRoutineForAction(id, state.routines)
                 if (routine?.isRunningNow() == true || routine?.isChangeLocked() == true) {
                     postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                     return@intent
@@ -110,7 +110,7 @@ class RoutineViewModel
             id: Long,
             isEnabled: Boolean,
         ) = intent {
-            val routine = state.routines.find { it.id == id }
+            val routine = fetchRoutineForAction(id, state.routines)
             val isRunningRoutine = routine?.isRunningNow() == true
 
             if (!isEnabled && isRunningRoutine) {
@@ -138,6 +138,13 @@ class RoutineViewModel
                 }
             }
         }
+
+        private suspend fun fetchRoutineForAction(
+            id: Long,
+            fallbackRoutines: List<RoutineModel>,
+        ): RoutineModel? =
+            runCatching { routineRepository.fetch(id) }
+                .getOrElse { fallbackRoutines.find { routine -> routine.id == id } }
 
         private fun storeRoutine(routines: List<RoutineModel>) =
             intent {

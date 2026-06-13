@@ -58,7 +58,7 @@
 | Input | 첫 핵심 행동 완료율 | `first_core_action_completed` users / `first_open` users | GA4 | 첫 가치 경험률 |
 | Input | 앱 선택 완료율 | `app_selection_completed` users / `first_open` users | GA4 | 온보딩 중간 전환. `selected_app_count >= 1` 계약을 전제로 해석 |
 | Input | 루틴 생성 사용자 비율 | `routines_count >= 1` users / active users | GA4 customUser | 반복 사용 기반. PR #525로 중앙 sync 구현은 `develop`에 반영됐지만, release/tag/Play deploy와 D+14/D+30 readback 전에는 `(not set)` activeUsers를 별도 coverage gap으로 분리하고 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md`의 gate를 따른다 |
-| Input | 첫 차단 후 루틴 CTA 전환 | `routine_creation_cta_clicked` users / `routine_creation_cta_shown` users, `routine_created` users / clicked users | GA4 customEvent + customUser | #455 soft CTA 실험. `first_core_action_completed` 이후 + 루틴 0개 사용자만 분모로 해석 |
+| Input | 첫 차단 후 루틴 CTA 전환 | `routine_creation_cta_clicked` users / `routine_creation_cta_shown` users, `routine_saved(creation_source=post_first_block_cta)` users / `routine_creation_cta_clicked` users, 노출 cohort의 `routines_count >= 1` users / `routine_creation_cta_shown` users | GA4 customEvent + customUser | #455 soft CTA 실험 + #810 저장 완료 계측. `first_core_action_completed` 이후 + 루틴 0개 사용자만 분모로 해석한다. PR #813 Android wiring 이후에는 `routine_saved`를 CTA click → 실제 저장 완료 전환으로 본다. 단 GA4 Admin·release/tag/Play deploy 전 live 0건은 수요 없음으로 해석하지 않고, `routines_count >= 1` 전환은 보조 지표로 유지한다 |
 | Input | 부모 모드 시작 전환 | `parent_mode_started` users / `parent_mode_duration_selected` users, `parent_mode_started` users / `parent_mode_allowed_apps_selected` users | GA4 customEvent | #471 same-device 부모 모드 setup 완주. PR #519/#584로 policy/analytics/session/accessibility foothold는 develop에 있으나 setup UI·PIN runtime·release·GA4 Admin 전에는 live 수요/성과로 해석하지 않음 |
 | Input | 차단 빈도 | `app_block_intercepted` / active blocked users | GA4 | 실제 사용 강도 |
 | Health | Crash-free users rate | crash-free users / active users | GA4/Crashlytics | 안정성 |
@@ -171,12 +171,13 @@
 - 2026-05-29 live smoke에서 activation/review/monetization `customEvent:*` 분해 쿼리가 모두 `400 INVALID_ARGUMENT` / `not a valid dimension`으로 실패했고, 2026-06-01 #16 preflight에서 광고 metadata가 일부 복구 확인됐다. 2026-06-02T18:06:45Z #307 재조회에서는 review `customEvent:reason`도 등록/조회 가능했다. 따라서 현재 #14류 activation 세부 파라미터와 review `customEvent:error`는 **GA4 Admin 미등록 queryability gap**, #16류 monetization은 **event-source split / coverage gap** 때문에 confidence가 낮다. review skip reason 자체는 이제 live breakdown으로 판단할 수 있다.
 - 2026-05-29 `screen_view` gap `10,274 / 13,154 = 78.1%`는 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 baseline이다. PR #358 merge commit `6ceaecc4`가 release-boundary 해석을 고정했으므로, #13의 다음 screen 품질 판단은 `PR #296/#318/#358` 포함 버전 배포 후 14일 재측정 결과로 한다.
 - 2026-06-03 screen 품질 smoke는 `13,780 / 22,584 = 61.0%`로 개선처럼 보이지만, PR #296/#318이 아직 `origin/main`/`v1.7.7` production tag에 포함되지 않았으므로 #13의 post-fix 판정으로 쓰지 않는다. 이 값은 **post-fix 성과가 아니라 release boundary 전 중간 smoke**이며, release/tag/Play deploy 포함 후 **D+14 screen quality 재측정** 창을 별도로 채운다.
-- 2026-06-11T00:10:19Z 30일 metrics snapshot에서는 `screen_view` `46,694` 중 `(not set)+blank` gap이 `28,316`(`60.6%`)였다. 같은 snapshot에서 최신 관측 version `1.7.7` active share는 `267 / 821 = 32.5%`라 #359 기준 `충분`이다. 다만 관련 PR package의 `main/tag/Play 포함 여부`와 D+14 같은 쿼리 창 재측정 경계가 남아 있으므로, 14일 smoke와 30일 snapshot 모두 #13을 “개선 완료”로 닫는 근거가 아니라 release boundary 전 guardrail이다.
+- 2026-06-12T23:07:41Z 30일 metrics snapshot에서는 `screen_view` `48,361` 중 `(not set)+blank` gap이 `28,933`(`59.8%`)였다. 같은 snapshot에서 최신 관측 version `1.7.7` active share는 `294 / 830 = 35.4%`라 #359 기준 `충분`이다. 다만 관련 PR package의 `main/tag/Play 포함 여부`와 D+14 같은 쿼리 창 재측정 경계가 남아 있으므로, 14일 smoke와 30일 snapshot 모두 #13을 “개선 완료”로 닫는 근거가 아니라 release boundary 전 guardrail이다.
 - PR #755(`08d31da3`)로 Firebase `screen_view` backend payload가 canonical `screen_name`과 `screen_class`를 함께 보내도록 보강됐지만, 이 역시 release/tag/Play deploy와 D+14 재측정 전에는 screen 품질 회복으로 승격하지 않는다. #13 follow-through는 화면 호출 coverage package(`#296/#318/#358`)와 backend payload package(`#755`)를 분리해서 기록하고, 둘 다 배포된 같은 쿼리 창에서 다시 판정한다.
-- 2026-06-11 버전 채택률 smoke에서는 최신 관측 버전 `1.7.7` activeUsers가 267명, 전체 activeUsers가 821명으로 `267 / 821 = 32.5%`였다. #359 기준 `충분`이지만, #13/#14/#16/#307 관련 최신 PR 성과는 still `main/tag/Play 포함 여부`와 post-release 14일/30일 창을 확인한 뒤 판단한다.
+- PR #769(`07c7bc0a`)로 목표 잠금 생성/상세 화면도 `GoalLockCreationScreen` / `GoalLockDetailScreen` canonical `screen_view` coverage에 들어갔다. 이 보강은 #417 goal-lock adoption 해석의 선행 조건이지만, release/tag/Play deploy와 D+14 screen quality 재측정 전까지는 live 목표 잠금 화면 0건이나 `(not set)` 잔여분을 수요 없음/개선 완료로 해석하지 않는다.
+- 2026-06-12 버전 채택률 smoke에서는 최신 관측 버전 `1.7.7` activeUsers가 294명, 전체 activeUsers가 830명으로 `294 / 830 = 35.4%`였다. #359 기준 `충분`이지만, #13/#14/#16/#307 관련 최신 PR 성과는 still `main/tag/Play 포함 여부`와 post-release 14일/30일 창을 확인한 뒤 판단한다.
 - 2026-06-03 루틴 반복 사용 기준선에서는 `customUser:routines_count >= 1` activeUsers가 150명, `routines_count = 0` activeUsers가 155명으로 규모가 비슷했지만, sessions / activeUsers는 루틴 보유자가 `2,152 / 150 = 14.35`, 루틴 미보유자가 `1,180 / 155 = 7.61`이었다. `app_block_intercepted` users / activeUsers도 루틴 보유자 `91 / 150 = 60.7%`, 루틴 미보유자 `62 / 155 = 40.0%`로 차이가 있다. 다만 `(not set)` activeUsers가 560명으로 가장 크므로, 루틴 CTA/템플릿 실험은 실행 후보로 두되 전체 retention 결론은 `docs/ROUTINE_RETENTION_COHORT_BASELINE.md`의 queryability/버전 채택률 경계를 따른다.
 - 현재 #65는 ASO 초안 부재 상태가 아니라, **대표님 수동 반영 완료 후 baseline/14일·30일 측정 복원 단계**로 이동해 있다. 자세한 follow-up 계약은 `docs/PLAY_STORE_ASO.md`를 source of truth로 본다.
-- 2026-06-01/2026-06-07 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 2026-06-11T00:10:19Z live readback 기준 전체 `newUsers`는 568명으로 직전 대비 +90.6%였지만 `Direct` 신규가 333명(58.6%)으로 과다 상태를 유지했고 `Organic Search` 신규는 235명으로 #65 기준선 178명을 넘은 상태다. `sessions`도 5,557회로 직전 5,942회 대비 -6.5%다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
+- 2026-06-01/2026-06-07 스냅샷처럼 `Direct` 신규 비중이 커지거나 `Paid Search` 활성/세션만 남는 경우, ASO 효과 판정 전에 #242 attribution gate를 적용한다. 2026-06-12T23:07:41Z live readback 기준 전체 `newUsers`는 573명으로 직전 대비 +110.7%였지만 `Direct` 신규가 335명(58.5%)으로 과다 상태를 유지했고 `Organic Search` 신규는 238명으로 #65 기준선 178명을 넘은 상태다. `sessions`도 5,582회로 직전 5,704회 대비 -2.1%다. 즉 Play Console Search/Explore와 GA4 `Organic Search`가 같은 방향인지, external/campaign/UTM 누락이 아닌지 확인한 뒤 #65의 14일/30일 결론을 쓴다.
 - 2026-06-11 Play Console Cloud Storage `store_performance` readback은 #65의 병목을 더 좁혔다. `2026-04 -> 2026-05` store listing visitors(방문자)는 `1,112 -> 521`(-53.1%), acquisitions는 `319 -> 154`(-51.7%)였지만 CVR은 `28.7% -> 29.6%`(+0.9p)라서 5월 악화는 listing 전환율 하락이 아니라 store listing visitor/노출 감소로 본다. Traffic source CSV는 `Other 97.0%`로 thresholding되어 Search/Explore/external 원인 분리는 Play Console UI/후속 attribution readback 경계다.
 - 현재 #14는 홈 첫 잠금 CTA(PR #256), 첫 차단 성공 피드백(PR #279), 홈 Keep/타이머 시작 직후 안내(PR #283)가 `origin/develop`에 반영된 상태다. 다만 2026-06-02 확인 기준 이 세 PR은 `origin/main`/최신 production tag `v1.7.7`에는 아직 포함되지 않았으므로, `v1.7.7` live production activation 수치는 post-fix 결과가 아니라 pre-#256/#279/#283 baseline이다. 다음 활성화 판단은 “CTA를 또 만드는 것”이나 “첫 가치 피드백 미정의”가 아니라, 해당 commit 포함 release/tag/Play deploy 이후 14일 창에서 `first_lock_configured / first_open`, `first_core_action_completed / first_lock_configured`, `app_block_intercepted / first_core_action_completed`가 같이 개선됐는지 확인하는 것이다. 세부 출처/차단앱/권한별 분해는 #13의 GA4 Admin registration/materialization 확인 전까지 낮은 confidence로 둔다.
 
@@ -199,7 +200,7 @@
 - 유입 경로: 템플릿 공유문 → Play Store 링크 → 설치/활성화. 자동 import 전환은 아직 구현-ready가 아니다.
 - 리스크: `lockApplications`, package name, 앱 이름, raw session history 등 민감 정보 노출 금지.
 - 지표: `routine_template_share_tapped` users / 루틴 보유 active users, `routine_template_share_sheet_opened` users / tapped users, 실패율, 루틴 보유 cohort retention.
-- 실행 계약: `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`, issue #407
+- 실행 계약: `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`, issue #407, payload localization follow-up #778
 
 ### 3. 리뷰/신뢰 루프
 
@@ -229,7 +230,7 @@
   - `repeat_block_routine_suggestion_applied / repeat_block_routine_suggestion_clicked`
   - 추천 적용 cohort의 D7/D30 반복 차단/루틴 사용 유지율 vs eligible but not applied cohort
   - 긴급해제 사용률, dismiss율, 리뷰 불만이 악화되면 추천 빈도/문구를 재검토한다.
-- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence가 `develop`에 반영됐다. 아직 Home/LockHistory/성과 리포트 CTA card exposure, dismiss/apply store UI wiring, locale copy parity, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 14일/30일 readback 전이므로 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
+- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·apply/dismiss wiring·locale copy parity가 `develop`에 반영됐다. 아직 성과 리포트/post-block success 표면 판단, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 readback 전이므로 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
 
 ### LockHistory 성과 리포트
 
@@ -345,6 +346,7 @@
 - #471 부모 모드 / 아이에게 폰 주기 same-device MVP 계약 (`docs/PARENT_MODE_MVP.md` 참조; 보호자 PIN, 허용 앱, 시간 만료, privacy-safe analytics와 QA baseline)
 - #531 반복 차단 기반 자동 루틴 제안 계약 (`docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` 참조; 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, #455와 slot 충돌 방지, privacy-safe analytics와 QA baseline)
 - #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고 custom reason/app package/raw timestamp/snapshot dump 금지)
+- #779 긴급해제 단계별 이탈·검증 실패 analytics 계약 (`docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md` 참조; reason/app/duration/countdown step, validation blocked, cancel source를 enum-only로 Android wiring했고(PR #783) raw reason/app/timestamp/history 금지)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
 ## 관련 실행 문서
@@ -356,8 +358,9 @@
 - `docs/REVIEW_PROMPT_LIFECYCLE.md`: #17용 리뷰 프롬프트 arm/drain 규칙, skip reason, queryability guardrail
 - `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`: #307용 shown 0 post-release 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적. PR #308 launch-failure 재시도 계약과 PR #312 Home Activity unwrap 계약은 모두 develop에 merge됐으므로, 이제 코드 PR 대기가 아니라 PR #308/#312 포함 버전의 release/tag/Play deploy 확인과 배포 후 14일/30일 관측 경계로 본다.
 - `docs/USAGE_STATS_PERSONALIZATION_MVP.md`: #119용 Usage Access 선택형 개인화 discovery gate. 권한 UX, MVP 리포트 4종, 규칙 기반 추천, 개인정보/정책 가드레일, QA evidence, child issue 분리 기준 포함.
-- `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP 계약. Android share sheet 텍스트 공유, privacy-safe payload, analytics event 초안, deep link/import decision gate, 14일/30일 측정 기준 포함.
+- `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`: #407용 루틴 템플릿 공유 MVP 계약. Android share sheet 텍스트 공유, privacy-safe payload, analytics event 초안, deep link/import decision gate, 14일/30일 측정 기준 포함. #778은 chooser title과 별도로 payload body/label/duration을 resource-template으로 전환해야 하는 localization follow-up이다.
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, 상세 앱/이름/기간/잠금 방식 수정, `goal_lock_*` analytics, runtime QA baseline, compact-height 생성·상세 CTA 자동 baseline, 구현 후 `Closes #417` 경계 포함.
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약. 보호자 PIN, 허용 앱, 시간 만료, `parent_mode_*` analytics, runtime QA baseline, 원격 자녀 기기 관리 후속 gate 포함.
 - `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`: #531용 반복 차단 기반 자동 루틴 제안 계약. 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, 기존 루틴 coverage guard, #455/#407/광고 CTA slot 충돌 방지, `repeat_block_routine_suggestion_*` analytics와 QA evidence template 포함.
 - `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, privacy-safe enum/bucket 파라미터, GA4 Admin/release/readback 경계를 정의한다.
+- `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`: #779용 긴급해제 단계별 이탈·검증 실패 analytics 계약. `emergency_unlock_step_viewed` / `emergency_unlock_validation_blocked` / `emergency_unlock_cancelled`, privacy-safe enum 파라미터, reason-required ON/OFF 분모, PR #783 Android wiring 완료 상태, GA4 Admin/release/14일 readback 경계를 정의한다.

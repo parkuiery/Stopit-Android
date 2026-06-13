@@ -4,6 +4,9 @@ import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
 import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
 import com.uiery.keep.analytics.routine.RoutineAnalyticsParam
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
 import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
 import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
@@ -172,6 +175,70 @@ class FirebaseKeepAnalyticsTest {
         assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.REASON))
         assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
         assertFalse(backend.loggedEvents[1].params.containsKey("manualResetAtMillis"))
+    }
+
+    @Test
+    fun emergencyUnlockStepEventsUsePrivacySafeEnumsOnly() {
+        analytics.trackEmergencyUnlockStepViewed(
+            stepName = AnalyticsEmergencyUnlockStepName.REASON,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockValidationBlocked(
+            stepName = AnalyticsEmergencyUnlockStepName.APPS,
+            validationReason = AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockCancelled(
+            stepName = AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+            reasonRequiredEnabled = false,
+            source = AnalyticsSource.BLOCK_SCREEN,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_STEP_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.REASON,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_VALIDATION_BLOCKED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.APPS,
+                    KeepAnalyticsParam.VALIDATION_REASON to AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_CANCELLED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to false,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.BLOCK_SCREEN,
+                    KeepAnalyticsParam.CANCEL_SOURCE to AnalyticsEmergencyUnlockCancelSource.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+        backend.loggedEvents.forEach { event ->
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.REASON))
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey("custom_reason"))
+            assertFalse(event.params.containsKey("app_package"))
+            assertFalse(event.params.containsKey("duration_minutes"))
+            assertFalse(event.params.containsKey("timestamp"))
+        }
     }
 
     @Test
@@ -387,6 +454,43 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents[2],
         )
+    }
+
+    @Test
+    fun routineSavedEventUsesPrivacySafeBucketsOnly() {
+        analytics.trackRoutineSaved(
+            RoutineSavedAnalyticsPayload(
+                entrySurface = "routine",
+                creationSource = RoutineSavedCreationSource.MANUAL,
+                selectedAppCountBucket = "2_3",
+                repeatDaysBucket = "weekday",
+                timeWindowBucket = "morning",
+                scheduleState = RoutineSavedScheduleState.ENABLED,
+            ),
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_SAVED,
+                params = mapOf(
+                    KeepAnalyticsParam.ENTRY_SURFACE to "routine",
+                    RoutineAnalyticsParam.CREATION_SOURCE to RoutineSavedCreationSource.MANUAL,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to "2_3",
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to "weekday",
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to "morning",
+                    RoutineAnalyticsParam.SCHEDULE_STATE to RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        val params = backend.loggedEvents[0].params
+        assertFalse(params.containsKey("routine_name"))
+        assertFalse(params.containsKey("routine_id"))
+        assertFalse(params.containsKey("app_package"))
+        assertFalse(params.containsKey("app_packages"))
+        assertFalse(params.containsKey("start_time"))
+        assertFalse(params.containsKey("end_time"))
+        assertFalse(params.containsKey("history"))
     }
 
     @Test

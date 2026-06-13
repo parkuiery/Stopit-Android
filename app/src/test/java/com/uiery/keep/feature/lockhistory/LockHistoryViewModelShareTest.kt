@@ -1,9 +1,14 @@
 package com.uiery.keep.feature.lockhistory
 
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -24,7 +29,7 @@ class LockHistoryViewModelShareTest {
     @Test
     fun weeklyHistoryBuildsSharePayloadAndTracksTappedEventWithBuckets() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
-        val viewModel = LockHistoryViewModel(
+        val viewModel = createViewModel(
             lockHistoryRepository = LockHistoryRepository(
                 LockHistoryDaoWithSessions(
                     listOf(
@@ -93,7 +98,7 @@ class LockHistoryViewModelShareTest {
     @Test
     fun monthlyHistoryDoesNotExposeSharePayload() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
-        val viewModel = LockHistoryViewModel(
+        val viewModel = createViewModel(
             lockHistoryRepository = LockHistoryRepository(
                 MonthFetchDelayingLockHistoryDao(
                     listOf(sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L)),
@@ -115,7 +120,7 @@ class LockHistoryViewModelShareTest {
     @Test
     fun emptyHistoryTracksOnlySummaryPerformanceEventWithoutTopApps() = runBlocking {
         val analytics = RecordingLockHistoryAnalytics()
-        val viewModel = LockHistoryViewModel(
+        val viewModel = createViewModel(
             lockHistoryRepository = LockHistoryRepository(
                 LockHistoryDaoWithSessions(emptyList()),
             ),
@@ -141,6 +146,66 @@ class LockHistoryViewModelShareTest {
         )
         assertEquals(LockHistoryPerformanceReportState.EMPTY, viewModel.container.stateFlow.value.performanceReport.state)
     }
+
+    @Test
+    fun selectingDateTracksSelectedDatePerformanceSummaryAndTopApps() = runBlocking {
+        val analytics = RecordingLockHistoryAnalytics()
+        val selectedDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val viewModel = createViewModel(
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        sessionInCurrentWeek(durationMillis = 45 * 60 * 1000L),
+                        sessionInCurrentWeek(durationMillis = 10 * 60 * 1000L),
+                    ),
+                ),
+            ),
+            analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
+        )
+
+        waitForHistoryLoad(viewModel)
+        waitForAnalyticsEventCount(analytics, 2)
+
+        viewModel.selectDate(selectedDate)
+        waitForAnalyticsEventCount(analytics, 4)
+
+        assertEquals(
+            listOf(
+                ShareAnalyticsEvent(
+                    name = "performance_summary_viewed",
+                    periodType = "selected_date",
+                    reportState = "has_history",
+                    sessionCountBucket = "2_3",
+                    durationMinutesBucket = "30_59",
+                    topAppsCountBucket = null,
+                    reason = null,
+                ),
+                ShareAnalyticsEvent(
+                    name = "top_apps_viewed",
+                    periodType = "selected_date",
+                    reportState = null,
+                    sessionCountBucket = null,
+                    durationMinutesBucket = null,
+                    topAppsCountBucket = "1",
+                    reason = null,
+                ),
+            ),
+            analytics.events.takeLast(2),
+        )
+    }
+
+    private fun createViewModel(
+        lockHistoryRepository: LockHistoryRepository,
+        analytics: RecordingLockHistoryAnalytics,
+        focusSummaryShareTextProvider: FocusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
+    ): LockHistoryViewModel = LockHistoryViewModel(
+        lockHistoryRepository = lockHistoryRepository,
+        routineRepository = EmptyLockHistoryRoutineRepository(),
+        repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(FakeDataStore(mutablePreferencesOf())),
+        analytics = analytics,
+        focusSummaryShareTextProvider = focusSummaryShareTextProvider,
+    )
 
     private suspend fun waitForHistoryLoad(viewModel: LockHistoryViewModel) {
         waitUntil { viewModel.container.stateFlow.value.sessionCount > 0 }
@@ -195,6 +260,10 @@ private open class LockHistoryDaoWithSessions(
 
     override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
         sessions.count { it.startTimestamp >= timestampMillis }
+}
+
+private class EmptyLockHistoryRoutineRepository : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
 }
 
 private class MonthFetchDelayingLockHistoryDao(

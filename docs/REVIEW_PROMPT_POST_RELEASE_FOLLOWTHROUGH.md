@@ -6,7 +6,7 @@
 
 ## 현재 기준선
 
-2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-11T00:10:19Z live readback으로 최신화한다.
+2026-06-02T18:06:45Z GA4 snapshot (`30daysAgo..yesterday`, property `502544175`) 기준이다. 리뷰 프롬프트 lifecycle 이벤트는 이 시점의 baseline을 유지하고, ASO/Play Console 후행 판단에 쓰는 획득 채널 보조 지표는 #242/#65와 같은 2026-06-12T23:07:41Z live readback으로 최신화한다.
 
 2026-06-04T21:24:42Z / 2026-06-05 06:24:42 KST repo ancestry 재확인 기준으로도 `origin/main` `20b8ff4a`와 최신 SemVer tag `v1.7.7` `f49e7de9`는 PR #308 merge commit `cfff411898fbaac43a5c5bbafb48651091e66be2`와 PR #312 merge commit `e920ea3049bb0a3e192de29d0011298ae9b0a2b5`를 포함하지 않는다. 따라서 이 문서의 현재 수치는 여전히 **PR #308/#312 포함 release 전 baseline**이며, 14일/30일 post-release 판단 창은 아직 시작하지 않는다.
 
@@ -18,9 +18,9 @@
 | `lock_session_start` | 209 | 잠금 세션 시작 신호도 존재 |
 | `first_core_action_completed` | 336 | 첫 핵심 행동 완료 신호는 충분히 관측됨 |
 | `activeUsers` | 681 | 분모 기준 |
-| `newUsers` | 568 | 2026-06-11T00:10:19Z acquisition readback 기준. 직전 30일 298 대비 +90.6% |
-| `Organic Search` 신규 사용자 | 235 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178을 넘었지만 단독 회복 근거로 승격하지 않음 |
-| `Direct` 신규 사용자 | 333 | `333 / 568 = 58.6%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
+| `newUsers` | 573 | 2026-06-12T23:07:41Z acquisition readback 기준. 직전 30일 293 대비 +110.7% |
+| `Organic Search` 신규 사용자 | 238 | ASO/리뷰 후행 효과 판단 보조 지표. #65 baseline 178을 넘었지만 단독 회복 근거로 승격하지 않음 |
+| `Direct` 신규 사용자 | 335 | `335 / 573 = 58.5%`라 Play Console Search/Explore와 external/campaign 확인 전까지 어트리뷰션 누락/외부 유입 가능성을 분리해야 함 |
 
 이 기준선은 PR #226 / tag `v1.7.7` 이후 흐름이 30일 합산 안에 충분히 반영되기 전의 혼합 지표다. 따라서 `shown = 0`만 보고 바로 eligibility 설계를 바꾸지 않는다. 먼저 버전별·배포 후 14일 창으로 다시 분해한다.
 
@@ -138,7 +138,7 @@
 
 | 기간 | rating count | 평균 평점 | 최근 리뷰 톤 | Organic Search 신규 사용자 | listing conversion | 해석 |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
-| baseline | TODO | TODO | TODO | 235 | TODO | Play Console 수동 기록 필요. `Direct` 신규 333명(58.6%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
+| baseline | TODO | TODO | TODO | 238 | TODO | Play Console 수동 기록 필요. `Direct` 신규 335명(58.5%)이라 #242 attribution gate 적용. `Organic Search`가 #65 baseline 178을 넘었더라도 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 회복으로 표현하지 않음 |
 | D+14 | TODO | TODO | TODO | TODO | TODO | 앱 내부 shown/skipped와 함께 비교 |
 | D+30 | TODO | TODO | TODO | TODO | TODO | 리뷰 성과 최종 판단 |
 

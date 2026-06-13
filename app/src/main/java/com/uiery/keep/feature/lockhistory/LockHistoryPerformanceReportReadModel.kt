@@ -48,7 +48,7 @@ internal fun buildLockHistoryDisplayReport(
     val displayTotalDuration = displaySessions.sumOf { it.durationMillis }
     val displaySessionCount = displaySessions.size
     val displayTopApps = displaySessions
-        .flatMap { it.lockedApps }
+        .flatMap { it.lockedApps.distinct() }
         .groupingBy { it }
         .eachCount()
         .entries
@@ -63,6 +63,7 @@ internal fun buildLockHistoryDisplayReport(
             totalDurationMillis = displayTotalDuration,
             sessionCount = displaySessionCount,
             topApps = displayTopApps,
+            isSelectedDate = true,
         )
     }
     return LockHistoryDisplayReport(
@@ -79,6 +80,7 @@ internal fun buildLockHistoryPerformanceReport(
     totalDurationMillis: Long,
     sessionCount: Int,
     topApps: List<Pair<String, Int>>,
+    isSelectedDate: Boolean = false,
 ): LockHistoryPerformanceReportReadModel {
     val totalMinutes = (totalDurationMillis / 60_000L).coerceAtLeast(0L)
     val state = when {
@@ -86,21 +88,25 @@ internal fun buildLockHistoryPerformanceReport(
         sessionCount == 1 || totalMinutes < LOW_DATA_DURATION_MINUTES -> LockHistoryPerformanceReportState.LOW_DATA
         else -> LockHistoryPerformanceReportState.HAS_HISTORY
     }
-    val headlineResId = when (state) {
-        LockHistoryPerformanceReportState.EMPTY -> when (periodType) {
+    val headlineResId = when {
+        isSelectedDate && state == LockHistoryPerformanceReportState.EMPTY -> R.string.lock_history_performance_selected_date_empty_headline
+        isSelectedDate -> R.string.lock_history_performance_selected_date_headline
+        state == LockHistoryPerformanceReportState.EMPTY -> when (periodType) {
             PeriodType.WEEK -> R.string.lock_history_performance_empty_week_headline
             PeriodType.MONTH -> R.string.lock_history_performance_empty_month_headline
         }
-        LockHistoryPerformanceReportState.LOW_DATA -> R.string.lock_history_performance_low_data_headline
-        LockHistoryPerformanceReportState.HAS_HISTORY -> when (periodType) {
+        state == LockHistoryPerformanceReportState.LOW_DATA -> R.string.lock_history_performance_low_data_headline
+        else -> when (periodType) {
             PeriodType.WEEK -> R.string.lock_history_performance_week_headline
             PeriodType.MONTH -> R.string.lock_history_performance_month_headline
         }
     }
-    val supportingResId = when (state) {
-        LockHistoryPerformanceReportState.EMPTY -> R.string.lock_history_performance_empty_supporting
-        LockHistoryPerformanceReportState.LOW_DATA -> R.string.lock_history_performance_low_data_supporting
-        LockHistoryPerformanceReportState.HAS_HISTORY -> R.string.lock_history_performance_sessions_supporting
+    val supportingResId = when {
+        isSelectedDate && state == LockHistoryPerformanceReportState.EMPTY -> R.string.lock_history_performance_selected_date_empty_supporting
+        isSelectedDate -> R.string.lock_history_performance_selected_date_sessions_supporting
+        state == LockHistoryPerformanceReportState.EMPTY -> R.string.lock_history_performance_empty_supporting
+        state == LockHistoryPerformanceReportState.LOW_DATA -> R.string.lock_history_performance_low_data_supporting
+        else -> R.string.lock_history_performance_sessions_supporting
     }
     val shouldShowTopApps = topApps.isNotEmpty()
     return LockHistoryPerformanceReportReadModel(
@@ -115,9 +121,10 @@ internal fun buildLockHistoryPerformanceReport(
             R.string.lock_history_top_apps_empty_supporting
         },
         shouldShowTopApps = shouldShowTopApps,
-        periodTypeAnalyticsValue = when (periodType) {
-            PeriodType.WEEK -> "week"
-            PeriodType.MONTH -> "month"
+        periodTypeAnalyticsValue = when {
+            isSelectedDate -> "selected_date"
+            periodType == PeriodType.WEEK -> "week"
+            else -> "month"
         },
         sessionCountBucket = bucketSessionCount(sessionCount),
         durationMinutesBucket = bucketDurationMinutes(totalMinutes),

@@ -3,8 +3,8 @@ package com.uiery.keep.service
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
-import com.uiery.keep.feature.parentmode.ParentModeSession
-import com.uiery.keep.feature.parentmode.ParentModeSessionState
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

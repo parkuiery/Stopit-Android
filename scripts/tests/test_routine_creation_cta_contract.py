@@ -44,7 +44,6 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "강제 CTA",
             "modal gate",
             "code-lane 구현 진행",
-            "신규 이벤트 후보",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
@@ -71,7 +70,7 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
             "14일 체크",
             "30일 체크",
             "routine_creation_cta_clicked users / routine_creation_cta_shown users",
-            "routine_created users / routine_creation_cta_clicked users",
+            "routine_saved users / routine_creation_cta_clicked users",
             "emergency_unlock_completed users / active blocked users",
             "Play Console rating/review",
         ]:
@@ -90,6 +89,15 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
         for document in documents:
             self.assertIn("ROUTINE_CREATION_CTA_EXPERIMENT.md", document)
             self.assertIn("#455", document)
+
+    def test_product_dashboard_does_not_overclaim_routine_created_event(self):
+        dashboard = PRODUCT_DASHBOARD.read_text()
+
+        self.assertIn("첫 차단 후 루틴 CTA 전환", dashboard)
+        self.assertIn("노출 cohort의 `routines_count >= 1` users", dashboard)
+        self.assertIn("#810 저장 완료 계측", dashboard)
+        self.assertIn("PR #813 Android wiring 이후에는 `routine_saved`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
+        self.assertNotIn("`routine_created` users / clicked users", dashboard)
 
     def test_analytics_dictionary_and_ga4_runbook_track_routine_cta_events(self):
         analytics = ANALYTICS_DICTIONARY.read_text()

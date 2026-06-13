@@ -9,6 +9,7 @@ RUNBOOK = REPO_ROOT / "docs" / "GOAL_LOCK_MVP.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
 ANALYTICS_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
+KEEP_ANALYTICS = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "KeepAnalytics.kt"
 GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 GOAL_LOCK_CREATION_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockCreationScreen.kt"
@@ -118,6 +119,23 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("repo-internal `develop` 상태", analytics)
         self.assertNotIn("목표 잠금 구현 후보", analytics)
         self.assertNotIn("GoalLockPolicy` / 목표 잠금 model·repository·Home card ViewModel(구현 시 추가)", analytics)
+
+    def test_goal_lock_screen_view_contract_is_canonical_in_code_and_dictionary(self):
+        keep_analytics = KEEP_ANALYTICS.read_text()
+        dictionary = ANALYTICS_DICTIONARY.read_text()
+        creation_view_model = (REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockCreationViewModel.kt").read_text()
+        detail_view_model = (REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockDetailViewModel.kt").read_text()
+
+        for constant, screen_name, owner in [
+            ("GOAL_LOCK_CREATION", "GoalLockCreationScreen", "GoalLockCreationViewModel"),
+            ("GOAL_LOCK_DETAIL", "GoalLockDetailScreen", "GoalLockDetailViewModel"),
+        ]:
+            self.assertIn(f'const val {constant} = "{screen_name}"', keep_analytics)
+            self.assertIn(f"`{screen_name}`", dictionary)
+            self.assertIn(owner, dictionary)
+
+        self.assertIn("logScreenView(KeepAnalyticsScreen.GOAL_LOCK_CREATION)", creation_view_model)
+        self.assertIn("logScreenView(KeepAnalyticsScreen.GOAL_LOCK_DETAIL)", detail_view_model)
 
     def test_high_traffic_docs_link_to_goal_lock_source_of_truth(self):
         documents = [

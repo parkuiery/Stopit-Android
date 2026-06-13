@@ -29,10 +29,11 @@ Stopit separates CI, release artifact building, and deployment so failures are e
     - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는지
     - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring 오탐 없이 actual service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
     - `ReceiverRuntimeIntegrationTest`: boot/package-replaced 재수화, 루틴 시작 알림·재예약, notification-denied fallback notice contract
+    - Android CI exact-alarm smoke: `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`로 default/deny/allow 대표 루틴 권한 경로를 PR 단계에서 먼저 고정
     - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
     - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
     - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 차단 진입, emergency unlock 우회, self-uninstall interception safety 계약
-  - release/hotfix 전용 exact alarm deny/allow 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
+  - release/hotfix 전용 full exact alarm deny/allow multi-day·receiver 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
 - Release candidates targeting `main` also run Android Release QA before merge. Manual dispatch scope is release evidence only: release/* -> main, hotfix/* -> main, or manual dispatch from main/release/*/hotfix/*/SemVer tag refs. Feature/docs/automation ref manual runs fail before Firebase secret restore and emulator setup, and will not restore Firebase secrets or run release QA:
   - `Full release QA`: `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
   - `Release instrumentation QA`: single-day and multi-day exact-alarm/runtime gates below run on a GitHub-hosted Android emulator.
@@ -73,8 +74,10 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - tag must be origin/main reachable
   - previous SemVer production completion marker must already exist
   - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
+  - Play Deploy pins JS helper execution with `actions/setup-node@v5` / Node 22 before `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, or `scripts/promote-google-play-track.js` run, so the deployment runtime matches Ops CI's release-helper validation runtime instead of inheriting a mutable runner default Node version.
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
   - non-production Play Deploy generates `release-provenance.json`, verifies it before `Upload signed AAB artifact`, and only then uploads the verified AAB/manifest artifact before `Upload to Google Play`; operators should use that manifest as the prior non-production signed-AAB evidence for any later production promotion because it ties the internal release to AAB `sha256`, `versionCode`, `artifact_name`, git SHA/ref, track/status, GitHub Actions `run_id`, and workflow run URL
+  - the release-critical Google Play upload action is SHA-pinned (`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`, the audited v1 commit) rather than a floating major tag. Update it only through a reviewed release-provenance PR that refreshes `scripts.tests.test_release_provenance_workflow_contract`; production promotion remains repo-owned helper promotion and does not use this upload action.
   - non-production staged rollouts are validated before any signing/Firebase/Play secret decode: `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty
   - for `production`: the production promotion path validates production staged rollout inputs before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is checked or decoded. `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty. It then runs the prior internal provenance gate and must fail-fast before production secrets if the matching internal release artifact or `release-provenance.json` does not match the selected SemVer tag `versionCode`, git SHA/ref, and workflow run evidence. It does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode/provenance governance after input validation, then promotes the matching `internal` release
   - tag-triggered runs upload to Google Play `internal` track by default
@@ -86,7 +89,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 - Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard: branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, and the selected tag must be origin/main reachable with the previous SemVer production completion marker present.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
 - Production promotion does not build or upload a new AAB, so its provenance boundary is the prior non-production `release-provenance.json` generated for the matching internal release. When auditing a production promotion, compare the tag `versionCode` and internal release with the manifest's `versionCode`, AAB `sha256`, git SHA/ref, and workflow run URL instead of expecting a new production AAB manifest.
-- Production promotion searches prior non-production evidence from the same SemVer tag and git SHA across both the automatic tag push artifact and an allowed manual deploy artifact created by `workflow_dispatch`. The full Actions-artifact path is preferred before the durable fallback so a manual internal deploy on the tag is not downgraded to metadata-only recovery unnecessarily.
+- Production promotion searches prior internal evidence from the same SemVer tag and git SHA across both the automatic tag push artifact and an allowed manual deploy artifact created by `workflow_dispatch`, but candidate runs are selected only after their `release-provenance.json` verifies `track=internal` and `release_status=completed`. Manual `alpha`, `beta`, or `production` runs for the same tag/SHA are skipped as `prior internal track mismatch`, not treated as valid prior internal evidence. The full Actions-artifact path is preferred before the durable fallback so a manual internal deploy on the tag is not downgraded to metadata-only recovery unnecessarily.
 
 ## Production promotion provenance retention / recovery
 
@@ -96,7 +99,7 @@ Issue #680 source-of-truth boundary: production promotion depends on prior inter
 - Durable evidence target: after a successful non-production Play upload, `play-deploy.yml` publishes the verified `release-provenance.json` as a same-tag GitHub Release asset. That fallback is secret-free: no keystore material, service-account JSON, Firebase config, or secret values.
 - Post-upload publish failure: if the GitHub Release `release-provenance.json` publish step fails after `Upload to Google Play` has already succeeded, classify the run as **post-upload durable provenance publish failure** / evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same `versionCode`; first confirm Play Console/run state, then recover by rerunning the same-tag non-production Play Deploy or attaching the verified `release-provenance.json` fallback before production promotion.
 - Expired artifact recovery: if `gh run download --name stopit-prod-release-signed-aab` cannot find the prior artifact after the retention window, do not rebuild or upload a new production AAB from the production promotion path. `play-deploy.yml` first attempts the GitHub Release asset fallback (`release-provenance.json`) for the same SemVer tag and runs metadata-only provenance verification before production secrets; if that fallback is missing, rerun a non-production deploy for the same SemVer tag to recreate internal evidence before attempting production promotion again.
-- Failure classification: distinguish `artifact expired/missing`, `durable fallback missing`, `post-upload durable provenance publish failure`, and `provenance mismatch`. Expired/missing evidence can recover through the durable fallback; durable fallback missing or post-upload evidence publish failure is an operator recovery boundary; mismatch is a release safety blocker.
+- Failure classification: distinguish `prior internal track mismatch`, `artifact expired/missing`, `durable fallback missing`, `post-upload durable provenance publish failure`, and `provenance mismatch`. Expired/missing evidence can recover through the durable fallback; durable fallback missing or post-upload evidence publish failure is an operator recovery boundary; track mismatch means the candidate run was `alpha`/`beta`/`production` or otherwise not `track=internal` + `release_status=completed`; provenance mismatch is a release safety blocker.
 - Workflow note: metadata-only fallback verification checks the manifest's selected tag `versionCode`, git SHA/ref/ref_name, `artifact_name`, AAB checksum/size metadata, internal track/status, and prior workflow run identity. It does not decode production secrets or build/upload a new AAB.
 
 ## Required GitHub secrets
@@ -276,10 +279,12 @@ firebase deploy --only functions:promoteProductionFromDiscord
 
 ## Local release build check
 
-Without signing environment variables, local release builds fall back to debug signing so normal build checks remain easy:
+`prodRelease` release artifact tasks must never use debug signing fallback. Without all release signing environment variables, Gradle fails `:app:bundleProdRelease`, `:app:assembleProdRelease`, and related `prodRelease` artifact signing/packaging tasks before an AAB/APK can be created:
 
 ```bash
+unset ANDROID_KEYSTORE_PATH ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD
 ./gradlew :app:bundleProdRelease
+# Fails: Debug signing fallback is not allowed for prodRelease artifacts.
 ```
 
 With real signing credentials:
@@ -292,7 +297,7 @@ export ANDROID_KEY_PASSWORD='***'
 ./gradlew :app:bundleProdRelease
 ```
 
-Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
+Debug/smoke paths still do not require release signing secrets. Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
 
 ## Safety notes
 

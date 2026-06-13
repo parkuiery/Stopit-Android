@@ -87,6 +87,14 @@
     <string name="goal_lock_creation_remove_app">빼기</string>
     <string name="goal_lock_creation_submit">목표 잠금 시작</string>
     <string name="goal_lock_creation_app_label_missing">앱 이름을 불러오지 못했어요</string>
+    <string name="goal_lock_creation_hero_subtitle">목표와 기간을 정하고 방해되는 앱을 잠가요.</string>
+    <string name="goal_lock_creation_custom_days_label">또는 기간을 직접 설정</string>
+    <string name="goal_lock_creation_custom_days_value">%1$d일</string>
+    <string name="goal_lock_creation_pick_end_date">종료 날짜 선택</string>
+    <string name="goal_lock_creation_apps_label">잠글 앱</string>
+    <string name="goal_lock_creation_apps_empty">아직 선택한 앱이 없어요.</string>
+    <string name="goal_lock_creation_lock_mode_all_day_desc">선택한 기간 동안 하루 종일 앱을 잠가요.</string>
+    <string name="goal_lock_creation_lock_mode_weekday_evening_desc">평일 저녁(월~금, 오후 7시~11시)에만 잠가요.</string>
     <string name="goal_lock_detail_update_apps_cta">차단 앱 변경</string>
     <string name="goal_lock_detail_update_apps_confirmation">선택한 앱 %1$d개로 목표 잠금 대상을 바꿀까요?</string>
     <string name="goal_lock_detail_update_apps_cancel">취소</string>
@@ -141,9 +149,8 @@
     <string name="parent_mode_menu_title">아이에게 폰 주기</string>
     <string name="parent_mode_setup_title">부모 모드</string>
     <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>
-    <string name="parent_mode_setup_description">이번 setup foothold는 현재 선택된 차단 앱 목록을 부모 모드 허용 앱 후보로 불러옵니다.</string>
+    <string name="parent_mode_setup_description">현재 선택한 차단 앱 목록을 부모 모드 허용 앱으로 불러와요. 필요하면 아래에서 조정할 수 있어요.</string>
     <string name="parent_mode_setup_allowed_apps_summary">현재 선택에서 불러온 허용 앱: %1$d개</string>
-    <string name="parent_mode_setup_duration_label">시청 시간을 선택하세요</string>
     <string name="parent_mode_setup_duration_option">%1$d분</string>
     <string name="parent_mode_active_title">부모 모드가 실행 중이에요</string>
     <string name="parent_mode_expired_title">부모 모드 시간이 끝났어요</string>
@@ -160,6 +167,12 @@
     <string name="parent_mode_setup_start">부모 모드 시작</string>
     <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
     <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
+    <string name="parent_mode_setup_duration_label">허용 시간</string>
+    <string name="parent_mode_setup_duration_minutes">%1$d분</string>
+    <string name="parent_mode_setup_allowed_apps_label">허용 앱</string>
+    <string name="parent_mode_setup_adjust_apps">앱 선택 화면에서 조정</string>
+    <string name="parent_mode_setup_reload_current_selection">홈 선택 다시 불러오기</string>
+    <string name="parent_mode_setup_apps_empty">아직 허용 앱을 선택하지 않았어요.</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>
     <string name="lock_history_title">잠금 기록</string>
     <string name="lock_history_week">주</string>
@@ -182,6 +195,10 @@
     <string name="lock_history_performance_empty_supporting">차단을 한 번 완료하면 여기에서 지킨 시간이 보여요.</string>
     <string name="lock_history_performance_empty_month_headline">이번 달 첫 기록을 시작해볼까요?</string>
     <string name="lock_history_performance_empty_week_headline">이번 주 첫 기록을 시작해볼까요?</string>
+    <string name="lock_history_performance_selected_date_headline">선택한 날 %1$s을 지켰어요</string>
+    <string name="lock_history_performance_selected_date_sessions_supporting">선택한 날 %1$d번 약속을 지켰어요.</string>
+    <string name="lock_history_performance_selected_date_empty_headline">선택한 날은 아직 지킨 시간이 없어요</string>
+    <string name="lock_history_performance_selected_date_empty_supporting">다른 날짜를 보거나 차단을 한 번 완료하면 일별 기록이 보여요.</string>
     <string name="lock_history_focus_share_button">이번 주 집중 기록 공유</string>
     <string name="lock_history_focus_share_sheet_title">스탑잇 집중 기록 공유</string>
     <string name="focus_summary_share_payload_text">이번 주 스탑잇으로 %1$d번, 총 %2$s 집중을 지켰어요.\n나도 집중이 필요할 때 앱 사용을 잠깐 멈춰요.\n%3$s</string>
@@ -196,6 +213,12 @@
     <string name="lock_history_block_count">%1$d회</string>
     <string name="lock_history_duration_short_hour">%1$d시간%2$d분</string>
     <string name="lock_history_duration_short_min">%1$d분</string>
+    <string name="repeat_block_suggestion_home_title">자주 막는 패턴을 루틴으로 만들까요?</string>
+    <string name="repeat_block_suggestion_home_message">%1$d개 앱 · %2$s~%3$s 반복 차단을 바로 루틴에 채울 수 있어요.</string>
+    <string name="repeat_block_suggestion_lock_history_title">잠금 기록 패턴을 루틴으로 만들까요?</string>
+    <string name="repeat_block_suggestion_lock_history_message">%1$d개 앱 · %2$s~%3$s 반복 차단을 루틴에 미리 채울 수 있어요.</string>
+    <string name="repeat_block_suggestion_apply_button">루틴으로 만들기</string>
+    <string name="repeat_block_suggestion_dismiss_button">나중에</string>
     <string name="cd_navigate_back">뒤로 가기</string>
     <string name="cd_open_menu">메뉴 열기</string>
     <string name="cd_open_timer">잠금 타이머 설정</string>
@@ -217,6 +240,7 @@
     <string name="notification_routine_start_title">%1$s 루틴이 시작됐어요</string>
     <string name="notification_routine_start_message">집중을 위해 앱 사용이 잠겼어요.</string>
     <string name="routine_notification_permission_fallback_message">%1$s 루틴이 시작됐지만 알림 권한이 꺼져 있어 스탑잇이 앱 안에서 대신 알려드려요.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">%1$s 루틴이 시작됐지만 루틴 알림 채널이 꺼져 있어 스탑잇이 앱 안에서 대신 알려드려요.</string>
     <string name="prevent_uninstall">삭제 방지</string>
     <string name="prevent_uninstall_subtitle">스탑잇이 삭제되지 않도록 보호해요</string>
     <string name="prevent_uninstall_enabled">삭제 방지가 활성화되었어요</string>
@@ -332,6 +356,30 @@
     <string name="first_lock_activation_cta_action">시작</string>
     <string name="first_lock_keep_started_guidance">스탑잇이 켜졌어요. 선택한 앱을 열면 첫 차단을 확인할 수 있어요.</string>
     <string name="first_lock_timer_scheduled_guidance">첫 잠금이 예약됐어요. 시간이 되면 선택한 앱을 열어 차단을 확인해보세요.</string>
+    <string name="routine_template_share_payload_title">스탑잇 집중 루틴 템플릿</string>
+    <string name="routine_template_share_payload_cta">나도 집중이 필요한 시간에 앱 사용을 잠깐 멈춰요.</string>
+    <string name="routine_template_share_category_study">공부</string>
+    <string name="routine_template_share_category_work">업무</string>
+    <string name="routine_template_share_category_night_focus">야간 집중</string>
+    <string name="routine_template_share_category_custom">집중</string>
+    <string name="routine_template_share_repeat_weekday">평일</string>
+    <string name="routine_template_share_repeat_weekend">주말</string>
+    <string name="routine_template_share_repeat_daily">매일</string>
+    <string name="routine_template_share_repeat_custom_days">선택 요일</string>
+    <string name="routine_template_share_repeat_none">요일 미설정</string>
+    <string name="routine_template_share_time_morning">아침</string>
+    <string name="routine_template_share_time_afternoon">오후</string>
+    <string name="routine_template_share_time_evening">저녁</string>
+    <string name="routine_template_share_time_night">밤</string>
+    <string name="routine_template_share_time_overnight">밤샘</string>
+    <string name="routine_template_share_time_custom_window">선택 시간</string>
+    <plurals name="routine_template_share_duration_hours">
+        <item quantity="other">%1$d시간</item>
+    </plurals>
+    <plurals name="routine_template_share_duration_minutes">
+        <item quantity="other">%1$d분</item>
+    </plurals>
+    <string name="routine_template_share_duration_hours_minutes">%1$d시간 %2$d분</string>
     <string name="routine_template_share_chooser_title">루틴 템플릿 공유</string>
     <string name="cd_share_routine_template">루틴 템플릿 공유</string>
 </resources>

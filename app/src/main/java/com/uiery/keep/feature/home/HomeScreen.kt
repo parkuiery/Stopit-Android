@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.home
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,6 +54,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,6 +79,7 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
@@ -96,6 +99,7 @@ fun HomeScreen(
     onNavigateLockHistory: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
+    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -136,6 +140,9 @@ fun HomeScreen(
 
             is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
             HomeSideEffect.MoveToRoutine -> onNavigateRoutine()
+            is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill -> {
+                onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
+            }
         }
     }
 
@@ -333,6 +340,16 @@ fun HomeScreen(
                     onClick = { onNavigateGoalLockDetail(goalLockCard.goalLockId) },
                 )
             }
+            uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
+                RepeatBlockRoutineSuggestionCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    suggestion = suggestion,
+                    onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
+                    onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
+                )
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
@@ -465,6 +482,54 @@ fun HomeScreen(
 }
 
 @Composable
+private fun RepeatBlockRoutineSuggestionCard(
+    modifier: Modifier = Modifier,
+    suggestion: RepeatBlockRoutineSuggestion,
+    onApplyClick: () -> Unit,
+    onDismissClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.repeat_block_suggestion_home_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(
+                    R.string.repeat_block_suggestion_home_message,
+                    suggestion.prefillPackages.size,
+                    suggestion.prefillStartTime,
+                    suggestion.prefillEndTime,
+                ),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                KeepButton(
+                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
+                    onClick = onApplyClick,
+                )
+                TextButton(onClick = onDismissClick) {
+                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun GoalLockProgressCard(
     modifier: Modifier = Modifier,
     cardState: HomeGoalLockCardState,
@@ -496,6 +561,37 @@ private fun GoalLockProgressCard(
                 fontSize = 12.sp,
             )
         }
+    }
+}
+
+@Composable
+private fun HomeQuickAction(
+    modifier: Modifier = Modifier,
+    @DrawableRes iconResId: Int,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            modifier = Modifier.size(24.dp),
+            painter = painterResource(id = iconResId),
+            contentDescription = null,
+            tint = KeepTheme.colors.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
     }
 }
 
@@ -534,33 +630,46 @@ internal fun HomeStatusCtaCard(
                 fontSize = 13.sp,
             )
             KeepButton(
+                modifier = Modifier.fillMaxWidth(),
                 text = stringResource(model.primaryCtaResId),
                 enabled = model.shouldOpenAppSelection || model.shouldToggleKeep,
                 onClick = onPrimaryClick,
             )
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (model.showChangeAppsSecondary) {
-                    TextButton(onClick = onChangeAppsClick) {
-                        Text(text = stringResource(R.string.home_secondary_change_apps))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.baseline_format_list_bulleted_24,
+                        label = stringResource(R.string.home_secondary_change_apps),
+                        onClick = onChangeAppsClick,
+                    )
                 }
                 if (model.timerEnabled) {
-                    TextButton(onClick = onTimerClick) {
-                        Text(text = stringResource(R.string.home_secondary_timer))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.timer_outline,
+                        label = stringResource(R.string.home_secondary_timer),
+                        onClick = onTimerClick,
+                    )
                 }
                 if (model.showLockHistorySecondary) {
-                    TextButton(onClick = onLockHistoryClick) {
-                        Text(text = stringResource(R.string.home_secondary_lock_history))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_history,
+                        label = stringResource(R.string.home_secondary_lock_history),
+                        onClick = onLockHistoryClick,
+                    )
                 }
                 if (model.showRoutineCreationSecondary) {
-                    TextButton(onClick = onRoutineCreationClick) {
-                        Text(text = stringResource(R.string.home_secondary_create_routine))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_routine,
+                        label = stringResource(R.string.home_secondary_create_routine),
+                        onClick = onRoutineCreationClick,
+                    )
                 }
             }
         }

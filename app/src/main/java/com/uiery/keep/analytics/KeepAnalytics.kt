@@ -2,6 +2,7 @@ package com.uiery.keep.analytics
 
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 
 interface KeepAnalytics {
     fun logEvent(
@@ -90,6 +91,26 @@ interface KeepAnalytics {
         remainingUnlocksBucket: String,
         source: String,
         resetResult: String? = null,
+    ) = Unit
+
+    fun trackEmergencyUnlockStepViewed(
+        stepName: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+    ) = Unit
+
+    fun trackEmergencyUnlockValidationBlocked(
+        stepName: String,
+        validationReason: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+    ) = Unit
+
+    fun trackEmergencyUnlockCancelled(
+        stepName: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+        cancelSource: String = AnalyticsEmergencyUnlockCancelSource.UNKNOWN,
     ) = Unit
 
     fun trackFirstCoreActionCompleted(
@@ -236,6 +257,8 @@ interface KeepAnalytics {
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) = Unit
 
+    fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) = Unit
+
     fun trackParentModeDurationSelected(durationMinutesBucket: String) = Unit
 
     fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) = Unit
@@ -300,6 +323,9 @@ object KeepAnalyticsEvent {
     const val EMERGENCY_UNLOCK_COMPLETED = "emergency_unlock_completed"
     const val EMERGENCY_UNLOCK_SETTINGS_CHANGED = "emergency_unlock_settings_changed"
     const val EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED = "emergency_unlock_manual_reset_requested"
+    const val EMERGENCY_UNLOCK_STEP_VIEWED = "emergency_unlock_step_viewed"
+    const val EMERGENCY_UNLOCK_VALIDATION_BLOCKED = "emergency_unlock_validation_blocked"
+    const val EMERGENCY_UNLOCK_CANCELLED = "emergency_unlock_cancelled"
     const val FIRST_CORE_ACTION_COMPLETED = "first_core_action_completed"
     const val CORE_ACTION_COMPLETED = "core_action_completed"
     const val FCM_TOKEN_CAPTURED = "fcm_token_captured"
@@ -405,6 +431,9 @@ object KeepAnalyticsParam {
     const val DURATION_COUNT_BUCKET = "duration_count_bucket"
     const val REMAINING_UNLOCKS_BUCKET = "remaining_unlocks_bucket"
     const val RESET_RESULT = "reset_result"
+    const val VALIDATION_REASON = "validation_reason"
+    const val REASON_REQUIRED_ENABLED = "reason_required_enabled"
+    const val CANCEL_SOURCE = "cancel_source"
 }
 
 object OnboardingStepName {
@@ -427,6 +456,8 @@ object KeepAnalyticsScreen {
     const val ROUTINE = "RoutineScreen"
     const val EMERGENCY_UNLOCK_SETTINGS = "EmergencyUnlockSettingsScreen"
     const val DEV_TOOL = "DevToolScreen"
+    const val GOAL_LOCK_CREATION = "GoalLockCreationScreen"
+    const val GOAL_LOCK_DETAIL = "GoalLockDetailScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
 }
@@ -492,6 +523,28 @@ object AnalyticsEmergencyUnlockManualResetResult {
     const val REQUESTED = "requested"
     const val COMPLETED = "completed"
     const val UNAVAILABLE = "unavailable"
+}
+
+object AnalyticsEmergencyUnlockStepName {
+    const val REASON = "reason"
+    const val APPS = "app_selection"
+    const val DURATION = "duration"
+    const val COUNTDOWN = "countdown"
+}
+
+object AnalyticsEmergencyUnlockValidationReason {
+    const val MISSING_REASON = "missing_reason"
+    const val MISSING_CUSTOM_REASON = "missing_custom_reason"
+    const val MISSING_APP_SELECTION = "missing_app_selection"
+}
+
+object AnalyticsEmergencyUnlockCancelSource {
+    const val CANCEL_BUTTON = "cancel_button"
+    const val SHEET_DISMISS = "sheet_dismiss"
+    const val BACK = "back"
+    const val OUTSIDE_TAP = "outside_tap"
+    const val SYSTEM = "system"
+    const val UNKNOWN = "unknown"
 }
 
 object AnalyticsPermissionName {
@@ -604,6 +657,7 @@ object AnalyticsGoalLockEndedEarlyReason {
     const val VALIDATION_RESET = "validation_reset"
     const val UNKNOWN = "unknown"
 }
+
 
 object AnalyticsParentModeDurationBucket {
     const val ONE_TO_NINE = "1_9"

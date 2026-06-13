@@ -22,7 +22,8 @@ import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.RoutineAlarmReceiver
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
@@ -85,11 +86,17 @@ class RoutineExactAlarmPermissionIntegrationTest {
         viewModel.setSelectApps(setOf("com.example.blocked"))
         viewModel.addRoutine()
 
-        val sideEffect = withTimeout(5_000) { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = withTimeout(5_000) { viewModel.container.sideEffectFlow.take(2).toList() }
         waitUntil("Routine should be stored") { database.routineDao().fetchAllOnce().isNotEmpty() }
         val savedRoutine = database.routineDao().fetchAllOnce().single()
 
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect)
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            sideEffects,
+        )
         assertFalse(savedRoutine.isEnabled)
         assertEquals(0, analytics.lockScheduledCalls)
         assertNoScheduledAlarm(TEST_ROUTINE_ID)
@@ -114,11 +121,17 @@ class RoutineExactAlarmPermissionIntegrationTest {
         viewModel.setSelectApps(setOf("com.example.blocked"))
         viewModel.addRoutine()
 
-        val sideEffect = withTimeout(5_000) { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = withTimeout(5_000) { viewModel.container.sideEffectFlow.take(2).toList() }
         waitUntil("Multi-day routine should be stored") { database.routineDao().fetchAllOnce().isNotEmpty() }
         val savedRoutine = database.routineDao().fetchAllOnce().single()
 
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect)
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            sideEffects,
+        )
         assertFalse(savedRoutine.isEnabled)
         assertEquals(repeatDays.toSet(), savedRoutine.repeatDays.toSet())
         assertEquals(0, analytics.lockScheduledCalls)

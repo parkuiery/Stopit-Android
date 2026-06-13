@@ -42,20 +42,20 @@ Issue: #651
 
 | Layer | 파일 | 현재 feature import | code-lane migration 방향 |
 | --- | --- | --- | --- |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityService.kt` | `feature.goallock.GoalLockRepository`, `feature.parentmode.ParentModeSession`, `feature.parentmode.ParentModeSessionStore` | AccessibilityService가 shared lock-state / parent-mode session에 의존하도록 분리한다. `GoalLock` model import는 `domain.goallock`으로, routine repository read contract는 `data.routine.RoutineRepository`로 이동 완료. |
-| service | `app/src/main/java/com/uiery/keep/service/KeepAccessibilityServiceBlockDecision.kt` | `feature.parentmode.ParentModePolicy`, `feature.parentmode.ParentModeSession` | foreground block decision의 parent-mode 입력 model/policy를 shared domain boundary로 이동한다. GoalLock model/policy는 `domain.goallock`으로 이동 완료. |
+| database/service/receiver/analytics | 없음 | 없음 | PR #651 final boundary package에서 남은 `GoalLockRepository` / `ParentModeSessionStore` feature import를 각각 `data.goallock` / `data.parentmode` boundary로 이동해 debt inventory를 비웠다. 새 feature-private import가 생기면 static guard가 실패해야 한다. |
 
 ## Migration order
 
 1. **GoalLock domain first — repo-internal foothold complete**
    - `GoalLock`, `GoalLockMode`, `GoalLockStoredStatus`, `GoalLockRuntimeStatus`, `GoalLockPolicy`는 `domain.goallock` shared domain boundary로 이동했다.
    - `GoalLockEntity` mapper, Home, AccessibilityService block decision, detail/creation ViewModel이 같은 shared model을 참조한다.
-   - 남은 GoalLock 관련 feature import는 app/service/runtime entrypoint가 아직 `GoalLockRepository` feature repository에 의존하는 경계다.
+   - 완료: `GoalLockRepository`는 `data.goallock` boundary로 이동했고 app/service/runtime entrypoint는 feature package가 아니라 shared data repository에 의존한다.
    - focused 검증 후보: `GoalLockPolicyTest`, `GoalLockPersistenceMapperTest`, `KeepAccessibilityServiceBlockDecisionTest`, `KeepAccessibilityServiceIntegrationTest` 주변 JVM/androidTest.
-2. **ParentMode runtime session boundary**
-   - `ParentModeSession`, `ParentModePolicy`, `ParentModeSessionStore`를 feature-private implementation에서 runtime-facing shared domain/session boundary로 분리한다.
-   - AccessibilityService와 block decision helper가 feature package import 없이 parent-mode bypass state를 판정하도록 한다.
-   - focused 검증 후보: `ParentModeSessionStoreTest`, `KeepAccessibilityServiceBlockDecisionTest`, parent-mode accessibility integration suites.
+2. **ParentMode runtime session/policy boundary — repo-internal foothold complete**
+   - 완료: `ParentModeSession`, `ParentModeSessionState`, `ParentModeRuntimePolicy`는 `domain.parentmode` shared domain boundary로 이동했다.
+   - 완료: `KeepAccessibilityServiceBlockDecision`은 feature package import 없이 parent-mode bypass/block state를 판정한다.
+   - 완료: `ParentModeSessionStore`는 `data.parentmode` boundary로 이동했고 AccessibilityService는 feature package가 아니라 shared data store에 의존한다.
+   - focused 검증 후보: `ParentModeRuntimePolicyTest`, `ParentModeSessionStoreTest`, `KeepAccessibilityServiceBlockDecisionTest`, parent-mode accessibility integration suites.
 3. **Routine runtime repository boundary — repo-internal foothold complete**
    - `RoutineRepository` / `RoomRoutineRepository`는 `data.routine` shared data boundary로 이동했다.
    - Boot/Package/RoutineAlarm receiver와 AccessibilityService는 feature package import 없이 restore/reschedule/cache를 수행한다.
@@ -72,19 +72,20 @@ Issue: #651
 
 `python3 -m unittest scripts.tests.test_feature_domain_boundary_contract -v`는 아래를 고정한다.
 
-- production `database/`, `service/`, `receiver/`, `analytics/` source의 `feature.*` imports가 위 inventory와 정확히 일치한다.
+- production `database/`, `service/`, `receiver/`, `analytics/` source의 `feature.*` imports가 비어 있음을 확인한다.
 - issue #651 문서가 현재 inventory의 모든 파일과 migration 방향을 명시한다.
 - `docs/AGENTS.md`와 `docs/ops/stopit/engineering-context.md`가 이 문서를 참조해 future docs/code lane이 #520 DAO boundary와 #651 feature-domain boundary를 구분한다.
 
 ## PR / Issue closure rule
 
-- 이 docs-lane PR은 migration 계약과 current-drift guard를 만드는 범위라 `Refs #651`이 맞다.
+- 초기 docs-lane PR은 migration 계약과 current-drift guard를 만드는 범위라 `Refs #651`이 맞았다.
 - `Closes #651`는 아래가 모두 만족될 때만 사용한다.
-  - `database/service/receiver/analytics` production source에서 feature-private domain/repository imports가 제거되거나 명시된 shared boundary allowlist로 축소된다.
+  - `database/service/receiver/analytics` production source에서 feature-private domain/repository imports가 제거된다.
   - `GoalLockEntity` mapper와 AccessibilityService block decision이 shared domain contract를 사용한다. (2026-06 code-lane foothold 완료)
-  - parent-mode session/policy/store가 shared runtime boundary를 사용한다.
+  - parent-mode session/policy가 shared runtime boundary를 사용한다. (2026-06 code-lane foothold 완료)
+  - parent-mode session store가 shared data boundary를 사용한다. (2026-06 code-lane final boundary package 완료)
   - analytics API가 feature-local suggestion object 대신 shared analytics DTO/read-model contract를 받는다.
-  - static guard가 더 이상 debt inventory allowlist에 의존하지 않고 새 역방향 의존을 차단한다.
+  - static guard가 더 이상 debt inventory allowlist에 의존하지 않고 새 역방향 의존을 차단한다. (현재 `EXPECTED_FEATURE_IMPORTS = {}`)
   - `./gradlew :app:testDevDebugUnitTest`와 관련 focused runtime/analytics verification이 통과한다.
 
 ## Handoff evidence template
@@ -96,10 +97,11 @@ Issue: #651
 - Head SHA:
 - 변경 범위:
   - [x] GoalLock shared domain boundary
-  - [ ] Routine runtime repository/use-case boundary
+  - [x] Routine runtime repository/use-case boundary
+  - [x] ParentMode runtime session/policy boundary
   - [x] RepeatBlock analytics DTO boundary
-  - [ ] LockHistory runtime recording boundary
-  - [ ] static guard inventory 감소
+  - [x] LockHistory runtime recording boundary
+  - [x] static guard inventory 감소
 - 검증:
   - [ ] `python3 -m unittest scripts.tests.test_feature_domain_boundary_contract -v`
   - [ ] `./gradlew :app:testDevDebugUnitTest ...`

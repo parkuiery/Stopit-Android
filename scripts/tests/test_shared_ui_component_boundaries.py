@@ -8,6 +8,9 @@ KDS_MAIN = REPO_ROOT / "core/kds/src/main/java/com/uiery/kds"
 KDS_README = REPO_ROOT / "core/kds/README.md"
 APP_SHARED_UI_AGENTS = APP_MAIN / "ui/component/AGENTS.md"
 SHARED_UI_RUNBOOK = REPO_ROOT / "docs/SHARED_UI_OWNERSHIP_BOUNDARY.md"
+METRICS_ANALYSIS = REPO_ROOT / "docs/METRICS_ANALYSIS.md"
+ENGINEERING_CONTEXT = REPO_ROOT / "docs/ops/stopit/engineering-context.md"
+DOCS_AGENTS = REPO_ROOT / "docs/AGENTS.md"
 
 
 class SharedUiComponentBoundariesTest(unittest.TestCase):
@@ -155,23 +158,50 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertNotIn("RadioButton", text)
         self.assertIn("private fun DurationChip", text)
 
-    def test_shared_ui_runbook_documents_issue_492_handoff(self):
+    def test_shared_ui_runbook_documents_issue_492_closed_baseline(self):
         runbook = SHARED_UI_RUNBOOK.read_text()
         for expected in (
-            "Issue: #492",
+            "Issue: #492 (closed)",
+            "#492의 repo-internal 정리는 완료됐다",
             "PermissionSettingDialog",
             "TimerPicker",
             "feature A → feature B",
-            "Refs #492",
-            "Closes #492",
+            "Future drift 처리 기준",
             "python3 -m unittest scripts.tests.test_shared_ui_component_boundaries -v",
         ):
             self.assertIn(expected, runbook)
+
+        for stale in (
+            "현재 #492 정리 대상",
+            "Refs #492",
+            "Closes #492",
+            "구현 전 handoff",
+            "code-lane 정리 전까지는 구현 완료로 해석하지 않는다",
+        ):
+            self.assertNotIn(stale, runbook)
 
     def test_app_shared_ui_agents_links_issue_492_source_of_truth(self):
         doc = APP_SHARED_UI_AGENTS.read_text()
         self.assertIn("SHARED_UI_OWNERSHIP_BOUNDARY.md", doc)
         self.assertIn("#492", doc)
+        self.assertIn("closed baseline", doc)
+
+    def test_downstream_docs_describe_issue_492_as_closed_baseline(self):
+        documents = {
+            "docs/METRICS_ANALYSIS.md": METRICS_ANALYSIS.read_text(),
+            "docs/ops/stopit/engineering-context.md": ENGINEERING_CONTEXT.read_text(),
+            "docs/AGENTS.md": DOCS_AGENTS.read_text(),
+        }
+
+        for path, text in documents.items():
+            self.assertIn("#492", text, path)
+            self.assertNotIn("PermissionSettingDialog/TimerPicker code-lane handoff", text, path)
+            self.assertNotIn("code-lane 정리 전까지는 구현 완료로 해석하지 않는다", text, path)
+            self.assertNotIn("현 정리 대상은 code-lane", text, path)
+
+        self.assertIn("#492는 closed 상태", documents["docs/METRICS_ANALYSIS.md"])
+        self.assertIn("#492 closed 이후 app shared UI baseline", documents["docs/ops/stopit/engineering-context.md"])
+        self.assertIn("#492 closed 이후 PermissionSettingDialog/TimerPicker app shared UI baseline", documents["docs/AGENTS.md"])
 
 
 if __name__ == "__main__":

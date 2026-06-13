@@ -17,6 +17,10 @@ LOCK_HISTORY_PERFORMANCE_LOCALE_KEYS = [
     "lock_history_performance_empty_supporting",
     "lock_history_performance_empty_month_headline",
     "lock_history_performance_empty_week_headline",
+    "lock_history_performance_selected_date_headline",
+    "lock_history_performance_selected_date_sessions_supporting",
+    "lock_history_performance_selected_date_empty_headline",
+    "lock_history_performance_selected_date_empty_supporting",
     "lock_history_top_apps_title",
 ]
 
@@ -72,6 +76,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "code-lane instrumentation 추가",
             "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영",
             "rank/app label/block count/duration",
+            "per-session dedupe",
+            "duplicate lockedApps entry",
             "PR #579",
             "f4b499baf9ccb42102fe29be71ee386a310e6fb3",
             "PR #637",
@@ -81,6 +87,9 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "Closes #465",
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
             "LockHistoryPerformanceReportAccessibilityTest",
+            "선택 날짜가 켜진 상태",
+            "period_type=selected_date",
+            "일별 empty copy",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, doc)
@@ -99,6 +108,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             self.assertIn("lock_history_performance_summary_viewed", text)
             self.assertIn("lock_history_top_apps_viewed", text)
             self.assertIn("period_type", text)
+            self.assertIn("selected_date", text)
             self.assertIn("report_state", text)
             self.assertIn("session_count_bucket", text)
             self.assertIn("duration_minutes_bucket", text)
@@ -170,6 +180,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "python3 -m unittest scripts.tests.test_lock_history_performance_report_contract -v",
             "LockHistoryPerformanceReportAccessibilityTest",
             "top app rank/app label/block count/duration",
+            "per-session dedupe",
+            "duplicate lockedApps entry",
             "focused contentDescription regression passed",
         ]
         for phrase in required_phrases:

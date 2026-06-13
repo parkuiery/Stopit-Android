@@ -95,6 +95,9 @@ fun LockScreen(
                 blockedApps = uiState.selectedAppPackage,
                 durationOptions = uiState.emergencyUnlockDurationOptions,
                 reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
+                onStepViewed = viewModel::trackEmergencyUnlockStepViewed,
+                onValidationBlocked = viewModel::trackEmergencyUnlockValidationBlocked,
+                onCancelled = viewModel::trackEmergencyUnlockCancelled,
                 onUnlock = { reason, customReason, apps, duration ->
                     viewModel.emergencyUnlock(reason, customReason, apps, duration)
                     coroutineScope.launch {

@@ -154,6 +154,25 @@ class BlockViewModelTest {
         assertEquals(3, state.dailyUnlockRemaining)
     }
 
+    @Test
+    fun emergencyUnlockStepAnalyticsUseBlockScreenSource() {
+        val analytics = BlockRecordingKeepAnalytics()
+        val viewModel = createViewModel(dataStore = FakeDataStore(), analytics = analytics)
+
+        viewModel.trackEmergencyUnlockStepViewed("apps")
+        viewModel.trackEmergencyUnlockValidationBlocked("apps", "missing_app_selection")
+        viewModel.trackEmergencyUnlockCancelled("countdown")
+
+        assertEquals(
+            listOf(
+                BlockAnalyticsCall.EmergencyUnlockStepViewed("apps", true),
+                BlockAnalyticsCall.EmergencyUnlockValidationBlocked("apps", "missing_app_selection", true),
+                BlockAnalyticsCall.EmergencyUnlockCancelled("countdown", true),
+            ),
+            analytics.calls,
+        )
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: BlockRecordingKeepAnalytics,
@@ -191,6 +210,22 @@ private sealed interface BlockAnalyticsCall {
         val routineId: String?,
         val goalLockId: String? = null,
     ) : BlockAnalyticsCall
+
+    data class EmergencyUnlockStepViewed(
+        val stepName: String,
+        val reasonRequiredEnabled: Boolean,
+    ) : BlockAnalyticsCall
+
+    data class EmergencyUnlockValidationBlocked(
+        val stepName: String,
+        val validationReason: String,
+        val reasonRequiredEnabled: Boolean,
+    ) : BlockAnalyticsCall
+
+    data class EmergencyUnlockCancelled(
+        val stepName: String,
+        val reasonRequiredEnabled: Boolean,
+    ) : BlockAnalyticsCall
 }
 
 private class BlockRecordingKeepAnalytics : KeepAnalytics {
@@ -212,6 +247,36 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
+
+    override fun trackEmergencyUnlockStepViewed(
+        stepName: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+    ) {
+        calls += BlockAnalyticsCall.EmergencyUnlockStepViewed(stepName, reasonRequiredEnabled)
+    }
+
+    override fun trackEmergencyUnlockValidationBlocked(
+        stepName: String,
+        validationReason: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+    ) {
+        calls += BlockAnalyticsCall.EmergencyUnlockValidationBlocked(
+            stepName = stepName,
+            validationReason = validationReason,
+            reasonRequiredEnabled = reasonRequiredEnabled,
+        )
+    }
+
+    override fun trackEmergencyUnlockCancelled(
+        stepName: String,
+        reasonRequiredEnabled: Boolean,
+        source: String,
+        cancelSource: String,
+    ) {
+        calls += BlockAnalyticsCall.EmergencyUnlockCancelled(stepName, reasonRequiredEnabled)
+    }
 
     override fun trackAppBlockIntercepted(
         blockSource: String,

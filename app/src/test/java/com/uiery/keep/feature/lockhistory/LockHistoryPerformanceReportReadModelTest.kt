@@ -112,6 +112,9 @@ class LockHistoryPerformanceReportReadModelTest {
         assertEquals(2, displayReport.sessionCount)
         assertEquals(listOf("app.video" to 2, "app.social" to 1), displayReport.topApps)
         assertEquals(LockHistoryPerformanceReportState.HAS_HISTORY, displayReport.performanceReport.state)
+        assertEquals(R.string.lock_history_performance_selected_date_headline, displayReport.performanceReport.headlineResId)
+        assertEquals(R.string.lock_history_performance_selected_date_sessions_supporting, displayReport.performanceReport.supportingResId)
+        assertEquals("selected_date", displayReport.performanceReport.periodTypeAnalyticsValue)
         assertEquals("2_3", displayReport.performanceReport.sessionCountBucket)
         assertEquals("120_239", displayReport.performanceReport.durationMinutesBucket)
         assertEquals("2_3", displayReport.performanceReport.topAppsCountBucket)
@@ -148,7 +151,46 @@ class LockHistoryPerformanceReportReadModelTest {
         assertEquals(0, displayReport.sessionCount)
         assertEquals(emptyList<Pair<String, Int>>(), displayReport.topApps)
         assertEquals(LockHistoryPerformanceReportState.EMPTY, displayReport.performanceReport.state)
+        assertEquals(R.string.lock_history_performance_selected_date_empty_headline, displayReport.performanceReport.headlineResId)
+        assertEquals(R.string.lock_history_performance_selected_date_empty_supporting, displayReport.performanceReport.supportingResId)
+        assertEquals("selected_date", displayReport.performanceReport.periodTypeAnalyticsValue)
         assertFalse(displayReport.performanceReport.shouldShowTopApps)
+    }
+
+    @Test
+    fun selectedDateTopAppsCountsEachAppOncePerSession() {
+        val selectedDate = LocalDate.of(2026, 6, 6)
+        val groupedSessions = mapOf(
+            selectedDate to listOf(
+                lockHistory(
+                    id = 1,
+                    date = selectedDate,
+                    durationMinutes = 30,
+                    lockedApps = listOf("app.video", "app.video", "app.social"),
+                ),
+                lockHistory(
+                    id = 2,
+                    date = selectedDate,
+                    durationMinutes = 30,
+                    lockedApps = listOf("app.video"),
+                ),
+            ),
+        )
+
+        val displayReport = buildLockHistoryDisplayReport(
+            groupedSessions = groupedSessions,
+            selectedDate = selectedDate,
+            periodType = PeriodType.WEEK,
+            fallbackReport = buildLockHistoryPerformanceReport(
+                periodType = PeriodType.WEEK,
+                totalDurationMillis = 60 * 60 * 1000L,
+                sessionCount = 2,
+                topApps = listOf("app.video" to 2, "app.social" to 1),
+            ),
+        )
+
+        assertEquals(listOf("app.video" to 2, "app.social" to 1), displayReport.topApps)
+        assertEquals("2_3", displayReport.performanceReport.topAppsCountBucket)
     }
 
     @Test

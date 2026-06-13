@@ -38,6 +38,9 @@ class AndroidCiRuntimeSmokeDocsTest(unittest.TestCase):
                 self.assertIn("focused runtime smoke", text)
                 self.assertIn("scripts/android_runtime_suites.py", text)
                 self.assertIn("android_ci_focused_runtime_smoke", text)
+                self.assertIn("android_ci_exact_alarm_default", text)
+                self.assertIn("android_ci_exact_alarm_denied", text)
+                self.assertIn("android_ci_exact_alarm_allowed", text)
                 self.assertIn("notification_denied_receiver", text)
                 self.assertIn("notification_denied_emergency_unlock", text)
 

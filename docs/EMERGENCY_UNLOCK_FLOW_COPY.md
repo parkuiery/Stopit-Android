@@ -98,12 +98,12 @@ Issue: #467
 
 ## Analytics / measurement boundary
 
-#467의 기본 범위는 copy/step simplification이며 새 이벤트를 요구하지 않는다. 기존 이벤트 의미를 유지한다.
+#467의 기본 범위는 copy/step simplification이며 새 이벤트를 요구하지 않는다. 기존 이벤트 의미를 유지한다. 단계별 이탈·검증 실패를 실제로 계측하는 후속 계약은 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`(#779)를 source of truth로 본다.
 
 - `emergency_unlock_used(source, unlock_count_remaining?)`: 긴급해제 플로우 진입
 - `emergency_unlock_completed(reason, duration_minutes, remaining_unlocks)`: countdown 완료 후 실제 임시 해제 완료
 
-새 이벤트를 추가한다면 별도 code-lane 판단으로 제한하고 privacy-safe enum만 허용한다.
+새 이벤트를 추가한다면 별도 code-lane 판단으로 제한하고 privacy-safe enum만 허용한다. #779 계약의 canonical event는 아래 후보를 구체화한 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled`이며, PR #783으로 Android wiring은 `develop`에 반영됐다. GA4 Admin 등록·release/tag/Play deploy·readback 전에는 live 0건을 UX 병목 부재로 해석하지 않는다.
 
 - 허용 후보: `emergency_unlock_step_viewed(step_name)`, `emergency_unlock_validation_blocked(step_name, validation_reason)`, `emergency_unlock_cancelled(step_name)`
 - 금지: custom reason 원문, 앱 이름, package, raw selected app list, raw duration beyond configured option, raw timestamp/history

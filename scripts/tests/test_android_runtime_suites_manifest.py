@@ -14,6 +14,9 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
     def test_required_suites_are_defined(self):
         required = {
             "android_ci_focused_runtime_smoke",
+            "android_ci_exact_alarm_default",
+            "android_ci_exact_alarm_denied",
+            "android_ci_exact_alarm_allowed",
             "release_focused_ui_smoke",
             "release_exact_alarm_default",
             "release_exact_alarm_denied",
@@ -31,6 +34,18 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
 
     def test_all_selectors_exist_in_android_test_sources(self):
         self.assertEqual([], android_runtime_suites.validate_sources())
+
+    def test_category_selection_compose_regression_runs_in_android_ci_smoke(self):
+        self.assertIn(
+            "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
+            android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
+        )
+
+    def test_timer_picker_external_time_regression_runs_in_android_ci_smoke(self):
+        self.assertIn(
+            "com.uiery.keep.ui.component.TimerPickerIntegrationTest",
+            android_runtime_suites.SUITES["android_ci_focused_runtime_smoke"],
+        )
 
     def test_cli_class_arg_preserves_comma_separated_selector_contract(self):
         class_arg = android_runtime_suites.class_arg([
@@ -126,9 +141,15 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         self.assertEqual(9, result)
         connected_commands = [call for call in calls if ":app:connectedDevDebugAndroidTest" in call]
         self.assertTrue(any("StopitReleaseSmokeTest" in call[-1] for call in connected_commands))
+        self.assertTrue(any("defaultExactAlarmAppOpsFollowsAlarmManagerAvailability" in call[-1] for call in connected_commands))
+        self.assertTrue(any("addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt" in call[-1] for call in connected_commands))
+        self.assertTrue(any("enablingRoutineWithExactAlarmPermissionSchedulesAlarm" in call[-1] for call in connected_commands))
         self.assertTrue(any("routineAlarmReceiverWithoutPostNotificationsPermission" in call[-1] for call in connected_commands))
         self.assertTrue(any("NotificationChannelDisabledIntegrationTest" in call[-1] for call in connected_commands))
         self.assertTrue(any(call[:3] == ["./gradlew", "--console=plain", ":app:installDevDebug"] for call in calls))
+        self.assertTrue(any(call[:5] == ["adb", "shell", "cmd", "appops", "reset"] for call in calls))
+        self.assertTrue(any(call[:6] == ["adb", "shell", "appops", "set", "com.uiery.keep.dev", "SCHEDULE_EXACT_ALARM"] and call[-1] == "deny" for call in calls))
+        self.assertTrue(any(call[:6] == ["adb", "shell", "appops", "set", "com.uiery.keep.dev", "SCHEDULE_EXACT_ALARM"] and call[-1] == "allow" for call in calls))
         self.assertTrue(any(call[:6] == ["adb", "shell", "appops", "set", "com.uiery.keep.dev", "POST_NOTIFICATION"] for call in calls))
 
     def test_runtime_suite_manifest_changes_materialize_ci_scopes(self):

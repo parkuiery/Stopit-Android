@@ -26,9 +26,9 @@ class FeatureDomainBoundaryContextPackTest(unittest.TestCase):
         self.assertIn("current inventory", context)
 
         for required_axis in (
-            "GoalLock shared domain",
-            "Routine runtime repository/use-case",
-            "ParentMode runtime session/policy/store",
+            "GoalLock shared repository/data boundary",
+            "ParentMode session store migration",
+            "ParentMode runtime session/state",
         ):
             self.assertIn(required_axis, context)
 

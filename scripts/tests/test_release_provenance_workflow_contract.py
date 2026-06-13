@@ -8,6 +8,9 @@ PLAY_DOC = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+PINNED_UPLOAD_GOOGLE_PLAY_SHA = "eb49699984a39f23558439581660aa6f088acfd6"
+FLOATING_UPLOAD_GOOGLE_PLAY_REF = "r0adkll/upload-google-play@v1"
+PINNED_UPLOAD_GOOGLE_PLAY_REF = f"r0adkll/upload-google-play@{PINNED_UPLOAD_GOOGLE_PLAY_SHA}"
 
 
 def step_block(text: str, step_name: str) -> str:
@@ -92,6 +95,22 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("app/build/outputs/bundle/prodRelease/*.aab", upload_step)
         self.assertIn("app/build/outputs/bundle/prodRelease/release-provenance.json", upload_step)
 
+    def test_play_deploy_upload_google_play_action_is_sha_pinned(self):
+        workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
+        upload_step = step_block(workflow, "Upload to Google Play")
+
+        self.assertIn(PINNED_UPLOAD_GOOGLE_PLAY_REF, upload_step)
+        self.assertNotIn(FLOATING_UPLOAD_GOOGLE_PLAY_REF, upload_step)
+        self.assertIn("Release-critical deploy action", upload_step)
+        self.assertIn("reviewed provenance PR", upload_step)
+
+        for line in workflow.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("uses: r0adkll/upload-google-play@"):
+                ref = stripped.split("@", 1)[1]
+                self.assertRegex(ref, r"^[0-9a-f]{40}$")
+                self.assertEqual(PINNED_UPLOAD_GOOGLE_PLAY_SHA, ref)
+
     def test_non_production_tag_deploy_publishes_durable_release_provenance_fallback(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
         self.assertIn("contents: write", workflow)
@@ -147,19 +166,27 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", download_step)
         self.assertIn("GH_TOKEN: ${{ github.token }}", download_step)
         self.assertIn("gh run list", download_step)
+        self.assertIn("try_candidate_run()", download_step)
         self.assertIn("for event_name in push workflow_dispatch", download_step)
         self.assertIn("--event \"$event_name\"", download_step)
-        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$run_event", download_step)
+        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$candidate_event", download_step)
         self.assertIn("Selected prior internal Play Deploy run", download_step)
+        self.assertIn("after manifest track/status verification", download_step)
         self.assertIn("gh run download", download_step)
         self.assertIn("--name stopit-prod-release-signed-aab", download_step)
+        self.assertIn("python3 scripts/release_provenance_manifest.py verify", download_step)
+        self.assertIn("--track internal", download_step)
+        self.assertIn("--release-status completed", download_step)
+        self.assertIn("prior internal track mismatch or provenance mismatch", download_step)
+        self.assertIn("alpha/beta/production or mismatched candidates are not valid prior internal evidence", download_step)
+        self.assertIn("with track=internal and release_status=completed", download_step)
         self.assertIn("gh release download \"$GITHUB_REF_NAME\"", download_step)
         self.assertIn("--pattern release-provenance.json", download_step)
         self.assertIn("release-provenance.json", download_step)
         self.assertIn("PROVENANCE_VERIFY_MODE=metadata-only", download_step)
         self.assertIn("artifact expired/missing", download_step)
         self.assertIn("durable fallback missing", download_step)
-        self.assertIn("rerun non-production Play Deploy", download_step)
+        self.assertIn("rerun a non-production Play Deploy with track=internal", download_step)
 
         verify_step = step_block(workflow, "Verify prior internal provenance before production promotion")
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", verify_step)
@@ -195,6 +222,11 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "tag push artifact",
             "manual deploy artifact",
             "workflow_dispatch",
+            "track=internal",
+            "release_status=completed",
+            "prior internal track mismatch",
+            "alpha",
+            "beta",
             "before `Upload signed AAB artifact`",
             "30-day evidence surface",
             "durable fallback",
@@ -204,6 +236,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "evidence-publish failure",
             "do not blindly re-upload the same `versionCode`",
             "provenance mismatch",
+            "r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6",
+            "floating major tag",
+            "reviewed release-provenance PR",
+            "repo-owned promotion helper",
         ):
             self.assertIn(required, docs)
 

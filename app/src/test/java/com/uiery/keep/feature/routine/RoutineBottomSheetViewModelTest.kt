@@ -6,6 +6,9 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
@@ -18,7 +21,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -78,7 +84,7 @@ class RoutineBottomSheetViewModelTest {
             awaitUntil { routineDao.updatedEntity != null }
 
             assertEquals(false, routineDao.updatedEntity?.isEnabled)
-            Mockito.verify(routineScheduler).cancelRoutine(7L)
+            awaitRoutineCancelled(routineScheduler, 7L)
             Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
         }
     }
@@ -104,8 +110,8 @@ class RoutineBottomSheetViewModelTest {
         awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
-        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).cancelRoutine(7L)
-        Mockito.verify(routineScheduler, Mockito.timeout(1_000)).scheduleRoutine(anyRoutine())
+        awaitRoutineCancelled(routineScheduler, 7L)
+        awaitRoutineScheduled(routineScheduler)
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
@@ -152,28 +158,50 @@ class RoutineBottomSheetViewModelTest {
             analytics = analytics,
         )
 
+        val sideEffects = async { viewModel.container.sideEffectFlow.take(1).toList() }
+
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
         awaitUntil { routineDao.insertedEntity != null }
 
         assertEquals("Morning focus", routineDao.insertedEntity?.name)
-        Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+        awaitRoutineScheduled(routineScheduler)
+        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
         )
+        assertEquals(
+            listOf(
+                RoutineSavedAnalyticsPayload(
+                    entrySurface = "routine",
+                    creationSource = RoutineSavedCreationSource.MANUAL,
+                    selectedAppCountBucket = "1",
+                    repeatDaysBucket = "custom_days",
+                    timeWindowBucket = "morning",
+                    scheduleState = RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            analytics.routineSavedCalls,
+        )
+        assertEquals(
+            listOf(RoutineBottomSheetSideEffect.CloseBottomSheet),
+            withTimeout(1_000) { sideEffects.await() },
+        )
     }
 
     @Test
-    fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermission() = runBlocking {
+    fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermissionBeforeClosingSheet() = runBlocking {
         val routineDao = RecordingRoutineDao(insertedId = 43L)
+        val analytics = RecordingKeepAnalytics()
         val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
         Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(false)
         val viewModel = createViewModel(
             routineDao = routineDao,
             routineScheduler = routineScheduler,
+            analytics = analytics,
         )
-        val sideEffect = async { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = async { viewModel.container.sideEffectFlow.take(2).toList() }
 
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
@@ -181,7 +209,17 @@ class RoutineBottomSheetViewModelTest {
 
         assertEquals(false, routineDao.insertedEntity?.isEnabled)
         Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect.await())
+        assertEquals(
+            listOf(RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING),
+            analytics.routineSavedCalls.map { it.scheduleState },
+        )
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            withTimeout(1_000) { sideEffects.await() },
+        )
     }
 
     @Test
@@ -235,6 +273,19 @@ class RoutineBottomSheetViewModelTest {
             listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
             analytics.repeatBlockAppliedCalls,
         )
+        assertEquals(
+            listOf(
+                RoutineSavedAnalyticsPayload(
+                    entrySurface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    creationSource = RoutineSavedCreationSource.REPEAT_BLOCK_PREFILL,
+                    selectedAppCountBucket = "2_3",
+                    repeatDaysBucket = "weekday",
+                    timeWindowBucket = "overnight",
+                    scheduleState = RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            analytics.routineSavedCalls,
+        )
     }
 
     private fun createViewModel(
@@ -274,6 +325,26 @@ class RoutineBottomSheetViewModelTest {
         repeat(20) {
             if (predicate()) return
             delay(10)
+        }
+        error("Timed out waiting for asynchronous RoutineBottomSheetViewModel intent")
+    }
+
+    private suspend fun awaitRoutineCancelled(
+        routineScheduler: RoutineScheduler,
+        id: Long,
+    ) {
+        awaitUntil {
+            runCatching {
+                Mockito.verify(routineScheduler).cancelRoutine(id)
+            }.isSuccess
+        }
+    }
+
+    private suspend fun awaitRoutineScheduled(routineScheduler: RoutineScheduler) {
+        awaitUntil {
+            runCatching {
+                Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
+            }.isSuccess
         }
     }
 
@@ -376,6 +447,7 @@ private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
     val lockScheduledCalls = mutableListOf<Pair<String, Long>>()
     val repeatBlockClickedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
     val repeatBlockAppliedCalls = mutableListOf<Pair<String, RepeatBlockRoutineSuggestionAnalyticsPayload>>()
+    val routineSavedCalls = mutableListOf<RoutineSavedAnalyticsPayload>()
 
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
         lockScheduledCalls += scheduleType to scheduledDurationMinutes
@@ -393,6 +465,10 @@ private class RecordingKeepAnalytics : NoOpKeepAnalytics() {
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         repeatBlockAppliedCalls += surface to suggestion
+    }
+
+    override fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) {
+        routineSavedCalls += payload
     }
 }
 

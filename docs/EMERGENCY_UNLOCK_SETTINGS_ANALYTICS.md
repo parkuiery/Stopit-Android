@@ -4,7 +4,7 @@ Issue: #694
 
 ## 목적
 
-긴급해제 설정 화면은 사용자가 Stopit의 차단 강도와 안전장치를 직접 조절하는 고신뢰 표면이다. #694 code-lane에서 `EmergencyUnlockSettingsViewModel`의 설정 변경 경로에 Android analytics wiring을 연결했다. 이제 사용자가 실제로 바꾸는 정책(`enabled`, 일일 횟수, 허용 duration, reason required, daily/manual refill, manual reset)은 enum/bucket 이벤트로 남기되, GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live event 부재를 adoption 부재로 해석하지 않는다.
+긴급해제 설정 화면은 사용자가 Stopit의 차단 강도와 안전장치를 직접 조절하는 고신뢰 표면이다. #694 code-lane에서 `EmergencyUnlockSettingsViewModel`의 설정 변경 경로에 Android analytics wiring을 연결했다. 이제 사용자가 실제로 바꾸는 정책(`enabled`, 일일 횟수, 허용 duration, reason required, daily/manual refill, manual reset)은 enum/bucket 이벤트로 남긴다. 동일 값을 다시 선택하거나 단일 duration option을 다시 눌러 저장 값이 유지되는 no-op 조작은 `emergency_unlock_settings_changed`로 기록하지 않아 adoption/readback 분모가 부풀지 않게 한다. GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live event 부재를 adoption 부재로 해석하지 않는다.
 
 이 문서는 #694의 source of truth다. 목표는 긴급해제 설정 adoption과 마찰을 **privacy-safe enum/bucket**으로만 해석할 수 있게 Android wiring 계약, GA4 등록 경계, QA evidence를 고정하는 것이다. 현재 repo-internal Android wiring은 완료됐지만 GA4 Admin·release/readback 전까지 `Refs #694`를 사용한다.
 
@@ -15,7 +15,7 @@ Issue: #694
 - 설정 저장소: `app/src/main/java/com/uiery/keep/datastore/EmergencyUnlockSettingsStore.kt`
 - 정책/availability: `app/src/main/java/com/uiery/keep/service/EmergencyUnlockPolicy.kt`, `EmergencyUnlockCoordinator.kt`
 - analytics 상수/API: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`, `FirebaseKeepAnalytics.kt`
-- 현재 상태: `EmergencyUnlockSettingsViewModel.init`는 `screen_view(EmergencyUnlockSettingsScreen)`를 기록하고, 설정 변경/수동 reset 경로는 아래 `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` 이벤트를 기록한다.
+- 현재 상태: `EmergencyUnlockSettingsViewModel.init`는 `screen_view(EmergencyUnlockSettingsScreen)`를 기록하고, 실제 저장 값이 바뀐 설정 변경/수동 reset 경로는 아래 `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` 이벤트를 기록한다.
 
 설정 변경 함수별 의미:
 
@@ -32,7 +32,7 @@ Issue: #694
 
 ### `emergency_unlock_settings_changed`
 
-설정 값이 사용자의 명시적 조작으로 바뀌었을 때 기록한다. 설정 화면 진입만으로 기록하지 않는다.
+설정 값이 사용자의 명시적 조작으로 실제 바뀌었을 때 기록한다. 설정 화면 진입, 이미 선택된 동일 값 재선택, 또는 `toggleDuration`이 최소 1개 duration option을 유지하느라 저장 값을 바꾸지 않는 no-op 조작만으로는 기록하지 않는다.
 
 | 파라미터 | 값 후보 | 설명 |
 | --- | --- | --- |
@@ -121,8 +121,8 @@ Readback 최소 쿼리:
 #694 code-lane wiring 상태:
 
 - `KeepAnalytics` / `FirebaseKeepAnalytics`: `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` 이벤트 API와 Firebase payload 구현 완료.
-- `EmergencyUnlockSettingsViewModel`: `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`, `manual_reset` 변경 경로에서 `source=menu`와 privacy-safe enum/bucket payload만 기록.
-- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가는지 고정.
+- `EmergencyUnlockSettingsViewModel`: `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`, `manual_reset` 변경 경로에서 `source=menu`와 privacy-safe enum/bucket payload만 기록. 동일 값 재선택/no-op duration toggle은 `emergency_unlock_settings_changed`를 기록하지 않는다.
+- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가고, no-op 설정 조작은 change 이벤트를 만들지 않음을 고정.
 - 남은 외부 경계: GA4 Admin custom dimension/metric 등록, SemVer tag/Play deploy 포함, D+14/D+30 readback.
 
 ## Historical code-lane handoff

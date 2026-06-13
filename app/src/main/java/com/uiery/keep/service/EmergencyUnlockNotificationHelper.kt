@@ -51,9 +51,10 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
     }
 
     internal fun showCountdown(remainingSeconds: Int, totalSeconds: Int): EmergencyUnlockNotificationPostResult {
-        if (!canPostNotification()) {
+        val postResult = resolveNotificationPostResult()
+        if (postResult != EmergencyUnlockNotificationPostResult.Posted) {
             cancel()
-            return EmergencyUnlockNotificationPostResult.PermissionDenied
+            return postResult
         }
         val timeText = formatMinuteSecondCountdown(remainingSeconds)
         val progress = if (totalSeconds > 0) (remainingSeconds * 100) / totalSeconds else 0
@@ -91,9 +92,10 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         }
 
     internal fun showExpired(): EmergencyUnlockNotificationPostResult {
-        if (!canPostNotification()) {
+        val postResult = resolveNotificationPostResult()
+        if (postResult != EmergencyUnlockNotificationPostResult.Posted) {
             cancel()
-            return EmergencyUnlockNotificationPostResult.PermissionDenied
+            return postResult
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.kepp_icon)
@@ -109,7 +111,7 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         notificationManager.cancel(NOTIFICATION_ID)
     }
 
-    private fun canPostNotification(): Boolean {
+    private fun resolveNotificationPostResult(): EmergencyUnlockNotificationPostResult {
         val notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
         val permissionGranted =
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -117,7 +119,7 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
             notificationsEnabled = notificationsEnabled,
             postNotificationsPermissionGranted = permissionGranted,
             notificationChannelEnabled = isNotificationChannelEnabled(),
-        ) == EmergencyUnlockNotificationPostResult.Posted
+        )
     }
 
     private fun isNotificationChannelEnabled(): Boolean =

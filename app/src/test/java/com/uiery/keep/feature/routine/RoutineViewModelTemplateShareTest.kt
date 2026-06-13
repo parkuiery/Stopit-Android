@@ -57,7 +57,8 @@ class RoutineViewModelTemplateShareTest {
             listOf(RoutineShareEvent.Tapped("study", "weekday", "evening", false)),
             analytics.events,
         )
-        assertEquals(false, effect.payload.text.contains("com.youtube.android"))
+        val shareText = effect.payload.buildShareText(privacyTestTextProvider())
+        assertEquals(false, shareText.contains("com.youtube.android"))
     }
 
     @Test
@@ -114,6 +115,20 @@ class RoutineViewModelTemplateShareTest {
             delay(10)
         }
         return viewModel.container.stateFlow.value
+    }
+
+    private fun privacyTestTextProvider() = object : RoutineTemplateShareTextProvider {
+        override fun title(): String = "title"
+
+        override fun categoryLabel(category: RoutineTemplateCategory): String = category.analyticsValue
+
+        override fun repeatDaysLabel(bucket: RoutineTemplateRepeatDaysBucket): String = bucket.analyticsValue
+
+        override fun timeWindowLabel(bucket: RoutineTemplateTimeWindowBucket): String = bucket.analyticsValue
+
+        override fun durationText(totalMinutes: Long): String = "$totalMinutes minutes"
+
+        override fun callToAction(): String = "cta"
     }
 
     private fun routineEntity(

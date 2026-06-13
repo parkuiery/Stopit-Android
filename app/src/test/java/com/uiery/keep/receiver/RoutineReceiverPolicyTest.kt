@@ -308,6 +308,42 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun selectRoutineStartFallbackMessageUsesPermissionDeniedCopyForPermissionDeniedResult() {
+        assertEquals(
+            "Routine started without notification permission",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
+    fun selectRoutineStartFallbackMessageUsesChannelDisabledCopyForChannelDisabledResult() {
+        assertEquals(
+            "Routine started while notification channel was disabled",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.ChannelDisabled,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
+    fun selectRoutineStartFallbackMessageReturnsBlankWhenNotificationPosted() {
+        assertEquals(
+            "",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.Posted,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
     fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenNotificationPermissionDenied() {
         assertEquals(
             PendingRoutineStartNotice(message = "Routine started without notification permission"),

@@ -46,7 +46,16 @@ class ActionlintGateContractTest(unittest.TestCase):
         self.assertIn("ACTIONLINT_VERSION", workflow)
         self.assertRegex(workflow, r"ACTIONLINT_VERSION:\s+\d+\.\d+\.\d+")
         self.assertNotIn("bash -s -- latest", workflow)
-        self.assertRegex(workflow, r"bash -s -- \"\$ACTIONLINT_VERSION\" /usr/local/bin")
+
+    def test_ops_ci_installs_actionlint_from_tagged_release_with_checksum(self):
+        workflow = OPS_CI.read_text()
+
+        self.assertNotIn("raw.githubusercontent.com/rhysd/actionlint/main", workflow)
+        self.assertNotIn("download-actionlint.bash", workflow)
+        self.assertIn("github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION", workflow)
+        self.assertIn("actionlint_${ACTIONLINT_VERSION}_checksums.txt", workflow)
+        self.assertIn("sha256sum --check", workflow)
+        self.assertIn("actionlint_${ACTIONLINT_VERSION}_${os}_${arch}.tar.gz", workflow)
 
     def test_operator_docs_describe_remote_actionlint_gate(self):
         git_workflow = GIT_WORKFLOW.read_text()
@@ -61,6 +70,8 @@ class ActionlintGateContractTest(unittest.TestCase):
                 self.assertIn("actionlint", doc)
                 self.assertIn("1.7.12", doc)
                 self.assertIn(".github/workflows/**", doc)
+                self.assertIn("GitHub Release asset", doc)
+                self.assertIn("checksum", doc)
 
     def test_governance_release_workflows_use_checkout_v6(self):
         for workflow_name in GOVERNANCE_RELEASE_WORKFLOWS:

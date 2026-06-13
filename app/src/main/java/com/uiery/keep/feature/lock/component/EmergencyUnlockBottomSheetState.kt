@@ -1,6 +1,8 @@
 package com.uiery.keep.feature.lock.component
 
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockStepName
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockValidationReason
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EMERGENCY_UNLOCK_REASON_NOT_REQUIRED
 
@@ -94,6 +96,32 @@ internal data class EmergencyUnlockBottomSheetState(
             }
             EmergencyUnlockBottomSheetStep.DURATION -> null
             EmergencyUnlockBottomSheetStep.COUNTDOWN -> null
+        }
+
+    val validationReason: String?
+        get() = when (step) {
+            EmergencyUnlockBottomSheetStep.REASON -> when {
+                selectedReason == OTHER_REASON_KEY && customReason.isBlank() ->
+                    AnalyticsEmergencyUnlockValidationReason.MISSING_CUSTOM_REASON
+                selectedReason == null -> AnalyticsEmergencyUnlockValidationReason.MISSING_REASON
+                else -> null
+            }
+            EmergencyUnlockBottomSheetStep.APPS -> if (selectedApps.isEmpty()) {
+                AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION
+            } else {
+                null
+            }
+            EmergencyUnlockBottomSheetStep.DURATION,
+            EmergencyUnlockBottomSheetStep.COUNTDOWN,
+            -> null
+        }
+
+    val analyticsStepName: String
+        get() = when (step) {
+            EmergencyUnlockBottomSheetStep.REASON -> AnalyticsEmergencyUnlockStepName.REASON
+            EmergencyUnlockBottomSheetStep.APPS -> AnalyticsEmergencyUnlockStepName.APPS
+            EmergencyUnlockBottomSheetStep.DURATION -> AnalyticsEmergencyUnlockStepName.DURATION
+            EmergencyUnlockBottomSheetStep.COUNTDOWN -> AnalyticsEmergencyUnlockStepName.COUNTDOWN
         }
 
     val selectedReasonReflectionTextRes: Int?

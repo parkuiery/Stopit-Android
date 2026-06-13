@@ -1,6 +1,8 @@
-package com.uiery.keep.feature.parentmode
+package com.uiery.keep.data.parentmode
 
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

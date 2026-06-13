@@ -87,6 +87,32 @@ class EmergencyUnlockSettingsViewModelAnalyticsTest {
     }
 
     @Test
+    fun unchangedSettingsDoNotTrackSettingChange() = runBlocking {
+        val analytics = RecordingEmergencyUnlockSettingsAnalytics()
+        val viewModel = createViewModel(analytics = analytics)
+
+        viewModel.applyEnabled(true)
+        viewModel.applyDailyLimit(3)
+        viewModel.applyReasonRequired(true)
+        viewModel.applyAutoResetEnabled(EmergencyUnlockRefillMode.Daily.autoResetEnabled)
+
+        assertEquals(emptyList<SettingsChangedCall>(), analytics.settingsChangedCalls)
+    }
+
+    @Test
+    fun durationToggleThatKeepsOnlyAllowedOptionDoesNotTrackSettingChange() = runBlocking {
+        val analytics = RecordingEmergencyUnlockSettingsAnalytics()
+        val dataStore = FakeDataStore.withPrefs {
+            this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("3")
+        }
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        viewModel.applyDurationToggle(3)
+
+        assertEquals(emptyList<SettingsChangedCall>(), analytics.settingsChangedCalls)
+    }
+
+    @Test
     fun invalidDurationDoesNotTrackSettingChange() = runBlocking {
         val analytics = RecordingEmergencyUnlockSettingsAnalytics()
         val viewModel = createViewModel(analytics = analytics)
