@@ -9,9 +9,9 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedRepeatDaysBucketName
 import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
-import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
-import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
+import com.uiery.keep.analytics.routine.RoutineSavedTimeWindowBucketName
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
@@ -302,7 +302,7 @@ private fun RoutineBottomSheetUiState.toRoutineSavedAnalyticsPayload(
 private fun RoutineExactAlarmScheduleDecision.toRoutineSavedScheduleState(permissionPromptRequested: Boolean): String = when {
     shouldShowPermissionPrompt || permissionPromptRequested -> RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING
     routine.isEnabled -> RoutineSavedScheduleState.ENABLED
-    else -> RoutineSavedScheduleState.DISABLED
+    else -> RoutineSavedScheduleState.DISABLED_USER_CHOICE
 }
 
 private fun selectedAppCountBucket(count: Int): String = when (count) {
@@ -313,34 +313,24 @@ private fun selectedAppCountBucket(count: Int): String = when (count) {
 }
 
 private fun repeatDaysBucket(days: Set<DayOfWeek>): String = when {
-    days.isEmpty() -> RoutineTemplateRepeatDaysBucketName.NONE
-    days == weekdaySet -> RoutineTemplateRepeatDaysBucketName.WEEKDAY
-    days == weekendSet -> RoutineTemplateRepeatDaysBucketName.WEEKEND
-    days.size == DayOfWeek.entries.size -> RoutineTemplateRepeatDaysBucketName.DAILY
-    else -> RoutineTemplateRepeatDaysBucketName.CUSTOM_DAYS
+    days.size <= 1 -> RoutineSavedRepeatDaysBucketName.ONE
+    days.size in 2..3 -> RoutineSavedRepeatDaysBucketName.TWO_TO_THREE
+    days.size in 4..6 -> RoutineSavedRepeatDaysBucketName.FOUR_TO_SIX
+    else -> RoutineSavedRepeatDaysBucketName.SEVEN
 }
-
-private val weekdaySet = setOf(
-    DayOfWeek.MONDAY,
-    DayOfWeek.TUESDAY,
-    DayOfWeek.WEDNESDAY,
-    DayOfWeek.THURSDAY,
-    DayOfWeek.FRIDAY,
-)
-
-private val weekendSet = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
 
 private fun timeWindowBucket(
     startTime: LocalTime,
     endTime: LocalTime,
 ): String {
-    if (endTime <= startTime) return RoutineTemplateTimeWindowBucketName.OVERNIGHT
+    if (endTime == startTime) return RoutineSavedTimeWindowBucketName.ALL_DAY
+    if (endTime < startTime) return RoutineSavedTimeWindowBucketName.OVERNIGHT
     return when (startTime.hour) {
-        in 5..11 -> RoutineTemplateTimeWindowBucketName.MORNING
-        in 12..16 -> RoutineTemplateTimeWindowBucketName.AFTERNOON
-        in 17..20 -> RoutineTemplateTimeWindowBucketName.EVENING
-        in 21..23, in 0..4 -> RoutineTemplateTimeWindowBucketName.NIGHT
-        else -> RoutineTemplateTimeWindowBucketName.CUSTOM_WINDOW
+        in 5..11 -> RoutineSavedTimeWindowBucketName.MORNING
+        in 12..16 -> RoutineSavedTimeWindowBucketName.AFTERNOON
+        in 17..20 -> RoutineSavedTimeWindowBucketName.EVENING
+        in 21..23, in 0..4 -> RoutineSavedTimeWindowBucketName.NIGHT
+        else -> RoutineSavedTimeWindowBucketName.CUSTOM
     }
 }
 
