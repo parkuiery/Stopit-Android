@@ -187,7 +187,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 잠금 기록 성과 리포트
 
-`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. PR #566은 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는 focused accessibility baseline을 추가했고, PR #579는 Top Apps card의 rank/app label/block count/duration까지 같은 content description에 포함되도록 회귀 범위를 확장했다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
+`LockHistory` 성과 리포트 UX의 제품/QA 계약은 `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`를 source of truth로 본다. #465는 #211 공유 CTA와 같은 화면을 쓰지만, 1차 목표는 외부 공유가 아니라 개인 성과 해석과 재방문 동기 강화다. PR #485로 `LockHistoryPerformanceReportReadModel`과 summary/top apps UI copy는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 아래 `lock_history_*` 이벤트가 코드에 추가됐다. PR #566은 summary/top apps 성과 copy가 TalkBack content description으로 합쳐져 전달되는 focused accessibility baseline을 추가했고, PR #579는 Top Apps card의 rank/app label/block count/duration까지 같은 content description에 포함되도록 회귀 범위를 확장했다. PR #805(`8f14158e`) 이후 선택 날짜 summary/top apps는 `period_type=selected_date`, 일별 headline/supporting copy, 일별 empty copy로 주/월 전체 기간 copy와 분리해 해석한다. empty/low-data 상태도 실패처럼 보이지 않게 만들고, top apps는 `위험 앱 목록`보다 `막아낸 성과`로 읽히게 한다. analytics payload에는 앱 이름/package/raw session/raw timestamp/raw duration을 보내지 않고 enum/bucket만 남긴다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
