@@ -151,7 +151,6 @@
     <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>
     <string name="parent_mode_setup_description">현재 선택한 차단 앱 목록을 부모 모드 허용 앱으로 불러와요. 필요하면 아래에서 조정할 수 있어요.</string>
     <string name="parent_mode_setup_allowed_apps_summary">현재 선택에서 불러온 허용 앱: %1$d개</string>
-    <string name="parent_mode_setup_duration_option">%1$d분</string>
     <string name="parent_mode_active_title">부모 모드가 실행 중이에요</string>
     <string name="parent_mode_expired_title">부모 모드 시간이 끝났어요</string>
     <string name="parent_mode_ended_title">부모 모드가 종료됐어요</string>
