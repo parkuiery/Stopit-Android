@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RoutineRoute(
+    val routineSavedEntrySurface: String? = null,
+    val routineSavedCreationSource: String? = null,
     val repeatBlockSurface: String? = null,
     val repeatBlockReason: String? = null,
     val repeatBlockTimeBucket: String? = null,
@@ -25,9 +27,14 @@ data class RoutineRoute(
 )
 
 fun NavController.navigateToRoutine(
+    routineSavedEntrySurface: String? = null,
+    routineSavedCreationSource: String? = null,
     navOptions: NavOptions? = null,
 ) = navigate(
-    route = RoutineRoute(),
+    route = RoutineRoute(
+        routineSavedEntrySurface = routineSavedEntrySurface,
+        routineSavedCreationSource = routineSavedCreationSource,
+    ),
     navOptions = navOptions,
 )
 
@@ -60,6 +67,8 @@ fun NavGraphBuilder.routineScreen(
     composable<RoutineRoute> { backStackEntry ->
         val route = backStackEntry.toRoute<RoutineRoute>()
         RoutineScreen(
+            routineSavedEntrySurface = route.routineSavedEntrySurface,
+            routineSavedCreationSource = route.routineSavedCreationSource,
             repeatBlockSuggestionSurface = route.repeatBlockSurface,
             repeatBlockSuggestion = route.toRepeatBlockRoutineSuggestionOrNull(),
             onNavigateBack = onNavigateBack,

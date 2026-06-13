@@ -97,7 +97,7 @@ fun HomeScreen(
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
     onNavigateLockHistory: () -> Unit,
-    onNavigateRoutine: () -> Unit,
+    onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
     onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
 ) {
@@ -139,7 +139,10 @@ fun HomeScreen(
             }
 
             is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
-            HomeSideEffect.MoveToRoutine -> onNavigateRoutine()
+            is HomeSideEffect.MoveToRoutine -> onNavigateRoutine(
+                effect.routineSavedEntrySurface,
+                effect.routineSavedCreationSource,
+            )
             is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill -> {
                 onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
             }
