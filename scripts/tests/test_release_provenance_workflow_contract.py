@@ -131,6 +131,15 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("release-provenance.json", publish_step)
         self.assertIn("gh release view \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release create \"$GITHUB_REF_NAME\"", publish_step)
+        self.assertIn("python3 scripts/release_provenance_manifest.py compare", publish_step)
+        self.assertIn("--existing-manifest \"$existing_fallback_manifest\"", publish_step)
+        self.assertIn("--current-manifest app/build/outputs/bundle/prodRelease/release-provenance.json", publish_step)
+        self.assertLess(
+            publish_step.index("python3 scripts/release_provenance_manifest.py compare"),
+            publish_step.index("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber"),
+        )
+        self.assertIn("Existing durable fallback identity mismatch; refusing to clobber", publish_step)
+        self.assertIn("Existing durable internal fallback identity matches this internal completed manifest; clobber is safe", publish_step)
         self.assertIn("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber", publish_step)
         self.assertIn("post_upload_failure()", publish_step)
         self.assertIn("Post-upload durable internal provenance publish failure", publish_step)
@@ -240,6 +249,13 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "do not blindly re-upload the same `versionCode`",
             "internal completed Play Deploy",
             "must not clobber",
+            "scripts/release_provenance_manifest.py compare",
+            "gh release upload --clobber",
+            "existing durable fallback identity mismatch",
+            "refuse to clobber",
+            "run_id",
+            "run_attempt",
+            "run_url",
             "provenance mismatch",
             "r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6",
             "floating major tag",
