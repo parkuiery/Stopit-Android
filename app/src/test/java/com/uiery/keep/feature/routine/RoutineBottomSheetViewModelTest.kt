@@ -240,6 +240,11 @@ class RoutineBottomSheetViewModelTest {
             routineSavedEntrySurface = "home_secondary",
             routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
         )
+        awaitUntil {
+            viewModel.container.stateFlow.value.routineSavedEntrySurface == "home_secondary" &&
+                viewModel.container.stateFlow.value.routineSavedCreationSource ==
+                RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA
+        }
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
         awaitUntil { routineDao.insertedEntity != null }
