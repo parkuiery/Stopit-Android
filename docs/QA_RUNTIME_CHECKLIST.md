@@ -757,6 +757,54 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 이 증거가 없으면 #455는 문서 계약이 있더라도 구현/QA 경계가 남은 상태로 본다. GA4 Admin 등록, CTA 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`의 외부/manual 경계를 따른다.
 
+### Routine saved analytics QA baseline
+
+issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. 이 baseline은 #455/#531 전환 측정 신뢰도를 보강하지만, Android wiring·GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
+
+자동 baseline(구현 PR에서 추가/확장할 테스트):
+
+```bash
+cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.analytics.RoutineSavedAnalyticsTest' \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest'
+python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
+```
+
+검증 범위:
+- manual routine creation 저장 성공 시 `routine_saved(creation_source=manual, entry_surface=routine)`가 정확히 1회 전송된다.
+- post_first_block_cta 경로 저장 성공 시 `routine_saved(creation_source=post_first_block_cta)`를 남기고 `routine_creation_cta_clicked`와 저장 완료를 분리해 해석한다.
+- repeat_block_prefill 경로 저장 성공 시 기존 `repeat_block_routine_suggestion_applied` 의미를 유지하면서 `routine_saved(creation_source=repeat_block_prefill)`도 함께 남긴다.
+- exact alarm 권한 부족으로 루틴이 disabled 저장되는 경우도 저장 완료는 `routine_saved.schedule_state=disabled_exact_alarm_missing`로 남기고, 성공 예약 이벤트인 `lock_scheduled`로 대체하지 않는다.
+- raw routine name / app package / app list / raw time / routine id absent 상태가 analytics payload spot-check에서 확인된다.
+
+수동 QA evidence template:
+
+```md
+## Routine saved analytics QA evidence
+- Issue: #810
+- Build / variant:
+- Device / Android version / OEM:
+- Entry point: manual routine creation / post_first_block_cta / repeat_block_prefill
+- Commands:
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.analytics.RoutineSavedAnalyticsTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest'`
+  - `python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v`
+- Saved routine shape:
+  - selected_app_count_bucket:
+  - repeat_days_bucket:
+  - time_window_bucket:
+  - schedule_state: enabled / disabled_exact_alarm_missing / disabled_user_choice / disabled_unknown
+- Analytics payload spot-check:
+  - routine_saved:
+  - repeat_block_routine_suggestion_applied (if repeat_block_prefill):
+  - routine_creation_cta_clicked (if post_first_block_cta):
+  - raw routine name / app package / app list / raw time / routine id absent:
+- Decision: pass / fail / needs follow-up
+- Notes:
+```
+
+이 증거가 없으면 #810은 문서 계약이 있더라도 Android wiring/QA 경계가 남은 상태로 본다. GA4 Admin 등록, #810 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 외부/manual 경계를 따른다.
+
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 
 issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
@@ -838,7 +886,7 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
   --tests 'com.uiery.keep.feature.routine.RoutineListActionPolicyTest'
 ./gradlew --console=plain :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState
 python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 ./gradlew --console=plain :app:lintProdRelease
 ```
@@ -846,6 +894,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 검증 범위:
 - 실행 중인 루틴을 탭해 상세/수정 bottom sheet를 열려고 하면 `RoutineSideEffect.ShowActiveRoutineBlocked`가 발생하고 edit sheet가 열리지 않는다.
 - 활성 루틴 대상 앱이 이미 foreground에 있거나 foreground로 전환될 때 `KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution`가 `block_source=routine`과 `routine_id` attribution으로 `BlockActivity` 요청을 고정한다.
+- `KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives`는 보호 대상 앱이 이미 foreground인 상태에서 루틴 시간이 도래하면 추가 window-state event 없이도 time-based 재평가가 실행되어 `block_source=routine`과 `routine_id` attribution으로 차단되는지 고정한다.
 - 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시킨다.
 - 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
 - 루틴 목록 switch를 직접 탭해 OFF를 시도해도 `RoutineListActionPolicyTest` / `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState`가 toggle callback 대신 blocked feedback callback을 고정한다.

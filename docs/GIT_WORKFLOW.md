@@ -310,6 +310,7 @@ gh pr create --base main --fill
 - 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
 - Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다. artifact 생성 전 `:app:lintProdRelease`와 `scripts/verify_lint_registry.py`로 prodRelease lint registry를 재확인한다. Manual dispatch는 `main`, `release/*`, `hotfix/*`, 또는 SemVer tag ref에서만 signing secrets와 signed release artifact 경로에 도달한다.
 - CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다. non-production build/upload 경로는 signed AAB 업로드 전 같은 prod lint/registry gate를 실행하고, production promotion은 기존 internal release 승격만 하므로 `:app:lintProdRelease`를 실행하지 않는다.
+- Google Play 업로드 side effect를 만드는 third-party action은 floating major tag가 아니라 검토된 SHA(`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`)로 고정한다. 이 SHA를 바꾸는 PR은 workflow, `scripts.tests.test_release_provenance_workflow_contract`, release/operator docs를 함께 갱신해야 한다.
 - manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다. 선택한 tag 역시 `scripts/validate-play-deploy-ref.sh`로 `origin/main` ancestry와 직전 production marker gate를 통과해야 하므로 tag-push CD와 같은 release provenance/sequence guard를 공유한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
 - tag-push와 manual dispatch 모두 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.

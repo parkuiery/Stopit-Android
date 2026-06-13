@@ -186,6 +186,30 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     @Test
+    fun foregroundAppBecomesBlockedWhenRoutineStartTimeArrives() = runBlocking {
+        val blockedPackage = resolveLaunchablePackages().first()
+        launchPackage(blockedPackage)
+        waitForPackageForeground(
+            packageName = blockedPackage,
+            message = "Expected $blockedPackage to be foreground before the routine start time arrives",
+        )
+        resetDebugStateRetainingConnectionFlag()
+
+        val routineId = configureFutureRoutineBlock(blockedPackage)
+        waitForServiceStatePropagation()
+
+        waitUntil(
+            message = "Expected foreground $blockedPackage to be re-evaluated and blocked when the routine start time arrives",
+            timeoutMs = ROUTINE_START_REEVALUATION_TIMEOUT_MS,
+        ) {
+            val snapshot = KeepAccessibilityServiceDebugState.read(context)
+            snapshot.lastLaunchedBlockPackage == blockedPackage &&
+                snapshot.lastLaunchedBlockSource == AnalyticsBlockSource.ROUTINE &&
+                snapshot.lastLaunchedRoutineId == routineId.toString()
+        }
+    }
+
+    @Test
     fun activeAllDayGoalLockWithoutManualKeep_launchesBlockActivityWithGoalLockAttribution() = runBlocking {
         var goalLockId = GOAL_LOCK_RUNTIME_TEST_ID
         val blockedPackage = launchFirstConfiguredPackage(
@@ -573,8 +597,34 @@ class KeepAccessibilityServiceIntegrationTest {
         return routine.id
     }
 
+    private suspend fun configureFutureRoutineBlock(blockedPackage: String): Long {
+        val startTime = LocalDateTime.now().plusSeconds(3)
+        val routine = RoutineModel(
+            id = ROUTINE_RUNTIME_TEST_ID,
+            name = "Runtime future-start routine",
+            startTime = startTime.toKotlinTimeWithSeconds(),
+            endTime = startTime.plusMinutes(30).toKotlinTimeWithSeconds(),
+            repeatDays = listOf(startTime.dayOfWeek).toRepeatDaysBinary(),
+            lockApplications = listOf(blockedPackage),
+            isEnabled = true,
+        )
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
+            preferences[PreferencesKey.IS_KEEP] = false
+            preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_APPS)
+            preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
+        }
+        routineRepository().insert(routine)
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+        return routine.id
+    }
+
     private fun LocalDateTime.toKotlinTime(): KotlinLocalTime =
         KotlinLocalTime(hour = hour, minute = minute)
+
+    private fun LocalDateTime.toKotlinTimeWithSeconds(): KotlinLocalTime =
+        KotlinLocalTime(hour = hour, minute = minute, second = second)
 
     private suspend fun configureEmergencyUnlock(packageName: String): Long {
         val expireTimeMillis = System.currentTimeMillis() + EMERGENCY_UNLOCK_WINDOW_MS
@@ -1111,6 +1161,7 @@ class KeepAccessibilityServiceIntegrationTest {
         const val ROUTINE_RUNTIME_TEST_ID = 609_001L
         const val UI_TIMEOUT_MS = 8_000L
         const val SERVICE_PROPAGATION_TIMEOUT_MS = 10_000L
+        const val ROUTINE_START_REEVALUATION_TIMEOUT_MS = 20_000L
         const val LAUNCH_ATTEMPTS = 3
         const val LAUNCH_SETTLE_TIMEOUT_MS = 2_000L
         const val SETTINGS_PACKAGE = "com.android.settings"

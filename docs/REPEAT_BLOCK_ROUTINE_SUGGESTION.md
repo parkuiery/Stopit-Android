@@ -5,7 +5,7 @@ Issue: #531
 
 이 문서는 최근 차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호를 로컬에서 해석해, 사용자가 덜 힘들게 같은 약속을 지키도록 루틴 생성을 제안하는 기능의 source of truth다. 목적은 “또 실패했다”가 아니라 “이미 막아낸 패턴을 자동화해 다음에는 덜 흔들리게 돕는다”는 코칭 경험을 만드는 것이다.
 
-이 문서/PR은 repo 내부 계약을 정리하는 docs-lane work에서 시작했고, 2026-06-06 code-lane에서 로컬 후보 산출 policy(`RepeatBlockRoutineSuggestionPolicy`)와 `repeat_block_routine_suggestion_*` analytics adapter 계약까지 전진했다. 이후 code-lane 후속 PR은 추천 후보를 type-safe `RoutineRoute`로 전달해 `RoutineBottomSheetViewModel`이 시간대/요일/대상 앱 후보를 사전 입력하고, 사용자가 이름을 직접 확인·수정한 뒤 저장할 때 `repeat_block_routine_suggestion_applied`를 남기는 prefill 진입 계약을 추가했다. QA-lane PR은 같은 추천을 닫았을 때 `time_bucket/day_type/category_bucket/dismissedAt`만 로컬 DataStore에 저장·복원하는 `RepeatBlockRoutineSuggestionStore`를 추가해 7일 재노출 제한 policy input을 실제 persist 가능한 형태로 고정했다. 이번 code-lane PR은 Home과 LockHistory 표면에서 추천 카드를 실제로 노출하고, apply는 루틴 prefill navigation으로, dismiss는 privacy-safe store와 dismissed analytics로 연결한다. 이 store와 UI는 raw app name/package/list/history/timestamp를 저장·전송하지 않는다. 아직 성과 리포트/post-block success 표면, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 readback 경계가 남았으므로 현재 PR은 `Refs #531`을 사용한다. issue closing keyword는 위 경계까지 acceptance가 실제로 충족될 때만 쓴다.
+이 문서/PR은 repo 내부 계약을 정리하는 docs-lane work에서 시작했고, 2026-06-06 code-lane에서 로컬 후보 산출 policy(`RepeatBlockRoutineSuggestionPolicy`)와 `repeat_block_routine_suggestion_*` analytics adapter 계약까지 전진했다. 이후 code-lane 후속 PR은 추천 후보를 type-safe `RoutineRoute`로 전달해 `RoutineBottomSheetViewModel`이 시간대/요일/대상 앱 후보를 사전 입력하고, 사용자가 이름을 직접 확인·수정한 뒤 저장할 때 `repeat_block_routine_suggestion_applied`를 남기는 prefill 진입 계약을 추가했다. QA-lane PR은 같은 추천을 닫았을 때 `time_bucket/day_type/category_bucket/dismissedAt`만 로컬 DataStore에 저장·복원하는 `RepeatBlockRoutineSuggestionStore`를 추가해 7일 재노출 제한 policy input을 실제 persist 가능한 형태로 고정했다. PR #561(`42b271f7`)은 Home과 LockHistory CTA 표면에서 추천 카드를 실제로 노출하고, apply는 루틴 prefill navigation으로, dismiss는 privacy-safe store와 dismissed analytics로 연결했다. 이 store와 UI는 raw app name/package/list/history/timestamp를 저장·전송하지 않는다. 아직 성과 리포트/post-block success 표면 판단, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 readback 경계가 남았으므로 현재 이슈는 `Refs #531` 상태로 유지한다. issue closing keyword는 위 경계까지 acceptance가 실제로 충족될 때만 쓴다.
 
 ## 근거 / 연결 맥락
 
@@ -114,7 +114,10 @@ Privacy guardrail:
 
 - 추천 클릭률: `repeat_block_routine_suggestion_clicked` users / `repeat_block_routine_suggestion_shown` users
 - 추천 적용률: `repeat_block_routine_suggestion_applied` users / `repeat_block_routine_suggestion_clicked` users
+- 추천 저장 완료율: `routine_saved(creation_source=repeat_block_prefill)` users / `repeat_block_routine_suggestion_clicked` users, 단 `entry_surface=repeat_block_suggestion|home|lock_history|performance_report`로 제한
 - 추천 cohort의 루틴 보유 전환: 추천 노출 users 중 `routines_count >= 1` users / suggestion shown users
+
+`routine_saved`는 #810 generic 루틴 저장 완료 이벤트다. #531의 `repeat_block_routine_suggestion_applied`는 추천 prefill이 저장 완료까지 이어졌다는 추천-specific 이벤트로 유지하고, #810 구현 후에는 같은 저장 성공에서 generic `routine_saved`도 함께 남겨 수동/CTA/추천 저장 완료 분모를 비교한다. Android wiring·GA4 Admin·release/tag/Play deploy 전에는 `routine_saved` 0건을 추천 실패로 해석하지 않고, 기존 `repeat_block_routine_suggestion_applied`와 `routines_count >= 1` 전환을 보조 지표로 유지한다.
 
 ### Secondary
 
@@ -133,7 +136,8 @@ Privacy guardrail:
 ## GA4 / release 경계
 
 - `repeat_block_routine_suggestion_*` 이벤트가 코드에 추가되어도 GA4 Admin에서 `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant`가 custom dimension으로 등록되고 metadata에서 확인되기 전에는 breakdown confidence를 낮춘다.
-- 추천 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
+- #810 `routine_saved` Android wiring이 추가되어도 GA4 Admin에서 `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`가 등록되고 metadata에서 확인되기 전에는 추천 click → 저장 완료 breakdown confidence를 낮춘다.
+- 추천 및 #810 routine_saved 포함 commit이 `origin/main`, SemVer tag, Play deploy에 포함되기 전의 live 0건은 수요 없음이 아니라 release-boundary 전 상태로 본다.
 - 최신 버전 active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 10% 미만이면 `보류`, 10~30%면 `주의`, 30% 이상이면 `충분`으로 표시한다.
 - 14일 체크는 추천 포함 버전의 배포/GA4 Admin 등록/metadata 확인이 끝난 뒤 시작한다.
 - 30일 체크는 이벤트 의미와 추천 임계치가 같은 window에서만 비교한다.

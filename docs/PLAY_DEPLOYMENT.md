@@ -77,6 +77,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - Play Deploy pins JS helper execution with `actions/setup-node@v5` / Node 22 before `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, or `scripts/promote-google-play-track.js` run, so the deployment runtime matches Ops CI's release-helper validation runtime instead of inheriting a mutable runner default Node version.
   - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
   - non-production Play Deploy generates `release-provenance.json`, verifies it before `Upload signed AAB artifact`, and only then uploads the verified AAB/manifest artifact before `Upload to Google Play`; operators should use that manifest as the prior non-production signed-AAB evidence for any later production promotion because it ties the internal release to AAB `sha256`, `versionCode`, `artifact_name`, git SHA/ref, track/status, GitHub Actions `run_id`, and workflow run URL
+  - the release-critical Google Play upload action is SHA-pinned (`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`, the audited v1 commit) rather than a floating major tag. Update it only through a reviewed release-provenance PR that refreshes `scripts.tests.test_release_provenance_workflow_contract`; production promotion remains repo-owned helper promotion and does not use this upload action.
   - non-production staged rollouts are validated before any signing/Firebase/Play secret decode: `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty
   - for `production`: the production promotion path validates production staged rollout inputs before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is checked or decoded. `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty. It then runs the prior internal provenance gate and must fail-fast before production secrets if the matching internal release artifact or `release-provenance.json` does not match the selected SemVer tag `versionCode`, git SHA/ref, and workflow run evidence. It does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode/provenance governance after input validation, then promotes the matching `internal` release
   - tag-triggered runs upload to Google Play `internal` track by default
@@ -278,10 +279,12 @@ firebase deploy --only functions:promoteProductionFromDiscord
 
 ## Local release build check
 
-Without signing environment variables, local release builds fall back to debug signing so normal build checks remain easy:
+`prodRelease` release artifact tasks must never use debug signing fallback. Without all release signing environment variables, Gradle fails `:app:bundleProdRelease`, `:app:assembleProdRelease`, and related `prodRelease` artifact signing/packaging tasks before an AAB/APK can be created:
 
 ```bash
+unset ANDROID_KEYSTORE_PATH ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD
 ./gradlew :app:bundleProdRelease
+# Fails: Debug signing fallback is not allowed for prodRelease artifacts.
 ```
 
 With real signing credentials:
@@ -294,7 +297,7 @@ export ANDROID_KEY_PASSWORD='***'
 ./gradlew :app:bundleProdRelease
 ```
 
-Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
+Debug/smoke paths still do not require release signing secrets. Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
 
 ## Safety notes
 
