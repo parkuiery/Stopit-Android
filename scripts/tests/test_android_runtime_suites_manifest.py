@@ -1,4 +1,5 @@
 import pathlib
+import tempfile
 import unittest
 from unittest import mock
 
@@ -37,6 +38,50 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
 
     def test_all_android_test_classes_are_suite_covered_or_intentionally_excluded(self):
         self.assertEqual([], android_runtime_suites.unclassified_android_test_classes())
+
+    def test_inventory_includes_android_test_kotlin_source_root(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = pathlib.Path(temp_dir) / "app" / "src" / "androidTest"
+            java_root = source_root / "java"
+            kotlin_root = source_root / "kotlin"
+            kotlin_test = kotlin_root / "com" / "uiery" / "keep" / "qa" / "KotlinOnlyRuntimeTest.kt"
+            kotlin_test.parent.mkdir(parents=True)
+            kotlin_test.write_text(
+                "package com.uiery.keep.qa\n\n"
+                "class KotlinOnlyRuntimeTest {\n"
+                "    fun kotlinRootScenario() = Unit\n"
+                "}\n"
+            )
+
+            with mock.patch.object(android_runtime_suites, "REPO_ROOT", pathlib.Path(temp_dir)), \
+                    mock.patch.object(android_runtime_suites, "ANDROID_TEST_ROOT", java_root), \
+                    mock.patch.object(android_runtime_suites, "ANDROID_TEST_ROOTS", [java_root, kotlin_root], create=True):
+                self.assertEqual(
+                    ["com.uiery.keep.qa.KotlinOnlyRuntimeTest"],
+                    android_runtime_suites.unclassified_android_test_classes(),
+                )
+
+    def test_validate_sources_resolves_android_test_kotlin_selectors(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = pathlib.Path(temp_dir) / "app" / "src" / "androidTest"
+            java_root = source_root / "java"
+            kotlin_root = source_root / "kotlin"
+            kotlin_test = kotlin_root / "com" / "uiery" / "keep" / "qa" / "KotlinCoveredRuntimeTest.kt"
+            kotlin_test.parent.mkdir(parents=True)
+            kotlin_test.write_text(
+                "package com.uiery.keep.qa\n\n"
+                "class KotlinCoveredRuntimeTest {\n"
+                "    fun coveredScenario() = Unit\n"
+                "}\n"
+            )
+
+            with mock.patch.object(android_runtime_suites, "REPO_ROOT", pathlib.Path(temp_dir)), \
+                    mock.patch.object(android_runtime_suites, "ANDROID_TEST_ROOT", java_root), \
+                    mock.patch.object(android_runtime_suites, "ANDROID_TEST_ROOTS", [java_root, kotlin_root], create=True), \
+                    mock.patch.object(android_runtime_suites, "SUITES", {
+                        "fixture": ["com.uiery.keep.qa.KotlinCoveredRuntimeTest#coveredScenario"],
+                    }):
+                self.assertEqual([], android_runtime_suites.validate_sources())
 
     def test_release_qa_covers_database_migration_and_routine_notification_tap_contracts(self):
         release_selectors = android_runtime_suites.selectors_for(android_runtime_suites.RELEASE_QA_SEQUENCE)
