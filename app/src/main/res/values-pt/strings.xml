@@ -139,6 +139,7 @@
     <string name="lock_screen_routines_running">%1$d rotinas em execução</string>
     <string name="routine_minimum_duration_message">As rotinas devem ser definidas por pelo menos 15 minutos.</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
+
     <string name="parent_mode_setup_title">Modo dos pais</string>
     <string name="parent_mode_setup_headline">Combine uma regra antes de entregar o telefone</string>
     <string name="parent_mode_setup_description">O Modo dos pais carrega os apps que você selecionou como apps permitidos. Você pode ajustá-los abaixo.</string>
@@ -157,6 +158,14 @@
     <string name="parent_mode_setup_adjust_apps">Ajustar no seletor de apps</string>
     <string name="parent_mode_setup_reload_current_selection">Recarregar seleção da Tela inicial</string>
     <string name="parent_mode_setup_apps_empty">Nenhum app permitido selecionado ainda.</string>
+    <string name="parent_mode_active_title">Parent Mode is running</string>
+    <string name="parent_mode_expired_title">Parent Mode time is over</string>
+    <string name="parent_mode_ended_title">Parent Mode ended</string>
+    <string name="parent_mode_active_summary">Duration %1$d min · allowed apps %2$d</string>
+    <string name="parent_mode_active_pin_notice">Use the verified guardian PIN to extend or end this session.</string>
+    <string name="parent_mode_active_extend_ten_minutes">Extend 10 minutes</string>
+    <string name="parent_mode_active_end_now">End with guardian PIN</string>
+
     <string name="lock_history_menu_title">Ver histórico de bloqueio</string>
     <string name="lock_history_title">Histórico de bloqueio</string>
     <string name="lock_history_week">Semana</string>

@@ -139,6 +139,7 @@
     <string name="lock_screen_routines_running">%1$d个例程运行中</string>
     <string name="routine_minimum_duration_message">例程必须至少设置15分钟。</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
+
     <string name="parent_mode_setup_title">家长模式</string>
     <string name="parent_mode_setup_headline">在交出手机前先约定好</string>
     <string name="parent_mode_setup_description">家长模式会将你当前选择的应用作为允许的应用载入。你可以在下方调整。</string>
@@ -157,6 +158,14 @@
     <string name="parent_mode_setup_adjust_apps">在应用选择器中调整</string>
     <string name="parent_mode_setup_reload_current_selection">重新加载主页选择</string>
     <string name="parent_mode_setup_apps_empty">尚未选择允许的应用。</string>
+    <string name="parent_mode_active_title">Parent Mode is running</string>
+    <string name="parent_mode_expired_title">Parent Mode time is over</string>
+    <string name="parent_mode_ended_title">Parent Mode ended</string>
+    <string name="parent_mode_active_summary">Duration %1$d min · allowed apps %2$d</string>
+    <string name="parent_mode_active_pin_notice">Use the verified guardian PIN to extend or end this session.</string>
+    <string name="parent_mode_active_extend_ten_minutes">Extend 10 minutes</string>
+    <string name="parent_mode_active_end_now">End with guardian PIN</string>
+
     <string name="lock_history_menu_title">查看锁定记录</string>
     <string name="lock_history_title">锁定记录</string>
     <string name="lock_history_week">周</string>

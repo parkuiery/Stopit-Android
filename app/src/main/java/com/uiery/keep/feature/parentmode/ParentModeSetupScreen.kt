@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -40,6 +42,8 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.domain.parentmode.ParentModeSession
+import com.uiery.keep.domain.parentmode.ParentModeSessionState
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.SetupAppRow
 import com.uiery.keep.ui.component.SetupChip
@@ -118,128 +122,219 @@ internal fun ParentModeSetupScreen(
                 .padding(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SetupHero(
-                iconResId = R.drawable.ic_parent_mode,
-                title = stringResource(id = R.string.parent_mode_setup_headline),
-                subtitle = stringResource(id = R.string.parent_mode_setup_description),
-            )
+            val activeSession = state.activeSession
+            if (activeSession == null) {
+                ParentModeSetupForm(
+                    state = state,
+                    pinMismatch = pinMismatch,
+                    onDurationSelected = viewModel::setDurationMinutes,
+                    onReloadCurrentSelection = viewModel::loadAllowedAppsFromCurrentSelection,
+                    onAdjustApps = { isAppSelectionSheetVisible = true },
+                    onGuardianPinChanged = viewModel::updateGuardianPin,
+                    onGuardianPinConfirmationChanged = viewModel::updateGuardianPinConfirmation,
+                    onStart = viewModel::startParentModeFromSetupInput,
+                    onNavigateBack = onNavigateBack,
+                )
+            } else {
+                ParentModeActiveControls(
+                    session = activeSession,
+                    onRefresh = viewModel::refreshActiveSessionStatus,
+                    onExtend = viewModel::extendActiveSessionByTenMinutes,
+                    onEnd = viewModel::endActiveSessionFromSetupInput,
+                    onNavigateBack = onNavigateBack,
+                )
+            }
+        }
+    }
+}
 
-            // Allowed time
-            SetupGroupCard {
-                SetupSectionHeader(
-                    title = stringResource(id = R.string.parent_mode_setup_duration_label),
-                    valueLabel = stringResource(
+@Composable
+private fun ParentModeSetupForm(
+    state: ParentModeSetupUiState,
+    pinMismatch: Boolean,
+    onDurationSelected: (Int) -> Unit,
+    onReloadCurrentSelection: () -> Unit,
+    onAdjustApps: () -> Unit,
+    onGuardianPinChanged: (String) -> Unit,
+    onGuardianPinConfirmationChanged: (String) -> Unit,
+    onStart: () -> Unit,
+    onNavigateBack: () -> Unit,
+) {
+    SetupHero(
+        iconResId = R.drawable.ic_parent_mode,
+        title = stringResource(id = R.string.parent_mode_setup_headline),
+        subtitle = stringResource(id = R.string.parent_mode_setup_description),
+    )
+
+    SetupGroupCard {
+        SetupSectionHeader(
+            title = stringResource(id = R.string.parent_mode_setup_duration_label),
+            valueLabel = stringResource(
+                id = R.string.parent_mode_setup_duration_minutes,
+                state.durationMinutes,
+            ),
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PARENT_MODE_DURATION_OPTIONS.forEach { minutes ->
+                SetupChip(
+                    label = stringResource(
                         id = R.string.parent_mode_setup_duration_minutes,
-                        state.durationMinutes,
+                        minutes,
                     ),
+                    selected = state.durationMinutes == minutes,
+                    onClick = { onDurationSelected(minutes) },
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    PARENT_MODE_DURATION_OPTIONS.forEach { minutes ->
-                        SetupChip(
-                            label = stringResource(
-                                id = R.string.parent_mode_setup_duration_minutes,
-                                minutes,
-                            ),
-                            selected = state.durationMinutes == minutes,
-                            onClick = { viewModel.setDurationMinutes(minutes) },
-                        )
-                    }
-                }
             }
+        }
+    }
 
-            // Allowed apps
-            SetupGroupCard {
-                SetupSectionHeader(
-                    title = stringResource(id = R.string.parent_mode_setup_allowed_apps_label),
-                    valueLabel = state.allowedApps.size.toString(),
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                SetupSectionCaption(
-                    text = stringResource(
-                        id = R.string.parent_mode_setup_allowed_apps_summary,
-                        state.allowedApps.size,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SetupSecondaryButton(
-                        modifier = Modifier.weight(1f),
-                        text = stringResource(id = R.string.parent_mode_setup_reload_current_selection),
-                        onClick = viewModel::loadAllowedAppsFromCurrentSelection,
-                    )
-                    SetupSecondaryButton(
-                        modifier = Modifier.weight(1f),
-                        text = stringResource(id = R.string.parent_mode_setup_adjust_apps),
-                        onClick = { isAppSelectionSheetVisible = true },
-                    )
-                }
-                if (state.allowedApps.isEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_apps_empty))
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.allowedApps.sorted().forEach { packageName ->
-                            SetupAppRow(
-                                packageName = packageName,
-                                fallbackLabel = packageName,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Guardian PIN
-            SetupGroupCard {
-                SetupSectionHeader(title = stringResource(id = R.string.parent_mode_setup_pin_label))
-                Spacer(modifier = Modifier.height(6.dp))
-                SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_required_notice))
-                Spacer(modifier = Modifier.height(12.dp))
-                SetupTextField(
-                    value = state.guardianPin,
-                    onValueChange = viewModel::updateGuardianPin,
-                    placeholder = stringResource(id = R.string.parent_mode_setup_pin_label),
-                    keyboardType = KeyboardType.NumberPassword,
-                    visualTransformation = PasswordVisualTransformation(),
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_helper))
-                Spacer(modifier = Modifier.height(12.dp))
-                SetupTextField(
-                    value = state.guardianPinConfirmation,
-                    onValueChange = viewModel::updateGuardianPinConfirmation,
-                    placeholder = stringResource(id = R.string.parent_mode_setup_pin_confirm_label),
-                    keyboardType = KeyboardType.NumberPassword,
-                    visualTransformation = PasswordVisualTransformation(),
-                    isError = pinMismatch,
-                )
-                if (pinMismatch) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = stringResource(id = R.string.parent_mode_setup_pin_mismatch),
-                        color = KeepTheme.colors.error,
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                    )
-                }
-            }
-
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.parent_mode_setup_start),
-                enabled = state.canAttemptStart,
-                onClick = viewModel::startParentModeFromSetupInput,
+    SetupGroupCard {
+        SetupSectionHeader(
+            title = stringResource(id = R.string.parent_mode_setup_allowed_apps_label),
+            valueLabel = state.allowedApps.size.toString(),
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        SetupSectionCaption(
+            text = stringResource(
+                id = R.string.parent_mode_setup_allowed_apps_summary,
+                state.allowedApps.size,
+            ),
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SetupSecondaryButton(
+                modifier = Modifier.weight(1f),
+                text = stringResource(id = R.string.parent_mode_setup_reload_current_selection),
+                onClick = onReloadCurrentSelection,
             )
             SetupSecondaryButton(
-                text = stringResource(id = R.string.parent_mode_setup_back_to_menu),
-                onClick = onNavigateBack,
+                modifier = Modifier.weight(1f),
+                text = stringResource(id = R.string.parent_mode_setup_adjust_apps),
+                onClick = onAdjustApps,
             )
-            Spacer(modifier = Modifier.height(8.dp))
         }
+        if (state.allowedApps.isEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_apps_empty))
+        } else {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                state.allowedApps.sorted().forEach { packageName ->
+                    SetupAppRow(
+                        packageName = packageName,
+                        fallbackLabel = packageName,
+                    )
+                }
+            }
+        }
+    }
+
+    SetupGroupCard {
+        SetupSectionHeader(title = stringResource(id = R.string.parent_mode_setup_pin_label))
+        Spacer(modifier = Modifier.height(6.dp))
+        SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_required_notice))
+        Spacer(modifier = Modifier.height(12.dp))
+        SetupTextField(
+            value = state.guardianPin,
+            onValueChange = onGuardianPinChanged,
+            placeholder = stringResource(id = R.string.parent_mode_setup_pin_label),
+            keyboardType = KeyboardType.NumberPassword,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_pin_helper))
+        Spacer(modifier = Modifier.height(12.dp))
+        SetupTextField(
+            value = state.guardianPinConfirmation,
+            onValueChange = onGuardianPinConfirmationChanged,
+            placeholder = stringResource(id = R.string.parent_mode_setup_pin_confirm_label),
+            keyboardType = KeyboardType.NumberPassword,
+            visualTransformation = PasswordVisualTransformation(),
+            isError = pinMismatch,
+        )
+        if (pinMismatch) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(id = R.string.parent_mode_setup_pin_mismatch),
+                color = KeepTheme.colors.error,
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
+            )
+        }
+    }
+
+    KeepButton(
+        modifier = Modifier.fillMaxWidth(),
+        text = stringResource(id = R.string.parent_mode_setup_start),
+        enabled = state.canAttemptStart,
+        onClick = onStart,
+    )
+    SetupSecondaryButton(
+        text = stringResource(id = R.string.parent_mode_setup_back_to_menu),
+        onClick = onNavigateBack,
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun ParentModeActiveControls(
+    session: ParentModeSession,
+    onRefresh: () -> Unit,
+    onExtend: () -> Unit,
+    onEnd: () -> Unit,
+    onNavigateBack: () -> Unit,
+) {
+    LaunchedEffect(session.expiresAtMillis, session.state) {
+        onRefresh()
+    }
+    val statusTextRes = when (session.state) {
+        ParentModeSessionState.Active -> R.string.parent_mode_active_title
+        ParentModeSessionState.Expired -> R.string.parent_mode_expired_title
+        ParentModeSessionState.UnlockedByPin -> R.string.parent_mode_ended_title
+        ParentModeSessionState.Setup,
+        ParentModeSessionState.Cancelled,
+        -> R.string.parent_mode_setup_title
+    }
+    Text(
+        text = stringResource(id = statusTextRes),
+        color = KeepTheme.colors.onSurface,
+        fontWeight = FontWeight.Bold,
+    )
+    Text(
+        text = stringResource(
+            id = R.string.parent_mode_active_summary,
+            session.durationMinutes,
+            session.allowedApps.size,
+        ),
+        color = KeepTheme.colors.onSurfaceVariant,
+    )
+    Text(
+        text = stringResource(id = R.string.parent_mode_active_pin_notice),
+        color = KeepTheme.colors.onSurfaceVariant,
+    )
+    Button(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = session.state == ParentModeSessionState.Active,
+        onClick = onExtend,
+    ) {
+        Text(text = stringResource(id = R.string.parent_mode_active_extend_ten_minutes))
+    }
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = session.state == ParentModeSessionState.Active,
+        onClick = onEnd,
+    ) {
+        Text(text = stringResource(id = R.string.parent_mode_active_end_now))
+    }
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onNavigateBack,
+    ) {
+        Text(text = stringResource(id = R.string.parent_mode_setup_back_to_menu))
     }
 }

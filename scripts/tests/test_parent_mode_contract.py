@@ -87,7 +87,7 @@ class ParentModeContractTest(unittest.TestCase):
             "PR #519",
             "PR #584",
             "repo-internal foothold",
-            "남은 범위는 MVP 전체 UX/릴리스/실측 검증",
+            "남은 범위는 MVP 전체 릴리스/실측 검증",
         ]:
             self.assertIn(phrase, runbook)
 
@@ -137,9 +137,13 @@ class ParentModeContractTest(unittest.TestCase):
             "실제 PIN 입력 UI와 setup CTA enablement",
             "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
             "ParentModeSetupViewModelTest",
-            "Parent mode active/expired screen",
+            "Parent Mode active/expired 화면의 실제 Compose/emulator interaction evidence",
             "6차 code-lane foothold",
             "markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce",
+            "9차 code-lane active controls foothold",
+            "duration preset 선택 UI",
+            "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
+            "ParentModeSetupViewModelTest",
         ]:
             self.assertIn(phrase, runbook)
 

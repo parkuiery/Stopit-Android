@@ -233,12 +233,20 @@ cd <repo-root>
 - `KeepAccessibilityService`: Parent Mode session 관찰 후 time-based 재평가 timer를 다시 예약하고, debug state는 persisted `active` 값만 쓰지 않고 현재 시각 기준 resolved `expired` state를 evidence로 남긴다.
 - `KeepAccessibilityServiceIntegrationTest.expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`: 저장된 active session의 만료 시각이 지난 경우, 원래 허용 앱도 `block_source=parent_mode`로 차단되고 `observedParentModeState=expired`가 기록되는 device/emulator baseline을 추가한다.
 
+### 9차 code-lane active controls foothold
+
+2026-06-11 code-lane PR에서 Parent Mode setup 화면을 active/expired 상태까지 이어지는 제어 화면으로 확장했다. 이제 사용자는 setup에서 10/20/30분 preset을 선택하고, session 시작 후 같은 화면에서 active 상태를 확인하며, verified guardian PIN 상태로 10분 연장 또는 즉시 종료를 요청할 수 있다. 또한 화면 진입/상태 렌더링 시 `markExpiredIfNeeded(...)`를 호출해 만료된 session을 `expired` state와 `parent_mode_completed(end_reason=time_expired)` 1회 commit으로 동기화한다.
+
+- `ParentModeSetupScreen`: duration preset 선택 UI, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
+- `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신한다.
+- `ParentModeSetupViewModelTest`: verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
+
 ### 다음 code-lane 후보
 
-- Parent mode active/expired screen
+- Parent Mode active/expired 화면의 실제 Compose/emulator interaction evidence
 - Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
 
-남은 범위는 MVP 전체 UX/릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 active/expired 화면, 실제 device/emulator evidence를 이어 붙이는 방향으로 잡는다.
+남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 active/expired 화면 device evidence와 release/readback 경계를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 

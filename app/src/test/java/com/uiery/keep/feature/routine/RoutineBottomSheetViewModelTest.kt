@@ -248,6 +248,7 @@ class RoutineBottomSheetViewModelTest {
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
         awaitUntil { routineDao.insertedEntity != null }
+        awaitUntil { analytics.routineSavedCalls.isNotEmpty() }
 
         assertEquals(
             listOf(
@@ -300,10 +301,9 @@ class RoutineBottomSheetViewModelTest {
         )
         assertFalse(prefilled.isButtonEnable)
         val expectedAnalyticsPayload = suggestion.toExpectedAnalyticsPayload()
-        assertEquals(
-            listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
-            analytics.repeatBlockClickedCalls,
-        )
+        assertEquals(1, analytics.repeatBlockClickedCalls.size)
+        assertEquals(RepeatBlockRoutineSuggestionSurface.HOME, analytics.repeatBlockClickedCalls.single().first)
+        assertEquals(expectedAnalyticsPayload, analytics.repeatBlockClickedCalls.single().second)
 
         viewModel.setName("Sleep defense")
         awaitState(viewModel) { it.isButtonEnable }
@@ -311,10 +311,10 @@ class RoutineBottomSheetViewModelTest {
         awaitUntil { routineDao.insertedEntity != null }
 
         assertEquals(suggestion.prefillPackages, routineDao.insertedEntity?.lockApplications)
-        assertEquals(
-            listOf(RepeatBlockRoutineSuggestionSurface.HOME to expectedAnalyticsPayload),
-            analytics.repeatBlockAppliedCalls,
-        )
+        awaitUntil { analytics.repeatBlockAppliedCalls.isNotEmpty() && analytics.routineSavedCalls.isNotEmpty() }
+        assertEquals(1, analytics.repeatBlockAppliedCalls.size)
+        assertEquals(RepeatBlockRoutineSuggestionSurface.HOME, analytics.repeatBlockAppliedCalls.single().first)
+        assertEquals(expectedAnalyticsPayload, analytics.repeatBlockAppliedCalls.single().second)
         assertEquals(
             listOf(
                 RoutineSavedAnalyticsPayload(

@@ -68,6 +68,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
     fun loadAllowedAppsFromCurrentSelection() {
         viewModelScope.launch(Dispatchers.IO) {
             setAllowedApps(blockingStateStore.readSelectedAppPackages())
+            applyActiveSessionStatus(sessionController.markExpiredIfNeeded(clock.nowMillis()))
         }
     }
 
@@ -84,13 +85,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                     _state.update { current -> current.copy(setupIssues = result.issues) }
                 }
                 is ParentModeSessionControllerResult.Started -> {
-                    _state.update { current ->
-                        current.copy(
-                            setupIssues = emptySet(),
-                            activeSession = result.session,
-                        )
-                    }
-                    _sideEffect.value = ParentModeSetupSideEffect.Started
+                    updateActiveSession(result.session, ParentModeSetupSideEffect.Started)
                 }
                 is ParentModeSessionControllerResult.Extended,
                 is ParentModeSessionControllerResult.Ended,
@@ -103,7 +98,100 @@ internal class ParentModeSetupViewModel @Inject constructor(
             }
         }
     }
+
+    fun extendActiveSessionByTenMinutes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val result = sessionController.extend(
+                extensionMinutes = DEFAULT_EXTENSION_MINUTES,
+                pinState = state.value.pinState,
+                nowMillis = clock.nowMillis(),
+            )) {
+                is ParentModeSessionControllerResult.Extended -> {
+                    updateActiveSession(result.session, ParentModeSetupSideEffect.Extended)
+                }
+                ParentModeSessionControllerResult.PinRequired -> {
+                    _state.update { current ->
+                        current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
+                    }
+                }
+                ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.NoActiveSession,
+                is ParentModeSessionControllerResult.Ended,
+                is ParentModeSessionControllerResult.Expired,
+                is ParentModeSessionControllerResult.NoStateChange,
+                is ParentModeSessionControllerResult.SetupBlocked,
+                is ParentModeSessionControllerResult.Started,
+                -> Unit
+            }
+        }
+    }
+
+    fun endActiveSessionFromSetupInput() {
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val result = sessionController.endNow(
+                pinState = state.value.pinState,
+                nowMillis = clock.nowMillis(),
+            )) {
+                is ParentModeSessionControllerResult.Ended -> {
+                    updateActiveSession(result.session, ParentModeSetupSideEffect.Ended)
+                }
+                ParentModeSessionControllerResult.PinRequired -> {
+                    _state.update { current ->
+                        current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
+                    }
+                }
+                ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.NoActiveSession,
+                is ParentModeSessionControllerResult.Extended,
+                is ParentModeSessionControllerResult.Expired,
+                is ParentModeSessionControllerResult.NoStateChange,
+                is ParentModeSessionControllerResult.SetupBlocked,
+                is ParentModeSessionControllerResult.Started,
+                -> Unit
+            }
+        }
+    }
+
+    fun refreshActiveSessionStatus() {
+        viewModelScope.launch(Dispatchers.IO) {
+            applyActiveSessionStatus(sessionController.markExpiredIfNeeded(clock.nowMillis()))
+        }
+    }
+
+    private fun applyActiveSessionStatus(result: ParentModeSessionControllerResult) {
+        when (result) {
+            is ParentModeSessionControllerResult.Expired -> {
+                updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
+            }
+            is ParentModeSessionControllerResult.NoStateChange -> {
+                _state.update { current -> current.copy(activeSession = result.session) }
+            }
+            ParentModeSessionControllerResult.InvalidExtension,
+            ParentModeSessionControllerResult.NoActiveSession,
+            ParentModeSessionControllerResult.PinRequired,
+            is ParentModeSessionControllerResult.Ended,
+            is ParentModeSessionControllerResult.Extended,
+            is ParentModeSessionControllerResult.SetupBlocked,
+            is ParentModeSessionControllerResult.Started,
+            -> Unit
+        }
+    }
+
+    private fun updateActiveSession(
+        session: ParentModeSession,
+        sideEffect: ParentModeSetupSideEffect,
+    ) {
+        _state.update { current ->
+            current.copy(
+                setupIssues = emptySet(),
+                activeSession = session,
+            )
+        }
+        _sideEffect.value = sideEffect
+    }
 }
+
+private const val DEFAULT_EXTENSION_MINUTES = 10
 
 internal data class ParentModeSetupUiState(
     val durationMinutes: Int = 10,
@@ -131,4 +219,7 @@ private const val MAX_GUARDIAN_PIN_LENGTH = 6
 
 internal enum class ParentModeSetupSideEffect {
     Started,
+    Extended,
+    Ended,
+    Expired,
 }
