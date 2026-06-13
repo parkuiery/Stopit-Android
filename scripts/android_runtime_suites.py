@@ -19,6 +19,20 @@ from collections.abc import Iterable
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 ANDROID_TEST_ROOT = REPO_ROOT / "app" / "src" / "androidTest" / "java"
 
+# Android instrumentation tests that intentionally do not run in the default
+# Android CI / Release QA runtime gates. Keep this list small and policy-based:
+# anything not suite-covered or listed here fails the manifest inventory test.
+INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES: dict[str, str] = {
+    "com.uiery.keep.ExampleInstrumentedTest": "template smoke; not a Stopit runtime contract",
+    "com.uiery.keep.BlockScreenContentIntegrationTest": "screen-local Compose regression; run from the owning issue/PR when Block copy/UI changes",
+    "com.uiery.keep.feature.goallock.GoalLockCreationContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
+    "com.uiery.keep.feature.goallock.GoalLockDetailContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
+    "com.uiery.keep.feature.home.HomeStatusCtaCardIntegrationTest": "screen-local Compose regression; run from Home status/CTA UI PRs",
+    "com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest": "screen-local accessibility regression; run from LockHistory report UI/a11y PRs",
+    "com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest": "screen-local Compose regression; run from Routine card/list UI PRs",
+    "com.uiery.keep.testing.AccessibilitySettingsDetailNavigatorTest": "test-helper/navigation utility regression; run from accessibility settings navigator PRs",
+}
+
 SUITES: dict[str, list[str]] = {
     "android_ci_focused_runtime_smoke": [
         "com.uiery.keep.qa.StopitReleaseSmokeTest",
@@ -74,6 +88,8 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.qa.StopitReleaseSmokeTest",
         "com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest",
         "com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest",
+        "com.uiery.keep.database.KeepDatabaseMigrationTest",
+        "com.uiery.keep.notification.RoutineStartNotificationTapIntegrationTest",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported",
@@ -135,6 +151,28 @@ def class_arg(suite_names: Iterable[str]) -> str:
 
 def android_test_source_for(class_name: str) -> pathlib.Path:
     return ANDROID_TEST_ROOT / pathlib.Path(*class_name.split(".")).with_suffix(".kt")
+
+
+def android_test_class_name_for(source_path: pathlib.Path) -> str:
+    relative = source_path.relative_to(ANDROID_TEST_ROOT).with_suffix("")
+    return ".".join(relative.parts)
+
+
+def covered_android_test_classes() -> set[str]:
+    return {selector.partition("#")[0] for selectors in SUITES.values() for selector in selectors}
+
+
+def all_android_test_classes() -> set[str]:
+    return {
+        android_test_class_name_for(path)
+        for path in ANDROID_TEST_ROOT.rglob("*Test.kt")
+    }
+
+
+def unclassified_android_test_classes() -> list[str]:
+    covered = covered_android_test_classes()
+    excluded = set(INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES)
+    return sorted(all_android_test_classes() - covered - excluded)
 
 
 def kotlin_method_exists(source: str, method_name: str) -> bool:
