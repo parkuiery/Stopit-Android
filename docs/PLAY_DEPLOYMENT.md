@@ -230,6 +230,7 @@ Manual dispatch tag-governance contract:
 Production promotion safety contract:
 - `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.
 - `track=production` workflow runs enter the GitHub Environment named `production`; configure that Environment with required reviewer approval in GitHub repository settings. Direct GitHub `workflow_dispatch` and Discord-button dispatches therefore share the same final production approval gate.
+- The workflow also runs `scripts/check-production-environment-approval.sh` for `track=production` before production Play secrets are validated or decoded. If the `production` Environment exists but has no `required_reviewers` protection rule, the production promotion stops with an operator-facing summary instead of silently relying on an unprotected Environment.
 - Non-production Play deploys and tag-triggered internal uploads use the non-protected `play-deploy-non-production` environment so internal/alpha/beta evidence can still run without production reviewer approval.
 - The production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance before calling the Play promotion helper.
 - The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.

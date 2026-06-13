@@ -114,6 +114,12 @@ jobs:
           console.log(`Validated production staged rollout input: release_status=${process.env.RELEASE_STATUS || 'completed'}, rollout_fraction=${process.env.ROLLOUT_FRACTION || ''}`);
           NODE
 
+      - name: Verify production Environment approval protection
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-production-environment-approval.sh
+
       - name: Validate build/upload deployment secrets
         if: env.DEPLOY_TRACK != 'production'
         env:

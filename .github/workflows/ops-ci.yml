@@ -15,6 +15,7 @@ on:
       - 'scripts/validate-play-rollout-inputs.js'
       - 'scripts/release-tag.sh'
       - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/check-production-environment-approval.sh'
       - 'scripts/setup-play-deploy-secrets.sh'
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
@@ -40,6 +41,7 @@ on:
       - 'scripts/validate-play-rollout-inputs.js'
       - 'scripts/release-tag.sh'
       - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/check-production-environment-approval.sh'
       - 'scripts/setup-play-deploy-secrets.sh'
       - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
@@ -94,6 +96,7 @@ jobs:
               - 'scripts/validate-play-rollout-inputs.js'
               - 'scripts/release-tag.sh'
               - 'scripts/check-play-deploy-secret-contract.sh'
+              - 'scripts/check-production-environment-approval.sh'
               - 'scripts/setup-play-deploy-secrets.sh'
               - 'scripts/setup-discord-deploy-secrets.sh'
               - 'scripts/play_version_code_guard.py'
@@ -300,7 +303,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
       - name: Check release-helper shell syntax
-        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh
+        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/check-production-environment-approval.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh
 
       - name: Compile Discord deploy notification script
         run: python3 -m py_compile scripts/notify-discord-deploy.py
