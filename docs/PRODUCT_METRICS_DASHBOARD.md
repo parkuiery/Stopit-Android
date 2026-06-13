@@ -345,7 +345,7 @@
 - #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, 상세 앱/이름/기간/잠금 방식 수정, enum/bucket analytics, Accessibility/expiration/compact-height 생성·상세 CTA 자동 QA baseline, 남은 TalkBack·실기기/release·GA4/readback 경계)
 - #471 부모 모드 / 아이에게 폰 주기 same-device MVP 계약 (`docs/PARENT_MODE_MVP.md` 참조; 보호자 PIN, 허용 앱, 시간 만료, privacy-safe analytics와 QA baseline)
 - #531 반복 차단 기반 자동 루틴 제안 계약 (`docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` 참조; 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, #455와 slot 충돌 방지, privacy-safe analytics와 QA baseline)
-- #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고 custom reason/app package/raw timestamp/snapshot dump 금지)
+- #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고, PR #789 이후 동일 값 재선택·duration no-op toggle은 change 이벤트에서 제외해 adoption/readback 분모 과대계상을 방지하며, custom reason/app package/raw timestamp/snapshot dump 금지)
 - #779 긴급해제 단계별 이탈·검증 실패 analytics 계약 (`docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md` 참조; reason/app/duration/countdown step, validation blocked, cancel source를 enum-only로 Android wiring했고(PR #783) raw reason/app/timestamp/history 금지)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
@@ -362,5 +362,5 @@
 - `docs/GOAL_LOCK_MVP.md`: #417용 목표 잠금 MVP 계약. `preset_days`/`custom_days`/`end_date`, `all_day`/`scheduled`, Home 진행 카드/섹션, 상세 앱/이름/기간/잠금 방식 수정, `goal_lock_*` analytics, runtime QA baseline, compact-height 생성·상세 CTA 자동 baseline, 구현 후 `Closes #417` 경계 포함.
 - `docs/PARENT_MODE_MVP.md`: #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약. 보호자 PIN, 허용 앱, 시간 만료, `parent_mode_*` analytics, runtime QA baseline, 원격 자녀 기기 관리 후속 gate 포함.
 - `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`: #531용 반복 차단 기반 자동 루틴 제안 계약. 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, 기존 루틴 coverage guard, #455/#407/광고 CTA slot 충돌 방지, `repeat_block_routine_suggestion_*` analytics와 QA evidence template 포함.
-- `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, privacy-safe enum/bucket 파라미터, GA4 Admin/release/readback 경계를 정의한다.
+- `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`: #694용 긴급해제 설정 변경 analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, no-op 설정 조작 제외, privacy-safe enum/bucket 파라미터, GA4 Admin/release/readback 경계를 정의한다.
 - `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`: #779용 긴급해제 단계별 이탈·검증 실패 analytics 계약. `emergency_unlock_step_viewed` / `emergency_unlock_validation_blocked` / `emergency_unlock_cancelled`, privacy-safe enum 파라미터, reason-required ON/OFF 분모, PR #783 Android wiring 완료 상태, GA4 Admin/release/14일 readback 경계를 정의한다.
