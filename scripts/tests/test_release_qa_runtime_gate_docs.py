@@ -52,6 +52,17 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         self.assertIn("run-connected notification_channel_disabled", workflow)
 
+    def test_release_remaining_runtime_docs_name_migration_and_notification_tap_gates(self):
+        required_phrases = [
+            "KeepDatabaseMigrationTest",
+            "RoutineStartNotificationTapIntegrationTest",
+        ]
+        for doc_name, path in DOCS.items():
+            text = path.read_text()
+            for phrase in required_phrases:
+                with self.subTest(doc=doc_name, phrase=phrase):
+                    self.assertIn(phrase, text)
+
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(

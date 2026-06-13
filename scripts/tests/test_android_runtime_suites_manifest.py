@@ -35,6 +35,15 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
     def test_all_selectors_exist_in_android_test_sources(self):
         self.assertEqual([], android_runtime_suites.validate_sources())
 
+    def test_all_android_test_classes_are_suite_covered_or_intentionally_excluded(self):
+        self.assertEqual([], android_runtime_suites.unclassified_android_test_classes())
+
+    def test_release_qa_covers_database_migration_and_routine_notification_tap_contracts(self):
+        release_selectors = android_runtime_suites.selectors_for(android_runtime_suites.RELEASE_QA_SEQUENCE)
+
+        self.assertIn("com.uiery.keep.database.KeepDatabaseMigrationTest", release_selectors)
+        self.assertIn("com.uiery.keep.notification.RoutineStartNotificationTapIntegrationTest", release_selectors)
+
     def test_category_selection_compose_regression_runs_in_android_ci_smoke(self):
         self.assertIn(
             "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
