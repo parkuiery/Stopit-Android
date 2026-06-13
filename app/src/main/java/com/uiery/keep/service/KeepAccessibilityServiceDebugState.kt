@@ -25,6 +25,10 @@ object KeepAccessibilityServiceDebugState {
         val lastLaunchedRoutineId: String? = null,
         val lastLaunchedGoalLockId: String? = null,
         val lastDismissedUninstallPackage: String? = null,
+        val lastRuntimeFlowErrorSource: String? = null,
+        val lastRuntimeFlowErrorType: String? = null,
+        val lastRuntimeFlowRetryAttempt: Long = 0L,
+        val lastRuntimeFlowRetryDelayMillis: Long = 0L,
     )
 
     @Volatile
@@ -51,6 +55,7 @@ object KeepAccessibilityServiceDebugState {
         val hasNotificationFields = parts.size >= 11
         val hasLaunchAttributionFields = parts.size >= 14
         val hasParentModeFields = parts.size >= 16
+        val hasRuntimeFlowFields = parts.size >= 20
         return Snapshot(
             isServiceConnected = parts[0].toBoolean(),
             observedIsKeep = parts[1].toBoolean(),
@@ -68,6 +73,10 @@ object KeepAccessibilityServiceDebugState {
             lastDismissedUninstallPackage = parts[if (hasNotificationFields) 10 else 7].ifBlank { null },
             observedParentModeState = if (hasParentModeFields) parts[14].ifBlank { null } else null,
             observedParentModeAllowedAppCount = if (hasParentModeFields) parts[15].toIntOrNull() ?: 0 else 0,
+            lastRuntimeFlowErrorSource = if (hasRuntimeFlowFields) parts[16].ifBlank { null } else null,
+            lastRuntimeFlowErrorType = if (hasRuntimeFlowFields) parts[17].ifBlank { null } else null,
+            lastRuntimeFlowRetryAttempt = if (hasRuntimeFlowFields) parts[18].toLongOrNull() ?: 0L else 0L,
+            lastRuntimeFlowRetryDelayMillis = if (hasRuntimeFlowFields) parts[19].toLongOrNull() ?: 0L else 0L,
         )
     }
 
@@ -92,7 +101,11 @@ object KeepAccessibilityServiceDebugState {
                 appendLine(snapshot.lastLaunchedRoutineId.orEmpty())
                 appendLine(snapshot.lastLaunchedGoalLockId.orEmpty())
                 appendLine(snapshot.observedParentModeState.orEmpty())
-                append(snapshot.observedParentModeAllowedAppCount)
+                appendLine(snapshot.observedParentModeAllowedAppCount)
+                appendLine(snapshot.lastRuntimeFlowErrorSource.orEmpty())
+                appendLine(snapshot.lastRuntimeFlowErrorType.orEmpty())
+                appendLine(snapshot.lastRuntimeFlowRetryAttempt)
+                append(snapshot.lastRuntimeFlowRetryDelayMillis)
             },
         )
     }
