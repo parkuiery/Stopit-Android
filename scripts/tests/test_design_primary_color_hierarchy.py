@@ -39,12 +39,16 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             "RoutineScreen.kt",
             "EmergencyUnlockSettingsScreen.kt",
             "GoalLockCreationScreen.kt",
+            "ParentModeSetupScreen.kt",
+            "SetupComponents.kt",
             "MenuScreen.kt",
         ]:
             self.assertIn(expected, text)
 
         self.assertIn("PR #546", text)
+        self.assertIn("PR #804", text)
         self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
+        self.assertIn("KDS 적용", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
@@ -60,6 +64,7 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             "Routine / Routine bottom sheet",
             "Emergency Unlock settings / bottom sheet",
             "Goal Lock creation/detail",
+            "Parent Mode setup/active controls",
             "light/dark mode",
             "TalkBack/contentDescription spot-check",
             "release/tag/Play deploy",
@@ -99,6 +104,10 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             ],
             "app/src/main/java/com/uiery/keep/feature/goallock/GoalLockDetailScreen.kt": [
                 "contentDescription = \"뒤로 가기\",\n                            tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/parentmode/ParentModeSetupScreen.kt": [
+                "contentDescription = stringResource(id = R.string.cd_navigate_back),\n                            tint = KeepTheme.colors.primary,",
+                "contentDescription = stringResource(id = R.string.cd_navigate_back),\n                            tint = Color(0xFFFE9E0B),",
             ],
             "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineBottomSheetContent.kt": [
                 "contentDescription = stringResource(R.string.cd_navigate_back),\n                    tint = KeepTheme.colors.primary,",
