@@ -97,8 +97,6 @@ class EmergencyUnlockCoordinator
             )
             val unlockData = EmergencyUnlockData(unlockedApps = apps, expireTimeMillis = expireTime)
 
-            EmergencyUnlockState.current = unlockData
-            blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
             repository.insert(
                 EmergencyUnlockEntity(
                     timestamp = nowMillis,
@@ -108,6 +106,8 @@ class EmergencyUnlockCoordinator
                     durationMinutes = durationMinutes,
                 ),
             )
+            blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
+            EmergencyUnlockState.current = unlockData
             analytics.trackEmergencyUnlockUsed(
                 source = source,
                 unlockCountRemaining = unlockCountRemaining,

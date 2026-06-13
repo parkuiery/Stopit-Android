@@ -132,6 +132,40 @@ class EmergencyUnlockCoordinatorTest {
     }
 
     @Test
+    fun completeUnlockDoesNotActivateRuntimeStateWhenHistoryInsertFails() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("5")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, failInsert = true)
+        val analytics = RecordingEmergencyUnlockAnalytics()
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao, analytics = analytics)
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+
+        val failure = kotlin.runCatching {
+            coordinator.completeUnlock(
+                source = AnalyticsSource.LOCK_SCREEN,
+                reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                customReason = null,
+                apps = setOf("com.example.app"),
+                durationMinutes = 5,
+                nowMillis = 1_000L,
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(EmergencyUnlockData.EMPTY, EmergencyUnlockState.current)
+        val snapshot = dataStore.snapshot()
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS])
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
+        assertTrue(analytics.records.isEmpty())
+        assertTrue(dao.inserted.isEmpty())
+    }
+
+    @Test
     fun disabledSettingIsNotReportedAsDailyLimitReached() = runBlocking {
         val dataStore =
             FakeDataStore.withPrefs {
@@ -288,12 +322,16 @@ private data class CompletedUnlockFixture(
 private class RecordingEmergencyUnlockDao(
     private val todayCount: Int,
     private val sinceCount: Int = 0,
+    private val failInsert: Boolean = false,
 ) : EmergencyUnlockDao {
     val inserted = mutableListOf<EmergencyUnlockEntity>()
     val countTodayCalls = mutableListOf<Long>()
     val countSinceCalls = mutableListOf<Long>()
 
     override suspend fun insert(entity: EmergencyUnlockEntity) {
+        if (failInsert) {
+            throw IllegalStateException("history insert failed")
+        }
         inserted += entity
     }
 
