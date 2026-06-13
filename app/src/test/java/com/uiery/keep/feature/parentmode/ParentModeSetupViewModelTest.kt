@@ -116,6 +116,28 @@ class ParentModeSetupViewModelTest {
     }
 
     @Test
+    fun loadAllowedAppsFromCurrentSelectionAlsoRestoresPersistedActiveSession() = runBlocking {
+        val expectedSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 601_000L,
+            durationMinutes = 10,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+        )
+        val store = ParentModeSessionStore(FakeDataStore())
+        store.save(expectedSession)
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { 120_000L },
+        )
+
+        viewModel.loadAllowedAppsFromCurrentSelection()
+        awaitUntil { viewModel.state.value.activeSession != null }
+
+        assertEquals(expectedSession, viewModel.state.value.activeSession)
+    }
+
+    @Test
     fun activeSessionCanBeExtendedWithVerifiedPinFromSetupScreen() = runBlocking {
         var now = 1_000L
         val store = ParentModeSessionStore(FakeDataStore())

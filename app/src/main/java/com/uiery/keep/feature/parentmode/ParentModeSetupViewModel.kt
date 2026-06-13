@@ -68,6 +68,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
     fun loadAllowedAppsFromCurrentSelection() {
         viewModelScope.launch(Dispatchers.IO) {
             setAllowedApps(blockingStateStore.readSelectedAppPackages())
+            applyActiveSessionStatus(sessionController.markExpiredIfNeeded(clock.nowMillis()))
         }
     }
 
@@ -153,22 +154,26 @@ internal class ParentModeSetupViewModel @Inject constructor(
 
     fun refreshActiveSessionStatus() {
         viewModelScope.launch(Dispatchers.IO) {
-            when (val result = sessionController.markExpiredIfNeeded(clock.nowMillis())) {
-                is ParentModeSessionControllerResult.Expired -> {
-                    updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
-                }
-                is ParentModeSessionControllerResult.NoStateChange -> {
-                    _state.update { current -> current.copy(activeSession = result.session) }
-                }
-                ParentModeSessionControllerResult.InvalidExtension,
-                ParentModeSessionControllerResult.NoActiveSession,
-                ParentModeSessionControllerResult.PinRequired,
-                is ParentModeSessionControllerResult.Ended,
-                is ParentModeSessionControllerResult.Extended,
-                is ParentModeSessionControllerResult.SetupBlocked,
-                is ParentModeSessionControllerResult.Started,
-                -> Unit
+            applyActiveSessionStatus(sessionController.markExpiredIfNeeded(clock.nowMillis()))
+        }
+    }
+
+    private fun applyActiveSessionStatus(result: ParentModeSessionControllerResult) {
+        when (result) {
+            is ParentModeSessionControllerResult.Expired -> {
+                updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
             }
+            is ParentModeSessionControllerResult.NoStateChange -> {
+                _state.update { current -> current.copy(activeSession = result.session) }
+            }
+            ParentModeSessionControllerResult.InvalidExtension,
+            ParentModeSessionControllerResult.NoActiveSession,
+            ParentModeSessionControllerResult.PinRequired,
+            is ParentModeSessionControllerResult.Ended,
+            is ParentModeSessionControllerResult.Extended,
+            is ParentModeSessionControllerResult.SetupBlocked,
+            is ParentModeSessionControllerResult.Started,
+            -> Unit
         }
     }
 
