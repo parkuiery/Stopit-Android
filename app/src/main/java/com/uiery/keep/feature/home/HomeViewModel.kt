@@ -291,6 +291,17 @@ class HomeViewModel
                     return@intent
                 }
 
+                val hasActiveEmergencyUnlock = blockingStateStore.accessibilitySnapshot
+                    .firstOrNull()
+                    ?.let { snapshot ->
+                        snapshot.emergencyUnlockApps.isNotEmpty() &&
+                            snapshot.emergencyUnlockExpireTimeMillis > System.currentTimeMillis()
+                    } == true
+                if (hasActiveEmergencyUnlock) {
+                    reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+                    return@intent
+                }
+
                 val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
                     .firstOrNull()
                     .orEmpty()
