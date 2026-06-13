@@ -23,6 +23,8 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 >
 > Android CI runtime smoke와 Release instrumentation QA는 `retention-days: 7`의 non-blocking 진단 artifact를 남긴다. Android CI는 `scripts/android_runtime_suites.py run-android-ci` aggregate mode로 `android_ci_focused_runtime_smoke`가 실패해도 `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`, `notification_denied_receiver`, `notification_denied_emergency_unlock`, `notification_channel_disabled`까지 가능한 한 실행한 뒤 최종 non-zero로 실패한다. Release QA는 suite별 fail-fast 경계를 유지한다. Android CI triage는 `stopit-runtime-smoke-diagnostics`, Release QA는 `stopit-release-instrumentation-diagnostics`를 먼저 확인한다. triage 순서는 `app/build/reports/androidTests` HTML/XML report → `app/build/outputs/androidTest-results` raw result → `runtime-diagnostics/**`의 `logcat`, `dumpsys alarm`, `dumpsys accessibility` 순서다. Artifact upload 자체는 실패 원인을 가리지 않도록 non-blocking이며, quota failure는 코드 회귀가 아니라 GitHub Actions artifact storage boundary로 분리한다.
 >
+> `KeepAccessibilityService` runtime state Flow(routine / goal lock / parent mode)는 일시적 upstream 예외에서 마지막 정상 cache를 비우지 않고 같은 서비스 인스턴스 안에서 재구독해야 한다. #829 계열 QA는 먼저 `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.AccessibilityRuntimeFlowRecoveryTest'`로 재구독/backoff 계약을 확인하고, device/emulator 증거가 필요하면 `KeepAccessibilityServiceIntegrationTest` + debug snapshot의 `lastRuntimeFlowErrorSource`, `lastRuntimeFlowErrorType`, `lastRuntimeFlowRetryAttempt`, `lastRuntimeFlowRetryDelayMillis`를 함께 기록한다. 이 debug snapshot은 secret-free 오류 유형/재시도 상태만 남기고 루틴 이름, 앱 목록 원문, DataStore payload 원문은 기록하지 않는다.
+>
 > Release QA full JVM/lint/build, signed release build, non-production Play deploy 실패 triage는 runtime smoke artifact와 분리한다. Android Release QA의 Full release QA는 `stopit-release-qa-build-diagnostics`, Android Release Build는 `stopit-release-build-diagnostics`, non-production Android Play Deploy는 `stopit-play-deploy-release-diagnostics`를 `retention-days: 7`로 남긴다. 이 artifact upload도 non-blocking이며 `if-no-files-found: ignore`로 report가 아직 생성되지 않은 초반 실패를 가리지 않는다. 확인 순서는 `app/build/reports`의 prodRelease lint/test report → `app/build/test-results` → `app/build/outputs/logs` → `app/build/outputs/mapping/prodRelease`다. Production promotion은 새 AAB를 빌드하지 않으므로 release diagnostics artifact 대상이 아니다.
 
 ## 1. 사전 준비
@@ -760,7 +762,7 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 ### Routine saved analytics QA baseline
 
-issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
+issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, PR #828으로 Home 보조 CTA에서 Routine 생성 흐름으로 들어간 저장 완료가 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 attribution된다. 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 

@@ -278,7 +278,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 루틴 저장 완료 이벤트
 
-Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 추천 prefill, 그리고 수동 루틴 생성의 “실제 저장 완료” 분모를 맞추기 위한 후속 analytics 계약이다. 수동 루틴 생성과 CTA/추천 prefill 저장 완료를 같은 저장 완료 분모로 묶는다. PR #813(`2c4d4ae`)로 Android wiring은 `develop`에 반영됐으므로 더 이상 문서 계약 전용 상태가 아니다. 다만 GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live 0건을 루틴 생성 수요 없음으로 해석하지 않는다.
+Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 추천 prefill, 그리고 수동 루틴 생성의 “실제 저장 완료” 분모를 맞추기 위한 후속 analytics 계약이다. 수동 루틴 생성과 CTA/추천 prefill 저장 완료를 같은 저장 완료 분모로 묶는다. PR #813(`2c4d4ae`)로 Android wiring은 `develop`에 반영됐고, PR #828(`b6d8cbd`)로 Home 보조 CTA 진입은 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 저장 완료 attribution을 넘긴다. 따라서 더 이상 문서 계약 전용 상태가 아니다. 다만 GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live 0건을 루틴 생성 수요 없음으로 해석하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -686,7 +686,7 @@ PY
 - 최근 14일 `screen_view`는 총 `13,154`건이고, `(not set)` `9,473`건 + 빈 `unifiedScreenName` `801`건으로 합계 `10,274 / 13,154 = 78.1%`다.
 - 이 screen 품질 baseline은 PR #296의 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 값이다. 네 화면은 develop에서 explicit `screen_view` 계약이 보강됐고, PR #358 merge commit `6ceaecc4`가 release-boundary 해석을 문서화했으므로, 같은 화면을 다시 code-lane 후보로 올리기 전 `PR #296/#318/#358` 포함 버전 배포 후 14일 창으로 재측정한다. `DevToolScreen`은 dev/debug 내부 진단 surface라 production 사용자 screen 품질 분모와 분리해서 본다.
 - 2026-06-03 09:12 KST live smoke에서는 최근 14일 combined gap이 `13,780 / 22,584 = 61.0%`로 조회됐다. 다만 PR #296/#318 merge commit은 아직 `origin/main`/production tag `v1.7.7`에 없으므로 이 수치는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. #13 closure는 release/tag/Play deploy 후 **D+14 screen quality 재측정**으로 판단한다.
-- 2026-06-12T23:07:41Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `28,933 / 48,361 = 59.8%`였고 최신 관측 production version `1.7.7` active share도 `294 / 830 = 35.4%`(`충분`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
+- 2026-06-13T08:07:23Z metrics snapshot의 30일 `screen_view` 합산에서는 `(not set)+blank` gap이 `29,405 / 49,367 = 59.6%`였고 최신 관측 production version `1.7.7` active share도 `302 / 836 = 36.1%`(`충분`)였다. 이 값은 위 14일 query를 대체하지 않지만, #13 closure가 여전히 release/tag/Play deploy + D+14 재측정 경계에 있음을 확인하는 guardrail로 둔다.
 - 온보딩 화면명은 보이지만 전체 계측 품질 병목은 여전히 해소되지 않았다.
 - 실제 GA4 Admin 등록 우선순위, registration ledger, issue/PR handoff 형식은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 source of truth로 본다.
 

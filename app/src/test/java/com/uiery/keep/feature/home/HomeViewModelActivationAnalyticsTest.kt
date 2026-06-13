@@ -10,6 +10,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsUserProperty
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -510,6 +511,8 @@ class HomeViewModelActivationAnalyticsTest {
             analytics = analytics,
             routineDao = FakeHomeRoutineDao(emptyList()),
         )
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
 
         delay(50)
         viewModel.onRoutineCreationCtaClick()
@@ -522,6 +525,14 @@ class HomeViewModelActivationAnalyticsTest {
             ),
             analytics.calls,
         )
+        assertEquals(
+            HomeSideEffect.MoveToRoutine(
+                routineSavedEntrySurface = "home_secondary",
+                routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
+            ),
+            sideEffects.filterIsInstance<HomeSideEffect.MoveToRoutine>().single(),
+        )
+        sideEffectJob.cancel()
     }
 
     @Test

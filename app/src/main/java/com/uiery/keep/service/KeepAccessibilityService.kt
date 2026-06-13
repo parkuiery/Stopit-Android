@@ -30,7 +30,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -112,11 +111,10 @@ class KeepAccessibilityService :
         }
         launch {
             entryPoint.routineRepository().fetchAll()
-                .catch {
-                    cachedRoutines = emptyList()
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextTimeBasedStartReevaluation()
-                }
+                .withAccessibilityRuntimeRecovery(
+                    source = AccessibilityRuntimeFlowSource.Routines,
+                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                )
                 .collect { routines ->
                     cachedRoutines = routines
                     reevaluateCurrentForegroundAfterStateUpdate()
@@ -125,11 +123,10 @@ class KeepAccessibilityService :
         }
         launch {
             entryPoint.goalLockRepository().fetchAll()
-                .catch {
-                    cachedGoalLocks = emptyList()
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextTimeBasedStartReevaluation()
-                }
+                .withAccessibilityRuntimeRecovery(
+                    source = AccessibilityRuntimeFlowSource.GoalLocks,
+                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                )
                 .collect { goalLocks ->
                     cachedGoalLocks = goalLocks
                     reevaluateCurrentForegroundAfterStateUpdate()
@@ -138,16 +135,10 @@ class KeepAccessibilityService :
         }
         launch {
             ParentModeSessionStore(applicationContext.dataStore).observe()
-                .catch {
-                    cachedParentModeSession = null
-                    KeepAccessibilityServiceDebugState.update(applicationContext) {
-                        it.copy(
-                            observedParentModeState = null,
-                            observedParentModeAllowedAppCount = 0,
-                        )
-                    }
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                }
+                .withAccessibilityRuntimeRecovery(
+                    source = AccessibilityRuntimeFlowSource.ParentMode,
+                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                )
                 .collect { session ->
                     cachedParentModeSession = session
                     updateParentModeDebugState(session)
@@ -186,6 +177,17 @@ class KeepAccessibilityService :
         handler.removeCallbacksAndMessages(null)
         KeepAccessibilityServiceDebugState.reset(applicationContext)
         job.cancel()
+    }
+
+    private fun recordRuntimeFlowRecovery(event: AccessibilityRuntimeFlowRecoveryEvent) {
+        KeepAccessibilityServiceDebugState.update(applicationContext) {
+            it.copy(
+                lastRuntimeFlowErrorSource = event.source.debugName,
+                lastRuntimeFlowErrorType = event.errorType,
+                lastRuntimeFlowRetryAttempt = event.attempt,
+                lastRuntimeFlowRetryDelayMillis = event.retryDelayMillis,
+            )
+        }
     }
 
     private fun updateParentModeDebugState(session: ParentModeSession?) {

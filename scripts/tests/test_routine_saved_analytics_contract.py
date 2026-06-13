@@ -44,7 +44,7 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
             "`repeat_days_bucket` | `routine_saved`",
             "`time_window_bucket` | `routine_saved`",
             "`schedule_state` | `routine_saved`",
-            "#810 docs 계약 + PR #813 Android wiring 완료 / GA4 등록·release 전",
+            "#810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution 완료 / GA4 등록·release 전",
             "routine saved completion check",
             "routine_saved(creation_source=post_first_block_cta) users / routine_creation_cta_clicked users",
             "routine_saved(creation_source=repeat_block_prefill) users / repeat_block_routine_suggestion_clicked users",
@@ -81,10 +81,11 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
 
         dashboard = PRODUCT_DASHBOARD.read_text()
         self.assertIn("`routine_saved(creation_source=post_first_block_cta)` users / `routine_creation_cta_clicked` users", dashboard)
-        self.assertIn("PR #813 Android wiring 이후에는 `routine_saved`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
+        self.assertIn("PR #813 Android wiring과 PR #828 Home CTA attribution 연결 이후에는 `routine_saved(entry_surface=home_secondary, creation_source=post_first_block_cta)`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
 
         cta_runbook = ROUTINE_CTA_RUNBOOK.read_text()
         self.assertIn("filtered by `creation_source=post_first_block_cta`", cta_runbook)
+        self.assertIn("PR #828(`b6d8cbd`)로 Home 보조 CTA → Routine 생성 흐름의 attribution 전달이 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 고정됐다", cta_runbook)
 
         repeat_runbook = REPEAT_BLOCK_RUNBOOK.read_text()
         self.assertIn("`routine_saved(creation_source=repeat_block_prefill)` users / `repeat_block_routine_suggestion_clicked` users", repeat_runbook)

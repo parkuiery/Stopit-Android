@@ -71,7 +71,12 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateMenu = navController::navigateToMenu,
             onNavigateLock = navController::navigateToLock,
             onNavigateLockHistory = navController::navigateToLockHistory,
-            onNavigateRoutine = navController::navigateToRoutine,
+            onNavigateRoutine = { entrySurface, creationSource ->
+                navController.navigateToRoutine(
+                    routineSavedEntrySurface = entrySurface,
+                    routineSavedCreationSource = creationSource,
+                )
+            },
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
             onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
                 navController.navigateToRoutineWithRepeatBlockPrefill(

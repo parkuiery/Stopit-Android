@@ -42,9 +42,17 @@ class RoutineBottomSheetViewModel
             container(
                 RoutineBottomSheetUiState(),
             )
-        internal fun resetState() =
+        internal fun resetState(
+            routineSavedEntrySurface: String? = null,
+            routineSavedCreationSource: String? = null,
+        ) =
             intent {
-                reduce { RoutineBottomSheetUiState() }
+                reduce {
+                    RoutineBottomSheetUiState(
+                        routineSavedEntrySurface = routineSavedEntrySurface,
+                        routineSavedCreationSource = routineSavedCreationSource,
+                    )
+                }
             }
 
         internal fun resetEditState(routineModel: RoutineModel) =
@@ -155,11 +163,11 @@ class RoutineBottomSheetViewModel
                 }
                 analytics.trackRoutineSaved(
                     state.toRoutineSavedAnalyticsPayload(
-                        entrySurface = repeatBlockSurface ?: AnalyticsSource.ROUTINE,
+                        entrySurface = repeatBlockSurface ?: state.routineSavedEntrySurface ?: AnalyticsSource.ROUTINE,
                         creationSource = if (repeatBlockPrefill != null) {
                             RoutineSavedCreationSource.REPEAT_BLOCK_PREFILL
                         } else {
-                            RoutineSavedCreationSource.MANUAL
+                            state.routineSavedCreationSource ?: RoutineSavedCreationSource.MANUAL
                         },
                         scheduleState = scheduleDecision.toRoutineSavedScheduleState(
                             permissionPromptRequested = resolvedRoutine.shouldShowPermissionPrompt,
@@ -175,6 +183,8 @@ class RoutineBottomSheetViewModel
                         state.copy(
                             repeatBlockSuggestionPrefill = null,
                             repeatBlockSuggestionSurface = null,
+                            routineSavedEntrySurface = null,
+                            routineSavedCreationSource = null,
                         )
                     }
                 }
@@ -230,6 +240,8 @@ data class RoutineBottomSheetUiState(
     val changeLockHours: Int? = null,
     val repeatBlockSuggestionPrefill: RepeatBlockRoutineSuggestion? = null,
     val repeatBlockSuggestionSurface: String? = null,
+    val routineSavedEntrySurface: String? = null,
+    val routineSavedCreationSource: String? = null,
 )
 
 private fun RepeatBlockDayType.toRoutinePrefillDays(): List<DayOfWeek> = when (this) {
