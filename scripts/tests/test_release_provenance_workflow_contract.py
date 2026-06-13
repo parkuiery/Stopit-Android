@@ -166,19 +166,27 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", download_step)
         self.assertIn("GH_TOKEN: ${{ github.token }}", download_step)
         self.assertIn("gh run list", download_step)
+        self.assertIn("try_candidate_run()", download_step)
         self.assertIn("for event_name in push workflow_dispatch", download_step)
         self.assertIn("--event \"$event_name\"", download_step)
-        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$run_event", download_step)
+        self.assertIn("PRIOR_PROVENANCE_RUN_EVENT=$candidate_event", download_step)
         self.assertIn("Selected prior internal Play Deploy run", download_step)
+        self.assertIn("after manifest track/status verification", download_step)
         self.assertIn("gh run download", download_step)
         self.assertIn("--name stopit-prod-release-signed-aab", download_step)
+        self.assertIn("python3 scripts/release_provenance_manifest.py verify", download_step)
+        self.assertIn("--track internal", download_step)
+        self.assertIn("--release-status completed", download_step)
+        self.assertIn("prior internal track mismatch or provenance mismatch", download_step)
+        self.assertIn("alpha/beta/production or mismatched candidates are not valid prior internal evidence", download_step)
+        self.assertIn("with track=internal and release_status=completed", download_step)
         self.assertIn("gh release download \"$GITHUB_REF_NAME\"", download_step)
         self.assertIn("--pattern release-provenance.json", download_step)
         self.assertIn("release-provenance.json", download_step)
         self.assertIn("PROVENANCE_VERIFY_MODE=metadata-only", download_step)
         self.assertIn("artifact expired/missing", download_step)
         self.assertIn("durable fallback missing", download_step)
-        self.assertIn("rerun non-production Play Deploy", download_step)
+        self.assertIn("rerun a non-production Play Deploy with track=internal", download_step)
 
         verify_step = step_block(workflow, "Verify prior internal provenance before production promotion")
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", verify_step)
@@ -214,6 +222,11 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "tag push artifact",
             "manual deploy artifact",
             "workflow_dispatch",
+            "track=internal",
+            "release_status=completed",
+            "prior internal track mismatch",
+            "alpha",
+            "beta",
             "before `Upload signed AAB artifact`",
             "30-day evidence surface",
             "durable fallback",

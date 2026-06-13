@@ -220,51 +220,81 @@ jobs:
             return 1
           }
 
-          run_id=""
-          run_event=""
+          try_candidate_run() {
+            local candidate_run_id="$1"
+            local candidate_event="$2"
+            local candidate_dir="/tmp/stopit-prior-internal-provenance-candidate-${candidate_run_id}"
+            rm -rf "$candidate_dir"
+            mkdir -p "$candidate_dir"
+
+            if ! gh run download "$candidate_run_id" \
+              --name stopit-prod-release-signed-aab \
+              --dir "$candidate_dir"; then
+              echo "Prior internal provenance artifact expired/missing for run_id=$candidate_run_id event=$candidate_event ($GITHUB_REF_NAME / $GITHUB_SHA); continuing search before durable fallback." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            local manifest_path
+            manifest_path="$(find "$candidate_dir" -name release-provenance.json -print -quit)"
+            if [[ -z "$manifest_path" ]]; then
+              echo "Downloaded prior candidate run_id=$candidate_run_id event=$candidate_event is missing release-provenance.json; classify this separately from provenance mismatch and continue search." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            if ! python3 scripts/release_provenance_manifest.py verify \
+              --aab-glob "$candidate_dir/**/*.aab" \
+              --manifest "$manifest_path" \
+              --artifact-name stopit-prod-release-signed-aab \
+              --package-name "$PACKAGE_NAME" \
+              --upload-mode play-upload \
+              --track internal \
+              --release-status completed \
+              --rollout-fraction '' \
+              --expected-version-code "$VERSION_CODE" \
+              --expected-git-sha "$GITHUB_SHA" \
+              --expected-git-ref "$GITHUB_REF" \
+              --expected-git-ref-name "$GITHUB_REF_NAME" \
+              --allow-artifact-path-relocation; then
+              echo "prior internal track mismatch or provenance mismatch for run_id=$candidate_run_id event=$candidate_event; production promotion requires track=internal release_status=completed evidence, so continuing search." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            rm -rf /tmp/stopit-prior-internal-provenance
+            mv "$candidate_dir" /tmp/stopit-prior-internal-provenance
+            echo "PRIOR_PROVENANCE_RUN_EVENT=$candidate_event" >> "$GITHUB_ENV"
+            echo "Selected prior internal Play Deploy run_id=$candidate_run_id from event=$candidate_event for $GITHUB_REF_NAME / $GITHUB_SHA after manifest track/status verification"
+            return 0
+          }
+
+          selected_run=""
           for event_name in push workflow_dispatch; do
-            candidate_run_id="$(gh run list \
+            while IFS= read -r candidate_run_id; do
+              [[ -n "$candidate_run_id" ]] || continue
+              if try_candidate_run "$candidate_run_id" "$event_name"; then
+                selected_run="$candidate_run_id"
+                break 2
+              fi
+            done < <(gh run list \
               --workflow 'Android Play Deploy' \
               --branch "$GITHUB_REF_NAME" \
               --event "$event_name" \
               --status success \
               --limit 20 \
               --json databaseId,headSha,conclusion \
-              --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId" \
-              | head -n 1)"
-            if [[ -n "$candidate_run_id" ]]; then
-              run_id="$candidate_run_id"
-              run_event="$event_name"
-              break
-            fi
+              --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId")
           done
-          if [[ -z "$run_id" ]]; then
-            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA across push or workflow_dispatch events" >&2
+
+          if [[ -z "$selected_run" ]]; then
+            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA across push or workflow_dispatch events after requiring manifest track=internal and release_status=completed; alpha/beta/production or mismatched candidates are not valid prior internal evidence." >&2
             download_durable_fallback || {
-              echo "Recovery: rerun a non-production Play Deploy for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
+              echo "Recovery: rerun a non-production Play Deploy with track=internal and release_status=completed for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
               exit 1
             }
             exit 0
           fi
-          echo "PRIOR_PROVENANCE_RUN_EVENT=$run_event" >> "$GITHUB_ENV"
-          echo "Selected prior internal Play Deploy run_id=$run_id from event=$run_event for $GITHUB_REF_NAME / $GITHUB_SHA"
-          if ! gh run download "$run_id" \
-            --name stopit-prod-release-signed-aab \
-            --dir /tmp/stopit-prior-internal-provenance; then
-            echo "Prior internal provenance artifact expired/missing for run_id=$run_id event=$run_event ($GITHUB_REF_NAME / $GITHUB_SHA)." >&2
-            download_durable_fallback || {
-              echo "Recovery: rerun non-production Play Deploy for the same SemVer tag before production promotion." >&2
-              exit 1
-            }
-            exit 0
-          fi
-          test -n "$(find /tmp/stopit-prior-internal-provenance -name release-provenance.json -print -quit)" || {
-            echo "Downloaded prior internal artifact is missing release-provenance.json; classify this separately from provenance mismatch." >&2
-            download_durable_fallback || {
-              echo "Recovery: rerun non-production Play Deploy for the same SemVer tag." >&2
-              exit 1
-            }
-          }
 
       - name: Verify prior internal provenance before production promotion
         if: env.DEPLOY_TRACK == 'production'
