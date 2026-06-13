@@ -33,7 +33,7 @@ fun ContentDescription(
                 text = stringResource(R.string.keep_off_status),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = KeepTheme.colors.error,
+                color = KeepTheme.colors.onSurfaceVariant,
             )
         }
         Text(

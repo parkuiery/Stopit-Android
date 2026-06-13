@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.home
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,6 +54,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -563,6 +565,37 @@ private fun GoalLockProgressCard(
 }
 
 @Composable
+private fun HomeQuickAction(
+    modifier: Modifier = Modifier,
+    @DrawableRes iconResId: Int,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            modifier = Modifier.size(24.dp),
+            painter = painterResource(id = iconResId),
+            contentDescription = null,
+            tint = KeepTheme.colors.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
+    }
+}
+
+@Composable
 internal fun HomeStatusCtaCard(
     modifier: Modifier = Modifier,
     model: HomeStatusCtaModel,
@@ -597,33 +630,46 @@ internal fun HomeStatusCtaCard(
                 fontSize = 13.sp,
             )
             KeepButton(
+                modifier = Modifier.fillMaxWidth(),
                 text = stringResource(model.primaryCtaResId),
                 enabled = model.shouldOpenAppSelection || model.shouldToggleKeep,
                 onClick = onPrimaryClick,
             )
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (model.showChangeAppsSecondary) {
-                    TextButton(onClick = onChangeAppsClick) {
-                        Text(text = stringResource(R.string.home_secondary_change_apps))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.baseline_format_list_bulleted_24,
+                        label = stringResource(R.string.home_secondary_change_apps),
+                        onClick = onChangeAppsClick,
+                    )
                 }
                 if (model.timerEnabled) {
-                    TextButton(onClick = onTimerClick) {
-                        Text(text = stringResource(R.string.home_secondary_timer))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.timer_outline,
+                        label = stringResource(R.string.home_secondary_timer),
+                        onClick = onTimerClick,
+                    )
                 }
                 if (model.showLockHistorySecondary) {
-                    TextButton(onClick = onLockHistoryClick) {
-                        Text(text = stringResource(R.string.home_secondary_lock_history))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_history,
+                        label = stringResource(R.string.home_secondary_lock_history),
+                        onClick = onLockHistoryClick,
+                    )
                 }
                 if (model.showRoutineCreationSecondary) {
-                    TextButton(onClick = onRoutineCreationClick) {
-                        Text(text = stringResource(R.string.home_secondary_create_routine))
-                    }
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_routine,
+                        label = stringResource(R.string.home_secondary_create_routine),
+                        onClick = onRoutineCreationClick,
+                    )
                 }
             }
         }

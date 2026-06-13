@@ -87,6 +87,14 @@
     <string name="goal_lock_creation_remove_app">Remove</string>
     <string name="goal_lock_creation_submit">Start goal lock</string>
     <string name="goal_lock_creation_app_label_missing">Could not load the app name</string>
+    <string name="goal_lock_creation_hero_subtitle">Set a goal, choose how long, and lock the apps that get in your way.</string>
+    <string name="goal_lock_creation_custom_days_label">Or set the length directly</string>
+    <string name="goal_lock_creation_custom_days_value">%1$d days</string>
+    <string name="goal_lock_creation_pick_end_date">Choose end date</string>
+    <string name="goal_lock_creation_apps_label">Apps to lock</string>
+    <string name="goal_lock_creation_apps_empty">No apps selected yet.</string>
+    <string name="goal_lock_creation_lock_mode_all_day_desc">Keeps the selected apps locked around the clock for the whole period.</string>
+    <string name="goal_lock_creation_lock_mode_weekday_evening_desc">Locks only on weekday evenings (Mon–Fri, 7–11 PM).</string>
     <string name="goal_lock_detail_update_apps_cta">Change blocked apps</string>
     <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
     <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
@@ -141,7 +149,7 @@
     <string name="parent_mode_menu_title">Give phone to child</string>
     <string name="parent_mode_setup_title">Parent Mode</string>
     <string name="parent_mode_setup_headline">Set a promise before handing over your phone</string>
-    <string name="parent_mode_setup_description">Parent Mode will use your current selected apps as the allowed apps for the first setup foothold.</string>
+    <string name="parent_mode_setup_description">Parent Mode loads your currently selected apps as the allowed apps. You can adjust them below.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Allowed apps from current selection: %1$d</string>
     <string name="parent_mode_setup_pin_required_notice">Enter and confirm a 4+ digit guardian PIN to start Parent Mode.</string>
     <string name="parent_mode_setup_pin_label">Guardian PIN</string>
@@ -151,6 +159,12 @@
     <string name="parent_mode_setup_start">Start Parent Mode</string>
     <string name="parent_mode_setup_start_disabled">PIN setup required</string>
     <string name="parent_mode_setup_back_to_menu">Back to menu</string>
+    <string name="parent_mode_setup_duration_label">Allowed time</string>
+    <string name="parent_mode_setup_duration_minutes">%1$d min</string>
+    <string name="parent_mode_setup_allowed_apps_label">Allowed apps</string>
+    <string name="parent_mode_setup_adjust_apps">Adjust in app picker</string>
+    <string name="parent_mode_setup_reload_current_selection">Reload Home selection</string>
+    <string name="parent_mode_setup_apps_empty">No allowed apps selected yet.</string>
     <string name="lock_history_menu_title">View Lock History</string>
     <string name="lock_history_title">Lock History</string>
     <string name="lock_history_week">Week</string>

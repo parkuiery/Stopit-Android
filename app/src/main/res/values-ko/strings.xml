@@ -87,6 +87,14 @@
     <string name="goal_lock_creation_remove_app">빼기</string>
     <string name="goal_lock_creation_submit">목표 잠금 시작</string>
     <string name="goal_lock_creation_app_label_missing">앱 이름을 불러오지 못했어요</string>
+    <string name="goal_lock_creation_hero_subtitle">목표와 기간을 정하고 방해되는 앱을 잠가요.</string>
+    <string name="goal_lock_creation_custom_days_label">또는 기간을 직접 설정</string>
+    <string name="goal_lock_creation_custom_days_value">%1$d일</string>
+    <string name="goal_lock_creation_pick_end_date">종료 날짜 선택</string>
+    <string name="goal_lock_creation_apps_label">잠글 앱</string>
+    <string name="goal_lock_creation_apps_empty">아직 선택한 앱이 없어요.</string>
+    <string name="goal_lock_creation_lock_mode_all_day_desc">선택한 기간 동안 하루 종일 앱을 잠가요.</string>
+    <string name="goal_lock_creation_lock_mode_weekday_evening_desc">평일 저녁(월~금, 오후 7시~11시)에만 잠가요.</string>
     <string name="goal_lock_detail_update_apps_cta">차단 앱 변경</string>
     <string name="goal_lock_detail_update_apps_confirmation">선택한 앱 %1$d개로 목표 잠금 대상을 바꿀까요?</string>
     <string name="goal_lock_detail_update_apps_cancel">취소</string>
@@ -141,7 +149,7 @@
     <string name="parent_mode_menu_title">아이에게 폰 주기</string>
     <string name="parent_mode_setup_title">부모 모드</string>
     <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>
-    <string name="parent_mode_setup_description">이번 setup foothold는 현재 선택된 차단 앱 목록을 부모 모드 허용 앱 후보로 불러옵니다.</string>
+    <string name="parent_mode_setup_description">현재 선택한 차단 앱 목록을 부모 모드 허용 앱으로 불러와요. 필요하면 아래에서 조정할 수 있어요.</string>
     <string name="parent_mode_setup_allowed_apps_summary">현재 선택에서 불러온 허용 앱: %1$d개</string>
     <string name="parent_mode_setup_pin_required_notice">보호자 PIN 4자리 이상을 두 번 입력하면 부모 모드를 시작할 수 있어요.</string>
     <string name="parent_mode_setup_pin_label">보호자 PIN</string>
@@ -151,6 +159,12 @@
     <string name="parent_mode_setup_start">부모 모드 시작</string>
     <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
     <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
+    <string name="parent_mode_setup_duration_label">허용 시간</string>
+    <string name="parent_mode_setup_duration_minutes">%1$d분</string>
+    <string name="parent_mode_setup_allowed_apps_label">허용 앱</string>
+    <string name="parent_mode_setup_adjust_apps">앱 선택 화면에서 조정</string>
+    <string name="parent_mode_setup_reload_current_selection">홈 선택 다시 불러오기</string>
+    <string name="parent_mode_setup_apps_empty">아직 허용 앱을 선택하지 않았어요.</string>
     <string name="lock_history_menu_title">잠금 기록 보기</string>
     <string name="lock_history_title">잠금 기록</string>
     <string name="lock_history_week">주</string>

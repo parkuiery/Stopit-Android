@@ -101,7 +101,7 @@ class HomeStatusCtaCardIntegrationTest {
         composeRule.onNodeWithTag("home_status_cta_card").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.home_status_keep_active_title, 4)).assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.home_primary_status_keep_active)).assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithText(context.getString(R.string.home_secondary_change_apps)).assertIsDisplayed()
+        composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_change_apps)).assertCountEquals(0)
         composeRule.onNodeWithText(context.getString(R.string.home_secondary_lock_history)).assertIsDisplayed()
         composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_timer)).assertCountEquals(0)
     }

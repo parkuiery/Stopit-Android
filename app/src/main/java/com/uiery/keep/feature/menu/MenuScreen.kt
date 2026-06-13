@@ -137,12 +137,12 @@ fun MenuScreen(
                 onClick = onNavigateRoutine,
             )
             MenuItem(
-                icon = R.drawable.ic_shield,
+                icon = R.drawable.ic_goal_lock,
                 title = stringResource(id = R.string.goal_lock_menu_title),
                 onClick = onNavigateGoalLockCreation,
             )
             MenuItem(
-                icon = R.drawable.ic_shield,
+                icon = R.drawable.ic_parent_mode,
                 title = stringResource(id = R.string.parent_mode_menu_title),
                 onClick = onNavigateParentModeSetup,
             )
