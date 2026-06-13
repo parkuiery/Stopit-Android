@@ -53,6 +53,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "서버/LLM",
             "raw 앱 이름을 GA4",
             "package name을 GA4",
+            "UI wiring 전",
+            "code-lane 구현 전 handoff",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
