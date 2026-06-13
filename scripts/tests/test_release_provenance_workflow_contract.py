@@ -8,6 +8,7 @@ PLAY_DOC = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
 RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
+PLAY_SECRETS_RUNBOOK = REPO_ROOT / "docs" / "PLAY_DEPLOY_SECRETS_RUNBOOK.md"
 PINNED_UPLOAD_GOOGLE_PLAY_SHA = "eb49699984a39f23558439581660aa6f088acfd6"
 FLOATING_UPLOAD_GOOGLE_PLAY_REF = "r0adkll/upload-google-play@v1"
 PINNED_UPLOAD_GOOGLE_PLAY_REF = f"r0adkll/upload-google-play@{PINNED_UPLOAD_GOOGLE_PLAY_SHA}"
@@ -111,7 +112,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
                 self.assertRegex(ref, r"^[0-9a-f]{40}$")
                 self.assertEqual(PINNED_UPLOAD_GOOGLE_PLAY_SHA, ref)
 
-    def test_non_production_tag_deploy_publishes_durable_release_provenance_fallback(self):
+    def test_internal_completed_tag_deploy_publishes_durable_release_provenance_fallback(self):
         workflow = PLAY_DEPLOY.read_text(encoding="utf-8")
         self.assertIn("contents: write", workflow)
         self.assertLess(
@@ -124,17 +125,19 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         )
 
         publish_step = step_block(workflow, "Publish durable provenance fallback to GitHub Release")
-        self.assertIn("if: env.DEPLOY_TRACK != 'production'", publish_step)
+        self.assertIn("if: env.DEPLOY_TRACK == 'internal' && env.RELEASE_STATUS == 'completed'", publish_step)
+        self.assertNotIn("if: env.DEPLOY_TRACK != 'production'", publish_step)
         self.assertIn("GH_TOKEN: ${{ github.token }}", publish_step)
         self.assertIn("release-provenance.json", publish_step)
         self.assertIn("gh release view \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release create \"$GITHUB_REF_NAME\"", publish_step)
         self.assertIn("gh release upload \"$GITHUB_REF_NAME\" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber", publish_step)
         self.assertIn("post_upload_failure()", publish_step)
-        self.assertIn("Post-upload durable provenance publish failure", publish_step)
+        self.assertIn("Post-upload durable internal provenance publish failure", publish_step)
         self.assertIn("evidence-publish failure, not as proof that the Play upload failed", publish_step)
         self.assertIn("Do not blindly re-upload the same versionCode", publish_step)
-        self.assertIn("same-tag non-production Play Deploy", publish_step)
+        self.assertIn("same-tag internal completed Play Deploy", publish_step)
+        self.assertIn("alpha/beta deploys must not clobber the internal durable fallback", publish_step)
         self.assertIn("|| post_upload_failure \"GitHub Release create failed", publish_step)
         self.assertIn("|| post_upload_failure \"GitHub Release upload failed", publish_step)
 
@@ -205,7 +208,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
     def test_docs_define_production_promotion_provenance_boundary(self):
         docs = "\n".join(
             path.read_text(encoding="utf-8")
-            for path in (PLAY_DOC, RELEASE_CHECKLIST, RELEASE_CONTEXT, GIT_WORKFLOW)
+            for path in (PLAY_DOC, RELEASE_CHECKLIST, RELEASE_CONTEXT, GIT_WORKFLOW, PLAY_SECRETS_RUNBOOK)
         )
         for required in (
             "release-provenance.json",
@@ -232,9 +235,11 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "durable fallback",
             "artifact expired/missing",
             "durable fallback missing",
-            "post-upload durable provenance publish failure",
+            "post-upload durable internal provenance publish failure",
             "evidence-publish failure",
             "do not blindly re-upload the same `versionCode`",
+            "internal completed Play Deploy",
+            "must not clobber",
             "provenance mismatch",
             "r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6",
             "floating major tag",

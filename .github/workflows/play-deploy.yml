@@ -411,7 +411,7 @@ jobs:
           userFraction: ${{ env.ROLLOUT_FRACTION }}
 
       - name: Publish durable provenance fallback to GitHub Release
-        if: env.DEPLOY_TRACK != 'production'
+        if: env.DEPLOY_TRACK == 'internal' && env.RELEASE_STATUS == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -420,14 +420,14 @@ jobs:
           post_upload_failure() {
             local reason="$1"
             {
-              echo "## Post-upload durable provenance publish failure"
+              echo "## Post-upload durable internal provenance publish failure"
               echo ""
-              echo "Google Play upload already completed before this step, but publishing the durable GitHub Release \`release-provenance.json\` fallback failed: $reason"
+              echo "Google Play internal upload already completed before this step, but publishing the durable GitHub Release \`release-provenance.json\` fallback failed: $reason"
               echo ""
-              echo "Treat this as an evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same versionCode. Recover by rerunning the same-tag non-production Play Deploy or by attaching the verified \`release-provenance.json\` fallback before production promotion."
+              echo "Treat this as an evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same versionCode. Recover by rerunning the same-tag internal completed Play Deploy or by attaching the verified internal \`release-provenance.json\` fallback before production promotion. alpha/beta deploys must not clobber the internal durable fallback."
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "post-upload durable provenance publish failure: $reason" >&2
-            echo "Play upload succeeded earlier in this job; classify recovery separately from Google Play upload failure and avoid blind same-versionCode re-upload." >&2
+            echo "post-upload durable internal provenance publish failure: $reason" >&2
+            echo "Play internal upload succeeded earlier in this job; classify recovery separately from Google Play upload failure and avoid blind same-versionCode re-upload." >&2
             exit 1
           }
 
@@ -435,17 +435,17 @@ jobs:
             post_upload_failure "SemVer tag ref is required; got $GITHUB_REF_NAME"
           fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "GitHub Release $GITHUB_REF_NAME already exists; uploading release-provenance.json fallback."
+            echo "GitHub Release $GITHUB_REF_NAME already exists; uploading internal release-provenance.json fallback."
           else
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
               --title "$GITHUB_REF_NAME" \
-              --notes "Stopit $GITHUB_REF_NAME release provenance fallback." \
+              --notes "Stopit $GITHUB_REF_NAME internal release provenance fallback." \
               || post_upload_failure "GitHub Release create failed for $GITHUB_REF_NAME"
           fi
           gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber \
             || post_upload_failure "GitHub Release upload failed for release-provenance.json"
-          echo "Published durable release-provenance.json fallback for $GITHUB_REF_NAME after successful $DEPLOY_TRACK Play upload."
+          echo "Published durable internal release-provenance.json fallback for $GITHUB_REF_NAME after successful internal completed Play upload."
 
       - name: Promote internal release to production
         if: env.DEPLOY_TRACK == 'production'
