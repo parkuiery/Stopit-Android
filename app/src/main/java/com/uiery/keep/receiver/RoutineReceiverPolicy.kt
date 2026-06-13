@@ -138,6 +138,16 @@ object RoutineReceiverPolicy {
         scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
     )
 
+    fun selectRoutineStartFallbackMessage(
+        notificationResult: RoutineStartNotificationResult,
+        permissionDeniedMessage: String,
+        channelDisabledMessage: String,
+    ): String = when (notificationResult) {
+        RoutineStartNotificationResult.PermissionDenied -> permissionDeniedMessage
+        RoutineStartNotificationResult.ChannelDisabled -> channelDisabledMessage
+        RoutineStartNotificationResult.Posted -> ""
+    }
+
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,
         fallbackMessage: String,

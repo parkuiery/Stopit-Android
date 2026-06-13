@@ -209,6 +209,7 @@
     <string name="notification_routine_start_title">%1$s-Routine hat begonnen</string>
     <string name="notification_routine_start_message">Zur besseren Konzentration wurde die App-Nutzung gesperrt.</string>
     <string name="routine_notification_permission_fallback_message">Die Routine %1$s hat begonnen, aber die Benachrichtigungsberechtigung ist deaktiviert, daher erinnert dich StopIt stattdessen in der App.</string>
+    <string name="routine_notification_channel_disabled_fallback_message">Die Routine %1$s hat begonnen, aber der Routine-Benachrichtigungskanal ist deaktiviert, daher erinnert dich StopIt stattdessen in der App.</string>
     <string name="routine_running_tag">Läuft</string>
     <string name="routine_enabled_tag">Aktiv</string>
     <string name="routine_disabled_tag">Aus</string>

@@ -207,6 +207,7 @@
     <string name="notification_routine_start_title">%1$sのルーティンが始まりました</string>
     <string name="notification_routine_start_message">集中のためにアプリの使用がロックされました。</string>
     <string name="routine_notification_permission_fallback_message">%1$s のルーティンが始まりましたが、通知権限がオフのため、StopIt がアプリ内で代わりにお知らせします。</string>
+    <string name="routine_notification_channel_disabled_fallback_message">%1$s のルーティンが始まりましたが、ルーティン通知チャンネルがオフのため、StopIt がアプリ内で代わりにお知らせします。</string>
     <string name="routine_running_tag">実行中</string>
     <string name="routine_enabled_tag">有効</string>
     <string name="routine_disabled_tag">無効</string>
