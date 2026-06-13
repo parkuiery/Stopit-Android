@@ -230,7 +230,7 @@
   - `repeat_block_routine_suggestion_applied / repeat_block_routine_suggestion_clicked`
   - 추천 적용 cohort의 D7/D30 반복 차단/루틴 사용 유지율 vs eligible but not applied cohort
   - 긴급해제 사용률, dismiss율, 리뷰 불만이 악화되면 추천 빈도/문구를 재검토한다.
-- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence가 `develop`에 반영됐다. 이번 code-lane PR은 Home/LockHistory CTA card exposure, apply/dismiss wiring, locale copy parity까지 repo-internal 구현한다. 아직 성과 리포트/post-block success 표면, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 readback 전이므로 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
+- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·apply/dismiss wiring·locale copy parity가 `develop`에 반영됐다. 아직 성과 리포트/post-block success 표면 판단, release/tag/Play deploy, GA4 Admin 등록/metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 readback 전이므로 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
 
 ### LockHistory 성과 리포트
 
