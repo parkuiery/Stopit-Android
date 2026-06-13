@@ -210,7 +210,7 @@
 
 - `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`(#531)의 반복 차단 기반 자동 루틴 제안이 구현된 뒤, 어떤 반복 패턴이 추천 노출·클릭·dismiss·적용으로 이어지는지 privacy-safe enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
 - 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, raw retry count, raw routine name은 GA4 payload와 registration ledger 모두에서 금지한다.
-- #531은 PR #537로 local policy + analytics adapter, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence가 `develop`에 반영된 상태다. 아직 Home/LockHistory/성과 리포트 CTA card exposure, dismiss/apply store UI wiring, locale copy parity, 추천 포함 release/tag/Play deploy, GA4 Admin 등록·metadata 확인, 14일 관측 전에는 event 0건을 수요 없음이나 추천 UX 실패로 해석하지 않는다.
+- #531은 PR #537로 local policy + analytics adapter, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·dismiss/apply store UI wiring·locale copy parity가 `develop`에 반영된 상태다. 아직 성과 리포트/post-block success 표면 판단, 추천 포함 release/tag/Play deploy, GA4 Admin 등록·metadata 확인, 14일 관측 전에는 event 0건을 수요 없음이나 추천 UX 실패로 해석하지 않는다.
 
 ### 10순위: 부모 모드 조회성
 

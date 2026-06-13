@@ -33,7 +33,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "14일 체크",
             "30일 체크",
             "RepeatBlockRoutineSuggestionStore",
-            "Home과 LockHistory 표면에서 추천 카드를 실제로 노출",
+            "PR #561",
+            "Home과 LockHistory CTA 표면에서 추천 카드를 실제로 노출",
             "apply는 루틴 prefill navigation",
             "dismiss는 privacy-safe store",
             "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
@@ -130,6 +131,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("repeat block routine suggestion check", ga4_runbook)
         self.assertIn("PR #552", ga4_runbook)
         self.assertIn("PR #555", ga4_runbook)
+        self.assertIn("PR #561", ga4_runbook)
         self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
         self.assertIn("Home/LockHistory", ga4_runbook)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
@@ -163,7 +165,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("prefill", document)
             self.assertIn("PR #555", document)
             self.assertIn("RepeatBlockRoutineSuggestionStore", document)
-            self.assertIn("Home/LockHistory", document)
+            self.assertIn("PR #561", document)
+            self.assertIn("Home/LockHistory CTA", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)
             self.assertIn("수요 없음", document)
