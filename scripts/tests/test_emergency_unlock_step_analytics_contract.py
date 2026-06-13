@@ -102,6 +102,37 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
         for phrase in required_phrases:
             self.assertIn(phrase, checklist)
 
+    def test_completion_map_separates_repo_internal_done_from_external_boundaries(self):
+        doc = read("docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md")
+
+        required_done_phrases = [
+            "Repo-internal 완료:",
+            "- [x] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다. (`PR #783`)",
+            "- [x] custom reason 원문, app name/package/list, raw timestamp/history가 payload에 들어가지 않음을 테스트로 보장한다. (`PR #783`)",
+            "- [x] reason-required ON/OFF 양쪽 flow 테스트가 새 이벤트 계약을 검증한다. (`PR #783` + QA baseline)",
+            "- [x] GA4 등록 runbook, event dictionary, metrics/product docs, QA checklist, ops context pack에 신규 event/parameter readback 기준과 14일 확인 조건이 추가된다. (`PR #781`, `PR #798`)",
+        ]
+        for phrase in required_done_phrases:
+            self.assertIn(phrase, doc)
+
+        required_external_phrases = [
+            "외부/측정 경계:",
+            "- [ ] GA4 Admin에서 `customEvent:*` metadata를 실제 등록하고 metadata/readback을 확인한다.",
+            "- [ ] #779 포함 버전이 release/tag/Play deploy를 지난다.",
+            "- [ ] 배포 후 D+14/D+30 readback으로 단계별 이탈/검증 실패 분포를 해석한다.",
+        ]
+        for phrase in required_external_phrases:
+            self.assertIn(phrase, doc)
+
+        stale_unchecked_repo_internal_items = [
+            "- [ ] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다.",
+            "- [ ] custom reason 원문, app name/package/list, raw timestamp/history가 payload에 들어가지 않음을 테스트로 보장한다.",
+            "- [ ] reason-required ON/OFF 양쪽 flow 테스트가 새 이벤트 계약을 검증한다.",
+            "- [ ] GA4 Admin 등록/runbook에 신규 event/parameter readback 기준과 14일 확인 조건이 추가된다.",
+        ]
+        for phrase in stale_unchecked_repo_internal_items:
+            self.assertNotIn(phrase, doc)
+
 
 if __name__ == "__main__":
     unittest.main()
