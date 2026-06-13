@@ -99,6 +99,15 @@ fun RoutineScreen(
                     snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
                 }
             }
+            is RoutineSideEffect.CloseEditRoutineBottomSheet -> {
+                coroutineScope.launch {
+                    routineBottomSheetState.hide()
+                }.invokeOnCompletion {
+                    if (!routineBottomSheetState.isVisible) {
+                        viewModel.hideEditRoutineBottomSheet()
+                    }
+                }
+            }
             is RoutineSideEffect.ShareRoutineTemplate -> {
                 val shareText = sideEffect.payload.buildShareText(
                     AndroidRoutineTemplateShareTextProvider(context),
@@ -220,13 +229,6 @@ fun RoutineScreen(
                             .align(Alignment.CenterEnd),
                         onClick = {
                             viewModel.deleteRoutine(state.selectedRoutine!!.id)
-                            coroutineScope.launch {
-                                routineBottomSheetState.hide()
-                            }.invokeOnCompletion {
-                                if (!routineBottomSheetState.isVisible) {
-                                    viewModel.hideEditRoutineBottomSheet()
-                                }
-                            }
                         }
                     ) {
                         Icon(
