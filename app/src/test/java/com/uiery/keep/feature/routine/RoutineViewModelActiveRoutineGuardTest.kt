@@ -60,6 +60,20 @@ class RoutineViewModelActiveRoutineGuardTest {
     }
 
     @Test
+    fun inactiveRoutineDeleteClosesEditSheetOnlyAfterRepositoryDeleteSucceeds() = runBlocking {
+        val routine = inactiveRoutine()
+        val repository = GuardRoutineRepository(listOf(routine))
+        val viewModel = createViewModel(repository)
+        waitFor { viewModel.container.stateFlow.value.routines == listOf(routine) }
+        val sideEffectDeferred = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.deleteRoutine(routine.id)
+
+        assertEquals(RoutineSideEffect.CloseEditRoutineBottomSheet, withTimeout(1_000) { sideEffectDeferred.await() })
+        assertEquals(listOf(routine.id), repository.deletedIds)
+    }
+
+    @Test
     fun activeRoutineDisableShowsBlockedReasonAndKeepsRoutineEnabled() = runBlocking {
         val routine = activeRoutine()
         val repository = GuardRoutineRepository(listOf(routine))
@@ -147,6 +161,22 @@ class RoutineViewModelActiveRoutineGuardTest {
             startTime = LocalTime(hour = start.hour, minute = start.minute),
             endTime = LocalTime(hour = end.hour, minute = end.minute),
             repeatDays = listOf(now.dayOfWeek).toRepeatDaysBinary(),
+            lockApplications = listOf("com.example.blocked"),
+            isEnabled = true,
+            changeLockHours = 0,
+        )
+    }
+
+    private fun inactiveRoutine(): RoutineModel {
+        val tomorrow = LocalDateTime.now().plusDays(1)
+        val start = tomorrow.withHour(9).withMinute(0)
+        val end = tomorrow.withHour(10).withMinute(0)
+        return RoutineModel(
+            id = 611L,
+            name = "Inactive routine guard",
+            startTime = LocalTime(hour = start.hour, minute = start.minute),
+            endTime = LocalTime(hour = end.hour, minute = end.minute),
+            repeatDays = listOf(start.dayOfWeek).toRepeatDaysBinary(),
             lockApplications = listOf("com.example.blocked"),
             isEnabled = true,
             changeLockHours = 0,
