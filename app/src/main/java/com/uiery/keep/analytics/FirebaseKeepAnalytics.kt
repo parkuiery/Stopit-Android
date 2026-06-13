@@ -3,6 +3,7 @@ package com.uiery.keep.analytics
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvents
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -731,6 +732,10 @@ class FirebaseKeepAnalytics
             suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
         ) {
             log(RoutineAnalyticsEvents.repeatBlockSuggestionApplied(surface, suggestion))
+        }
+
+        override fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) {
+            log(RoutineAnalyticsEvents.routineSaved(payload))
         }
 
         override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {

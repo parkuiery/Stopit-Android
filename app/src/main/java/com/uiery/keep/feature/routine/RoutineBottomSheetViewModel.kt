@@ -3,8 +3,15 @@ package com.uiery.keep.feature.routine
 import com.uiery.keep.data.routine.RoutineRepository
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsScheduleType
+import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
+import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
+import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
+import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
@@ -146,6 +153,19 @@ class RoutineBottomSheetViewModel
                         scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
                     )
                 }
+                analytics.trackRoutineSaved(
+                    state.toRoutineSavedAnalyticsPayload(
+                        entrySurface = repeatBlockSurface ?: AnalyticsSource.ROUTINE,
+                        creationSource = if (repeatBlockPrefill != null) {
+                            RoutineSavedCreationSource.REPEAT_BLOCK_PREFILL
+                        } else {
+                            RoutineSavedCreationSource.MANUAL
+                        },
+                        scheduleState = scheduleDecision.toRoutineSavedScheduleState(
+                            permissionPromptRequested = resolvedRoutine.shouldShowPermissionPrompt,
+                        ),
+                    ),
+                )
                 if (repeatBlockPrefill != null && repeatBlockSurface != null) {
                     analytics.trackRepeatBlockRoutineSuggestionApplied(
                         surface = repeatBlockSurface,
@@ -253,6 +273,64 @@ private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
         isEnabled = isEnabled,
         changeLockHours = changeLockHours,
     )
+
+private fun RoutineBottomSheetUiState.toRoutineSavedAnalyticsPayload(
+    entrySurface: String,
+    creationSource: String,
+    scheduleState: String,
+) = RoutineSavedAnalyticsPayload(
+    entrySurface = entrySurface,
+    creationSource = creationSource,
+    selectedAppCountBucket = selectedAppCountBucket(selectApps.size),
+    repeatDaysBucket = repeatDaysBucket(selectDays.toSet()),
+    timeWindowBucket = timeWindowBucket(startTime, endTime),
+    scheduleState = scheduleState,
+)
+
+private fun RoutineExactAlarmScheduleDecision.toRoutineSavedScheduleState(permissionPromptRequested: Boolean): String = when {
+    shouldShowPermissionPrompt || permissionPromptRequested -> RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING
+    routine.isEnabled -> RoutineSavedScheduleState.ENABLED
+    else -> RoutineSavedScheduleState.DISABLED
+}
+
+private fun selectedAppCountBucket(count: Int): String = when (count) {
+    1 -> AnalyticsSelectedAppCountBucket.ONE
+    in 2..3 -> AnalyticsSelectedAppCountBucket.TWO_TO_THREE
+    in 4..6 -> AnalyticsSelectedAppCountBucket.FOUR_TO_SIX
+    else -> AnalyticsSelectedAppCountBucket.SEVEN_PLUS
+}
+
+private fun repeatDaysBucket(days: Set<DayOfWeek>): String = when {
+    days.isEmpty() -> RoutineTemplateRepeatDaysBucketName.NONE
+    days == weekdaySet -> RoutineTemplateRepeatDaysBucketName.WEEKDAY
+    days == weekendSet -> RoutineTemplateRepeatDaysBucketName.WEEKEND
+    days.size == DayOfWeek.entries.size -> RoutineTemplateRepeatDaysBucketName.DAILY
+    else -> RoutineTemplateRepeatDaysBucketName.CUSTOM_DAYS
+}
+
+private val weekdaySet = setOf(
+    DayOfWeek.MONDAY,
+    DayOfWeek.TUESDAY,
+    DayOfWeek.WEDNESDAY,
+    DayOfWeek.THURSDAY,
+    DayOfWeek.FRIDAY,
+)
+
+private val weekendSet = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+
+private fun timeWindowBucket(
+    startTime: LocalTime,
+    endTime: LocalTime,
+): String {
+    if (endTime <= startTime) return RoutineTemplateTimeWindowBucketName.OVERNIGHT
+    return when (startTime.hour) {
+        in 5..11 -> RoutineTemplateTimeWindowBucketName.MORNING
+        in 12..16 -> RoutineTemplateTimeWindowBucketName.AFTERNOON
+        in 17..20 -> RoutineTemplateTimeWindowBucketName.EVENING
+        in 21..23, in 0..4 -> RoutineTemplateTimeWindowBucketName.NIGHT
+        else -> RoutineTemplateTimeWindowBucketName.CUSTOM_WINDOW
+    }
+}
 
 sealed interface RoutineBottomSheetSideEffect {
     data object ShowAlarmPermission : RoutineBottomSheetSideEffect
