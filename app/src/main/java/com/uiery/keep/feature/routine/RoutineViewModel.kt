@@ -104,6 +104,7 @@ class RoutineViewModel
                 }
                 exactAlarmOrchestrator.cancelRoutine(id)
                 routineRepository.deleteById(id)
+                postSideEffect(RoutineSideEffect.CloseEditRoutineBottomSheet)
             }
 
         internal fun changeEnabled(
@@ -230,6 +231,8 @@ sealed class RoutineSideEffect {
     data object ShowAlarmPermission : RoutineSideEffect()
 
     data object ShowActiveRoutineBlocked : RoutineSideEffect()
+
+    data object CloseEditRoutineBottomSheet : RoutineSideEffect()
 
     data class ShareRoutineTemplate(
         val payload: RoutineTemplateSharePayload,

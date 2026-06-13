@@ -111,6 +111,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_actionlint_gate", workflow)
         self.assertIn("scripts.tests.test_workflow_gradle_task_guard", workflow)
         self.assertIn("scripts.tests.test_release_gradle_task_contract", workflow)
+        self.assertIn("scripts.tests.test_prod_release_shrinking_contract", workflow)
+        self.assertIn("scripts.tests.test_release_signing_gradle_contract", workflow)
         self.assertIn("scripts.tests.test_android_ci_artifact_retention", workflow)
         self.assertIn("scripts.tests.test_android_ci_path_gating", workflow)
         self.assertIn("scripts.tests.test_play_deploy_tag_governance", workflow)
@@ -123,6 +125,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("'scripts/tests/test_signed_aab_lint_gate.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_workflow_gradle_task_guard.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_release_gradle_task_contract.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_prod_release_shrinking_contract.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_release_signing_gradle_contract.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_android_ci_artifact_retention.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_android_ci_path_gating.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_play_deploy_tag_governance.py'", docs_contract_filter)
@@ -170,6 +174,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts.tests.test_release_guard_hotfix_sync",
             "scripts.tests.test_workflow_gradle_task_guard",
             "scripts.tests.test_release_gradle_task_contract",
+            "scripts.tests.test_prod_release_shrinking_contract",
+            "scripts.tests.test_release_signing_gradle_contract",
             "scripts.tests.test_android_ci_artifact_retention",
             "scripts.tests.test_android_ci_path_gating",
             "scripts.tests.test_play_deploy_tag_governance",
@@ -216,6 +222,8 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts.tests.test_review_prompt_post_release_followthrough_docs", doc)
             self.assertIn("scripts.tests.test_workflow_gradle_task_guard", doc)
             self.assertIn("scripts.tests.test_release_gradle_task_contract", doc)
+            self.assertIn("scripts.tests.test_prod_release_shrinking_contract", doc)
+            self.assertIn("scripts.tests.test_release_signing_gradle_contract", doc)
             self.assertIn("docs-only", doc)
 
         # The main operator workflow table should enumerate the full release-helper

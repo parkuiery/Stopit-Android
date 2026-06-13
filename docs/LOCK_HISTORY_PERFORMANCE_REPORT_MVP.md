@@ -1,7 +1,7 @@
 # 잠금 기록 성과 리포트 UX 계약
 
 Issue: #465
-상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영 / release·GA4·14일·30일 readback 전**
+상태: **docs-lane 제품/analytics/QA 계약 고정 / PR #485 read-model·UI 구현 develop 반영 / code-lane instrumentation 추가 / PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization + PR #805 selected-date 성과 요약 분리 develop 반영 / release·GA4·14일·30일 readback 전**
 
 이 문서는 Stopit의 `LockHistory` 화면을 단순 로그가 아니라 사용자가 “내가 지킨 기록”을 이해하는 성과 리포트 경험으로 개선하기 위한 source of truth다. #211 집중 요약 공유와 같은 화면을 쓰지만, 이 이슈의 1차 목표는 외부 공유가 아니라 **개인 성과 해석과 재방문 동기 강화**다.
 
@@ -151,7 +151,7 @@ PR #485(`feat(lockhistory): 성과 리포트 read model 추가`, merge commit `b
 
 1. `LockHistoryPerformanceReportReadModel` helper와 focused JVM regression이 추가됐다.
 2. empty / low-data / has-history / week-month / top-apps copy 계약이 read model 테스트로 고정됐다.
-3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다. 이번 code-lane package는 선택 날짜가 켜진 상태에서 summary headline/supporting copy와 `period_type=selected_date`를 주/월 전체 기간 copy와 분리하고, 선택한 날짜에 기록이 없을 때도 일별 empty copy를 보여주도록 read model/string parity/test 계약을 보강한다.
+3. `LockHistoryViewModel`과 선택 날짜 필터가 현재 표시 중인 세션 기준으로 summary read model을 계산하도록 연결됐다. PR #805(`feat(lockhistory): selected-date 성과 요약 분리`, merge commit `8f14158e1b890fa69ada3c694c47cbc1533f5d9e`)로 선택 날짜가 켜진 상태에서 summary headline/supporting copy와 `period_type=selected_date`를 주/월 전체 기간 copy와 분리하고, 선택한 날짜에 기록이 없을 때도 일별 empty copy를 보여주도록 read model/string parity/test 계약이 `develop`에 반영됐다.
 4. `LockHistoryScreen` 상단 summary card와 top apps heading/supporting copy가 성취형/긍정 프레이밍으로 바뀌었다.
 5. 기본 string resource parity와 `:app:lintProdRelease` 검증이 완료됐다. 이후 PR #637(`docs(lockhistory): 성과 리포트 locale copy 계약 동기화`, merge commit `3d8e8d73b1cdba566a49b554fc6f255bed9aceb9`)로 shipped non-default locale copy localization과 default English copy 잔존 방지 회귀 테스트가 추가됐다.
 6. 2026-06-05 code-lane instrumentation으로 `LockHistoryViewModel`이 summary 노출 시 `lock_history_performance_summary_viewed`를 기록하고, Top apps 섹션이 실제 표시되는 상태에서만 `lock_history_top_apps_viewed`를 기록한다. payload는 `period_type`, `report_state`, `session_count_bucket`, `duration_minutes_bucket`, `top_apps_count_bucket` 같은 enum/bucket만 사용한다.
@@ -188,7 +188,7 @@ git diff --check
 
 ## PR/이슈 연결 규칙
 
-PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. PR #566으로 summary/top apps TalkBack contentDescription regression과 QA evidence template이 `develop`에 반영됐고, PR #579로 Top Apps TalkBack contentDescription이 rank/app label/block count/duration까지 확장됐다. PR #637로 shipped non-default locale copy localization과 default English copy 잔존 방지 regression이 `develop`에 반영됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 실제 스크린샷/TalkBack spot-check, 14일/30일 readback 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
+PR #485로 LockHistory summary/top apps UI, string parity, focused tests/build는 `develop`에 반영됐고, 2026-06-05 code-lane instrumentation으로 `lock_history_performance_summary_viewed` / `lock_history_top_apps_viewed` 코드 계약과 focused JVM tests가 추가됐다. PR #566으로 summary/top apps TalkBack contentDescription regression과 QA evidence template이 `develop`에 반영됐고, PR #579로 Top Apps TalkBack contentDescription이 rank/app label/block count/duration까지 확장됐다. PR #637로 shipped non-default locale copy localization과 default English copy 잔존 방지 regression이 `develop`에 반영됐다. PR #805로 선택 날짜 summary/top apps가 `selected_date` bucket, 일별 headline/supporting copy, 일별 empty copy로 주/월 전체 기간 copy와 분리됐다. #465 acceptance에는 아직 release/tag/Play deploy, GA4 Admin/metadata 확인, 실제 스크린샷/TalkBack spot-check, 14일/30일 readback 경계가 남아 있다. 따라서 문서/ops follow-through PR body는 계속 `Refs #465`를 사용한다. `Closes #465`는 위 외부/manual/post-release 경계까지 확인해 이슈 acceptance가 실제로 충족됐을 때만 사용한다.
 
 ## 계약 회귀 테스트
 

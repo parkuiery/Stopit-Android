@@ -74,7 +74,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "top_apps_count_bucket",
             "PR #485 read-model·UI 구현 develop 반영",
             "code-lane instrumentation 추가",
-            "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization develop 반영",
+            "PR #566 summary/top apps TalkBack baseline + PR #579 Top Apps 세부 contentDescription baseline + PR #637 shipped locale copy localization + PR #805 selected-date 성과 요약 분리 develop 반영",
             "rank/app label/block count/duration",
             "per-session dedupe",
             "duplicate lockedApps entry",
@@ -82,6 +82,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
             "f4b499baf9ccb42102fe29be71ee386a310e6fb3",
             "PR #637",
             "3d8e8d73b1cdba566a49b554fc6f255bed9aceb9",
+            "PR #805",
+            "8f14158e1b890fa69ada3c694c47cbc1533f5d9e",
             "shipped non-default locale copy localization",
             "Refs #465",
             "Closes #465",
@@ -126,6 +128,10 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("PR #566", ga4)
         self.assertIn("PR #579", dictionary)
         self.assertIn("PR #579", ga4)
+        self.assertIn("PR #805", dictionary)
+        self.assertIn("PR #805", ga4)
+        self.assertIn("8f14158e", dictionary)
+        self.assertIn("8f14158e", ga4)
         self.assertIn("rank/app label/block count/duration", dictionary)
         self.assertIn("code-lane instrumentation", dictionary)
         self.assertIn("code-lane instrumentation", ga4)
@@ -149,6 +155,7 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("개인 성과 해석/재방문 동기", dashboard)
         self.assertIn("PR #566", dashboard)
         self.assertIn("PR #579", dashboard)
+        self.assertIn("PR #805", dashboard)
 
     def test_shipped_locale_copy_does_not_leave_performance_report_in_english(self):
         default_strings = _android_strings("values")
@@ -203,6 +210,8 @@ class LockHistoryPerformanceReportContractTest(unittest.TestCase):
         self.assertIn("PR #566", source)
         self.assertIn("PR #579", source)
         self.assertIn("PR #637", source)
+        self.assertIn("PR #805", source)
+        self.assertIn("selected_date", high_traffic)
         self.assertIn("shipped non-default locale copy localization", source)
         self.assertIn("default English copy 잔존 방지", source)
         self.assertIn("develop`에 반영", source)

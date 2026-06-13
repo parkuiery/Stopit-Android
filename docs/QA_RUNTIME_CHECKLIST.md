@@ -895,7 +895,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - 실행 중인 루틴을 탭해 상세/수정 bottom sheet를 열려고 하면 `RoutineSideEffect.ShowActiveRoutineBlocked`가 발생하고 edit sheet가 열리지 않는다.
 - 활성 루틴 대상 앱이 이미 foreground에 있거나 foreground로 전환될 때 `KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution`가 `block_source=routine`과 `routine_id` attribution으로 `BlockActivity` 요청을 고정한다.
 - `KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives`는 보호 대상 앱이 이미 foreground인 상태에서 루틴 시간이 도래하면 추가 window-state event 없이도 time-based 재평가가 실행되어 `block_source=routine`과 `routine_id` attribution으로 차단되는지 고정한다.
-- 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시킨다.
+- 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시키며, edit sheet는 닫지 않아 사용자가 제한 이유를 확인할 수 있어야 한다. 비활성 루틴 삭제만 repository delete 성공 후 close side effect로 edit sheet를 닫는다.
 - 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
 - 루틴 목록 switch를 직접 탭해 OFF를 시도해도 `RoutineListActionPolicyTest` / `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState`가 toggle callback 대신 blocked feedback callback을 고정한다.
 - 루틴 목록 state가 잠시 stale이어도 삭제/OFF action 직전에 repository의 최신 routine을 다시 읽어, 그 사이 활성/변경잠금 상태가 된 루틴이면 delete/update/cancel/reschedule을 수행하지 않는다.
