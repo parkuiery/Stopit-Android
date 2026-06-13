@@ -4,7 +4,7 @@ Issue: #694
 
 ## 목적
 
-긴급해제 설정 화면은 사용자가 Stopit의 차단 강도와 안전장치를 직접 조절하는 고신뢰 표면이다. #694 code-lane에서 `EmergencyUnlockSettingsViewModel`의 설정 변경 경로에 Android analytics wiring을 연결했다. 이제 사용자가 실제로 바꾸는 정책(`enabled`, 일일 횟수, 허용 duration, reason required, daily/manual refill, manual reset)은 enum/bucket 이벤트로 남긴다. 동일 값을 다시 선택하거나 단일 duration option을 다시 눌러 저장 값이 유지되는 no-op 조작은 `emergency_unlock_settings_changed`로 기록하지 않아 adoption/readback 분모가 부풀지 않게 한다. GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live event 부재를 adoption 부재로 해석하지 않는다.
+긴급해제 설정 화면은 사용자가 Stopit의 차단 강도와 안전장치를 직접 조절하는 고신뢰 표면이다. #694 code-lane에서 `EmergencyUnlockSettingsViewModel`의 설정 변경 경로에 Android analytics wiring을 연결했다. 이제 사용자가 실제로 바꾸는 정책(`enabled`, 일일 횟수, 허용 duration, reason required, daily/manual refill, manual reset)은 enum/bucket 이벤트로 남긴다. PR #789(`8b9f2793`) 이후 동일 값을 다시 선택하거나 단일 duration option을 다시 눌러 저장 값이 유지되는 no-op 조작은 `emergency_unlock_settings_changed`로 기록하지 않아 adoption/readback 분모가 부풀지 않게 한다. GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live event 부재를 adoption 부재로 해석하지 않는다.
 
 이 문서는 #694의 source of truth다. 목표는 긴급해제 설정 adoption과 마찰을 **privacy-safe enum/bucket**으로만 해석할 수 있게 Android wiring 계약, GA4 등록 경계, QA evidence를 고정하는 것이다. 현재 repo-internal Android wiring은 완료됐지만 GA4 Admin·release/readback 전까지 `Refs #694`를 사용한다.
 
@@ -120,9 +120,10 @@ Readback 최소 쿼리:
 
 #694 code-lane wiring 상태:
 
-- `KeepAnalytics` / `FirebaseKeepAnalytics`: `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` 이벤트 API와 Firebase payload 구현 완료.
-- `EmergencyUnlockSettingsViewModel`: `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`, `manual_reset` 변경 경로에서 `source=menu`와 privacy-safe enum/bucket payload만 기록. 동일 값 재선택/no-op duration toggle은 `emergency_unlock_settings_changed`를 기록하지 않는다.
-- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가고, no-op 설정 조작은 change 이벤트를 만들지 않음을 고정.
+- PR #698(`8c303d7`): `KeepAnalytics` / `FirebaseKeepAnalytics`에 `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` 이벤트 API와 Firebase payload를 구현했다.
+- PR #698(`8c303d7`): `EmergencyUnlockSettingsViewModel`이 `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`, `manual_reset` 변경 경로에서 `source=menu`와 privacy-safe enum/bucket payload만 기록하도록 연결했다.
+- PR #789(`8b9f2793`): 동일 값 재선택과 단일 duration option no-op toggle은 `emergency_unlock_settings_changed`를 기록하지 않도록 보강했다. 이 경계가 없으면 반복 탭/저장값 유지 조작이 setting adoption/readback 분모를 부풀린다.
+- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가고, `unchangedSettingsDoNotTrackSettingChange` 계열 no-op 설정 조작은 change 이벤트를 만들지 않음을 고정.
 - 남은 외부 경계: GA4 Admin custom dimension/metric 등록, SemVer tag/Play deploy 포함, D+14/D+30 readback.
 
 ## Historical code-lane handoff
@@ -183,7 +184,8 @@ Repo-internal docs-lane 완료 기준:
 Repo-internal code-lane 완료 기준:
 
 - [x] Android analytics API/Firebase adapter/ViewModel wiring이 구현됐다. (PR #698 / merge commit `8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260`)
-- [x] raw reason/app/package/timestamp/`manualResetAtMillis`가 payload에 포함되지 않음을 JVM 테스트로 보장한다. (`FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`, `EmergencyUnlockSettingsViewModelAnalyticsTest`)
+- [x] no-op 설정 조작이 change 이벤트를 만들지 않도록 보강됐다. (PR #789 / merge commit `8b9f2793fd6b1a5aba9ebd893b0b5a6e4aaa9fd8`)
+- [x] raw reason/app/package/timestamp/`manualResetAtMillis`가 payload에 포함되지 않고 no-op change가 기록되지 않음을 JVM 테스트로 보장한다. (`FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`, `EmergencyUnlockSettingsViewModelAnalyticsTest`)
 
 남은 external / release / measurement 경계:
 

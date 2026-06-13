@@ -463,7 +463,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
 Source of truth: `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`
 Issue: #694
 
-Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. The Android wiring is repo-internal, but until the commit is included in a release/tag/Play deploy and GA4 Admin dimensions are registered, do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
+Use this after the Android analytics wiring PR for #694 or a later release candidate is installed. The Android wiring is repo-internal, and PR #789 tightened the event semantics so same-value selections and duration no-op toggles do not emit `emergency_unlock_settings_changed`. Until the commit is included in a release/tag/Play deploy and GA4 Admin dimensions are registered, do not interpret missing `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested` rows as adoption absence.
 
 ```md
 ## Emergency unlock settings analytics QA evidence
@@ -484,6 +484,7 @@ Use this after the Android analytics wiring PR for #694 or a later release candi
 - Analytics payload contract:
   - `setting_name` uses only `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`: pass / fail
   - `value_bucket`, `duration_count_bucket`, `remaining_unlocks_bucket`, `refill_mode`, `source=menu` use documented enum/bucket values: pass / fail
+  - same-value reselection and duration no-op toggles do not emit `emergency_unlock_settings_changed`: pass / fail
   - no custom reason, display label/custom text, app package/name/list, raw timestamp/history, `manualResetAtMillis`, or full settings snapshot is sent: pass / fail
 - GA4/Admin:
   - `customEvent:setting_name`: registered / missing / unknown
