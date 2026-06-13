@@ -310,6 +310,7 @@ class RoutineBottomSheetViewModelTest {
         awaitUntil { routineDao.insertedEntity != null }
 
         assertEquals(suggestion.prefillPackages, routineDao.insertedEntity?.lockApplications)
+        awaitUntil { analytics.repeatBlockAppliedCalls.isNotEmpty() && analytics.routineSavedCalls.isNotEmpty() }
         assertEquals(1, analytics.repeatBlockAppliedCalls.size)
         assertEquals(RepeatBlockRoutineSuggestionSurface.HOME, analytics.repeatBlockAppliedCalls.single().first)
         assertEquals(expectedAnalyticsPayload, analytics.repeatBlockAppliedCalls.single().second)
