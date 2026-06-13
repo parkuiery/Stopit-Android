@@ -235,18 +235,18 @@ cd <repo-root>
 
 ### 9차 code-lane active controls foothold
 
-2026-06-11 code-lane PR에서 Parent Mode setup 화면을 active/expired 상태까지 이어지는 제어 화면으로 확장했다. 이제 사용자는 setup에서 10/20/30분 preset을 선택하고, session 시작 후 같은 화면에서 active 상태를 확인하며, verified guardian PIN 상태로 10분 연장 또는 즉시 종료를 요청할 수 있다. 또한 화면 진입/상태 렌더링 시 `markExpiredIfNeeded(...)`를 호출해 만료된 session을 `expired` state와 `parent_mode_completed(end_reason=time_expired)` 1회 commit으로 동기화한다.
+PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 Parent Mode setup 화면이 active/expired 상태까지 이어지는 제어 화면으로 `develop`에 반영됐다. 사용자는 setup에서 10/20/30분 preset을 선택하고, session 시작 후 같은 화면에서 active 상태를 확인하며, verified guardian PIN 상태로 10분 연장 또는 즉시 종료를 요청할 수 있다. 또한 화면 진입/상태 렌더링 시 `markExpiredIfNeeded(...)`를 호출해 만료된 session을 `expired` state와 `parent_mode_completed(end_reason=time_expired)` 1회 commit으로 동기화한다.
 
 - `ParentModeSetupScreen`: duration preset 선택 UI, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
 - `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신한다.
 - `ParentModeSetupViewModelTest`: verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
 
-### 다음 code-lane 후보
+### 다음 경계
 
-- Parent Mode active/expired 화면의 실제 Compose/emulator interaction evidence
-- Runtime instrumentation: `ParentModeAccessibilityIntegrationTest`
+- repo-internal baseline: PR #748에서 active/expired control ViewModel·Controller·Store·Policy regression, locale/contract tests, AccessibilityService active/expired instrumentation이 current-head green으로 확인됐다. 이 상태를 “active controls 구현 전”으로 되돌리지 않는다.
+- 남은 manual/release boundary: release-candidate device UX spot-check, active/expired 화면 screenshot/TalkBack 확인, release/tag/Play deploy 포함, GA4 Admin metadata/queryability, D+14/D+30 readback.
 
-남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 active/expired 화면 device evidence와 release/readback 경계를 이어 붙이는 방향으로 잡는다.
+남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 release-candidate device UX spot-check, screenshot/TalkBack evidence, release/readback 경계를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 
@@ -258,7 +258,7 @@ cd <repo-root>
 
 ## Closing discipline
 
-- 이 문서는 PR #519와 PR #584 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
+- 이 문서는 PR #519/#584/#748 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
 - `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
 - GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
 

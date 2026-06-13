@@ -137,13 +137,14 @@ class ParentModeContractTest(unittest.TestCase):
             "실제 PIN 입력 UI와 setup CTA enablement",
             "PIN 불일치/미충족 상태에서는 session 저장을 막는 경계",
             "ParentModeSetupViewModelTest",
-            "Parent Mode active/expired 화면의 실제 Compose/emulator interaction evidence",
             "6차 code-lane foothold",
             "markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce",
             "9차 code-lane active controls foothold",
+            "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
             "duration preset 선택 UI",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
             "ParentModeSetupViewModelTest",
+            "release-candidate device UX spot-check",
         ]:
             self.assertIn(phrase, runbook)
 
@@ -160,11 +161,15 @@ class ParentModeContractTest(unittest.TestCase):
 
         self.assertIn("PR #519", product_context)
         self.assertIn("PR #584", product_context)
-        self.assertIn("policy/analytics/session/Accessibility foothold", product_context)
+        self.assertIn("policy/analytics foothold", product_context)
+        self.assertIn("session persistence와 Accessibility decision foothold", product_context)
         self.assertIn("setup 화면/ViewModel foothold", product_context)
         self.assertIn("PIN 입력 UI와 setup CTA enablement", product_context)
-        self.assertIn("남은 경계는 active/expired 화면", product_context)
+        self.assertIn("PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`", product_context)
+        self.assertIn("active controls 미구현 상태로 되돌리지 않는다", product_context)
+        self.assertIn("남은 경계는 release-candidate device UX spot-check", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
+        self.assertNotIn("이번 PR은 setup 화면", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
         documents = [
@@ -218,6 +223,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry", qa_checklist)
         self.assertIn("expiresAtMillis", qa_checklist)
         self.assertIn("0분/음수 extension은 거부", qa_checklist)
+        self.assertIn("PR #519/#584/#748", qa_checklist)
+        self.assertIn("active controls 미구현", qa_checklist)
+        self.assertIn("release-candidate device UX spot-check", qa_checklist)
         self.assertIn("Parent mode QA evidence", qa_checklist)
         self.assertIn("same-device / PIN / bypass", qa_checklist)
 
