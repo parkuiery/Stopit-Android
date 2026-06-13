@@ -810,7 +810,7 @@ python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
 
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 
-issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card가 있으면 현재 보호 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 
@@ -822,6 +822,7 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
   --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics' \
   --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' \
   --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'
 python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v
@@ -831,6 +832,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - 반복 차단 패턴이 충분하고 해당 패턴을 커버하는 활성 루틴이 없을 때만 추천된다.
 - onboarding / pre-first-lock 사용자에게 미노출된다.
 - 기존 활성 루틴과 겹치면 미노출된다.
+- Home active Goal Lock card가 있으면 현재 보호 상태 안내를 우선해 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다.
 - 추천은 최대 1개만 노출되고 dismiss 후 최소 7일 재노출 제한을 지킨다.
 - 추천 copy는 방어 성공/도움 제안 톤이며 비난형 copy 금지다.
 - `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`는 enum/bucket 파라미터만 사용한다.
@@ -846,7 +848,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - Device / Android version / OEM:
 - Entry point: home / post_block_success / lock_history / performance_report
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
+  - `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicyTest' --tests 'com.uiery.keep.feature.routine.RoutineNavigationTest' --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest'`
   - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
 - Eligibility:
   - first_core_action_completed or app_block_intercepted already happened: pass / fail

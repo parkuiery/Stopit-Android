@@ -280,6 +280,17 @@ class HomeViewModel
                     .atZone(ZoneId.systemDefault())
                     .toInstant()
                     .toEpochMilli()
+                val hasActiveGoalLock = goalLockRepository.fetchAll()
+                    .firstOrNull()
+                    .orEmpty()
+                    .any { goalLock ->
+                        GoalLockPolicy.runtimeStatus(goalLock, LocalDate.now().atStartOfDay()) == GoalLockRuntimeStatus.Active
+                    }
+                if (hasActiveGoalLock) {
+                    reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+                    return@intent
+                }
+
                 val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
                     .firstOrNull()
                     .orEmpty()
