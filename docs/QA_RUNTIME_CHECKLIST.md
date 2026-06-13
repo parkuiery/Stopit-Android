@@ -762,7 +762,7 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 ### Routine saved analytics QA baseline
 
-issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
+issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, PR #828으로 Home 보조 CTA에서 Routine 생성 흐름으로 들어간 저장 완료가 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 attribution된다. 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 
