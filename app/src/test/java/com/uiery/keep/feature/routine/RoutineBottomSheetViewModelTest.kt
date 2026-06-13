@@ -248,6 +248,7 @@ class RoutineBottomSheetViewModelTest {
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
         awaitUntil { routineDao.insertedEntity != null }
+        awaitUntil { analytics.routineSavedCalls.isNotEmpty() }
 
         assertEquals(
             listOf(
