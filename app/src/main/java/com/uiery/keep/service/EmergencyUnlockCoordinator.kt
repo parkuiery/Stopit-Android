@@ -7,6 +7,7 @@ import com.uiery.keep.datastore.EmergencyUnlockSettingsSnapshot
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import java.util.Calendar
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 
 internal data class EmergencyUnlockAvailability(
     val enabled: Boolean,
@@ -97,7 +98,7 @@ class EmergencyUnlockCoordinator
             )
             val unlockData = EmergencyUnlockData(unlockedApps = apps, expireTimeMillis = expireTime)
 
-            repository.insert(
+            val historyId = repository.insert(
                 EmergencyUnlockEntity(
                     timestamp = nowMillis,
                     reason = reason,
@@ -106,7 +107,14 @@ class EmergencyUnlockCoordinator
                     durationMinutes = durationMinutes,
                 ),
             )
-            blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
+            try {
+                blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
+            } catch (failure: Throwable) {
+                if (failure is CancellationException) throw failure
+                runCatching { repository.deleteById(historyId) }
+                    .onFailure { rollbackFailure -> failure.addSuppressed(rollbackFailure) }
+                throw failure
+            }
             EmergencyUnlockState.current = unlockData
             analytics.trackEmergencyUnlockUsed(
                 source = source,
