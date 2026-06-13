@@ -90,24 +90,29 @@ class KeepAccessibilityService :
             RoutineRuntimeEntryPoint::class.java,
         )
         launch {
-            entryPoint.blockingStateStore().accessibilitySnapshot.collect { snapshot ->
-                cachedPrefs = snapshot
-                KeepAccessibilityServiceDebugState.update(applicationContext) {
-                    it.copy(
-                        observedIsKeep = cachedPrefs.isKeep,
-                        observedPreventUninstall = cachedPrefs.preventUninstall,
-                        observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
-                        observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
-                        observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
-                    )
-                }
-                scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
-                syncEmergencyUnlockCountdownNotification(
-                    expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
-                    notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+            entryPoint.blockingStateStore().accessibilitySnapshot
+                .withAccessibilityRuntimeRecovery(
+                    source = AccessibilityRuntimeFlowSource.BlockingState,
+                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
                 )
-                reevaluateCurrentForegroundAfterStateUpdate()
-            }
+                .collect { snapshot ->
+                    cachedPrefs = snapshot
+                    KeepAccessibilityServiceDebugState.update(applicationContext) {
+                        it.copy(
+                            observedIsKeep = cachedPrefs.isKeep,
+                            observedPreventUninstall = cachedPrefs.preventUninstall,
+                            observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
+                            observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
+                            observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                        )
+                    }
+                    scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
+                    syncEmergencyUnlockCountdownNotification(
+                        expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                        notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+                    )
+                    reevaluateCurrentForegroundAfterStateUpdate()
+                }
         }
         launch {
             entryPoint.routineRepository().fetchAll()
