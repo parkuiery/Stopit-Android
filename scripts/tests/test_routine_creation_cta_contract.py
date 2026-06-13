@@ -96,7 +96,7 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
         self.assertIn("첫 차단 후 루틴 CTA 전환", dashboard)
         self.assertIn("노출 cohort의 `routines_count >= 1` users", dashboard)
         self.assertIn("#810 저장 완료 계측", dashboard)
-        self.assertIn("Android wiring 전에는 `routines_count >= 1` 전환을 보조 지표로 유지", dashboard)
+        self.assertIn("PR #813 Android wiring 이후에는 `routine_saved`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
         self.assertNotIn("`routine_created` users / clicked users", dashboard)
 
     def test_analytics_dictionary_and_ga4_runbook_track_routine_cta_events(self):

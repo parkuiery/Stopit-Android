@@ -278,7 +278,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 루틴 저장 완료 이벤트
 
-Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 추천 prefill, 그리고 수동 루틴 생성의 “실제 저장 완료” 분모를 맞추기 위한 후속 analytics 계약이다. 수동 루틴 생성과 CTA/추천 prefill 저장 완료를 같은 저장 완료 분모로 묶는다. Android wiring 전에는 문서 계약일 뿐이며, GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live 0건을 루틴 생성 수요 없음으로 해석하지 않는다.
+Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 추천 prefill, 그리고 수동 루틴 생성의 “실제 저장 완료” 분모를 맞추기 위한 후속 analytics 계약이다. 수동 루틴 생성과 CTA/추천 prefill 저장 완료를 같은 저장 완료 분모로 묶는다. PR #813(`2c4d4ae`)로 Android wiring은 `develop`에 반영됐으므로 더 이상 문서 계약 전용 상태가 아니다. 다만 GA4 Admin 등록·release/tag/Play deploy·14일/30일 readback 전까지 live 0건을 루틴 생성 수요 없음으로 해석하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
