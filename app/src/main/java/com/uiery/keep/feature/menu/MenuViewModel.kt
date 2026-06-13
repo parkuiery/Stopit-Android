@@ -12,7 +12,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockPolicy
-import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

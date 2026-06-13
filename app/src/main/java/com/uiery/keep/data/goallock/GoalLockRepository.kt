@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.goallock
+package com.uiery.keep.data.goallock
 
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.entity.GoalLockEntity

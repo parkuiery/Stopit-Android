@@ -11,7 +11,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.feature.goallock.GoalLockRepository
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository

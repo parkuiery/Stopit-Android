@@ -11,11 +11,11 @@ import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
-import com.uiery.keep.feature.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.toRepeatDaysBinary
