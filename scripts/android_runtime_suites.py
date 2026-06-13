@@ -17,7 +17,12 @@ import sys
 from collections.abc import Iterable
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
-ANDROID_TEST_ROOT = REPO_ROOT / "app" / "src" / "androidTest" / "java"
+ANDROID_TEST_SOURCE_ROOT = REPO_ROOT / "app" / "src" / "androidTest"
+ANDROID_TEST_ROOT = ANDROID_TEST_SOURCE_ROOT / "java"
+ANDROID_TEST_ROOTS = [
+    ANDROID_TEST_SOURCE_ROOT / "java",
+    ANDROID_TEST_SOURCE_ROOT / "kotlin",
+]
 
 # Android instrumentation tests that intentionally do not run in the default
 # Android CI / Release QA runtime gates. Keep this list small and policy-based:
@@ -149,13 +154,33 @@ def class_arg(suite_names: Iterable[str]) -> str:
     return ",".join(selectors_for(suite_names))
 
 
+def android_test_roots() -> list[pathlib.Path]:
+    # Keep ANDROID_TEST_ROOT for older tests/patches, but scan both canonical
+    # Android source roots so Kotlin-only instrumentation tests cannot bypass
+    # the runtime-suite inventory guard.
+    roots = list(globals().get("ANDROID_TEST_ROOTS", [ANDROID_TEST_ROOT]))
+    if ANDROID_TEST_ROOT not in roots:
+        roots.insert(0, ANDROID_TEST_ROOT)
+    return roots
+
+
 def android_test_source_for(class_name: str) -> pathlib.Path:
-    return ANDROID_TEST_ROOT / pathlib.Path(*class_name.split(".")).with_suffix(".kt")
+    relative = pathlib.Path(*class_name.split(".")).with_suffix(".kt")
+    candidates = [root / relative for root in android_test_roots()]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 
 
 def android_test_class_name_for(source_path: pathlib.Path) -> str:
-    relative = source_path.relative_to(ANDROID_TEST_ROOT).with_suffix("")
-    return ".".join(relative.parts)
+    for root in android_test_roots():
+        try:
+            relative = source_path.relative_to(root).with_suffix("")
+        except ValueError:
+            continue
+        return ".".join(relative.parts)
+    raise ValueError(f"Android test source is outside configured roots: {source_path}")
 
 
 def covered_android_test_classes() -> set[str]:
@@ -165,7 +190,8 @@ def covered_android_test_classes() -> set[str]:
 def all_android_test_classes() -> set[str]:
     return {
         android_test_class_name_for(path)
-        for path in ANDROID_TEST_ROOT.rglob("*Test.kt")
+        for root in android_test_roots()
+        for path in root.rglob("*Test.kt")
     }
 
 
