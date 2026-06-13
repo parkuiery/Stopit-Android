@@ -660,6 +660,38 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val now = System.currentTimeMillis()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.EMERGENCY_UNLOCK_APPS to setOf("com.instagram.android"),
+                PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME to now + 600_000L,
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = HomeRecordingLockHistoryDao(
+                sessions = listOf(
+                    lockHistoryEntity(now - 1_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 86_400_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 172_800_000L, listOf("com.instagram.android")),
+                ),
+            ),
+            routineRepository = FakeHomeRoutineRepository(emptyList()),
+        )
+
+        delay(100)
+
+        assertEquals(null, viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+        assertEquals(
+            emptyList<HomeAnalyticsCall.RepeatBlockSuggestionShown>(),
+            analytics.calls.filterIsInstance<HomeAnalyticsCall.RepeatBlockSuggestionShown>(),
+        )
+    }
+
+    @Test
     fun dismissingRepeatedBlockRoutineSuggestionHidesItAndPersistsSuppression() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(mutablePreferencesOf())
