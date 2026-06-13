@@ -54,6 +54,8 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RoutineScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutineViewModel = hiltViewModel(),
+    routineSavedEntrySurface: String? = null,
+    routineSavedCreationSource: String? = null,
     repeatBlockSuggestionSurface: String? = null,
     repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onNavigateBack: () -> Unit,
@@ -192,6 +194,8 @@ fun RoutineScreen(
         ) {
             RoutineBottomSheetContent(
                 isEdit = false,
+                routineSavedEntrySurface = routineSavedEntrySurface,
+                routineSavedCreationSource = routineSavedCreationSource,
                 repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
                 repeatBlockSuggestion = repeatBlockSuggestion,
                 onCloseBottomSheet = {

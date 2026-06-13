@@ -64,6 +64,8 @@ fun RoutineBottomSheetContent(
     routine: RoutineModel? = null,
     repeatBlockSuggestionSurface: String? = null,
     repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
+    routineSavedEntrySurface: String? = null,
+    routineSavedCreationSource: String? = null,
     onRequireAlarmPermission: () -> Unit = { },
     onActiveRoutineBlocked: () -> Unit = { },
     onCloseBottomSheet: () -> Unit,
@@ -90,7 +92,14 @@ fun RoutineBottomSheetContent(
         }
     }
 
-    LaunchedEffect(isEdit, routine, repeatBlockSuggestionSurface, repeatBlockSuggestion) {
+    LaunchedEffect(
+        isEdit,
+        routine,
+        repeatBlockSuggestionSurface,
+        repeatBlockSuggestion,
+        routineSavedEntrySurface,
+        routineSavedCreationSource,
+    ) {
         if (isEdit) {
             routine?.let {
                 viewModel.resetEditState(it)
@@ -101,7 +110,10 @@ fun RoutineBottomSheetContent(
                 suggestion = repeatBlockSuggestion,
             )
         } else {
-            viewModel.resetState()
+            viewModel.resetState(
+                routineSavedEntrySurface = routineSavedEntrySurface,
+                routineSavedCreationSource = routineSavedCreationSource,
+            )
         }
     }
 

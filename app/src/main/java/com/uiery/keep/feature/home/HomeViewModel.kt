@@ -15,6 +15,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
@@ -330,7 +331,12 @@ class HomeViewModel
                     hasRoutine = state.routineCount > 0,
                     ctaVariant = AnalyticsRoutineCreationCtaVariant.SOFT_DEFAULT,
                 )
-                postSideEffect(HomeSideEffect.MoveToRoutine)
+                postSideEffect(
+                    HomeSideEffect.MoveToRoutine(
+                        routineSavedEntrySurface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
+                        routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
+                    ),
+                )
             }
 
         private fun getSelectedApp() =
@@ -810,7 +816,10 @@ sealed class HomeSideEffect {
         val isRoutine: Boolean,
     ) : HomeSideEffect()
 
-    data object MoveToRoutine : HomeSideEffect()
+    data class MoveToRoutine(
+        val routineSavedEntrySurface: String? = null,
+        val routineSavedCreationSource: String? = null,
+    ) : HomeSideEffect()
 
     data class NavigateToRoutineWithRepeatBlockPrefill(
         val suggestion: RepeatBlockRoutineSuggestion,

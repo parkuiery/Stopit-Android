@@ -223,6 +223,43 @@ class RoutineBottomSheetViewModelTest {
     }
 
     @Test
+    fun addRoutineFromHomeRoutineCreationCtaTracksPostFirstBlockAttribution() = runBlocking {
+        val routineDao = RecordingRoutineDao(insertedId = 45L)
+        val analytics = RecordingKeepAnalytics()
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
+            .thenReturn(RoutineScheduleResult.Scheduled)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+            analytics = analytics,
+        )
+
+        viewModel.resetState(
+            routineSavedEntrySurface = "home_secondary",
+            routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
+        )
+        fillValidRoutine(viewModel)
+        viewModel.addRoutine()
+        awaitUntil { routineDao.insertedEntity != null }
+
+        assertEquals(
+            listOf(
+                RoutineSavedAnalyticsPayload(
+                    entrySurface = "home_secondary",
+                    creationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
+                    selectedAppCountBucket = "1",
+                    repeatDaysBucket = "custom_days",
+                    timeWindowBucket = "morning",
+                    scheduleState = RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            analytics.routineSavedCalls.toList(),
+        )
+    }
+
+    @Test
     fun repeatBlockSuggestionPrefillsEditableRoutineFieldsAndTracksAppliedAfterSave() = runBlocking {
         val routineDao = RecordingRoutineDao(insertedId = 44L)
         val analytics = RecordingKeepAnalytics()

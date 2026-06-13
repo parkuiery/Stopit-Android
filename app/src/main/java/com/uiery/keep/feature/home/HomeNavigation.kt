@@ -23,7 +23,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
     onNavigateLockHistory: () -> Unit,
-    onNavigateRoutine: () -> Unit,
+    onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit,
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
     onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
 ) {
