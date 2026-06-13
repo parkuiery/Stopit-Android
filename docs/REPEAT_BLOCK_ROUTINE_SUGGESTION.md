@@ -160,7 +160,7 @@ Privacy guardrail:
 - [x] 반복 차단 패턴 계산 helper를 pure policy로 분리하고 JVM test를 추가한다. (`RepeatBlockRoutineSuggestionPolicyTest`)
 - [x] 기존 활성 루틴과 겹치는 추천을 노출하지 않는다.
 - [x] 후보가 여러 개여도 최대 1개만 노출한다.
-- [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원한다. (`RepeatBlockRoutineSuggestionStoreTest`; UI wiring 전)
+- [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원하고, Home/LockHistory UI wiring이 같은 store를 재노출 제한 입력으로 사용한다. (`RepeatBlockRoutineSuggestionStoreTest`, `HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
 - [x] 추천 dismiss/apply store를 Home/LockHistory CTA UI에 연결해 실제 재노출 제한을 화면 플로우에서 검증한다. (`HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
 - [x] Home active Goal Lock card가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. (`HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`)
 - [x] 루틴 생성 prefill은 저장 전 사용자가 수정 가능하다. (`RoutineBottomSheetViewModel` prefill 계약)
