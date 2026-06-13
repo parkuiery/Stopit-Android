@@ -13,6 +13,7 @@ RELEASE_CHECKLIST_PATH = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 RELEASE_CONTEXT_PATH = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 FUNCTIONS_README_PATH = REPO_ROOT / "functions" / "README.md"
 ROLLOUT_VALIDATOR_PATH = REPO_ROOT / "scripts" / "validate-play-rollout-inputs.js"
+PRODUCTION_ENVIRONMENT_GUARD_PATH = REPO_ROOT / "scripts" / "check-production-environment-approval.sh"
 
 
 class PlayDeployTagGovernanceTest(unittest.TestCase):
@@ -141,7 +142,6 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
 
     def test_production_staged_rollout_inputs_are_validated_before_secret_decode(self):
         workflow = WORKFLOW_PATH.read_text()
-
         self.assertIn("- name: Validate production staged rollout inputs", workflow)
         rollout_step = workflow.split("- name: Validate production staged rollout inputs", 1)[1].split("- name:", 1)[0]
         secret_step_index = workflow.index("- name: Validate production promotion secrets")
@@ -151,6 +151,25 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("if: env.DEPLOY_TRACK == 'production'", rollout_step)
         self.assertIn("node - <<'NODE'", rollout_step)
         self.assertIn("validateReleaseStatusAndRolloutFraction", rollout_step)
+
+    def test_production_environment_required_reviewer_guard_runs_before_production_secrets(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertTrue(PRODUCTION_ENVIRONMENT_GUARD_PATH.exists())
+        script = PRODUCTION_ENVIRONMENT_GUARD_PATH.read_text()
+        self.assertIn("repos/${repo}/environments/${environment_name}", script)
+        self.assertIn("required_reviewers", script)
+        self.assertIn("protection_rules", script)
+
+        self.assertIn("- name: Verify production Environment approval protection", workflow)
+        guard_step = workflow.split("- name: Verify production Environment approval protection", 1)[1].split("- name:", 1)[0]
+        guard_step_index = workflow.index("- name: Verify production Environment approval protection")
+        secret_step_index = workflow.index("- name: Validate production promotion secrets")
+
+        self.assertLess(guard_step_index, secret_step_index)
+        self.assertIn("if: env.DEPLOY_TRACK == 'production'", guard_step)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", guard_step)
+        self.assertIn("run: scripts/check-production-environment-approval.sh", guard_step)
 
     def run_rollout_validator(self, release_status, rollout_fraction):
         env = os.environ.copy()
@@ -270,6 +289,7 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertIn("GitHub Environment", docs)
         self.assertIn("production", docs)
         self.assertIn("required reviewer", docs)
+        self.assertIn("scripts/check-production-environment-approval.sh", docs)
         self.assertIn("Discord", docs)
 
 

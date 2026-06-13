@@ -36,20 +36,22 @@ Primary는 아래처럼 사용자 가치나 현재 상태를 직접 설명하는
 
 ## 현재 코드 상태
 
-2026-06-05 docs-lane 감사(PR #474)에서는 `KeepTheme.colors.primary`가 제품 상태/선택과 navigation action에 섞여 있었다. 이후 2026-06-06 code-lane PR #546(`9b99cafc`)이 `develop`에 merge되어 핵심 navigation/action icon의 primary 과강조를 실제 코드에서 낮췄다.
+2026-06-05 docs-lane 감사(PR #474)에서는 `KeepTheme.colors.primary`가 제품 상태/선택과 navigation action에 섞여 있었다. 이후 2026-06-06 code-lane PR #546(`9b99cafc`)이 `develop`에 merge되어 핵심 navigation/action icon의 primary 과강조를 실제 코드에서 낮췄다. 2026-06-12 PR #804(`a5cb5fb4`)는 Home/Menu UI와 Goal Lock·Parent Mode setup 화면을 KDS 기반 컴포넌트/아이콘/카드 구조로 한 번 더 정리해, primary 위계 계약이 새 등록 화면에도 적용된 repo-internal 상태로 전진했다.
 
-| 화면/파일 | PR #474 감사 당시 표면 | PR #546 이후 상태 | 남은 경계 |
+| 화면/파일 | PR #474 감사 당시 표면 | PR #546 / PR #804 이후 상태 | 남은 경계 |
 | --- | --- | --- | --- |
-| `HomeScreen.kt` | 메뉴 IconButton tint가 primary | 메뉴 icon을 lower-emphasis token으로 낮추고 Home의 시작/타이머/선택 CTA primary는 유지 | 실제 기기 visual QA에서 Home primary CTA가 충분히 강한지 확인 |
+| `HomeScreen.kt` | 메뉴 IconButton tint가 primary | PR #546에서 메뉴 icon을 lower-emphasis token으로 낮췄고, PR #804에서 Home status/CTA 카드가 KDS 기반 구조로 정리됐다. Home의 시작/타이머/선택 CTA primary는 유지 | 실제 기기 visual QA에서 Home primary CTA가 충분히 강한지 확인 |
 | `LockHistoryScreen.kt` | 뒤로가기 tint가 primary | back icon을 lower-emphasis token으로 낮추고 선택 날짜/성과 숫자 primary는 유지 | 성과 리포트(#465) UI와 함께 visual QA 확인 |
 | `BlockedAppsScreen.kt` | 뒤로가기 tint가 primary | back icon을 낮추고 rank/성과 강조는 제품 가치 강조로 유지 | history 하위 화면 QA에서 rank 강조가 navigation보다 강한지 확인 |
 | `RoutineScreen.kt` | 뒤로가기와 추가 icon이 모두 primary | back icon은 낮추고 add icon은 화면의 주요 생성 action으로 primary 유지 | add가 icon-only라 비색상 cue/contentDescription이 유지되는지 확인 |
 | `EmergencyUnlockSettingsScreen.kt` | 뒤로가기 tint가 primary | back icon을 낮추고 설정 값/선택 상태 primary는 유지 | emergency unlock 설정 화면 visual/TalkBack QA 확인 |
-| `GoalLockCreationScreen.kt`, `GoalLockDetailScreen.kt`, `RoutineBottomSheetContent.kt`, `MenuScreen.kt`, `DevToolScreen.kt` | 이후 기능/진단 화면에서도 primary/raw orange navigation icon drift 가능 | PR #546의 정적 회귀 테스트가 navigation icon primary/raw orange 금지 snippet을 포함 | 새 화면 추가 시 `scripts.tests.test_design_primary_color_hierarchy`에 금지 snippet을 확장 |
+| `GoalLockCreationScreen.kt`, `GoalLockDetailScreen.kt` | 이후 기능 화면에서도 primary/raw orange navigation icon drift 가능 | PR #546 정적 회귀 테스트가 navigation icon primary/raw orange 금지 snippet을 포함했고, PR #804가 Goal Lock 생성 화면을 KDS card/choice/CTA 구조로 정리 | Goal Lock 생성/상세 light/dark visual QA와 release 포함 확인 |
+| `ParentModeSetupScreen.kt`, `SetupComponents.kt` | PR #474 당시 미존재/미감사 surface | PR #804가 Parent Mode setup 화면과 공용 setup 컴포넌트를 KDS 기반 표면으로 추가했다. duration/app/PIN 선택은 카드·라벨·설명과 함께 표시하고, start CTA만 primary action으로 남긴다 | Parent Mode setup/active controls visual QA와 TalkBack spot-check, release 포함 확인 |
+| `MenuScreen.kt`, `DevToolScreen.kt` | 이후 기능/진단 화면에서도 primary/raw orange navigation icon drift 가능 | PR #546의 정적 회귀 테스트가 navigation icon primary/raw orange 금지 snippet을 포함했고, PR #804가 Menu 주요 진입 카드를 KDS/아이콘 기준으로 정리 | 새 화면 추가 시 `scripts.tests.test_design_primary_color_hierarchy`에 금지 snippet을 확장 |
 | `EmergencyUnlockBottomSheetContent.kt` | duration/active/selected/progress primary | 선택/진행 상태라 유지 | 색상 외 chip/background/label 보완이 유지되는지 QA |
 | `RoutineDayContent.kt`, `LockHistoryTab.kt`, `LockHistoryWeekCalendar.kt` | 선택 상태 primary | 선택 상태라 유지 | 선택 shape/border/text/semantics가 함께 유지되는지 QA |
 
-따라서 #468은 더 이상 “문서 계약만 있고 구현 전” 상태가 아니다. repo-internal 기준은 `DESIGN.md`/KDS 계약 + PR #546 code diff + 정적 회귀 테스트까지 들어온 상태이며, 남은 것은 실제 기기 visual QA, 릴리즈 포함 여부, 사용자 노출 후 확인이다.
+따라서 #468은 더 이상 “문서 계약만 있고 구현 전” 상태가 아니다. repo-internal 기준은 `DESIGN.md`/KDS 계약 + PR #546 navigation/action icon 정리 + PR #804 KDS 적용 + 정적 회귀 테스트까지 들어온 상태이며, 남은 것은 실제 기기 visual QA, 릴리즈 포함 여부, 사용자 노출 후 확인이다.
 
 ## 화면별 적용 순서
 
@@ -75,6 +77,7 @@ Primary는 아래처럼 사용자 가치나 현재 상태를 직접 설명하는
 | Routine / Routine bottom sheet | back/delete icon은 lower-emphasis 또는 error token이고, add/save/selected day는 비색상 cue를 함께 갖는지 | routine list + add/edit sheet screenshot |
 | Emergency Unlock settings / bottom sheet | back icon은 낮고 reason/duration/active selection/progress는 chip/background/label과 함께 전달되는지 | settings + bottom sheet screenshot, TalkBack/contentDescription spot-check |
 | Goal Lock creation/detail | back icon primary drift가 없고 기간/상태/progress 강조가 CTA와 충돌하지 않는지 | creation/detail screenshot, active/completed 상태 |
+| Parent Mode setup/active controls | duration/app/PIN 선택 카드와 시작/연장/종료 CTA의 위계가 KDS 표면에서 유지되는지, primary가 보조 설명/아이콘으로 번지지 않는지 | setup/active/expired screenshot, TalkBack/contentDescription spot-check |
 | Menu / DevTool | debug/internal navigation icon에 raw orange 또는 primary tint가 재도입되지 않았는지 | source/static test 결과 또는 screenshot |
 
 Closure comment에 포함할 항목:
@@ -89,13 +92,14 @@ visual QA와 release evidence가 없으면 PR/이슈 코멘트는 `Refs #468`로
 
 ## 완료/검증 기준
 
-#468 repo-internal 기준은 PR #474 + PR #546 이후 아래 상태까지 충족됐다.
+#468 repo-internal 기준은 PR #474 + PR #546 + PR #804 이후 아래 상태까지 충족됐다.
 
 - `DESIGN.md`와 `core/kds/README.md`가 primary 사용/비사용 기준을 동일하게 설명한다.
 - 주요 화면의 navigation icon과 primary CTA/선택/활성 상태 위계가 실제 코드에서 분리됐다.
+- Home/Menu/Goal Lock/Parent Mode setup은 KDS 기반 카드·아이콘·CTA 구조로 정리되어 새 등록 화면에서도 같은 primary 위계 계약을 따른다.
 - 선택/활성 상태는 색상 외 텍스트, 배지, shape, border, contentDescription 중 하나 이상과 함께 유지한다.
 - raw `#FFA927`/raw `Color(0xFFFFA927)`를 새로 추가하지 않고 `KeepTheme.colors` 또는 KDS token을 사용한다.
-- PR #546 current-head에서 `Fast verification`, `Runtime smoke gate`, `Branch Hygiene`가 통과했다.
-- `scripts/tests/test_design_primary_color_hierarchy.py`가 핵심 navigation icon primary/raw orange drift를 정적으로 막는다.
+- PR #546 current-head에서 `Fast verification`, `Runtime smoke gate`, `Branch Hygiene`가 통과했고, PR #804도 Home/Menu/Goal Lock/Parent Mode KDS 적용 검증을 통과한 뒤 `develop`에 반영됐다.
+- `scripts/tests/test_design_primary_color_hierarchy.py`가 핵심 navigation icon primary/raw orange drift와 PR #804 이후 KDS 적용 surface 누락을 정적으로 막는다.
 
 남은 경계는 repo-internal 문서/코드가 아니라 실제 기기 visual QA, 다음 릴리즈 반영, 사용자 노출 후 확인이다. 따라서 추가 docs-only PR은 `Refs #468`로 두고, visual QA/릴리즈 evidence까지 확보한 뒤 이슈 closure를 판단한다.

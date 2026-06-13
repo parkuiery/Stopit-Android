@@ -89,7 +89,7 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
 
         repeat_runbook = REPEAT_BLOCK_RUNBOOK.read_text()
         self.assertIn("`routine_saved(creation_source=repeat_block_prefill)` users / `repeat_block_routine_suggestion_clicked` users", repeat_runbook)
-        self.assertIn("`entry_surface=repeat_block_suggestion|home|lock_history|performance_report`", repeat_runbook)
+        self.assertIn("`entry_surface=repeat_block_suggestion|home|lock_history|post_block_success|performance_report`", repeat_runbook)
 
     def test_runtime_qa_checklist_names_forbidden_payload_and_evidence_template(self):
         checklist = QA_RUNTIME_CHECKLIST.read_text()
