@@ -177,8 +177,26 @@ object RoutineSavedCreationSource {
 
 object RoutineSavedScheduleState {
     const val ENABLED = "enabled"
-    const val DISABLED = "disabled"
+    const val DISABLED_USER_CHOICE = "disabled_user_choice"
+    const val DISABLED_UNKNOWN = "disabled_unknown"
     const val DISABLED_EXACT_ALARM_MISSING = "disabled_exact_alarm_missing"
+}
+
+object RoutineSavedRepeatDaysBucketName {
+    const val ONE = "1"
+    const val TWO_TO_THREE = "2_3"
+    const val FOUR_TO_SIX = "4_6"
+    const val SEVEN = "7"
+}
+
+object RoutineSavedTimeWindowBucketName {
+    const val MORNING = "morning"
+    const val AFTERNOON = "afternoon"
+    const val EVENING = "evening"
+    const val NIGHT = "night"
+    const val OVERNIGHT = "overnight"
+    const val ALL_DAY = "all_day"
+    const val CUSTOM = "custom"
 }
 
 object RoutineTemplateCategoryName {
