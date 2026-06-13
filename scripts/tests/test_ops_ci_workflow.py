@@ -30,6 +30,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts/check_workflow_gradle_tasks.py", workflow)
         self.assertIn("scripts/release-tag.sh", workflow)
         self.assertIn("scripts/check-play-deploy-secret-contract.sh", workflow)
+        self.assertIn("scripts/check-production-environment-approval.sh", workflow)
         self.assertIn("scripts/setup-play-deploy-secrets.sh", workflow)
         self.assertIn("scripts/setup-discord-deploy-secrets.sh", workflow)
         self.assertIn("scripts/tests/**", workflow)
@@ -43,13 +44,14 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("python3 -m py_compile scripts/notify-discord-deploy.py", workflow)
         self.assertIn("python3 -m py_compile scripts/release_provenance_manifest.py", workflow)
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
-        self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh", workflow)
+        self.assertIn("bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/check-production-environment-approval.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh", workflow)
 
     def test_release_helper_scope_includes_operator_helper_scripts(self):
         workflow = OPS_CI_WORKFLOW.read_text()
         helper_scripts = [
             "scripts/release-tag.sh",
             "scripts/check-play-deploy-secret-contract.sh",
+            "scripts/check-production-environment-approval.sh",
             "scripts/setup-play-deploy-secrets.sh",
             "scripts/setup-discord-deploy-secrets.sh",
             "scripts/validate-play-rollout-inputs.js",
@@ -231,6 +233,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         for script in [
             "scripts/release-tag.sh",
             "scripts/check-play-deploy-secret-contract.sh",
+            "scripts/check-production-environment-approval.sh",
             "scripts/setup-play-deploy-secrets.sh",
             "scripts/setup-discord-deploy-secrets.sh",
             "scripts/validate-play-rollout-inputs.js",
