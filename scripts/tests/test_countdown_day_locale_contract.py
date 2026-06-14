@@ -8,7 +8,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RES_DIR = REPO_ROOT / "app" / "src" / "main" / "res"
 COUNTDOWN_CONTENT = (
     REPO_ROOT
-    / "app/src/main/java/com/uiery/keep/feature/lock/component/CountDownContent.kt"
+    / "app/src/main/java/com/uiery/keep/ui/component/CountDownContent.kt"
 )
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 SUPPORTED_STRING_FILES = sorted(RES_DIR.glob("values*/strings.xml"))

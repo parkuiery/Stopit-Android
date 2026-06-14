@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.lock.component
+package com.uiery.keep.ui.component
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.lock.component
+package com.uiery.keep.ui.component
 
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
