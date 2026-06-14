@@ -112,6 +112,32 @@ class RepeatBlockRoutineSuggestionPolicyTest {
         assertEquals(listOf("com.youtube.android", "com.netflix.mediaclient"), suggestion.prefillPackages)
     }
 
+    @Test
+    fun rapidRetryCandidateUsesRapidRetryReasonAndOutranksNewerNormalCandidate() {
+        val now = LocalDateTime.of(2026, 6, 6, 12, 0)
+        val histories = listOf(
+            history("2026-06-05T23:10:00", "com.instagram.android"),
+            history("2026-06-05T23:13:00", "com.instagram.android"),
+            history("2026-06-05T23:17:00", "com.instagram.android"),
+            history("2026-06-06T19:30:00", "com.youtube.android"),
+            history("2026-06-05T19:30:00", "com.youtube.android"),
+            history("2026-06-04T19:30:00", "com.youtube.android"),
+        )
+
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = histories,
+            activeRoutines = emptyList(),
+            dismissedSuggestions = emptyList(),
+            now = now,
+        )
+
+        requireNotNull(suggestion)
+        assertEquals(RepeatBlockTimeBucket.Night, suggestion.timeBucket)
+        assertEquals(RepeatBlockCategoryBucket.Social, suggestion.categoryBucket)
+        assertEquals(RepeatBlockSuggestionReason.RapidRetry, suggestion.reason)
+        assertEquals(listOf("com.instagram.android"), suggestion.prefillPackages)
+    }
+
     private fun history(start: String, packageName: String): RepeatBlockHistorySample =
         RepeatBlockHistorySample(
             startDateTime = LocalDateTime.parse(start),

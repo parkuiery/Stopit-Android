@@ -47,6 +47,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "performance_report",
             "entry_surface=repeat_block_suggestion|home|lock_history|post_block_success|performance_report",
             "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
+            "rapid_retry 구현 완료",
+            "RepeatBlockRoutineSuggestionPolicyTest.rapidRetryCandidateUsesRapidRetryReasonAndOutranksNewerNormalCandidate",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
