@@ -450,7 +450,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `interest_surface` | 수익화 관심도 CTA 노출 표면 (`menu`, `home`, `settings` 등) |
 | `interest_variant` | 수익화 관심도 CTA copy/실험 variant (`default` 등) |
 | `purchase_available` | 실제 결제 가능 여부. 결제 구현 전 관심도 측정은 `false` |
-| `surface` | 루틴 생성 CTA 노출 표면 (`home`, `lock_history`, `post_block_success`) |
+| `surface` | 루틴 생성 CTA/반복 차단 추천 노출 표면 (`home`, `lock_history`, `performance_report`, `post_block_success`). #531에서 `performance_report`는 구현 표면, `post_block_success`는 예약 enum/미구현 표면이다. |
 | `activation_stage` | 루틴 생성 CTA 대상 사용자의 활성화 단계 (`post_first_core_action`, `returning_blocked_user`) |
 | `has_routine` | 루틴 생성 CTA 대상자의 루틴 보유 여부. #455 MVP에서는 `false`만 허용 |
 | `cta_variant` | 루틴 생성 CTA copy/placement 실험 variant (`default` 등) |
