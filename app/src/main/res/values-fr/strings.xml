@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Établissez un accord avant de confier votre téléphone</string>
     <string name="parent_mode_setup_description">Le mode parental charge vos applis actuellement sélectionnées comme applis autorisées. Vous pouvez les ajuster ci-dessous.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Applis autorisées de la sélection actuelle : %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Saisissez et confirmez un code PIN parental d\'au moins 4 chiffres pour démarrer le mode parental.</string>
     <string name="parent_mode_setup_pin_label">Code PIN parental</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirmer le code PIN parental</string>

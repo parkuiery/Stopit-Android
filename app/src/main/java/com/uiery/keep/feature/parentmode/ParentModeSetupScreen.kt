@@ -29,6 +29,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -150,7 +152,7 @@ internal fun ParentModeSetupScreen(
 }
 
 @Composable
-private fun ParentModeSetupForm(
+internal fun ParentModeSetupForm(
     state: ParentModeSetupUiState,
     pinMismatch: Boolean,
     onDurationSelected: (Int) -> Unit,
@@ -162,13 +164,21 @@ private fun ParentModeSetupForm(
     onStart: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {
+    val setupAccessibilitySummary = stringResource(
+        id = R.string.parent_mode_setup_accessibility_summary,
+        state.durationMinutes,
+        state.allowedApps.size,
+    )
+
     SetupHero(
         iconResId = R.drawable.ic_parent_mode,
         title = stringResource(id = R.string.parent_mode_setup_headline),
         subtitle = stringResource(id = R.string.parent_mode_setup_description),
     )
 
-    SetupGroupCard {
+    SetupGroupCard(
+        modifier = Modifier.semantics { contentDescription = setupAccessibilitySummary },
+    ) {
         SetupSectionHeader(
             title = stringResource(id = R.string.parent_mode_setup_duration_label),
             valueLabel = stringResource(
@@ -294,7 +304,7 @@ private fun ParentModeSetupForm(
 }
 
 @Composable
-private fun ParentModeActiveControls(
+internal fun ParentModeActiveControls(
     session: ParentModeSession,
     onRefresh: () -> Unit,
     onExtend: () -> Unit,
@@ -312,41 +322,54 @@ private fun ParentModeActiveControls(
         ParentModeSessionState.Cancelled,
         -> R.string.parent_mode_setup_title
     }
-    Text(
-        text = stringResource(id = statusTextRes),
-        color = KeepTheme.colors.onSurface,
-        fontWeight = FontWeight.Bold,
+    val statusText = stringResource(id = statusTextRes)
+    val activeAccessibilitySummary = stringResource(
+        id = R.string.parent_mode_active_accessibility_summary,
+        statusText,
+        session.durationMinutes,
+        session.allowedApps.size,
     )
-    Text(
-        text = stringResource(
-            id = R.string.parent_mode_active_summary,
-            session.durationMinutes,
-            session.allowedApps.size,
-        ),
-        color = KeepTheme.colors.onSurfaceVariant,
-    )
-    Text(
-        text = stringResource(id = R.string.parent_mode_active_pin_notice),
-        color = KeepTheme.colors.onSurfaceVariant,
-    )
-    Button(
-        modifier = Modifier.fillMaxWidth(),
-        enabled = session.state == ParentModeSessionState.Active,
-        onClick = onExtend,
+
+    Column(
+        modifier = Modifier.semantics { contentDescription = activeAccessibilitySummary },
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = stringResource(id = R.string.parent_mode_active_extend_ten_minutes))
-    }
-    OutlinedButton(
-        modifier = Modifier.fillMaxWidth(),
-        enabled = session.state == ParentModeSessionState.Active,
-        onClick = onEnd,
-    ) {
-        Text(text = stringResource(id = R.string.parent_mode_active_end_now))
-    }
-    OutlinedButton(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onNavigateBack,
-    ) {
-        Text(text = stringResource(id = R.string.parent_mode_setup_back_to_menu))
+        Text(
+            text = statusText,
+            color = KeepTheme.colors.onSurface,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(
+                id = R.string.parent_mode_active_summary,
+                session.durationMinutes,
+                session.allowedApps.size,
+            ),
+            color = KeepTheme.colors.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(id = R.string.parent_mode_active_pin_notice),
+            color = KeepTheme.colors.onSurfaceVariant,
+        )
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            enabled = session.state == ParentModeSessionState.Active,
+            onClick = onExtend,
+        ) {
+            Text(text = stringResource(id = R.string.parent_mode_active_extend_ten_minutes))
+        }
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            enabled = session.state == ParentModeSessionState.Active,
+            onClick = onEnd,
+        ) {
+            Text(text = stringResource(id = R.string.parent_mode_active_end_now))
+        }
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onNavigateBack,
+        ) {
+            Text(text = stringResource(id = R.string.parent_mode_setup_back_to_menu))
+        }
     }
 }

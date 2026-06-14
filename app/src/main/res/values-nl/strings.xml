@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Maak een afspraak voordat je je telefoon overhandigt</string>
     <string name="parent_mode_setup_description">Oudermodus laadt je momenteel geselecteerde apps als toegestane apps. Je kunt ze hieronder aanpassen.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Toegestane apps uit huidige selectie: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Voer een ouder-PIN van minstens 4 cijfers in en bevestig deze om de oudermodus te starten.</string>
     <string name="parent_mode_setup_pin_label">Ouder-PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Ouder-PIN bevestigen</string>

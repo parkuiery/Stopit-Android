@@ -161,6 +161,8 @@
     <string name="parent_mode_setup_headline">Set a promise before handing over your phone</string>
     <string name="parent_mode_setup_description">Parent Mode loads your currently selected apps as the allowed apps. You can adjust them below.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Allowed apps from current selection: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_active_title">Parent Mode is running</string>
     <string name="parent_mode_expired_title">Parent Mode time is over</string>
     <string name="parent_mode_ended_title">Parent Mode ended</string>

@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Combine uma regra antes de entregar o telefone</string>
     <string name="parent_mode_setup_description">O Modo dos pais carrega os apps que você selecionou como apps permitidos. Você pode ajustá-los abaixo.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Apps permitidos da seleção atual: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Digite e confirme um PIN dos pais de 4+ dígitos para iniciar o Modo dos pais.</string>
     <string name="parent_mode_setup_pin_label">PIN dos pais</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirmar PIN dos pais</string>

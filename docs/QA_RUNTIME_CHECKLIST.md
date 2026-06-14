@@ -1535,7 +1535,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. 이번 code-lane은 `ParentModeSetupScreenAccessibilityTest`로 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정한다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1560,6 +1560,8 @@ cd <repo-root>
 ```bash
 cd <repo-root>
 ./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest
+./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence
 ```
 
@@ -1573,6 +1575,7 @@ cd <repo-root>
 - `ParentModeSessionController`가 PIN 성공 후 연장/즉시 종료만 저장하고 PIN 실패/미설정 상태에서는 session과 analytics를 바꾸지 않는지
 - `ParentModeSessionController.markExpiredIfNeeded(...)`가 active session의 시간 만료를 `expired` state와 `parent_mode_completed(end_reason=time_expired)`로 한 번만 commit하고, 재호출/비활성 state에서는 no-op인지
 - `ParentModeSetupViewModel`이 setup 화면의 10/20/30분 preset, 직접 분 입력 custom duration, active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
+- `ParentModeSetupScreenAccessibilityTest`가 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정하는지
 - `ParentModeSetupViewModelTest.customDurationInputStartsParentModeWithDirectMinuteValue`로 PR #870 직접 입력값이 `durationMinutes` source of truth와 session `expiresAtMillis`에 반영되는지 확인한다
 - 부모 모드 active/expired/extended/cancelled state transition
 - 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
@@ -1597,6 +1600,7 @@ cd <repo-root>
 - PIN state before start: not_configured / configured
 - Commands:
   - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.data.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`
 - same-device / PIN / bypass checks:
   - [ ] 보호자 PIN 확인 후에만 부모 모드가 시작된다.
