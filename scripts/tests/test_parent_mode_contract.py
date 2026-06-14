@@ -144,6 +144,10 @@ class ParentModeContractTest(unittest.TestCase):
             "duration preset 선택 UI",
             "직접 분 입력 필드",
             "직접 입력한 custom duration",
+            "issue #874의 stale Active 액션 경계",
+            "stale expiry 기준으로 10분 연장되지 않고",
+            "unlocked_by_pin`으로 오계측되지 않으며",
+            "자동 refresh를 예약",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
             "ParentModeSetupViewModelTest",
             "release-candidate device UX spot-check",
@@ -231,6 +235,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry", qa_checklist)
         self.assertIn("expiresAtMillis", qa_checklist)
         self.assertIn("0분/음수 extension은 거부", qa_checklist)
+        self.assertIn("issue #874 stale Active guard", qa_checklist)
+        self.assertIn("stale Active expiry spot-check", qa_checklist)
+        self.assertIn("PIN_UNLOCKED", qa_checklist)
         self.assertIn("PR #519/#584/#748", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
         self.assertIn("release-candidate device UX spot-check", qa_checklist)

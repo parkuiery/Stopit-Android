@@ -184,6 +184,87 @@ class ParentModeSessionControllerTest {
     }
 
     @Test
+    fun extendExpiredActiveSessionPersistsTimeExpiredInsteadOfExtendingFromStaleExpiry() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        store.save(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 61_000L,
+                durationMinutes = 1,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+            ),
+        )
+        val analytics = RecordingParentModeAnalytics()
+        val controller = ParentModeSessionController(store, analytics)
+
+        val result = controller.extend(
+            extensionMinutes = 10,
+            pinState = ParentModePinState.Verified,
+            nowMillis = 61_000L,
+        )
+
+        val expiredSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Expired,
+        )
+        assertEquals(ParentModeSessionControllerResult.Expired(expiredSession), result)
+        assertEquals(expiredSession, store.read())
+        assertEquals(
+            listOf(
+                ParentModeAnalyticsRecord.Completed(
+                    durationMinutesBucket = AnalyticsParentModeDurationBucket.ONE_TO_NINE,
+                    endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+                ),
+            ),
+            analytics.records,
+        )
+    }
+
+    @Test
+    fun endExpiredActiveSessionPersistsTimeExpiredInsteadOfPinUnlocked() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        store.save(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 61_000L,
+                durationMinutes = 1,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+            ),
+        )
+        val analytics = RecordingParentModeAnalytics()
+        val controller = ParentModeSessionController(store, analytics)
+
+        val result = controller.endNow(
+            pinState = ParentModePinState.Verified,
+            nowMillis = 61_000L,
+        )
+
+        val expiredSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Expired,
+        )
+        assertEquals(ParentModeSessionControllerResult.Expired(expiredSession), result)
+        assertEquals(expiredSession, store.read())
+        assertEquals(
+            listOf(
+                ParentModeAnalyticsRecord.Completed(
+                    durationMinutesBucket = AnalyticsParentModeDurationBucket.ONE_TO_NINE,
+                    endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+                ),
+            ),
+            analytics.records,
+        )
+    }
+
+    @Test
     fun markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce() = runBlocking {
         val store = ParentModeSessionStore(FakeDataStore())
         store.save(
