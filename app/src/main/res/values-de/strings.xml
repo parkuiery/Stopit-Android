@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Lege eine Vereinbarung fest, bevor du dein Handy übergibst</string>
     <string name="parent_mode_setup_description">Der Eltern-Modus übernimmt deine aktuell ausgewählten Apps als erlaubte Apps. Du kannst sie unten anpassen.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Erlaubte Apps aus aktueller Auswahl: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Gib eine mindestens 4-stellige Eltern-PIN ein und bestätige sie, um den Eltern-Modus zu starten.</string>
     <string name="parent_mode_setup_pin_label">Eltern-PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Eltern-PIN bestätigen</string>

@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Stabilisci un accordo prima di consegnare il telefono</string>
     <string name="parent_mode_setup_description">La modalità genitori usa le app attualmente selezionate come app consentite. Puoi modificarle qui sotto.</string>
     <string name="parent_mode_setup_allowed_apps_summary">App consentite dalla selezione attuale: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Inserisci e conferma un PIN genitore di almeno 4 cifre per avviare la modalità genitori.</string>
     <string name="parent_mode_setup_pin_label">PIN genitore</string>
     <string name="parent_mode_setup_pin_confirm_label">Conferma PIN genitore</string>

@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">在交出手机前先约定好</string>
     <string name="parent_mode_setup_description">家长模式会将你当前选择的应用作为允许的应用载入。你可以在下方调整。</string>
     <string name="parent_mode_setup_allowed_apps_summary">来自当前选择的允许应用：%1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">输入并确认至少 4 位的家长 PIN，即可开始家长模式。</string>
     <string name="parent_mode_setup_pin_label">家长 PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">确认家长 PIN</string>

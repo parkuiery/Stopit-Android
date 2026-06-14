@@ -209,6 +209,8 @@ class ParentModeContractTest(unittest.TestCase):
 
         self.assertIn("부모 모드 runtime QA baseline", qa_checklist)
         self.assertIn("PR #870", qa_checklist)
+        self.assertIn("ParentModeSetupScreenAccessibilityTest", qa_checklist)
+        self.assertIn("TalkBack summary", qa_checklist)
         self.assertIn("직접 분 입력 custom duration", qa_checklist)
         self.assertIn("customDurationInputStartsParentModeWithDirectMinuteValue", qa_checklist)
         self.assertIn("direct duration spot-check", qa_checklist)

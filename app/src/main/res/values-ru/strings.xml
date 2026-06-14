@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">Договоритесь о правилах, прежде чем отдать телефон</string>
     <string name="parent_mode_setup_description">Родительский режим загружает выбранные сейчас приложения как разрешённые. Их можно изменить ниже.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Разрешённые приложения из текущего выбора: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Введите и подтвердите родительский PIN не менее 4 цифр, чтобы запустить родительский режим.</string>
     <string name="parent_mode_setup_pin_label">Родительский PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">Подтвердите родительский PIN</string>

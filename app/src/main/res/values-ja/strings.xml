@@ -154,6 +154,8 @@
     <string name="parent_mode_setup_headline">スマホを渡す前に約束を決めましょう</string>
     <string name="parent_mode_setup_description">ペアレントモードは現在選択中のアプリを許可アプリとして読み込みます。下で調整できます。</string>
     <string name="parent_mode_setup_allowed_apps_summary">現在の選択から読み込んだ許可アプリ: %1$d個</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">4桁以上の保護者PINを入力して確認すると、ペアレントモードを開始できます。</string>
     <string name="parent_mode_setup_pin_label">保護者PIN</string>
     <string name="parent_mode_setup_pin_confirm_label">保護者PINを確認</string>

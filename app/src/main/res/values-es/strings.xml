@@ -153,6 +153,8 @@
     <string name="parent_mode_setup_headline">Establece un acuerdo antes de entregar tu teléfono</string>
     <string name="parent_mode_setup_description">El modo padres carga tus apps seleccionadas actualmente como apps permitidas. Puedes ajustarlas abajo.</string>
     <string name="parent_mode_setup_allowed_apps_summary">Apps permitidas de la selección actual: %1$d</string>
+    <string name="parent_mode_setup_accessibility_summary">Parent Mode setup. Allowed time %1$d minutes. Allowed apps %2$d.</string>
+    <string name="parent_mode_active_accessibility_summary">%1$s. Duration %2$d minutes. Allowed apps %3$d.</string>
     <string name="parent_mode_setup_pin_required_notice">Introduce y confirma un PIN de tutor de 4+ dígitos para iniciar el modo padres.</string>
     <string name="parent_mode_setup_pin_label">PIN de tutor</string>
     <string name="parent_mode_setup_pin_confirm_label">Confirmar PIN de tutor</string>
