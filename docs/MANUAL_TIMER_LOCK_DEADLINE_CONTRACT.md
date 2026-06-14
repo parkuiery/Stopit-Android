@@ -19,7 +19,8 @@ cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.datastore.ManualLockTimePolicyTest' \
   --tests 'com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest' \
-  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest'
+  --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
+  --tests 'com.uiery.keep.feature.home.component.ManualCountdownEndDatePreviewTest'
 ```
 
 검증 범위:
@@ -30,6 +31,7 @@ cd <repo-root>
 - 홈 타이머 예약은 `LOCK_TIME`에 active deadline을 저장한다.
 - 0일 0시간 0분 countdown은 `HomeViewModelActivationAnalyticsTest.lockTimeIgnoresZeroDurationCountdownWithoutPersistingOrTrackingSchedule` 기준으로 저장/계측하지 않는다.
 - 선택된 countdown duration은 `HomeViewModelActivationAnalyticsTest.lockTimeUsesSelectedCountdownDurationForScheduleAnalyticsAndDeadline` 기준으로 `day/hour/minute` 합산 분 단위로 `lock_scheduled.scheduled_duration_minutes`에 기록한다.
+- Home bottom sheet의 N일 countdown 종료 시각 preview는 `ManualCountdownEndDatePreviewTest` 기준으로 `오늘 날짜 + 현재 시각 + 선택 duration(day/hour/minute)`에서 계산한다. `timeNow > blockTime` 같은 timer용 next-day 보정은 countdown 표시 날짜에 적용하지 않는다.
 - 홈 타이머 예약 뒤 navigation 전 timer state가 바뀌어도 Lock route deadline은 저장된 `LOCK_TIME`과 같은 문자열을 사용한다.
 
 ## 수동 QA 시나리오

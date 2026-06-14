@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.LocalDate
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.home.CountdownDuration
@@ -70,12 +71,15 @@ fun TimeBottomSheetContent(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 if (manualLockMode == ManualLockMode.COUNTDOWN && countdownDays > 0) {
-                    val targetDate = java.time.LocalDate.now().plusDays(
-                        countdownDays.toLong() + if (timeNow > blockTime) 1L else 0L
+                    val targetDateTime = calculateCountdownEndDateTimePreview(
+                        today = LocalDate.now(),
+                        now = timeNow,
+                        countdownDays = countdownDays,
+                        countdownTime = countdownTime,
                     )
                     Text(
                         modifier = Modifier.padding(end = 4.dp),
-                        text = stringResource(R.string.lock_time_with_date, targetDate.monthValue, targetDate.dayOfMonth, blockTime.hour, blockTime.minute),
+                        text = stringResource(R.string.lock_time_with_date, targetDateTime.monthValue, targetDateTime.dayOfMonth, targetDateTime.hour, targetDateTime.minute),
                         color = KeepTheme.colors.primary,
                         fontWeight = FontWeight.SemiBold,
                     )
