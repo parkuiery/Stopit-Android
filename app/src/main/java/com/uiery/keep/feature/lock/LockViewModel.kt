@@ -59,11 +59,12 @@ class LockViewModel
             lockTime = savedStateHandle.get<String>("lockTime"),
             isRoutine = savedStateHandle.get<Boolean>("isRoutine") ?: false,
         )
+        private val lockScreenEntry = route.toLockScreenEntry()
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
-                    lockTime = ManualLockTimePolicy.toLocalDateTime(route.lockTime, clock.zone) ?: LocalDateTime.now(clock),
-                    isRoutine = route.isRoutine,
+                    lockTime = ManualLockTimePolicy.toLocalDateTime(lockScreenEntry.lockTime, clock.zone) ?: LocalDateTime.now(clock),
+                    isRoutine = lockScreenEntry.isRoutine,
                     timerStartTime = clock.millis(),
                 ),
             )
@@ -79,7 +80,7 @@ class LockViewModel
             intent {
                 getSelectedApp()
                 checkDailyLimit()
-                if (route.isRoutine) {
+                if (lockScreenEntry.isRoutine) {
                     getRoutines()
                 } else {
                     val timerStartTime = resolveManualTimerStartTime(

@@ -5,10 +5,16 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navOptions
+import com.uiery.keep.lockscreen.LockScreenEntry
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class LockRoute(val lockTime: String?,val isRoutine:Boolean)
+
+internal fun LockRoute.toLockScreenEntry(): LockScreenEntry = LockScreenEntry.fromLockRoute(
+    lockTime = lockTime,
+    isRoutine = isRoutine,
+)
 
 fun NavController.navigateToLock(
     lockTime: String?,

@@ -9,6 +9,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
@@ -42,6 +43,16 @@ class BlockViewModel
         }
 
         internal fun syncManualTimedLockReentry(
+            entry: LockScreenEntry,
+            now: Instant = Instant.now(),
+            zone: ZoneId = ZoneId.systemDefault(),
+        ) = syncManualTimedLockReentry(
+            blockSource = entry.blockSource,
+            now = now,
+            zone = zone,
+        )
+
+        internal fun syncManualTimedLockReentry(
             blockSource: String,
             now: Instant = Instant.now(),
             zone: ZoneId = ZoneId.systemDefault(),
@@ -61,6 +72,13 @@ class BlockViewModel
 
             reduce { state.copy(timedLockDeadline = deadline) }
         }
+
+        internal fun trackBlockShown(entry: LockScreenEntry) = trackBlockShown(
+            packageName = entry.blockedPackageName,
+            blockSource = entry.blockSource,
+            routineId = entry.routineId,
+            goalLockId = entry.goalLockId,
+        )
 
         internal fun trackBlockShown(
             packageName: String,
