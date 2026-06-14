@@ -23,6 +23,8 @@ class BlockedAppAnalyticsPrivacyContractTest(unittest.TestCase):
             "`blocked_app_category_bucket`을 기본값",
             "GA4 Admin 등록은 `blocked_app_category_bucket`만 대상으로 한다",
             "`blocked_app_package`는 새로 등록하지 않는다",
+            "`block_source`: `manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`",
+            "Parent Mode 차단은 `block_source=parent_mode`로 분리하되",
             "PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료",
             "PR #615는 이 문서/GA4/Admin/metrics 계약을 먼저 고정했고, PR #617",
             "남은 작업은 새 Android 구현이 없어서가 아니라 release/tag/Play deploy, GA4 Admin metadata, D+14/D+30 readback 경계다.",
