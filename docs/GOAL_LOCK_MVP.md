@@ -105,6 +105,26 @@ Issue: #417
 - 핵심 차단/긴급해제/권한 설정 같은 민감 flow 중간에 강하게 끼워 넣지 않는다.
 - 최초 MVP에서는 “시험 준비 모드” 단독 명칭보다 “목표 잠금”을 canonical로 쓴다.
 
+### Home Goal Lock card status copy contract (#861)
+
+Home Goal Lock card status copy contract는 `HomeGoalLockCardState.status`가 이미 구분하는 `Pending / Active / Completed / EndedEarly` 상태를 UI 문구·summary·TalkBack label까지 같은 의미로 전달하도록 고정한다. 이 계약은 #417 Home card foothold를 "진행 카드가 있다"로만 두지 않고, #861의 상태별 문구/현지화/QA handoff를 code lane이 바로 구현할 수 있는 기준으로 만든다.
+
+상태별 문구 원칙:
+
+| 상태 | 사용자 의미 | title/summary 정책 | CTA/TalkBack 정책 |
+| --- | --- | --- | --- |
+| `Pending` | 아직 시작 전인 예약 목표 잠금 | pending은 아직 시작 전 예약으로 설명하고, 시작일 또는 남은 시작 기간을 보여준다. `진행 중`이라는 단어를 쓰지 않는다. | 상세 CTA는 유지하되 TalkBack label도 "시작 전" 상태를 포함한다. |
+| `Active` | 지금 보호/차단 판단에 반영될 수 있는 목표 잠금 | active만 진행 중으로 표현한다. 남은 기간, lock mode, 선택 앱 수를 보여준다. | TalkBack label은 목표명·진행 중·남은 기간·lock mode·선택 앱 수를 한 번에 읽을 수 있어야 한다. |
+| `Completed` | 종료일이 지나 완료되어 선택 앱이 다시 열릴 수 있는 상태 | completed는 완료·다시 열림 상태를 비난 없이 설명한다. "실패"나 "포기"처럼 사용자를 탓하는 문구를 쓰지 않는다. | 상세 CTA는 기록/설정 확인으로 해석되고, TalkBack label은 완료 상태를 포함한다. |
+| `EndedEarly` | 사용자가 확인 후 조기 종료한 상태 | endedEarly는 사용자가 종료한 상태로 설명한다. 실패가 아니라 사용자가 선택한 종료 결과로 다룬다. | TalkBack label은 종료됨 상태와 상세 확인 가능성을 포함한다. |
+
+현지화/formatter 경계:
+
+- `GoalLockMode.homeLabel`처럼 domain/read-model에서 한국어 literal을 반환하는 경계를 제거하고, Home card 전용 resource-backed formatter가 `all_day` / `scheduled` display label을 만든다.
+- `HomeGoalLockCardState`의 raw `daysRemaining` 숫자를 모든 상태에 동일하게 붙이지 않는다. Pending은 시작 전 의미, Active는 남은 보호 기간, Completed/EndedEarly는 완료/종료 상태를 우선한다.
+- 모든 shipped locale의 string key/placeholder parity를 `scripts.tests.test_locale_string_parity` 또는 동등한 locale string parity gate로 고정한다.
+- Compose 또는 formatter regression은 `HomeGoalLockCardContentTest` 같은 상태별 rendering/read-model 테스트로 `Pending / Active / Completed / EndedEarly` title, summary, TalkBack label을 모두 검증한다.
+
 ### 종료/수정 확인 문구 원칙
 
 좋은 톤:

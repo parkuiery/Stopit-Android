@@ -172,6 +172,26 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertNotIn("#417 code-lane 생성 ViewModel/analytics 계약 추가", ga4_runbook)
         self.assertNotIn("`goal_lock_created` 코드 계약 추가, detail 종료 path", ga4_runbook)
 
+    def test_runbook_defines_home_goal_lock_card_status_copy_contract(self):
+        runbook = RUNBOOK.read_text()
+        qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
+
+        for document in [runbook, qa_checklist]:
+            self.assertIn("#861", document)
+            self.assertIn("Home Goal Lock card status copy contract", document)
+            self.assertIn("Pending / Active / Completed / EndedEarly", document)
+            self.assertIn("pending은 아직 시작 전 예약으로 설명", document)
+            self.assertIn("active만 진행 중으로 표현", document)
+            self.assertIn("completed는 완료·다시 열림 상태를 비난 없이 설명", document)
+            self.assertIn("endedEarly는 사용자가 종료한 상태로 설명", document)
+            self.assertIn("GoalLockMode.homeLabel", document)
+            self.assertIn("resource-backed formatter", document)
+            self.assertIn("HomeGoalLockCardContentTest", document)
+            self.assertIn("locale string parity", document)
+            self.assertIn("TalkBack label", document)
+
+        self.assertNotIn("pending/completed/ended_early도 진행 중", runbook)
+
     def test_qa_checklist_defines_goal_lock_runtime_evidence(self):
         qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
 
