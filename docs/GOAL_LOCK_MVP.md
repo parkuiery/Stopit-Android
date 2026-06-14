@@ -91,6 +91,8 @@ Issue: #417
 - 기간 전이면 차단하지 않는다.
 - 기간 내 `all_day`는 선택 앱을 하루종일 차단한다.
 - 기간 내 `scheduled`는 선택 요일/시간대에만 차단한다.
+- `runtimeStatus` / Home lifecycle 상태는 목표 기간의 `Pending / Active / Completed / EndedEarly`를 나타내고, `isCurrentlyProtecting`은 지금 실제 차단 가능한 scheduled window인지 나타낸다. 이 둘을 섞지 않는다.
+- 예약형 목표 잠금이 기간 안에 있어도 현재 요일/시간대 밖이면 Home card는 `active` 기간 상태를 유지하되 “다음 예약 시간대 대기 중” summary로 실제 차단 중이 아님을 구분한다.
 - overnight 시간대는 현재 날짜가 아니라 window가 시작된 날짜를 기준으로 기간 포함 여부를 판단한다.
 - scheduled overnight window에서 시작일 당일 새벽의 전날 spillover 구간(`22:00–02:00`의 `01:30` 등)은 window 시작 날짜가 `startDate` 이전이면 차단하지 않는다.
 - scheduled overnight window가 종료일 밤에 시작된 경우, 종료일 다음날 새벽의 spillover 구간(`22:00–02:00`의 `01:30` 등)은 이전 날짜가 기간 내였으면 계속 차단하고 window 종료 시각부터 차단을 멈춘다.
@@ -114,7 +116,7 @@ Home Goal Lock card status copy contract는 `HomeGoalLockCardState.status`가 �
 | 상태 | 사용자 의미 | title/summary 정책 | CTA/TalkBack 정책 |
 | --- | --- | --- | --- |
 | `Pending` | 아직 시작 전인 예약 목표 잠금 | pending은 아직 시작 전 예약으로 설명하고, 시작일 또는 남은 시작 기간을 보여준다. `진행 중`이라는 단어를 쓰지 않는다. | 상세 CTA는 유지하되 TalkBack label도 "시작 전" 상태를 포함한다. |
-| `Active` | 지금 보호/차단 판단에 반영될 수 있는 목표 잠금 | active만 진행 중으로 표현한다. 남은 기간, lock mode, 선택 앱 수를 보여준다. | TalkBack label은 목표명·진행 중·남은 기간·lock mode·선택 앱 수를 한 번에 읽을 수 있어야 한다. |
+| `Active` | 목표 기간 안에 있고 종료되지 않은 목표 잠금 | active만 진행 중으로 표현한다. 다만 scheduled 목표 잠금이 현재 시간대 밖이면 “다음 예약 시간대 대기 중” summary로 현재 차단 중 상태와 구분한다. 남은 기간, lock mode, 선택 앱 수를 보여준다. | TalkBack label은 목표명·진행 중 또는 다음 예약 시간대 대기, 남은 기간·lock mode·선택 앱 수를 한 번에 읽을 수 있어야 한다. |
 | `Completed` | 종료일이 지나 완료되어 선택 앱이 다시 열릴 수 있는 상태 | completed는 완료·다시 열림 상태를 비난 없이 설명한다. "실패"나 "포기"처럼 사용자를 탓하는 문구를 쓰지 않는다. | 상세 CTA는 기록/설정 확인으로 해석되고, TalkBack label은 완료 상태를 포함한다. |
 | `EndedEarly` | 사용자가 확인 후 조기 종료한 상태 | endedEarly는 사용자가 종료한 상태로 설명한다. 실패가 아니라 사용자가 선택한 종료 결과로 다룬다. | TalkBack label은 종료됨 상태와 상세 확인 가능성을 포함한다. |
 

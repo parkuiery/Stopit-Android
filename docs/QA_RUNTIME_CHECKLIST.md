@@ -833,7 +833,7 @@ python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
 
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 
-issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card 또는 active emergency unlock runtime state가 있으면 현재 보호/예외 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. 현재 구현 완료 surface는 `home` / `lock_history` / `performance_report`이고, LockHistory 성과 리포트 직후 추천 CTA는 `performance_report 구현 표면`으로 shown/clicked/dismissed 및 Routine prefill entry surface를 남긴다. `post_block_success는 예약 enum`이자 미구현 표면이므로 해당 UI wiring PR 전에는 수동 QA evidence에서 구현 완료로 체크하지 않는다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card 또는 active emergency unlock runtime state가 있으면 현재 보호/예외 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. #902 이후 예약형 Goal Lock은 `GoalLockPolicy.isCurrentlyProtecting` 기준으로 기간 상태가 active여도 현재 요일/시간대 밖이면 반복 차단 추천을 suppress하지 않는다. 현재 구현 완료 surface는 `home` / `lock_history` / `performance_report`이고, LockHistory 성과 리포트 직후 추천 CTA는 `performance_report 구현 표면`으로 shown/clicked/dismissed 및 Routine prefill entry surface를 남긴다. `post_block_success는 예약 enum`이자 미구현 표면이므로 해당 UI wiring PR 전에는 수동 QA evidence에서 구현 완료로 체크하지 않는다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 
@@ -857,6 +857,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - onboarding / pre-first-lock 사용자에게 미노출된다.
 - 기존 활성 루틴과 겹치면 미노출된다.
 - Home active Goal Lock card가 있으면 현재 보호 상태 안내를 우선해 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다.
+- `HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion`는 scheduled Goal Lock의 기간 상태와 현재 실제 차단 window를 분리해, 다음 예약 시간대 대기 중인 목표 잠금이 반복 차단 추천을 과도하게 숨기지 않는지 검증한다.
 - Home active emergency unlock runtime state가 있으면 현재 예외 상태를 우선해 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다.
 - 추천은 최대 1개만 노출되고 dismiss 후 최소 7일 재노출 제한을 지킨다.
 - 추천 copy는 방어 성공/도움 제안 톤이며 비난형 copy 금지다.
@@ -996,6 +997,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 
 검증 범위:
 - `GoalLockPolicyTest`는 기간 전/기간 내/기간 후, `all_day`, `scheduled`, normal window, overnight window, `startTime == endTime` 동일 시각 invalid, 반복 요일 없음 invalid, 시작일 당일 새벽의 전날 spillover 차단 금지, 종료일 밤에 시작된 scheduled window의 익일 새벽 spillover, 종료일 이후 자동 완료, selected app count 0 validation을 검증한다.
+- `GoalLockPolicyTest.currentProtectionForScheduledGoalLockDistinguishesBeforeDuringAndAfterWindow` / `currentProtectionForScheduledGoalLockKeepsOvernightBoundaryContracts` / `currentProtectionForTerminalOrInvalidGoalLockIsFalse`는 `runtimeStatus` 기간 상태와 `isCurrentlyProtecting` 현재 차단 가능 상태를 분리한다. Scheduled Goal Lock은 현재 요일/시간대 안에서만 `isCurrentlyProtecting=true`이고, window 시작일 기준 overnight spillover는 유지한다.
 - `FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly`는 `goal_lock_created`가 enum/bucket 파라미터만 보내고 원문 목표명/app package/app label을 보내지 않는지 검증한다.
 - `GoalLockPersistenceMapperTest`와 `KeepDatabaseMigrationTest`는 Room v5 `goal_lock` 저장/마이그레이션 계약을 검증한다.
 - `GoalLockCreationViewModelTest`는 유효한 all-day/scheduled 저장, custom days/end date 기간 선택, 목표별 선택 앱 편집에서 `CategoryBottomSheetContent` 기반 picker 선택 replace, package trim/dedupe/remove + 0개 validation, invalid date/app/name selection 거절, 동일 시작/종료 scheduled 생성 disabled + 안내 상태, `Created(goalLockId)` side effect, `goal_lock_created` 호출을 검증한다.
@@ -1007,6 +1009,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `GoalLockDetailViewModelTest`, `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`, `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 상세 화면 상태, 종료 확인/취소, 앱 변경 저장/빈 선택 거절, 이름 변경 저장/빈·동일 이름 거절, duration update recalculates end date, lock mode update tracks lock_mode vs schedule changed_field, 동일 시작/종료 scheduled update 저장/analytics 거절, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload, `goal_lock_updated(changed_field=apps|name|duration|lock_mode|schedule)` privacy-safe payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
 - #861 Home Goal Lock card status copy contract는 `Pending / Active / Completed / EndedEarly` 상태별 사용자 문구를 분리한다. pending은 아직 시작 전 예약으로 설명하고, active만 진행 중으로 표현하며, completed는 완료·다시 열림 상태를 비난 없이 설명하고, endedEarly는 사용자가 종료한 상태로 설명한다. `GoalLockMode.homeLabel` 같은 한국어 literal 경계는 Home card resource-backed formatter로 옮기고, `HomeGoalLockCardContentTest` 또는 동등한 rendering/read-model 테스트와 locale string parity gate가 title/summary/TalkBack label placeholder를 고정해야 한다.
+- #902 Home card read-model은 `HomeGoalLockCardState.isCurrentlyProtecting`을 함께 노출한다. Scheduled Goal Lock이 기간 안에 있지만 현재 window 밖이면 status는 `Active`로 남기되 `home_goal_lock_card_summary_active_waiting_window` summary로 “다음 예약 시간대 대기 중”을 보여주며, `HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowExposesNonProtectingHomeCardState`와 `HomeGoalLockCardCopyContractTest.activeScheduledGoalLockOutsideCurrentWindowUsesWaitingWindowSummary`가 이 경계를 고정한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockTakesPriorityOverFuturePendingGoalLockOnHomeCard`, `nearestPendingGoalLockIsShownWhenNoGoalLockIsCurrentlyActive`, `completedGoalLockDoesNotHideActiveOrPendingHomeCardCandidate`는 다중 목표 잠금이 공존할 때 Home card가 `Active > Pending > Completed > EndedEarly` 사용자 안전 우선순위를 지키고, pending 후보끼리는 가장 가까운 시작일을 먼저 보여주는지 검증한다.
 - `HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce`는 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회만 기록하는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시하고 상세 화면으로 이동한다. 여러 목표 잠금이 동시에 존재하면 실제 보호 중인 active 잠금을 미래 pending 잠금보다 우선 표시한다.

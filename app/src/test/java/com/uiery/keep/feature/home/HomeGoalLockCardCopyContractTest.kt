@@ -60,4 +60,19 @@ class HomeGoalLockCardCopyContractTest {
         assertEquals(R.string.home_goal_lock_card_summary_active, allDayActive.summaryResId)
         assertEquals(R.string.home_goal_lock_card_lock_mode_all_day, allDayActive.lockModeResId)
     }
+
+    @Test
+    fun activeScheduledGoalLockOutsideCurrentWindowUsesWaitingWindowSummary() {
+        val copy = HomeGoalLockCardState(
+            goalLockId = 3L,
+            goalName = "Evening focus",
+            status = HomeGoalLockStatus.Active,
+            daysRemaining = 2,
+            lockMode = HomeGoalLockCardLockMode.Scheduled,
+            selectedAppCount = 1,
+            isCurrentlyProtecting = false,
+        ).displayCopy()
+
+        assertEquals(R.string.home_goal_lock_card_summary_active_waiting_window, copy.summaryResId)
+    }
 }

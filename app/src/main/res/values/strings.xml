@@ -101,6 +101,7 @@
     <string name="home_goal_lock_card_title_ended_early">Goal lock ended early</string>
     <string name="home_goal_lock_card_summary_pending">%1$d days until start · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_active">%1$d days left · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">In goal period · next scheduled window pending · %3$d apps</string>
     <string name="home_goal_lock_card_summary_completed">Completed · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_ended_early">Ended early · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_lock_mode_all_day">All-day lock</string>

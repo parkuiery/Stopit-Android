@@ -63,19 +63,26 @@ internal object GoalLockPolicy {
         }
     }
 
-    fun isBlocking(
+    fun isCurrentlyProtecting(
         goalLock: GoalLock,
-        packageName: String,
         now: LocalDateTime = LocalDateTime.now(),
     ): Boolean {
         if (!isValidForCreation(goalLock)) return false
-        if (packageName !in goalLock.selectedPackages) return false
         if (goalLock.status != GoalLockStoredStatus.Active) return false
 
         return when (val mode = goalLock.lockMode) {
             GoalLockMode.AllDay -> runtimeStatus(goalLock, now) == GoalLockRuntimeStatus.Active
             is GoalLockMode.Scheduled -> isScheduledGoalLockActive(goalLock, mode, now)
         }
+    }
+
+    fun isBlocking(
+        goalLock: GoalLock,
+        packageName: String,
+        now: LocalDateTime = LocalDateTime.now(),
+    ): Boolean {
+        if (packageName !in goalLock.selectedPackages) return false
+        return isCurrentlyProtecting(goalLock, now)
     }
 
     private fun isScheduledGoalLockActive(

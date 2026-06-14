@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">Blocco obiettivo terminato in anticipo</string>
     <string name="home_goal_lock_card_summary_pending">%1$d giorni all’inizio · %2$s · %3$d app</string>
     <string name="home_goal_lock_card_summary_active">%1$d giorni rimasti · %2$s · %3$d app</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">Nel periodo dell’obiettivo · prossima fascia programmata in attesa · %3$d app</string>
     <string name="home_goal_lock_card_summary_completed">Completato · %2$s · %3$d app</string>
     <string name="home_goal_lock_card_summary_ended_early">Terminato in anticipo · %2$s · %3$d app</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Blocco tutto il giorno</string>

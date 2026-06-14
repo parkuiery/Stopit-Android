@@ -216,6 +216,86 @@ class GoalLockPolicyTest {
     }
 
     @Test
+    fun currentProtectionForScheduledGoalLockDistinguishesBeforeDuringAndAfterWindow() {
+        val goalLock = goalLock(
+            startDate = LocalDate.of(2026, 6, 8),
+            endDate = LocalDate.of(2026, 6, 8),
+            lockMode = GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.MONDAY),
+                startTime = LocalTime.of(19, 0),
+                endTime = LocalTime.of(23, 0),
+            ),
+        )
+
+        assertFalse(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 8, 18, 59),
+            ),
+        )
+        assertTrue(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 8, 20, 30),
+            ),
+        )
+        assertFalse(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 8, 23, 0),
+            ),
+        )
+    }
+
+    @Test
+    fun currentProtectionForScheduledGoalLockKeepsOvernightBoundaryContracts() {
+        val goalLock = goalLock(
+            startDate = LocalDate.of(2026, 6, 5),
+            endDate = LocalDate.of(2026, 6, 5),
+            lockMode = GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.FRIDAY),
+                startTime = LocalTime.of(22, 0),
+                endTime = LocalTime.of(2, 0),
+            ),
+        )
+
+        assertTrue(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 5, 23, 30),
+            ),
+        )
+        assertTrue(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 6, 1, 30),
+            ),
+        )
+        assertFalse(
+            GoalLockPolicy.isCurrentlyProtecting(
+                goalLock = goalLock,
+                now = LocalDateTime.of(2026, 6, 6, 2, 0),
+            ),
+        )
+    }
+
+    @Test
+    fun currentProtectionForTerminalOrInvalidGoalLockIsFalse() {
+        val scheduled = goalLock(
+            lockMode = GoalLockMode.Scheduled(
+                repeatDays = setOf(DayOfWeek.MONDAY),
+                startTime = LocalTime.of(19, 0),
+                endTime = LocalTime.of(23, 0),
+            ),
+        )
+        val insideWindow = LocalDateTime.of(2026, 6, 8, 20, 30)
+
+        assertFalse(GoalLockPolicy.isCurrentlyProtecting(scheduled.copy(status = GoalLockStoredStatus.Completed), insideWindow))
+        assertFalse(GoalLockPolicy.isCurrentlyProtecting(scheduled.copy(status = GoalLockStoredStatus.EndedEarly), insideWindow))
+        assertFalse(GoalLockPolicy.isCurrentlyProtecting(scheduled.copy(selectedPackages = emptySet()), insideWindow))
+    }
+
+    @Test
     fun goalLockRequiresSelectedAppsAndValidDateRange() {
         assertFalse(GoalLockPolicy.isValidForCreation(goalLock(selectedPackages = emptySet())))
         assertFalse(

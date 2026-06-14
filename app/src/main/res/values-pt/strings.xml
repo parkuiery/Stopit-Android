@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">Bloqueio de objetivo encerrado antes</string>
     <string name="home_goal_lock_card_summary_pending">%1$d dias até começar · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_active">%1$d dias restantes · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">No período da meta · aguardando a próxima janela programada · %3$d apps</string>
     <string name="home_goal_lock_card_summary_completed">Concluído · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_ended_early">Encerrado antes · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Bloqueio o dia todo</string>

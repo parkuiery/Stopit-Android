@@ -31,7 +31,7 @@ Issue: #531
 - 차단 기록이 부족하거나 최근 기록이 없는 사용자는 제외
 - 이미 같은 시간대·요일·대상 앱을 커버하는 루틴이 있으면 제외
 - 사용자가 같은 추천을 닫은 경우 최소 7일간 재노출하지 않는다
-- active goal lock / emergency unlock runtime state / 강한 보호 상태가 현재 화면의 주요 맥락이면 자동 루틴 제안을 뒤로 미룬다. Home에서는 active Goal Lock 또는 active emergency unlock runtime state가 있으면 추천 및 shown analytics를 suppress한다.
+- active goal lock / emergency unlock runtime state / 강한 보호 상태가 현재 화면의 주요 맥락이면 자동 루틴 제안을 뒤로 미룬다. Home에서는 `GoalLockPolicy.isCurrentlyProtecting` 기준으로 지금 실제 차단 가능한 Goal Lock window 또는 active emergency unlock runtime state가 있으면 추천 및 shown analytics를 suppress한다. 예약형 목표 잠금이 기간 안에 있어도 현재 요일/시간대 밖이면 반복 차단 추천을 suppress하지 않는다.
 - Usage Access 권한을 새 필수 전제로 요구하지 않는다. MVP는 기존 LockHistory/차단 기록만 사용한다.
 
 ## 로컬 반복 패턴 분석 계약
@@ -86,7 +86,7 @@ MVP는 외부 추론 서비스나 Usage Access 추가 권한 없이 로컬 기�
 
 | surface | 현재 상태 | 승격 조건 / 제한 |
 | --- | --- | --- |
-| `home` | 구현됨. PR #561 이후 Home CTA card가 후보 노출·apply·dismiss를 연결했고, PR #835 이후 active Goal Lock card가 있으면 추천과 shown analytics를 suppress한다. | Home primary CTA, #455 일반 루틴 CTA, Goal Lock card보다 강하게 보이면 실패다. |
+| `home` | 구현됨. PR #561 이후 Home CTA card가 후보 노출·apply·dismiss를 연결했고, PR #835 이후 active Goal Lock card가 있으면 추천과 shown analytics를 suppress한다. #902 이후 scheduled Goal Lock은 `isCurrentlyProtecting`이 true인 현재 window에서만 suppress한다. | Home primary CTA, #455 일반 루틴 CTA, 현재 실제 보호 중인 Goal Lock card보다 강하게 보이면 실패다. |
 | `lock_history` | 구현됨. PR #561 이후 LockHistory CTA surface가 같은 prefill/dismiss/store 계약을 쓴다. | LockHistory 화면의 일반 기록/리스트 맥락으로 해석한다. 성과 리포트 바로 아래 CTA는 `performance_report` surface로 분리한다. |
 | `post_block_success` | post_block_success는 예약 enum / 미구현 표면. 현재 차단 성공 직후 별도 CTA를 추가했다는 뜻이 아니다. | 실제 차단 성공 직후 긍정 피드백을 해치지 않고, emergency unlock/active protection 상태와 충돌하지 않으며, 노출 빈도와 dismiss 재노출 제한을 Home/LockHistory와 공유할 때만 code-lane 후보로 승격한다. |
 | `performance_report` | performance_report 구현 표면. 이번 code-lane package 이후 LockHistory 성과 리포트 직후 추천 CTA는 shown/clicked/dismissed와 Routine prefill navigation entry surface를 `performance_report`로 남긴다. | #211 공유 CTA / #407 템플릿 공유 / 광고 CTA와 slot 충돌이 없어야 하며, release/tag/Play deploy와 수동 device/TalkBack QA 전에는 live 0건을 실패로 보지 않는다. |
@@ -162,7 +162,7 @@ Privacy guardrail:
 - [x] 후보가 여러 개여도 최대 1개만 노출한다.
 - [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원하고, Home/LockHistory UI wiring이 같은 store를 재노출 제한 입력으로 사용한다. (`RepeatBlockRoutineSuggestionStoreTest`, `HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
 - [x] 추천 dismiss/apply store를 Home/LockHistory CTA UI에 연결해 실제 재노출 제한을 화면 플로우에서 검증한다. (`HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
-- [x] Home active Goal Lock card가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. (`HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`)
+- [x] Home active Goal Lock card가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. Scheduled Goal Lock은 기간 상태가 active여도 현재 요일/시간대 밖이면 suppress하지 않는다. (`HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`, `HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion`)
 - [x] Home active emergency unlock runtime state가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. (`HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`)
 - [x] 루틴 생성 prefill은 저장 전 사용자가 수정 가능하다. (`RoutineBottomSheetViewModel` prefill 계약)
 - [x] analytics는 enum/bucket/boolean만 전송하고 raw 앱 이름/package/history/timestamp를 금지한다. (`repeat_block_routine_suggestion_*` adapter/test)

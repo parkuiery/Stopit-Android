@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">目标锁定已提前结束</string>
     <string name="home_goal_lock_card_summary_pending">距离开始还有 %1$d 天 · %2$s · %3$d 个应用</string>
     <string name="home_goal_lock_card_summary_active">剩余 %1$d 天 · %2$s · %3$d 个应用</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">目标周期内 · 等待下一个预约时间段 · %3$d 个应用</string>
     <string name="home_goal_lock_card_summary_completed">已完成 · %2$s · %3$d 个应用</string>
     <string name="home_goal_lock_card_summary_ended_early">已提前结束 · %2$s · %3$d 个应用</string>
     <string name="home_goal_lock_card_lock_mode_all_day">全天锁定</string>

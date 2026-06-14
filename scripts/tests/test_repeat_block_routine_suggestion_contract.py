@@ -215,6 +215,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "RoutineBottomSheetViewModelTest",
             "RepeatBlockRoutineSuggestionStoreTest",
             "HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
+            "HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion",
+            "GoalLockPolicy.isCurrentlyProtecting",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
             "onboarding / pre-first-lock 사용자에게 미노출",
             "기존 활성 루틴과 겹치면 미노출",
