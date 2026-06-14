@@ -10,7 +10,7 @@ Issue: #467
 
 ## 현재 구현 표면
 
-- 화면 파일: `app/src/main/java/com/uiery/keep/feature/lock/component/EmergencyUnlockBottomSheetContent.kt`
+- 화면 파일: `app/src/main/java/com/uiery/keep/ui/component/EmergencyUnlockBottomSheetContent.kt`
 - 상태 파일: `EmergencyUnlockBottomSheetState` / `EmergencyUnlockBottomSheetStep`
 - 주요 strings: `emergency_unlock_reason_*`, `emergency_unlock_select_apps`, `emergency_unlock_select_duration`, `emergency_unlock_next`, `emergency_unlock_request`, `emergency_unlock_waiting`, `emergency_unlock_cancel`
 - 현재 reason enum/payload key:
@@ -130,7 +130,7 @@ cd <repo-root>
 python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'
 ./gradlew --console=plain :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest
 ./gradlew --console=plain :app:lintProdRelease
 ./gradlew --console=plain :app:assembleProdDebug
 ```
