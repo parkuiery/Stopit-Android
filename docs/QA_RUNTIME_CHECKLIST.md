@@ -985,6 +985,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
 - `KeepAppNavigationPolicyTest`는 `GoalLockCreationRoute`가 전용 top-level entry route로 등록되고 Menu의 목표 잠금 entrypoint가 생성 화면으로 연결되는 navigation 계약을 검증한다.
 - `GoalLockDetailViewModelTest`, `FirebaseKeepAnalyticsTest.goalLockEndedEarlyUsesSafeBucketedParamsOnly`, `FirebaseKeepAnalyticsTest.goalLockUpdatedUsesSafeChangedFieldOnly`는 상세 화면 상태, 종료 확인/취소, 앱 변경 저장/빈 선택 거절, 이름 변경 저장/빈·동일 이름 거절, duration update recalculates end date, lock mode update tracks lock_mode vs schedule changed_field, 동일 시작/종료 scheduled update 저장/analytics 거절, `ended_early` 저장, `goal_lock_ended_early` enum/bucket payload, `goal_lock_updated(changed_field=apps|name|duration|lock_mode|schedule)` privacy-safe payload를 검증한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState`는 active/pending/ended_early 목표 잠금이 Home progress card state로 노출되는지 검증한다.
+- #861 Home Goal Lock card status copy contract는 `Pending / Active / Completed / EndedEarly` 상태별 사용자 문구를 분리한다. pending은 아직 시작 전 예약으로 설명하고, active만 진행 중으로 표현하며, completed는 완료·다시 열림 상태를 비난 없이 설명하고, endedEarly는 사용자가 종료한 상태로 설명한다. `GoalLockMode.homeLabel` 같은 한국어 literal 경계는 Home card resource-backed formatter로 옮기고, `HomeGoalLockCardContentTest` 또는 동등한 rendering/read-model 테스트와 locale string parity gate가 title/summary/TalkBack label placeholder를 고정해야 한다.
 - `HomeViewModelActivationAnalyticsTest.activeGoalLockTakesPriorityOverFuturePendingGoalLockOnHomeCard`, `nearestPendingGoalLockIsShownWhenNoGoalLockIsCurrentlyActive`, `completedGoalLockDoesNotHideActiveOrPendingHomeCardCandidate`는 다중 목표 잠금이 공존할 때 Home card가 `Active > Pending > Completed > EndedEarly` 사용자 안전 우선순위를 지키고, pending 후보끼리는 가장 가까운 시작일을 먼저 보여주는지 검증한다.
 - `HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce`는 종료일이 지난 active 목표 잠금을 Home card load 경로에서 `completed`로 정규화하고 `goal_lock_completed`를 1회만 기록하는지 검증한다.
 - Home card/section은 active/completed/ended_early 상태, 남은 기간/종료일, lock mode, 선택 앱 수, 상세 CTA를 표시하고 상세 화면으로 이동한다. 여러 목표 잠금이 동시에 존재하면 실제 보호 중인 active 잠금을 미래 pending 잠금보다 우선 표시한다.
@@ -1020,9 +1021,14 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
   - scheduled does not block outside selected windows: pass / fail
   - expiration stops blocking after end date: pass / fail
 - Home card/section:
+  - status copy policy source: #861 Home Goal Lock card status copy contract / `docs/GOAL_LOCK_MVP.md`
+  - pending card says scheduled/not-yet-started and never says active/in-progress: pass / fail
+  - active card says in-progress/protecting and includes remaining period / lock mode / selected app count: pass / fail
+  - completed card says completed / apps can open again without blame: pass / fail
+  - endedEarly card says user-ended / ended, not failure: pass / fail
   - goal name / remaining period / lock mode / selected app count visible:
-  - active / completed / ended_early status correct:
-  - TalkBack label understandable:
+  - active / pending / completed / ended_early status correct:
+  - TalkBack label understandable and status-specific:
 - Creation/detail summary TalkBack:
   - creation summary contentDescription includes goal name / date range / lock mode / selected app count: pass / fail
   - detail summary contentDescription includes goal name / mode+app count summary / active-completed-ended state: pass / fail
