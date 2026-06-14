@@ -671,6 +671,25 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun parentModeBlockInterceptedUsesSafeBlockContextOnly() {
+        analytics.trackParentModeBlockIntercepted(
+            blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to AnalyticsParentModeBlockContext.DISALLOWED_APP),
+            ),
+            backend.loggedEvents.single(),
+        )
+        assertFalse(backend.loggedEvents.single().params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents.single().params.containsKey("allowed_app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("pin"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("timestamp"))
+    }
+
+    @Test
     fun parentModeCompletedDoesNotSendRawTimestampsOrPackages() {
         analytics.trackParentModeCompleted(
             durationMinutesBucket = AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,

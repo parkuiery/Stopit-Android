@@ -1551,7 +1551,9 @@ cd <repo-root>
   --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" \
   --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" \
   --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" \
+  --tests "com.uiery.keep.BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" \
+  --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly" \
   --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"
 ```
 
@@ -1581,6 +1583,7 @@ cd <repo-root>
 - 부모 모드 active/expired/extended/cancelled state transition
 - 보호자 PIN 성공 후에도 0분/음수 extension은 거부하고, 양수 extension만 만료 시각을 늘리는 parent-action guard
 - `parent_mode_*` analytics payload가 `duration_minutes_bucket`, `allowed_app_count_bucket`, `pin_result`, `end_reason`, `extension_minutes_bucket`, `block_context` 같은 enum/bucket만 사용하고 아이 이름/앱 이름/package/raw session history/허용 앱 원문 목록/PIN 원문을 보내지 않는지
+- Parent Mode-origin 차단 화면 진입 시 기존 `app_block_intercepted(block_source=parent_mode)`와 dedicated `parent_mode_block_intercepted(block_context=disallowed_app)`가 함께 남고, dedicated 이벤트에는 앱 package/PIN/session 원문이 들어가지 않는지
 - 접근성 차단 판단이 허용 앱과 비허용 앱을 구분하고, 시간이 끝난 뒤 허용 앱도 계속 사용할 수 없게 하는지
 - AccessibilityService가 active Parent Mode session의 `expiresAtMillis`에 맞춰 foreground 재평가를 예약해 같은 앱이 foreground에 남아 있어도 만료 후 차단으로 전환하는지
 - active Parent Mode session을 `KeepAccessibilityService`가 device/emulator에서 관찰하고, 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는지
@@ -1600,7 +1603,7 @@ cd <repo-root>
 - Allowed app count bucket: 1 / 2_3 / 4_6 / 7_plus
 - PIN state before start: not_configured / configured
 - Commands:
-  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.data.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
+  - `./gradlew :app:testDevDebugUnitTest --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" --tests "com.uiery.keep.data.parentmode.ParentModeSessionStoreTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSessionControllerTest" --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" --tests "com.uiery.keep.service.KeepAccessibilityServiceBlockDecisionTest" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelayReturnsDelayUntilActiveSessionExpiry" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextParentModeExpirationReevaluationDelaySkipsExpiredOrInactiveSessions" --tests "com.uiery.keep.service.GoalLockStartReevaluationPolicyTest.nextTimeBasedBlockingStartReevaluationDelayIncludesParentModeExpiry" --tests "com.uiery.keep.BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly" --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeCompletedDoesNotSendRawTimestampsOrPackages"`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`
 - same-device / PIN / bypass checks:
