@@ -24,6 +24,7 @@ on:
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
       - 'tools/aso-screenshots/**'
+      - '.github/dependabot.yml'
       - '.github/workflows/**'
       - 'docs/**'
       - '**/*.md'
@@ -50,6 +51,7 @@ on:
       - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
       - 'tools/aso-screenshots/**'
+      - '.github/dependabot.yml'
       - '.github/workflows/**'
       - 'docs/**'
       - '**/*.md'
@@ -109,6 +111,7 @@ jobs:
             docs_contract:
               - 'docs/**'
               - '**/*.md'
+              - '.github/dependabot.yml'
               - 'scripts/tests/test_aso_screenshots_ci_contract.py'
               - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
               - 'scripts/tests/test_release_build_workflow_scope.py'
@@ -131,6 +134,7 @@ jobs:
               - 'scripts/tests/test_android_ci_path_gating.py'
               - 'scripts/tests/test_play_deploy_tag_governance.py'
               - 'scripts/tests/test_release_gate_retarget_triggers.py'
+              - 'scripts/tests/test_dependabot_policy_contract.py'
               - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
@@ -216,6 +220,7 @@ jobs:
           scripts.tests.test_android_ci_path_gating
           scripts.tests.test_play_deploy_tag_governance
           scripts.tests.test_release_gate_retarget_triggers
+          scripts.tests.test_dependabot_policy_contract
           scripts.tests.test_aso_screenshots_ci_contract
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow
