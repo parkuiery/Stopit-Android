@@ -8,6 +8,8 @@ import kotlinx.datetime.LocalTime
 
 private const val MIN_REPEAT_COUNT = 3
 private const val DISMISS_SUPPRESSION_DAYS = 7L
+private const val RAPID_RETRY_WINDOW_MINUTES = 5L
+private const val MIN_RAPID_RETRY_COUNT = 2
 
 data class RepeatBlockHistorySample(
     val startDateTime: LocalDateTime,
@@ -100,7 +102,8 @@ object RepeatBlockRoutineSuggestionPolicy {
             .asSequence()
             .mapNotNull { (_, signals) -> signals.toCandidateOrNull(activeRoutines, dismissedSuggestions, now) }
             .sortedWith(
-                compareByDescending<RepeatBlockCandidate> { it.latestSeen }
+                compareByDescending<RepeatBlockCandidate> { it.rapidRetryCount >= MIN_RAPID_RETRY_COUNT }
+                    .thenByDescending { it.latestSeen }
                     .thenByDescending { it.repeatCount }
                     .thenBy { it.routineCoverageState.sortRank }
             )
@@ -134,11 +137,23 @@ object RepeatBlockRoutineSuggestionPolicy {
             repeatCountBucket = size.toRepeatCountBucket(),
             repeatCount = size,
             routineCoverageState = coverage,
-            reason = RepeatBlockSuggestionReason.RepeatBlockTimeBucket,
+            rapidRetryCount = rapidRetryCount(),
             packages = packages,
             latestSeen = maxOf { it.time },
         )
     }
+
+    private fun List<RepeatBlockSignal>.rapidRetryCount(): Int =
+        groupBy { signal -> signal.packageName }
+            .values
+            .sumOf { packageSignals ->
+                packageSignals
+                    .sortedBy { signal -> signal.time }
+                    .zipWithNext()
+                    .count { (previous, next) ->
+                        Duration.between(previous.time, next.time).toMinutes() in 0..RAPID_RETRY_WINDOW_MINUTES
+                    }
+            }
 
     private fun resolveRoutineCoverageState(
         timeBucket: RepeatBlockTimeBucket,
@@ -262,7 +277,7 @@ object RepeatBlockRoutineSuggestionPolicy {
         val repeatCountBucket: RepeatBlockCountBucket,
         val repeatCount: Int,
         val routineCoverageState: RoutineCoverageState,
-        val reason: RepeatBlockSuggestionReason,
+        val rapidRetryCount: Int,
         val packages: List<String>,
         val latestSeen: LocalDateTime,
     ) {
@@ -274,7 +289,11 @@ object RepeatBlockRoutineSuggestionPolicy {
                 categoryBucket = categoryBucket,
                 repeatCountBucket = repeatCountBucket,
                 routineCoverageState = routineCoverageState,
-                reason = reason,
+                reason = if (rapidRetryCount >= MIN_RAPID_RETRY_COUNT) {
+                    RepeatBlockSuggestionReason.RapidRetry
+                } else {
+                    RepeatBlockSuggestionReason.RepeatBlockTimeBucket
+                },
                 prefillPackages = packages,
                 prefillStartTime = start,
                 prefillEndTime = end,
