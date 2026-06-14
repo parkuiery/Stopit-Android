@@ -122,7 +122,10 @@ class RoutineCreationCtaContractTest(unittest.TestCase):
         self.assertIn("루틴 생성 CTA 조회성", ga4_runbook)
         self.assertIn("routine creation CTA check", ga4_runbook)
         self.assertIn("#455 PR #533 Home CTA UI/navigation/analytics 구현 완료", ga4_runbook)
-        self.assertIn("#531 CTA UI wiring·공통 release·GA4 등록 전", ga4_runbook)
+        self.assertIn("#531 PR #537 policy/analytics", ga4_runbook)
+        self.assertIn("PR #887 performance_report surface 구현 완료", ga4_runbook)
+        self.assertIn("공통 release·GA4 등록 전", ga4_runbook)
+        self.assertNotIn("#531 CTA UI wiring·공통 release·GA4 등록 전", ga4_runbook)
         self.assertIn("post_first_core_action", analytics)
 
     def test_qa_checklist_defines_non_intrusive_routine_cta_evidence(self):
