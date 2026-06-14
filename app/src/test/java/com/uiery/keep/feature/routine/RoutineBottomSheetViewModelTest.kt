@@ -68,7 +68,7 @@ class RoutineBottomSheetViewModelTest {
     @Test
     fun editRoutineWithDisabledRoutineUpdatesDisabledEntityAndDoesNotScheduleAlarm() = runBlocking {
         listOf(true, false).forEach { canScheduleExactAlarms ->
-            val routineDao = RecordingRoutineDao()
+            val routineDao = RecordingRoutineDao(initialEntities = listOf(validRoutine(id = 7L, isEnabled = false).toEntity()))
             val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
             Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(canScheduleExactAlarms)
             Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
@@ -91,7 +91,7 @@ class RoutineBottomSheetViewModelTest {
 
     @Test
     fun editRoutinePersistsThroughBottomSheetPathAndTracksScheduledRoutine() = runBlocking {
-        val routineDao = RecordingRoutineDao()
+        val routineDao = RecordingRoutineDao(initialEntities = listOf(validRoutine(id = 7L).copy(changeLockHours = 0).toEntity()))
         val analytics = RecordingKeepAnalytics()
         val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
         Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
