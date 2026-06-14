@@ -41,12 +41,15 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
+import com.uiery.keep.feature.lock.component.CountDownContent
 import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,12 +71,26 @@ fun BlockScreen(
     }
 
     LaunchedEffect(packageName, blockSource, routineId, goalLockId) {
+        viewModel.syncManualTimedLockReentry(blockSource)
         viewModel.trackBlockShown(packageName, blockSource, routineId, goalLockId)
+    }
+
+    LaunchedEffect(uiState.timedLockDeadline) {
+        val deadline = uiState.timedLockDeadline ?: return@LaunchedEffect
+        while (true) {
+            val remainingMillis = deadline.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - System.currentTimeMillis()
+            if (remainingMillis <= 0L) {
+                onClose()
+                return@LaunchedEffect
+            }
+            delay(remainingMillis.coerceAtMost(1_000L))
+        }
     }
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
-            is BlockSideEffect.UnlockCompleted -> onClose()
+            is BlockSideEffect.UnlockCompleted,
+            is BlockSideEffect.TimedLockExpired -> onClose()
         }
     }
 
@@ -190,6 +207,13 @@ internal fun BlockScreenContent(
                     textAlign = TextAlign.Center,
                     color = KeepTheme.colors.surfaceVariant,
                 )
+                uiState.timedLockDeadline?.let { deadline ->
+                    Spacer(modifier = Modifier.height(20.dp))
+                    CountDownContent(
+                        modifier = Modifier.testTag("block_screen_timed_lock_countdown"),
+                        endTime = deadline,
+                    )
+                }
                 if (uiState.showFirstCoreActionFeedback) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(

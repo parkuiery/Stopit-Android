@@ -146,6 +146,27 @@ python3 -m unittest scripts.tests.test_countdown_day_locale_contract -v
 - TalkBack: countdown 숫자와 남은 시간 문맥이 화면 locale과 충돌하지 않는다.
 - #464 차단 화면 copy/action hierarchy와 visual hierarchy가 충돌하지 않는다.
 
+### Manual timed-lock re-entry countdown QA evidence
+
+issue #860 계열 PR은 홈에서 수동 타이머 잠금을 시작한 뒤 홈/다른 앱으로 나갔다가 차단 앱에 재진입해 `BlockActivity`가 뜨는 경로도 최초 Lock route와 같은 deadline UX를 보장해야 한다. `block_source=timed_lock`일 때만 저장된 `LOCK_TIME`을 읽어 countdown을 보여주고, routine/goal-lock/parent-mode 차단은 수동 타이머 deadline을 재사용하면 안 된다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.BlockViewModelTest.timedLockReentryLoadsActiveDeadlineForCountdown' \
+  --tests 'com.uiery.keep.BlockViewModelTest.timedLockReentryEmitsCloseWhenStoredDeadlineAlreadyExpired' \
+  --tests 'com.uiery.keep.BlockViewModelTest.routineBlockDoesNotReuseManualTimedLockCountdown'
+./gradlew --console=plain :app:assembleProdDebug
+```
+
+수동 QA evidence:
+- 홈 → 타이머 잠금 시작 → 홈 버튼 → 선택된 차단 앱 진입: 차단 화면에 `block_screen_timed_lock_countdown` countdown이 보이고 남은 시간이 최초 Lock 화면 deadline과 일치한다.
+- 같은 화면을 deadline 이후까지 유지하거나 만료 직후 재진입하면 차단 화면이 Home으로 닫히며, 만료된 수동 타이머가 일반 BlockActivity로 계속 남지 않는다.
+- 루틴/Goal Lock/Parent Mode로 열린 차단 화면에는 수동 타이머 `LOCK_TIME` countdown이 섞여 보이지 않는다.
+- history/review/analytics 검증 시 최초 Lock route의 세션 종료 기록과 BlockActivity 재진입의 `app_block_intercepted(block_source=timed_lock)` 보강 이벤트를 분리해 기록한다.
+
 ### Lock countdown expired-display QA evidence
 
 issue #679 계열 PR은 Lock 화면 countdown이 deadline 도달 이후 `-1`, `00:-1`, `-1:-01` 같은 음수 표시로 흐르지 않고 `00:00`에 고정되는지 확인한다. ViewModel의 `MoveToHome` side effect가 지연되거나 Activity/Compose가 resume되더라도 화면 표시 helper와 formatter가 모두 음수 입력을 0으로 clamp해야 한다.
