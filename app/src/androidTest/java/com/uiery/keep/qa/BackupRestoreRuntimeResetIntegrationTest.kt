@@ -153,7 +153,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopBackupRestoreAnalytics,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), NoopBackupRestoreAnalytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, NoopBackupRestoreAnalytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
