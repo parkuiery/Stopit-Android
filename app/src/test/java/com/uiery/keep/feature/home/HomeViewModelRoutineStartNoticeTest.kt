@@ -159,8 +159,7 @@ class HomeViewModelRoutineStartNoticeTest {
             reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            routineDao = EmptyHomeRoutineDao(),
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(EmptyRoutineNoticeRoutineRepository(), analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(EmptyRoutineNoticeGoalLockDao()),
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
@@ -187,6 +186,7 @@ class HomeViewModelRoutineStartNoticeTest {
 
 private class EmptyRoutineNoticeRoutineRepository : RoutineRepository {
     override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
+    override suspend fun fetchAllOnce(): List<RoutineModel> = emptyList()
 }
 
 private class EmptyRoutineNoticeGoalLockDao : GoalLockDao {

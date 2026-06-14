@@ -41,9 +41,9 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
-import com.uiery.keep.feature.lock.component.CountDownContent
-import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
+import com.uiery.keep.ui.component.CountDownContent
+import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

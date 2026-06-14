@@ -1,13 +1,13 @@
 # 공유 UI 소유권 / feature-private import 경계
 
 Issue: #492 (closed)
-Open drift issue: #876
+Issue: #876 (repo-internal boundary cleaned up)
 
 이 문서는 Stopit Android에서 feature-private Compose component를 다른 feature가 직접 가져다 쓰는 구조를 방지하기 위한 docs/ops source of truth다. 목표는 모든 UI를 무조건 KDS로 옮기는 것이 아니라, **재사용 범위에 맞는 소유권 계층**을 고정해 화면 간 결합과 drift를 줄이는 것이다.
 
 #492의 repo-internal 정리는 완료됐다. `PermissionSettingDialog`와 `TimerPicker`는 현재 미해결 handoff가 아니라 app shared UI baseline이며, 후속 shared UI drift가 발견되면 #492를 재사용하지 말고 새 실행 단위 issue로 다룬다.
 
-#876은 #492 재오픈이 아니라 별도 drift다. 현재 `BlockScreen.kt` 같은 app root blocking surface가 lock feature-private component를 직접 import하는 경계를 고정하고, code-lane에서 공통 countdown / emergency unlock UI 소유권을 app shared UI 또는 명시 public entrypoint로 정리하도록 넘긴다.
+#876은 #492 재오픈이 아니라 별도 drift다. 공통 countdown / emergency unlock UI는 Lock과 Block 양쪽에서 쓰는 app runtime UX로 판단해 `com.uiery.keep.ui.component` app shared UI로 승격했다. `BlockScreen.kt` 같은 app root blocking surface는 더 이상 lock feature-private component를 직접 import하지 않는다.
 
 ## 왜 중요한가
 
@@ -45,20 +45,20 @@ Open drift issue: #876
 
 예외는 code-lane PR에서 명시적인 사유와 제거 계획을 남긴 경우에만 허용한다. 새 예외는 `scripts/tests/test_shared_ui_component_boundaries.py`에 allowlist로 묵히지 말고, 가능하면 같은 PR에서 shared boundary로 이동한다.
 
-### #876 open exception: BlockScreen blocking UI 의존
+### #876 완료 baseline: Lock/Block blocking UI
 
-현재 open exception:
+완료 상태:
 
-- `app/src/main/java/com/uiery/keep/BlockScreen.kt` → `com.uiery.keep.feature.lock.component.CountDownContent`
-- `app/src/main/java/com/uiery/keep/BlockScreen.kt` → `com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent`
+- `CountDownContent`, `EmergencyUnlockBottomSheetContent`, `EmergencyUnlockBottomSheetState`는 `app/src/main/java/com/uiery/keep/ui/component` app shared UI 소유권을 가진다.
+- `BlockScreen.kt`와 `LockScreen.kt`는 `com.uiery.keep.ui.component.CountDownContent` / `EmergencyUnlockBottomSheetContent`를 import한다.
+- `app/src/main/java/com/uiery/keep/feature/lock/component/CountDownContent.kt` / `EmergencyUnlockBottomSheetContent.kt` duplicate/stub은 없어야 한다.
 
-이 예외는 확장 가능한 허용 패턴이 아니라 #876 code-lane cleanup을 위한 현재 inventory다. 해결 방향은 아래 셋 중 하나로 고정한다.
+회귀 방지:
 
-1. countdown / emergency unlock UI가 Lock과 Block의 공통 app UX라면 `com.uiery.keep.ui.component`로 승격한다.
-2. lock feature가 소유해야 한다면 app root에서 private `component`가 아니라 명시 public blocking UI entrypoint를 import하도록 wrapper를 제공한다.
-3. KDS primitive로 내릴 수 있는 순수 visual primitive만 `core:kds`로 이동하고, app resource/domain 의존은 app shared UI에 남긴다.
-
-정리 PR은 Lock/Block parity, accessibility label/stateDescription, shipped string parity, 기존 `BlockScreenContentIntegrationTest` / `EmergencyUnlockBottomSheetContentIntegrationTest` runtime evidence를 함께 확인한다.
+- `test_app_root_blocking_surfaces_do_not_import_feature_private_components`
+- `test_lock_blocking_ui_primitives_live_in_app_shared_ui`
+- `test_app_shared_ui_does_not_import_feature_private_packages`
+- `CountDownContentTest`, `EmergencyUnlockBottomSheetStateTest`, `EmergencyUnlockBottomSheetContentIntegrationTest`
 
 ## #492 완료 baseline
 
@@ -97,7 +97,7 @@ Open drift issue: #876
 
 아래 component도 이미 shared/KDS boundary 기준으로 관리한다.
 
-- `CategoryButton`, `CategoryBottomSheetContent`, `AppItem`, `SearchTextField`: app shared UI.
+- `CategoryButton`, `CategoryBottomSheetContent`, `AppItem`, `SearchTextField`, `CountDownContent`, `EmergencyUnlockBottomSheetContent`: app shared UI.
 - `KeepSwitch`: KDS primitive.
 - `InstalledAppRepository`, `SelectableAppPolicy`: app-level app selection boundary.
 
@@ -111,9 +111,9 @@ Open drift issue: #876
 - `TimerPicker`는 app shared UI에 있고 home-private duplicate/stub이 없다.
 - Home component package에 이미 shared로 이동한 `CategoryButton`, `CategoryBottomSheetContent`, `SearchTextField`, `AppItem`, `TimerPicker`, `KeepSwitch` duplicate/stub이 없다.
 - KDS로 승격된 `KeepSwitch`는 KDS README에 소유권이 문서화되어 있다.
-- `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker` 같은 app resource-bound shared component는 `app/src/main/java/com/uiery/keep/ui/component/AGENTS.md`에 문서화되어 있다.
+- `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker`, `CountDownContent`, `EmergencyUnlockBottomSheetContent` 같은 app resource-bound shared component는 `app/src/main/java/com/uiery/keep/ui/component/AGENTS.md`에 문서화되어 있다.
 - 이 runbook은 #492를 미해결 handoff처럼 설명하지 않고, closed baseline과 future drift 기준을 설명한다.
-- app root blocking surface의 feature-private component import는 #876 inventory로만 허용되며, 새 import가 늘면 실패한다.
+- app root blocking surface는 feature-private component를 직접 import하지 않는다.
 - #876 cleanup 이후 `BlockScreen.kt`의 `feature.lock.component.CountDownContent` / `EmergencyUnlockBottomSheetContent` 직접 import inventory는 비어 있어야 한다.
 
 ## Future drift 처리 기준

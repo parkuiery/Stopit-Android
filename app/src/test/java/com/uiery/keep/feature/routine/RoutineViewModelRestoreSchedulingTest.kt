@@ -91,7 +91,7 @@ class RoutineViewModelRestoreSchedulingTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = NoopRoutineAnalytics,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, NoopRoutineAnalytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, NoopRoutineAnalytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = routineNoticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(

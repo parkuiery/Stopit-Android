@@ -139,7 +139,7 @@ class RoutineViewModelActiveRoutineGuardTest {
             routineRepository = repository,
             dataStore = dataStore,
             analytics = NoopGuardRoutineAnalytics,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(EmptyGuardRoutineDao, NoopGuardRoutineAnalytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(repository, NoopGuardRoutineAnalytics),
             exactAlarmOrchestrator = exactAlarmOrchestrator,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -220,6 +220,7 @@ private class GuardRoutineRepository(
     val fetchCalls = mutableListOf<Long>()
 
     override fun fetchAll(): Flow<List<RoutineModel>> = routines
+    override suspend fun fetchAllOnce(): List<RoutineModel> = routines.value
     override suspend fun fetch(id: Long): RoutineModel {
         fetchCalls += id
         return fetchedRoutines[id] ?: routines.value.first { it.id == id }

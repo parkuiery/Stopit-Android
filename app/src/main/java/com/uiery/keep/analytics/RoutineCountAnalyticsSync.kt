@@ -1,7 +1,7 @@
 package com.uiery.keep.analytics
 
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.model.RoutineModel
 import javax.inject.Inject
 
 object KeepAnalyticsUserProperty {
@@ -11,14 +11,14 @@ object KeepAnalyticsUserProperty {
 class RoutineCountAnalyticsSync
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         private val analytics: KeepAnalytics,
     ) {
-        fun syncFromRoom() {
-            syncFromRoutines(routineDao.fetchAllOnce())
+        suspend fun syncFromRepository() {
+            syncFromRoutines(routineRepository.fetchAllOnce())
         }
 
-        fun syncFromRoutines(routines: List<RoutineEntity>) {
+        fun syncFromRoutines(routines: List<RoutineModel>) {
             syncCount(routines.size)
         }
 
