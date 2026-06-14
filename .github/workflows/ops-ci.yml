@@ -130,6 +130,7 @@ jobs:
               - 'scripts/tests/test_release_gradle_task_contract.py'
               - 'scripts/tests/test_prod_release_shrinking_contract.py'
               - 'scripts/tests/test_release_signing_gradle_contract.py'
+              - 'scripts/tests/test_query_all_packages_policy_contract.py'
               - 'scripts/tests/test_android_ci_artifact_retention.py'
               - 'scripts/tests/test_android_ci_path_gating.py'
               - 'scripts/tests/test_play_deploy_tag_governance.py'
@@ -216,6 +217,7 @@ jobs:
           scripts.tests.test_release_gradle_task_contract
           scripts.tests.test_prod_release_shrinking_contract
           scripts.tests.test_release_signing_gradle_contract
+          scripts.tests.test_query_all_packages_policy_contract
           scripts.tests.test_android_ci_artifact_retention
           scripts.tests.test_android_ci_path_gating
           scripts.tests.test_play_deploy_tag_governance

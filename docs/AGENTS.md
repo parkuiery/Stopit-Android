@@ -44,6 +44,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계. #492 closed 이후 PermissionSettingDialog/TimerPicker app shared UI baseline과 future drift static guard 기준. #876 app root `BlockScreen` → lock feature-private component open drift도 여기서 추적한다. |
 | `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. |
 | `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |
+| `QUERY_ALL_PACKAGES_POLICY.md` | #904용 `QUERY_ALL_PACKAGES` Play 정책 증적, 앱 선택 picker 한정 사용 목적, 대체 가능성 검토, Play Console 권한 선언 문안, static guard 기준. |
 | `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
 
 ## Subdirectories
