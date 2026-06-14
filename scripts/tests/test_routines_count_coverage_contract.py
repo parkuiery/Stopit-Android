@@ -93,6 +93,17 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
         self.assertIn("HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry", contract)
         self.assertIn("SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation", contract)
 
+    def test_contract_separates_issue_875_dao_boundary_followup_from_coverage_readback(self):
+        contract = CONTRACT.read_text()
+        for phrase in [
+            "DAO boundary follow-up (#875)",
+            "#875는 이 지표 계약을 뒤집는 새 계측 이슈가 아니라",
+            "repository/count-provider/use-case 경계",
+            "#479 회귀 금지",
+            "DAO boundary static guard",
+        ]:
+            self.assertIn(phrase, contract)
+
     def test_stale_pre_implementation_wording_is_not_reintroduced(self):
         combined = "\n".join(
             document.read_text()

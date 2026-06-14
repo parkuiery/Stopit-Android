@@ -81,6 +81,17 @@ flavorless `testDebugUnitTest`는 사용하지 않는다.
 
 남은 경계는 PR #525 코드가 `origin/main`/SemVer tag/Play deploy에 포함된 뒤 최신 production version adoption을 확인하고 D+14/D+30 GA4 readback으로 `(not set)` 감소를 검증하는 것이다.
 
+## DAO boundary follow-up (#875)
+
+PR #525의 coverage foothold는 유지하되, 현재 `HomeViewModel` / `RoutineCountAnalyticsSync` 구현은 Room DAO/Entity에 직접 결합된 상태다. #875는 이 지표 계약을 뒤집는 새 계측 이슈가 아니라, 같은 `routines_count` coverage 의미를 유지하면서 Home analytics sync를 repository/count-provider/use-case 경계로 정리하는 maintenance follow-up이다.
+
+code-lane handoff 기준:
+
+- `RoutineCountAnalyticsSync`는 Room `RoutineDao` / `RoutineEntity` 대신 숫자 count 또는 repository/domain model list를 입력으로 받아 `KeepAnalyticsUserProperty.ROUTINES_COUNT`만 set한다.
+- `HomeViewModel`은 `RoutineRepository` 또는 별도 count sync use-case를 통해 Home init count sync를 유지하고 DAO import를 제거한다.
+- #479 회귀 금지: 루틴 0개 Home 진입, 루틴 보유 Home 진입, 루틴 삭제 후 감소, Splash restore-aftercare count sync, raw string 금지 계약은 그대로 유지한다.
+- 검증은 `RoutineCountAnalyticsSyncTest`, `HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry`, `SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation`, `scripts.tests.test_routines_count_coverage_contract`, 그리고 #875에서 추가될 DAO boundary static guard를 함께 본다.
+
 ## GA4 readback 계약
 
 배포 후 판단은 “코드가 develop에 있다”가 아니라 아래 경계를 지난 뒤 시작한다.

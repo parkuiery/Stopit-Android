@@ -63,6 +63,23 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `MenuViewModel`은 수동 잠금/Keep 상태와 repository가 제공하는 routine domain model list만 조합해 `isBlocking`을 계산한다.
 - `RoomRoutineRepository`는 Room entity → `RoutineModel` mapping을 소유하므로 메뉴 테스트 fixture는 DAO fake 대신 repository fake에 결합한다.
 
+### Home `routines_count` analytics sync boundary — open #875
+
+#875는 #520 closure audit 뒤에 새로 확인된 Home 진입 `routines_count` user property 동기화 예외다. PR #525로 coverage foothold가 들어오면서 Home 진입 사용자도 Routine 화면 없이 Room count를 GA4 user property에 set할 수 있게 됐지만, 현재 구현은 `HomeViewModel`과 `RoutineCountAnalyticsSync`가 `RoutineDao` / `RoutineEntity`에 직접 결합되어 있다.
+
+#### 현재 상태
+
+- `HomeViewModel`은 이미 `RoutineRepository`를 주입받으면서도 `RoutineDao`를 별도로 주입받아 Home init sync 경로에서 사용한다.
+- `RoutineCountAnalyticsSync`는 analytics boundary인데 `RoutineDao.fetchAllOnce()`와 `syncFromRoutines(routines: List<RoutineEntity>)`를 직접 소유한다.
+- 이 예외는 #479의 coverage/readback 경계와 다르다. #479는 `routines_count=(not set)` 감소를 release/readback으로 검증하는 지표 이슈이고, #875는 같은 coverage foothold를 유지하면서 DAO/Entity 결합을 repository/use-case 경계로 분리하는 maintenance 이슈다.
+
+#### code-lane handoff
+
+- `RoutineCountAnalyticsSync`는 `RoutineRepository`, 별도 `RoutineCountProvider`, 또는 count/domain-model 기반 use-case를 통해 숫자 count만 받아야 한다.
+- `HomeViewModel`은 Home 상태/CTA/analytics orchestration만 소유하고 Room DAO/Entity import를 제거한다.
+- `RoutineViewModel` collect 경로와 Splash restore-aftercare 경로는 기존 #479 coverage 의미를 유지해야 한다. 즉 DAO boundary cleanup이 `routines_count=0`, `>=1`, 삭제 후 감소, restore-aftercare count sync 회귀를 만들면 안 된다.
+- focused 검증 후보: `RoutineCountAnalyticsSyncTest`, `HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry`, `SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation`, `scripts.tests.test_routines_count_coverage_contract`, 그리고 #875 후속으로 강화할 `scripts.tests.test_dao_boundary_contract`의 Home/RoutineCountAnalyticsSync DAO import guard.
+
 ### Lock routine read boundary
 
 #520의 여섯 번째 repo-internal QA 패키지는 루틴 기반 Lock 화면의 활성 루틴 조회에서 `RoutineDao` 직접 접근을 분리했다.
@@ -123,6 +140,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` 직접 import가 재도입되지 않고 `EmergencyUnlockRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `LockHistoryRecorder` 아래에서 `LockHistoryDao` / `LockHistoryEntity` / feature-private `LockHistoryRepository` 직접 import가 재도입되지 않고 `LockHistorySessionWriter.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다. `LockHistoryRepository`는 feature read-model 조회 경계로, `LockHistoryLedger`는 read-side summary helper로만 남는지도 함께 검사한다.
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
+- #875 code-lane cleanup 전까지 `HomeViewModel` / `RoutineCountAnalyticsSync`의 Routine DAO/Entity 직접 결합은 open exception으로 문서화한다. cleanup PR은 이 예외를 제거하고 `scripts.tests.test_dao_boundary_contract`에 Home/RoutineCountAnalyticsSync guard를 추가해야 한다.
 - 같은 static guard가 `LockViewModel` 아래에서 `RoutineDao` / `RoutineEntity` / stale emergency-unlock DAO/entity import가 재도입되지 않고 `RoutineRepository`가 lock routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 routine feature non-repository source 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation/restore-aftercare 허용 경계로 남는지 검사한다.
 - 같은 static guard가 routine Receiver 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 boot/alarm receiver routine read/mutation 허용 경계로 남는지 검사한다.
@@ -131,19 +149,21 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 ## Closure audit
 
-Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete. `app/src/main`의 ViewModel / Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 현재 남은 DAO import는 아래 허용 repository/DB 경계뿐이다.
+Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete for the original #520 inventory, but #875 reopened a narrower Home analytics sync exception. `app/src/main`의 Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 기존 #520 대상 ViewModel 경계(Menu/Lock/Routine/GoalLock/LockHistory/Review)는 repository boundary로 정리되어 있다. 다만 Home `routines_count` coverage foothold에는 아래 open exception이 남아 있다.
 
 - 허용 repository DAO 경계: `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`.
 - 허용 DB wiring 경계: `KeepDatabase`, `database/di`, DAO 인터페이스 자체.
+- Open #875 exception: `HomeViewModel` / `RoutineCountAnalyticsSync`의 Routine count analytics sync 경로는 coverage 보강을 위해 Room DAO/Entity에 직접 결합되어 있으며, 다음 code-lane package에서 repository/count-provider/use-case 경계로 분리해야 한다.
 - 테스트 fixture/fake DAO는 production main-source 인벤토리에서 제외한다.
 
-future regression 발견 시에는 새 직접 DAO import를 이 문서의 허용 경계에 추가하지 말고, 해당 ViewModel/Receiver/Service를 repository/read-model 경계로 되돌리는 focused test 패키지로 처리한다.
+future regression 발견 시에는 새 직접 DAO import를 이 문서의 허용 경계에 추가하지 말고, 해당 ViewModel/Receiver/Service를 repository/read-model 경계로 되돌리는 focused test 패키지로 처리한다. #875 예외도 allowlist로 장기 보존하지 말고 제거 기준과 회귀 guard를 함께 추가한다.
 
 ## 검증 명령
 
 ```bash
 python3 -m unittest scripts.tests.test_dao_boundary_contract -v
 python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
+python3 -m unittest scripts.tests.test_routines_count_coverage_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
