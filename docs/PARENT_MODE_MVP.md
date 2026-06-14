@@ -179,7 +179,7 @@ cd <repo-root>
 
 ### 2차 code-lane foothold
 
-2026-06-07 code-lane PR #584에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했고, merge commit `b58c6a8dbf2ba4541a748da4d0b948ee8c6a692a`로 `develop`에 반영됐다. 아직 setup/active UI와 device/emulator bind evidence는 남아 있지만, 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 경계는 코드와 테스트로 고정했다.
+2026-06-07 code-lane PR #584에서 부모 모드 session persistence와 AccessibilityService 차단 판단 연결을 repo-internal runtime foothold로 추가했고, merge commit `b58c6a8dbf2ba4541a748da4d0b948ee8c6a692a`로 `develop`에 반영됐다. 이 시점에는 setup/active UI와 device/emulator bind evidence가 후속 경계였지만, 이후 PR #748/#870/#873/#897에서 active controls·직접 분 입력·접근성 요약·dedicated Parent Mode block analytics까지 이어졌다. 따라서 이 2차 foothold의 현재 의미는 저장된 부모 모드 session이 실제 foreground block decision에 들어가는 하위 runtime 경계를 코드와 테스트로 고정했다는 점이다.
 
 - `ParentModeSessionStore`: `PreferencesKey.PARENT_MODE_STARTED_AT`, `PARENT_MODE_EXPIRES_AT`, `PARENT_MODE_DURATION_MINUTES`, `PARENT_MODE_ALLOWED_APPS`, `PARENT_MODE_STATE`를 DataStore에 저장/관찰한다.
 - `BackupRestoreDataStoreKeyPolicy`: 부모 모드 session key를 restore-reset-only로 유지해 기기 복원 후 아이에게 폰 주기 session이 되살아나지 않게 한다.
@@ -221,7 +221,7 @@ cd <repo-root>
 
 ### 7차 QA-lane runtime foothold
 
-2026-06-09 QA-lane PR에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 foothold는 full active/expired UX 화면을 완성하지는 않지만, device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence를 고정한다.
+2026-06-09 QA-lane PR에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 시점에는 full active/expired UX 화면이 별도 후속 경계였지만, 이후 PR #748/#870/#873에서 setup/active/expired controls와 접근성 요약 baseline이 이어졌고, 이 7차 foothold는 device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence로 남는다.
 
 - `KeepAccessibilityServiceDebugState`: 서비스가 관찰한 Parent Mode state와 allowed-app count를 instrumentation evidence로 보존한다.
 - `KeepAccessibilityServiceIntegrationTest.activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`: manual Keep 없이 active Parent Mode DataStore session만으로 비허용 앱 차단 요청이 발생하고, `observedParentModeState=active`, `observedParentModeAllowedAppCount=1`, `lastLaunchedBlockSource=parent_mode`가 기록되는지 검증한다.

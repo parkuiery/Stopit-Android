@@ -70,8 +70,19 @@ class ParentModeContractTest(unittest.TestCase):
             self.assertIn(parameter, analytics)
 
         self.assertIn("PARENT_MODE_MVP.md", analytics)
+        self.assertIn("PR #897 merge commit `3d9830cddf2cbae7625996737cd2dfc4f4ee1c82`", analytics)
+        self.assertIn("app_block_intercepted(block_source=parent_mode)", analytics)
+        self.assertIn("parent_mode_block_intercepted(block_context=disallowed_app)", analytics)
         self.assertIn("아이 이름/앱 이름/package/raw session history 금지", analytics)
         self.assertIn("manual_keep / timed_lock / routine / goal_lock / parent_mode", analytics)
+
+        stale_pre_wiring_phrases = [
+            "아직 setup/active UI, PIN runtime flow",
+            "Parent Mode-origin 차단 화면은 아직 dedicated",
+            "parent_mode_block_intercepted 미구현",
+        ]
+        for phrase in stale_pre_wiring_phrases:
+            self.assertNotIn(phrase, analytics)
 
     def test_runbook_tracks_session_store_and_accessibility_runtime_foothold(self):
         runbook = RUNBOOK.read_text()
