@@ -905,7 +905,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 
 ### 활성 루틴 보호 UX QA baseline
 
-issue #609 계열 PR은 실행 중인 루틴이 수정/삭제/끄기 동작을 조용히 무시하지 않고, 사용자가 왜 막혔는지 즉시 이해할 수 있는 피드백을 남기는지 확인한다. 이 계약은 루틴 실행 중 우회 방지와 비징벌적 안내를 함께 다룬다.
+issue #609 계열 PR은 `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md`를 source of truth로 삼고, 실행 중인 루틴이 수정/삭제/끄기 동작을 조용히 무시하지 않고, 사용자가 왜 막혔는지 즉시 이해할 수 있는 피드백을 남기는지 확인한다. 이 계약은 루틴 실행 중 우회 방지와 비징벌적 안내를 함께 다룬다.
 
 자동 baseline:
 

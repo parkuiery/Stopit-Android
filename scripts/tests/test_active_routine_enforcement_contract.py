@@ -5,6 +5,10 @@ import xml.etree.ElementTree as ET
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 QA_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
+SOURCE_DOC = REPO_ROOT / "docs" / "ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md"
+DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
+METRICS_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
+METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 DEFAULT_STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values" / "strings.xml"
 LOCALIZED_STRING_DIRS = sorted((REPO_ROOT / "app" / "src" / "main" / "res").glob("values-*"))
 ACCESSIBILITY_RUNTIME_TEST = (
@@ -57,6 +61,24 @@ def _strings(path: pathlib.Path) -> dict[str, str]:
 
 
 class ActiveRoutineEnforcementContractTest(unittest.TestCase):
+    def test_source_doc_is_linked_from_high_traffic_docs(self):
+        source = SOURCE_DOC.read_text()
+        checklist = QA_CHECKLIST.read_text()
+        docs_agents = DOCS_AGENTS.read_text()
+        dashboard = METRICS_DASHBOARD.read_text()
+        metrics_context = METRICS_CONTEXT.read_text()
+
+        self.assertIn("Issue: #609", source)
+        self.assertIn("foreground 즉시 차단", source)
+        self.assertIn("수정/삭제/OFF 우회", source)
+        self.assertIn("비징벌적 안내", source)
+        self.assertIn("release/tag/Play deploy", source)
+        self.assertIn("14일", source)
+        self.assertIn("docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md", checklist)
+        self.assertIn("ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md", docs_agents)
+        self.assertIn("ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md", dashboard)
+        self.assertIn("ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md", metrics_context)
+
     def test_qa_checklist_pins_active_routine_foreground_runtime_evidence(self):
         checklist = QA_CHECKLIST.read_text()
 

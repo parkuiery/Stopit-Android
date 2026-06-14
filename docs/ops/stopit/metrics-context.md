@@ -164,5 +164,6 @@ ASO 판정 주의:
 - `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md` (#779 긴급해제 단계별 이탈·검증 실패 privacy-safe analytics/QA 계약)
 - `docs/ROUTINE_TEMPLATE_SHARE_MVP.md` (#407용 루틴 템플릿 공유 MVP, privacy-safe payload, analytics/QA 계획)
 - `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` (#531 반복 차단 기반 자동 루틴 제안, privacy-safe bucket/prefill/analytics/QA 계약)
+- `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md` (#609 활성 루틴 보호 UX, foreground 즉시 차단, 수정/삭제/OFF 우회 방지, release-candidate QA evidence 계약)
 - `docs/GOAL_LOCK_MVP.md` (#417 목표 잠금 MVP/analytics/QA 계약)
 - `docs/PARENT_MODE_MVP.md` (#471 부모 모드 / 아이에게 폰 주기 same-device MVP/analytics/QA 계약)
