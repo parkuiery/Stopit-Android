@@ -139,7 +139,7 @@ class LockHistoryViewModel @Inject constructor(
         trackPerformanceReportViewed(performanceReport)
         if (suggestion != null) {
             analytics.trackRepeatBlockRoutineSuggestionShown(
-                surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
+                surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
                 suggestion = suggestion.toAnalyticsPayload(),
             )
         }
@@ -173,7 +173,7 @@ class LockHistoryViewModel @Inject constructor(
     internal fun openRepeatBlockRoutineSuggestion() = intent {
         val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
         analytics.trackRepeatBlockRoutineSuggestionClicked(
-            surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
             suggestion = suggestion.toAnalyticsPayload(),
         )
         postSideEffect(LockHistorySideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
@@ -186,7 +186,7 @@ class LockHistoryViewModel @Inject constructor(
             dismissedAt = java.time.LocalDateTime.now(),
         )
         analytics.trackRepeatBlockRoutineSuggestionDismissed(
-            surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
             suggestion = suggestion.toAnalyticsPayload(),
         )
         reduce { state.copy(repeatBlockRoutineSuggestion = null) }

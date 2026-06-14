@@ -3,6 +3,8 @@ package com.uiery.keep.feature.lockhistory
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.feature.review.FakeDataStore
@@ -180,6 +182,7 @@ class LockHistoryViewModelShareTest {
                     durationMinutesBucket = "30_59",
                     topAppsCountBucket = null,
                     reason = null,
+                    surface = null,
                 ),
                 ShareAnalyticsEvent(
                     name = "top_apps_viewed",
@@ -189,9 +192,50 @@ class LockHistoryViewModelShareTest {
                     durationMinutesBucket = null,
                     topAppsCountBucket = "1",
                     reason = null,
+                    surface = null,
                 ),
             ),
             analytics.events.takeLast(2),
+        )
+    }
+
+    @Test
+    fun repeatBlockSuggestionFromPerformanceReportUsesPerformanceReportSurface() = runBlocking {
+        val analytics = RecordingLockHistoryAnalytics()
+        val viewModel = createViewModel(
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        sessionInCurrentWeek(durationMillis = 30 * 60 * 1000L),
+                        sessionInCurrentWeek(durationMillis = 25 * 60 * 1000L),
+                        sessionInCurrentWeek(durationMillis = 20 * 60 * 1000L),
+                    ),
+                ),
+            ),
+            analytics = analytics,
+            focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
+        )
+
+        waitForHistoryLoad(viewModel)
+        waitUntil { analytics.events.any { it.name == "repeat_block_shown" } }
+        assertNotNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+
+        viewModel.openRepeatBlockRoutineSuggestion()
+        waitUntil { analytics.events.any { it.name == "repeat_block_clicked" } }
+
+        viewModel.dismissRepeatBlockRoutineSuggestion()
+        waitUntil { analytics.events.any { it.name == "repeat_block_dismissed" } }
+
+        val repeatBlockSurfaces = analytics.events
+            .filter { it.name.startsWith("repeat_block_") }
+            .map { it.surface }
+        assertEquals(
+            listOf(
+                RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+                RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+                RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+            ),
+            repeatBlockSurfaces,
         )
     }
 
@@ -290,6 +334,7 @@ private data class ShareAnalyticsEvent(
     val durationMinutesBucket: String?,
     val topAppsCountBucket: String?,
     val reason: String?,
+    val surface: String? = null,
 )
 
 private class RecordingLockHistoryAnalytics : KeepAnalytics {
@@ -395,4 +440,36 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
             reason = null,
         )
     }
+
+    override fun trackRepeatBlockRoutineSuggestionShown(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        events += repeatBlockEvent(name = "repeat_block_shown", surface = surface)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        events += repeatBlockEvent(name = "repeat_block_clicked", surface = surface)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionDismissed(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        events += repeatBlockEvent(name = "repeat_block_dismissed", surface = surface)
+    }
+
+    private fun repeatBlockEvent(name: String, surface: String): ShareAnalyticsEvent = ShareAnalyticsEvent(
+        name = name,
+        periodType = "",
+        reportState = null,
+        sessionCountBucket = null,
+        durationMinutesBucket = null,
+        topAppsCountBucket = null,
+        reason = null,
+        surface = surface,
+    )
 }
