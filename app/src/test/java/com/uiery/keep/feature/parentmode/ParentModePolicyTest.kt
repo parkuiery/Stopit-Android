@@ -160,4 +160,47 @@ class ParentModePolicyTest {
         assertEquals(ParentModeActionDecision.InvalidExtension, zeroMinuteExtension)
         assertEquals(ParentModeActionDecision.InvalidExtension, negativeMinuteExtension)
     }
+
+    @Test
+    fun expiredActiveSessionCannotBeEndedOrExtendedAsParentAction() {
+        val expiredByClockSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+        )
+
+        val extendDecision = ParentModePolicy.requestParentAction(
+            session = expiredByClockSession,
+            action = ParentModeParentAction.Extend(extensionMinutes = 10),
+            pinState = ParentModePinState.Verified,
+            nowMillis = 61_000L,
+        )
+        val endDecision = ParentModePolicy.requestParentAction(
+            session = expiredByClockSession,
+            action = ParentModeParentAction.EndNow,
+            pinState = ParentModePinState.Verified,
+            nowMillis = 61_000L,
+        )
+
+        assertEquals(ParentModeActionDecision.Expired, extendDecision)
+        assertEquals(ParentModeActionDecision.Expired, endDecision)
+    }
+
+    @Test
+    fun activeControlsRefreshDelayIsBoundedToExpiryTime() {
+        val activeSession = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 1,
+            allowedApps = setOf("com.video.app"),
+            state = ParentModeSessionState.Active,
+        )
+        val expiredSession = activeSession.copy(state = ParentModeSessionState.Expired)
+
+        assertEquals(59_000L, activeSessionRefreshDelayMillis(activeSession, nowMillis = 2_000L))
+        assertEquals(0L, activeSessionRefreshDelayMillis(activeSession, nowMillis = 61_000L))
+        assertEquals(null, activeSessionRefreshDelayMillis(expiredSession, nowMillis = 2_000L))
+    }
 }

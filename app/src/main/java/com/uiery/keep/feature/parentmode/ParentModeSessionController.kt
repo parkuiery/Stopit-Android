@@ -59,6 +59,7 @@ internal class ParentModeSessionController @Inject constructor(
             nowMillis = nowMillis,
         )
         return when (decision) {
+            ParentModeActionDecision.Expired -> persistExpiredSession(session)
             ParentModeActionDecision.InvalidExtension -> ParentModeSessionControllerResult.InvalidExtension
             is ParentModeActionDecision.Extend -> {
                 val updatedSession = session.copy(
@@ -92,6 +93,7 @@ internal class ParentModeSessionController @Inject constructor(
             nowMillis = nowMillis,
         )
         return when (decision) {
+            ParentModeActionDecision.Expired -> persistExpiredSession(session)
             is ParentModeActionDecision.End -> {
                 val endedSession = session.copy(
                     expiresAtMillis = decision.endedAtMillis,
@@ -129,6 +131,10 @@ internal class ParentModeSessionController @Inject constructor(
             return ParentModeSessionControllerResult.NoStateChange(session)
         }
 
+        return persistExpiredSession(session)
+    }
+
+    private suspend fun persistExpiredSession(session: ParentModeSession): ParentModeSessionControllerResult.Expired {
         val expiredSession = session.copy(state = ParentModeSessionState.Expired)
         store.save(expiredSession)
         analytics.trackParentModeCompleted(

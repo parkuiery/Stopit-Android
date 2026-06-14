@@ -35,6 +35,8 @@ internal sealed interface ParentModeParentAction {
 }
 
 internal sealed interface ParentModeActionDecision {
+    data object Expired : ParentModeActionDecision
+
     data object PinRequired : ParentModeActionDecision
 
     data object InvalidExtension : ParentModeActionDecision
@@ -126,6 +128,9 @@ internal object ParentModePolicy {
         pinState: ParentModePinState,
         nowMillis: Long,
     ): ParentModeActionDecision {
+        if (resolveState(session, nowMillis) == ParentModeSessionState.Expired) {
+            return ParentModeActionDecision.Expired
+        }
         if (pinState != ParentModePinState.Verified) return ParentModeActionDecision.PinRequired
 
         return when (action) {
