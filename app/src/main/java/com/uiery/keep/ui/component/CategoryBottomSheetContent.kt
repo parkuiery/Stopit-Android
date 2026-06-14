@@ -2,7 +2,6 @@ package com.uiery.keep.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,9 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -89,6 +92,9 @@ fun CategoryBottomSheetLoadedContent(
     var selectedAppPackages by remember(storeSelectApps) { mutableStateOf(storeSelectApps.toSet()) }
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
     val isSelectAll = areAllSelectableAppsSelected(selectedAppPackages, allAppPackages)
+    val selectAllStateDescription = stringResource(
+        id = if (isSelectAll) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
+    )
     var searchContent by remember { mutableStateOf("") }
 
     Column(
@@ -134,27 +140,26 @@ fun CategoryBottomSheetLoadedContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("category_select_all_row")
-                                .clickable {
-                                    selectedAppPackages = toggleAllSelectableAppsSelection(
-                                        currentSelection = selectedAppPackages,
-                                        allAppPackages = allAppPackages,
-                                        checked = !isSelectAll,
-                                    )
-                                },
+                                .toggleable(
+                                    value = isSelectAll,
+                                    role = Role.Checkbox,
+                                    onValueChange = { checked ->
+                                        selectedAppPackages = toggleAllSelectableAppsSelection(
+                                            currentSelection = selectedAppPackages,
+                                            allAppPackages = allAppPackages,
+                                            checked = checked,
+                                        )
+                                    },
+                                )
+                                .semantics { stateDescription = selectAllStateDescription }
+                                .testTag("category_select_all_row"),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             KeepCheckbox(
                                 checked = isSelectAll,
                                 modifier = Modifier.testTag("category_select_all_checkbox"),
-                                onCheckedChange = { checked ->
-                                    selectedAppPackages = toggleAllSelectableAppsSelection(
-                                        currentSelection = selectedAppPackages,
-                                        allAppPackages = allAppPackages,
-                                        checked = checked,
-                                    )
-                                },
+                                onCheckedChange = null,
                             )
                             Image(
                                 modifier = Modifier
