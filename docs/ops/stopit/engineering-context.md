@@ -96,6 +96,7 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
 
 Build/Release Maintenance Analyst가 우선 볼 신호:
 - Gradle/AGP/Kotlin/Firebase/Room 업데이트 리스크
+- Dependabot patch/minor 자동화와 semver-major 보류 감사 drift. #905 기준으로 `.github/dependabot.yml`의 major ignore는 유지하되, `docs/DEPENDENCY_LINT_MAINTENANCE.md`의 월 1회 / release train 전 audit에서 `ready` / `backlog` / `hold` 분류를 남긴다.
 - flavorless command drift
 - dev/prod `applicationId` / package identity drift; #314 계열 작업은 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다.
 - Play deploy secret/config 문서와 workflow 일치 여부

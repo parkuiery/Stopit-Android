@@ -53,11 +53,18 @@ class DependabotPolicyContractTest(unittest.TestCase):
         for required in [
             "Dependabot",
             "#693",
+            "#905",
             "weekly",
+            "월 1회",
+            "release train",
             "maintenance",
             "automation",
             "major update",
+            "semver-major",
             "수동 검토",
+            "ready",
+            "backlog",
+            "hold",
             "Play deploy",
             "release secret",
             ".github/dependabot.yml",
@@ -66,6 +73,32 @@ class DependabotPolicyContractTest(unittest.TestCase):
         ]:
             with self.subTest(required=required):
                 self.assertIn(required, docs)
+
+    def test_semver_major_audit_contract_keeps_major_manual_and_classified(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        runbook = DEPENDENCY_RUNBOOK.read_text()
+
+        self.assertGreaterEqual(
+            config.count("version-update:semver-major"),
+            4,
+            "Every Dependabot ecosystem should keep semver-major ignored for manual #905 audit",
+        )
+        for required in [
+            "Dependabot semver-major 수동 감사 lane (#905)",
+            "매월 첫 번째 월요일",
+            "release train 전",
+            "Gradle / Android stack",
+            "GitHub Actions",
+            "Firebase Functions npm",
+            "ASO screenshots Bun",
+            "Classification:",
+            "ready:",
+            "backlog:",
+            "hold:",
+            "Play deploy, release secret, signing secret, Firebase service account secret은 semver-major 감사의 산출물이 아니다",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, runbook)
 
 
 if __name__ == "__main__":
