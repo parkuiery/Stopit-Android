@@ -74,6 +74,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("시작일 당일 새벽의 전날 spillover 구간", runbook)
         self.assertIn("종료일 다음날 새벽의 spillover 구간", runbook)
         self.assertIn("window 종료 시각부터 차단을 멈춘다", runbook)
+        self.assertIn("isCurrentlyProtecting", runbook)
+        self.assertIn("다음 예약 시간대 대기 중", runbook)
 
         forbidden_guidance = [
             "긴급 해제 횟수 자동 회복 OFF를 MVP에 포함",
@@ -182,6 +184,7 @@ class GoalLockContractTest(unittest.TestCase):
             self.assertIn("Pending / Active / Completed / EndedEarly", document)
             self.assertIn("pending은 아직 시작 전 예약으로 설명", document)
             self.assertIn("active만 진행 중으로 표현", document)
+            self.assertIn("다음 예약 시간대 대기", document)
             self.assertIn("completed는 완료·다시 열림 상태를 비난 없이 설명", document)
             self.assertIn("endedEarly는 사용자가 종료한 상태로 설명", document)
             self.assertIn("GoalLockMode.homeLabel", document)
@@ -197,6 +200,8 @@ class GoalLockContractTest(unittest.TestCase):
 
         self.assertIn("목표 잠금 runtime QA baseline", qa_checklist)
         self.assertIn("GoalLockPolicyTest", qa_checklist)
+        self.assertIn("GoalLockPolicyTest.currentProtectionForScheduledGoalLockDistinguishesBeforeDuringAndAfterWindow", qa_checklist)
+        self.assertIn("isCurrentlyProtecting", qa_checklist)
         self.assertIn("시작일 당일 새벽", qa_checklist)
         self.assertIn("익일 새벽 spillover", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.goalLockCreatedUsesSafeBucketedParamsOnly", qa_checklist)
@@ -215,6 +220,8 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("GoalLockCreationRoute", qa_checklist)
         self.assertIn("목표별 선택 앱 편집", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.activeGoalLockExposesHomeProgressCardState", qa_checklist)
+        self.assertIn("HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowExposesNonProtectingHomeCardState", qa_checklist)
+        self.assertIn("HomeGoalLockCardCopyContractTest.activeScheduledGoalLockOutsideCurrentWindowUsesWaitingWindowSummary", qa_checklist)
         self.assertIn("HomeViewModelActivationAnalyticsTest.expiredActiveGoalLockIsCompletedFromHomeCardLoadAndTrackedOnce", qa_checklist)
         self.assertIn("GoalLockDetailViewModelTest", qa_checklist)
         self.assertIn("duration update recalculates end date", qa_checklist)

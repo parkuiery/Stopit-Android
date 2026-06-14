@@ -660,6 +660,51 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val now = System.currentTimeMillis()
+        val today = LocalDate.now()
+        val tomorrow = today.plusDays(1)
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryDao = HomeRecordingLockHistoryDao(
+                sessions = listOf(
+                    lockHistoryEntity(now - 1_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 86_400_000L, listOf("com.instagram.android")),
+                    lockHistoryEntity(now - 172_800_000L, listOf("com.instagram.android")),
+                ),
+            ),
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        goalName = "내일 저녁 차단",
+                        startDate = today,
+                        endDate = tomorrow,
+                        lockMode = GoalLockMode.Scheduled(
+                            repeatDays = setOf(tomorrow.dayOfWeek),
+                            startTime = java.time.LocalTime.of(19, 0),
+                            endTime = java.time.LocalTime.of(23, 0),
+                        ),
+                        selectedPackages = setOf("com.instagram.android"),
+                    ),
+                ),
+            ),
+            routineRepository = FakeHomeRoutineRepository(emptyList()),
+        )
+
+        delay(100)
+
+        assertEquals(HomeGoalLockStatus.Active, viewModel.container.stateFlow.value.goalLockCard?.status)
+        assertEquals(true, viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion != null)
+        assertEquals(
+            listOf(HomeAnalyticsCall.RepeatBlockSuggestionShown(surface = "home")),
+            analytics.calls.filterIsInstance<HomeAnalyticsCall.RepeatBlockSuggestionShown>(),
+        )
+    }
+
+    @Test
     fun activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val now = System.currentTimeMillis()
@@ -784,6 +829,48 @@ class HomeViewModelActivationAnalyticsTest {
                 daysRemaining = 14,
                 lockMode = HomeGoalLockCardLockMode.AllDay,
                 selectedAppCount = 2,
+                isCurrentlyProtecting = true,
+            ),
+            viewModel.container.stateFlow.value.goalLockCard,
+        )
+    }
+
+    @Test
+    fun scheduledGoalLockOutsideCurrentWindowExposesNonProtectingHomeCardState() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val today = LocalDate.now()
+        val tomorrow = today.plusDays(1)
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(mutablePreferencesOf()),
+            analytics = analytics,
+            goalLockDao = FakeHomeGoalLockDao(
+                listOf(
+                    goalLockEntity(
+                        goalName = "내일 저녁 차단",
+                        startDate = today,
+                        endDate = tomorrow,
+                        lockMode = GoalLockMode.Scheduled(
+                            repeatDays = setOf(tomorrow.dayOfWeek),
+                            startTime = java.time.LocalTime.of(19, 0),
+                            endTime = java.time.LocalTime.of(23, 0),
+                        ),
+                        selectedPackages = setOf("com.video.app"),
+                    ),
+                ),
+            ),
+        )
+
+        delay(50)
+
+        assertEquals(
+            HomeGoalLockCardState(
+                goalLockId = 7L,
+                goalName = "내일 저녁 차단",
+                status = HomeGoalLockStatus.Active,
+                daysRemaining = 2,
+                lockMode = HomeGoalLockCardLockMode.Scheduled,
+                selectedAppCount = 1,
+                isCurrentlyProtecting = false,
             ),
             viewModel.container.stateFlow.value.goalLockCard,
         )
@@ -828,6 +915,7 @@ class HomeViewModelActivationAnalyticsTest {
                 daysRemaining = 6,
                 lockMode = HomeGoalLockCardLockMode.AllDay,
                 selectedAppCount = 1,
+                isCurrentlyProtecting = true,
             ),
             viewModel.container.stateFlow.value.goalLockCard,
         )

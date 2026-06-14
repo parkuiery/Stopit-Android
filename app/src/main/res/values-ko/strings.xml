@@ -101,6 +101,7 @@
     <string name="home_goal_lock_card_title_ended_early">목표 잠금 조기 종료</string>
     <string name="home_goal_lock_card_summary_pending">시작까지 %1$d일 · %2$s · %3$d개 앱</string>
     <string name="home_goal_lock_card_summary_active">%1$d일 남음 · %2$s · %3$d개 앱</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">목표 기간 내 · 다음 예약 시간대 대기 중 · %3$d개 앱</string>
     <string name="home_goal_lock_card_summary_completed">완료됨 · %2$s · %3$d개 앱</string>
     <string name="home_goal_lock_card_summary_ended_early">조기 종료됨 · %2$s · %3$d개 앱</string>
     <string name="home_goal_lock_card_lock_mode_all_day">하루 종일 잠금</string>

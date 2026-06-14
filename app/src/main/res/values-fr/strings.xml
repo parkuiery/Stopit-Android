@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">Verrouillage d’objectif arrêté plus tôt</string>
     <string name="home_goal_lock_card_summary_pending">%1$d jours avant le début · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_active">%1$d jours restants · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">Période d’objectif en cours · prochain créneau planifié en attente · %3$d apps</string>
     <string name="home_goal_lock_card_summary_completed">Terminé · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_ended_early">Arrêté plus tôt · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Verrouillage toute la journée</string>

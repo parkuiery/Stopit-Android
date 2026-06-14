@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">Doelvergrendeling vroeg beëindigd</string>
     <string name="home_goal_lock_card_summary_pending">%1$d dagen tot start · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_active">%1$d dagen over · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">Binnen doelperiode · wacht op het volgende geplande tijdvak · %3$d apps</string>
     <string name="home_goal_lock_card_summary_completed">Voltooid · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_summary_ended_early">Vroeg beëindigd · %2$s · %3$d apps</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Hele dag vergrendelen</string>

@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">目標ロックを早期終了</string>
     <string name="home_goal_lock_card_summary_pending">開始まで%1$d日 · %2$s · %3$d個のアプリ</string>
     <string name="home_goal_lock_card_summary_active">残り%1$d日 · %2$s · %3$d個のアプリ</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">目標期間内 · 次の予約時間帯を待機中 · %3$d個のアプリ</string>
     <string name="home_goal_lock_card_summary_completed">完了 · %2$s · %3$d個のアプリ</string>
     <string name="home_goal_lock_card_summary_ended_early">早期終了 · %2$s · %3$d個のアプリ</string>
     <string name="home_goal_lock_card_lock_mode_all_day">終日ロック</string>

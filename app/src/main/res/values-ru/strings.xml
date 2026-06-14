@@ -101,7 +101,8 @@
     <string name="home_goal_lock_card_title_completed">Целевая блокировка завершена</string>
     <string name="home_goal_lock_card_title_ended_early">Целевая блокировка завершена раньше</string>
     <string name="home_goal_lock_card_summary_pending">%1$d дн. до начала · %2$s · приложений: %3$d</string>
-    <string name="home_goal_lock_card_summary_active">Осталось %1$d дн. · %2$s · приложений: %3$d</string>
+    <string name="home_goal_lock_card_summary_active">Осталось %1$d дн. · %2$s · %3$d прилож.</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">Период цели идет · ожидание следующего расписания · %3$d прилож.</string>
     <string name="home_goal_lock_card_summary_completed">Завершено · %2$s · приложений: %3$d</string>
     <string name="home_goal_lock_card_summary_ended_early">Завершено раньше · %2$s · приложений: %3$d</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Блокировка на весь день</string>

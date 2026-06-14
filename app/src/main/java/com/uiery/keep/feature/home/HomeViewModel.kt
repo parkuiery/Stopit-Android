@@ -311,7 +311,7 @@ class HomeViewModel
                     .firstOrNull()
                     .orEmpty()
                     .any { goalLock ->
-                        GoalLockPolicy.runtimeStatus(goalLock, LocalDate.now().atStartOfDay()) == GoalLockRuntimeStatus.Active
+                        GoalLockPolicy.isCurrentlyProtecting(goalLock, now)
                     }
                 if (hasActiveGoalLock) {
                     reduce { state.copy(repeatBlockRoutineSuggestion = null) }
@@ -453,18 +453,20 @@ class HomeViewModel
         private fun getGoalLockCard() =
             intent {
                 goalLockRepository.fetchAll().collect { goalLocks ->
-                    val today = LocalDate.now()
-                    val card = selectGoalLockForHomeCard(goalLocks, today)
-                        ?.toHomeGoalLockCardState(today)
+                    val now = LocalDateTime.now()
+                    val today = now.toLocalDate()
+                    val card = selectGoalLockForHomeCard(goalLocks, now)
+                        ?.toHomeGoalLockCardState(today, now)
                     reduce { state.copy(goalLockCard = card) }
                 }
             }
 
         private fun selectGoalLockForHomeCard(
             goalLocks: List<GoalLock>,
-            today: LocalDate,
+            now: LocalDateTime,
         ): HomeGoalLockCardCandidate? = goalLocks
             .map { goalLock ->
+                val today = now.toLocalDate()
                 val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
                 HomeGoalLockCardCandidate(
                     goalLock = normalizedGoalLock,
@@ -477,7 +479,10 @@ class HomeViewModel
                     .thenBy { it.goalLock.id },
             )
 
-        private fun HomeGoalLockCardCandidate.toHomeGoalLockCardState(today: LocalDate): HomeGoalLockCardState =
+        private fun HomeGoalLockCardCandidate.toHomeGoalLockCardState(
+            today: LocalDate,
+            now: LocalDateTime,
+        ): HomeGoalLockCardState =
             HomeGoalLockCardState(
                 goalLockId = goalLock.id,
                 goalName = goalLock.goalName,
@@ -485,6 +490,7 @@ class HomeViewModel
                 daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
                 lockMode = goalLock.lockMode.toHomeCardLockMode(),
                 selectedAppCount = goalLock.selectedPackages.size,
+                isCurrentlyProtecting = GoalLockPolicy.isCurrentlyProtecting(goalLock, now),
             )
 
         private fun completeExpiredGoalLockIfNeeded(
@@ -817,6 +823,7 @@ data class HomeGoalLockCardState(
     val daysRemaining: Int,
     val lockMode: HomeGoalLockCardLockMode,
     val selectedAppCount: Int,
+    val isCurrentlyProtecting: Boolean = false,
 )
 
 enum class HomeGoalLockStatus {

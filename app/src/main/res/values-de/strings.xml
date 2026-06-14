@@ -102,6 +102,7 @@
     <string name="home_goal_lock_card_title_ended_early">Ziel-Sperre vorzeitig beendet</string>
     <string name="home_goal_lock_card_summary_pending">Noch %1$d Tage bis zum Start · %2$s · %3$d Apps</string>
     <string name="home_goal_lock_card_summary_active">Noch %1$d Tage · %2$s · %3$d Apps</string>
+    <string name="home_goal_lock_card_summary_active_waiting_window">Im Zielzeitraum · nächstes geplantes Zeitfenster wartet · %3$d Apps</string>
     <string name="home_goal_lock_card_summary_completed">Abgeschlossen · %2$s · %3$d Apps</string>
     <string name="home_goal_lock_card_summary_ended_early">Vorzeitig beendet · %2$s · %3$d Apps</string>
     <string name="home_goal_lock_card_lock_mode_all_day">Ganztägige Sperre</string>
