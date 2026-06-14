@@ -309,6 +309,7 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 - **major update**는 자동 그룹 PR로 밀지 않고 `version-update:semver-major` ignore로 막아 별도 수동 검토 대상으로 남긴다.
 - major update가 필요하면 이 런북의 “Coordinated stack upgrade” 또는 “Deferred / product-risk review needed” 분류에 따라 별도 이슈/PR로 처리한다.
 - Dependabot PR이 Play deploy, release secret, signing secret, Firebase service account secret을 변경하거나 요구하는 형태로 확장되면 안 된다. 의존성 PR의 기본 경계는 코드/빌드 검증이며, Play deploy/release secret 설정은 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 릴리즈 workflow가 별도로 소유한다.
+- `.github/dependabot.yml` 변경은 Ops CI top-level trigger와 `docs_contract` filter에서 `Docs/runbook contract tests`를 materialize해야 한다. 이 경로는 `scripts.tests.test_dependabot_policy_contract`를 실행해 ecosystem/schedule/noise/major-update/manual-review/release-secret boundary drift를 잡고, Functions/Android build/Play deploy secret 작업은 실행하지 않는다.
 - Android/runtime-sensitive dependency가 포함되면 PR 본문에 `docs/QA_RUNTIME_CHECKLIST.md`에서 필요한 device/emulator evidence를 명시한다.
 
 PR triage checklist:
@@ -342,7 +343,7 @@ PR triage checklist:
 이 lane에서 하지 않는 것:
 
 - 실제 Gradle/plugin/library 버전 bump
-- CI workflow 동작 변경
+- CI workflow 동작 변경(단, #889처럼 Ops CI docs-contract materialization 자체가 명시된 운영 이슈는 `ci/issue-*` PR로 workflow+문서+meta-contract를 함께 수정한다)
 - 앱 동작/런타임/수익화 로직 수정
 
 ## 흔한 실수

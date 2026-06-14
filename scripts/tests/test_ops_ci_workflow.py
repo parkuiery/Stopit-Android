@@ -87,6 +87,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         for trigger in ("pull_request", "push"):
             with self.subTest(trigger=trigger):
                 block = self._trigger_block(workflow, trigger)
+                self.assertIn("'.github/dependabot.yml'", block)
                 self.assertIn("'docs/**'", block)
                 self.assertIn("'**/*.md'", block)
 
@@ -119,6 +120,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("scripts.tests.test_android_ci_path_gating", workflow)
         self.assertIn("scripts.tests.test_play_deploy_tag_governance", workflow)
         self.assertIn("scripts.tests.test_release_gate_retarget_triggers", workflow)
+        self.assertIn("scripts.tests.test_dependabot_policy_contract", workflow)
         docs_contract_filter = self._filter_block(workflow, "docs_contract")
         self.assertIn("'scripts/tests/test_acquisition_attribution_docs_contract.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_ga4_custom_dimension_registration_docs.py'", docs_contract_filter)
@@ -133,6 +135,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("'scripts/tests/test_android_ci_path_gating.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_play_deploy_tag_governance.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_release_gate_retarget_triggers.py'", docs_contract_filter)
+        self.assertIn("'scripts/tests/test_dependabot_policy_contract.py'", docs_contract_filter)
         docs_contract_job = self._job_block(workflow, "docs-contract")
         self.assertNotRegex(
             docs_contract_job,
@@ -182,6 +185,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts.tests.test_android_ci_path_gating",
             "scripts.tests.test_play_deploy_tag_governance",
             "scripts.tests.test_release_gate_retarget_triggers",
+            "scripts.tests.test_dependabot_policy_contract",
         ]
         for module in expected_contract_modules:
             with self.subTest(job="docs-contract", module=module):
@@ -202,6 +206,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("test_play_deploy_tag_governance", combined_docs)
         self.assertIn("test_release_gate_retarget_triggers", combined_docs)
         self.assertIn("test_android_ci_artifact_retention", combined_docs)
+        self.assertIn("test_dependabot_policy_contract", combined_docs)
 
     def test_operator_docs_name_ops_ci_responsibility(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
@@ -226,6 +231,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts.tests.test_release_gradle_task_contract", doc)
             self.assertIn("scripts.tests.test_prod_release_shrinking_contract", doc)
             self.assertIn("scripts.tests.test_release_signing_gradle_contract", doc)
+            self.assertIn("scripts.tests.test_dependabot_policy_contract", doc)
             self.assertIn("docs-only", doc)
 
         # The main operator workflow table should enumerate the full release-helper
