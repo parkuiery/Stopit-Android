@@ -261,6 +261,11 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "floating major tag",
             "reviewed release-provenance PR",
             "repo-owned promotion helper",
+            "same-run self-verification",
+            "cross-run",
+            "prior-run identity semantics",
+            "current production-promotion run",
+            "current-run metadata drift",
         ):
             self.assertIn(required, docs)
 
