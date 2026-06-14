@@ -55,6 +55,7 @@ import com.uiery.keep.ui.component.SetupSecondaryButton
 import com.uiery.keep.ui.component.SetupSectionCaption
 import com.uiery.keep.ui.component.SetupSectionHeader
 import com.uiery.keep.ui.component.SetupTextField
+import kotlinx.coroutines.delay
 
 private val PARENT_MODE_DURATION_OPTIONS = listOf(10, 20, 30, 60)
 
@@ -313,6 +314,10 @@ internal fun ParentModeActiveControls(
 ) {
     LaunchedEffect(session.expiresAtMillis, session.state) {
         onRefresh()
+        activeSessionRefreshDelayMillis(session, nowMillis = System.currentTimeMillis())?.let { delayMillis ->
+            delay(delayMillis)
+            onRefresh()
+        }
     }
     val statusTextRes = when (session.state) {
         ParentModeSessionState.Active -> R.string.parent_mode_active_title
@@ -372,4 +377,12 @@ internal fun ParentModeActiveControls(
             Text(text = stringResource(id = R.string.parent_mode_setup_back_to_menu))
         }
     }
+}
+
+internal fun activeSessionRefreshDelayMillis(
+    session: ParentModeSession,
+    nowMillis: Long,
+): Long? {
+    if (session.state != ParentModeSessionState.Active) return null
+    return (session.expiresAtMillis - nowMillis).coerceAtLeast(0L)
 }

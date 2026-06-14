@@ -1573,6 +1573,7 @@ cd <repo-root>
 - DataStore session persistence와 restore-reset-only key boundary
 - `ParentModeSessionController`가 setup validation 실패 시 저장/analytics를 하지 않고, 성공 시 session 저장과 `parent_mode_started` bucket event를 함께 commit하는지
 - `ParentModeSessionController`가 PIN 성공 후 연장/즉시 종료만 저장하고 PIN 실패/미설정 상태에서는 session과 analytics를 바꾸지 않는지
+- issue #874 stale Active guard: 만료 시각을 지난 active session에서 10분 연장/즉시 종료를 누르면 연장 또는 `PIN_UNLOCKED`가 아니라 `expired` state + `parent_mode_completed(end_reason=time_expired)`가 우선 저장되는지
 - `ParentModeSessionController.markExpiredIfNeeded(...)`가 active session의 시간 만료를 `expired` state와 `parent_mode_completed(end_reason=time_expired)`로 한 번만 commit하고, 재호출/비활성 state에서는 no-op인지
 - `ParentModeSetupViewModel`이 setup 화면의 10/20/30분 preset, 직접 분 입력 custom duration, active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
 - `ParentModeSetupScreenAccessibilityTest`가 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정하는지
@@ -1615,6 +1616,7 @@ cd <repo-root>
   - [ ] direct duration spot-check: 예를 들어 45분을 직접 입력해 시작하면 `durationMinutes=45` / 만료 시각 +45분 evidence가 남고, active 상태에서는 10분 연장/즉시 종료 CTA가 보인다.
   - [ ] verified guardian PIN 상태에서 10분 연장 CTA는 session 만료 시각과 `parent_mode_extended` evidence를 갱신한다.
   - [ ] verified guardian PIN 상태에서 즉시 종료 CTA는 session state를 `unlocked_by_pin`으로 바꾸고 `parent_mode_completed(end_reason=pin_unlocked)` evidence를 남긴다.
+  - [ ] stale Active expiry spot-check: active 화면을 켠 채 만료 시각을 넘긴 뒤 10분 연장/즉시 종료를 누르면 `expired` state와 `parent_mode_completed(end_reason=time_expired)`가 우선 기록되고, stale expiry 연장이나 `PIN_UNLOCKED` 오계측이 없다.
   - [ ] PIN 성공 후에도 0분/음수 extension은 거부되고 양수 extension만 만료 시각을 늘린다.
   - [ ] PIN 성공 시 즉시 종료가 된다.
   - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.

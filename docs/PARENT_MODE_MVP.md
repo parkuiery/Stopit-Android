@@ -239,6 +239,13 @@ PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 Parent Mode s
 
 2026-06-14 code-lane follow-through에서는 같은 setup 화면의 `직접 설정` 시간 선택 runway를 닫았다. `ParentModeSetupViewModel.updateCustomDurationInput(...)`은 숫자만 받아 custom minute 값을 `durationMinutes` source of truth로 동기화하고, setup UI는 preset chip 옆에 직접 입력 필드를 제공한다. 따라서 Parent Mode MVP의 시간 선택은 이제 10/20/30분 preset뿐 아니라 직접 분 단위 입력까지 repo-internal baseline에 포함된다.
 
+2026-06-14 QA-lane PR에서는 issue #874의 stale Active 액션 경계를 닫았다. active controls가 열린 채 `expiresAtMillis`를 지나면 화면은 만료 시각까지 delay 후 재조회하고, 연장/즉시 종료 액션도 먼저 만료를 확정한다. 따라서 만료된 session은 verified PIN이 있어도 stale expiry 기준으로 10분 연장되지 않고, `unlocked_by_pin`으로 오계측되지 않으며, `expired` state + `parent_mode_completed(end_reason=time_expired)`로 1회 commit된다.
+
+- `ParentModePolicy`: parent action 요청 시 현재 시각 기준 `Expired`를 PIN 성공/실패보다 먼저 판정한다.
+- `ParentModeSessionController`: `extend(...)` / `endNow(...)` 모두 expired active session을 `TIME_EXPIRED` completion으로 저장하고 연장/핀 종료 analytics를 보내지 않는다.
+- `ParentModeSetupScreen`: active session의 `expiresAtMillis`까지 남은 시간을 계산해 자동 refresh를 예약한다.
+- `ParentModePolicyTest`, `ParentModeSessionControllerTest`, `ParentModeSetupViewModelTest`: stale Active 연장/종료 차단, 자동 refresh delay 계산, `TIME_EXPIRED` analytics 경계를 검증한다.
+
 - `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
 - `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신한다.
 - `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.

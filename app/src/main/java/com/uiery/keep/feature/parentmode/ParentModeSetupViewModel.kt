@@ -126,6 +126,9 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Extended -> {
                     updateActiveSession(result.session, ParentModeSetupSideEffect.Extended)
                 }
+                is ParentModeSessionControllerResult.Expired -> {
+                    updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
+                }
                 ParentModeSessionControllerResult.PinRequired -> {
                     _state.update { current ->
                         current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
@@ -134,7 +137,6 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 ParentModeSessionControllerResult.InvalidExtension,
                 ParentModeSessionControllerResult.NoActiveSession,
                 is ParentModeSessionControllerResult.Ended,
-                is ParentModeSessionControllerResult.Expired,
                 is ParentModeSessionControllerResult.NoStateChange,
                 is ParentModeSessionControllerResult.SetupBlocked,
                 is ParentModeSessionControllerResult.Started,
@@ -152,6 +154,9 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Ended -> {
                     updateActiveSession(result.session, ParentModeSetupSideEffect.Ended)
                 }
+                is ParentModeSessionControllerResult.Expired -> {
+                    updateActiveSession(result.session, ParentModeSetupSideEffect.Expired)
+                }
                 ParentModeSessionControllerResult.PinRequired -> {
                     _state.update { current ->
                         current.copy(setupIssues = setOf(ParentModeSetupIssue.PinNotVerified))
@@ -160,7 +165,6 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 ParentModeSessionControllerResult.InvalidExtension,
                 ParentModeSessionControllerResult.NoActiveSession,
                 is ParentModeSessionControllerResult.Extended,
-                is ParentModeSessionControllerResult.Expired,
                 is ParentModeSessionControllerResult.NoStateChange,
                 is ParentModeSessionControllerResult.SetupBlocked,
                 is ParentModeSessionControllerResult.Started,
