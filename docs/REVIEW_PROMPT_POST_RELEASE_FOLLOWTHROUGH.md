@@ -59,6 +59,12 @@
 - `customEvent:error`는 아직 GA4 Admin 등록/metadata 경계다. `review_prompt_failed`가 실제로 발생했을 때 failure 원인 breakdown은 #13 registration follow-through와 연결한다.
 - 현재 `review_prompt_skipped`는 모두 PR #308/#312 포함 release가 아닌 버전에서 관측됐다. 따라서 다음 실행은 같은 코드 수정을 다시 만드는 것이 아니라, PR #308/#312 포함 release/tag/track 배포 후 14일 창에서 `eligible/shown/skipped/failed`를 다시 채우는 것이다.
 
+### 2026-06-14T06:07:23Z metrics snapshot smoke
+
+`stopit_metrics_snapshot.py`의 최신 30일 aggregate transport smoke에서는 `review_prompt_shown`이 여전히 `0`이고 `review_prompt_skipped`는 `45 users / 69 events`로 증가했다. 같은 snapshot의 성공 사용 신호는 `app_block_intercepted 490 users`, `lock_session_start 325 users`, `first_core_action_completed 443 users`이며, 최신 관측 version `1.7.7` active share는 `317 / 841 = 37.7%`로 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분`이다.
+
+다만 이 aggregate smoke는 `eventName × appVersion × customEvent:reason` breakdown을 대체하지 않는다. 2026-06-14 재확인 기준 PR #308(`cfff411898fbaac43a5c5bbafb48651091e66be2`)과 PR #312(`e920ea3049bb0a3e192de29d0011298ae9b0a2b5`)는 `origin/develop`에는 포함되어 있지만 `origin/main` `20b8ff4a`와 최신 SemVer tag `v1.7.7`에는 아직 포함되지 않았다. 따라서 `shown = 0` / `skipped 증가`는 **post-PR-308/#312 회귀가 아니라 release/tag/Play deploy 전 baseline smoke**로만 기록하고, D+14 표를 채우기 전까지 #307을 닫지 않는다.
+
 ## 관련 source of truth
 
 - 코드 계약: `docs/REVIEW_PROMPT_LIFECYCLE.md`
