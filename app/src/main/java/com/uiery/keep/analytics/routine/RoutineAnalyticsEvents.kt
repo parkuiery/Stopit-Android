@@ -231,6 +231,7 @@ object RoutineTemplateShareFailureReason {
 object RepeatBlockRoutineSuggestionSurface {
     const val HOME = "home"
     const val LOCK_HISTORY = "lock_history"
+    const val PERFORMANCE_REPORT = "performance_report"
 }
 
 object RepeatBlockSuggestionVariant {
