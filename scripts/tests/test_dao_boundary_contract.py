@@ -115,6 +115,21 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("private val goalLockRepository: GoalLockRepository", text)
         self.assertIn("private val lockHistoryRecorder: LockHistoryRecorder", text)
 
+    def test_home_routine_count_sync_uses_routine_repository_boundary(self):
+        home = APP_MAIN / "feature/home/HomeViewModel.kt"
+        analytics_sync = APP_MAIN / "analytics/RoutineCountAnalyticsSync.kt"
+        home_text = home.read_text()
+        analytics_text = analytics_sync.read_text()
+
+        self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", home_text)
+        self.assertNotIn("private val routineDao: RoutineDao", home_text)
+        self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", home_text)
+        self.assertIn("private val routineRepository: RoutineRepository", home_text)
+        self.assertNotIn("import com.uiery.keep.database.dao.RoutineDao", analytics_text)
+        self.assertNotIn("import com.uiery.keep.database.entity.RoutineEntity", analytics_text)
+        self.assertIn("import com.uiery.keep.data.routine.RoutineRepository", analytics_text)
+        self.assertIn("private val routineRepository: RoutineRepository", analytics_text)
+
     def test_menu_viewmodel_uses_routine_repository_boundary(self):
         menu = APP_MAIN / "feature/menu/MenuViewModel.kt"
         repository = APP_MAIN / "data/routine/RoutineRepository.kt"

@@ -13,7 +13,6 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPay
 import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
@@ -32,6 +31,7 @@ import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.model.toModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeLockHistoryDao
@@ -452,7 +452,7 @@ class HomeViewModelActivationAnalyticsTest {
         val viewModel = createViewModel(
             dataStore = dataStore,
             analytics = analytics,
-            routineDao = FakeHomeRoutineDao(emptyList()),
+            routines = emptyList(),
         )
 
         delay(50)
@@ -477,7 +477,7 @@ class HomeViewModelActivationAnalyticsTest {
                 ),
             ),
             analytics = analytics,
-            routineDao = FakeHomeRoutineDao(emptyList()),
+            routines = emptyList(),
         )
         val hasRoutineViewModel = createViewModel(
             dataStore = FakeDataStore(
@@ -488,7 +488,7 @@ class HomeViewModelActivationAnalyticsTest {
                 ),
             ),
             analytics = analytics,
-            routineDao = FakeHomeRoutineDao(listOf(routineEntity())),
+            routines = listOf(routineEntity()),
         )
 
         delay(50)
@@ -509,12 +509,12 @@ class HomeViewModelActivationAnalyticsTest {
                 ),
             ),
             analytics = analytics,
-            routineDao = FakeHomeRoutineDao(emptyList()),
+            routines = emptyList(),
         )
         val sideEffects = mutableListOf<HomeSideEffect>()
         val sideEffectJob = launchSideEffects(viewModel, sideEffects)
 
-        delay(50)
+        waitFor { viewModel.container.stateFlow.value.showRoutineCreationCta }
         viewModel.onRoutineCreationCtaClick()
         delay(50)
 
@@ -967,6 +967,13 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 
+    private suspend fun waitFor(predicate: suspend () -> Boolean) {
+        repeat(50) {
+            if (predicate()) return
+            delay(20)
+        }
+    }
+
     private fun CoroutineScope.launchSideEffects(
         viewModel: HomeViewModel,
         sideEffects: MutableList<HomeSideEffect>,
@@ -981,9 +988,8 @@ class HomeViewModelActivationAnalyticsTest {
         analytics: HomeRecordingKeepAnalytics,
         lockHistoryDao: LockHistoryDao = FakeLockHistoryDao(),
         goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
-        routineRepository: RoutineRepository = FakeHomeRoutineRepository(emptyList()),
         routines: List<RoutineEntity> = emptyList(),
-        routineDao: RoutineDao = FakeHomeRoutineDao(routines),
+        routineRepository: RoutineRepository = FakeHomeRoutineRepository(routines.map { it.toModel() }),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         return HomeViewModel(
@@ -992,8 +998,7 @@ class HomeViewModelActivationAnalyticsTest {
             reviewPromptStateStore = ReviewPromptStateStore(dataStore),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            routineDao = routineDao,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, analytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(lockHistoryDao)),
             goalLockRepository = GoalLockRepository(goalLockDao),
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
@@ -1088,6 +1093,7 @@ private class FakeHomeRoutineRepository(
     private val routines: List<RoutineModel>,
 ) : RoutineRepository {
     override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(routines)
+    override suspend fun fetchAllOnce(): List<RoutineModel> = routines
 }
 
 private fun lockHistoryEntity(
