@@ -141,9 +141,12 @@ class ParentModeContractTest(unittest.TestCase):
             "markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce",
             "9차 code-lane active controls foothold",
             "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
+            "PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
             "직접 입력한 custom duration",
+            "setup/active/expired 화면의 접근성 요약",
+            "TalkBack baseline 미정의",
             "issue #874의 stale Active 액션 경계",
             "stale expiry 기준으로 10분 연장되지 않고",
             "unlocked_by_pin`으로 오계측되지 않으며",
@@ -172,7 +175,12 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("setup 화면/ViewModel foothold", product_context)
         self.assertIn("PIN 입력 UI와 setup CTA enablement", product_context)
         self.assertIn("PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`", product_context)
-        self.assertIn("active controls 미구현 상태로 되돌리지 않는다", product_context)
+        self.assertIn("PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`", product_context)
+        self.assertIn("ParentModeSetupScreenAccessibilityTest", product_context)
+        self.assertIn("active controls 미구현", product_context)
+        self.assertIn("직접 설정 미구현", product_context)
+        self.assertIn("TalkBack baseline 미정의", product_context)
+        self.assertIn("상태로 되돌리지 않는다", product_context)
         self.assertIn("남은 경계는 release-candidate device UX spot-check", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
         self.assertNotIn("이번 PR은 setup 화면", product_context)
@@ -238,8 +246,10 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("issue #874 stale Active guard", qa_checklist)
         self.assertIn("stale Active expiry spot-check", qa_checklist)
         self.assertIn("PIN_UNLOCKED", qa_checklist)
-        self.assertIn("PR #519/#584/#748", qa_checklist)
+        self.assertIn("PR #519/#584/#748/#870/#873", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
+        self.assertIn("직접 설정 미구현", qa_checklist)
+        self.assertIn("TalkBack baseline 미정의", qa_checklist)
         self.assertIn("release-candidate device UX spot-check", qa_checklist)
         self.assertIn("Parent mode QA evidence", qa_checklist)
         self.assertIn("same-device / PIN / bypass", qa_checklist)
