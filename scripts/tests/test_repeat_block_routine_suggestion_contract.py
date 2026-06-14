@@ -40,7 +40,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "dismiss는 privacy-safe store",
             "active emergency unlock runtime state",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
-            "예약 enum / 미구현 표면",
+            "post_block_success는 예약 enum / 미구현 표면",
+            "performance_report 구현 표면",
             "Surface sequencing 계약",
             "post_block_success",
             "performance_report",
@@ -189,8 +190,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("active Goal Lock", document)
             self.assertIn("PR #843", document)
             self.assertIn("active emergency unlock", document)
-            self.assertIn("예약 enum", document)
-            self.assertIn("post_block_success", document)
+            self.assertIn("performance_report 구현 표면", document)
+            self.assertIn("post_block_success는 예약 enum", document)
             self.assertIn("performance_report", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)

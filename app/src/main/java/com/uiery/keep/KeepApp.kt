@@ -111,7 +111,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             onNavigateBlockedApps = navController::navigateToBlockedApps,
             onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
                 navController.navigateToRoutineWithRepeatBlockPrefill(
-                    surface = RepeatBlockRoutineSuggestionSurface.LOCK_HISTORY,
+                    surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
                     suggestion = suggestion,
                 )
             },
