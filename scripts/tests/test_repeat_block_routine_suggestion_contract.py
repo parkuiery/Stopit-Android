@@ -49,6 +49,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
             "rapid_retry 구현 완료",
             "RepeatBlockRoutineSuggestionPolicyTest.rapidRetryCandidateUsesRapidRetryReasonAndOutranksNewerNormalCandidate",
+            "PR #887",
+            "PR #899",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
@@ -60,6 +62,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "package name을 GA4",
             "UI wiring 전",
             "code-lane 구현 전 handoff",
+            "이번 code-lane",
+            "이번 QA-lane",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
@@ -152,6 +156,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
         self.assertIn("Home/LockHistory", ga4_runbook)
         self.assertIn("PR #887", ga4_runbook)
+        self.assertIn("PR #899", ga4_runbook)
         self.assertIn("performance_report surface 구현 완료", ga4_runbook)
         self.assertIn("post_block_success`는 예약 enum/미구현 표면", ga4_runbook)
         self.assertNotIn("CTA UI wiring·release·GA4 등록 전", ga4_runbook)
@@ -198,7 +203,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("active Goal Lock", document)
             self.assertIn("PR #843", document)
             self.assertIn("active emergency unlock", document)
-            self.assertIn("performance_report 구현 표면", document)
+            self.assertIn("PR #887", document)
+            self.assertIn("PR #899", document)
+            self.assertIn("구현 표면", document)
             self.assertIn("post_block_success는 예약 enum", document)
             self.assertIn("performance_report", document)
             self.assertIn("release", document)
