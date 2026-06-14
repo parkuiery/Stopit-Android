@@ -29,7 +29,24 @@ internal class ParentModeSetupViewModel @Inject constructor(
         _state.update { current ->
             current.copy(
                 durationMinutes = durationMinutes,
+                customDurationInput = durationMinutes.toString(),
                 setupIssues = current.setupIssues - ParentModeSetupIssue.InvalidDuration,
+            )
+        }
+    }
+
+    fun updateCustomDurationInput(input: String) {
+        val sanitizedInput = input.filter(Char::isDigit).take(MAX_CUSTOM_DURATION_INPUT_LENGTH)
+        val durationMinutes = sanitizedInput.toIntOrNull() ?: 0
+        _state.update { current ->
+            current.copy(
+                durationMinutes = durationMinutes,
+                customDurationInput = sanitizedInput,
+                setupIssues = if (durationMinutes > 0) {
+                    current.setupIssues - ParentModeSetupIssue.InvalidDuration
+                } else {
+                    current.setupIssues
+                },
             )
         }
     }
@@ -195,6 +212,7 @@ private const val DEFAULT_EXTENSION_MINUTES = 10
 
 internal data class ParentModeSetupUiState(
     val durationMinutes: Int = 10,
+    val customDurationInput: String = "10",
     val allowedApps: Set<String> = emptySet(),
     val guardianPin: String = "",
     val guardianPinConfirmation: String = "",
@@ -216,6 +234,7 @@ internal data class ParentModeSetupUiState(
 
 private const val MIN_GUARDIAN_PIN_LENGTH = 4
 private const val MAX_GUARDIAN_PIN_LENGTH = 6
+private const val MAX_CUSTOM_DURATION_INPUT_LENGTH = 3
 
 internal enum class ParentModeSetupSideEffect {
     Started,

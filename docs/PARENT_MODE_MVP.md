@@ -237,9 +237,11 @@ cd <repo-root>
 
 PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 Parent Mode setup 화면이 active/expired 상태까지 이어지는 제어 화면으로 `develop`에 반영됐다. 사용자는 setup에서 10/20/30분 preset을 선택하고, session 시작 후 같은 화면에서 active 상태를 확인하며, verified guardian PIN 상태로 10분 연장 또는 즉시 종료를 요청할 수 있다. 또한 화면 진입/상태 렌더링 시 `markExpiredIfNeeded(...)`를 호출해 만료된 session을 `expired` state와 `parent_mode_completed(end_reason=time_expired)` 1회 commit으로 동기화한다.
 
-- `ParentModeSetupScreen`: duration preset 선택 UI, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
+2026-06-14 code-lane follow-through에서는 같은 setup 화면의 `직접 설정` 시간 선택 runway를 닫았다. `ParentModeSetupViewModel.updateCustomDurationInput(...)`은 숫자만 받아 custom minute 값을 `durationMinutes` source of truth로 동기화하고, setup UI는 preset chip 옆에 직접 입력 필드를 제공한다. 따라서 Parent Mode MVP의 시간 선택은 이제 10/20/30분 preset뿐 아니라 직접 분 단위 입력까지 repo-internal baseline에 포함된다.
+
+- `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
 - `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신한다.
-- `ParentModeSetupViewModelTest`: verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
+- `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
 
 ### 다음 경계
 

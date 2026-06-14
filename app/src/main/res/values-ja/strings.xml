@@ -164,6 +164,8 @@
     <string name="parent_mode_setup_back_to_menu">メニューに戻る</string>
     <string name="parent_mode_setup_duration_label">許可する時間</string>
     <string name="parent_mode_setup_duration_minutes">%1$d分</string>
+    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
+    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">許可するアプリ</string>
     <string name="parent_mode_setup_adjust_apps">アプリ選択画面で調整</string>
     <string name="parent_mode_setup_reload_current_selection">ホームの選択を再読み込み</string>

@@ -142,6 +142,8 @@ class ParentModeContractTest(unittest.TestCase):
             "9차 code-lane active controls foothold",
             "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
             "duration preset 선택 UI",
+            "직접 분 입력 필드",
+            "직접 입력한 custom duration",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
             "ParentModeSetupViewModelTest",
             "release-candidate device UX spot-check",
