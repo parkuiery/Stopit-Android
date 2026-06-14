@@ -132,6 +132,23 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `GoalLockRepository`가 AccessibilityService의 goal-lock read 접근 허용 경계다.
 - `KeepAccessibilityService`는 repository가 제공하는 domain model stream만 캐시하고, foreground block decision / emergency-unlock expiry / uninstall prevention orchestration만 소유한다.
 
+### Shared model mapper boundary — open #877
+
+#877는 #520 계열 DAO boundary 정리 이후 남은 shared model 역의존 예외다. `RoutineModel` / `LockHistoryModel`은 feature, receiver, service가 공유하는 domain/UI model인데 Room `RoutineEntity` / `LockHistoryEntity` mapper를 직접 소유하면 shared model 계층이 persistence 구현에 역의존한다.
+
+#### 허용 경계
+
+- `database.mapper.RoutineEntityMapper`가 `RoutineEntity <-> RoutineModel` 변환을 소유한다.
+- `database.mapper.LockHistoryEntityMapper`가 `LockHistoryEntity <-> LockHistoryModel` 변환을 소유한다.
+- `app/src/main/java/com/uiery/keep/model/**`은 Room entity import 없이 순수 shared model만 정의한다.
+- repository, receiver/androidTest, JVM fixture가 entity/model 변환이 필요하면 `database.mapper.*`를 명시적으로 import한다.
+
+#### 검증 후보
+
+- `python3 -m unittest scripts.tests.test_dao_boundary_contract -v`
+- `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.model.RoutineModelMappingTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest'`
+- `./gradlew --console=plain :app:compileDevDebugAndroidTestKotlin :app:assembleProdDebug`
+
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
@@ -145,6 +162,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - 같은 static guard가 routine feature non-repository source 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 routine read/mutation/restore-aftercare 허용 경계로 남는지 검사한다.
 - 같은 static guard가 routine Receiver 아래에서 `RoutineDao` 직접 import가 재도입되지 않고 `RoutineRepository`가 boot/alarm receiver routine read/mutation 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `KeepAccessibilityService` 아래에서 `RoutineDao` / `GoalLockDao` 직접 import가 재도입되지 않고 `RoutineRepository` / `GoalLockRepository`가 accessibility foreground cache 허용 경계로 남는지 검사한다.
+- 같은 static guard가 `app/src/main/java/com/uiery/keep/model/**` 아래에서 Room entity import가 재도입되지 않고 `database.mapper.*`가 entity/model 변환 허용 경계로 남는지 검사한다.
 - `scripts.tests.test_dao_boundary_maintenance_docs`는 이 문서가 #520 인벤토리와 검증 명령을 계속 담는지 검사한다.
 
 ## Closure audit

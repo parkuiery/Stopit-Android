@@ -21,7 +21,7 @@ import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
