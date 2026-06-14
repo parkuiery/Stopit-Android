@@ -13,9 +13,9 @@
 
 ## High-traffic locale guard
 
-#729에서 시작한 `home_status_*_description` guard는 #764 이후 Home title/primary CTA와 Goal Lock detail status까지 포함한다. 홈 첫 진입·앱 선택 없음·보호 활성 상태, 그리고 목표 잠금 완료/종료/진행 상태는 사용자가 잠금 신뢰도를 바로 판단하는 high-traffic surface이므로 지원 locale에서 default English 원문을 그대로 복사해 두지 않는다.
+#729에서 시작한 `home_status_*_description` guard는 #764 이후 Home title/primary CTA와 Goal Lock detail status까지 포함한다. #890 이후에는 Goal Lock Home card/end action, Parent Mode active controls, Emergency Unlock duration helper, Routine Template Share repeat labels까지 포함한다. 홈 첫 진입·앱 선택 없음·보호 활성 상태, 목표 잠금 카드/상세 종료, 보호자 제어, 긴급해제 helper, 공유 payload 반복 라벨은 사용자가 잠금 신뢰도를 바로 판단하는 high-traffic surface이므로 지원 locale에서 default English 원문을 그대로 복사해 두지 않는다.
 
-#778의 루틴 템플릿 공유 payload는 화면 안 copy가 아니라 앱 밖으로 나가는 성장 루프 공유문이므로 같은 품질 기준을 적용한다. `routine_template_share_chooser_title`만 resource-backed인 상태를 payload localization 완료로 보지 않고, payload title/body/category/repeat/time-window/duration label까지 resource-backed template/provider로 검증한다.
+#778의 루틴 템플릿 공유 payload는 화면 안 copy가 아니라 앱 밖으로 나가는 성장 루프 공유문이므로 같은 품질 기준을 적용한다. `routine_template_share_chooser_title`만 resource-backed인 상태를 payload localization 완료로 보지 않고, payload title/body/category/repeat/time-window/duration label까지 resource-backed template/provider로 검증한다. #890에서는 `routine_template_share_repeat_weekday`, `routine_template_share_repeat_weekend`, `routine_template_share_repeat_daily`가 신규 fallback guard 대상이다.
 
 현재 자동 guard 대상:
 
@@ -29,11 +29,37 @@
 - `goal_lock_detail_status_completed`
 - `goal_lock_detail_status_ended`
 - `goal_lock_detail_status_active`
+- `home_goal_lock_card_title_pending`
+- `home_goal_lock_card_title_active`
+- `home_goal_lock_card_title_completed`
+- `home_goal_lock_card_title_ended_early`
+- `home_goal_lock_card_summary_pending`
+- `home_goal_lock_card_summary_active`
+- `home_goal_lock_card_summary_completed`
+- `home_goal_lock_card_summary_ended_early`
+- `home_goal_lock_card_lock_mode_all_day`
+- `home_goal_lock_card_lock_mode_scheduled`
+- `goal_lock_detail_end_confirmation`
+- `goal_lock_detail_end_cancel`
+- `goal_lock_detail_end_confirm`
+- `goal_lock_detail_end_cta`
+- `parent_mode_active_title`
+- `parent_mode_active_accessibility_summary`
+- `parent_mode_expired_title`
+- `parent_mode_ended_title`
+- `parent_mode_active_summary`
+- `parent_mode_active_pin_notice`
+- `parent_mode_active_extend_ten_minutes`
+- `parent_mode_active_end_now`
+- `emergency_unlock_duration_helper`
+- `routine_template_share_repeat_weekday`
+- `routine_template_share_repeat_weekend`
+- `routine_template_share_repeat_daily`
 
 허용하지 않는 상태:
 
 - non-default `values-*`에 default English 문장이 그대로 남아 있음
-- Home title/CTA나 Goal Lock status가 영어 fallback으로 남아 있음
+- Home title/CTA, Goal Lock status/card/end action, Parent Mode active control, Emergency Unlock helper, Routine Template Share repeat label이 영어 fallback으로 남아 있음
 - 한국어 문자열에 확인된 오타(`함꼐`, `잠궈줘요`)가 재유입됨
 - 사용자 노출 문자열에 legacy `Keep` 브랜드가 제품명처럼 노출됨
 
@@ -55,7 +81,10 @@ python3 -m unittest scripts.tests.test_locale_string_parity scripts.tests.test_u
 - 첫 잠금 준비: “지금 시작해 첫 실제 차단을 확인하거나 나중을 위한 타이머를 설정할 수 있다.”
 - 준비 완료: “지금 차단 시작 / 앱 변경 / 계획된 세션 타이머 설정.”
 - 보호 활성: “StopIt이 현재 시간을 보호 중이며, 세션 조정이 필요할 때만 보조 행동을 사용한다.”
-- Goal Lock 상태: “목표 잠금이 완료됨 / 종료됨 / 진행 중임”을 구분한다. 상태 문구는 detail screen 신뢰 표면이므로 영어 fallback을 허용하지 않는다.
+- Goal Lock 상태/카드/종료 액션: “목표 잠금이 완료됨 / 종료됨 / 진행 중임”, “목표 잠금 시작 예정/진행/완료/조기 종료”, “하루 종일/특정 시간 잠금”, “목표 잠금을 끝내면 오늘부터 선택한 앱이 다시 열릴 수 있음”을 구분한다. 이 문구는 신뢰 표면이므로 영어 fallback을 허용하지 않는다.
+- Parent Mode active: “보호자 PIN으로 세션을 연장하거나 종료할 수 있음”, “10분 연장”, “보호자 PIN으로 종료”, 그리고 TalkBack/accessibility summary의 세션 제목·시간·허용 앱 수 의미를 보존한다.
+- Emergency Unlock helper: “필요 없으면 카운트다운이 끝나기 전에 취소할 수 있음”을 보존한다.
+- Routine Template Share repeat label: `weekday` / `weekend` / `daily` 반복 범위를 공유 payload에서 구분한다.
 
 ## PR / release evidence template
 
