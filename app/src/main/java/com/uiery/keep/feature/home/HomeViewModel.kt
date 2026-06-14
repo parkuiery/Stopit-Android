@@ -188,7 +188,12 @@ class HomeViewModel
                 }
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (!pendingMessage.isNullOrBlank()) {
-                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    postSideEffect(
+                        HomeSideEffect.ShowSnackBar(
+                            message = pendingMessage,
+                            drainNextRoutineStartNoticeAfterDismiss = true,
+                        ),
+                    )
                     reduce { state.copy(snackbarMessage = pendingMessage) }
                 }
             }
@@ -203,7 +208,12 @@ class HomeViewModel
                 }
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (!pendingMessage.isNullOrBlank()) {
-                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    postSideEffect(
+                        HomeSideEffect.ShowSnackBar(
+                            message = pendingMessage,
+                            drainNextRoutineStartNoticeAfterDismiss = true,
+                        ),
+                    )
                     reduce { state.copy(snackbarMessage = pendingMessage) }
                 }
             }
@@ -236,7 +246,26 @@ class HomeViewModel
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (pendingMessage.isNullOrBlank()) return@intent
 
-                postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                postSideEffect(
+                    HomeSideEffect.ShowSnackBar(
+                        message = pendingMessage,
+                        drainNextRoutineStartNoticeAfterDismiss = true,
+                    ),
+                )
+                reduce { state.copy(snackbarMessage = pendingMessage) }
+            }
+
+        internal fun onRoutineStartNoticeSnackbarFinished() =
+            intent {
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (pendingMessage.isNullOrBlank()) return@intent
+
+                postSideEffect(
+                    HomeSideEffect.ShowSnackBar(
+                        message = pendingMessage,
+                        drainNextRoutineStartNoticeAfterDismiss = true,
+                    ),
+                )
                 reduce { state.copy(snackbarMessage = pendingMessage) }
             }
 
@@ -831,6 +860,7 @@ enum class ManualLockMode {
 sealed class HomeSideEffect {
     data class ShowSnackBar(
         val message: String,
+        val drainNextRoutineStartNoticeAfterDismiss: Boolean = false,
     ) : HomeSideEffect()
 
     data class MoveToLock(
