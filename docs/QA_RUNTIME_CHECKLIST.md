@@ -1099,6 +1099,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_denied_receiver notification_denied_emergency_unlock)"`
+  - #862 Home fallback notice UX: notification-denied 상태에서 2개 이상의 루틴 시작 fallback notice가 DataStore queue에 쌓이면 Home snackbar가 첫 메시지 표시/timeout 뒤 `onRoutineStartNoticeSnackbarFinished()` 경로로 다음 notice를 자동 drain해야 한다. 수동 evidence는 `POST_NOTIFICATION ignore` → 루틴 A/B 시작 fallback 유도 → Home 진입/복귀 → snackbar 1, 2가 순서대로 표시되고 queue가 비는지 기록한다.
 - channel-disabled runtime run:
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg notification_channel_disabled)"`
 

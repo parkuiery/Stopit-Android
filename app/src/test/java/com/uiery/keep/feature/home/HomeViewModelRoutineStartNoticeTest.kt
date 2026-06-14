@@ -62,7 +62,7 @@ class HomeViewModelRoutineStartNoticeTest {
     }
 
     @Test
-    fun maybeDrainRoutineStartNoticeDrainsOnlyFirstQueuedMessageAndKeepsRemainder() = runBlocking {
+    fun routineStartNoticeSnackbarCompletionDrainsNextQueuedMessage() = runBlocking {
         val dataStore = FakeDataStore(
             mutablePreferencesOf(
                 PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE to
@@ -90,6 +90,15 @@ class HomeViewModelRoutineStartNoticeTest {
                 dataStore.snapshot()[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
             ),
         )
+
+        viewModel.onRoutineStartNoticeSnackbarFinished()
+        delay(50)
+
+        assertEquals(
+            "Evening focus started without notification permission",
+            viewModel.container.stateFlow.value.snackbarMessage,
+        )
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE])
     }
 
     @Test

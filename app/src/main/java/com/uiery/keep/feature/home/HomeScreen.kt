@@ -135,6 +135,9 @@ fun HomeScreen(
                         }
                     delay(2000L)
                     job.cancel()
+                    if (effect.drainNextRoutineStartNoticeAfterDismiss) {
+                        viewModel.onRoutineStartNoticeSnackbarFinished()
+                    }
                 }
             }
 
