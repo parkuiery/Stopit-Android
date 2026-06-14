@@ -96,6 +96,16 @@
     <string name="goal_lock_creation_apps_empty">Nessuna app selezionata.</string>
     <string name="goal_lock_creation_lock_mode_all_day_desc">Mantiene le app selezionate bloccate 24 ore su 24 per tutto il periodo.</string>
     <string name="goal_lock_creation_lock_mode_weekday_evening_desc">Blocca solo nelle sere dei giorni feriali (lun–ven, 19–23).</string>
+    <string name="home_goal_lock_card_title_pending">Goal lock starts soon</string>
+    <string name="home_goal_lock_card_title_active">Goal lock in progress</string>
+    <string name="home_goal_lock_card_title_completed">Goal lock completed</string>
+    <string name="home_goal_lock_card_title_ended_early">Goal lock ended early</string>
+    <string name="home_goal_lock_card_summary_pending">%1$d days until start · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_active">%1$d days left · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_completed">Completed · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_summary_ended_early">Ended early · %2$s · %3$d apps</string>
+    <string name="home_goal_lock_card_lock_mode_all_day">All-day lock</string>
+    <string name="home_goal_lock_card_lock_mode_scheduled">Scheduled lock</string>
     <string name="goal_lock_detail_update_apps_cta">Change blocked apps</string>
     <string name="goal_lock_detail_update_apps_confirmation">Change this goal lock to %1$d selected apps?</string>
     <string name="goal_lock_detail_update_apps_cancel">Cancel</string>

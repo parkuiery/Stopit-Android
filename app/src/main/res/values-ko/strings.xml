@@ -95,6 +95,16 @@
     <string name="goal_lock_creation_apps_empty">아직 선택한 앱이 없어요.</string>
     <string name="goal_lock_creation_lock_mode_all_day_desc">선택한 기간 동안 하루 종일 앱을 잠가요.</string>
     <string name="goal_lock_creation_lock_mode_weekday_evening_desc">평일 저녁(월~금, 오후 7시~11시)에만 잠가요.</string>
+    <string name="home_goal_lock_card_title_pending">목표 잠금 시작 예정</string>
+    <string name="home_goal_lock_card_title_active">목표 잠금 진행 중</string>
+    <string name="home_goal_lock_card_title_completed">목표 잠금 완료</string>
+    <string name="home_goal_lock_card_title_ended_early">목표 잠금 조기 종료</string>
+    <string name="home_goal_lock_card_summary_pending">시작까지 %1$d일 · %2$s · %3$d개 앱</string>
+    <string name="home_goal_lock_card_summary_active">%1$d일 남음 · %2$s · %3$d개 앱</string>
+    <string name="home_goal_lock_card_summary_completed">완료됨 · %2$s · %3$d개 앱</string>
+    <string name="home_goal_lock_card_summary_ended_early">조기 종료됨 · %2$s · %3$d개 앱</string>
+    <string name="home_goal_lock_card_lock_mode_all_day">하루 종일 잠금</string>
+    <string name="home_goal_lock_card_lock_mode_scheduled">특정 시간 잠금</string>
     <string name="goal_lock_detail_update_apps_cta">차단 앱 변경</string>
     <string name="goal_lock_detail_update_apps_confirmation">선택한 앱 %1$d개로 목표 잠금 대상을 바꿀까요?</string>
     <string name="goal_lock_detail_update_apps_cancel">취소</string>

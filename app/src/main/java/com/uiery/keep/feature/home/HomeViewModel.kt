@@ -485,7 +485,7 @@ class HomeViewModel
                 goalName = goalLock.goalName,
                 status = runtimeStatus.toHomeStatus(),
                 daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
-                lockModeLabel = goalLock.lockMode.homeLabel,
+                lockMode = goalLock.lockMode.toHomeCardLockMode(),
                 selectedAppCount = goalLock.selectedPackages.size,
             )
 
@@ -817,7 +817,7 @@ data class HomeGoalLockCardState(
     val goalName: String,
     val status: HomeGoalLockStatus,
     val daysRemaining: Int,
-    val lockModeLabel: String,
+    val lockMode: HomeGoalLockCardLockMode,
     val selectedAppCount: Int,
 )
 
@@ -835,11 +835,15 @@ private fun GoalLockRuntimeStatus.toHomeStatus(): HomeGoalLockStatus = when (thi
     GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.Completed
 }
 
-private val GoalLockMode.homeLabel: String
-    get() = when (this) {
-        GoalLockMode.AllDay -> "하루종일 잠금"
-        is GoalLockMode.Scheduled -> "특정 시간 잠금"
-    }
+enum class HomeGoalLockCardLockMode {
+    AllDay,
+    Scheduled,
+}
+
+private fun GoalLockMode.toHomeCardLockMode(): HomeGoalLockCardLockMode = when (this) {
+    GoalLockMode.AllDay -> HomeGoalLockCardLockMode.AllDay
+    is GoalLockMode.Scheduled -> HomeGoalLockCardLockMode.Scheduled
+}
 
 private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
     reason = reason.analyticsValue,

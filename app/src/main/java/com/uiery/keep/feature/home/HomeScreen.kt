@@ -541,6 +541,7 @@ private fun GoalLockProgressCard(
     cardState: HomeGoalLockCardState,
     onClick: () -> Unit,
 ) {
+    val displayCopy = cardState.displayCopy()
     Card(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
@@ -551,7 +552,7 @@ private fun GoalLockProgressCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "목표 잠금 진행 중",
+                text = stringResource(displayCopy.titleResId),
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
@@ -562,7 +563,12 @@ private fun GoalLockProgressCard(
                 fontSize = 14.sp,
             )
             Text(
-                text = "${cardState.daysRemaining}일 남음 · ${cardState.lockModeLabel} · ${cardState.selectedAppCount}개 앱",
+                text = stringResource(
+                    displayCopy.summaryResId,
+                    cardState.daysRemaining,
+                    stringResource(displayCopy.lockModeResId),
+                    cardState.selectedAppCount,
+                ),
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontSize = 12.sp,
             )
