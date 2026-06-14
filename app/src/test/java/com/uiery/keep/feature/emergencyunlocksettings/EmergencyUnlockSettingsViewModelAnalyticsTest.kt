@@ -170,7 +170,8 @@ private class RecordingEmergencyUnlockSettingsDao(
     private val countTodayResult: Int = 0,
     private val countSinceResult: Int = 0,
 ) : EmergencyUnlockDao {
-    override suspend fun insert(entity: EmergencyUnlockEntity) = Unit
+    override suspend fun insert(entity: EmergencyUnlockEntity): Long = 1L
+    override suspend fun deleteById(id: Long) = Unit
 
     override fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>> = emptyFlow()
 

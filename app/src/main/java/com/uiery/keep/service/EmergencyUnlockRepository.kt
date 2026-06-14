@@ -15,8 +15,10 @@ class EmergencyUnlockRepository
     constructor(
         private val emergencyUnlockDao: EmergencyUnlockDao,
     ) {
-        suspend fun insert(entity: EmergencyUnlockEntity) {
-            emergencyUnlockDao.insert(entity)
+        suspend fun insert(entity: EmergencyUnlockEntity): Long = emergencyUnlockDao.insert(entity)
+
+        suspend fun deleteById(id: Long) {
+            emergencyUnlockDao.deleteById(id)
         }
 
         suspend fun countToday(todayStart: Long): Int = emergencyUnlockDao.countToday(todayStart)
