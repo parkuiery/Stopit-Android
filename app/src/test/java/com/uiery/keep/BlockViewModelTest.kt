@@ -6,12 +6,16 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
+import java.time.Instant
+import java.time.ZoneId
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -152,6 +156,69 @@ class BlockViewModelTest {
         assertEquals(com.uiery.keep.service.EmergencyUnlockAvailabilityReason.Disabled, state.emergencyUnlockAvailabilityReason)
         assertEquals(false, state.dailyLimitReached)
         assertEquals(3, state.dailyUnlockRemaining)
+    }
+
+    @Test
+    fun timedLockReentryLoadsActiveDeadlineForCountdown() = runBlocking {
+        val zone = ZoneId.systemDefault()
+        val deadline = Instant.parse("2035-01-01T00:00:00Z")
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.LOCK_TIME to ManualLockTimePolicy.encodeDeadline(deadline),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = BlockRecordingKeepAnalytics())
+
+        viewModel.syncManualTimedLockReentry(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            now = Instant.parse("2034-12-31T23:59:00Z"),
+            zone = zone,
+        )
+        delay(50)
+
+        assertEquals(deadline.atZone(zone).toLocalDateTime(), viewModel.container.stateFlow.value.timedLockDeadline)
+    }
+
+    @Test
+    fun timedLockReentryEmitsCloseWhenStoredDeadlineAlreadyExpired() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.LOCK_TIME to ManualLockTimePolicy.encodeDeadline(Instant.parse("2035-01-01T00:00:00Z")),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = BlockRecordingKeepAnalytics())
+        val sideEffects = mutableListOf<BlockSideEffect>()
+        val job = this.launch {
+            viewModel.container.sideEffectFlow.collect { sideEffects += it }
+        }
+
+        viewModel.syncManualTimedLockReentry(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            now = Instant.parse("2035-01-01T00:00:01Z"),
+        )
+        delay(50)
+        job.cancel()
+
+        assertEquals(listOf(BlockSideEffect.TimedLockExpired), sideEffects)
+        assertEquals(null, viewModel.container.stateFlow.value.timedLockDeadline)
+    }
+
+    @Test
+    fun routineBlockDoesNotReuseManualTimedLockCountdown() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.LOCK_TIME to ManualLockTimePolicy.encodeDeadline(Instant.parse("2035-01-01T00:00:00Z")),
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = BlockRecordingKeepAnalytics())
+
+        viewModel.syncManualTimedLockReentry(
+            blockSource = AnalyticsBlockSource.ROUTINE,
+            now = Instant.parse("2034-12-31T23:59:00Z"),
+        )
+        delay(50)
+
+        assertEquals(null, viewModel.container.stateFlow.value.timedLockDeadline)
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
@@ -17,6 +18,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -34,6 +38,27 @@ class BlockViewModel
         init {
             analytics.logScreenView(KeepAnalyticsScreen.BLOCK)
             checkDailyLimit()
+        }
+
+        internal fun syncManualTimedLockReentry(
+            blockSource: String,
+            now: Instant = Instant.now(),
+            zone: ZoneId = ZoneId.systemDefault(),
+        ) = intent {
+            if (blockSource != AnalyticsBlockSource.TIMED_LOCK) {
+                reduce { state.copy(timedLockDeadline = null) }
+                return@intent
+            }
+
+            val storedDeadline = blockingStateStore.readLockTime()
+            val deadline = ManualLockTimePolicy.toLocalDateTime(storedDeadline = storedDeadline, zone = zone)
+            if (deadline == null || !ManualLockTimePolicy.isActiveAt(storedDeadline, now = now, zone = zone)) {
+                reduce { state.copy(timedLockDeadline = null) }
+                postSideEffect(BlockSideEffect.TimedLockExpired)
+                return@intent
+            }
+
+            reduce { state.copy(timedLockDeadline = deadline) }
         }
 
         internal fun trackBlockShown(
@@ -171,10 +196,12 @@ data class BlockUiState(
     val emergencyUnlockReasonRequired: Boolean = true,
     val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val showFirstCoreActionFeedback: Boolean = false,
+    val timedLockDeadline: LocalDateTime? = null,
 )
 
 sealed class BlockSideEffect {
     data object UnlockCompleted : BlockSideEffect()
+    data object TimedLockExpired : BlockSideEffect()
 }
 
 internal fun String?.orDefaultBlockSource(): String =
