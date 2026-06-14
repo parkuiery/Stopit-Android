@@ -26,6 +26,8 @@ Usage Access 기반 개인화 리포트/추천은 `docs/USAGE_STATS_PERSONALIZAT
 > `KeepAccessibilityService` runtime state Flow(`accessibilitySnapshot` blocking state / routine / goal lock / parent mode)는 일시적 upstream 예외에서 마지막 정상 cache를 비우지 않고 같은 서비스 인스턴스 안에서 재구독해야 한다. #829/#847 계열 QA는 먼저 `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.AccessibilityRuntimeFlowRecoveryTest'`와 `python3 -m unittest scripts.tests.test_accessibility_runtime_recovery_contract -v`로 `withAccessibilityRuntimeRecovery` 재구독/backoff 및 source wiring 계약을 확인하고, device/emulator 증거가 필요하면 `KeepAccessibilityServiceIntegrationTest` + debug snapshot의 `lastRuntimeFlowErrorSource`, `lastRuntimeFlowErrorType`, `lastRuntimeFlowRetryAttempt`, `lastRuntimeFlowRetryDelayMillis`를 함께 기록한다. blocking snapshot 재구독 이벤트는 `lastRuntimeFlowErrorSource=blocking_state`로 구분한다. 이 debug snapshot은 secret-free 오류 유형/재시도 상태만 남기고 루틴 이름, 앱 목록 원문, DataStore payload 원문은 기록하지 않는다.
 >
 > Release QA full JVM/lint/build, signed release build, non-production Play deploy 실패 triage는 runtime smoke artifact와 분리한다. Android Release QA의 Full release QA는 `stopit-release-qa-build-diagnostics`, Android Release Build는 `stopit-release-build-diagnostics`, non-production Android Play Deploy는 `stopit-play-deploy-release-diagnostics`를 `retention-days: 7`로 남긴다. 이 artifact upload도 non-blocking이며 `if-no-files-found: ignore`로 report가 아직 생성되지 않은 초반 실패를 가리지 않는다. 확인 순서는 `app/build/reports`의 prodRelease lint/test report → `app/build/test-results` → `app/build/outputs/logs` → `app/build/outputs/mapping/prodRelease`다. Production promotion은 새 AAB를 빌드하지 않으므로 release diagnostics artifact 대상이 아니다.
+>
+> 긴급해제 요청은 Room history/daily count와 DataStore runtime state가 함께 성공해야 완료된 것으로 본다. #848 계열 회귀는 `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.EmergencyUnlockCoordinatorTest'`로 확인한다. 특히 `saveEmergencyUnlockRuntimeState` 실패는 `EmergencyUnlockState.current`를 활성화하지 않고, `emergency_unlock_used` / `emergency_unlock_completed` analytics를 보내지 않으며, 이미 삽입한 Room history를 rollback해 남은 긴급해제 횟수를 소비하지 않아야 한다.
 
 ## 1. 사전 준비
 
@@ -1505,7 +1507,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, 2026-06-11 code-lane PR은 setup 화면에 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control을 연결했다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1593,7 +1595,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”으로 되돌리지 않는다. 남은 실제 경계는 active/expired 화면 device evidence, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584/#748 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”이나 “active controls 미구현”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 

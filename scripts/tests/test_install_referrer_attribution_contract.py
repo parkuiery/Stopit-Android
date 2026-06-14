@@ -102,6 +102,26 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         self.assertIn("PR #590(`ae26293a`)으로 SDK provider/첫 실행 one-shot lookup wiring", metrics_context)
         self.assertNotIn("이번 QA package", contract)
 
+    def test_contract_uses_latest_acquisition_readback_values(self):
+        contract = CONTRACT.read_text()
+
+        for expected in [
+            "2026-06-14T00:09:03Z",
+            "newUsers = 578",
+            "Direct = 335 / 578 = 58.0%",
+            "Organic Search = 243 / 578 = 42.0%",
+            "Paid Search",
+            "신규 0명",
+            "활성 19명·세션 142회",
+        ]:
+            self.assertIn(expected, contract)
+
+        for stale_value in [
+            "Organic Search = 242 / 577 = 41.9%",
+            "242 / 577",
+        ]:
+            self.assertNotIn(stale_value, contract)
+
 
 if __name__ == "__main__":
     unittest.main()

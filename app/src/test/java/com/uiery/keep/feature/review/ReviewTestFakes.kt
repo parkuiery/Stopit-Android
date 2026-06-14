@@ -95,7 +95,8 @@ sealed interface AnalyticsEventRecord {
 }
 
 class FakeEmergencyUnlockDao(var countSinceResult: Int = 0) : EmergencyUnlockDao {
-    override suspend fun insert(entity: EmergencyUnlockEntity) = Unit
+    override suspend fun insert(entity: EmergencyUnlockEntity): Long = 1L
+    override suspend fun deleteById(id: Long) = Unit
     override fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>> = emptyFlow()
     override suspend fun countToday(todayStart: Long): Int = 0
     override suspend fun countSince(timestampMillis: Long): Int = countSinceResult
