@@ -143,8 +143,7 @@ class HomeViewModelReviewTest {
             reviewPromptStateStore = reviewPromptStateStore,
             routineNoticeStore = RoutineNoticeStore(dataStore),
             analytics = analytics,
-            routineDao = EmptyHomeRoutineDao(),
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(FakeHomeRoutineDao(), analytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(EmptyHomeRoutineRepository(), analytics),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             goalLockRepository = GoalLockRepository(EmptyGoalLockDao()),
             lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
@@ -171,6 +170,7 @@ class HomeViewModelReviewTest {
 
 private class EmptyHomeRoutineRepository : RoutineRepository {
     override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
+    override suspend fun fetchAllOnce(): List<RoutineModel> = emptyList()
 }
 
 private class EmptyGoalLockDao : GoalLockDao {

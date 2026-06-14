@@ -93,7 +93,7 @@ class RoutineViewModelTemplateShareTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = analytics,
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineDao, analytics),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, analytics),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = RoutineNoticeStore(dataStore),
             routineRestoreAftercare = RoutineRestoreAftercare(

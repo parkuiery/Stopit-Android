@@ -17,7 +17,6 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPay
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
-import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -69,7 +68,6 @@ class HomeViewModel
         private val reviewPromptStateStore: ReviewPromptStateStore,
         private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
-        private val routineDao: RoutineDao,
         private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
         private val lockHistoryRecorder: LockHistoryRecorder,
         private val goalLockRepository: GoalLockRepository,
@@ -422,7 +420,7 @@ class HomeViewModel
 
         private fun getRoutineCreationCta() =
             intent {
-                routineDao.fetchAll().collect { routines ->
+                routineRepository.fetchAll().collect { routines ->
                     val selectionState = blockingStateStore.readSelectionState()
                     val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
                         fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
@@ -449,7 +447,7 @@ class HomeViewModel
 
         private fun syncRoutinesCount() =
             intent {
-                routineCountAnalyticsSync.syncFromRoom()
+                routineCountAnalyticsSync.syncFromRepository()
             }
 
         private fun getGoalLockCard() =
