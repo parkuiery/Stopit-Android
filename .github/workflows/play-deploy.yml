@@ -262,7 +262,8 @@ jobs:
               --expected-git-sha "$GITHUB_SHA" \
               --expected-git-ref "$GITHUB_REF" \
               --expected-git-ref-name "$GITHUB_REF_NAME" \
-              --allow-artifact-path-relocation; then
+              --allow-artifact-path-relocation \
+              --prior-run; then
               echo "prior internal track mismatch or provenance mismatch for run_id=$candidate_run_id event=$candidate_event; production promotion requires track=internal release_status=completed evidence, so continuing search." >&2
               rm -rf "$candidate_dir"
               return 1
@@ -324,6 +325,8 @@ jobs:
           )
           if [[ "${PROVENANCE_VERIFY_MODE:-full}" == "metadata-only" ]]; then
             args+=(--metadata-only)
+          else
+            args+=(--prior-run)
           fi
           python3 scripts/release_provenance_manifest.py "${args[@]}"
 

@@ -189,6 +189,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("python3 scripts/release_provenance_manifest.py verify", download_step)
         self.assertIn("--track internal", download_step)
         self.assertIn("--release-status completed", download_step)
+        self.assertIn("--prior-run", download_step)
         self.assertIn("prior internal track mismatch or provenance mismatch", download_step)
         self.assertIn("alpha/beta/production or mismatched candidates are not valid prior internal evidence", download_step)
         self.assertIn("with track=internal and release_status=completed", download_step)
@@ -209,6 +210,7 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         self.assertIn("--track internal", verify_step)
         self.assertIn("--release-status completed", verify_step)
         self.assertIn("--rollout-fraction ''", verify_step)
+        self.assertIn("--prior-run", verify_step)
         self.assertIn('"$VERSION_CODE"', verify_step)
         self.assertIn('"$GITHUB_SHA"', verify_step)
         self.assertIn('"$GITHUB_REF"', verify_step)
@@ -268,6 +270,17 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "current-run metadata drift",
         ):
             self.assertIn(required, docs)
+
+    def test_play_deployment_retention_boundary_names_prior_internal_selection_issues(self):
+        play_doc = PLAY_DOC.read_text(encoding="utf-8")
+        retention_section = play_doc.split("## Production promotion provenance retention / recovery", 1)[1]
+
+        self.assertIn("#680/#743/#819/#830/#850", retention_section)
+        self.assertIn("prior internal track mismatch", retention_section)
+        self.assertIn("track=internal", retention_section)
+        self.assertIn("release_status=completed", retention_section)
+        self.assertIn("same-tag GitHub Release asset", retention_section)
+        self.assertIn("durable fallback", retention_section)
 
     def test_docs_keep_provenance_manifest_secret_free(self):
         docs = "\n".join(
