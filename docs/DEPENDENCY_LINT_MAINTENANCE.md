@@ -171,6 +171,59 @@
 - lint가 지적한 버전 경고와 실제 product lint fix를 섞기
 - 기준선 기록 없이 “최신 버전으로 올림”만 남기기
 
+## Dependabot semver-major 수동 감사 lane (#905)
+
+`.github/dependabot.yml`은 Gradle, GitHub Actions, Firebase Functions npm, ASO screenshots Bun ecosystem 모두에서 `version-update:semver-major`를 ignore한다. 이 정책은 자동 major PR 소음을 막기 위한 안전장치이지, major upgrade를 영구 보류한다는 뜻이 아니다. #905의 운영 기준은 **patch/minor는 weekly 자동화, semver-major는 월 1회 또는 release train 전 수동 감사**로 분리하는 것이다.
+
+감사 주기:
+
+- 정기: 매월 첫 번째 월요일 KST 업무 시간대에 `maintenance` backlog review와 함께 확인한다.
+- 릴리즈 전: `release/*` 후보를 만들기 전에 AGP/Kotlin/Gradle wrapper, GitHub Actions runtime, Functions runtime, Play/AdMob/AndroidX major 후보가 release blocker가 될 수 있는지 한 번 더 확인한다.
+- 긴급: Play 정책, GitHub Actions runtime deprecation, Firebase Functions runtime deprecation, 보안 advisory가 major upgrade를 요구할 때 즉시 별도 issue/PR로 전환한다.
+
+감사 범위:
+
+| Ecosystem | Source | major 후보 분리 기준 | 기본 분류 |
+| --- | --- | --- | --- |
+| Gradle / Android stack | `.github/dependabot.yml`, `gradle/libs.versions.toml`, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts` | AGP, Kotlin, Compose compiler/BOM, KSP, Room, Hilt, Play Services Ads처럼 build/runtime 영향이 큰 축은 한 PR에 섞지 않는다. | `hold` 또는 별도 `ready` issue |
+| GitHub Actions | `.github/workflows/**`, `.github/dependabot.yml` | checkout/setup-java/setup-gradle/wrapper-validation/actionlint 같은 governance action은 release/CI gate와 같이 검증한다. | `ready` if workflow contract test 범위가 작음 |
+| Firebase Functions npm | `functions/package.json`, `functions/package-lock.json` | Node runtime, Firebase Admin/Functions major는 deploy/runtime verification이 필요하다. | `hold` until local build/test + deploy plan |
+| ASO screenshots Bun | `tools/aso-screenshots/package.json`, lockfile | Next/Bun/tooling major는 Play deploy와 분리하되 screenshot generator build evidence가 필요하다. | `backlog` 또는 `ready` |
+
+분류 기준:
+
+- `ready`: 영향 범위가 한 ecosystem 안에 있고, 검증 명령과 rollback 경계가 명확하며, 같은 PR에서 contract test/docs를 함께 업데이트할 수 있다.
+- `backlog`: 당장 정책/보안/릴리즈 blocker는 아니지만 다음 maintenance batch 후보로 추적해야 한다.
+- `hold`: release/runtime QA, Play deploy, Firebase deploy, KSP/AGP/Kotlin 호환성, 또는 대표님 승인 없이는 안전하게 진행할 수 없다.
+
+감사 산출물:
+
+```md
+## Dependabot semver-major audit (#905)
+- Audit date:
+- Source config: `.github/dependabot.yml`
+- Existing automated PRs: patch/minor only? yes/no
+- Major candidates reviewed:
+  - Gradle / Android stack:
+  - GitHub Actions:
+  - Firebase Functions npm:
+  - ASO screenshots Bun:
+- Classification:
+  - ready:
+  - backlog:
+  - hold:
+- Required follow-up:
+  - issue / PR / external approval / release train note
+```
+
+운영 원칙:
+
+- major 후보를 발견해도 바로 `.github/dependabot.yml`의 ignore를 제거하지 않는다. 먼저 위 감사 산출물로 `ready`/`backlog`/`hold`를 분류한다.
+- `ready`로 승격한 major 후보만 별도 이슈 또는 좁은 PR로 전환한다. AGP/Kotlin/Compose/KSP 같은 stack upgrade는 같은 PR 안에서 compatibility matrix와 release/build verification을 요구한다.
+- `hold` 후보는 보류 이유를 issue comment나 maintenance report에 남기고, Play Console / Firebase deploy / 대표님 승인 / release train 같은 외부 경계를 명시한다.
+- patch/minor Dependabot PR(#693 정책)은 계속 `dependabot/* -> develop` 자동 PR로 운영한다. #905 감사는 그 자동 PR을 대체하지 않고, semver-major만 별도 수동 lane으로 다룬다.
+- Play deploy, release secret, signing secret, Firebase service account secret은 semver-major 감사의 산출물이 아니다. major upgrade PR이 이런 secret 경계를 요구하면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 release-governance issue로 분리한다.
+
 ## 기본 검증 명령
 
 문서/운영에서 참조하는 기본 명령:
