@@ -271,6 +271,17 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
         ):
             self.assertIn(required, docs)
 
+    def test_play_deployment_retention_boundary_names_prior_internal_selection_issues(self):
+        play_doc = PLAY_DOC.read_text(encoding="utf-8")
+        retention_section = play_doc.split("## Production promotion provenance retention / recovery", 1)[1]
+
+        self.assertIn("#680/#743/#819/#830/#850", retention_section)
+        self.assertIn("prior internal track mismatch", retention_section)
+        self.assertIn("track=internal", retention_section)
+        self.assertIn("release_status=completed", retention_section)
+        self.assertIn("same-tag GitHub Release asset", retention_section)
+        self.assertIn("durable fallback", retention_section)
+
     def test_docs_keep_provenance_manifest_secret_free(self):
         docs = "\n".join(
             path.read_text(encoding="utf-8")
