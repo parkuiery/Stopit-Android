@@ -41,6 +41,7 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
+import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
@@ -69,10 +70,18 @@ fun BlockScreen(
     val appName = remember(packageName, appDisplayMetadataResolver) {
         appDisplayMetadataResolver.resolve(packageName).label
     }
+    val lockScreenEntry = remember(packageName, blockSource, routineId, goalLockId) {
+        LockScreenEntry.fromBlockActivity(
+            packageName = packageName,
+            blockSource = blockSource,
+            routineId = routineId,
+            goalLockId = goalLockId,
+        )
+    }
 
-    LaunchedEffect(packageName, blockSource, routineId, goalLockId) {
-        viewModel.syncManualTimedLockReentry(blockSource)
-        viewModel.trackBlockShown(packageName, blockSource, routineId, goalLockId)
+    LaunchedEffect(lockScreenEntry) {
+        viewModel.syncManualTimedLockReentry(lockScreenEntry)
+        viewModel.trackBlockShown(lockScreenEntry)
     }
 
     LaunchedEffect(uiState.timedLockDeadline) {

@@ -218,6 +218,29 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         ):
             self.assertNotIn(stale, runbook)
 
+    def test_lock_screen_runtime_entry_boundary_is_documented_and_canonical(self):
+        runbook = SHARED_UI_RUNBOOK.read_text()
+        entry_source = APP_MAIN / "lockscreen/LockScreenEntry.kt"
+        self.assertTrue(entry_source.exists(), "BlockActivity and LockRoute should share LockScreenEntry boundary")
+        entry_text = entry_source.read_text()
+        for expected in (
+            "data class LockScreenEntry",
+            "fun fromBlockActivity",
+            "fun fromLockRoute",
+            "LockScreenMode",
+        ):
+            self.assertIn(expected, entry_text)
+
+        for expected in (
+            "Issue: #903",
+            "LockScreenEntry",
+            "BlockActivity",
+            "LockRoute",
+            "foreground-safe wrapper",
+            "canonical runtime entry boundary",
+        ):
+            self.assertIn(expected, runbook)
+
     def test_app_shared_ui_agents_links_issue_492_source_of_truth(self):
         doc = APP_SHARED_UI_AGENTS.read_text()
         self.assertIn("SHARED_UI_OWNERSHIP_BOUNDARY.md", doc)

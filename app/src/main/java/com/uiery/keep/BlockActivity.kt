@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.lockscreen.LockScreenEntry
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,10 +32,10 @@ class BlockActivity: ComponentActivity() {
                 ) { innerPadding ->
                     BlockScreen(
                         modifier = Modifier.padding(innerPadding),
-                        packageName = args.packageName,
-                        blockSource = args.blockSource,
-                        routineId = args.routineId,
-                        goalLockId = args.goalLockId,
+                        packageName = args.lockScreenEntry.blockedPackageName,
+                        blockSource = args.lockScreenEntry.blockSource,
+                        routineId = args.lockScreenEntry.routineId,
+                        goalLockId = args.lockScreenEntry.goalLockId,
                         onClose = {
                             val homeIntent = Intent(Intent.ACTION_MAIN)
                             homeIntent.addCategory(Intent.CATEGORY_HOME)
@@ -61,6 +62,7 @@ internal data class BlockActivityArgs(
     val blockSource: String,
     val routineId: String?,
     val goalLockId: String?,
+    val lockScreenEntry: LockScreenEntry,
 )
 
 internal fun createBlockActivityArgs(
@@ -68,12 +70,25 @@ internal fun createBlockActivityArgs(
     blockSource: String?,
     rawRoutineId: Any?,
     rawGoalLockId: Any?,
-): BlockActivityArgs = BlockActivityArgs(
-    packageName = packageName ?: "",
-    blockSource = blockSource.orDefaultBlockSource(),
-    routineId = normalizeRoutineIdExtra(rawRoutineId),
-    goalLockId = normalizeRoutineIdExtra(rawGoalLockId),
-)
+): BlockActivityArgs {
+    val normalizedPackageName = packageName ?: ""
+    val normalizedBlockSource = blockSource.orDefaultBlockSource()
+    val normalizedRoutineId = normalizeRoutineIdExtra(rawRoutineId)
+    val normalizedGoalLockId = normalizeRoutineIdExtra(rawGoalLockId)
+    val lockScreenEntry = LockScreenEntry.fromBlockActivity(
+        packageName = normalizedPackageName,
+        blockSource = normalizedBlockSource,
+        routineId = normalizedRoutineId,
+        goalLockId = normalizedGoalLockId,
+    )
+    return BlockActivityArgs(
+        packageName = normalizedPackageName,
+        blockSource = lockScreenEntry.blockSource,
+        routineId = lockScreenEntry.routineId,
+        goalLockId = lockScreenEntry.goalLockId,
+        lockScreenEntry = lockScreenEntry,
+    )
+}
 
 internal fun normalizeRoutineIdExtra(rawRoutineId: Any?): String? =
     when (rawRoutineId) {

@@ -9,6 +9,10 @@ Issue: #876 (repo-internal boundary cleaned up)
 
 #876은 #492 재오픈이 아니라 별도 drift다. 공통 countdown / emergency unlock UI는 Lock과 Block 양쪽에서 쓰는 app runtime UX로 판단해 `com.uiery.keep.ui.component` app shared UI로 승격했다. `BlockScreen.kt` 같은 app root blocking surface는 더 이상 lock feature-private component를 직접 import하지 않는다.
 
+Issue: #903
+
+#903은 UI component 소유권이 아니라 **잠금/차단 runtime entry boundary**다. 접근성 서비스 foreground 차단은 `BlockActivity`를 foreground-safe wrapper로 계속 사용하되, 앱 내부 `LockRoute`와 `BlockActivity`가 잠금 모드/source/식별자/긴급해제 analytics source를 각자 해석하지 않도록 `LockScreenEntry`를 canonical runtime entry boundary로 둔다. 이 경계는 `manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`를 한 곳에서 정규화하고, `BlockViewModel`/`LockViewModel`은 이 공유 entry를 통해 countdown·analytics·긴급해제 정책을 해석한다.
+
 ## 왜 중요한가
 
 - feature-private UI를 다른 feature가 import하면 원래 feature의 UX 변경이 소비 feature를 의도치 않게 깨뜨릴 수 있다.
