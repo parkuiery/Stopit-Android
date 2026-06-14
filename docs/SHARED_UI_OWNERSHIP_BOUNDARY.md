@@ -1,10 +1,13 @@
 # 공유 UI 소유권 / feature-private import 경계
 
 Issue: #492 (closed)
+Open drift issue: #876
 
 이 문서는 Stopit Android에서 feature-private Compose component를 다른 feature가 직접 가져다 쓰는 구조를 방지하기 위한 docs/ops source of truth다. 목표는 모든 UI를 무조건 KDS로 옮기는 것이 아니라, **재사용 범위에 맞는 소유권 계층**을 고정해 화면 간 결합과 drift를 줄이는 것이다.
 
 #492의 repo-internal 정리는 완료됐다. `PermissionSettingDialog`와 `TimerPicker`는 현재 미해결 handoff가 아니라 app shared UI baseline이며, 후속 shared UI drift가 발견되면 #492를 재사용하지 말고 새 실행 단위 issue로 다룬다.
+
+#876은 #492 재오픈이 아니라 별도 drift다. 현재 `BlockScreen.kt` 같은 app root blocking surface가 lock feature-private component를 직접 import하는 경계를 고정하고, code-lane에서 공통 countdown / emergency unlock UI 소유권을 app shared UI 또는 명시 public entrypoint로 정리하도록 넘긴다.
 
 ## 왜 중요한가
 
@@ -18,6 +21,7 @@ Issue: #492 (closed)
 | --- | --- | --- | --- |
 | KDS primitive | `core/kds/src/main/java/com/uiery/kds` | app 리소스/도메인 모델 없이 재사용 가능한 디자인 시스템 primitive | `KeepButton`, `KeepCheckbox`, `KeepSwitch` |
 | app shared UI | `app/src/main/java/com/uiery/keep/ui/component` | 여러 app feature에서 공유하지만 app string/resource/domain boundary에 의존하는 UI | `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker` |
+| app root blocking surface | `app/src/main/java/com/uiery/keep/*Screen.kt`, `BlockActivity.kt` 등 | feature screen은 아니지만 차단/잠금 runtime UX를 노출하는 app entry surface. feature-private `component`를 직접 가져오지 않고 app shared UI 또는 문서화된 public entrypoint만 사용한다. | `BlockScreen.kt` |
 | app-level domain boundary | `app/src/main/java/com/uiery/keep/appselection` 등 | UI가 아니라 여러 feature가 공유하는 repository/policy/model boundary | `InstalledAppRepository`, `SelectableAppPolicy` |
 | feature-private UI | `app/src/main/java/com/uiery/keep/feature/<feature>/component` | 해당 feature screen/use case 안에서만 쓰는 UI | emergency unlock duration chip, feature-local row/card |
 
@@ -28,15 +32,33 @@ Issue: #492 (closed)
 - feature screen → 같은 feature의 `component` package.
 - feature screen → `com.uiery.keep.ui.component` app shared UI.
 - feature screen → `com.uiery.kds` KDS primitive.
+- app root blocking surface → `com.uiery.keep.ui.component` app shared UI.
+- app root blocking surface → feature의 명시된 public blocking UI entrypoint. 단, source-of-truth 문서와 static guard에 public boundary로 등록된 경우만 허용한다.
 - app shared UI → app-level domain/resource boundary.
 
 금지:
 
 - feature A → feature B의 `component` package 직접 import.
+- app root blocking surface → `com.uiery.keep.feature.<feature>.component.*` 직접 import.
 - `app/src/main/java/com/uiery/keep/ui/component` → `com.uiery.keep.feature.*` import.
 - feature-private component의 move stub / duplicate copy를 남겨 재도입 여지를 만드는 것.
 
 예외는 code-lane PR에서 명시적인 사유와 제거 계획을 남긴 경우에만 허용한다. 새 예외는 `scripts/tests/test_shared_ui_component_boundaries.py`에 allowlist로 묵히지 말고, 가능하면 같은 PR에서 shared boundary로 이동한다.
+
+### #876 open exception: BlockScreen blocking UI 의존
+
+현재 open exception:
+
+- `app/src/main/java/com/uiery/keep/BlockScreen.kt` → `com.uiery.keep.feature.lock.component.CountDownContent`
+- `app/src/main/java/com/uiery/keep/BlockScreen.kt` → `com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent`
+
+이 예외는 확장 가능한 허용 패턴이 아니라 #876 code-lane cleanup을 위한 현재 inventory다. 해결 방향은 아래 셋 중 하나로 고정한다.
+
+1. countdown / emergency unlock UI가 Lock과 Block의 공통 app UX라면 `com.uiery.keep.ui.component`로 승격한다.
+2. lock feature가 소유해야 한다면 app root에서 private `component`가 아니라 명시 public blocking UI entrypoint를 import하도록 wrapper를 제공한다.
+3. KDS primitive로 내릴 수 있는 순수 visual primitive만 `core:kds`로 이동하고, app resource/domain 의존은 app shared UI에 남긴다.
+
+정리 PR은 Lock/Block parity, accessibility label/stateDescription, shipped string parity, 기존 `BlockScreenContentIntegrationTest` / `EmergencyUnlockBottomSheetContentIntegrationTest` runtime evidence를 함께 확인한다.
 
 ## #492 완료 baseline
 
@@ -91,12 +113,15 @@ Issue: #492 (closed)
 - KDS로 승격된 `KeepSwitch`는 KDS README에 소유권이 문서화되어 있다.
 - `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker` 같은 app resource-bound shared component는 `app/src/main/java/com/uiery/keep/ui/component/AGENTS.md`에 문서화되어 있다.
 - 이 runbook은 #492를 미해결 handoff처럼 설명하지 않고, closed baseline과 future drift 기준을 설명한다.
+- app root blocking surface의 feature-private component import는 #876 inventory로만 허용되며, 새 import가 늘면 실패한다.
+- #876 cleanup 이후 `BlockScreen.kt`의 `feature.lock.component.CountDownContent` / `EmergencyUnlockBottomSheetContent` 직접 import inventory는 비어 있어야 한다.
 
 ## Future drift 처리 기준
 
 새 shared UI drift가 의심되면 아래 순서로 판단한다.
 
 1. 현재 import가 feature-private cross-import인지 확인한다.
+   - feature 간 import뿐 아니라 `BlockScreen.kt` 같은 app root blocking surface가 `feature.<feature>.component.*`를 직접 import하는지도 확인한다.
 2. 재사용 UI가 app string/resource/domain boundary에 의존하면 `com.uiery.keep.ui.component` 후보로 둔다.
 3. app 리소스/도메인에 의존하지 않는 순수 primitive면 `core:kds` 후보로 둔다.
 4. 해당 feature 안에서만 의미가 있으면 feature-private으로 유지하되, 다른 feature가 import하지 않도록 guard를 유지한다.
