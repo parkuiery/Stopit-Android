@@ -3,6 +3,7 @@ package com.uiery.keep.ui.component
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
@@ -106,7 +107,44 @@ class CategoryBottomSheetContentIntegrationTest {
     }
 
     @Test
-    fun appAndSelectAllRowsKeepMinimumTouchHeightAfterCheckboxSemanticsFix() {
+    fun parentSelectionUpdatesWhileSheetIsOpenDoNotResortOrResetCurrentEdits() {
+        val parentSelection = mutableStateOf(setOf("com.example.beta"))
+        val apps = listOf(
+            testApp(packageName = "com.example.alpha", appName = "Alpha Focus"),
+            testApp(packageName = "com.example.beta", appName = "Beta Notes"),
+            testApp(packageName = "com.example.gamma", appName = "Gamma Browser"),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = apps,
+                    storeSelectApps = parentSelection.value,
+                    onComplete = { },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_app_row_com.example.gamma").performClick()
+        composeRule.onNodeWithTag("category_app_row_com.example.gamma").assertIsOn()
+        composeRule.runOnIdle {
+            parentSelection.value = setOf("com.example.beta", "com.example.gamma")
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("category_app_row_com.example.gamma").assertIsOn()
+        assertAppearsBefore(
+            firstTag = "category_app_row_com.example.beta",
+            secondTag = "category_app_row_com.example.alpha",
+        )
+        assertAppearsBefore(
+            firstTag = "category_app_row_com.example.alpha",
+            secondTag = "category_app_row_com.example.gamma",
+        )
+    }
+
+    @Test
+    fun appAndSelectAllRowsKeepComfortableVerticalPaddingAfterCheckboxSemanticsFix() {
         val apps = listOf(
             testApp(packageName = "com.example.alpha", appName = "Alpha Focus"),
             testApp(packageName = "com.example.beta", appName = "Beta Notes"),
@@ -122,9 +160,9 @@ class CategoryBottomSheetContentIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithTag("category_select_all_row").assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithTag("category_app_row_com.example.alpha").assertHeightIsAtLeast(48.dp)
-        composeRule.onNodeWithTag("category_app_row_com.example.beta").assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithTag("category_select_all_row").assertHeightIsAtLeast(50.dp)
+        composeRule.onNodeWithTag("category_app_row_com.example.alpha").assertHeightIsAtLeast(50.dp)
+        composeRule.onNodeWithTag("category_app_row_com.example.beta").assertHeightIsAtLeast(50.dp)
     }
 
     @Test
