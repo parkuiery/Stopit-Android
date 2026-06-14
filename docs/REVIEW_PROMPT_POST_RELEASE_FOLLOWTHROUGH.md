@@ -116,6 +116,43 @@
 
 사용자가 실제로 리뷰를 작성했는지, 취소했는지, 별점을 몇 점 줬는지는 앱 이벤트로 알 수 없다. 후행 결과는 Play Console의 rating count / 평균 평점 / 최근 리뷰 톤으로 본다.
 
+## 재측정 실행 절차
+
+이 섹션은 #307이 여러 PR/metrics snapshot 코멘트 뒤에도 같은 질문을 반복하지 않도록, docs/metrics lane이 매번 같은 순서로 확인할 운영 절차를 고정한다.
+
+### 1. release ancestry / tag 포함 여부 먼저 확인
+
+리뷰 프롬프트 live 수치를 해석하기 전에, PR #308/#312 merge commit이 `origin/main`과 최신 SemVer tag에 들어갔는지 먼저 확인한다. 이 확인이 `no`이면 `review_prompt_shown = 0`이나 `review_prompt_skipped` 증가는 최신 코드 회귀가 아니라 release 전 baseline smoke다.
+
+```bash
+git fetch origin --prune --tags
+LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+printf 'latest_tag=%s\n' "$LATEST_TAG"
+git merge-base --is-ancestor cfff411898fbaac43a5c5bbafb48651091e66be2 origin/main && echo 'PR #308 in origin/main: yes' || echo 'PR #308 in origin/main: no'
+git merge-base --is-ancestor e920ea3049bb0a3e192de29d0011298ae9b0a2b5 origin/main && echo 'PR #312 in origin/main: yes' || echo 'PR #312 in origin/main: no'
+git merge-base --is-ancestor cfff411898fbaac43a5c5bbafb48651091e66be2 "$LATEST_TAG" && echo 'PR #308 in latest tag: yes' || echo 'PR #308 in latest tag: no'
+git merge-base --is-ancestor e920ea3049bb0a3e192de29d0011298ae9b0a2b5 "$LATEST_TAG" && echo 'PR #312 in latest tag: yes' || echo 'PR #312 in latest tag: no'
+```
+
+2026-06-14 docs-lane 재확인 결과는 `origin/main = 20b8ff4a`, latest tag `v1.7.7`, PR #308/#312 모두 `origin/main`/`v1.7.7` 미포함이다. 따라서 D+14 표는 아직 채우지 않는다.
+
+### 2. GA4 lifecycle readback은 두 층으로 나눈다
+
+1. transport smoke: `stopit_metrics_snapshot.py`의 aggregate 값으로 `shown = 0`, `skipped` 증가, 성공 사용 신호 존재 여부를 빠르게 확인한다.
+2. decision readback: release 포함이 확인된 뒤에만 `eventName × appVersion × customEvent:reason` breakdown으로 D+14/D+30 표를 채운다.
+
+`customEvent:reason`은 skip reason breakdown에 사용할 수 있지만, `customEvent:error`는 아직 `review_prompt_failed` 원인 분석의 GA4 Admin/metadata 경계다. 따라서 `failed > 0`이 생겼는데 `customEvent:error`가 계속 invalid이면 code-lane 결론보다 #13 registration follow-through를 먼저 연결한다.
+
+### 3. Play Console 수동 기록을 앱 이벤트와 분리한다
+
+Play In-App Review API는 사용자가 실제 리뷰를 작성했는지 알려주지 않는다. D+14/D+30 판단 코멘트에는 아래 세 가지를 분리해서 적는다.
+
+- 앱 내부 lifecycle: `eligible`, `shown`, `skipped`, `failed`, `shown / eligible`
+- GA4 queryability: `customEvent:reason` 가능 여부, `customEvent:error` 등록 여부
+- Play Console 후행 지표: rating count, 평균 평점, 최근 리뷰 톤, Store listing conversion / Organic Search 보조 지표
+
+Play Console baseline이 비어 있으면 issue #307을 닫지 않는다. 단, 이 경우 repo-internal docs/code blocker가 아니라 **Play Console 수동 기록 경계**로 보고한다.
+
 ## 재측정 표준 표
 
 ### 앱 내부 lifecycle 표

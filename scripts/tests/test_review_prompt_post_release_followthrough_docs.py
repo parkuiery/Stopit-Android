@@ -52,6 +52,11 @@ class ReviewPromptPostReleaseFollowthroughDocsTest(unittest.TestCase):
         self.assertIn("review_prompt_skipped`는 `45 users / 69 events`", followthrough)
         self.assertIn("first_core_action_completed 443 users", followthrough)
         self.assertIn("post-PR-308/#312 회귀가 아니라 release/tag/Play deploy 전 baseline smoke", followthrough)
+        self.assertIn("git merge-base --is-ancestor cfff411898fbaac43a5c5bbafb48651091e66be2 origin/main", followthrough)
+        self.assertIn("PR #308 in latest tag", followthrough)
+        self.assertIn("PR #312 in latest tag", followthrough)
+        self.assertIn("2026-06-14 docs-lane 재확인 결과", followthrough)
+        self.assertIn("D+14 표는 아직 채우지 않는다", followthrough)
 
     def test_ga4_queryability_split_is_not_regressed(self):
         followthrough = REVIEW_FOLLOWTHROUGH.read_text()
@@ -80,6 +85,13 @@ class ReviewPromptPostReleaseFollowthroughDocsTest(unittest.TestCase):
             self.assertIn("Play Console", document)
             self.assertIn("rating count", document)
             self.assertIn("평균 평점", document)
+
+        self.assertIn("Play Console 수동 기록을 앱 이벤트와 분리한다", followthrough)
+        self.assertIn("앱 내부 lifecycle", followthrough)
+        self.assertIn("GA4 queryability", followthrough)
+        self.assertIn("Play Console 후행 지표", followthrough)
+        self.assertIn("Play Console baseline이 비어 있으면 issue #307을 닫지 않는다", followthrough)
+        self.assertIn("Play Console 수동 기록 경계", followthrough)
 
         self.assertIn("#307", version_adoption_gate)
         self.assertIn("최신 버전 active share", followthrough)
