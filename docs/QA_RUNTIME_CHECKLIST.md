@@ -1257,19 +1257,21 @@ cd <repo-root>
 
 ### 앱 선택 package visibility baseline
 
-Issue #249 계열 PR은 `QUERY_ALL_PACKAGES`를 UI에서 직접 소비하지 않고 앱 선택 데이터 소스 계약 뒤에 격리해야 한다. 권한의 목적은 사용자가 차단 대상을 고르는 데 필요한 launchable app 목록 구성으로 제한한다.
+Issue #249/#904 계열 PR은 `QUERY_ALL_PACKAGES`를 UI에서 직접 소비하지 않고 앱 선택 데이터 소스 계약 뒤에 격리해야 한다. 권한의 목적은 사용자가 차단 대상을 고르는 데 필요한 launchable app 목록 구성으로 제한한다. Play 정책 제출/심사 대응 source of truth는 `docs/QUERY_ALL_PACKAGES_POLICY.md`다.
 
 ```bash
 cd <repo-root>
-./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.appselection.SelectableAppPolicyTest'
+python3 -m unittest scripts.tests.test_query_all_packages_policy_contract scripts.tests.test_android_manifest_contract -v
+./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.appselection.*'
 ./gradlew :app:assembleProdDebug
 ```
 
 검증 기준:
-- `CategoryBottomSheetContent`는 `PackageManager.getInstalledApplications(...)`를 직접 호출하지 않는다.
+- `CategoryBottomSheetContent`는 `PackageManager.getInstalledApplications(...)` 또는 `queryIntentActivities(...)`를 직접 호출하지 않는다.
 - broad package visibility query는 `InstalledAppRepository`에서만 수행한다.
 - `SelectableAppPolicyTest`가 launch intent 없는 앱 제외, Stopit 자기 package 제외, picker 정렬 안정성을 고정한다.
 - Manifest/Play 정책 설명은 “앱 차단 대상 선택” 목적과 충돌하지 않아야 한다.
+- Play Console 권한 선언 문안은 `docs/QUERY_ALL_PACKAGES_POLICY.md`의 한국어/영어 template을 사용하고, 설치 앱 전체 목록/앱 이름/package list를 analytics·광고·프로파일링·서버 전송·제3자 공유에 쓰지 않는다고 명시한다.
 
 ### 첫 차단 성공 피드백 baseline
 
