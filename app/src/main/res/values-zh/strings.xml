@@ -164,6 +164,8 @@
     <string name="parent_mode_setup_back_to_menu">返回菜单</string>
     <string name="parent_mode_setup_duration_label">允许时长</string>
     <string name="parent_mode_setup_duration_minutes">%1$d 分钟</string>
+    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
+    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">允许的应用</string>
     <string name="parent_mode_setup_adjust_apps">在应用选择器中调整</string>
     <string name="parent_mode_setup_reload_current_selection">重新加载主页选择</string>

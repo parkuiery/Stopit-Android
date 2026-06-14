@@ -164,6 +164,8 @@
     <string name="parent_mode_setup_back_to_menu">Retour au menu</string>
     <string name="parent_mode_setup_duration_label">Temps autorisé</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
+    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
+    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Applis autorisées</string>
     <string name="parent_mode_setup_adjust_apps">Ajuster dans le sélecteur d\'applis</string>
     <string name="parent_mode_setup_reload_current_selection">Recharger la sélection de l\'accueil</string>

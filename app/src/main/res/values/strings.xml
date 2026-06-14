@@ -178,6 +178,8 @@
     <string name="parent_mode_setup_back_to_menu">Back to menu</string>
     <string name="parent_mode_setup_duration_label">Allowed time</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
+    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
+    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Allowed apps</string>
     <string name="parent_mode_setup_adjust_apps">Adjust in app picker</string>
     <string name="parent_mode_setup_reload_current_selection">Reload Home selection</string>

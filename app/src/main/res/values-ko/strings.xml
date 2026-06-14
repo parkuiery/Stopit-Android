@@ -178,6 +178,8 @@
     <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
     <string name="parent_mode_setup_duration_label">허용 시간</string>
     <string name="parent_mode_setup_duration_minutes">%1$d분</string>
+    <string name="parent_mode_setup_duration_custom_label">직접 입력</string>
+    <string name="parent_mode_setup_duration_custom_helper">10분/20분/30분으로 부족할 때 원하는 시간을 분 단위로 입력해요.</string>
     <string name="parent_mode_setup_allowed_apps_label">허용 앱</string>
     <string name="parent_mode_setup_adjust_apps">앱 선택 화면에서 조정</string>
     <string name="parent_mode_setup_reload_current_selection">홈 선택 다시 불러오기</string>

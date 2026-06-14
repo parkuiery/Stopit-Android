@@ -128,6 +128,7 @@ internal fun ParentModeSetupScreen(
                     state = state,
                     pinMismatch = pinMismatch,
                     onDurationSelected = viewModel::setDurationMinutes,
+                    onCustomDurationChanged = viewModel::updateCustomDurationInput,
                     onReloadCurrentSelection = viewModel::loadAllowedAppsFromCurrentSelection,
                     onAdjustApps = { isAppSelectionSheetVisible = true },
                     onGuardianPinChanged = viewModel::updateGuardianPin,
@@ -153,6 +154,7 @@ private fun ParentModeSetupForm(
     state: ParentModeSetupUiState,
     pinMismatch: Boolean,
     onDurationSelected: (Int) -> Unit,
+    onCustomDurationChanged: (String) -> Unit,
     onReloadCurrentSelection: () -> Unit,
     onAdjustApps: () -> Unit,
     onGuardianPinChanged: (String) -> Unit,
@@ -191,6 +193,16 @@ private fun ParentModeSetupForm(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        SetupTextField(
+            value = state.customDurationInput,
+            onValueChange = onCustomDurationChanged,
+            placeholder = stringResource(id = R.string.parent_mode_setup_duration_custom_label),
+            keyboardType = KeyboardType.Number,
+            isError = state.durationMinutes <= 0,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        SetupSectionCaption(text = stringResource(id = R.string.parent_mode_setup_duration_custom_helper))
     }
 
     SetupGroupCard {

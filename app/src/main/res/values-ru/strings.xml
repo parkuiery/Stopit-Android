@@ -164,6 +164,8 @@
     <string name="parent_mode_setup_back_to_menu">Назад в меню</string>
     <string name="parent_mode_setup_duration_label">Разрешённое время</string>
     <string name="parent_mode_setup_duration_minutes">%1$d мин</string>
+    <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
+    <string name="parent_mode_setup_duration_custom_helper">Type a direct duration when the presets do not fit.</string>
     <string name="parent_mode_setup_allowed_apps_label">Разрешённые приложения</string>
     <string name="parent_mode_setup_adjust_apps">Изменить в выборе приложений</string>
     <string name="parent_mode_setup_reload_current_selection">Обновить выбор с главного экрана</string>

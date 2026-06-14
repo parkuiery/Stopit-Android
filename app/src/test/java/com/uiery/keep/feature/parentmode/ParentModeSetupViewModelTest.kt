@@ -116,6 +116,38 @@ class ParentModeSetupViewModelTest {
     }
 
     @Test
+    fun customDurationInputStartsParentModeWithDirectMinuteValue() = runBlocking {
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { 1_000L },
+        )
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+
+        viewModel.updateCustomDurationInput("45")
+
+        assertEquals("45", viewModel.state.value.customDurationInput)
+        assertEquals(45, viewModel.state.value.durationMinutes)
+        assertTrue(viewModel.state.value.canAttemptStart)
+
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        assertEquals(
+            ParentModeSession(
+                startedAtMillis = 1_000L,
+                expiresAtMillis = 2_701_000L,
+                durationMinutes = 45,
+                allowedApps = setOf("com.video.app"),
+                state = ParentModeSessionState.Active,
+            ),
+            store.read(),
+        )
+    }
+
+    @Test
     fun loadAllowedAppsFromCurrentSelectionAlsoRestoresPersistedActiveSession() = runBlocking {
         val expectedSession = ParentModeSession(
             startedAtMillis = 1_000L,
