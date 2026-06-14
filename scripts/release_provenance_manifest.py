@@ -143,6 +143,11 @@ def _expect_required(label: str, actual: Any) -> None:
         raise ProvenanceError(f"{label} is required for metadata-only verification")
 
 
+def _expect_required_for(label: str, actual: Any, mode: str) -> None:
+    if actual is None or actual == "":
+        raise ProvenanceError(f"{label} is required for {mode} verification")
+
+
 def _manifest_value(manifest: dict[str, Any], path: str) -> Any:
     value: Any = manifest
     for part in path.split("."):
@@ -269,17 +274,23 @@ def verify(args: argparse.Namespace) -> int:
         manifest.get("github_actions", {}).get("workflow"),
         _nullable(os.environ.get("GITHUB_WORKFLOW")),
     )
-    _expect(
-        "github_actions.run_id",
-        manifest.get("github_actions", {}).get("run_id"),
-        _nullable(os.environ.get("GITHUB_RUN_ID")),
-    )
-    _expect(
-        "github_actions.run_attempt",
-        manifest.get("github_actions", {}).get("run_attempt"),
-        _nullable(os.environ.get("GITHUB_RUN_ATTEMPT")),
-    )
-    _expect("github_actions.run_url", manifest.get("github_actions", {}).get("run_url"), _run_url())
+    github_actions = manifest.get("github_actions", {})
+    if args.prior_run:
+        _expect_required_for("github_actions.run_id", github_actions.get("run_id"), "prior-run")
+        _expect_required_for("github_actions.run_attempt", github_actions.get("run_attempt"), "prior-run")
+        _expect_required_for("github_actions.run_url", github_actions.get("run_url"), "prior-run")
+    else:
+        _expect(
+            "github_actions.run_id",
+            github_actions.get("run_id"),
+            _nullable(os.environ.get("GITHUB_RUN_ID")),
+        )
+        _expect(
+            "github_actions.run_attempt",
+            github_actions.get("run_attempt"),
+            _nullable(os.environ.get("GITHUB_RUN_ATTEMPT")),
+        )
+        _expect("github_actions.run_url", github_actions.get("run_url"), _run_url())
     _expect("play.upload_mode", manifest.get("play", {}).get("upload_mode"), args.upload_mode)
     _expect("play.track", manifest.get("play", {}).get("track"), _nullable(args.track))
     _expect(
@@ -292,7 +303,9 @@ def verify(args: argparse.Namespace) -> int:
         manifest.get("play", {}).get("rollout_fraction"),
         _nullable(args.rollout_fraction),
     )
-    print(f"Verified release provenance manifest: {manifest_path}")
+    print(
+        f"Verified {'prior-run ' if args.prior_run else ''}release provenance manifest: {manifest_path}"
+    )
     return 0
 
 
@@ -322,6 +335,7 @@ def build_parser() -> argparse.ArgumentParser:
     ver.add_argument("--expected-git-ref-name", default="")
     ver.add_argument("--allow-artifact-path-relocation", action="store_true")
     ver.add_argument("--metadata-only", action="store_true")
+    ver.add_argument("--prior-run", action="store_true")
     ver.set_defaults(func=verify)
 
     cmp = subparsers.add_parser("compare")

@@ -113,6 +113,8 @@ android {
             args.extend(["--expected-git-ref", overrides["expected_git_ref"]])
         if "expected_git_ref_name" in overrides:
             args.extend(["--expected-git-ref-name", overrides["expected_git_ref_name"]])
+        if overrides.get("prior_run"):
+            args.append("--prior-run")
         return self.run_script(*args, check=overrides.get("check", True))
 
     def compare(self, existing_manifest, current_manifest=None, check=True):
@@ -309,6 +311,42 @@ android {
             expected_git_ref="refs/tags/v1.2.3",
             expected_git_ref_name="v1.2.3",
         )
+
+    def test_verify_prior_run_accepts_matching_artifact_with_different_run_instance(self):
+        self.generate()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["github_actions"]["run_id"] = "789012"
+        manifest["github_actions"]["run_attempt"] = "1"
+        manifest["github_actions"]["run_url"] = "https://github.com/parkuiery/Stopit-Android/actions/runs/789012"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.verify(
+            expected_version_code=42,
+            expected_git_sha="abc123",
+            expected_git_ref="refs/tags/v1.2.3",
+            expected_git_ref_name="v1.2.3",
+            prior_run=True,
+        )
+
+        self.assertIn("Verified prior-run release provenance manifest", result.stdout)
+
+    def test_verify_prior_run_rejects_missing_prior_run_identity(self):
+        self.generate()
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["github_actions"].pop("run_url")
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = self.verify(
+            expected_version_code=42,
+            expected_git_sha="abc123",
+            expected_git_ref="refs/tags/v1.2.3",
+            expected_git_ref_name="v1.2.3",
+            prior_run=True,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("github_actions.run_url is required for prior-run verification", result.stderr)
 
     def test_verify_rejects_artifact_name_drift(self):
         self.generate()
