@@ -152,6 +152,7 @@ internal fun ParentModeSetupScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ParentModeSetupForm(
     state: ParentModeSetupUiState,
