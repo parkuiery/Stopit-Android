@@ -1,9 +1,7 @@
 package com.uiery.keep.analytics
 
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
 import com.uiery.keep.util.toRepeatDaysBinary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,14 +13,14 @@ import java.time.DayOfWeek
 
 class RoutineCountAnalyticsSyncTest {
     @Test
-    fun syncFromRoomWritesExplicitZeroWhenNoRoutinesExist() = runBlocking {
+    fun syncFromRepositoryWritesExplicitZeroWhenNoRoutinesExist() = runBlocking {
         val analytics = RecordingRoutineCountAnalytics()
         val sync = RoutineCountAnalyticsSync(
-            routineDao = FakeRoutineCountDao(emptyList()),
+            routineRepository = FakeRoutineCountRepository(emptyList()),
             analytics = analytics,
         )
 
-        sync.syncFromRoom()
+        sync.syncFromRepository()
 
         assertEquals(
             listOf(KeepAnalyticsUserProperty.ROUTINES_COUNT to "0"),
@@ -31,19 +29,19 @@ class RoutineCountAnalyticsSyncTest {
     }
 
     @Test
-    fun syncFromRoomWritesActualRoutineCount() = runBlocking {
+    fun syncFromRepositoryWritesActualRoutineCount() = runBlocking {
         val analytics = RecordingRoutineCountAnalytics()
         val sync = RoutineCountAnalyticsSync(
-            routineDao = FakeRoutineCountDao(
+            routineRepository = FakeRoutineCountRepository(
                 listOf(
-                    routineEntity(id = 1L),
-                    routineEntity(id = 2L),
+                    routineModel(id = 1L),
+                    routineModel(id = 2L),
                 ),
             ),
             analytics = analytics,
         )
 
-        sync.syncFromRoom()
+        sync.syncFromRepository()
 
         assertEquals(
             listOf(KeepAnalyticsUserProperty.ROUTINES_COUNT to "2"),
@@ -55,17 +53,17 @@ class RoutineCountAnalyticsSyncTest {
     fun syncFromRoutinesWritesUpdatedCountAfterDeletion() {
         val analytics = RecordingRoutineCountAnalytics()
         val sync = RoutineCountAnalyticsSync(
-            routineDao = FakeRoutineCountDao(
+            routineRepository = FakeRoutineCountRepository(
                 listOf(
-                    routineEntity(id = 1L),
-                    routineEntity(id = 2L),
+                    routineModel(id = 1L),
+                    routineModel(id = 2L),
                 ),
             ),
             analytics = analytics,
         )
 
-        sync.syncFromRoutines(listOf(routineEntity(id = 1L), routineEntity(id = 2L)))
-        sync.syncFromRoutines(listOf(routineEntity(id = 2L)))
+        sync.syncFromRoutines(listOf(routineModel(id = 1L), routineModel(id = 2L)))
+        sync.syncFromRoutines(listOf(routineModel(id = 2L)))
 
         assertEquals(
             listOf(
@@ -77,27 +75,13 @@ class RoutineCountAnalyticsSyncTest {
     }
 }
 
-private class FakeRoutineCountDao(
-    routines: List<RoutineEntity>,
-) : RoutineDao {
+private class FakeRoutineCountRepository(
+    routines: List<RoutineModel>,
+) : RoutineRepository {
     private val state = MutableStateFlow(routines)
 
-    override fun fetchAll(): Flow<List<RoutineEntity>> = state
-    override fun fetchAllOnce(): List<RoutineEntity> = state.value
-    override fun fetch(id: Long): RoutineEntity = state.value.first { it.id == id }
-    override fun insert(routineEntity: RoutineEntity): Long {
-        state.value = state.value + routineEntity
-        return routineEntity.id
-    }
-    override fun deleteById(id: Long) {
-        state.value = state.value.filterNot { it.id == id }
-    }
-    override fun update(routineEntity: RoutineEntity) {
-        state.value = state.value.map { if (it.id == routineEntity.id) routineEntity else it }
-    }
-    override fun updateIsEnabledById(id: Long, isEnabled: Boolean) {
-        state.value = state.value.map { if (it.id == id) it.copy(isEnabled = isEnabled) else it }
-    }
+    override fun fetchAll(): Flow<List<RoutineModel>> = state
+    override suspend fun fetchAllOnce(): List<RoutineModel> = state.value
 }
 
 private class RecordingRoutineCountAnalytics : KeepAnalytics {
@@ -118,7 +102,7 @@ private class RecordingRoutineCountAnalytics : KeepAnalytics {
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
 }
 
-private fun routineEntity(id: Long): RoutineEntity = RoutineModel(
+private fun routineModel(id: Long): RoutineModel = RoutineModel(
     id = id,
     name = "Routine $id",
     startTime = LocalTime(hour = 8, minute = 0),
@@ -127,4 +111,4 @@ private fun routineEntity(id: Long): RoutineEntity = RoutineModel(
     lockApplications = listOf("com.example.blocked"),
     isEnabled = true,
     changeLockHours = 0,
-).toEntity()
+)

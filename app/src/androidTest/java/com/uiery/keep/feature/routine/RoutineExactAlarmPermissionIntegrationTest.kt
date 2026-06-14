@@ -160,7 +160,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -204,7 +204,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
@@ -248,7 +248,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             routineRepository = routineRepository,
             dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineCountAnalyticsSync = RoutineCountAnalyticsSync(database.routineDao(), RecordingKeepAnalytics()),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
             exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
             routineNoticeStore = noticeStore,
             routineRestoreAftercare = RoutineRestoreAftercare(
