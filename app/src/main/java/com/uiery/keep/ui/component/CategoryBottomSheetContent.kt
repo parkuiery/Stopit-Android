@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,13 +89,14 @@ fun CategoryBottomSheetLoadedContent(
     isLoading: Boolean = false,
     onComplete: (Set<String>) -> Unit,
 ) {
-    var selectedAppPackages by remember(storeSelectApps) { mutableStateOf(storeSelectApps.toSet()) }
+    val initialSelectedAppPackages = remember(apps) { storeSelectApps.toSet() }
+    var selectedAppPackages by remember(apps) { mutableStateOf(initialSelectedAppPackages) }
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
-    val orderedApps = remember(apps, storeSelectApps) {
+    val orderedApps = remember(apps) {
         val appsByPackage = apps.associateBy { it.packageName }
         orderSelectableAppPackagesByInitialSelection(
             appPackages = apps.map { it.packageName },
-            initiallySelectedPackages = storeSelectApps,
+            initiallySelectedPackages = initialSelectedAppPackages,
         ).mapNotNull { appsByPackage[it] }
     }
     val isSelectAll = areAllSelectableAppsSelected(selectedAppPackages, allAppPackages)
@@ -148,7 +148,6 @@ fun CategoryBottomSheetLoadedContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .defaultMinSize(minHeight = 48.dp)
                                 .toggleable(
                                     value = isSelectAll,
                                     role = Role.Checkbox,
@@ -160,6 +159,7 @@ fun CategoryBottomSheetLoadedContent(
                                         )
                                     },
                                 )
+                                .padding(vertical = 10.dp)
                                 .semantics { stateDescription = selectAllStateDescription }
                                 .testTag("category_select_all_row"),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),

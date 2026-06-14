@@ -3,8 +3,8 @@ package com.uiery.keep.ui.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Text
@@ -39,12 +39,12 @@ fun AppItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 48.dp)
             .toggleable(
                 value = checked,
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange,
             )
+            .padding(vertical = 10.dp)
             .semantics { stateDescription = selectionStateDescription }
             .then(modifier),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
