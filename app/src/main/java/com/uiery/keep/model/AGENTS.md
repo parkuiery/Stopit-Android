@@ -11,7 +11,7 @@ Domain and UI model classes shared by data, services, and features.
 |------|-------------|
 | `AppInfo.kt` | Model for installed/selectable app metadata. |
 | `LockHistoryModel.kt` | Domain model for lock history summaries/sessions. |
-| `RoutineModel.kt` | Domain model and mapping helpers for routines. |
+| `RoutineModel.kt` | Domain model for routines. Room entity mapping helpers live under `database/mapper/`. |
 
 ## Subdirectories
 No documented child directories.
@@ -20,6 +20,7 @@ No documented child directories.
 
 ### Working In This Directory
 - Keep changes scoped to this directory’s responsibility and follow the neighboring file naming/style conventions.
+- Do not import Room entities from shared models. Entity/model mappers are owned by `com.uiery.keep.database.mapper` so the model package stays persistence-agnostic.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

@@ -177,7 +177,7 @@ issue #679 계열 PR은 Lock 화면 countdown이 deadline 도달 이후 `-1`, `0
 cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \
   --tests 'com.uiery.keep.util.CountdownFormatTest' \
-  --tests 'com.uiery.keep.feature.lock.component.CountDownContentTest'
+  --tests 'com.uiery.keep.ui.component.CountDownContentTest'
 ```
 
 수동 QA evidence:
@@ -478,7 +478,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
   - PR #604 selected reason reflection helper baseline included in tested build: yes / no / unknown
   - PR #675 step purpose copy baseline included in tested build: yes / no / unknown
   - `python3 -m unittest scripts.tests.test_emergency_unlock_flow_copy_contract -v`
-  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest`
   - `./gradlew --console=plain :app:lintProdRelease`
 - Decision: pass / fail / needs follow-up
 ```
@@ -1535,7 +1535,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. 이번 code-lane은 `ParentModeSetupScreenAccessibilityTest`로 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정한다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, 2026-06-09 code-lane PR로 `ParentModeSessionController` commit boundary가 들어갔고, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. PR #873은 `ParentModeSetupScreenAccessibilityTest`로 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정했다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1631,7 +1631,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584/#748 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”이나 “active controls 미구현”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584/#748/#870/#873 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 
@@ -1691,7 +1691,7 @@ cd <repo-root>
 python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract -v
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'
 ./gradlew --console=plain :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest
 ```
 
 확인:
@@ -1711,10 +1711,10 @@ issue #204/#67 계열 PR에서는 아래 focused JVM + Android 통합 테스트�
 ```bash
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest \
-  --tests "com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetStateTest" \
+  --tests "com.uiery.keep.ui.component.EmergencyUnlockBottomSheetStateTest" \
   --tests "com.uiery.keep.feature.lock.LockViewModelTest.emergencyUnlockCompletionPostsUnlockCompletedSideEffect"
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest
 ```

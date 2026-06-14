@@ -11,8 +11,8 @@ import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toEntity
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.toRepeatDaysBinary

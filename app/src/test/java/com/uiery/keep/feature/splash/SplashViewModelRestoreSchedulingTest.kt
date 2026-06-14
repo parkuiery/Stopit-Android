@@ -13,8 +13,8 @@ import com.uiery.keep.feature.routine.RoutineExactAlarmOrchestrator
 import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.feature.routine.RoutineRestoreAftercare
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toEntity
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.toRepeatDaysBinary

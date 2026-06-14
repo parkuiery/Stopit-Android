@@ -2,8 +2,8 @@ package com.uiery.keep.data.routine
 
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toEntity
+import com.uiery.keep.database.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

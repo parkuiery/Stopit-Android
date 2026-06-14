@@ -2,7 +2,7 @@ package com.uiery.keep.feature.lockhistory
 
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

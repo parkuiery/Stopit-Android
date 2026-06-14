@@ -16,6 +16,7 @@ import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.database.repository.LockHistorySessionWriter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
@@ -31,7 +32,6 @@ import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeLockHistoryDao

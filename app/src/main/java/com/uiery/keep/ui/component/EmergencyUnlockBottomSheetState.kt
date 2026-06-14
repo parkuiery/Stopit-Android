@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.lock.component
+package com.uiery.keep.ui.component
 
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AnalyticsEmergencyUnlockStepName

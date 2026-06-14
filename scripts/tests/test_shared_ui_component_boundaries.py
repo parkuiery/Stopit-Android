@@ -98,6 +98,38 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
             "feature-private component packages must not be imported across feature boundaries; promote reusable UI to app shared UI or KDS",
         )
 
+    def test_app_root_blocking_surfaces_do_not_import_feature_private_components(self):
+        import_pattern = re.compile(
+            r"^import\s+(com\.uiery\.keep\.feature\.[^.]+\.component\.[A-Za-z0-9_]+)",
+            re.MULTILINE,
+        )
+        offenders: dict[str, list[str]] = {}
+        for source in sorted(APP_MAIN.glob("*.kt")):
+            imports = sorted(import_pattern.findall(source.read_text()))
+            if imports:
+                offenders[str(source.relative_to(REPO_ROOT))] = imports
+
+        self.assertEqual(
+            {},
+            offenders,
+            "app root blocking surfaces must not import feature-private components; promote shared Lock/Block UI to app shared UI or a public boundary",
+        )
+
+    def test_lock_blocking_ui_primitives_live_in_app_shared_ui(self):
+        shared_sources = "\n".join(
+            path.read_text()
+            for path in self.kotlin_sources(APP_MAIN / "ui/component")
+        )
+        self.assertIn("fun CountDownContent(", shared_sources)
+        self.assertIn("fun EmergencyUnlockBottomSheetContent(", shared_sources)
+
+        lock_private_sources = "\n".join(
+            path.read_text()
+            for path in self.kotlin_sources(APP_MAIN / "feature/lock/component")
+        )
+        self.assertNotIn("fun CountDownContent(", lock_private_sources)
+        self.assertNotIn("fun EmergencyUnlockBottomSheetContent(", lock_private_sources)
+
     def test_permission_setting_dialog_lives_in_app_shared_ui(self):
         shared_source = APP_MAIN / "ui/component/PermissionSettingDialog.kt"
         private_source = APP_MAIN / "feature/onboarding/permission/component/PermissionSettingDialog.kt"
@@ -162,7 +194,13 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         runbook = SHARED_UI_RUNBOOK.read_text()
         for expected in (
             "Issue: #492 (closed)",
+            "Issue: #876 (repo-internal boundary cleaned up)",
             "#492의 repo-internal 정리는 완료됐다",
+            "#876은 #492 재오픈이 아니라 별도 drift다",
+            "app root blocking surface",
+            "BlockScreen.kt",
+            "CountDownContent",
+            "EmergencyUnlockBottomSheetContent",
             "PermissionSettingDialog",
             "TimerPicker",
             "feature A → feature B",
@@ -202,6 +240,8 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertIn("#492는 closed 상태", documents["docs/METRICS_ANALYSIS.md"])
         self.assertIn("#492 closed 이후 app shared UI baseline", documents["docs/ops/stopit/engineering-context.md"])
         self.assertIn("#492 closed 이후 PermissionSettingDialog/TimerPicker app shared UI baseline", documents["docs/AGENTS.md"])
+        self.assertIn("#876", documents["docs/ops/stopit/engineering-context.md"])
+        self.assertIn("#876 app root `BlockScreen` → lock feature-private component open drift", documents["docs/AGENTS.md"])
 
 
 if __name__ == "__main__":

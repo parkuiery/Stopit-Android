@@ -163,7 +163,7 @@ GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문�
 - Verification commands:
   - `python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract -v`
   - `./gradlew --console=plain :app:testDevDebugUnitTest --tests '*EmergencyUnlock*'`
-  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContentIntegrationTest`
+  - `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest`
 - Step events:
   - reason step viewed only when reason required ON: pass / fail / n/a
   - app_selection step viewed: pass / fail
