@@ -98,28 +98,37 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
             "feature-private component packages must not be imported across feature boundaries; promote reusable UI to app shared UI or KDS",
         )
 
-    def test_app_root_blocking_surface_private_component_import_inventory(self):
+    def test_app_root_blocking_surfaces_do_not_import_feature_private_components(self):
         import_pattern = re.compile(
             r"^import\s+(com\.uiery\.keep\.feature\.[^.]+\.component\.[A-Za-z0-9_]+)",
             re.MULTILINE,
         )
-        actual: dict[str, list[str]] = {}
+        offenders: dict[str, list[str]] = {}
         for source in sorted(APP_MAIN.glob("*.kt")):
             imports = sorted(import_pattern.findall(source.read_text()))
             if imports:
-                actual[str(source.relative_to(REPO_ROOT))] = imports
+                offenders[str(source.relative_to(REPO_ROOT))] = imports
 
-        expected = {
-            "app/src/main/java/com/uiery/keep/BlockScreen.kt": [
-                "com.uiery.keep.feature.lock.component.CountDownContent",
-                "com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent",
-            ],
-        }
         self.assertEqual(
-            expected,
-            actual,
-            "app root blocking surfaces must not add feature-private component imports; #876 cleanup should reduce this inventory to empty",
+            {},
+            offenders,
+            "app root blocking surfaces must not import feature-private components; promote shared Lock/Block UI to app shared UI or a public boundary",
         )
+
+    def test_lock_blocking_ui_primitives_live_in_app_shared_ui(self):
+        shared_sources = "\n".join(
+            path.read_text()
+            for path in self.kotlin_sources(APP_MAIN / "ui/component")
+        )
+        self.assertIn("fun CountDownContent(", shared_sources)
+        self.assertIn("fun EmergencyUnlockBottomSheetContent(", shared_sources)
+
+        lock_private_sources = "\n".join(
+            path.read_text()
+            for path in self.kotlin_sources(APP_MAIN / "feature/lock/component")
+        )
+        self.assertNotIn("fun CountDownContent(", lock_private_sources)
+        self.assertNotIn("fun EmergencyUnlockBottomSheetContent(", lock_private_sources)
 
     def test_permission_setting_dialog_lives_in_app_shared_ui(self):
         shared_source = APP_MAIN / "ui/component/PermissionSettingDialog.kt"
@@ -185,11 +194,13 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         runbook = SHARED_UI_RUNBOOK.read_text()
         for expected in (
             "Issue: #492 (closed)",
-            "Open drift issue: #876",
+            "Issue: #876 (repo-internal boundary cleaned up)",
             "#492의 repo-internal 정리는 완료됐다",
             "#876은 #492 재오픈이 아니라 별도 drift다",
             "app root blocking surface",
             "BlockScreen.kt",
+            "CountDownContent",
+            "EmergencyUnlockBottomSheetContent",
             "PermissionSettingDialog",
             "TimerPicker",
             "feature A → feature B",
