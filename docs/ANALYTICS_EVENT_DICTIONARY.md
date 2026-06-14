@@ -321,7 +321,7 @@ Issue: #810. 루틴 저장 완료 계측은 #455 CTA click, #531 반복 차단 �
 
 ### 부모 모드
 
-부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. PR #519 이후 `parent_mode_*` analytics API와 privacy-safe bucket contract가 코드에 들어갔고, PR #584 이후 active session의 foreground 차단은 `app_block_intercepted.block_source=parent_mode`로 구분된다. 아직 setup/active UI, PIN runtime flow, release/tag/Play deploy, GA4 Admin metadata/readback 전이므로 live product conclusion은 낮은 confidence로 둔다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
+부모 모드 / 아이에게 폰 주기 MVP의 제품/QA 계약은 `docs/PARENT_MODE_MVP.md`를 source of truth로 본다. MVP는 부모가 자신의 휴대폰을 아이에게 잠깐 넘기는 same-device flow이며, 보호자 PIN으로 시작/연장/종료를 확인한다. PR #519 이후 `parent_mode_*` analytics API와 privacy-safe bucket contract가 코드에 들어갔고, PR #584 이후 active session의 foreground 차단은 `app_block_intercepted.block_source=parent_mode`로 구분된다. PR #748/#870/#873 이후 setup/active/expired UI, 직접 분 입력, PIN runtime controls, 접근성 요약 baseline이 repo-internal로 반영됐고, PR #897 merge commit `3d9830cddf2cbae7625996737cd2dfc4f4ee1c82` 이후 Parent Mode-origin 차단 화면은 기존 `app_block_intercepted(block_source=parent_mode)`와 dedicated `parent_mode_block_intercepted(block_context=disallowed_app)`를 함께 남긴다. 다만 release/tag/Play deploy, GA4 Admin metadata/readback 전이므로 live product conclusion은 낮은 confidence로 둔다. 아이 이름/앱 이름/package/raw session history 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 원격 자녀 기기 관리, 가족 계정, 서버 동기화는 별도 후속 gate 전까지 구현-ready로 보지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
