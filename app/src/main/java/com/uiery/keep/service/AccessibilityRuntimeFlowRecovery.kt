@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.retryWhen
 internal enum class AccessibilityRuntimeFlowSource(
     val debugName: String,
 ) {
+    BlockingState("blocking_state"),
     Routines("routines"),
     GoalLocks("goal_locks"),
     ParentMode("parent_mode"),
