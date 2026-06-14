@@ -41,7 +41,7 @@
   - `browser`
   - `productivity`
   - `unknown`
-- `block_source`: `manual_keep`, `timed_lock`, `routine`, `goal_lock`
+- `block_source`: `manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`
 - `blocking_mode`: 기존 첫 가치/반복 핵심 행동 모드 enum
 - `selected_app_count` 또는 `selected_app_count_bucket`
 - `repeat_count_bucket`, `time_bucket`, `day_type`처럼 반복 차단 제안에서 이미 쓰는 bucket
@@ -66,7 +66,7 @@
 | `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
 | `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
 
-`routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 id다. 목표 이름, 루틴 이름, 앱 label/package를 이 id 대신 보내지 않는다.
+`routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 id다. 목표 이름, 루틴 이름, 앱 label/package를 이 id 대신 보내지 않는다. Parent Mode 차단은 `block_source=parent_mode`로 분리하되, 아이 이름, 허용 앱 package/name/list, PIN 원문/세부값을 차단 앱 analytics 축으로 끌어오지 않는다.
 
 ## repo-internal 구현 상태
 
