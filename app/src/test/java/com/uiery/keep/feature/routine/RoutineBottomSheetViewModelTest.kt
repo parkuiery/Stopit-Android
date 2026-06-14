@@ -12,7 +12,7 @@ import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
+import com.uiery.keep.database.mapper.toEntity
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.toRepeatDaysBinary

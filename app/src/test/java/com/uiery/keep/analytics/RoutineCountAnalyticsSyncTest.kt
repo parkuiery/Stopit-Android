@@ -3,7 +3,7 @@ package com.uiery.keep.analytics
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
+import com.uiery.keep.database.mapper.toEntity
 import com.uiery.keep.util.toRepeatDaysBinary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

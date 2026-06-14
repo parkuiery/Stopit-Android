@@ -115,6 +115,22 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertIn("private val goalLockRepository: GoalLockRepository", text)
         self.assertIn("private val lockHistoryRecorder: LockHistoryRecorder", text)
 
+    def test_shared_models_do_not_import_room_entities(self):
+        offenders: list[str] = []
+        model_root = APP_MAIN / "model"
+        import_pattern = re.compile(r"^import\s+com\.uiery\.keep\.database\.entity\.", re.MULTILINE)
+
+        for source in self.kotlin_sources(model_root):
+            relative = source.relative_to(REPO_ROOT)
+            if import_pattern.search(source.read_text()):
+                offenders.append(str(relative))
+
+        self.assertEqual(
+            [],
+            offenders,
+            "shared model sources must not import Room entities; mappers belong in data/database boundaries",
+        )
+
     def test_menu_viewmodel_uses_routine_repository_boundary(self):
         menu = APP_MAIN / "feature/menu/MenuViewModel.kt"
         repository = APP_MAIN / "data/routine/RoutineRepository.kt"

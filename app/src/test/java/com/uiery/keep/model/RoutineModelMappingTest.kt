@@ -1,6 +1,8 @@
 package com.uiery.keep.model
 
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.database.mapper.toEntity
+import com.uiery.keep.database.mapper.toModel
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
