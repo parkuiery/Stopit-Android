@@ -208,6 +208,10 @@ class ParentModeContractTest(unittest.TestCase):
         qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
 
         self.assertIn("부모 모드 runtime QA baseline", qa_checklist)
+        self.assertIn("PR #870", qa_checklist)
+        self.assertIn("직접 분 입력 custom duration", qa_checklist)
+        self.assertIn("customDurationInputStartsParentModeWithDirectMinuteValue", qa_checklist)
+        self.assertIn("direct duration spot-check", qa_checklist)
         self.assertIn("ParentModePolicyTest", qa_checklist)
         self.assertIn("ParentModePinPolicyTest", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly", qa_checklist)
