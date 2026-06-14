@@ -80,7 +80,7 @@ Issue: #471
 
 ## Analytics 계약
 
-> 이 표는 PR #519의 policy/analytics foothold와 PR #584의 session/accessibility foothold 이후에도 유지되는 source of truth다. 코드에는 일부 `parent_mode_*` API와 `app_block_intercepted.block_source=parent_mode` 경계가 들어갔지만, setup/active UI, release/tag/Play deploy, GA4 Admin 등록/metadata 확인 전에는 세부 breakdown 결론을 낮은 confidence로 둔다.
+> 이 표는 PR #519의 policy/analytics foothold와 PR #584의 session/accessibility foothold 이후에도 유지되는 source of truth다. 코드에는 `parent_mode_*` API, `app_block_intercepted.block_source=parent_mode`, 그리고 Parent Mode 차단 화면 진입 시 `parent_mode_block_intercepted(block_context=disallowed_app)`를 함께 남기는 경계가 들어갔다. 다만 release/tag/Play deploy, GA4 Admin 등록/metadata 확인 전에는 live 세부 breakdown 결론을 낮은 confidence로 둔다.
 
 | 이벤트명 | 주요 파라미터 | 의미 |
 | --- | --- | --- |
@@ -130,7 +130,9 @@ cd <repo-root>
   --tests "com.uiery.keep.feature.parentmode.ParentModePolicyTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModePinPolicyTest" \
   --tests "com.uiery.keep.feature.parentmode.ParentModeSetupViewModelTest" \
-  --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly"
+  --tests "com.uiery.keep.BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent" \
+  --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly" \
+  --tests "com.uiery.keep.analytics.FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly"
 ```
 
 검증 범위:
@@ -184,6 +186,7 @@ cd <repo-root>
 - `KeepAccessibilityServiceBlockDecisionTest`: active 부모 모드가 허용되지 않은 앱을 `block_source=parent_mode`로 차단하고, 시간 만료 후 허용 앱도 차단하는 순수 decision 경계를 검증한다. 단, Stopit 앱처럼 보호자 PIN/종료/연장 진입에 필요한 부모 제어 surface는 차단하지 않는다.
 - `KeepAccessibilityService`: `ParentModeSessionStore.observe()`를 구독하고 foreground 재평가에 부모 모드 session을 전달한다.
 - `AnalyticsBlockSource.PARENT_MODE`: `app_block_intercepted.block_source`에 `parent_mode` 값을 추가했다.
+- `BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent`: Parent Mode로 열린 차단 화면이 기존 `app_block_intercepted(block_source=parent_mode)`와 별도로 `parent_mode_block_intercepted(block_context=disallowed_app)`를 남기고, dedicated Parent Mode 이벤트에는 앱 package/PIN/session 원문을 넣지 않는 경계를 검증한다.
 
 ### 3차 code-lane foothold
 

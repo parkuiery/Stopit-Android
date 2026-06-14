@@ -2,6 +2,7 @@ package com.uiery.keep
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
@@ -133,6 +134,43 @@ class BlockViewModelTest {
                     blockedAppPackage = "com.example.goal",
                     routineId = null,
                     goalLockId = "77",
+                ),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
+    fun parentModeBlockTracksDedicatedPrivacySafeInterceptEvent() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val viewModel = createViewModel(dataStore = dataStore, analytics = analytics)
+
+        viewModel.trackBlockShown(
+            packageName = "com.example.child.disallowed",
+            blockSource = AnalyticsBlockSource.PARENT_MODE,
+            routineId = null,
+        )
+        delay(50)
+
+        assertEquals(
+            listOf(
+                BlockAnalyticsCall.AppBlockIntercepted(
+                    blockSource = AnalyticsBlockSource.PARENT_MODE,
+                    blockedAppPackage = "com.example.child.disallowed",
+                    routineId = null,
+                ),
+                BlockAnalyticsCall.ParentModeBlockIntercepted(
+                    blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+                ),
+                BlockAnalyticsCall.CoreActionCompleted(
+                    blockingMode = AnalyticsBlockSource.PARENT_MODE,
+                    blockedAppPackage = "com.example.child.disallowed",
+                    routineId = null,
                 ),
             ),
             analytics.calls,
@@ -293,6 +331,10 @@ private sealed interface BlockAnalyticsCall {
         val stepName: String,
         val reasonRequiredEnabled: Boolean,
     ) : BlockAnalyticsCall
+
+    data class ParentModeBlockIntercepted(
+        val blockContext: String,
+    ) : BlockAnalyticsCall
 }
 
 private class BlockRecordingKeepAnalytics : KeepAnalytics {
@@ -357,6 +399,10 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
             routineId = routineId,
             goalLockId = goalLockId,
         )
+    }
+
+    override fun trackParentModeBlockIntercepted(blockContext: String) {
+        calls += BlockAnalyticsCall.ParentModeBlockIntercepted(blockContext)
     }
 
     override fun trackFirstCoreActionCompleted(

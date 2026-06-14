@@ -3,6 +3,7 @@ package com.uiery.keep
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsEmergencyUnlockCancelSource
+import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -84,6 +85,11 @@ class BlockViewModel
                 routineId = routineId,
                 goalLockId = normalizedGoalLockId,
             )
+            if (blockSource == AnalyticsBlockSource.PARENT_MODE) {
+                analytics.trackParentModeBlockIntercepted(
+                    blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+                )
+            }
             if (hasTrackedFirstCoreAction) {
                 reduce { state.copy(showFirstCoreActionFeedback = false) }
                 analytics.trackCoreActionCompleted(

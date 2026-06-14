@@ -82,6 +82,8 @@ class ParentModeContractTest(unittest.TestCase):
             "BackupRestoreDataStoreKeyPolicy",
             "KeepAccessibilityServiceBlockDecisionTest",
             "block_source=parent_mode",
+            "parent_mode_block_intercepted(block_context=disallowed_app)",
+            "BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent",
             "시간 만료 후 허용 앱도 차단",
             "부모 제어 surface는 차단하지 않는다",
             "PR #519",
@@ -227,6 +229,8 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("customDurationInputStartsParentModeWithDirectMinuteValue", qa_checklist)
         self.assertIn("direct duration spot-check", qa_checklist)
         self.assertIn("ParentModePolicyTest", qa_checklist)
+        self.assertIn("BlockViewModelTest.parentModeBlockTracksDedicatedPrivacySafeInterceptEvent", qa_checklist)
+        self.assertIn("FirebaseKeepAnalyticsTest.parentModeBlockInterceptedUsesSafeBlockContextOnly", qa_checklist)
         self.assertIn("ParentModePinPolicyTest", qa_checklist)
         self.assertIn("FirebaseKeepAnalyticsTest.parentModeStartedUsesSafeBucketedParamsOnly", qa_checklist)
         self.assertIn(
