@@ -57,4 +57,23 @@ class CategoryBottomSheetSelectionPolicyTest {
             ),
         )
     }
+
+    @Test
+    fun initialSelectionIsOrderedFirstButLaterTogglesDoNotResortTheList() {
+        val appPackages = listOf(
+            "com.example.alpha",
+            "com.example.beta",
+            "com.example.gamma",
+        )
+
+        val ordered = orderSelectableAppPackagesByInitialSelection(
+            appPackages = appPackages,
+            initiallySelectedPackages = setOf("com.example.beta"),
+        )
+
+        assertEquals(
+            listOf("com.example.beta", "com.example.alpha", "com.example.gamma"),
+            ordered,
+        )
+    }
 }

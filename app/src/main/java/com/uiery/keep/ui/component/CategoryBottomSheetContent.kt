@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,6 +92,13 @@ fun CategoryBottomSheetLoadedContent(
 ) {
     var selectedAppPackages by remember(storeSelectApps) { mutableStateOf(storeSelectApps.toSet()) }
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
+    val orderedApps = remember(apps, storeSelectApps) {
+        val appsByPackage = apps.associateBy { it.packageName }
+        orderSelectableAppPackagesByInitialSelection(
+            appPackages = apps.map { it.packageName },
+            initiallySelectedPackages = storeSelectApps,
+        ).mapNotNull { appsByPackage[it] }
+    }
     val isSelectAll = areAllSelectableAppsSelected(selectedAppPackages, allAppPackages)
     val selectAllStateDescription = stringResource(
         id = if (isSelectAll) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
@@ -140,6 +148,7 @@ fun CategoryBottomSheetLoadedContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .defaultMinSize(minHeight = 48.dp)
                                 .toggleable(
                                     value = isSelectAll,
                                     role = Role.Checkbox,
@@ -176,9 +185,8 @@ fun CategoryBottomSheetLoadedContent(
                     }
                 }
                 items(
-                    items = apps
-                        .filter { it.appName.contains(searchContent, ignoreCase = true) }
-                        .sortedByDescending { it.packageName in selectedAppPackages },
+                    items = orderedApps
+                        .filter { it.appName.contains(searchContent, ignoreCase = true) },
                     key = { it.packageName }
                 ) { app ->
                     AppItem(
@@ -245,6 +253,17 @@ internal fun areAllSelectableAppsSelected(
     val loadedPackages = allAppPackages.toSet()
     return loadedPackages.isNotEmpty() && currentSelection.containsAll(loadedPackages)
 }
+
+internal fun orderSelectableAppPackagesByInitialSelection(
+    appPackages: List<String>,
+    initiallySelectedPackages: Set<String>,
+): List<String> = appPackages
+    .withIndex()
+    .sortedWith(
+        compareByDescending<IndexedValue<String>> { it.value in initiallySelectedPackages }
+            .thenBy { it.index },
+    )
+    .map { it.value }
 
 @Preview
 @Composable
