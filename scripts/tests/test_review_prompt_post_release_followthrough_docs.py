@@ -48,6 +48,10 @@ class ReviewPromptPostReleaseFollowthroughDocsTest(unittest.TestCase):
         self.assertIn("PR #308과 PR #312가 모두 포함된 버전", followthrough)
         self.assertIn("shown = 0", followthrough)
         self.assertIn("최신 코드 회귀로 단정하지 않는다", followthrough)
+        self.assertIn("2026-06-14T06:07:23Z metrics snapshot smoke", followthrough)
+        self.assertIn("review_prompt_skipped`는 `45 users / 69 events`", followthrough)
+        self.assertIn("first_core_action_completed 443 users", followthrough)
+        self.assertIn("post-PR-308/#312 회귀가 아니라 release/tag/Play deploy 전 baseline smoke", followthrough)
 
     def test_ga4_queryability_split_is_not_regressed(self):
         followthrough = REVIEW_FOLLOWTHROUGH.read_text()
