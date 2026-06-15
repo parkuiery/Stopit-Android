@@ -155,6 +155,7 @@ class ParentModeContractTest(unittest.TestCase):
             "9차 code-lane active controls foothold",
             "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
             "PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`",
+            "PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
             "직접 입력한 custom duration",
@@ -177,8 +178,12 @@ class ParentModeContractTest(unittest.TestCase):
             self.assertIn("setup 화면", document)
             self.assertIn("PIN 입력 UI", document)
             self.assertIn("active/expired", document)
+            self.assertIn("PR #946", document)
+            self.assertIn("fresh guardian PIN", document)
 
         self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
+        self.assertNotIn("2026-06-15 code-lane follow-through", runbook)
+        self.assertNotIn("2026-06-15 code-lane active-PIN follow-through", runbook)
 
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
@@ -191,14 +196,17 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PIN 입력 UI와 setup CTA enablement", product_context)
         self.assertIn("PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`", product_context)
         self.assertIn("PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`", product_context)
+        self.assertIn("PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`", product_context)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", product_context)
         self.assertIn("active controls 미구현", product_context)
         self.assertIn("직접 설정 미구현", product_context)
         self.assertIn("TalkBack baseline 미정의", product_context)
+        self.assertIn("fresh guardian PIN 입력/확인이 다시 완료되기 전까지 연장/즉시 종료 CTA를 disabled", product_context)
         self.assertIn("상태로 되돌리지 않는다", product_context)
         self.assertIn("남은 경계는 release-candidate device UX spot-check", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
         self.assertNotIn("이번 PR은 setup 화면", product_context)
+        self.assertNotIn("2026-06-15 code-lane follow-through", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
         documents = [
@@ -236,6 +244,7 @@ class ParentModeContractTest(unittest.TestCase):
 
         self.assertIn("부모 모드 runtime QA baseline", qa_checklist)
         self.assertIn("PR #870", qa_checklist)
+        self.assertIn("PR #946", qa_checklist)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", qa_checklist)
         self.assertIn("TalkBack summary", qa_checklist)
         self.assertIn("직접 분 입력 custom duration", qa_checklist)
@@ -264,6 +273,7 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("stale Active expiry spot-check", qa_checklist)
         self.assertIn("PIN_UNLOCKED", qa_checklist)
         self.assertIn("PR #519/#584/#748/#870/#873", qa_checklist)
+        self.assertIn("active controls fresh guardian PIN", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
         self.assertIn("직접 설정 미구현", qa_checklist)
         self.assertIn("TalkBack baseline 미정의", qa_checklist)
