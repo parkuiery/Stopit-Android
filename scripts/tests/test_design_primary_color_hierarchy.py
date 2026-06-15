@@ -37,6 +37,7 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             "LockHistoryScreen.kt",
             "BlockedAppsScreen.kt",
             "RoutineScreen.kt",
+            "RoutineListContent.kt",
             "EmergencyUnlockSettingsScreen.kt",
             "GoalLockCreationScreen.kt",
             "ParentModeSetupScreen.kt",
@@ -49,6 +50,7 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("PR #804", text)
         self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
         self.assertIn("KDS 적용", text)
+        self.assertIn("routine card 공유 icon", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
@@ -111,6 +113,9 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             ],
             "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineBottomSheetContent.kt": [
                 "contentDescription = stringResource(R.string.cd_navigate_back),\n                    tint = KeepTheme.colors.primary,",
+            ],
+            "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineListContent.kt": [
+                "contentDescription = stringResource(R.string.cd_share_routine_template),\n                tint = if (isBlocked) KeepTheme.colors.surfaceVariant else KeepTheme.colors.primary,",
             ],
             "app/src/main/java/com/uiery/keep/feature/menu/MenuScreen.kt": [
                 "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = Color(0xFFFE9E0B),",
