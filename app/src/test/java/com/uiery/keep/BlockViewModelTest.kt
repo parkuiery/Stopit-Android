@@ -377,6 +377,60 @@ class BlockViewModelTest {
         assertEquals(1, repeatBlockSuggestionStore.readDismissedSuggestions().size)
     }
 
+    @Test
+    fun openPostBlockSuccessRepeatBlockSuggestionTracksClickAndEmitsRoutinePrefillEffect() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val now = LocalDateTime.now()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                    ),
+                ),
+            ),
+        )
+        val sideEffects = mutableListOf<BlockSideEffect>()
+        val job = launch {
+            viewModel.container.sideEffectFlow.collect { sideEffects += it }
+        }
+
+        viewModel.trackBlockShown(
+            packageName = "com.instagram.android",
+            blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            routineId = null,
+        )
+        delay(100)
+        val suggestion = viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion
+        assertNotNull(suggestion)
+
+        viewModel.openRepeatBlockRoutineSuggestion()
+        delay(50)
+        job.cancel()
+
+        assertEquals(
+            listOf(
+                "repeat_block_shown" to RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                "repeat_block_clicked" to RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+            ),
+            analytics.repeatBlockEvents.map { it.name to it.surface },
+        )
+        assertEquals(
+            listOf(BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill(suggestion!!)),
+            sideEffects,
+        )
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: BlockRecordingKeepAnalytics,
@@ -570,6 +624,13 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
         repeatBlockEvents += RepeatBlockAnalyticsCall("repeat_block_dismissed", surface, suggestion)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionClicked(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        repeatBlockEvents += RepeatBlockAnalyticsCall("repeat_block_clicked", surface, suggestion)
     }
 }
 

@@ -229,6 +229,8 @@
     <string name="lock_history_duration_short_min">%1$d분</string>
     <string name="repeat_block_suggestion_home_title">자주 막는 패턴을 루틴으로 만들까요?</string>
     <string name="repeat_block_suggestion_home_message">%1$d개 앱 · %2$s~%3$s 반복 차단을 바로 루틴에 채울 수 있어요.</string>
+    <string name="repeat_block_suggestion_post_block_success_title">방금 막아낸 패턴을 루틴으로 줄여볼까요?</string>
+    <string name="repeat_block_suggestion_post_block_success_message">%1$d개 앱 · %2$s~%3$s 시간대를 자동 루틴으로 미리 채울 수 있어요.</string>
     <string name="repeat_block_suggestion_lock_history_title">잠금 기록 패턴을 루틴으로 만들까요?</string>
     <string name="repeat_block_suggestion_lock_history_message">%1$d개 앱 · %2$s~%3$s 반복 차단을 루틴에 미리 채울 수 있어요.</string>
     <string name="repeat_block_suggestion_apply_button">루틴으로 만들기</string>

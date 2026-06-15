@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.lockscreen.LockScreenEntry
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,12 +44,33 @@ class BlockActivity: ComponentActivity() {
                             homeIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                             startActivity(homeIntent)
                             finishAffinity()
+                        },
+                        onOpenRoutineSuggestion = { suggestion ->
+                            startActivity(createPostBlockRoutinePrefillIntent(suggestion))
+                            finishAffinity()
                         }
                     )
                 }
             }
         }
     }
+
+    private fun createPostBlockRoutinePrefillIntent(suggestion: RepeatBlockRoutineSuggestion): Intent =
+        Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_REPEAT_BLOCK_SURFACE, RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS)
+            putExtra(EXTRA_REPEAT_BLOCK_REASON, suggestion.reason.analyticsValue)
+            putExtra(EXTRA_REPEAT_BLOCK_TIME_BUCKET, suggestion.timeBucket.analyticsValue)
+            putExtra(EXTRA_REPEAT_BLOCK_DAY_TYPE, suggestion.dayType.analyticsValue)
+            putExtra(EXTRA_REPEAT_BLOCK_CATEGORY_BUCKET, suggestion.categoryBucket.analyticsValue)
+            putExtra(EXTRA_REPEAT_BLOCK_COUNT_BUCKET, suggestion.repeatCountBucket.analyticsValue)
+            putExtra(EXTRA_REPEAT_BLOCK_COVERAGE_STATE, suggestion.routineCoverageState.analyticsValue)
+            putStringArrayListExtra(EXTRA_REPEAT_BLOCK_PREFILL_PACKAGES, ArrayList(suggestion.prefillPackages))
+            putExtra(EXTRA_REPEAT_BLOCK_PREFILL_START_HOUR, suggestion.prefillStartTime.hour)
+            putExtra(EXTRA_REPEAT_BLOCK_PREFILL_START_MINUTE, suggestion.prefillStartTime.minute)
+            putExtra(EXTRA_REPEAT_BLOCK_PREFILL_END_HOUR, suggestion.prefillEndTime.hour)
+            putExtra(EXTRA_REPEAT_BLOCK_PREFILL_END_MINUTE, suggestion.prefillEndTime.minute)
+        }
 
     companion object {
         const val EXTRA_PACKAGE_NAME = "package_name"

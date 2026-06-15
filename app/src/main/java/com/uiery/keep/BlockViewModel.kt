@@ -163,6 +163,15 @@ class BlockViewModel
             reduce { state.copy(repeatBlockRoutineSuggestion = null) }
         }
 
+        internal fun openRepeatBlockRoutineSuggestion() = intent {
+            val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+            analytics.trackRepeatBlockRoutineSuggestionClicked(
+                surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+            postSideEffect(BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill(suggestion))
+        }
+
         private suspend fun loadPostBlockRepeatBlockRoutineSuggestion(): RepeatBlockRoutineSuggestion? {
             val now = LocalDateTime.now()
             val startMillis = now.minusDays(14)
@@ -287,6 +296,9 @@ data class BlockUiState(
 sealed class BlockSideEffect {
     data object UnlockCompleted : BlockSideEffect()
     data object TimedLockExpired : BlockSideEffect()
+    data class NavigateRoutineWithRepeatBlockPrefill(
+        val suggestion: RepeatBlockRoutineSuggestion,
+    ) : BlockSideEffect()
 }
 
 internal fun String?.orDefaultBlockSource(): String =
