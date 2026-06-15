@@ -159,6 +159,7 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "org.jetbrains.kotlin.android",
             "org.jetbrains.kotlin.plugin.compose",
             "org.jetbrains.kotlin.plugin.serialization",
+            "org.jetbrains.kotlin.jvm",
         ]:
             with self.subTest(dependency=dependency):
                 self.assertRegex(
@@ -172,6 +173,8 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "compilerOptions DSL",
             "kotlinOptions.jvmTarget",
             "#928",
+            "#939",
+            "org.jetbrains.kotlin.jvm",
             "Using 'jvmTarget: String' is an error",
             "별도 Kotlin/toolchain lane",
         ]:
