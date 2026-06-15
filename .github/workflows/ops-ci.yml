@@ -120,6 +120,7 @@ jobs:
               - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
               - 'scripts/tests/test_release_guard_hotfix_sync.py'
               - 'scripts/tests/test_readme_version_contract.py'
+              - 'scripts/tests/test_gradle_wrapper_distribution_checksum.py'
               - 'scripts/tests/test_release_provenance_workflow_contract.py'
               - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
               - 'scripts/tests/test_ga4_custom_dimension_registration_docs.py'
@@ -207,6 +208,7 @@ jobs:
           scripts.tests.test_android_ci_runtime_smoke_docs
           scripts.tests.test_release_guard_hotfix_sync
           scripts.tests.test_readme_version_contract
+          scripts.tests.test_gradle_wrapper_distribution_checksum
           scripts.tests.test_release_provenance_workflow_contract
           scripts.tests.test_acquisition_attribution_docs_contract
           scripts.tests.test_ga4_custom_dimension_registration_docs
