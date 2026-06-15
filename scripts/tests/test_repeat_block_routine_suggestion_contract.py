@@ -41,6 +41,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "active emergency unlock runtime state",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
             "BlockViewModelTest.goalLockBlockSuppressesPostBlockSuccessRepeatBlockSuggestion",
+            "PR #944",
+            "21bdf65e",
+            "block_source=goal_lock",
             "post_block_success BlockActivity CTA/navigation 구현",
             "PR #923",
             "BlockActivity → MainActivity → RoutineRoute",
@@ -164,6 +167,10 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("PR #899", ga4_runbook)
         self.assertIn("PR #923", ga4_runbook)
         self.assertIn("PR #931", ga4_runbook)
+        self.assertIn("PR #944", ga4_runbook)
+        self.assertIn("21bdf65e", ga4_runbook)
+        self.assertIn("block_source=goal_lock", ga4_runbook)
+        self.assertIn("active protection context는 추천보다 우선", ga4_runbook)
         self.assertIn("performance_report surface 구현", ga4_runbook)
         self.assertIn("post_block_success card/clicked/prefill launch 구현 완료", ga4_runbook)
         self.assertIn("#531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`", ga4_runbook)
@@ -216,6 +223,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("PR #899", document)
             self.assertIn("PR #923", document)
             self.assertIn("PR #931", document)
+            self.assertIn("PR #944", document)
+            self.assertIn("block_source=goal_lock", document)
             self.assertIn("구현 표면", document)
             self.assertIn("post_block_success", document)
             self.assertIn("performance_report", document)
