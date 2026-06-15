@@ -20,7 +20,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         upload_step = self._step_block(workflow, "Upload Android CI fast verification diagnostics")
 
         self.assertIn("./gradlew --console=plain :app:testDevDebugUnitTest", run_step)
-        self.assertIn("if: always() && steps.firebase-config.outputs.available == 'true'", upload_step)
+        self.assertIn("if: always() && (steps.firebase-config.outputs.available == 'true' || steps.firebase-config.outputs.dummy_firebase_config == 'true')", upload_step)
         self.assertIn("continue-on-error: true", upload_step)
         self.assertIn("uses: actions/upload-artifact@v7", upload_step)
         self.assertIn("name: stopit-android-ci-fast-verification-diagnostics", upload_step)
