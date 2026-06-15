@@ -99,6 +99,7 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest",
         "com.uiery.keep.database.KeepDatabaseMigrationTest",
         "com.uiery.keep.notification.RoutineStartNotificationTapIntegrationTest",
+        "com.uiery.keep.notification.NotificationSmallIconIntegrationTest",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported",
