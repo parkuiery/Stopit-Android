@@ -8,18 +8,30 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.datastore.PreferencesKey
-import java.time.Instant
-import java.time.ZoneId
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class BlockViewModelTest {
     @Test
@@ -278,9 +290,99 @@ class BlockViewModelTest {
         )
     }
 
+    @Test
+    fun postBlockSuccessShowsRepeatBlockSuggestionWithPrivacySafeSurface() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val now = LocalDateTime.now()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                    ),
+                ),
+            ),
+        )
+
+        viewModel.trackBlockShown(
+            packageName = "com.instagram.android",
+            blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            routineId = null,
+        )
+        delay(100)
+
+        assertNotNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+        assertEquals(
+            listOf(RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS),
+            analytics.repeatBlockEvents.map { it.surface },
+        )
+        assertEquals("rapid_retry", analytics.repeatBlockEvents.single().payload.reason)
+        assertEquals("social", analytics.repeatBlockEvents.single().payload.categoryBucket)
+    }
+
+    @Test
+    fun dismissPostBlockSuccessRepeatBlockSuggestionStoresBucketAndTracksDismissed() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val now = LocalDateTime.now()
+        val repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore)
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            repeatBlockSuggestionStore = repeatBlockSuggestionStore,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                    ),
+                ),
+            ),
+        )
+
+        viewModel.trackBlockShown(
+            packageName = "com.instagram.android",
+            blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            routineId = null,
+        )
+        delay(100)
+
+        viewModel.dismissRepeatBlockRoutineSuggestion()
+        delay(50)
+
+        assertEquals(null, viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+        assertEquals(
+            listOf(
+                "repeat_block_shown" to RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                "repeat_block_dismissed" to RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+            ),
+            analytics.repeatBlockEvents.map { it.name to it.surface },
+        )
+        assertEquals(1, repeatBlockSuggestionStore.readDismissedSuggestions().size)
+    }
+
     private fun createViewModel(
         dataStore: FakeDataStore,
         analytics: BlockRecordingKeepAnalytics,
+        lockHistoryRepository: LockHistoryRepository = LockHistoryRepository(LockHistoryDaoWithSessions(emptyList())),
+        routineRepository: RoutineRepository = EmptyRoutineRepository(),
+        repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
     ): BlockViewModel =
         BlockViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
@@ -291,7 +393,21 @@ class BlockViewModelTest {
                 repository = EmergencyUnlockRepository(FakeEmergencyUnlockDao()),
                 analytics = analytics,
             ),
+            lockHistoryRepository = lockHistoryRepository,
+            routineRepository = routineRepository,
+            repeatBlockSuggestionStore = repeatBlockSuggestionStore,
         )
+
+    private fun lockHistoryAt(dateTime: LocalDateTime, packageName: String): LockHistoryEntity {
+        val start = dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        return LockHistoryEntity(
+            startTimestamp = start,
+            endTimestamp = start + 60_000L,
+            durationMillis = 60_000L,
+            lockedApps = listOf(packageName),
+            isRoutine = false,
+        )
+    }
 }
 
 private sealed interface BlockAnalyticsCall {
@@ -337,9 +453,16 @@ private sealed interface BlockAnalyticsCall {
     ) : BlockAnalyticsCall
 }
 
+private data class RepeatBlockAnalyticsCall(
+    val name: String,
+    val surface: String,
+    val payload: RepeatBlockRoutineSuggestionAnalyticsPayload,
+)
+
 private class BlockRecordingKeepAnalytics : KeepAnalytics {
     val screenViews = mutableListOf<String>()
     val calls = mutableListOf<BlockAnalyticsCall>()
+    val repeatBlockEvents = mutableListOf<RepeatBlockAnalyticsCall>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
@@ -434,4 +557,38 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
             goalLockId = goalLockId,
         )
     }
+
+    override fun trackRepeatBlockRoutineSuggestionShown(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        repeatBlockEvents += RepeatBlockAnalyticsCall("repeat_block_shown", surface, suggestion)
+    }
+
+    override fun trackRepeatBlockRoutineSuggestionDismissed(
+        surface: String,
+        suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+    ) {
+        repeatBlockEvents += RepeatBlockAnalyticsCall("repeat_block_dismissed", surface, suggestion)
+    }
+}
+
+private open class LockHistoryDaoWithSessions(
+    private val sessions: List<LockHistoryEntity>,
+) : LockHistoryDao {
+    override suspend fun insert(entity: LockHistoryEntity) = Unit
+
+    override fun fetchByDateRange(startMillis: Long, endMillis: Long): Flow<List<LockHistoryEntity>> =
+        flowOf(sessions.filter { it.startTimestamp >= startMillis && it.startTimestamp < endMillis })
+
+    override fun fetchAll(): Flow<List<LockHistoryEntity>> = flowOf(sessions)
+
+    override suspend fun countSuccessfulSessions(): Int = sessions.size
+
+    override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int =
+        sessions.count { it.startTimestamp >= timestampMillis }
+}
+
+private class EmptyRoutineRepository : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
 }
