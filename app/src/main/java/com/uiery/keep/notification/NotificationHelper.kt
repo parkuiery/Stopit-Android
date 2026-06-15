@@ -68,7 +68,7 @@ class NotificationHelper @Inject constructor(
 
     fun buildRoutineStartNotification(routineName: String, routineId: Long) =
         NotificationCompat.Builder(context, ROUTINE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.app_icon)
+            .setSmallIcon(R.drawable.ic_notification_stopit)
             .setColor(Color.White.toArgb())
             .setContentTitle(
                 context.getString(R.string.notification_routine_start_title, routineName)

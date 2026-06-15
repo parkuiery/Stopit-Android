@@ -60,7 +60,7 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         val progress = if (totalSeconds > 0) (remainingSeconds * 100) / totalSeconds else 0
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.kepp_icon)
+            .setSmallIcon(R.drawable.ic_notification_stopit)
             .setContentTitle(context.getString(R.string.emergency_unlock_active))
             .setContentText(
                 context.getString(R.string.emergency_unlock_remaining_time, timeText)
@@ -98,7 +98,7 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
             return postResult
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.kepp_icon)
+            .setSmallIcon(R.drawable.ic_notification_stopit)
             .setContentTitle(context.getString(R.string.emergency_unlock_expired))
             .setAutoCancel(true)
             .build()

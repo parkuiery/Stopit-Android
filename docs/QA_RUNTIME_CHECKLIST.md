@@ -1858,6 +1858,16 @@ adb shell dumpsys alarm | grep com.uiery.keep
 - [ ] 루틴이 enabled 상태면 다음 회차가 다시 예약된다.
 - [ ] 루틴이 disabled 상태면 재예약되지 않는다.
 - [ ] receiver 실행 후 중복 알림이 연속으로 뜨지 않는다.
+- [ ] 루틴 시작 알림과 긴급해제 countdown/expired 알림의 notification small icon이 `ic_notification_stopit` glyph로 보이며 흰 사각형/풀컬러 launcher bitmap처럼 렌더링되지 않는다.
+
+### notification small icon visual evidence
+
+issue #952 계열 PR은 launcher/full-color asset을 `setSmallIcon()`에 재사용하지 않고 전용 alpha-mask vector인 `R.drawable.ic_notification_stopit`을 써야 한다. 자동 회귀는 `python3 -m unittest scripts.tests.test_notification_small_icon_contract -v`로 확인하고, release/device QA에서는 상태바와 notification shade에 루틴 시작 알림 및 긴급해제 진행/만료 알림이 흰 사각형이 아닌 단색 glyph로 보이는지 스크린샷 또는 관찰 메모를 남긴다.
+
+권장 spot-check:
+- 루틴 시작 알림: 가까운 미래 루틴을 만들어 알림 수신 후 상태바/notification shade small icon 확인.
+- 긴급해제 countdown: 차단 화면에서 긴급해제를 시작한 뒤 ongoing notification small icon 확인.
+- 긴급해제 expired: 만료 후 expired notification small icon 확인.
 
 ### 실패 시 남길 evidence
 
