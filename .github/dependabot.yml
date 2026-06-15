@@ -37,6 +37,22 @@ updates:
         # dedicated toolchain PR after AGP 9 readiness is explicit.
         versions:
           - "[2.59,)"
+      - dependency-name: "org.jetbrains.kotlin.android"
+        # #925/#928: Kotlin 2.4+ makes legacy kotlinOptions.jvmTarget a Gradle
+        # configuration error. Hold until app/core:kds migrate to compilerOptions
+        # in a dedicated Kotlin/toolchain lane.
+        versions:
+          - "[2.4,)"
+      - dependency-name: "org.jetbrains.kotlin.plugin.compose"
+        # Keep Kotlin Android and Compose compiler plugin aligned; do not let the
+        # broad android-gradle-patch-minor group auto-land the Kotlin 2.4 DSL break.
+        versions:
+          - "[2.4,)"
+      - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
+        # Serialization plugin follows the Kotlin toolchain lane and should not
+        # outrun the build-script compilerOptions migration.
+        versions:
+          - "[2.4,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
