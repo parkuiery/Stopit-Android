@@ -851,6 +851,7 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("BlockedAppsScreen", KeepAnalyticsScreen.BLOCKED_APPS)
         assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
         assertEquals("EmergencyUnlockSettingsScreen", KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
+        assertEquals("ParentModeSetupScreen", KeepAnalyticsScreen.PARENT_MODE_SETUP)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
         assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)

@@ -2,6 +2,7 @@ package com.uiery.keep.feature.parentmode
 
 import com.uiery.keep.data.parentmode.ParentModeSessionStore
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.parentmode.ParentModeSession
@@ -15,6 +16,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ParentModeSetupViewModelTest {
+    @Test
+    fun initLogsParentModeSetupScreenView() {
+        val analytics = ParentModeSetupRecordingAnalytics()
+
+        createViewModel(analytics = analytics)
+
+        assertEquals(listOf(KeepAnalyticsScreen.PARENT_MODE_SETUP), analytics.screenViews)
+    }
+
     @Test
     fun loadAllowedAppsFromCurrentBlockingSelectionSeedsParentModeSetup() = runBlocking {
         val dataStore = FakeDataStore.withPrefs {
@@ -321,12 +331,14 @@ class ParentModeSetupViewModelTest {
         blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
         sessionStore: ParentModeSessionStore = ParentModeSessionStore(FakeDataStore()),
         nowMillis: () -> Long = { 10_000L },
+        analytics: ParentModeSetupRecordingAnalytics = ParentModeSetupRecordingAnalytics(),
     ): ParentModeSetupViewModel = ParentModeSetupViewModel(
         blockingStateStore = blockingStateStore,
-        sessionController = ParentModeSessionController(sessionStore, NoOpParentModeAnalytics()),
+        sessionController = ParentModeSessionController(sessionStore, analytics),
         clock = object : ParentModeClock() {
             override fun nowMillis(): Long = nowMillis()
         },
+        analytics = analytics,
     )
 
     private suspend fun awaitUntil(predicate: () -> Boolean) {
@@ -338,9 +350,13 @@ class ParentModeSetupViewModelTest {
     }
 }
 
-private class NoOpParentModeAnalytics : KeepAnalytics {
+private class ParentModeSetupRecordingAnalytics : KeepAnalytics {
+    val screenViews = mutableListOf<String>()
+
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
-    override fun logScreenView(screenName: String) = Unit
+    override fun logScreenView(screenName: String) {
+        screenViews += screenName
+    }
     override fun setUserProperty(name: String, value: String) = Unit
     override fun trackFirstOpen() = Unit
     override fun trackOnboardingStepView(stepName: String) = Unit

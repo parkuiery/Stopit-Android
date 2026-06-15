@@ -458,6 +458,7 @@ object KeepAnalyticsScreen {
     const val DEV_TOOL = "DevToolScreen"
     const val GOAL_LOCK_CREATION = "GoalLockCreationScreen"
     const val GOAL_LOCK_DETAIL = "GoalLockDetailScreen"
+    const val PARENT_MODE_SETUP = "ParentModeSetupScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
 }

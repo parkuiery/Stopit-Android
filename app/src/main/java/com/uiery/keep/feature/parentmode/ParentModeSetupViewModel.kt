@@ -2,6 +2,8 @@ package com.uiery.keep.feature.parentmode
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.domain.parentmode.ParentModeSession
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,12 +20,17 @@ internal class ParentModeSetupViewModel @Inject constructor(
     private val blockingStateStore: BlockingStateStore,
     private val sessionController: ParentModeSessionController,
     private val clock: ParentModeClock,
+    private val analytics: KeepAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ParentModeSetupUiState())
     val state: StateFlow<ParentModeSetupUiState> = _state.asStateFlow()
 
     private val _sideEffect = MutableStateFlow<ParentModeSetupSideEffect?>(null)
     val sideEffect: StateFlow<ParentModeSetupSideEffect?> = _sideEffect.asStateFlow()
+
+    init {
+        analytics.logScreenView(KeepAnalyticsScreen.PARENT_MODE_SETUP)
+    }
 
     fun setDurationMinutes(durationMinutes: Int) {
         _state.update { current ->
