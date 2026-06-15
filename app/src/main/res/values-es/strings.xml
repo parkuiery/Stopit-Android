@@ -41,6 +41,7 @@
     <string name="keep_on_status">StopIt está activado</string>
     <string name="block_screen_title">Pausa un momento: estás cumpliendo tu promesa</string>
     <string name="block_screen_message">%1$s está en pausa ahora. Cierra esta pantalla y vuelve a lo que estabas haciendo.</string>
+    <string name="block_screen_routine_active_reason">Una rutina activa está protegiendo este horario. Si de verdad necesitas una excepción breve, usa el desbloqueo de emergencia.</string>
     <string name="block_screen_first_core_action_feedback">El primer bloqueo funcionó. StopIt seguirá bloqueando las apps seleccionadas mientras StopIt esté activado.</string>
     <string name="block_screen_close">Volver a lo que estaba haciendo</string>
     <string name="permission_dialog_title">Se requiere permiso de accesibilidad</string>

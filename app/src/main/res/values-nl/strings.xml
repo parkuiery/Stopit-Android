@@ -42,6 +42,7 @@
     <string name="keep_on_status">StopIt is ingeschakeld</string>
     <string name="block_screen_title">Pauzeer even — je houdt je belofte</string>
     <string name="block_screen_message">%1$s is nu gepauzeerd. Sluit dit scherm en ga terug naar wat je deed.</string>
+    <string name="block_screen_routine_active_reason">Een actieve routine beschermt dit moment. Als je echt even een uitzondering nodig hebt, gebruik dan Noodontgrendeling.</string>
     <string name="block_screen_first_core_action_feedback">Je eerste blokkade werkte. StopIt blijft de geselecteerde apps blokkeren zolang StopIt aan staat.</string>
     <string name="block_screen_close">Terug naar wat ik deed</string>
     <string name="permission_dialog_title">Toegankelijkheidsmachtiging is vereist om de app-vergrendelfunctie te gebruiken.</string>

@@ -42,6 +42,7 @@
     <string name="keep_turned_off">StopIt a été désactivé</string>
     <string name="block_screen_title">Pause un instant — tu tiens ton engagement</string>
     <string name="block_screen_message">%1$s est en pause pour le moment. Ferme cet écran et retourne à ce que tu faisais.</string>
+    <string name="block_screen_routine_active_reason">Une routine active protège ce créneau. Si tu as vraiment besoin d’une courte exception, utilise le déverrouillage d’urgence.</string>
     <string name="block_screen_first_core_action_feedback">Le premier blocage a fonctionné. StopIt continuera de bloquer les apps sélectionnées tant que StopIt est activé.</string>
     <string name="block_screen_close">Retourner à ce que je faisais</string>
     <string name="permission_dialog_title">L\'autorisation d\'accessibilité est requise pour utiliser la fonction de verrouillage d\'application.</string>

@@ -41,6 +41,7 @@
     <string name="keep_turned_off">StopIt has been turned off</string>
     <string name="block_screen_title">Pause for a moment — you’re keeping your promise</string>
     <string name="block_screen_message">%1$s is paused right now. Close this screen and return to what you were doing.</string>
+    <string name="block_screen_routine_active_reason">An active routine is protecting this time. If you really need a short exception, use Emergency unlock.</string>
     <string name="block_screen_first_core_action_feedback">Your first block worked. StopIt will keep blocking selected apps while StopIt is on.</string>
     <string name="block_screen_close">Return to what you were doing</string>
     <string name="permission_dialog_title">Accessibility permission is required to use the app lock feature.</string>

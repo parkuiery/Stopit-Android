@@ -42,6 +42,7 @@
     <string name="keep_turned_off">StopIt已关闭</string>
     <string name="block_screen_title">先停一下——你正在守住自己的约定</string>
     <string name="block_screen_message">%1$s现在已暂停。关闭此页面，回到你正在做的事。</string>
+    <string name="block_screen_routine_active_reason">正在运行的例程正在保护这段时间。如果确实需要短暂例外，可以使用紧急解锁。</string>
     <string name="block_screen_first_core_action_feedback">第一次拦截已生效。StopIt 开启时，StopIt 会继续拦截已选择的应用。</string>
     <string name="block_screen_close">回到正在做的事</string>
     <string name="permission_dialog_title">要使用应用锁功能，需要辅助功能权限。</string>

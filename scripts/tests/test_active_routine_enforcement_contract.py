@@ -50,6 +50,17 @@ ROUTINE_LIST_POLICY_TEST = (
     / "routine"
     / "RoutineListActionPolicyTest.kt"
 )
+BLOCK_SCREEN_CONTENT_TEST = (
+    REPO_ROOT
+    / "app"
+    / "src"
+    / "androidTest"
+    / "java"
+    / "com"
+    / "uiery"
+    / "keep"
+    / "BlockScreenContentIntegrationTest.kt"
+)
 
 
 def _strings(path: pathlib.Path) -> dict[str, str]:
@@ -144,6 +155,36 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
             [],
             offenders,
             "Active routine block guidance is high-trust #609 copy and must not ship as copied default English in localized resources.",
+        )
+
+    def test_routine_block_screen_reason_is_localized_and_covered_by_compose_baseline(self):
+        key = "block_screen_routine_active_reason"
+        default_text = _strings(DEFAULT_STRINGS)[key]
+        offenders = []
+
+        for values_dir in LOCALIZED_STRING_DIRS:
+            strings_path = values_dir / "strings.xml"
+            if not strings_path.exists():
+                continue
+            localized_text = _strings(strings_path).get(key)
+            if localized_text == default_text:
+                offenders.append(values_dir.name)
+
+        content_test = BLOCK_SCREEN_CONTENT_TEST.read_text()
+        source_doc = SOURCE_DOC.read_text()
+        checklist = QA_CHECKLIST.read_text()
+
+        self.assertEqual(
+            [],
+            offenders,
+            "Active routine Block screen reason copy is high-trust #609 copy and must not ship as copied default English in localized resources.",
+        )
+        self.assertIn("activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary", content_test)
+        self.assertIn("block_screen_routine_active_reason", content_test)
+        self.assertIn("block_screen_routine_active_reason", source_doc)
+        self.assertIn(
+            "BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary",
+            checklist,
         )
 
 
