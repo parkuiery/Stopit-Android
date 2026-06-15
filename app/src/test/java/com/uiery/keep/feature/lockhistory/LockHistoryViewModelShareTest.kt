@@ -48,7 +48,7 @@ class LockHistoryViewModelShareTest {
             focusSummaryShareTextProvider = FakeFocusSummaryShareTextProvider(),
         )
 
-        assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViews)
+        assertEquals(listOf(KeepAnalyticsScreen.LOCK_HISTORY), analytics.screenViewsSnapshot())
 
         waitForHistoryLoad(viewModel)
         waitForAnalyticsEventCount(analytics, 2)
@@ -93,7 +93,7 @@ class LockHistoryViewModelShareTest {
                     reason = null,
                 ),
             ),
-            analytics.events,
+            analytics.eventsSnapshot(),
         )
     }
 
@@ -144,7 +144,7 @@ class LockHistoryViewModelShareTest {
                     reason = null,
                 ),
             ),
-            analytics.events,
+            analytics.eventsSnapshot(),
         )
         assertEquals(LockHistoryPerformanceReportState.EMPTY, viewModel.container.stateFlow.value.performanceReport.state)
     }
@@ -195,7 +195,28 @@ class LockHistoryViewModelShareTest {
                     surface = null,
                 ),
             ),
-            analytics.events.takeLast(2),
+            analytics.eventsSnapshot().takeLast(2),
+        )
+    }
+
+    @Test
+    fun recordingAnalyticsEventsSnapshotCanBeIteratedWhileNewEventsAreRecorded() {
+        val analytics = RecordingLockHistoryAnalytics()
+        analytics.trackRepeatBlockRoutineSuggestionShown(
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+            suggestion = testRepeatBlockPayload(),
+        )
+
+        val snapshot = analytics.eventsSnapshot()
+        analytics.trackRepeatBlockRoutineSuggestionClicked(
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+            suggestion = testRepeatBlockPayload(),
+        )
+
+        assertEquals(listOf("repeat_block_shown"), snapshot.map { it.name })
+        assertEquals(
+            listOf("repeat_block_shown", "repeat_block_clicked"),
+            analytics.eventsSnapshot().map { it.name },
         )
     }
 
@@ -217,16 +238,16 @@ class LockHistoryViewModelShareTest {
         )
 
         waitForHistoryLoad(viewModel)
-        waitUntil { analytics.events.any { it.name == "repeat_block_shown" } }
+        waitUntil { analytics.eventsSnapshot().any { it.name == "repeat_block_shown" } }
         assertNotNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
 
         viewModel.openRepeatBlockRoutineSuggestion()
-        waitUntil { analytics.events.any { it.name == "repeat_block_clicked" } }
+        waitUntil { analytics.eventsSnapshot().any { it.name == "repeat_block_clicked" } }
 
         viewModel.dismissRepeatBlockRoutineSuggestion()
-        waitUntil { analytics.events.any { it.name == "repeat_block_dismissed" } }
+        waitUntil { analytics.eventsSnapshot().any { it.name == "repeat_block_dismissed" } }
 
-        val repeatBlockSurfaces = analytics.events
+        val repeatBlockSurfaces = analytics.eventsSnapshot()
             .filter { it.name.startsWith("repeat_block_") }
             .map { it.surface }
         assertEquals(
@@ -259,7 +280,7 @@ class LockHistoryViewModelShareTest {
         analytics: RecordingLockHistoryAnalytics,
         expectedCount: Int,
     ) {
-        waitUntil { analytics.events.size >= expectedCount }
+        waitUntil { analytics.eventsSnapshot().size >= expectedCount }
     }
 
     private suspend fun waitUntil(predicate: () -> Boolean) {
@@ -268,6 +289,16 @@ class LockHistoryViewModelShareTest {
             delay(10)
         }
     }
+
+    private fun testRepeatBlockPayload(): RepeatBlockRoutineSuggestionAnalyticsPayload =
+        RepeatBlockRoutineSuggestionAnalyticsPayload(
+            reason = "repeat_app_block",
+            timeBucket = "30_59",
+            dayType = "weekday",
+            categoryBucket = "social",
+            repeatCountBucket = "3_4",
+            routineCoverageState = "none",
+        )
 
     private fun sessionInCurrentWeek(durationMillis: Long): LockHistoryEntity {
         val startOfWeek = LocalDate.now()
@@ -338,13 +369,18 @@ private data class ShareAnalyticsEvent(
 )
 
 private class RecordingLockHistoryAnalytics : KeepAnalytics {
-    val events = mutableListOf<ShareAnalyticsEvent>()
-    val screenViews = mutableListOf<String>()
+    private val lock = Any()
+    private val events = mutableListOf<ShareAnalyticsEvent>()
+    private val screenViews = mutableListOf<String>()
+
+    fun eventsSnapshot(): List<ShareAnalyticsEvent> = synchronized(lock) { events.toList() }
+
+    fun screenViewsSnapshot(): List<String> = synchronized(lock) { screenViews.toList() }
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
 
     override fun logScreenView(screenName: String) {
-        screenViews += screenName
+        synchronized(lock) { screenViews += screenName }
     }
 
     override fun setUserProperty(name: String, value: String) = Unit
@@ -370,14 +406,16 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         sessionCountBucket: String,
         durationMinutesBucket: String,
     ) {
-        events += ShareAnalyticsEvent(
-            name = "tapped",
-            periodType = periodType,
-            reportState = null,
-            sessionCountBucket = sessionCountBucket,
-            durationMinutesBucket = durationMinutesBucket,
-            topAppsCountBucket = null,
-            reason = null,
+        recordEvent(
+            ShareAnalyticsEvent(
+                name = "tapped",
+                periodType = periodType,
+                reportState = null,
+                sessionCountBucket = sessionCountBucket,
+                durationMinutesBucket = durationMinutesBucket,
+                topAppsCountBucket = null,
+                reason = null,
+            ),
         )
     }
 
@@ -386,26 +424,30 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         sessionCountBucket: String,
         durationMinutesBucket: String,
     ) {
-        events += ShareAnalyticsEvent(
-            name = "sheet_opened",
-            periodType = periodType,
-            reportState = null,
-            sessionCountBucket = sessionCountBucket,
-            durationMinutesBucket = durationMinutesBucket,
-            topAppsCountBucket = null,
-            reason = null,
+        recordEvent(
+            ShareAnalyticsEvent(
+                name = "sheet_opened",
+                periodType = periodType,
+                reportState = null,
+                sessionCountBucket = sessionCountBucket,
+                durationMinutesBucket = durationMinutesBucket,
+                topAppsCountBucket = null,
+                reason = null,
+            ),
         )
     }
 
     override fun trackFocusSummaryShareFailed(periodType: String, reason: String) {
-        events += ShareAnalyticsEvent(
-            name = "failed",
-            periodType = periodType,
-            reportState = null,
-            sessionCountBucket = null,
-            durationMinutesBucket = null,
-            topAppsCountBucket = null,
-            reason = reason,
+        recordEvent(
+            ShareAnalyticsEvent(
+                name = "failed",
+                periodType = periodType,
+                reportState = null,
+                sessionCountBucket = null,
+                durationMinutesBucket = null,
+                topAppsCountBucket = null,
+                reason = reason,
+            ),
         )
     }
 
@@ -415,14 +457,16 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         sessionCountBucket: String,
         durationMinutesBucket: String,
     ) {
-        events += ShareAnalyticsEvent(
-            name = "performance_summary_viewed",
-            periodType = periodType,
-            reportState = reportState,
-            sessionCountBucket = sessionCountBucket,
-            durationMinutesBucket = durationMinutesBucket,
-            topAppsCountBucket = null,
-            reason = null,
+        recordEvent(
+            ShareAnalyticsEvent(
+                name = "performance_summary_viewed",
+                periodType = periodType,
+                reportState = reportState,
+                sessionCountBucket = sessionCountBucket,
+                durationMinutesBucket = durationMinutesBucket,
+                topAppsCountBucket = null,
+                reason = null,
+            ),
         )
     }
 
@@ -430,14 +474,16 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         periodType: String,
         topAppsCountBucket: String,
     ) {
-        events += ShareAnalyticsEvent(
-            name = "top_apps_viewed",
-            periodType = periodType,
-            reportState = null,
-            sessionCountBucket = null,
-            durationMinutesBucket = null,
-            topAppsCountBucket = topAppsCountBucket,
-            reason = null,
+        recordEvent(
+            ShareAnalyticsEvent(
+                name = "top_apps_viewed",
+                periodType = periodType,
+                reportState = null,
+                sessionCountBucket = null,
+                durationMinutesBucket = null,
+                topAppsCountBucket = topAppsCountBucket,
+                reason = null,
+            ),
         )
     }
 
@@ -445,21 +491,25 @@ private class RecordingLockHistoryAnalytics : KeepAnalytics {
         surface: String,
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
-        events += repeatBlockEvent(name = "repeat_block_shown", surface = surface)
+        recordEvent(repeatBlockEvent(name = "repeat_block_shown", surface = surface))
     }
 
     override fun trackRepeatBlockRoutineSuggestionClicked(
         surface: String,
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
-        events += repeatBlockEvent(name = "repeat_block_clicked", surface = surface)
+        recordEvent(repeatBlockEvent(name = "repeat_block_clicked", surface = surface))
     }
 
     override fun trackRepeatBlockRoutineSuggestionDismissed(
         surface: String,
         suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
     ) {
-        events += repeatBlockEvent(name = "repeat_block_dismissed", surface = surface)
+        recordEvent(repeatBlockEvent(name = "repeat_block_dismissed", surface = surface))
+    }
+
+    private fun recordEvent(event: ShareAnalyticsEvent) {
+        synchronized(lock) { events += event }
     }
 
     private fun repeatBlockEvent(name: String, surface: String): ShareAnalyticsEvent = ShareAnalyticsEvent(
