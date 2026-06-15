@@ -19,6 +19,7 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
             "android_ci_exact_alarm_denied",
             "android_ci_exact_alarm_allowed",
             "release_focused_ui_smoke",
+            "release_prod_debug_smoke",
             "release_exact_alarm_default",
             "release_exact_alarm_denied",
             "release_exact_alarm_allowed",
@@ -125,6 +126,9 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
         self.assertIn("scripts/android_runtime_suites.py run-android-ci", android_ci)
         self.assertNotIn("scripts/android_runtime_suites.py run-connected android_ci_focused_runtime_smoke", android_ci)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_denied", release_qa)
+        self.assertIn("scripts/android_runtime_suites.py run-connected release_prod_debug_smoke --variant prodDebug", release_qa)
+        self.assertIn(":app:installProdDebug", release_qa)
+        self.assertIn("connectedProdDebugAndroidTest", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_exact_alarm_allowed", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected release_remaining_runtime", release_qa)
         self.assertIn("scripts/android_runtime_suites.py run-connected notification_denied_receiver notification_denied_emergency_unlock", release_qa)
@@ -152,6 +156,27 @@ class AndroidRuntimeSuitesManifestTest(unittest.TestCase):
                 "-Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine",
             ],
             run.call_args_list[2].args[0],
+        )
+
+    def test_run_connected_can_target_prod_debug_variant(self):
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(android_runtime_suites.subprocess, "run", return_value=completed) as run:
+            result = android_runtime_suites.run_connected_tests(
+                ["release_prod_debug_smoke"],
+                before=["./gradlew --console=plain :app:installProdDebug"],
+                variant="prodDebug",
+            )
+
+        self.assertEqual(0, result)
+        self.assertEqual(["./gradlew", "--console=plain", ":app:installProdDebug"], run.call_args_list[0].args[0])
+        self.assertEqual(
+            [
+                "./gradlew",
+                "--console=plain",
+                ":app:connectedProdDebugAndroidTest",
+                "-Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest",
+            ],
+            run.call_args_list[1].args[0],
         )
 
     def test_run_connected_continue_on_failure_runs_later_selectors_and_returns_failure(self):

@@ -1333,12 +1333,15 @@ Android skills가 설치된 환경에서는 `testing-setup`과 `android-cli` ski
 
 release/hotfix PR은 `Release instrumentation QA`에서 아래 순서로 release runtime gate를 실행한다. 세부 단계 source of truth는 `.github/workflows/release-qa.yml`, `scripts/android_runtime_suites.py`, `docs/ops/stopit/release-context.md`이며, 이 문서는 그 순서를 사람이 반복 실행하기 쉬운 checklist 형태로 풀어쓴 것이다. Android CI의 focused runtime smoke 목록과 섞지 말고, main-target release evidence에는 아래 Release QA 목록을 그대로 기록한다.
 
-Suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
+Suite sequence: `release_focused_ui_smoke` → `release_prod_debug_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
 
 ```bash
 cd <repo-root>
 ./gradlew :app:installDevDebug
 ./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
+./gradlew :app:installProdDebug
+./gradlew :app:connectedProdDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest
 ./gradlew :app:installDevDebug
 adb shell cmd appops reset com.uiery.keep.dev

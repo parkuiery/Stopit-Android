@@ -75,8 +75,8 @@ Stopit은 `develop`을 일상 개발 기본 브랜치로, `main`을 릴리즈/�
   - full release JVM/build gate: `:app:testDevDebugUnitTest`, `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `:app:assembleProdDebug`
   - full release QA also runs the same static policy unit-test bundle, including sensitive logging, manifest/backup policy, icon-only accessibility/stateDescription, locale string parity, and locale string quality checks, before release JVM/build work. The manifest contract fixes sensitive permissions, component exported flags, AccessibilityService binding/metadata, and backup/data-extraction XML include scope before emulator/runtime checks start.
   - Release instrumentation selector source of truth is `scripts/android_runtime_suites.py`; workflows own install/appops sequencing, while the manifest owns selector fragments. Android CI PR gate is intentionally separate; use the exact Release QA suite sequence below.
-  - suite sequence: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`
-  - Android 공식 `testing-setup` skill 기준 focused UI smoke: `com.uiery.keep.qa.StopitReleaseSmokeTest`
+  - suite sequence: `release_focused_ui_smoke` → `release_prod_debug_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`
+  - Android 공식 `testing-setup` skill 기준 focused UI smoke: `com.uiery.keep.qa.StopitReleaseSmokeTest` (`release_focused_ui_smoke` on DevDebug, `release_prod_debug_smoke` on ProdDebug / package `com.uiery.keep`)
   - exact alarm default gate: `adb shell cmd appops reset com.uiery.keep.dev` 후 아래 focused instrumentation을 실행
     - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
   - exact alarm denied gate: `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny` 후 아래 focused instrumentation을 순서대로 실행

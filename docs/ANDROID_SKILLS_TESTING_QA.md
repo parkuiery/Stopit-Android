@@ -50,15 +50,16 @@ Android `testing-setup` skill 기준으로 Stopit은 다음 계층을 사용한�
 
 Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml`, `scripts/android_runtime_suites.py`, `docs/ops/stopit/release-context.md`다. Workflow는 install/appops sequencing을 소유하고, `scripts/android_runtime_suites.py`는 instrumentation selector fragment만 소유한다. 이 문서는 release evidence 작성자와 QA 작업자가 그 계약을 사람 기준으로 빠르게 해석할 수 있게 같은 계약을 풀어쓴 운영 가이드다.
 
-현재 `Release instrumentation QA` job은 GitHub-hosted Android emulator에서 아래 suite 순서로 실행된다: `release_focused_ui_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
+현재 `Release instrumentation QA` job은 GitHub-hosted Android emulator에서 아래 suite 순서로 실행된다: `release_focused_ui_smoke` → `release_prod_debug_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
 
 1. static manifest/policy gate
    - `python3 -m unittest scripts.tests.test_android_manifest_contract`
    - 목적: emulator 기동 전에 `QUERY_ALL_PACKAGES` 목적 주석, notification/exact-alarm/boot permission, receiver/service/activity exported 계약, AccessibilityService binding/metadata, backup/data-extraction XML의 DB-only include scope를 고정한다.
    - 책임 분리: 이 정적 테스트는 XML shape drift를 빠르게 막고, `ManifestContractIntegrationTest`는 PackageManager가 실제 설치 package에서 receiver/service를 resolve하는 runtime 계약만 확인한다.
 2. Android testing skill 기반 focused release UI smoke
-   - `com.uiery.keep.qa.StopitReleaseSmokeTest`
-   - 목적: 앱 기동과 Compose navigation host 기본 smoke 확인
+   - `release_focused_ui_smoke`: `com.uiery.keep.qa.StopitReleaseSmokeTest` on DevDebug (`:app:connectedDevDebugAndroidTest` after `:app:installDevDebug`)
+   - `release_prod_debug_smoke`: `com.uiery.keep.qa.StopitReleaseSmokeTest` on ProdDebug (`:app:connectedProdDebugAndroidTest` after `:app:installProdDebug`, package `com.uiery.keep`)
+   - 목적: 앱 기동과 Compose navigation host 기본 smoke를 dev/prod flavor 모두에서 확인하고, prod flavor resource/manifest/Firebase 경로가 release gate에서 최소 1회 실제 설치·기동되는지 고정
 3. exact alarm default gate — fresh/default AppOps
    - `adb shell cmd appops reset com.uiery.keep.dev`
    - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
