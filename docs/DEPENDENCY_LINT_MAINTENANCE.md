@@ -374,9 +374,11 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 
 - Stopit이 AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 `com.google.dagger.hilt.android`, `com.google.dagger:hilt-android`, `com.google.dagger:hilt-compiler`의 `[2.59,)` 범위를 ignore한다.
 - 이 hold는 Hilt를 영구 보류한다는 뜻이 아니라, `AGP 9` 전환이 필요한 Android stack upgrade를 별도 toolchain lane에서 다루기 위한 안전장치다.
+- #928처럼 Kotlin plugin이 `Kotlin 2.4+`로 올라가면서 기존 `kotlinOptions.jvmTarget` 사용이 `Using 'jvmTarget: String' is an error`로 실패하는 경우도 같은 guard 대상이다. 현재 `app/build.gradle.kts`와 `core/kds/build.gradle.kts`가 `compilerOptions DSL`로 migration되기 전까지 `.github/dependabot.yml`은 `org.jetbrains.kotlin.android`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`의 `[2.4,)` 범위를 hold한다.
+- Kotlin 2.4+ 전환은 단순 Dependabot rerun이나 broad `android-gradle-patch-minor` merge가 아니라, build-script `compilerOptions DSL` migration, KSP/Compose 호환성 확인, Android CI/Release Build 검증을 포함한 별도 Kotlin/toolchain lane에서 처리한다.
 - AGP 9 전환 후보는 Gradle wrapper, AGP plugin, Kotlin, Compose compiler/BOM, KSP, Hilt plugin/runtime/compiler를 한 PR에 섞어 자동 merge하지 않고, compatibility matrix와 release/build verification을 명시한 `ready` issue/PR로 승격한다.
-- #914류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x`를 남긴다.
-- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ ignore가 빠지거나 이 문서가 #914 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
+- #914/#928류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x` 또는 `known-incompatible: Kotlin 2.4+ requires compilerOptions DSL migration while Stopit still uses kotlinOptions.jvmTarget`를 남긴다.
+- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ / Kotlin 2.4+ ignore가 빠지거나 이 문서가 #914/#928 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
 
 PR triage checklist:
 
