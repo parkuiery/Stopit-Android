@@ -364,6 +364,9 @@
     <string name="home_status_ready_description">立即开始拦截、更改应用，或为计划的专注时段设置计时器。</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
     <string name="home_status_keep_active_description">StopIt 正在守护你的时间。只有需要调整本次时段时才使用辅助操作。</string>
+    <string name="home_status_timed_lock_active_title">%1$d apps are protected until the timer ends</string>
+    <string name="home_status_timed_lock_active_description">Your timed lock is active. Change the time only if the current plan needs adjusting.</string>
+    <string name="home_primary_status_timed_lock_active">Timer lock is active</string>
     <string name="home_primary_cta_select_apps">选择要阻止的应用</string>
     <string name="home_primary_cta_start_now">立即开始阻止</string>
     <string name="home_primary_status_keep_active">Protection is active</string>

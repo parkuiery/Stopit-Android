@@ -105,4 +105,35 @@ class HomeStatusCtaCardIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.home_secondary_lock_history)).assertIsDisplayed()
         composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_timer)).assertCountEquals(0)
     }
+
+    @Test
+    fun timedLockActiveShowsTimerStatusWithChangeTimeSecondaryAction() {
+        composeRule.setContent {
+            KeepTheme {
+                HomeStatusCtaCard(
+                    model = buildHomeStatusCtaModel(
+                        isKeep = false,
+                        selectedAppCount = 2,
+                        showFirstLockActivationCta = false,
+                        showRoutineCreationCta = true,
+                        hasGoalLockCard = false,
+                        hasActiveTimedLock = true,
+                    ),
+                    onPrimaryClick = {},
+                    onChangeAppsClick = {},
+                    onTimerClick = {},
+                    onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("home_status_cta_card").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_status_timed_lock_active_title, 2)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_primary_status_timed_lock_active)).assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithText(context.getString(R.string.home_secondary_change_apps)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_secondary_timer)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_secondary_lock_history)).assertIsDisplayed()
+        composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_create_routine)).assertCountEquals(0)
+    }
 }

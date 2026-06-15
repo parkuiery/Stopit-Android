@@ -82,6 +82,7 @@ class HomeViewModel
 
         init {
             getIsKeep()
+            getActiveTimedLock()
             getSelectedApp()
             getRoutineCreationCta()
             syncRoutinesCount()
@@ -588,6 +589,17 @@ class HomeViewModel
                 }
             }
 
+        private fun getActiveTimedLock() =
+            intent {
+                val storedDeadline = blockingStateStore.readLockTime()
+                val isActive = ManualLockTimePolicy.isActiveAt(
+                    storedDeadline = storedDeadline,
+                    now = java.time.Instant.now(),
+                    zone = ZoneId.systemDefault(),
+                )
+                reduce { state.copy(hasActiveTimedLock = isActive) }
+            }
+
         internal fun updateCountdownDuration(duration: CountdownDuration) =
             intent {
                 val blockTime =
@@ -665,7 +677,7 @@ class HomeViewModel
                 val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
                 blockingStateStore.saveLockTime(encodedDeadline)
                 blockingStateStore.saveStartTime(sessionStartTime)
-                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline) }
+                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline, hasActiveTimedLock = true) }
                 val lockedDurationMinutes = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     state.countdownDurationMinutes()
                 } else {
@@ -784,6 +796,7 @@ data class HomeUiState(
     val showRoutineCreationCta: Boolean = false,
     val routineCount: Int = 0,
     val pendingManualLockRouteDeadline: String? = null,
+    val hasActiveTimedLock: Boolean = false,
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
 ) {

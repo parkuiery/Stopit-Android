@@ -23,6 +23,7 @@ enum class HomeStatusKind {
     FIRST_LOCK_READY,
     READY,
     KEEP_ACTIVE,
+    TIMED_LOCK_ACTIVE,
 }
 
 fun buildHomeStatusCtaModel(
@@ -31,10 +32,12 @@ fun buildHomeStatusCtaModel(
     showFirstLockActivationCta: Boolean,
     showRoutineCreationCta: Boolean,
     hasGoalLockCard: Boolean,
+    hasActiveTimedLock: Boolean = false,
 ): HomeStatusCtaModel {
     val hasSelectedApps = selectedAppCount > 0
     val statusKind = when {
         isKeep -> HomeStatusKind.KEEP_ACTIVE
+        hasActiveTimedLock -> HomeStatusKind.TIMED_LOCK_ACTIVE
         !hasSelectedApps -> HomeStatusKind.NO_SELECTED_APPS
         showFirstLockActivationCta -> HomeStatusKind.FIRST_LOCK_READY
         else -> HomeStatusKind.READY
@@ -81,6 +84,20 @@ fun buildHomeStatusCtaModel(
             showChangeAppsSecondary = true,
             showLockHistorySecondary = true,
             showRoutineCreationSecondary = showRoutineCreationCta,
+            showGoalLockStatus = hasGoalLockCard,
+        )
+        HomeStatusKind.TIMED_LOCK_ACTIVE -> HomeStatusCtaModel(
+            statusKind = statusKind,
+            titleResId = R.string.home_status_timed_lock_active_title,
+            descriptionResId = R.string.home_status_timed_lock_active_description,
+            primaryCtaResId = R.string.home_primary_status_timed_lock_active,
+            selectedAppCount = selectedAppCount,
+            shouldOpenAppSelection = false,
+            shouldToggleKeep = false,
+            timerEnabled = true,
+            showChangeAppsSecondary = true,
+            showLockHistorySecondary = true,
+            showRoutineCreationSecondary = false,
             showGoalLockStatus = hasGoalLockCard,
         )
         HomeStatusKind.KEEP_ACTIVE -> HomeStatusCtaModel(
