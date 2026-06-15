@@ -20,6 +20,23 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      - dependency-name: "com.google.dagger.hilt.android"
+        # #925: Hilt 2.59+ requires AGP 9. Keep Stopit on the AGP 8.x
+        # toolchain until a dedicated Android stack/toolchain lane upgrades AGP,
+        # Gradle, Kotlin, KSP, Compose, and Hilt together.
+        versions:
+          - "[2.59,)"
+      - dependency-name: "com.google.dagger:hilt-android"
+        # Same AGP 9 boundary as the Hilt Gradle plugin above. Do not let the
+        # broad android-gradle-patch-minor group recreate #914's known-incompatible
+        # Hilt 2.59.x + AGP 8.x Gradle configuration failure.
+        versions:
+          - "[2.59,)"
+      - dependency-name: "com.google.dagger:hilt-compiler"
+        # Keep Hilt runtime/compiler/plugin aligned; release together from a
+        # dedicated toolchain PR after AGP 9 readiness is explicit.
+        versions:
+          - "[2.59,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"

@@ -121,6 +121,36 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, runbook)
 
+    def test_android_gradle_stack_known_incompatible_hilt_is_held(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
+
+        for dependency in [
+            "com.google.dagger.hilt.android",
+            "com.google.dagger:hilt-android",
+            "com.google.dagger:hilt-compiler",
+        ]:
+            with self.subTest(dependency=dependency):
+                self.assertRegex(
+                    config,
+                    rf"dependency-name:\s*[\"']{re.escape(dependency)}[\"'][\s\S]*?versions:\s*\n\s*-\s*[\"']\[2\.59,\)[\"']",
+                    "#925 requires holding Hilt 2.59+ while Stopit remains on AGP 8.x",
+                )
+
+        for required in [
+            "Android Gradle stack compatibility guard (#925)",
+            "Hilt 2.59+",
+            "AGP 9",
+            "AGP 8.x",
+            "android-gradle-patch-minor",
+            "known-incompatible",
+            "#914",
+            "Gradle configuration 단계",
+            "별도 toolchain lane",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, docs)
+
 
 if __name__ == "__main__":
     unittest.main()
