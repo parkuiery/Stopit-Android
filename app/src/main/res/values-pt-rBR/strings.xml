@@ -29,6 +29,7 @@
     <string name="keep_turned_off">StopIt foi desligado</string>
     <string name="block_screen_title">Pausa por um momento — você está cumprindo sua promessa</string>
     <string name="block_screen_message">%1$s está em pausa agora. Feche esta tela e volte ao que estava fazendo.</string>
+    <string name="block_screen_routine_active_reason">Uma rotina ativa está protegendo este horário. Se você realmente precisar de uma exceção rápida, use o desbloqueio de emergência.</string>
     <string name="block_screen_first_core_action_feedback">O primeiro bloqueio funcionou. O StopIt continuará bloqueando os apps selecionados enquanto o StopIt estiver ativado.</string>
     <string name="block_screen_close">Voltar ao que eu estava fazendo</string>
     <string name="hour">Hora</string>

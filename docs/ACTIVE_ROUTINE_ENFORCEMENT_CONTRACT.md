@@ -15,6 +15,7 @@ Issue: #609
 | 실행 중 루틴 OFF/toggle 우회 차단 | 완료 | PR #815: `RoutineListActionPolicyTest`, `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState` |
 | 실행 중 루틴 삭제 우회 차단 | 완료 | PR #825: 삭제 전 최신 routine state 재확인, `ShowActiveRoutineBlocked` 안내 유지 |
 | 안내 copy/locale | 완료 | `routine_active_action_blocked_message` shipped locale parity, 비징벌적 안내 톤 |
+| 차단 화면 루틴 사유 안내 | 완료 | `BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary`, `block_screen_routine_active_reason` shipped locale parity |
 | QA evidence template | 완료 | `docs/QA_RUNTIME_CHECKLIST.md#활성-루틴-보호-ux-qa-baseline` |
 
 ## 제품 정책
@@ -24,6 +25,7 @@ Issue: #609
 3. 차단/보호 정책은 처벌이 아니라 사용자가 미리 정한 약속을 지켜주는 안내로 표현한다.
 4. 허용된 임시 예외 경로는 긴급 해제다. 활성 루틴 보호 UX는 긴급 해제 자체를 막거나 의미를 바꾸지 않는다.
 5. stale UI state 때문에 루틴이 이미 활성/변경잠금 상태가 되었는데도 이전 화면 상태로 update/delete/cancel/reschedule이 실행되면 실패로 본다. action 직전에 Room/repository 최신 상태를 다시 확인해야 한다.
+6. 루틴 때문에 `BlockActivity`가 열린 경우 차단 화면은 generic 차단 copy만 보여주지 않고, 실행 중인 루틴이 현재 시간을 보호하고 있으며 긴급 해제는 짧은 예외 경로라는 점을 비징벌적으로 설명해야 한다.
 
 ## Analytics / 지표 해석
 
@@ -47,7 +49,7 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
   --tests 'com.uiery.keep.feature.routine.RoutineListActionPolicyTest'
 ./gradlew --console=plain :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState,com.uiery.keep.BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary
 python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 ./gradlew --console=plain :app:lintProdRelease
 ```
@@ -60,6 +62,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - `BlockActivity`가 즉시 뜨고 `block_source=routine`, `routine_id` attribution이 유지된다.
 - 실행 중 루틴을 수정/삭제/OFF 하려고 하면 실제 상태가 바뀌지 않고 안내 snackbar가 보인다.
 - 긴급 해제는 임시 예외로 계속 접근 가능하다.
+- 루틴 때문에 열린 차단 화면은 `block_screen_routine_active_reason` copy를 보여주며 긴급 해제 CTA를 보조 action으로 유지한다.
 - copy tone은 사용자를 비난하거나 겁주는 표현이 아니라 "지금은 실행 중인 루틴이라 변경할 수 없다"는 중립 안내다.
 - light/dark, 주요 locale, TalkBack에서 안내가 이해 가능하다.
 

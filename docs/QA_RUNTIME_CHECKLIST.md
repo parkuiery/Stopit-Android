@@ -921,7 +921,7 @@ cd <repo-root>
   --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest' \
   --tests 'com.uiery.keep.feature.routine.RoutineListActionPolicyTest'
 ./gradlew --console=plain :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest#foregroundAppBecomesBlockedWhenRoutineStartTimeArrives,com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState,com.uiery.keep.BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary
 python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 ./gradlew --console=plain :app:lintProdRelease
 ```
@@ -933,11 +933,13 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - 실행 중인 루틴 삭제는 repository delete/cancel 경로로 들어가지 않고 같은 안내 side effect를 발생시키며, edit sheet는 닫지 않아 사용자가 제한 이유를 확인할 수 있어야 한다. 비활성 루틴 삭제만 repository delete 성공 후 close side effect로 edit sheet를 닫는다.
 - 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
 - 루틴 목록 switch를 직접 탭해 OFF를 시도해도 `RoutineListActionPolicyTest` / `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState`가 toggle callback 대신 blocked feedback callback을 고정한다.
+- 루틴 때문에 열린 차단 화면은 `BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary`로 `block_screen_routine_active_reason` 사유 copy와 보조 action인 긴급 해제 CTA가 함께 보이는지 고정한다.
 - 루틴 목록 state가 잠시 stale이어도 삭제/OFF action 직전에 repository의 최신 routine을 다시 읽어, 그 사이 활성/변경잠금 상태가 된 루틴이면 delete/update/cancel/reschedule을 수행하지 않는다.
 - edit sheet가 열린 뒤 루틴 시간이 시작된 경우에도 저장 직전에 Room의 최신 routine 상태를 다시 확인하고, 활성/변경잠금 상태면 `RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked`만 발생하며 update/cancel/reschedule을 수행하지 않는다.
 - Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
 - 안내 문구는 긴급 해제를 안전한 임시 예외로 안내하되 사용자를 비난하거나 처벌하는 톤을 쓰지 않는다.
 - locale release gate를 위해 `routine_active_action_blocked_message`는 모든 shipped `values*/strings.xml`에 존재해야 하며, localized resources에 default English copy가 그대로 남으면 `scripts.tests.test_active_routine_enforcement_contract`가 실패해야 한다.
+- `block_screen_routine_active_reason`도 모든 shipped `values*/strings.xml`에 존재해야 하며, localized resources에 default English copy가 그대로 남으면 `scripts.tests.test_active_routine_enforcement_contract`가 실패해야 한다.
 
 수동 QA evidence template:
 
@@ -951,6 +953,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
   - focused command run: pass / fail
   - target app foreground observed before block: pass / fail
   - `block_source=routine` and `routine_id` attribution recorded: pass / fail
+- Block screen reason copy visible (`block_screen_routine_active_reason`): pass / fail
 - Edit attempt while active:
   - edit sheet not opened: pass / fail
   - snackbar visible: pass / fail

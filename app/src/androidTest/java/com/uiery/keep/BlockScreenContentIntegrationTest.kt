@@ -18,6 +18,7 @@ import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.feature.routine.RepeatBlockSuggestionReason
 import com.uiery.keep.feature.routine.RepeatBlockTimeBucket
 import com.uiery.keep.feature.routine.RoutineCoverageState
+import com.uiery.keep.lockscreen.LockScreenMode
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
@@ -82,6 +83,32 @@ class BlockScreenContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_daily_limit_reached)).assertIsDisplayed()
         composeRule.onNodeWithTag("block_screen_emergency_unlock_helper").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_daily_limit_reached_helper)).assertIsDisplayed()
+        composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary() {
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    blockMode = LockScreenMode.Routine,
+                    uiState = BlockUiState(
+                        dailyUnlockRemaining = 2,
+                        emergencyUnlockDailyLimit = 3,
+                        emergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
+                    ),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("block_screen_copy_area").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.block_screen_routine_active_reason)).assertIsDisplayed()
+        composeRule.onNodeWithTag("block_screen_emergency_unlock_action").assertIsDisplayed().assertIsEnabled()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_with_count, 2, 3)).assertIsDisplayed()
         composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
     }
 

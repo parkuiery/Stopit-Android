@@ -29,6 +29,7 @@
     <string name="keep_turned_off">StopIt wurde ausgeschaltet</string>
     <string name="block_screen_title">Kurz innehalten — du hältst dein Versprechen</string>
     <string name="block_screen_message">%1$s ist gerade pausiert. Schließe diesen Bildschirm und kehre zu deiner Aufgabe zurück.</string>
+    <string name="block_screen_routine_active_reason">Eine aktive Routine schützt diese Zeit. Wenn du wirklich kurz eine Ausnahme brauchst, nutze die Notfall-Entsperrung.</string>
     <string name="block_screen_first_core_action_feedback">Die erste Blockierung hat funktioniert. StopIt blockiert die ausgewählten Apps weiter, solange StopIt eingeschaltet ist.</string>
     <string name="block_screen_close">Zur Aufgabe zurückkehren</string>
     <string name="hour">Stunde</string>

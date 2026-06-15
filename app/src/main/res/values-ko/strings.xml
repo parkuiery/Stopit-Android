@@ -41,6 +41,7 @@
     <string name="category_selected">%1$d개의 앱&amp;웹 카테고리 선택됨</string>
     <string name="block_screen_title">잠깐, 지금은 지키는 중이에요</string>
     <string name="block_screen_message">%1$s은(는) 지금 잠시 멈춰 있어요. 닫고 하던 일로 돌아가볼까요?</string>
+    <string name="block_screen_routine_active_reason">실행 중인 루틴이 이 시간대를 지켜주고 있어요. 잠깐 꼭 필요한 예외라면 긴급 해제를 사용할 수 있어요.</string>
     <string name="block_screen_first_core_action_feedback">첫 차단이 정상 작동했어요. 스탑잇이 켜져 있는 동안 선택한 앱을 계속 막아드릴게요.</string>
     <string name="block_screen_close">하던 일로 돌아가기</string>
     <string name="permission_dialog_title">앱 잠금 기능을 사용하시려면 접근성 권한이 필요해요.</string>

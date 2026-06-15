@@ -42,6 +42,7 @@
     <string name="keep_on_status">StopIt включен</string>
     <string name="block_screen_title">Сделайте паузу — вы держите свое обещание</string>
     <string name="block_screen_message">%1$s сейчас приостановлено. Закройте этот экран и вернитесь к своему делу.</string>
+    <string name="block_screen_routine_active_reason">Активная рутина защищает это время. Если действительно нужно короткое исключение, используйте экстренную разблокировку.</string>
     <string name="block_screen_first_core_action_feedback">Первая блокировка сработала. StopIt продолжит блокировать выбранные приложения, пока StopIt включён.</string>
     <string name="block_screen_close">Вернуться к своему делу</string>
     <string name="permission_dialog_title">Для использования функции блокировки приложений требуется разрешение на доступность.</string>

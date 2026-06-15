@@ -45,6 +45,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.lockscreen.LockScreenMode
 import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
@@ -147,6 +148,7 @@ fun BlockScreen(
     BlockScreenContent(
         modifier = modifier,
         appName = appName,
+        blockMode = lockScreenEntry.mode,
         uiState = uiState,
         onShowEmergencyUnlock = viewModel::showEmergencyUnlockSheet,
         onOpenRoutineSuggestion = viewModel::openRepeatBlockRoutineSuggestion,
@@ -158,6 +160,7 @@ fun BlockScreen(
 @Composable
 internal fun BlockScreenContent(
     appName: String,
+    blockMode: LockScreenMode = LockScreenMode.ManualKeep,
     uiState: BlockUiState,
     onShowEmergencyUnlock: () -> Unit,
     onOpenRoutineSuggestion: () -> Unit = {},
@@ -226,6 +229,21 @@ internal fun BlockScreenContent(
                     textAlign = TextAlign.Center,
                     color = KeepTheme.colors.surfaceVariant,
                 )
+                if (blockMode == LockScreenMode.Routine) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KeepTheme.colors.onSecondary)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        text = stringResource(id = R.string.block_screen_routine_active_reason),
+                        textAlign = TextAlign.Center,
+                        color = KeepTheme.colors.surfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
                 uiState.timedLockDeadline?.let { deadline ->
                     Spacer(modifier = Modifier.height(20.dp))
                     CountDownContent(

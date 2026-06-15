@@ -42,6 +42,7 @@
     <string name="keep_on_status">StopItがオンです</string>
     <string name="block_screen_title">少し立ち止まろう。約束を守れているところです</string>
     <string name="block_screen_message">%1$sは今いったん停止中です。この画面を閉じて、やっていたことに戻りましょう。</string>
+    <string name="block_screen_routine_active_reason">実行中のルーティンがこの時間を守っています。短い例外が本当に必要な場合は、緊急解除を使えます。</string>
     <string name="block_screen_first_core_action_feedback">最初のブロックが正常に動作しました。StopItがオンの間、選択したアプリをブロックし続けます。</string>
     <string name="block_screen_close">やっていたことに戻る</string>
     <string name="permission_dialog_title">アプリロック機能を使用するには、アクセシビリティ権限が必要です。</string>
