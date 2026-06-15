@@ -242,7 +242,7 @@ PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 Parent Mode s
 
 2026-06-14 code-lane follow-through에서는 같은 setup 화면의 `직접 설정` 시간 선택 runway를 닫았다. `ParentModeSetupViewModel.updateCustomDurationInput(...)`은 숫자만 받아 custom minute 값을 `durationMinutes` source of truth로 동기화하고, setup UI는 preset chip 옆에 직접 입력 필드를 제공한다. 따라서 Parent Mode MVP의 시간 선택은 이제 10/20/30분 preset뿐 아니라 직접 분 단위 입력까지 repo-internal baseline에 포함된다.
 
-PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/active/expired 화면의 접근성 요약도 repo-internal baseline에 포함된다. `ParentModeSetupScreenAccessibilityTest`는 setup summary, active/expired TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 Compose instrumentation으로 반복 검증한다. 이 baseline은 실제 release-candidate 기기의 스크린샷/TalkBack spot-check를 대체하지는 않지만, docs/QA lane이 더 이상 "Parent Mode active/expired TalkBack baseline 미정의" 상태로 되돌리지 않도록 한다.
+PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/active/expired 화면의 접근성 요약도 repo-internal baseline에 포함된다. `ParentModeSetupScreenAccessibilityTest`는 setup summary, active/expired TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 Compose instrumentation으로 반복 검증한다. 2026-06-15 code-lane follow-through는 active controls에 fresh guardian PIN 입력/확인 필드를 노출하고, verified PIN이 다시 입력되기 전에는 연장/즉시 종료 CTA가 disabled 상태로 남는 baseline을 추가했다. 이 baseline은 실제 release-candidate 기기의 스크린샷/TalkBack spot-check를 대체하지는 않지만, docs/QA lane이 더 이상 "Parent Mode active/expired TalkBack baseline 미정의" 또는 "PIN 없는 active 연장/종료 허용" 상태로 되돌리지 않도록 한다.
 
 2026-06-14 QA-lane PR에서는 issue #874의 stale Active 액션 경계를 닫았다. active controls가 열린 채 `expiresAtMillis`를 지나면 화면은 만료 시각까지 delay 후 재조회하고, 연장/즉시 종료 액션도 먼저 만료를 확정한다. 따라서 만료된 session은 verified PIN이 있어도 stale expiry 기준으로 10분 연장되지 않고, `unlocked_by_pin`으로 오계측되지 않으며, `expired` state + `parent_mode_completed(end_reason=time_expired)`로 1회 commit된다.
 
@@ -251,13 +251,13 @@ PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/act
 - `ParentModeSetupScreen`: active session의 `expiresAtMillis`까지 남은 시간을 계산해 자동 refresh를 예약한다.
 - `ParentModePolicyTest`, `ParentModeSessionControllerTest`, `ParentModeSetupViewModelTest`: stale Active 연장/종료 차단, 자동 refresh delay 계산, `TIME_EXPIRED` analytics 경계를 검증한다.
 
-- `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
-- `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신한다.
-- `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
+- `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, active controls fresh guardian PIN 입력/확인 필드, 10분 연장 CTA, 보호자 PIN 종료 CTA를 제공한다.
+- `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`를 호출해 session 저장소와 화면 state를 함께 갱신하고, active controls가 fresh PIN 재입력 전에는 연장/종료를 시도하지 못하도록 guardian PIN input을 검증한다.
+- `ParentModeSetupViewModelTest`: 직접 입력한 custom duration으로 session이 시작되는지, active controls fresh guardian PIN 재입력 전 연장/종료가 차단되는지, verified PIN 기반 10분 연장, 즉시 종료, 만료 상태 동기화가 DataStore session과 화면 `activeSession`에 반영되는지 검증한다.
 
 ### 다음 경계
 
-- repo-internal baseline: PR #748/#870/#873에서 active/expired control ViewModel·Controller·Store·Policy regression, 직접 분 입력, locale/contract tests, AccessibilityService active/expired instrumentation, setup/active/expired accessibility summary baseline이 current-head green으로 확인됐다. 이 상태를 “active controls 구현 전”, “직접 설정 미구현”, “TalkBack baseline 미정의”로 되돌리지 않는다.
+- repo-internal baseline: PR #748/#870/#873와 2026-06-15 code-lane active-PIN follow-through에서 active/expired control ViewModel·Controller·Store·Policy regression, 직접 분 입력, active controls fresh guardian PIN 입력/확인, locale/contract tests, AccessibilityService active/expired instrumentation, setup/active/expired accessibility summary baseline이 current-head green으로 확인됐다. 이 상태를 “active controls 구현 전”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”으로 되돌리지 않는다.
 - 남은 manual/release boundary: release-candidate device UX spot-check, 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy 포함, GA4 Admin metadata/queryability, D+14/D+30 readback.
 
 남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 release-candidate device UX spot-check, 실제 기기 screenshot/TalkBack evidence, release/readback 경계를 이어 붙이는 방향으로 잡는다.

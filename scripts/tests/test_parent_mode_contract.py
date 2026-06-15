@@ -165,6 +165,8 @@ class ParentModeContractTest(unittest.TestCase):
             "unlocked_by_pin`으로 오계측되지 않으며",
             "자동 refresh를 예약",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
+            "active controls fresh guardian PIN 입력/확인",
+            "PIN 없는 active 연장/종료 허용",
             "ParentModeSetupViewModelTest",
             "release-candidate device UX spot-check",
         ]:

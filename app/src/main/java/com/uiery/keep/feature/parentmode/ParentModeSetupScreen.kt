@@ -141,7 +141,11 @@ internal fun ParentModeSetupScreen(
                 )
             } else {
                 ParentModeActiveControls(
+                    state = state,
                     session = activeSession,
+                    pinMismatch = pinMismatch,
+                    onGuardianPinChanged = viewModel::updateGuardianPin,
+                    onGuardianPinConfirmationChanged = viewModel::updateGuardianPinConfirmation,
                     onRefresh = viewModel::refreshActiveSessionStatus,
                     onExtend = viewModel::extendActiveSessionByTenMinutes,
                     onEnd = viewModel::endActiveSessionFromSetupInput,
@@ -307,7 +311,11 @@ internal fun ParentModeSetupForm(
 
 @Composable
 internal fun ParentModeActiveControls(
+    state: ParentModeSetupUiState,
     session: ParentModeSession,
+    pinMismatch: Boolean,
+    onGuardianPinChanged: (String) -> Unit,
+    onGuardianPinConfirmationChanged: (String) -> Unit,
     onRefresh: () -> Unit,
     onExtend: () -> Unit,
     onEnd: () -> Unit,
@@ -357,16 +365,41 @@ internal fun ParentModeActiveControls(
             text = stringResource(id = R.string.parent_mode_active_pin_notice),
             color = KeepTheme.colors.onSurfaceVariant,
         )
+        SetupTextField(
+            value = state.guardianPin,
+            onValueChange = onGuardianPinChanged,
+            placeholder = stringResource(id = R.string.parent_mode_setup_pin_label),
+            keyboardType = KeyboardType.NumberPassword,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        SetupTextField(
+            value = state.guardianPinConfirmation,
+            onValueChange = onGuardianPinConfirmationChanged,
+            placeholder = stringResource(id = R.string.parent_mode_setup_pin_confirm_label),
+            keyboardType = KeyboardType.NumberPassword,
+            visualTransformation = PasswordVisualTransformation(),
+            isError = pinMismatch,
+        )
+        if (pinMismatch || ParentModeSetupIssue.PinNotVerified in state.setupIssues) {
+            Text(
+                text = stringResource(id = R.string.parent_mode_setup_pin_mismatch),
+                color = KeepTheme.colors.error,
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
+            )
+        }
+        val canUseGuardianAction = session.state == ParentModeSessionState.Active &&
+            state.pinState == ParentModePinState.Verified
         Button(
             modifier = Modifier.fillMaxWidth(),
-            enabled = session.state == ParentModeSessionState.Active,
+            enabled = canUseGuardianAction,
             onClick = onExtend,
         ) {
             Text(text = stringResource(id = R.string.parent_mode_active_extend_ten_minutes))
         }
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
-            enabled = session.state == ParentModeSessionState.Active,
+            enabled = canUseGuardianAction,
             onClick = onEnd,
         ) {
             Text(text = stringResource(id = R.string.parent_mode_active_end_now))
