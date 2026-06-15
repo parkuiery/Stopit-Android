@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDateTime
@@ -328,6 +329,42 @@ class BlockViewModelTest {
         )
         assertEquals("rapid_retry", analytics.repeatBlockEvents.single().payload.reason)
         assertEquals("social", analytics.repeatBlockEvents.single().payload.categoryBucket)
+    }
+
+    @Test
+    fun goalLockBlockSuppressesPostBlockSuccessRepeatBlockSuggestion() = runBlocking {
+        val analytics = BlockRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+            ),
+        )
+        val now = LocalDateTime.now()
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            lockHistoryRepository = LockHistoryRepository(
+                LockHistoryDaoWithSessions(
+                    listOf(
+                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                    ),
+                ),
+            ),
+        )
+
+        viewModel.trackBlockShown(
+            packageName = "com.instagram.android",
+            blockSource = AnalyticsBlockSource.GOAL_LOCK,
+            routineId = null,
+            goalLockId = "goal-1",
+        )
+        delay(100)
+
+        assertNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
+        assertEquals(emptyList<RepeatBlockAnalyticsCall>(), analytics.repeatBlockEvents)
     }
 
     @Test

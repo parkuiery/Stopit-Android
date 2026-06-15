@@ -40,6 +40,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "dismiss는 privacy-safe store",
             "active emergency unlock runtime state",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
+            "BlockViewModelTest.goalLockBlockSuppressesPostBlockSuccessRepeatBlockSuggestion",
             "post_block_success BlockActivity CTA/navigation 구현",
             "PR #923",
             "BlockActivity → MainActivity → RoutineRoute",

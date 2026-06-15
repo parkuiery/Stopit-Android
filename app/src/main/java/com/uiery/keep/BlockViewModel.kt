@@ -140,7 +140,11 @@ class BlockViewModel
                 )
                 blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
             }
-            val suggestion = loadPostBlockRepeatBlockRoutineSuggestion()
+            val suggestion = if (blockSource.shouldShowPostBlockRepeatBlockSuggestion()) {
+                loadPostBlockRepeatBlockRoutineSuggestion()
+            } else {
+                null
+            }
             reduce { state.copy(repeatBlockRoutineSuggestion = suggestion) }
             if (suggestion != null) {
                 analytics.trackRepeatBlockRoutineSuggestionShown(
@@ -310,6 +314,8 @@ internal fun String?.orDefaultBlockSource(): String =
         AnalyticsBlockSource.PARENT_MODE -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }
+
+private fun String.shouldShowPostBlockRepeatBlockSuggestion(): Boolean = this != AnalyticsBlockSource.GOAL_LOCK
 
 private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
     reason = reason.analyticsValue,
