@@ -29,6 +29,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "HomeViewModel",
             "RoutineCountAnalyticsSync",
             "#875",
+            "PR #881",
             "Room DAO 직접 import",
             "허용 경계",
             "Closure audit",
@@ -51,17 +52,20 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
         text = DOC.read_text(encoding="utf-8")
         self.assertIn("Closure audit", text)
         self.assertIn("repo-internal DAO boundary package is complete for the original #520 inventory", text)
-        self.assertIn("Open #875 exception", text)
-        self.assertIn("repository/count-provider/use-case", text)
+        self.assertIn("PR #881", text)
+        self.assertIn("repo-internal DAO boundary package is complete for #875", text)
+        self.assertIn("RoutineRepository / RoutineModel", text)
         self.assertIn("future regression 발견 시", text)
         self.assertNotIn("직접 DAO 의존은 아직 #520의 후속 패키지 대상", text)
+        self.assertNotIn("Open #875 exception", text)
+        self.assertNotIn("repository/count-provider/use-case 경계로 분리해야 한다", text)
 
     def test_doc_links_home_routines_count_exception_to_coverage_contract(self):
         text = DOC.read_text(encoding="utf-8")
         for expected in (
-            "Home `routines_count` analytics sync boundary — open #875",
+            "Home `routines_count` analytics sync boundary — #875 completed",
             "#479는 `routines_count=(not set)` 감소를 release/readback으로 검증하는 지표 이슈",
-            "#875는 같은 coverage foothold를 유지하면서 DAO/Entity 결합을 repository/use-case 경계로 분리",
+            "#875는 같은 coverage foothold를 유지하면서 DAO/Entity 결합을 RoutineRepository / RoutineModel 경계로 분리",
             "HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry",
             "SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation",
         ):
