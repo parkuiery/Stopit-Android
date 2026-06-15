@@ -208,7 +208,7 @@ cd <repo-root>
 
 ### Home status / CTA hierarchy QA evidence
 
-issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth로 보고, 홈 화면이 텍스트만으로도 현재 상태와 다음 행동을 구분하는지 확인한다. 이 docs-lane 계약 자체는 구현 완료가 아니며, Home code/resource/locale/test/visual QA가 들어가기 전에는 PR body에 `Refs #463`를 사용한다.
+issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth로 보고, 홈 화면이 텍스트만으로도 현재 상태와 다음 행동을 구분하는지 확인한다. PR #500/PR #606/PR #948 이후 Home code/resource/locale/JVM+Compose baseline은 `develop`에 반영됐으므로 구현 전 handoff로 되돌리지 않는다. 남은 QA 경계는 실제 기기 screenshot/visual/TalkBack spot-check와 release/tag/Play deploy 이후 readback이다.
 
 자동 baseline:
 

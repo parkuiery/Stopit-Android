@@ -10,15 +10,21 @@ def read(path: str) -> str:
 
 
 class HomeStatusCtaStructureContractTest(unittest.TestCase):
-    def test_source_of_truth_defines_issue_scope_and_not_implementation_completion(self) -> None:
+    def test_source_of_truth_defines_landed_state_and_external_boundaries(self) -> None:
         doc = read("docs/HOME_STATUS_CTA_STRUCTURE.md")
 
         self.assertIn("Issue: #463", doc)
-        self.assertIn("구현 완료가 아니다", doc)
+        self.assertIn("PR #500", doc)
+        self.assertIn("PR #606", doc)
+        self.assertIn("PR #948", doc)
+        self.assertIn("TIMED_LOCK_ACTIVE", doc)
+        self.assertIn("release-candidate 실제 기기 visual/TalkBack evidence", doc)
+        self.assertIn("D+14/D+30", doc)
         self.assertIn("Refs #463", doc)
         self.assertIn("Closes #463", doc)
-        self.assertIn("Home UI/resource/test/locale parity/QA evidence", doc)
         self.assertNotIn("Docs-only PR: `Closes #463`", doc)
+        self.assertNotIn("구현 전 source of truth", doc)
+        self.assertNotIn("code-lane 구현 전", doc)
 
     def test_home_contract_keeps_status_and_cta_hierarchy_explicit(self) -> None:
         doc = read("docs/HOME_STATUS_CTA_STRUCTURE.md")
@@ -48,6 +54,9 @@ class HomeStatusCtaStructureContractTest(unittest.TestCase):
             "HomeViewModel.kt",
             "HomeStatusCtaReadModel.kt",
             "HomeStatusCtaCard",
+            "TIMED_LOCK_ACTIVE",
+            "hasActiveTimedLock",
+            "activeTimedLockPresentsTimerStatusBeforeStartCta",
             "HomeStatusCtaReadModelTest.kt",
             "CategoryButton",
             "FirstLockActivationCta",
@@ -100,6 +109,18 @@ class HomeStatusCtaStructureContractTest(unittest.TestCase):
                 text = read(path)
                 self.assertIn("docs/HOME_STATUS_CTA_STRUCTURE.md", text)
                 self.assertIn("#463", text)
+
+        for path in [
+            "docs/PRODUCT_METRICS_DASHBOARD.md",
+            "docs/METRICS_ANALYSIS.md",
+            "docs/QA_RUNTIME_CHECKLIST.md",
+            "docs/ops/stopit/product-context.md",
+            "docs/ops/stopit/metrics-context.md",
+        ]:
+            with self.subTest(landed_path=path):
+                text = read(path)
+                self.assertIn("PR #948", text)
+                self.assertNotIn("구현 전 계약", text)
 
     def test_qa_template_and_verification_command_are_discoverable(self) -> None:
         doc = read("docs/HOME_STATUS_CTA_STRUCTURE.md")
