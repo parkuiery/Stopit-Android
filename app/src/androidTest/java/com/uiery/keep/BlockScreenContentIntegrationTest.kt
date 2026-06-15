@@ -7,10 +7,19 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.feature.routine.RepeatBlockCategoryBucket
+import com.uiery.keep.feature.routine.RepeatBlockCountBucket
+import com.uiery.keep.feature.routine.RepeatBlockDayType
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.feature.routine.RepeatBlockSuggestionReason
+import com.uiery.keep.feature.routine.RepeatBlockTimeBucket
+import com.uiery.keep.feature.routine.RoutineCoverageState
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
+import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -74,6 +83,61 @@ class BlockScreenContentIntegrationTest {
         composeRule.onNodeWithTag("block_screen_emergency_unlock_helper").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_daily_limit_reached_helper)).assertIsDisplayed()
         composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun postBlockSuccessRepeatSuggestionSurfacesStableQaActions() {
+        var applyClicks = 0
+        var dismissClicks = 0
+        val suggestion = RepeatBlockRoutineSuggestion(
+            timeBucket = RepeatBlockTimeBucket.Night,
+            dayType = RepeatBlockDayType.Weekday,
+            categoryBucket = RepeatBlockCategoryBucket.Video,
+            repeatCountBucket = RepeatBlockCountBucket.ThreeToFive,
+            routineCoverageState = RoutineCoverageState.NotCovered,
+            reason = RepeatBlockSuggestionReason.RapidRetry,
+            prefillPackages = listOf("com.example.video", "com.example.shortvideo"),
+            prefillStartTime = LocalTime(hour = 22, minute = 0),
+            prefillEndTime = LocalTime(hour = 23, minute = 0),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    uiState = BlockUiState(repeatBlockRoutineSuggestion = suggestion),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onOpenRoutineSuggestion = { applyClicks += 1 },
+                    onDismissRoutineSuggestion = { dismissClicks += 1 },
+                    onClose = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("block_screen_repeat_block_suggestion_card").assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.repeat_block_suggestion_post_block_success_title))
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(
+            context.getString(
+                R.string.repeat_block_suggestion_post_block_success_message,
+                2,
+                suggestion.prefillStartTime,
+                suggestion.prefillEndTime,
+            ),
+        ).assertIsDisplayed()
+
+        composeRule.onNodeWithTag("block_screen_repeat_block_suggestion_apply_action")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        composeRule.onNodeWithTag("block_screen_repeat_block_suggestion_dismiss_action")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        assertEquals(1, applyClicks)
+        assertEquals(1, dismissClicks)
     }
 
     @Test

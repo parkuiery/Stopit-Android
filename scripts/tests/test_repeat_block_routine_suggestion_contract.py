@@ -240,9 +240,19 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "Home active Goal Lock card가 있으면",
             "raw app name / package / history / timestamp absent",
             "repeat_block_routine_suggestion_shown",
+            "BlockScreenContentIntegrationTest#postBlockSuccessRepeatSuggestionSurfacesStableQaActions",
+            "block_screen_repeat_block_suggestion_apply_action",
+            "block_screen_repeat_block_suggestion_dismiss_action",
+            "카드 UI, clicked/applied analytics, `BlockActivity → MainActivity → RoutineRoute` prefill navigation까지 구현된 표면",
             "비난형 copy 금지",
         ]:
             self.assertIn(phrase, qa_checklist)
+
+        for stale_phrase in [
+            "카드 UI·clicked/applied analytics·BlockActivity→Routine prefill navigation은 아직 미구현",
+            "full UI completion으로 체크하지 않는다",
+        ]:
+            self.assertNotIn(stale_phrase, qa_checklist)
 
 
 if __name__ == "__main__":
