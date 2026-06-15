@@ -1,8 +1,8 @@
 # Accessibility Permission Copy Contract
 
-Issue: Refs #642
+Issue: Refs #642, Refs #955
 
-이 문서는 온보딩 접근성 권한 화면의 copy가 Android Accessibility Service / Play Console disclosure 맥락과 충돌하지 않도록 고정하는 source of truth다.
+이 문서는 온보딩 접근성 권한 화면과 Android Accessibility Settings에 표시되는 service description copy가 Android Accessibility Service / Play Console disclosure 맥락과 충돌하지 않도록 고정하는 source of truth다.
 
 ## 문제
 
@@ -20,6 +20,8 @@ Stopit은 사용자가 직접 선택한 앱을 감지하고, 수동 잠금·타�
 
 - 권한명은 `Accessibility permission` 또는 locale별 Android 접근성/사용자 보조/특수 기능 권한에 해당하는 표현을 쓴다.
 - `Screen Time permission`, `스크린타임 권한`, `화면 시간 권한`처럼 Android 권한명이 아닌 표현은 `accessibility_permission_required` / `accessibility_permission_description`에 쓰지 않는다.
+- Android Accessibility Settings에 노출되는 `accessibility_service_description`은 내부 resource identifier가 아니라 사용자-facing service description이어야 한다. 기본 locale canonical 값은 `StopIt Accessibility Service`, ko 값은 `스탑잇 접근성 서비스`다.
+- `accessibility_service_description`은 짧게 service identity를 말하고, 상세 목적/데이터 경계는 온보딩 copy와 Play disclosure가 설명한다. snake_case, package-like identifier, `Screen Time permission`류 권한명 오해 표현은 금지한다.
 - 설명 문구는 Stopit이 접근성 권한으로 하는 일을 좁게 말한다: 사용자가 선택한 distracting apps가 열릴 때 차단 화면을 표시한다.
 - 광고, 프로파일링, 판매, 제3자 공유 목적이 아니라는 정책 경계는 Play Store / Accessibility declaration 문서에서 설명하며, 온보딩 화면 copy는 짧고 이해 가능해야 한다.
 - “모든 앱을 막는다”처럼 과도하게 넓은 표현보다 “사용자가 선택한 앱을 막는다”는 표현을 우선한다.
@@ -27,15 +29,16 @@ Stopit은 사용자가 직접 선택한 앱을 감지하고, 수동 잠금·타�
 ### 현재 canonical English copy
 
 ```xml
+<string name="accessibility_service_description">StopIt Accessibility Service</string>
 <string name="accessibility_permission_required">Accessibility permission is required!</string>
 <string name="accessibility_permission_description">Accessibility permission lets StopIt block the distracting apps you choose.</string>
 ```
 
 ### Locale handoff
 
-지원 locale의 `accessibility_permission_required` / `accessibility_permission_description`은 위 의미를 유지해야 한다.
+지원 locale의 `accessibility_permission_required` / `accessibility_permission_description`은 위 의미를 유지해야 한다. `accessibility_service_description`은 locale별 Android Accessibility Service 명칭으로 읽히되 내부 identifier처럼 보이면 안 된다.
 
-- `values-ko`: 접근성 권한
+- `values-ko`: 접근성 권한 / `스탑잇 접근성 서비스`
 - `values-ja`: ユーザー補助の許可
 - `values-zh`: 无障碍权限
 - `values-de`: Bedienungshilfen-Berechtigung
@@ -72,13 +75,15 @@ python3 -m unittest scripts.tests.test_locale_string_parity -v
 `test_accessibility_permission_copy_contract`는 다음을 검사한다.
 
 - 모든 shipped `values*/strings.xml`의 `accessibility_permission_required` / `accessibility_permission_description`에 `Screen Time permission` 계열 금지 표현이 남아 있지 않다.
+- 모든 shipped `values*/strings.xml`의 `accessibility_service_description`이 비어 있지 않고, snake_case/internal identifier나 `Screen Time permission` 계열 권한명 오해 표현을 쓰지 않는다.
 - 이 계약 문서, `docs/QA_RUNTIME_CHECKLIST.md`, `docs/PLAY_STORE_ASO.md`, `docs/ops/stopit/product-context.md`가 서로 링크되어 있다.
 
 ### 수동 QA evidence template
 
 - Locale(s): ko / en / es / ja / 기타 주요 locale
-- 화면: 온보딩 접근성 권한 요청 화면
+- 화면: 온보딩 접근성 권한 요청 화면 및 Android Accessibility Settings의 StopIt service row
 - 확인:
+  - Android Accessibility Settings의 service description이 `stopit_accessibility_service` 같은 내부 identifier가 아니라 사용자-facing 이름으로 보인다.
   - 권한 제목이 Android Accessibility/접근성 권한으로 읽힌다.
   - 설명이 “사용자가 선택한 앱을 Stopit이 차단하기 위한 권한”으로 이해된다.
   - `Screen Time permission` 또는 같은 의미의 권한명 오해 표현이 보이지 않는다.
@@ -89,7 +94,8 @@ python3 -m unittest scripts.tests.test_locale_string_parity -v
 
 #642는 다음을 만족하면 repo-internal 범위에서 닫을 수 있다.
 
-- 모든 shipped locale의 접근성 권한 copy가 Android Accessibility permission 맥락으로 정리되어 있다.
+- 모든 shipped locale의 접근성 권한 copy와 `accessibility_service_description`이 Android Accessibility permission / service 맥락으로 정리되어 있다.
+- Android Accessibility Settings service row에 내부 identifier가 보이지 않는다.
 - 스페인어 리소스의 영어 fallback이 제거되어 있다.
 - 이 문서와 QA checklist / Play Store ASO disclosure가 같은 경계를 가리킨다.
 - static guard가 `Screen Time permission` 재유입을 막는다.

@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">StopIt</string>
-    <string name="accessibility_service_description">stopit_accessibility_service</string>
+    <string name="accessibility_service_description">StopIt Accessibility Service</string>
     <string name="select_apps_prompt">Please select the apps that tempt you</string>
     <string name="app_lock_info">The selected apps will be locked to prevent usage. You can turn the app lock on and off at any time.</string>
     <string name="select_apps_button">Select Apps</string>
