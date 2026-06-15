@@ -372,6 +372,9 @@
     <string name="home_status_ready_description">Начните блокировку сейчас, измените сервисы или задайте таймер для запланированной сессии.</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
     <string name="home_status_keep_active_description">StopIt сейчас защищает ваше время. Используйте дополнительные действия только для настройки сессии.</string>
+    <string name="home_status_timed_lock_active_title">%1$d apps are protected until the timer ends</string>
+    <string name="home_status_timed_lock_active_description">Your timed lock is active. Change the time only if the current plan needs adjusting.</string>
+    <string name="home_primary_status_timed_lock_active">Timer lock is active</string>
     <string name="home_primary_cta_select_apps">Выбрать приложения для блокировки</string>
     <string name="home_primary_cta_start_now">Начать блокировку сейчас</string>
     <string name="home_primary_status_keep_active">Protection is active</string>

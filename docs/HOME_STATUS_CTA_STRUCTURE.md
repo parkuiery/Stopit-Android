@@ -18,19 +18,20 @@ Issue: #463 `[UX] 홈 화면 상태/CTA 구조 개선`
 현재 Home 구현 기준선은 아래 파일에서 확인한다.
 
 - `app/src/main/java/com/uiery/keep/feature/home/HomeStatusCtaReadModel.kt`
-  - `HomeStatusKind`: 선택 앱 없음, 첫 잠금 준비, 반복 사용자 준비, 보호 중 상태를 분리한다.
-  - `buildHomeStatusCtaModel(...)`: 선택 앱 수, `showFirstLockActivationCta`, 목표 잠금 card 존재 여부를 하나의 primary/secondary CTA 계약으로 만든다.
+  - `HomeStatusKind`: 선택 앱 없음, 첫 잠금 준비, 반복 사용자 준비, 보호 중, 타이머 잠금 진행 중 상태를 분리한다.
+  - `buildHomeStatusCtaModel(...)`: 선택 앱 수, `showFirstLockActivationCta`, `hasActiveTimedLock`, 목표 잠금 card 존재 여부를 하나의 primary/secondary CTA 계약으로 만든다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeScreen.kt`
   - `HomeStatusCtaCard`: 기존 `CategoryButton`/`FirstLockActivationCta` 의미를 하나의 상태 카드로 통합해 선택 앱 수, primary CTA, 보조 진입점을 함께 보여준다.
   - `GoalLockProgressCard`: 목표 잠금이 있을 때 Home 진행 상태를 보여주는 #417 표면으로 유지한다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`
   - `changeIsKeep(...)`: 선택 앱이 없으면 Keep 시작 대신 앱 선택 안내를 먼저 보여준다.
+  - `hasActiveTimedLock`: 저장된 수동 타이머 deadline이 아직 유효하면 Home 상태 카드가 즉시 차단 CTA보다 타이머 진행 상태를 먼저 보여준다.
   - `showFirstLockActivationCta`: 첫 잠금 CTA 노출 조건.
   - `goalLockCard`: 목표 잠금 Home card read model.
 - `app/src/test/java/com/uiery/keep/feature/home/HomeStatusCtaReadModelTest.kt`
-  - 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 목표 잠금 동시 노출 read-model 계약을 고정한다.
+  - 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 타이머 진행 중 / 목표 잠금 동시 노출 read-model 계약을 고정한다.
 - `app/src/androidTest/java/com/uiery/keep/feature/home/HomeStatusCtaCardIntegrationTest.kt`
-  - `HomeStatusCtaCard`를 실제 Compose/KDS theme 안에서 렌더링해 선택 앱 없음 / 첫 잠금 준비 / 보호 중 상태의 텍스트, primary CTA, secondary CTA 노출/비노출을 고정한다.
+  - `HomeStatusCtaCard`를 실제 Compose/KDS theme 안에서 렌더링해 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 타이머 진행 중 상태의 텍스트, primary CTA, secondary CTA 노출/비노출을 고정한다.
 - `DESIGN.md`
   - KDS token, primary color 제한, 상태를 색상만으로 전달하지 않는 접근성 규칙.
 

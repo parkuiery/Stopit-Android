@@ -361,6 +361,9 @@
     <string name="home_status_ready_description">지금 바로 차단을 시작하거나 앱을 바꾸고, 계획된 시간에는 타이머를 설정하세요.</string>
     <string name="home_status_keep_active_title">%1$d개 앱을 막고 있어요</string>
     <string name="home_status_keep_active_description">스탑잇이 지금 시간을 지켜주고 있어요. 세션 조정이 필요할 때만 보조 행동을 사용하세요.</string>
+    <string name="home_status_timed_lock_active_title">타이머가 끝날 때까지 %1$d개 앱을 지켜요</string>
+    <string name="home_status_timed_lock_active_description">예약한 시간 잠금이 진행 중이에요. 계획을 바꿔야 할 때만 시간을 변경하세요.</string>
+    <string name="home_primary_status_timed_lock_active">타이머 보호 중</string>
     <string name="home_primary_cta_select_apps">차단 앱 선택</string>
     <string name="home_primary_cta_start_now">지금 차단 시작</string>
     <string name="home_primary_status_keep_active">보호 중</string>

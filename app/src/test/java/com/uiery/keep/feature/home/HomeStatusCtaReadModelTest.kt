@@ -66,6 +66,28 @@ class HomeStatusCtaReadModelTest {
     }
 
     @Test
+    fun activeTimedLockPresentsTimerStatusBeforeStartCta() {
+        val model = buildHomeStatusCtaModel(
+            isKeep = false,
+            selectedAppCount = 2,
+            showFirstLockActivationCta = false,
+            showRoutineCreationCta = true,
+            hasGoalLockCard = false,
+            hasActiveTimedLock = true,
+        )
+
+        assertEquals(HomeStatusKind.TIMED_LOCK_ACTIVE, model.statusKind)
+        assertEquals(R.string.home_status_timed_lock_active_title, model.titleResId)
+        assertEquals(R.string.home_status_timed_lock_active_description, model.descriptionResId)
+        assertEquals(R.string.home_primary_status_timed_lock_active, model.primaryCtaResId)
+        assertFalse(model.shouldToggleKeep)
+        assertTrue(model.timerEnabled)
+        assertTrue(model.showChangeAppsSecondary)
+        assertTrue(model.showLockHistorySecondary)
+        assertFalse(model.showRoutineCreationSecondary)
+    }
+
+    @Test
     fun goalLockPresenceKeepsGoalCardVisibleWithoutStealingFirstLockPrimaryCta() {
         val model = buildHomeStatusCtaModel(
             isKeep = false,

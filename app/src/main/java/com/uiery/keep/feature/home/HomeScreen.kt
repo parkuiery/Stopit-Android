@@ -310,6 +310,7 @@ fun HomeScreen(
                 showFirstLockActivationCta = uiState.showFirstLockActivationCta,
                 showRoutineCreationCta = uiState.showRoutineCreationCta,
                 hasGoalLockCard = uiState.goalLockCard != null,
+                hasActiveTimedLock = uiState.hasActiveTimedLock,
             )
             HomeStatusCtaCard(
                 modifier =
