@@ -13,11 +13,14 @@ HOME_STATUS_DESCRIPTION_KEYS = [
     "home_status_first_lock_ready_description",
     "home_status_ready_description",
     "home_status_keep_active_description",
+    "home_status_timed_lock_active_description",
 ]
 
 HIGH_TRAFFIC_NON_DEFAULT_ENGLISH_FORBIDDEN_KEYS = [
     *HOME_STATUS_DESCRIPTION_KEYS,
     "home_status_no_selected_apps_title",
+    "home_status_timed_lock_active_title",
+    "home_primary_status_timed_lock_active",
     "home_primary_cta_select_apps",
     "home_primary_cta_start_now",
     "goal_lock_detail_status_completed",
@@ -104,6 +107,9 @@ class LocaleStringQualityContractTest(unittest.TestCase):
             "home_status_first_lock_ready_description",
             "home_status_ready_description",
             "home_status_keep_active_description",
+            "home_status_timed_lock_active_description",
+            "home_status_timed_lock_active_title",
+            "home_primary_status_timed_lock_active",
             "home_status_no_selected_apps_title",
             "home_primary_cta_select_apps",
             "home_primary_cta_start_now",
