@@ -410,7 +410,7 @@ jobs:
         if: env.DEPLOY_TRACK != 'production'
         # Release-critical deploy action: pinned to the audited r0adkll/upload-google-play v1 commit.
         # Update only through a reviewed provenance PR that refreshes scripts/tests/test_release_provenance_workflow_contract.py.
-        uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
         with:
           serviceAccountJson: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH }}
           packageName: ${{ env.PACKAGE_NAME }}
