@@ -240,7 +240,7 @@ cd <repo-root>
 
 PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 Parent Mode setup 화면이 active/expired 상태까지 이어지는 제어 화면으로 `develop`에 반영됐다. 사용자는 setup에서 10/20/30분 preset을 선택하고, session 시작 후 같은 화면에서 active 상태를 확인하며, verified guardian PIN 상태로 10분 연장 또는 즉시 종료를 요청할 수 있다. 또한 화면 진입/상태 렌더링 시 `markExpiredIfNeeded(...)`를 호출해 만료된 session을 `expired` state와 `parent_mode_completed(end_reason=time_expired)` 1회 commit으로 동기화한다.
 
-2026-06-14 code-lane follow-through에서는 같은 setup 화면의 `직접 설정` 시간 선택 runway를 닫았다. `ParentModeSetupViewModel.updateCustomDurationInput(...)`은 숫자만 받아 custom minute 값을 `durationMinutes` source of truth로 동기화하고, setup UI는 preset chip 옆에 직접 입력 필드를 제공한다. 따라서 Parent Mode MVP의 시간 선택은 이제 10/20/30분 preset뿐 아니라 직접 분 단위 입력까지 repo-internal baseline에 포함된다.
+PR #870 merge commit `53e3d25c591c8fa8e2e444bff6636b046b2bd4eb`로 같은 setup 화면의 `직접 설정` 시간 선택 runway가 `develop`에 반영됐다. `ParentModeSetupViewModel.updateCustomDurationInput(...)`은 숫자만 받아 custom minute 값을 `durationMinutes` source of truth로 동기화하고, setup UI는 preset chip 옆에 직접 입력 필드를 제공한다. 따라서 Parent Mode MVP의 시간 선택은 이제 10/20/30분 preset뿐 아니라 직접 분 단위 입력까지 repo-internal baseline에 포함된다.
 
 PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/active/expired 화면의 접근성 요약도 repo-internal baseline에 포함된다. `ParentModeSetupScreenAccessibilityTest`는 setup summary, active/expired TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 Compose instrumentation으로 반복 검증한다. PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce` 이후 active controls는 fresh guardian PIN 입력/확인 필드를 노출하고, verified PIN이 다시 입력되기 전에는 연장/즉시 종료 CTA가 disabled 상태로 남는 baseline을 추가했다. 이 baseline은 실제 release-candidate 기기의 스크린샷/TalkBack spot-check를 대체하지는 않지만, docs/QA lane이 더 이상 "Parent Mode active/expired TalkBack baseline 미정의" 또는 "PIN 없는 active 연장/종료 허용" 상태로 되돌리지 않도록 한다.
 
@@ -272,9 +272,9 @@ PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/act
 
 ## Closing discipline
 
-- 이 문서는 PR #519/#584/#748/#870/#873 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
-- `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, QA evidence가 모두 구현·검증된 PR에서만 사용한다.
-- GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
+- 이 문서는 PR #519/#584/#748/#870/#873/#897/#913/#946 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
+- `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, fresh guardian PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, setup `screen_view` coverage, QA evidence가 모두 구현·검증되고 release/manual/readback 경계까지 충족된 PR에서만 사용한다.
+- GA4 Admin 등록, release/tag/Play deploy, release-candidate device UX/screenshot/TalkBack spot-check, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
 
 ## Contract regression
 

@@ -155,6 +155,7 @@ class ParentModeContractTest(unittest.TestCase):
             "9차 code-lane active controls foothold",
             "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
             "PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`",
+            "PR #870 merge commit `53e3d25c591c8fa8e2e444bff6636b046b2bd4eb`",
             "PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
@@ -184,6 +185,7 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
         self.assertNotIn("2026-06-15 code-lane follow-through", runbook)
         self.assertNotIn("2026-06-15 code-lane active-PIN follow-through", runbook)
+        self.assertNotIn("2026-06-14 code-lane follow-through", runbook)
 
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
