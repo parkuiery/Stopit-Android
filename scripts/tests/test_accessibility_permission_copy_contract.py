@@ -32,8 +32,14 @@ REQUIRED_DOC_PHRASES = (
     "Play Console Accessibility declaration",
     "accessibility_permission_required",
     "accessibility_permission_description",
+    "accessibility_service_description",
+    "Android Accessibility Settings",
     "Refs #642",
+    "Refs #955",
 )
+
+SERVICE_DESCRIPTION_KEYS = ("accessibility_service_description",)
+INTERNAL_IDENTIFIER_CHARS = ("_",)
 
 
 def _strings_for_locale(locale_dir: pathlib.Path) -> dict[str, str]:
@@ -64,6 +70,34 @@ class AccessibilityPermissionCopyContractTest(unittest.TestCase):
                     )
 
         self.assertGreaterEqual(len(checked), 20)
+
+    def test_accessibility_service_description_is_user_facing_in_all_shipped_locales(self):
+        checked = []
+        for locale_dir in sorted(RES_DIR.glob("values*")):
+            strings_file = locale_dir / "strings.xml"
+            if not strings_file.exists():
+                continue
+            strings = _strings_for_locale(locale_dir)
+            for key in SERVICE_DESCRIPTION_KEYS:
+                value = strings.get(key, "")
+                checked.append((locale_dir.name, key))
+                with self.subTest(locale=locale_dir.name, key=key):
+                    self.assertTrue(value.strip(), f"{locale_dir.name}/{key} must be translated")
+                    self.assertFalse(
+                        any(char in value for char in INTERNAL_IDENTIFIER_CHARS),
+                        f"{locale_dir.name}/{key} must be user-facing copy, not an internal identifier: {value!r}",
+                    )
+                    self.assertFalse(
+                        any(phrase in value for phrase in FORBIDDEN_PHRASES),
+                        f"{locale_dir.name}/{key} still uses a Screen Time-style permission phrase: {value!r}",
+                    )
+                    self.assertIn(
+                        "StopIt" if locale_dir.name != "values-ko" else "스탑잇",
+                        value,
+                        f"{locale_dir.name}/{key} should identify the StopIt service in Android Settings",
+                    )
+
+        self.assertGreaterEqual(len(checked), 10)
 
     def test_contract_doc_links_play_policy_qa_and_locale_handoff(self):
         text = CONTRACT_DOC.read_text()

@@ -109,7 +109,7 @@ python3 -m unittest scripts.tests.test_compose_icon_button_accessibility scripts
 
 ### 접근성 권한 copy / Android permission wording baseline
 
-issue #642 계열 PR은 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 보고, 온보딩 접근성 권한 화면이 Android Accessibility Service 맥락을 정확히 설명하는지 확인한다. `Screen Time permission` / `스크린타임 권한` / `화면 시간 권한`처럼 Android 권한명이 아닌 표현은 접근성 권한 copy에 재유입되면 안 된다.
+issue #642/#955 계열 PR은 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 보고, 온보딩 접근성 권한 화면과 Android Accessibility Settings service row가 Android Accessibility Service 맥락을 정확히 설명하는지 확인한다. `Screen Time permission` / `스크린타임 권한` / `화면 시간 권한`처럼 Android 권한명이 아닌 표현은 접근성 권한 copy에 재유입되면 안 되며, `accessibility_service_description`에는 `stopit_accessibility_service` 같은 내부 identifier가 보이면 안 된다.
 
 자동 baseline:
 
@@ -122,6 +122,7 @@ python3 -m unittest scripts.tests.test_locale_string_parity -v
 
 수동 QA evidence:
 - Locale(s): ko / en / es / ja / other changed locale
+- Android Accessibility Settings에서 StopIt service row description이 내부 identifier가 아니라 사용자-facing service name으로 보인다.
 - 온보딩 접근성 권한 제목이 현재 locale에서 Android Accessibility/접근성 권한으로 읽힌다.
 - 설명이 “사용자가 선택한 앱을 Stopit이 차단하기 위한 권한”으로 이해된다.
 - `Screen Time permission` 또는 같은 의미의 권한명 오해 표현이 보이지 않는다.
