@@ -2,7 +2,7 @@
 
 Issue: #463 `[UX] 홈 화면 상태/CTA 구조 개선`
 
-이 문서는 홈 화면을 code-lane에서 재구성할 때 따라야 할 product/design/analytics 계약이다. docs-lane 산출물이므로 **구현 완료가 아니다**. PR body는 구현이 실제로 들어가기 전까지 `Refs #463`를 사용하고, `Closes #463`는 Home UI/resource/test/locale parity/QA evidence가 acceptance criteria를 만족한 뒤에만 사용한다.
+이 문서는 홈 화면 상태/CTA 구조의 product/design/analytics source of truth다. PR #500(`c73d7aa1`) 이후 Home 상태 read model/UI/resource/locale baseline이 구현됐고, PR #606(`82180c8`) 이후 선택 앱 없음·첫 잠금 준비·보호 중 Compose baseline이 추가됐으며, PR #948(`4844b7a`) 이후 활성 수동/타이머 잠금도 `TIMED_LOCK_ACTIVE` 상태 카드로 분리됐다. 다만 issue #463 closure는 실제 디바이스 screenshot/visual/TalkBack QA, release/tag/Play deploy, GA4 Admin/queryability, D+14/D+30 readback 경계가 끝난 뒤 판단한다. 새 docs-only 후속은 `Refs #463`를 사용하고, `Closes #463`는 남은 외부/manual/readback 경계까지 충족됐을 때만 사용한다.
 
 ## 목적
 
@@ -18,18 +18,18 @@ Issue: #463 `[UX] 홈 화면 상태/CTA 구조 개선`
 현재 Home 구현 기준선은 아래 파일에서 확인한다.
 
 - `app/src/main/java/com/uiery/keep/feature/home/HomeStatusCtaReadModel.kt`
-  - `HomeStatusKind`: 선택 앱 없음, 첫 잠금 준비, 반복 사용자 준비, 보호 중, 타이머 잠금 진행 중 상태를 분리한다.
-  - `buildHomeStatusCtaModel(...)`: 선택 앱 수, `showFirstLockActivationCta`, `hasActiveTimedLock`, 목표 잠금 card 존재 여부를 하나의 primary/secondary CTA 계약으로 만든다.
+  - `HomeStatusKind`: 선택 앱 없음, 첫 잠금 준비, 반복 사용자 준비, 보호 중, 타이머 잠금 진행 중 상태를 분리한다. `TIMED_LOCK_ACTIVE`는 PR #948(`4844b7a`) 이후 active manual/timer lock deadline이 남아 있을 때 즉시 차단 CTA보다 우선하는 landed state다.
+  - `buildHomeStatusCtaModel(...)`: 선택 앱 수, `showFirstLockActivationCta`, `hasActiveTimedLock`, 목표 잠금 card 존재 여부를 하나의 primary/secondary CTA 계약으로 만든다. `isKeep=true`는 `KEEP_ACTIVE`가 `TIMED_LOCK_ACTIVE`보다 우선하고, `hasActiveTimedLock=true`는 선택 앱 없음/첫 잠금/ready CTA보다 우선한다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeScreen.kt`
   - `HomeStatusCtaCard`: 기존 `CategoryButton`/`FirstLockActivationCta` 의미를 하나의 상태 카드로 통합해 선택 앱 수, primary CTA, 보조 진입점을 함께 보여준다.
   - `GoalLockProgressCard`: 목표 잠금이 있을 때 Home 진행 상태를 보여주는 #417 표면으로 유지한다.
 - `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`
   - `changeIsKeep(...)`: 선택 앱이 없으면 Keep 시작 대신 앱 선택 안내를 먼저 보여준다.
-  - `hasActiveTimedLock`: 저장된 수동 타이머 deadline이 아직 유효하면 Home 상태 카드가 즉시 차단 CTA보다 타이머 진행 상태를 먼저 보여준다.
+  - `hasActiveTimedLock`: 저장된 수동/타이머 잠금 deadline이 아직 유효하면 Home 상태 카드가 즉시 차단 CTA보다 타이머 진행 상태를 먼저 보여준다.
   - `showFirstLockActivationCta`: 첫 잠금 CTA 노출 조건.
   - `goalLockCard`: 목표 잠금 Home card read model.
 - `app/src/test/java/com/uiery/keep/feature/home/HomeStatusCtaReadModelTest.kt`
-  - 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 타이머 진행 중 / 목표 잠금 동시 노출 read-model 계약을 고정한다.
+  - 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 타이머 진행 중 / 목표 잠금 동시 노출 read-model 계약을 고정한다. PR #948 이후 `activeTimedLockPresentsTimerStatusBeforeStartCta`가 timer status priority를 고정한다.
 - `app/src/androidTest/java/com/uiery/keep/feature/home/HomeStatusCtaCardIntegrationTest.kt`
   - `HomeStatusCtaCard`를 실제 Compose/KDS theme 안에서 렌더링해 선택 앱 없음 / 첫 잠금 준비 / 보호 중 / 타이머 진행 중 상태의 텍스트, primary CTA, secondary CTA 노출/비노출을 고정한다.
 - `DESIGN.md`
@@ -47,7 +47,7 @@ Home UI는 최소한 아래 상태를 분리해 보여줘야 한다.
 | 꺼짐 + 선택 앱 있음 + 첫 잠금 전 | `N개 앱을 막을 준비가 됐어요` | `지금 차단 시작` | `타이머 설정`, `차단 앱 변경` |
 | 꺼짐 + 선택 앱 있음 + 반복 사용자 | `N개 앱을 선택했어요` | `지금 차단 시작` 또는 최근 사용 맥락 기반 CTA | `타이머 설정`, `루틴 관리`, `잠금 기록` |
 | 켜짐 | `N개 앱을 막고 있어요` | `차단 끄기`보다 현재 상태 확인을 우선하고, 해제/변경은 보조 위계 | `잠금 기록` (잠금 활성 중에는 `차단 앱 변경`을 노출하지 않는다 — 차단 앱 변경은 우회 경로가 되므로 차단을 끈 뒤에만 가능) |
-| 타이머 예약/실행 중 | `HH:MM까지 지키는 중` 또는 `남은 시간 ...` | 상태 카드 자체가 primary status가 된다 | `시간 변경`, `차단 앱 변경` |
+| 타이머 예약/실행 중 | `HH:MM까지 지키는 중` 또는 `남은 시간 ...` | 상태 카드 자체가 primary status가 된다. PR #948 이후 active timed lock은 `지금 차단 시작`이 아니라 `타이머 보호 중` 계열 status를 보여준다. | `시간 변경`, `차단 앱 변경`, `잠금 기록` |
 | 목표 잠금 진행 중 | `목표 잠금이 진행 중이에요` + 기간/모드 bucket | 목표 card를 상태 표면으로 유지 | 상세/기록 진입 |
 
 원칙:
@@ -105,26 +105,24 @@ Home status/CTA 구조 개선은 새 analytics 이벤트를 반드시 요구하�
 해석 guardrail:
 
 - #14의 홈 첫 잠금 CTA(PR #256 `bce1cda`), 첫 차단 성공 피드백(PR #279 `5c6331d`), 홈 Keep/타이머 시작 안내(PR #283 `35c13eb`)는 `origin/develop`에는 있으나 2026-06-02 기준 `origin/main`/production tag `v1.7.7`에는 없다. 따라서 production 데이터는 post-fix 성과가 아니라 pre-#256/#279/#283 baseline으로 본다.
-- #463 code-lane 구현이 merge되어도 release/tag/Play deploy와 14일 관측 전에는 activation 개선을 단정하지 않는다.
+- #463 repo-internal 구현은 PR #500/PR #606/PR #948 기준으로 Home 상태 read model, KDS 상태 카드, shipped locale, focused JVM/Compose baseline까지 `develop`에 반영됐다. 그러나 release/tag/Play deploy와 14일 관측 전에는 activation 개선을 단정하지 않는다.
 - GA4 Admin에서 `customEvent:source`, `customEvent:block_source`, `customEvent:selected_app_count`류 축이 queryable인지 확인하기 전에는 경로별 결론을 낮은 confidence로 둔다.
 - 새 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: 앱 이름, package name, raw selected app list, raw session history, raw timestamp.
 
-## Code-lane handoff
+## 구현 완료 기준선과 남은 handoff
 
-#463 구현 PR은 아래 범위를 한 package로 다루는 편이 안전하다.
+#463의 repo-internal 구현 기준선은 아래 범위를 이미 포함한다.
 
-1. Home 상태 read model을 명시한다.
-   - 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태를 텍스트 계약으로 분리한다.
-   - ViewModel test에서 상태별 primary/secondary CTA 문구 또는 key를 검증한다.
-2. UI hierarchy를 KDS token으로 구현한다.
-   - raw color 추가를 피하고 `KeepTheme`/KDS component를 우선한다.
-   - `CategoryButton`, `FirstLockActivationCta`, `GoalLockProgressCard`의 의미를 유지하거나 교체 시 동등한 접근 경로를 제공한다.
-3. Locale parity를 맞춘다.
-   - 새 string은 `values`, `values-ko` 및 유지 중인 locale 전체에 추가한다.
-   - `:app:lintProdRelease` 또는 equivalent missing-translation 검증을 남긴다.
-4. QA evidence를 남긴다.
-   - 첫 방문/반복 사용자/선택 앱 없음/타이머/목표 잠금 상태 screenshot 또는 수동 evidence.
-   - `:app:testDevDebugUnitTest` 또는 focused Home ViewModel/UI read-model test.
+1. Home 상태 read model이 꺼짐/켜짐/타이머/목표 잠금/선택 앱 없음 상태를 텍스트 계약으로 분리한다.
+2. `HomeStatusCtaCard`가 `KeepTheme`/KDS token 기반으로 선택 앱 수, primary status/CTA, 보조 진입점을 한 카드 안에 제공한다.
+3. shipped locale 리소스가 Home 상태/CTA 문자열을 포함하고, PR #948 이후 active timed lock copy도 각 locale에 추가됐다.
+4. 자동 baseline이 상태 read model과 Compose card를 고정한다.
+
+남은 handoff는 repo-internal 구현이 아니라 release/manual/readback 증적이다.
+
+- release-candidate 실제 기기 screenshot/visual/TalkBack spot-check.
+- release/tag/Play deploy 포함 여부 확인.
+- GA4 Admin/queryability 확인 뒤 D+14/D+30 activation/readback 비교.
 
 ## Manual QA evidence template
 
@@ -159,6 +157,6 @@ Home status/CTA 구조 개선은 새 analytics 이벤트를 반드시 요구하�
 
 ## PR / issue closing discipline
 
-- Docs-only PR: `Refs #463`. 이 문서/정적 테스트는 code-lane이 구현할 기준이며 구현 완료가 아니다.
-- Implementation PR: acceptance criteria 전체를 만족하고 Home UI/resource/test/locale/QA evidence가 준비된 경우에만 `Closes #463` 사용을 검토한다.
-- External boundary: 구현 후에도 release/tag/Play deploy, latest-version adoption, GA4 Admin queryability, 14일/30일 readback은 별도 경계로 기록한다.
+- Docs-only PR: `Refs #463`. 문서가 PR #500/PR #606/PR #948 landed state를 반영하더라도 release/manual/readback 경계가 남으면 이슈를 닫지 않는다.
+- Implementation PR: repo-internal code/resource/test/locale baseline이 추가로 바뀌는 경우 해당 PR이 acceptance를 얼마나 채우는지 명시한다.
+- Closure boundary: release-candidate 실제 기기 visual/TalkBack evidence, release/tag/Play deploy, latest-version adoption, GA4 Admin queryability, 14일/30일 readback까지 확인된 뒤에만 `Closes #463`를 검토한다.

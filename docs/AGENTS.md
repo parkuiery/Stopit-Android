@@ -35,7 +35,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. PR #760 이후 생성/상세 summary TalkBack contentDescription 자동 baseline과 남은 실기기/release/readback 경계를 함께 추적한다. |
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
-| `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, QA evidence template. |
+| `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, PR #500/PR #606/PR #948 이후 landed Home status baseline과 남은 visual/release/readback 경계. |
 | `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, PR #675 이후 step purpose copy baseline, 남은 device/release/readback 경계. |
