@@ -38,11 +38,11 @@ class SplashViewModel
                 delay(0.7.seconds)
                 val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom()
                 analytics.setRoutinesCount(restoreResult.routines.size)
-                postSideEffect(handleNavigate())
+                postSideEffect(handleNavigate(hasRestoredRoomData = restoreResult.routines.isNotEmpty()))
             }
 
-        private suspend fun handleNavigate(): SplashSideEffect {
-            if (getIsNew()) {
+        private suspend fun handleNavigate(hasRestoredRoomData: Boolean): SplashSideEffect {
+            if (!hasRestoredRoomData && getIsNew()) {
                 trackFirstOpenIfNeeded()
                 return SplashSideEffect.MoveToOnboarding
             }

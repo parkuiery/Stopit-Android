@@ -31,7 +31,7 @@ import java.time.DayOfWeek
 
 class SplashViewModelRestoreSchedulingTest {
     @Test
-    fun splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation() = runBlocking {
+    fun restoredRoomRoutineTreatsResetIsNewAsExistingUserAndMovesHome() = runBlocking {
         val routine = routineEntity(id = 490L, isEnabled = true)
         val routineDao = SplashRestoreRoutineDao(listOf(routine))
         val dataStore = FakeDataStore(emptyPreferences())
@@ -60,7 +60,8 @@ class SplashViewModelRestoreSchedulingTest {
             listOf(KeepAnalyticsUserProperty.ROUTINES_COUNT to "1"),
             analytics.userProperties,
         )
-        assertEquals(SplashSideEffect.MoveToOnboarding, viewModel.container.sideEffectFlow.first())
+        assertEquals(SplashSideEffect.MoveToHome, viewModel.container.sideEffectFlow.first())
+        assertEquals(0, analytics.firstOpenCount)
     }
 
     private suspend fun waitFor(predicate: suspend () -> Boolean) {
@@ -107,13 +108,17 @@ private class SplashRestoreRoutineDao(
 
 private class RecordingSplashRoutineCountAnalytics : KeepAnalytics {
     val userProperties = mutableListOf<Pair<String, String>>()
+    var firstOpenCount: Int = 0
+        private set
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
     override fun setUserProperty(name: String, value: String) {
         userProperties += name to value
     }
-    override fun trackFirstOpen() = Unit
+    override fun trackFirstOpen() {
+        firstOpenCount += 1
+    }
     override fun trackOnboardingStepView(stepName: String) = Unit
     override fun trackOnboardingStepComplete(stepName: String) = Unit
     override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
