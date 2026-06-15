@@ -162,6 +162,21 @@ jobs:
         if: steps.firebase-config.outputs.available == 'true'
         run: ./gradlew --console=plain :app:assembleProdDebug
 
+      - name: Upload Android CI fast verification diagnostics
+        if: always() && steps.firebase-config.outputs.available == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-android-ci-fast-verification-diagnostics
+          path: |
+            app/build/reports/tests/**
+            app/build/test-results/**
+            app/build/reports/lint-results-devDebug.*
+            app/build/reports/problems/**
+            app/build/outputs/logs/**
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload prod debug APK
         if: steps.firebase-config.outputs.available == 'true'
         continue-on-error: true
