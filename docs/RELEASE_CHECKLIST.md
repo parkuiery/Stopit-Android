@@ -27,6 +27,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Branch Hygiene passes on the PR.
 - [ ] Version Guard runs and passes on the PR (it should appear on every `main`-target PR, not only when `app/build.gradle.kts` changed).
 - [ ] `version-guard.yml` uses the same current `actions/checkout` major version as the repository's other governance/release workflows.
+- [ ] Gradle wrapper integrity is pinned at both layers: workflow `wrapper-validation` runs before Gradle/signing/Firebase/Play secret steps, and `gradle/wrapper/gradle-wrapper.properties` keeps `distributionSha256Sum` aligned with the selected distribution checksum source such as `gradle-8.11.1-bin.zip.sha256`; `scripts.tests.test_gradle_wrapper_distribution_checksum` passes.
 - [ ] If a PR was created against `develop` first and then changed by `develop → main retarget`, the `pull_request.edited` trigger materialized `Version Guard`, `Android Release QA`, and `Android Release Build` on the retargeted head before merge.
 - [ ] Android CI passes on the PR.
 - [ ] Android Release QA passes on the PR:
