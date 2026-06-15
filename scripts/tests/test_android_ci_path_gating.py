@@ -84,12 +84,26 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("id: firebase-config", workflow)
         self.assertIn("id: runtime-firebase-config", workflow)
         self.assertIn("${{ github.actor }}\" = 'dependabot[bot]'", workflow)
-        self.assertIn("Dependabot PR: Firebase secrets are unavailable, so app Gradle verification is deferred", workflow)
         self.assertIn("Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred", workflow)
-        self.assertIn("steps.firebase-config.outputs.available == 'true'", workflow)
         self.assertIn("steps.runtime-firebase-config.outputs.available == 'true'", workflow)
         self.assertIn("GOOGLE_SERVICES_JSON_DEV secret is missing", workflow)
         self.assertIn("GOOGLE_SERVICES_JSON secret is missing", workflow)
+
+    def test_dependabot_app_gradle_verification_uses_dummy_firebase_config(self):
+        workflow = WORKFLOW_PATH.read_text()
+        dependabot_summary = "Dependabot PR: Firebase secrets are unavailable, so app Gradle verification uses dummy Firebase config."
+
+        self.assertIn(dependabot_summary, workflow)
+        self.assertNotIn(
+            "Dependabot PR: Firebase secrets are unavailable, so app Gradle verification is deferred",
+            workflow,
+        )
+        self.assertIn("dummy_firebase_config=true", workflow)
+        self.assertIn("Write dummy Firebase google-services.json for Dependabot app verification", workflow)
+        self.assertIn("steps.firebase-config.outputs.available == 'true' || steps.firebase-config.outputs.dummy_firebase_config == 'true'", workflow)
+        self.assertIn("app/src/dev/google-services.json", workflow)
+        self.assertIn("\"package_name\":\"com.uiery.keep.dev\"", workflow)
+        self.assertIn("\"package_name\":\"com.uiery.keep\"", workflow)
 
     def test_docs_explain_dependabot_firebase_secret_boundary(self):
         docs = [
