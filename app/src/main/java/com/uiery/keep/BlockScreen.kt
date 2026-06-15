@@ -350,10 +350,14 @@ private fun RepeatBlockRoutineSuggestionCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 KeepButton(
+                    modifier = Modifier.testTag("block_screen_repeat_block_suggestion_apply_action"),
                     text = stringResource(R.string.repeat_block_suggestion_apply_button),
                     onClick = onApplyClick,
                 )
-                TextButton(onClick = onDismissClick) {
+                TextButton(
+                    modifier = Modifier.testTag("block_screen_repeat_block_suggestion_dismiss_action"),
+                    onClick = onDismissClick,
+                ) {
                     Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
                 }
             }

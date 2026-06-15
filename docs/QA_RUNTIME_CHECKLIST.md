@@ -833,7 +833,7 @@ python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
 
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 
-issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card 또는 active emergency unlock runtime state가 있으면 현재 보호/예외 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. #902 이후 예약형 Goal Lock은 `GoalLockPolicy.isCurrentlyProtecting` 기준으로 기간 상태가 active여도 현재 요일/시간대 밖이면 반복 차단 추천을 suppress하지 않는다. 현재 완료 surface는 `home` / `lock_history` / `performance_report`이고, LockHistory 성과 리포트 직후 추천 CTA는 `performance_report 구현 표면`으로 shown/clicked/dismissed 및 Routine prefill entry surface를 남긴다. `post_block_success`는 PR #923 이후 BlockViewModel 후보 산출·shown/dismiss analytics·bucket-only dismiss store까지 구현됐지만 카드 UI·clicked/applied analytics·BlockActivity→Routine prefill navigation은 아직 미구현이므로 수동 QA evidence에서 full UI completion으로 체크하지 않는다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
+issue #531 계열 구현 PR은 `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 최근 LockHistory/차단 기록에서 반복되는 시간대·요일·앱 카테고리 신호가 있을 때만 루틴 생성 prefill을 부드럽게 제안하는지 자동/수동 증거를 함께 남긴다. 이 제안은 onboarding / pre-first-lock 사용자에게 미노출되어야 하며, 기존 활성 루틴과 겹치면 미노출되고, Home active Goal Lock card 또는 active emergency unlock runtime state가 있으면 현재 보호/예외 상태 안내를 우선해 추천 및 shown analytics를 suppress한다. #902 이후 예약형 Goal Lock은 `GoalLockPolicy.isCurrentlyProtecting` 기준으로 기간 상태가 active여도 현재 요일/시간대 밖이면 반복 차단 추천을 suppress하지 않는다. 현재 완료 surface는 `home` / `lock_history` / `performance_report` / `post_block_success`이다. LockHistory 성과 리포트 직후 추천 CTA는 `performance_report 구현 표면`으로 shown/clicked/dismissed 및 Routine prefill entry surface를 남기고, `post_block_success`는 PR #923/#931 이후 BlockViewModel 후보 산출, shown/dismiss analytics, bucket-only dismiss store, 카드 UI, clicked/applied analytics, `BlockActivity → MainActivity → RoutineRoute` prefill navigation까지 구현된 표면이다. 비난형 copy 금지와 raw app/package/history/timestamp analytics 금지가 핵심 guardrail이다.
 
 자동 baseline(구현 PR에서 추가/확장할 테스트):
 
@@ -851,6 +851,8 @@ cd <repo-root>
   --tests 'com.uiery.keep.analytics.RepeatBlockRoutineSuggestionAnalyticsTest' \
   --tests 'com.uiery.keep.BlockViewModelTest'
 python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v
+./gradlew :app:connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.BlockScreenContentIntegrationTest#postBlockSuccessRepeatSuggestionSurfacesStableQaActions
 ```
 
 검증 범위:
@@ -861,6 +863,7 @@ python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract 
 - `HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion`는 scheduled Goal Lock의 기간 상태와 현재 실제 차단 window를 분리해, 다음 예약 시간대 대기 중인 목표 잠금이 반복 차단 추천을 과도하게 숨기지 않는지 검증한다.
 - Home active emergency unlock runtime state가 있으면 현재 예외 상태를 우선해 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다.
 - 추천은 최대 1개만 노출되고 dismiss 후 최소 7일 재노출 제한을 지킨다.
+- `post_block_success` 카드 UI는 `BlockScreenContentIntegrationTest#postBlockSuccessRepeatSuggestionSurfacesStableQaActions`로 title/message/apply/dismiss action을 렌더링하고, `block_screen_repeat_block_suggestion_apply_action` / `block_screen_repeat_block_suggestion_dismiss_action` stable QA selector로 click callback을 검증한다.
 - 추천 copy는 방어 성공/도움 제안 톤이며 비난형 copy 금지다.
 - `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied`는 enum/bucket 파라미터만 사용한다.
 - raw app name / package / history / timestamp absent 상태가 analytics payload spot-check에서 확인된다.
