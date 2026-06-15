@@ -40,8 +40,11 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "dismiss는 privacy-safe store",
             "active emergency unlock runtime state",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
-            "post_block_success는 code constant / 미구현 UI 표면",
-            "RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS",
+            "post_block_success 후보 산출·shown/dismiss analytics",
+            "PR #920",
+            "PR #923",
+            "BlockViewModel",
+            "BlockActivity→Routine prefill navigation은 미구현",
             "performance_report 구현 표면",
             "Surface sequencing 계약",
             "post_block_success",
@@ -158,13 +161,18 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("Home/LockHistory", ga4_runbook)
         self.assertIn("PR #887", ga4_runbook)
         self.assertIn("PR #899", ga4_runbook)
-        self.assertIn("performance_report surface 구현 완료", ga4_runbook)
-        self.assertIn("post_block_success`는 code constant / 미구현 UI 표면", ga4_runbook)
+        self.assertIn("PR #920", ga4_runbook)
+        self.assertIn("PR #923", ga4_runbook)
+        self.assertIn("PR #887 performance_report surface", ga4_runbook)
+        self.assertIn("post_block_success` surface enum", ga4_runbook)
+        self.assertIn("shown/dismiss analytics", ga4_runbook)
+        self.assertIn("카드 UI·clicked/applied analytics·BlockActivity→Routine prefill navigation은 미구현", ga4_runbook)
         self.assertNotIn("CTA UI wiring·release·GA4 등록 전", ga4_runbook)
         self.assertIn("post_block_success", analytics)
         self.assertIn("performance_report", analytics)
         self.assertIn("performance_report`는 구현 표면", analytics)
-        self.assertIn("post_block_success`는 code constant / 미구현 UI 표면", analytics)
+        self.assertIn("PR #923 이후 후보 산출 + shown/dismiss analytics", analytics)
+        self.assertIn("카드 UI·clicked/applied·Routine prefill navigation은 미구현", analytics)
         self.assertIn("PR #843", analytics)
         self.assertIn("Home active emergency unlock runtime state", analytics)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
@@ -206,8 +214,12 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("active emergency unlock", document)
             self.assertIn("PR #887", document)
             self.assertIn("PR #899", document)
+            self.assertIn("PR #920", document)
+            self.assertIn("PR #923", document)
             self.assertIn("구현 표면", document)
-            self.assertIn("post_block_success는 code constant", document)
+            self.assertIn("post_block_success", document)
+            self.assertIn("shown/dismiss analytics", document)
+            self.assertIn("카드 UI", document)
             self.assertIn("performance_report", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)
