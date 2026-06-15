@@ -53,6 +53,13 @@ updates:
         # outrun the build-script compilerOptions migration.
         versions:
           - "[2.4,)"
+      - dependency-name: "org.jetbrains.kotlin.jvm"
+        # #939: the standalone Kotlin JVM plugin shares the same Kotlin 2.4+
+        # compilerOptions DSL migration boundary as Android/Compose/serialization.
+        # Keep it out of the broad android-gradle-patch-minor group until the
+        # dedicated Kotlin/toolchain lane removes legacy kotlinOptions.jvmTarget.
+        versions:
+          - "[2.4,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
