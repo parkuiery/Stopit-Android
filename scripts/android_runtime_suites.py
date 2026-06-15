@@ -70,6 +70,9 @@ SUITES: dict[str, list[str]] = {
     "release_focused_ui_smoke": [
         "com.uiery.keep.qa.StopitReleaseSmokeTest",
     ],
+    "release_prod_debug_smoke": [
+        "com.uiery.keep.qa.StopitReleaseSmokeTest",
+    ],
     "release_exact_alarm_default": [
         "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability",
     ],
@@ -121,6 +124,7 @@ SUITES: dict[str, list[str]] = {
 
 RELEASE_QA_SEQUENCE = [
     "release_focused_ui_smoke",
+    "release_prod_debug_smoke",
     "release_exact_alarm_default",
     "release_exact_alarm_denied",
     "release_exact_alarm_allowed",
@@ -234,11 +238,13 @@ def run_connected_tests(
     before: Iterable[str] = (),
     *,
     continue_on_failure: bool = False,
+    variant: str = "devDebug",
 ) -> int:
     selectors = selectors_for(suite_names)
     before_commands = [shlex.split(command) for command in before]
     first_failure = 0
     failed_steps: list[str] = []
+    connected_task = f":app:connected{variant[0].upper()}{variant[1:]}AndroidTest"
 
     for selector in selectors:
         before_failed = False
@@ -260,7 +266,7 @@ def run_connected_tests(
             [
                 "./gradlew",
                 "--console=plain",
-                ":app:connectedDevDebugAndroidTest",
+                connected_task,
                 f"-Pandroid.testInstrumentationRunnerArguments.class={selector}",
             ],
             cwd=REPO_ROOT,
@@ -342,6 +348,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser.add_argument("suite", nargs="+")
     run_parser.add_argument("--before", action="append", default=[], help="Command to run before each selector; may be supplied multiple times")
     run_parser.add_argument(
+        "--variant",
+        default="devDebug",
+        choices=["devDebug", "prodDebug"],
+        help="Android variant for the connected test task (default: devDebug)",
+    )
+    run_parser.add_argument(
         "--continue-on-failure",
         action="store_true",
         help="Run remaining selectors and print an aggregate failure summary before returning non-zero",
@@ -369,7 +381,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "markdown":
         print(render_markdown(args.suite))
     elif args.command == "run-connected":
-        return run_connected_tests(args.suite, before=args.before, continue_on_failure=args.continue_on_failure)
+        return run_connected_tests(
+            args.suite,
+            before=args.before,
+            continue_on_failure=args.continue_on_failure,
+            variant=args.variant,
+        )
     elif args.command == "run-android-ci":
         return run_android_ci_sequence()
     elif args.command == "list-suites":
