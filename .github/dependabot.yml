@@ -44,6 +44,10 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      - dependency-name: "r0adkll/upload-google-play"
+        # Release-critical Play upload provenance boundary. Refresh only through
+        # a reviewed release-governance PR that updates workflow, contract test,
+        # and operator docs together.
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
