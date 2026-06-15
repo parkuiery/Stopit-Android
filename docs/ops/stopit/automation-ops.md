@@ -202,10 +202,11 @@ python3 -m unittest \
   scripts.tests.test_play_deploy_tag_governance \
   scripts.tests.test_release_gate_retarget_triggers \
   scripts.tests.test_dependabot_policy_contract \
+  scripts.tests.test_gradle_wrapper_distribution_checksum \
   scripts.tests.test_ops_ci_workflow -v
 ```
 
-이 묶음은 Android CI artifact retention, Android CI path gating, Play Deploy tag governance, release PR retarget trigger, Dependabot policy contract materialization 계약을 고정한다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter와 `Docs/runbook contract tests` 실행 목록, 그리고 `scripts.tests.test_ops_ci_workflow` meta-contract를 함께 업데이트한다.
+이 묶음은 Android CI artifact retention, Android CI path gating, Play Deploy tag governance, release PR retarget trigger, Dependabot policy contract materialization, Gradle wrapper distribution checksum 계약을 고정한다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter와 `Docs/runbook contract tests` 실행 목록, 그리고 `scripts.tests.test_ops_ci_workflow` meta-contract를 함께 업데이트한다.
 
 ## 이 문서가 다루지 않는 것
 
