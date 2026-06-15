@@ -366,9 +366,9 @@
     <string name="home_status_ready_description">Start nu met blokkeren, wijzig apps of stel een timer in voor een geplande sessie.</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
     <string name="home_status_keep_active_description">StopIt beschermt nu je tijd. Gebruik secundaire acties alleen wanneer je de sessie moet aanpassen.</string>
-    <string name="home_status_timed_lock_active_title">%1$d apps are protected until the timer ends</string>
-    <string name="home_status_timed_lock_active_description">Your timed lock is active. Change the time only if the current plan needs adjusting.</string>
-    <string name="home_primary_status_timed_lock_active">Timer lock is active</string>
+    <string name="home_status_timed_lock_active_title">%1$d apps zijn beschermd totdat de timer eindigt</string>
+    <string name="home_status_timed_lock_active_description">Je getimede blokkering is actief. Wijzig de tijd alleen als het huidige plan moet worden aangepast.</string>
+    <string name="home_primary_status_timed_lock_active">Getimede blokkering is actief</string>
     <string name="home_primary_cta_select_apps">Apps selecteren om te blokkeren</string>
     <string name="home_primary_cta_start_now">Nu blokkeren starten</string>
     <string name="home_primary_status_keep_active">Protection is active</string>

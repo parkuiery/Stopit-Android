@@ -366,9 +366,9 @@
     <string name="home_status_ready_description">Starte jetzt die Blockierung, ändere Apps oder stelle einen Timer für eine geplante Sitzung ein.</string>
     <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
     <string name="home_status_keep_active_description">StopIt schützt gerade deine Zeit. Nutze Nebenaktionen nur, wenn du die Sitzung anpassen musst.</string>
-    <string name="home_status_timed_lock_active_title">%1$d apps are protected until the timer ends</string>
-    <string name="home_status_timed_lock_active_description">Your timed lock is active. Change the time only if the current plan needs adjusting.</string>
-    <string name="home_primary_status_timed_lock_active">Timer lock is active</string>
+    <string name="home_status_timed_lock_active_title">%1$d Apps sind geschützt, bis der Timer endet</string>
+    <string name="home_status_timed_lock_active_description">Deine zeitgesteuerte Sperre ist aktiv. Ändere die Zeit nur, wenn du den aktuellen Plan anpassen musst.</string>
+    <string name="home_primary_status_timed_lock_active">Timer-Sperre ist aktiv</string>
     <string name="home_primary_cta_select_apps">Apps zum Blockieren auswählen</string>
     <string name="home_primary_cta_start_now">Jetzt blockieren starten</string>
     <string name="home_primary_status_keep_active">Protection is active</string>
