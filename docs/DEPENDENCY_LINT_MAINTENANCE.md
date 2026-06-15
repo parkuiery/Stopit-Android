@@ -366,6 +366,18 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 - `.github/dependabot.yml` 변경은 Ops CI top-level trigger와 `docs_contract` filter에서 `Docs/runbook contract tests`를 materialize해야 한다. 이 경로는 `scripts.tests.test_dependabot_policy_contract`를 실행해 ecosystem/schedule/noise/major-update/manual-review/release-secret boundary drift를 잡고, Functions/Android build/Play deploy secret 작업은 실행하지 않는다.
 - Android/runtime-sensitive dependency가 포함되면 PR 본문에 `docs/QA_RUNTIME_CHECKLIST.md`에서 필요한 device/emulator evidence를 명시한다.
 
+### Android Gradle stack compatibility guard (#925)
+
+`android-gradle-patch-minor`는 backlog 소음을 줄이기 위한 weekly 감지 그룹이지, AGP/Kotlin/KSP/Hilt/Compose 같은 build stack을 무조건 한 번에 올려도 된다는 승인 신호가 아니다. #914처럼 `Hilt 2.59+`와 `AGP 8.x`가 함께 들어와 Gradle configuration 단계에서 `The Hilt Android Gradle plugin is only compatible with Android Gradle plugin (AGP) version 9.0.0 or higher`로 실패하면 앱/KDS 테스트가 시작되기 전 known-incompatible 조합으로 본다.
+
+현재 정책:
+
+- Stopit이 AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 `com.google.dagger.hilt.android`, `com.google.dagger:hilt-android`, `com.google.dagger:hilt-compiler`의 `[2.59,)` 범위를 ignore한다.
+- 이 hold는 Hilt를 영구 보류한다는 뜻이 아니라, `AGP 9` 전환이 필요한 Android stack upgrade를 별도 toolchain lane에서 다루기 위한 안전장치다.
+- AGP 9 전환 후보는 Gradle wrapper, AGP plugin, Kotlin, Compose compiler/BOM, KSP, Hilt plugin/runtime/compiler를 한 PR에 섞어 자동 merge하지 않고, compatibility matrix와 release/build verification을 명시한 `ready` issue/PR로 승격한다.
+- #914류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x`를 남긴다.
+- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ ignore가 빠지거나 이 문서가 #914 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
+
 PR triage checklist:
 
 ```md
