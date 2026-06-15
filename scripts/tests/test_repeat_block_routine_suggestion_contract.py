@@ -40,7 +40,8 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "dismiss는 privacy-safe store",
             "active emergency unlock runtime state",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
-            "post_block_success는 예약 enum / 미구현 표면",
+            "post_block_success는 code constant / 미구현 UI 표면",
+            "RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS",
             "performance_report 구현 표면",
             "Surface sequencing 계약",
             "post_block_success",
@@ -158,12 +159,12 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("PR #887", ga4_runbook)
         self.assertIn("PR #899", ga4_runbook)
         self.assertIn("performance_report surface 구현 완료", ga4_runbook)
-        self.assertIn("post_block_success`는 예약 enum/미구현 표면", ga4_runbook)
+        self.assertIn("post_block_success`는 code constant / 미구현 UI 표면", ga4_runbook)
         self.assertNotIn("CTA UI wiring·release·GA4 등록 전", ga4_runbook)
         self.assertIn("post_block_success", analytics)
         self.assertIn("performance_report", analytics)
         self.assertIn("performance_report`는 구현 표면", analytics)
-        self.assertIn("post_block_success`는 예약 enum/미구현 표면", analytics)
+        self.assertIn("post_block_success`는 code constant / 미구현 UI 표면", analytics)
         self.assertIn("PR #843", analytics)
         self.assertIn("Home active emergency unlock runtime state", analytics)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
@@ -206,7 +207,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("PR #887", document)
             self.assertIn("PR #899", document)
             self.assertIn("구현 표면", document)
-            self.assertIn("post_block_success는 예약 enum", document)
+            self.assertIn("post_block_success는 code constant", document)
             self.assertIn("performance_report", document)
             self.assertIn("release", document)
             self.assertIn("GA4", document)

@@ -14,6 +14,39 @@ class RepeatBlockRoutineSuggestionAnalyticsTest {
     private val analytics = FirebaseKeepAnalytics(backend)
 
     @Test
+    fun postBlockSuccessSurfaceUsesPrivacySafeRepeatBlockSuggestionPayload() {
+        val suggestion = RepeatBlockRoutineSuggestionAnalyticsPayload(
+            reason = "rapid_retry",
+            timeBucket = "night",
+            dayType = "weekday",
+            categoryBucket = "social",
+            repeatCountBucket = "3_5",
+            routineCoverageState = "not_covered",
+        )
+
+        analytics.trackRepeatBlockRoutineSuggestionShown(
+            surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+            suggestion = suggestion,
+        )
+
+        assertEquals(
+            mapOf(
+                KeepAnalyticsParam.SURFACE to "post_block_success",
+                RoutineAnalyticsParam.SUGGESTION_REASON to "rapid_retry",
+                RoutineAnalyticsParam.TIME_BUCKET to "night",
+                RoutineAnalyticsParam.DAY_TYPE to "weekday",
+                RoutineAnalyticsParam.CATEGORY_BUCKET to "social",
+                RoutineAnalyticsParam.REPEAT_COUNT_BUCKET to "3_5",
+                RoutineAnalyticsParam.ROUTINE_COVERAGE_STATE to "not_covered",
+                RoutineAnalyticsParam.SUGGESTION_VARIANT to RepeatBlockSuggestionVariant.DEFAULT,
+            ),
+            backend.loggedEvents.single().params,
+        )
+        assertFalse(backend.loggedEvents.single().params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
+    }
+
+    @Test
     fun repeatBlockRoutineSuggestionEventsUseOnlyPrivacySafeBuckets() {
         val suggestion = RepeatBlockRoutineSuggestionAnalyticsPayload(
             reason = "repeat_block_time_bucket",
