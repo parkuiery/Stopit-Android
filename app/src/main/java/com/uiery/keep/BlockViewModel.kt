@@ -7,8 +7,16 @@ import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.feature.lockhistory.LockHistoryRepository
+import com.uiery.keep.feature.routine.RepeatBlockHistorySample
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
@@ -17,6 +25,7 @@ import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 
+import kotlinx.coroutines.flow.firstOrNull
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -33,6 +42,9 @@ class BlockViewModel
         private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
+        private val lockHistoryRepository: LockHistoryRepository,
+        private val routineRepository: RoutineRepository,
+        private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -128,6 +140,54 @@ class BlockViewModel
                 )
                 blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
             }
+            val suggestion = loadPostBlockRepeatBlockRoutineSuggestion()
+            reduce { state.copy(repeatBlockRoutineSuggestion = suggestion) }
+            if (suggestion != null) {
+                analytics.trackRepeatBlockRoutineSuggestionShown(
+                    surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+            }
+        }
+
+        internal fun dismissRepeatBlockRoutineSuggestion() = intent {
+            val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+            repeatBlockSuggestionStore.recordDismissed(
+                suggestion = suggestion,
+                dismissedAt = LocalDateTime.now(),
+            )
+            analytics.trackRepeatBlockRoutineSuggestionDismissed(
+                surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+            reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+        }
+
+        private suspend fun loadPostBlockRepeatBlockRoutineSuggestion(): RepeatBlockRoutineSuggestion? {
+            val now = LocalDateTime.now()
+            val startMillis = now.minusDays(14)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val endMillis = now.plusDays(1)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
+                .firstOrNull()
+                .orEmpty()
+                .map { history ->
+                    RepeatBlockHistorySample(
+                        startDateTime = history.startDateTime,
+                        blockedPackages = history.lockedApps,
+                    )
+                }
+            return RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+                histories = histories,
+                activeRoutines = routineRepository.fetchAll().firstOrNull().orEmpty(),
+                dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+                now = now,
+            )
         }
 
         private fun checkDailyLimit() = intent {
@@ -221,6 +281,7 @@ data class BlockUiState(
     val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val showFirstCoreActionFeedback: Boolean = false,
     val timedLockDeadline: LocalDateTime? = null,
+    val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
 )
 
 sealed class BlockSideEffect {
@@ -237,3 +298,12 @@ internal fun String?.orDefaultBlockSource(): String =
         AnalyticsBlockSource.PARENT_MODE -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
