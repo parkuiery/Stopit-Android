@@ -222,6 +222,7 @@
 - `ready`로 승격한 major 후보만 별도 이슈 또는 좁은 PR로 전환한다. AGP/Kotlin/Compose/KSP 같은 stack upgrade는 같은 PR 안에서 compatibility matrix와 release/build verification을 요구한다.
 - `hold` 후보는 보류 이유를 issue comment나 maintenance report에 남기고, Play Console / Firebase deploy / 대표님 승인 / release train 같은 외부 경계를 명시한다.
 - patch/minor Dependabot PR(#693 정책)은 계속 `dependabot/* -> develop` 자동 PR로 운영한다. #905 감사는 그 자동 PR을 대체하지 않고, semver-major만 별도 수동 lane으로 다룬다.
+- 예외: `r0adkll/upload-google-play`는 patch/minor라도 자동 Dependabot PR 대상이 아니다. 이 action은 Google Play 업로드 side effect와 signed AAB provenance를 잇는 release-critical boundary이므로 `.github/dependabot.yml`에서 ignore하고, 새 SHA 검토가 필요할 때만 별도 release-governance PR에서 `.github/workflows/play-deploy.yml`, `scripts.tests.test_release_provenance_workflow_contract`, `docs/PLAY_DEPLOYMENT.md`, `docs/GIT_WORKFLOW.md`, `docs/RELEASE_CHECKLIST.md`, `docs/ops/stopit/release-context.md`를 함께 갱신한다.
 - Play deploy, release secret, signing secret, Firebase service account secret은 semver-major 감사의 산출물이 아니다. major upgrade PR이 이런 secret 경계를 요구하면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 release-governance issue로 분리한다.
 
 ## 기본 검증 명령

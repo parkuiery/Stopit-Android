@@ -47,6 +47,27 @@ class DependabotPolicyContractTest(unittest.TestCase):
         self.assertIn("update-types:", config)
         self.assertIn("version-update:semver-major", config)
 
+    def test_release_critical_play_upload_action_is_not_dependabot_auto_bumped(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
+
+        self.assertRegex(
+            config,
+            r"dependency-name:\s*[\"']r0adkll/upload-google-play[\"']",
+            "The Play upload action is release-critical and should not be auto-bumped by Dependabot",
+        )
+        for required in [
+            "r0adkll/upload-google-play",
+            "release-critical boundary",
+            "자동 Dependabot PR 대상이 아니다",
+            "release-governance PR",
+            "scripts.tests.test_release_provenance_workflow_contract",
+            "docs/PLAY_DEPLOYMENT.md",
+            "docs/RELEASE_CHECKLIST.md",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, docs)
+
     def test_operator_docs_explain_dependabot_triage_and_release_boundary(self):
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
 
