@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +45,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
@@ -62,6 +66,7 @@ fun BlockScreen(
     goalLockId: String?,
     viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
+    onOpenRoutineSuggestion: (RepeatBlockRoutineSuggestion) -> Unit = {},
 ) {
     val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val uiState by viewModel.collectAsState()
@@ -100,6 +105,7 @@ fun BlockScreen(
         when (effect) {
             is BlockSideEffect.UnlockCompleted,
             is BlockSideEffect.TimedLockExpired -> onClose()
+            is BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill -> onOpenRoutineSuggestion(effect.suggestion)
         }
     }
 
@@ -143,6 +149,8 @@ fun BlockScreen(
         appName = appName,
         uiState = uiState,
         onShowEmergencyUnlock = viewModel::showEmergencyUnlockSheet,
+        onOpenRoutineSuggestion = viewModel::openRepeatBlockRoutineSuggestion,
+        onDismissRoutineSuggestion = viewModel::dismissRepeatBlockRoutineSuggestion,
         onClose = onClose,
     )
 }
@@ -152,6 +160,8 @@ internal fun BlockScreenContent(
     appName: String,
     uiState: BlockUiState,
     onShowEmergencyUnlock: () -> Unit,
+    onOpenRoutineSuggestion: () -> Unit = {},
+    onDismissRoutineSuggestion: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     showBannerAd: Boolean = true,
@@ -244,6 +254,17 @@ internal fun BlockScreenContent(
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
+                    RepeatBlockRoutineSuggestionCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("block_screen_repeat_block_suggestion_card"),
+                        suggestion = suggestion,
+                        onApplyClick = onOpenRoutineSuggestion,
+                        onDismissClick = onDismissRoutineSuggestion,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                 TextButton(
                     modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
@@ -287,6 +308,54 @@ internal fun BlockScreenContent(
                     text = stringResource(id = R.string.block_screen_close),
                     onClick = onClose,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepeatBlockRoutineSuggestionCard(
+    modifier: Modifier = Modifier,
+    suggestion: RepeatBlockRoutineSuggestion,
+    onApplyClick: () -> Unit,
+    onDismissClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.repeat_block_suggestion_post_block_success_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(
+                    R.string.repeat_block_suggestion_post_block_success_message,
+                    suggestion.prefillPackages.size,
+                    suggestion.prefillStartTime,
+                    suggestion.prefillEndTime,
+                ),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                KeepButton(
+                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
+                    onClick = onApplyClick,
+                )
+                TextButton(onClick = onDismissClick) {
+                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
+                }
             }
         }
     }

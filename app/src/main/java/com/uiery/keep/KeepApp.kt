@@ -41,7 +41,10 @@ import com.uiery.keep.feature.splash.splashScreen
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 
 @Composable
-internal fun KeepApp(modifier: Modifier = Modifier) {
+internal fun KeepApp(
+    modifier: Modifier = Modifier,
+    startDestination: Any = SplashRoute,
+) {
     val navController = rememberNavController()
 
     val isDevToolEnabled = shouldRegisterDevToolRoute(
@@ -54,7 +57,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .testTag("stopit_app_nav_host"),
         navController = navController,
-        startDestination = SplashRoute,
+        startDestination = startDestination,
     ) {
         splashScreen(
             onNavigateHome = navController::navigateToHome,
