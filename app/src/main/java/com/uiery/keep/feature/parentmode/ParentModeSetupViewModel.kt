@@ -213,6 +213,8 @@ internal class ParentModeSetupViewModel @Inject constructor(
             current.copy(
                 setupIssues = emptySet(),
                 activeSession = session,
+                guardianPin = "",
+                guardianPinConfirmation = "",
             )
         }
         _sideEffect.value = sideEffect

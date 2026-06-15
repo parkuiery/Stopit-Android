@@ -180,7 +180,7 @@ class ParentModeSetupViewModelTest {
     }
 
     @Test
-    fun activeSessionCanBeExtendedWithVerifiedPinFromSetupScreen() = runBlocking {
+    fun activeSessionControlsRequireFreshVerifiedPinBeforeExtending() = runBlocking {
         var now = 1_000L
         val store = ParentModeSessionStore(FakeDataStore())
         val viewModel = createViewModel(
@@ -193,7 +193,18 @@ class ParentModeSetupViewModelTest {
         viewModel.startParentModeFromSetupInput()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
 
+        assertEquals("", viewModel.state.value.guardianPin)
+        assertEquals("", viewModel.state.value.guardianPinConfirmation)
+
         now = 120_000L
+        viewModel.extendActiveSessionByTenMinutes()
+        awaitUntil { viewModel.state.value.setupIssues == setOf(ParentModeSetupIssue.PinNotVerified) }
+
+        assertEquals(ParentModeSetupSideEffect.Started, viewModel.sideEffect.value)
+        assertEquals(601_000L, store.read()?.expiresAtMillis)
+
+        viewModel.updateGuardianPin("4321")
+        viewModel.updateGuardianPinConfirmation("4321")
         viewModel.extendActiveSessionByTenMinutes()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Extended }
 
@@ -223,6 +234,8 @@ class ParentModeSetupViewModelTest {
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
 
         now = 300_000L
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
         viewModel.endActiveSessionFromSetupInput()
         awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Ended }
 

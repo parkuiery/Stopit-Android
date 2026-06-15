@@ -72,7 +72,14 @@ class ParentModeSetupScreenAccessibilityTest {
         composeRule.setContent {
             KeepTheme {
                 ParentModeActiveControls(
+                    state = ParentModeSetupUiState(
+                        guardianPin = "1234",
+                        guardianPinConfirmation = "1234",
+                    ),
                     session = session,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
@@ -97,6 +104,44 @@ class ParentModeSetupScreenAccessibilityTest {
     }
 
     @Test
+    fun activeControlsRequireGuardianPinBeforeExtendingOrEnding() {
+        val session = ParentModeSession(
+            startedAtMillis = 1_000L,
+            expiresAtMillis = 61_000L,
+            durationMinutes = 60,
+            allowedApps = setOf("com.example.video"),
+            state = ParentModeSessionState.Active,
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                ParentModeActiveControls(
+                    state = ParentModeSetupUiState(),
+                    session = session,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
+                    onRefresh = {},
+                    onExtend = {},
+                    onEnd = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_label))
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_pin_confirm_label))
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_extend_ten_minutes))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+    }
+
+    @Test
     fun activeControlsKeepExpiredSessionActionsDisabled() {
         val session = ParentModeSession(
             startedAtMillis = 1_000L,
@@ -109,7 +154,11 @@ class ParentModeSetupScreenAccessibilityTest {
         composeRule.setContent {
             KeepTheme {
                 ParentModeActiveControls(
+                    state = ParentModeSetupUiState(),
                     session = session,
+                    pinMismatch = false,
+                    onGuardianPinChanged = {},
+                    onGuardianPinConfirmationChanged = {},
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
