@@ -259,7 +259,7 @@ private fun RoutineItem(
             Icon(
                 painter = painterResource(R.drawable.ic_share),
                 contentDescription = stringResource(R.string.cd_share_routine_template),
-                tint = if (isBlocked) KeepTheme.colors.surfaceVariant else KeepTheme.colors.primary,
+                tint = KeepTheme.colors.surfaceVariant,
             )
         }
         KeepSwitch(
