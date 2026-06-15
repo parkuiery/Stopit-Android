@@ -81,12 +81,25 @@ class RoutineBottomSheetViewModelTest {
             viewModel.resetEditState(validRoutine(id = 7L, isEnabled = false))
             awaitState(viewModel) { it.name == "Morning focus" }
             viewModel.editRoutine(7L)
-            awaitUntil { routineDao.updatedEntity != null }
+            awaitUntil("disabled routine DAO update") { routineDao.updatedEntity != null }
 
             assertEquals(false, routineDao.updatedEntity?.isEnabled)
             awaitRoutineCancelled(routineScheduler, 7L)
             Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
         }
+    }
+
+    @Test
+    fun awaitUntilReportsWhichRoutineBottomSheetPredicateTimedOut() = runBlocking {
+        val error = runCatching {
+            awaitUntil("analytics lockScheduledCalls", timeoutMillis = 1) { false }
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalStateException)
+        assertEquals(
+            "Timed out waiting for RoutineBottomSheetViewModel predicate: analytics lockScheduledCalls",
+            error?.message,
+        )
     }
 
     @Test
@@ -106,8 +119,8 @@ class RoutineBottomSheetViewModelTest {
         viewModel.resetEditState(validRoutine(id = 7L))
         awaitState(viewModel) { it.name == "Morning focus" }
         viewModel.editRoutine(7L)
-        awaitUntil { routineDao.updatedEntity != null }
-        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
+        awaitUntil("edited routine DAO update") { routineDao.updatedEntity != null }
+        awaitUntil("edited routine lockScheduled analytics") { analytics.lockScheduledCalls.isNotEmpty() }
 
         assertEquals(7L, routineDao.updatedEntity?.id)
         awaitRoutineCancelled(routineScheduler, 7L)
@@ -162,11 +175,11 @@ class RoutineBottomSheetViewModelTest {
 
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
-        awaitUntil { routineDao.insertedEntity != null }
+        awaitUntil("added routine DAO insert") { routineDao.insertedEntity != null }
 
         assertEquals("Morning focus", routineDao.insertedEntity?.name)
         awaitRoutineScheduled(routineScheduler)
-        awaitUntil { analytics.lockScheduledCalls.isNotEmpty() }
+        awaitUntil("added routine lockScheduled analytics") { analytics.lockScheduledCalls.isNotEmpty() }
         assertEquals(
             listOf(AnalyticsScheduleType.ROUTINE to 30L),
             analytics.lockScheduledCalls,
@@ -205,7 +218,7 @@ class RoutineBottomSheetViewModelTest {
 
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
-        awaitUntil { routineDao.insertedEntity != null }
+        awaitUntil("exact-alarm missing routine DAO insert") { routineDao.insertedEntity != null }
 
         assertEquals(false, routineDao.insertedEntity?.isEnabled)
         Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
@@ -240,15 +253,15 @@ class RoutineBottomSheetViewModelTest {
             routineSavedEntrySurface = "home_secondary",
             routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
         )
-        awaitUntil {
+        awaitUntil("home CTA routine attribution state") {
             viewModel.container.stateFlow.value.routineSavedEntrySurface == "home_secondary" &&
                 viewModel.container.stateFlow.value.routineSavedCreationSource ==
                 RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA
         }
         fillValidRoutine(viewModel)
         viewModel.addRoutine()
-        awaitUntil { routineDao.insertedEntity != null }
-        awaitUntil { analytics.routineSavedCalls.isNotEmpty() }
+        awaitUntil("home CTA routine DAO insert") { routineDao.insertedEntity != null }
+        awaitUntil("home CTA routineSaved analytics") { analytics.routineSavedCalls.isNotEmpty() }
 
         assertEquals(
             listOf(
@@ -308,10 +321,12 @@ class RoutineBottomSheetViewModelTest {
         viewModel.setName("Sleep defense")
         awaitState(viewModel) { it.isButtonEnable }
         viewModel.addRoutine()
-        awaitUntil { routineDao.insertedEntity != null }
+        awaitUntil("repeat-block routine DAO insert") { routineDao.insertedEntity != null }
 
         assertEquals(suggestion.prefillPackages, routineDao.insertedEntity?.lockApplications)
-        awaitUntil { analytics.repeatBlockAppliedCalls.isNotEmpty() && analytics.routineSavedCalls.isNotEmpty() }
+        awaitUntil("repeat-block applied and routineSaved analytics") {
+            analytics.repeatBlockAppliedCalls.isNotEmpty() && analytics.routineSavedCalls.isNotEmpty()
+        }
         assertEquals(1, analytics.repeatBlockAppliedCalls.size)
         assertEquals(RepeatBlockRoutineSuggestionSurface.HOME, analytics.repeatBlockAppliedCalls.single().first)
         assertEquals(expectedAnalyticsPayload, analytics.repeatBlockAppliedCalls.single().second)
@@ -353,29 +368,39 @@ class RoutineBottomSheetViewModelTest {
 
     private suspend fun awaitState(
         viewModel: RoutineBottomSheetViewModel,
+        description: String = "state predicate",
         predicate: (RoutineBottomSheetUiState) -> Boolean,
     ): RoutineBottomSheetUiState {
-        repeat(20) {
-            val state = viewModel.container.stateFlow.value
-            if (predicate(state)) return state
-            delay(10)
-        }
+        awaitUntil(description) { predicate(viewModel.container.stateFlow.value) }
         return viewModel.container.stateFlow.value
     }
 
-    private suspend fun awaitUntil(predicate: () -> Boolean) {
-        repeat(20) {
-            if (predicate()) return
-            delay(10)
+    private suspend fun awaitUntil(
+        description: String,
+        timeoutMillis: Long = 2_000,
+        predicate: () -> Boolean,
+    ) {
+        runCatching {
+            withTimeout(timeoutMillis) {
+                while (true) {
+                    if (predicate()) return@withTimeout
+                    delay(10)
+                }
+            }
+        }.getOrElse {
+            error("Timed out waiting for RoutineBottomSheetViewModel predicate: $description")
         }
-        error("Timed out waiting for asynchronous RoutineBottomSheetViewModel intent")
+    }
+
+    private suspend fun awaitUntil(predicate: () -> Boolean) {
+        awaitUntil("asynchronous RoutineBottomSheetViewModel predicate", predicate = predicate)
     }
 
     private suspend fun awaitRoutineCancelled(
         routineScheduler: RoutineScheduler,
         id: Long,
     ) {
-        awaitUntil {
+        awaitUntil("routine $id cancellation") {
             runCatching {
                 Mockito.verify(routineScheduler).cancelRoutine(id)
             }.isSuccess
@@ -383,7 +408,7 @@ class RoutineBottomSheetViewModelTest {
     }
 
     private suspend fun awaitRoutineScheduled(routineScheduler: RoutineScheduler) {
-        awaitUntil {
+        awaitUntil("routine schedule") {
             runCatching {
                 Mockito.verify(routineScheduler).scheduleRoutine(anyRoutine())
             }.isSuccess
