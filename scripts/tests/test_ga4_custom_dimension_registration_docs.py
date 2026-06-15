@@ -75,6 +75,7 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
                     self.assertIn(snippet, text)
     def test_parent_mode_setup_screen_view_package_is_tracked_in_high_traffic_surfaces(self):
         required_snippets = [
+            "PR #913(`9d169449`)",
             "`ParentModeSetupScreen`",
             "Parent Mode setup",
             "D+14 screen quality 재측정",
@@ -84,6 +85,17 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
             with self.subTest(path=path.name):
                 for snippet in required_snippets:
                     self.assertIn(snippet, text)
+
+    def test_parent_mode_setup_screen_view_docs_do_not_use_run_relative_wording(self):
+        forbidden = [
+            "이번 code-lane follow-through",
+            "이번 code-lane 기준 추가 확인",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in forbidden:
+                    self.assertNotIn(snippet, text)
 
 
 if __name__ == "__main__":
