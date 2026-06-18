@@ -190,7 +190,7 @@ cd <repo-root>
 
 ### 3차 code-lane foothold
 
-2026-06-09 code-lane PR에서 `ParentModeSessionController`를 추가해 setup validation → session 저장 → privacy-safe analytics commit, PIN 검증 후 연장/즉시 종료 commit 경계를 한 곳으로 묶었다. 이 foothold는 아직 화면 진입점이나 실제 PIN 입력 UI가 아니지만, 후속 Home/Menu/setup/active 화면은 이 controller를 통해서만 부모 모드 session을 시작·연장·종료해야 한다.
+이 code-lane foothold에서 `ParentModeSessionController`를 추가해 setup validation → session 저장 → privacy-safe analytics commit, PIN 검증 후 연장/즉시 종료 commit 경계를 한 곳으로 묶었다. 이 foothold는 아직 화면 진입점이나 실제 PIN 입력 UI가 아니지만, 후속 Home/Menu/setup/active 화면은 이 controller를 통해서만 부모 모드 session을 시작·연장·종료해야 한다.
 
 - `ParentModeSessionController`: duration/허용 앱/PIN validation 실패 시 저장·analytics를 하지 않고 `SetupBlocked`를 반환한다.
 - `ParentModeSessionControllerTest`: 시작, invalid setup, PIN 없는 연장 거부, PIN 성공 연장, PIN 성공 즉시 종료, 시간 만료 1회 commit을 DataStore 저장값과 analytics call 순서까지 검증한다.
@@ -198,7 +198,7 @@ cd <repo-root>
 
 ### 4차 code-lane foothold
 
-2026-06-09 code-lane PR에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
+이 code-lane foothold에서 Menu의 `아이에게 폰 주기` entrypoint와 `ParentModeSetupRoute`/setup 화면 foothold를 추가했다. 이 foothold는 사용자가 앱 안에서 부모 모드 준비 화면까지 도달하고 현재 선택 앱을 setup allowed-app seed로 읽어오는 경계를 코드와 JVM 테스트로 고정한다.
 
 - `MenuScreen` / `MenuNavigation` / `KeepApp`: Menu에서 부모 모드 setup route로 이동하는 entrypoint를 연결한다.
 - `ParentModeSetupScreen`: 현재 선택 앱 수와 보호자 PIN 입력 필드를 보여주고, verified PIN일 때만 setup CTA를 활성화한다.
@@ -206,7 +206,7 @@ cd <repo-root>
 
 ### 5차 code-lane foothold
 
-2026-06-09 code-lane PR에서 실제 PIN 입력 UI와 setup CTA enablement를 setup 화면에 연결했다. 이 foothold는 active/expired 화면을 완성하지는 않지만, 사용자가 보호자 PIN을 입력·확인한 뒤에만 `ParentModeSessionController`를 통해 session 저장과 `Started` side effect를 발생시키는 runtime setup 경계를 고정한다.
+이 code-lane foothold에서 실제 PIN 입력 UI와 setup CTA enablement를 setup 화면에 연결했다. 이 foothold는 active/expired 화면을 완성하지는 않지만, 사용자가 보호자 PIN을 입력·확인한 뒤에만 `ParentModeSessionController`를 통해 session 저장과 `Started` side effect를 발생시키는 runtime setup 경계를 고정한다.
 
 - `ParentModeSetupScreen`: 보호자 PIN / 확인 입력 필드, mismatch helper, numeric password keyboard, verified PIN 기반 시작 CTA를 제공한다.
 - `ParentModeSetupViewModel`: digit-only 4~6자리 PIN 입력을 state에 반영하고, `ParentModePinState.Verified`일 때만 `canAttemptStart`를 true로 만든다.
@@ -214,7 +214,7 @@ cd <repo-root>
 
 ### 6차 code-lane foothold
 
-2026-06-09 code-lane PR에서 `ParentModeSessionController.markExpiredIfNeeded(...)`를 추가해 active session이 만료 시각을 지난 뒤 `expired` 상태와 `parent_mode_completed(end_reason=time_expired)` analytics를 한 번만 commit하도록 고정했다. Accessibility 차단 decision은 이미 만료 세션에서 허용 앱도 차단하지만, 이번 foothold는 persisted session state와 completion analytics가 중복 없이 따라오도록 보강한다.
+이 code-lane foothold에서 `ParentModeSessionController.markExpiredIfNeeded(...)`를 추가해 active session이 만료 시각을 지난 뒤 `expired` 상태와 `parent_mode_completed(end_reason=time_expired)` analytics를 한 번만 commit하도록 고정했다. Accessibility 차단 decision은 이미 만료 세션에서 허용 앱도 차단하지만, 이번 foothold는 persisted session state와 completion analytics가 중복 없이 따라오도록 보강한다.
 
 - `ParentModeSessionController`: active session만 만료 처리하고, 이미 `expired`/`unlocked_by_pin`/`cancelled` 상태인 session은 `NoStateChange`로 둔다.
 - `ParentModeSessionControllerTest.markExpiredIfNeededPersistsExpiredSessionAndTracksCompletionOnce`: 만료 1회 저장, 두 번째 호출 no-op, `time_expired` completion event 1회만 기록되는 경계를 검증한다.

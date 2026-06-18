@@ -189,6 +189,7 @@ class ParentModeContractTest(unittest.TestCase):
 
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
+        runbook = RUNBOOK.read_text()
 
         self.assertIn("PR #519", product_context)
         self.assertIn("PR #584", product_context)
@@ -206,6 +207,8 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("fresh guardian PIN 입력/확인이 다시 완료되기 전까지 연장/즉시 종료 CTA를 disabled", product_context)
         self.assertIn("상태로 되돌리지 않는다", product_context)
         self.assertIn("남은 경계는 release-candidate device UX spot-check", product_context)
+        self.assertNotIn("2026-06-09 code-lane PR", runbook)
+        self.assertNotIn("2026-06-09 code-lane PR", product_context)
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
         self.assertNotIn("이번 PR은 setup 화면", product_context)
         self.assertNotIn("2026-06-15 code-lane follow-through", product_context)
@@ -274,8 +277,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("issue #874 stale Active guard", qa_checklist)
         self.assertIn("stale Active expiry spot-check", qa_checklist)
         self.assertIn("PIN_UNLOCKED", qa_checklist)
-        self.assertIn("PR #519/#584/#748/#870/#873", qa_checklist)
+        self.assertIn("PR #519/#584/#748/#870/#873/#946", qa_checklist)
         self.assertIn("active controls fresh guardian PIN", qa_checklist)
+        self.assertIn("PIN 없는 active 연장/종료 허용", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
         self.assertIn("직접 설정 미구현", qa_checklist)
         self.assertIn("TalkBack baseline 미정의", qa_checklist)
