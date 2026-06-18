@@ -106,13 +106,13 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         contract = CONTRACT.read_text()
 
         for expected in [
-            "2026-06-14T00:09:03Z",
-            "newUsers = 578",
-            "Direct = 335 / 578 = 58.0%",
-            "Organic Search = 243 / 578 = 42.0%",
+            "2026-06-18T17:42:25Z",
+            "newUsers = 611",
+            "Direct = 339 / 611 = 55.5%",
+            "Organic Search = 272 / 611 = 44.5%",
             "Paid Search",
             "신규 0명",
-            "활성 19명·세션 142회",
+            "활성 20명·세션 146회",
         ]:
             self.assertIn(expected, contract)
 

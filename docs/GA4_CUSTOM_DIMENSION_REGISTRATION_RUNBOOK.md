@@ -607,19 +607,19 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 - 이 값은 현재 live 계정의 screen-name 상태를 과거 baseline과 같은 쿼리로 다시 찍은 **중간 smoke**다. #13 closure 판단은 PR #296/#318/#358 포함 release/tag/Play deploy 후 14일 창에서 같은 분자/분모의 **D+14 screen quality 재측정**으로 다시 채운다.
 - 같은 화면(`SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`, `DevToolScreen`)에 대한 추가 code-lane 후보를 만들기 전에, 먼저 release inclusion과 14일 재측정 여부를 확인한다.
 
-### 2026-06-14T00:09:03Z metrics snapshot readback: 30일 합산 guardrail
+### 2026-06-18T17:42:25Z metrics snapshot readback: 30일 합산 guardrail
 
 - 확인 명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
 - window: `30daysAgo..yesterday`
 - 확인된 30일 screen quality:
-  - total `screen_view`: `50,641`
-  - `(not set)+blank` `unifiedScreenName` gap: `29,883`
-  - `(not set)+blank` share: `29,883 / 50,641 = 59.0%`
-  - visible top screens: `BlockScreen` `11,859`, `HomeScreen` `4,018`, `SplashScreen` `1,009`, `OnboardingIntroScreen` `933`, `RoutineScreen` `829`, `MenuScreen` `779`, `LockScreen` `482`
+  - total `screen_view`: `56,257`
+  - `(not set)+blank` `unifiedScreenName` gap: `31,162`
+  - `(not set)+blank` share: `31,162 / 56,257 = 55.4%`
+  - visible top screens: `BlockScreen` `15,041`, `HomeScreen` `4,479`, `SplashScreen` `1,009`, `OnboardingIntroScreen` `994`, `MenuScreen` `992`, `RoutineScreen` `887`, `LockScreen` `623`
 - latest observed production version adoption smoke:
-  - `appVersion=1.7.7` activeUsers: `317`
-  - total activeUsers: `841`
-  - latest-version active share: `317 / 841 = 37.7%` → `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분`
+  - `appVersion=1.7.7` activeUsers: `390`
+  - total activeUsers: `869`
+  - latest-version active share: `390 / 869 = 44.9%` → `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분`
 
 해석:
 
@@ -642,7 +642,7 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 | `screen_view` 총량 | `13,154` | `TODO` | |
 | `(not set)` `unifiedScreenName` | `9,473` | `TODO` | |
 | 빈 `unifiedScreenName` | `801` | `TODO` | |
-| `(not set)+빈 값` 비율 | `78.1%` | `TODO` | 2026-05-29 baseline은 PR #296의 `SplashScreen` / `BlockedAppsScreen` / `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 기준선이고, PR #358 merge commit `6ceaecc4`가 이 release-boundary를 고정했다. 2026-06-03 14일 live smoke는 `13,780 / 22,584 = 61.0%`였고, 2026-06-14T00:09:03Z 30일 metrics snapshot은 `(not set)+blank` `29,883 / 50,641 = 59.0%`였다. 최신 `1.7.7` active share는 `317 / 841 = 37.7%`로 충분 상태에 들어왔지만 `PR #296/#318/#358` package와 PR #755 Firebase `screen_view` backend payload 보강이 `origin/main`/`v1.7.7`에 없으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. 화면 호출 coverage package와 backend payload package가 모두 포함된 버전 배포 후 14일 창에서 **D+14 screen quality 재측정**. `DevToolScreen`은 dev/debug 내부 진단 surface로 production 사용자 screen denominator와 분리. |
+| `(not set)+빈 값` 비율 | `78.1%` | `TODO` | 2026-05-29 baseline은 PR #296의 `SplashScreen` / `BlockedAppsScreen` / `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 기준선이고, PR #358 merge commit `6ceaecc4`가 이 release-boundary를 고정했다. 2026-06-03 14일 live smoke는 `13,780 / 22,584 = 61.0%`였고, 2026-06-18T17:42:25Z 30일 metrics snapshot은 `(not set)+blank` `31,162 / 56,257 = 55.4%`였다. 최신 `1.7.7` active share는 `390 / 869 = 44.9%`로 충분 상태에 들어왔지만 `PR #296/#318/#358` package와 PR #755 Firebase `screen_view` backend payload 보강이 `origin/main`/`v1.7.7`에 없으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. 화면 호출 coverage package와 backend payload package가 모두 포함된 버전 배포 후 14일 창에서 **D+14 screen quality 재측정**. `DevToolScreen`은 dev/debug 내부 진단 surface로 production 사용자 screen denominator와 분리. |
 | metadata에서 보이는 `customUser:*` | `routines_count` | `TODO` | |
 | activation metadata에서 보이는 `customEvent:*` | `없음` | `TODO` | `permission_name`, `outcome`, `source`, `selected_app_count`, `block_source`, `blocked_app_category_bucket` 등 activation/funnel breakdown은 아직 낮은 confidence. `blocked_app_package` 원문은 #611에 따라 신규 등록/조회 대상에서 제외 |
 | review skip metadata에서 보이는 `customEvent:*` | `reason` | `TODO` | 2026-06-02T18:06:45Z 기준 `review_prompt_skipped` reason breakdown 조회 가능. #307에서는 더 이상 `reason`을 미등록 경계로 반복 보고하지 않음 |
