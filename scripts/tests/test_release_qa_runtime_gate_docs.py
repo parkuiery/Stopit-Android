@@ -63,6 +63,18 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
                 with self.subTest(doc=doc_name, phrase=phrase):
                     self.assertIn(phrase, text)
 
+    def test_routine_start_notification_tap_docs_split_cold_start_and_existing_task_fallbacks(self):
+        qa_checklist = DOCS["runtime QA checklist"].read_text()
+        required_phrases = [
+            "cold start malformed tap은 Splash fallback",
+            "existing-task malformed tap은 현재 화면 유지",
+            "notification shade row를 UiAutomator로 찾아 탭",
+            "POST_NOTIFICATIONS`가 기본 denied",
+        ]
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, qa_checklist)
+
     def test_release_qa_keeps_notification_denied_methods_out_of_normal_batch(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
         normal_batch, notification_denied_batch = workflow.split(
