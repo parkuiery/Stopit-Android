@@ -340,6 +340,35 @@ class ParentModeSetupViewModelTest {
         assertEquals(expectedSession, store.read())
     }
 
+    @Test
+    fun inactiveSessionCanBeClearedForAnotherParentModeSetup() = runBlocking {
+        var now = 1_000L
+        val store = ParentModeSessionStore(FakeDataStore())
+        val viewModel = createViewModel(
+            sessionStore = store,
+            nowMillis = { now },
+        )
+        viewModel.setDurationMinutes(1)
+        viewModel.setAllowedApps(setOf("com.video.app"))
+        viewModel.updateGuardianPin("1234")
+        viewModel.updateGuardianPinConfirmation("1234")
+        viewModel.startParentModeFromSetupInput()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Started }
+
+        now = 61_000L
+        viewModel.refreshActiveSessionStatus()
+        awaitUntil { viewModel.sideEffect.value == ParentModeSetupSideEffect.Expired }
+
+        viewModel.prepareAnotherParentModeSession()
+        awaitUntil { viewModel.state.value.activeSession == null }
+
+        assertNull(store.read())
+        assertEquals(setOf("com.video.app"), viewModel.state.value.allowedApps)
+        assertEquals("", viewModel.state.value.guardianPin)
+        assertEquals("", viewModel.state.value.guardianPinConfirmation)
+        assertTrue(viewModel.state.value.canAttemptStart.not())
+    }
+
     private fun createViewModel(
         blockingStateStore: BlockingStateStore = BlockingStateStore(FakeDataStore()),
         sessionStore: ParentModeSessionStore = ParentModeSessionStore(FakeDataStore()),

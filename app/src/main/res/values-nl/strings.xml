@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Gebruik de geverifieerde ouder-PIN om deze sessie te verlengen of te beëindigen.</string>
     <string name="parent_mode_active_extend_ten_minutes">10 minuten verlengen</string>
     <string name="parent_mode_active_end_now">Beëindigen met ouder-PIN</string>
+    <string name="parent_mode_prepare_another_session">Start nog een oudermodus</string>
 
     <string name="lock_history_menu_title">Vergrendelgeschiedenis bekijken</string>
     <string name="lock_history_title">Vergrendelgeschiedenis</string>

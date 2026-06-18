@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Usa il PIN tutore verificato per estendere o terminare questa sessione.</string>
     <string name="parent_mode_active_extend_ten_minutes">Estendi di 10 minuti</string>
     <string name="parent_mode_active_end_now">Termina con PIN tutore</string>
+    <string name="parent_mode_prepare_another_session">Avvia un altro Parent Mode</string>
 
     <string name="lock_history_menu_title">Visualizza cronologia blocchi</string>
     <string name="lock_history_title">Cronologia blocchi</string>

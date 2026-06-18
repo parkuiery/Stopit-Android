@@ -180,6 +180,7 @@
     <string name="parent_mode_active_pin_notice">Usa el PIN de tutor verificado para ampliar o terminar esta sesión.</string>
     <string name="parent_mode_active_extend_ten_minutes">Ampliar 10 minutos</string>
     <string name="parent_mode_active_end_now">Terminar con PIN de tutor</string>
+    <string name="parent_mode_prepare_another_session">Iniciar otro modo parental</string>
 
     <string name="lock_history_menu_title">Ver historial de bloqueo</string>
     <string name="lock_history_title">Historial de bloqueo</string>

@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Utilisez le PIN tuteur vérifié pour prolonger ou terminer cette session.</string>
     <string name="parent_mode_active_extend_ten_minutes">Prolonger de 10 minutes</string>
     <string name="parent_mode_active_end_now">Terminer avec le PIN tuteur</string>
+    <string name="parent_mode_prepare_another_session">Démarrer un autre mode parent</string>
 
     <string name="lock_history_menu_title">Voir l\'historique de verrouillage</string>
     <string name="lock_history_title">Historique de verrouillage</string>

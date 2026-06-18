@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Используйте подтверждённый PIN опекуна, чтобы продлить или завершить этот сеанс.</string>
     <string name="parent_mode_active_extend_ten_minutes">Продлить на 10 минут</string>
     <string name="parent_mode_active_end_now">Завершить с PIN опекуна</string>
+    <string name="parent_mode_prepare_another_session">Запустить родительский режим снова</string>
 
     <string name="lock_history_menu_title">Посмотреть историю блокировок</string>
     <string name="lock_history_title">История блокировок</string>
