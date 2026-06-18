@@ -159,6 +159,7 @@ class ParentModeContractTest(unittest.TestCase):
             "PR #897",
             "PR #913",
             "PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`",
+            "PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`",
             "PR #970",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
@@ -186,6 +187,8 @@ class ParentModeContractTest(unittest.TestCase):
             self.assertIn("fresh guardian PIN", document)
 
         self.assertNotIn("Home/Menu entrypoint + setup screen", runbook)
+        self.assertNotIn("2026-06-09 QA-lane PR", runbook)
+        self.assertNotIn("2026-06-14 QA-lane PR", runbook)
         self.assertNotIn("2026-06-15 code-lane follow-through", runbook)
         self.assertNotIn("2026-06-15 code-lane active-PIN follow-through", runbook)
         self.assertNotIn("2026-06-14 code-lane follow-through", runbook)
@@ -299,7 +302,13 @@ class ParentModeContractTest(unittest.TestCase):
         runbook = RUNBOOK.read_text()
 
         for phrase in [
+            "7차 QA-lane runtime foothold",
+            "PR #714 merge commit `1a55a4a0a5969cca3a69f158721224e27f37002d`",
+            "activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution",
+            "observedParentModeState=active",
+            "lastLaunchedBlockSource=parent_mode",
             "8차 QA-lane expiry runtime foothold",
+            "PR #716 merge commit `04c8d075bf84081c78ce17748f368c9965acbbb2`",
             "nextParentModeExpirationReevaluationDelayMillis",
             "nextTimeBasedBlockingStartReevaluationDelayMillis",
             "time-based 재평가",
