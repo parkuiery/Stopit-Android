@@ -18,6 +18,11 @@ EXPECTED_BUILD_CRITICAL_ROOT_INPUTS = {
     ".github/workflows/android-ci.yml",
 }
 
+EXPECTED_STATIC_POLICY_HELPERS = {
+    "scripts/check_compose_icon_button_accessibility.py": "scripts.tests.test_compose_icon_button_accessibility",
+    "scripts/check_locale_string_parity.py": "scripts.tests.test_locale_string_parity",
+}
+
 
 class AndroidCiPathGatingTest(unittest.TestCase):
     def test_android_ci_filter_includes_wrapper_launchers(self):
@@ -38,6 +43,18 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         for expected_input in EXPECTED_BUILD_CRITICAL_ROOT_INPUTS:
             self.assertIn(f"- '{expected_input}'", android_ci_block)
 
+    def test_static_policy_helper_changes_materialize_fast_verification(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        filters_block = workflow.split("filters: |", 1)[1]
+        android_ci_block = filters_block.split("runtime_smoke:", 1)[0]
+        static_policy_step = workflow.split("- name: Run static policy unit tests", 1)[1].split("\n\n", 1)[0]
+
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            with self.subTest(helper_path=helper_path):
+                self.assertIn(f"- '{helper_path}'", android_ci_block)
+                self.assertIn(test_module, static_policy_step)
+
     def test_play_deployment_doc_mentions_wrapper_path_gating_contract(self):
         doc = DOC_PATH.read_text()
 
@@ -50,6 +67,10 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("build-critical", doc)
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("wrapper-only", doc)
+        self.assertIn("static-policy-helper-only", doc)
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            self.assertIn(helper_path, doc)
+            self.assertIn(test_module, doc)
 
     def test_release_context_mentions_build_critical_root_inputs(self):
         doc = RELEASE_CONTEXT_PATH.read_text()
@@ -57,6 +78,10 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("build-critical", doc)
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("Fast verification", doc)
+        self.assertIn("static-policy-helper-only", doc)
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            self.assertIn(helper_path, doc)
+            self.assertIn(test_module, doc)
 
     def test_release_context_explains_fast_verification_gate_contract(self):
         doc = RELEASE_CONTEXT_PATH.read_text()

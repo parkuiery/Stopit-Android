@@ -51,6 +51,8 @@ jobs:
               - 'gradle.properties'
               - 'gradle/**'
               - 'scripts/verify_lint_registry.py'
+              - 'scripts/check_compose_icon_button_accessibility.py'
+              - 'scripts/check_locale_string_parity.py'
               - 'scripts/android_runtime_suites.py'
               - 'scripts/tests/test_android_runtime_suites_manifest.py'
               - '.github/workflows/android-ci.yml'
