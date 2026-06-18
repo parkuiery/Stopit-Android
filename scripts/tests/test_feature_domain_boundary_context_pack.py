@@ -13,7 +13,9 @@ class FeatureDomainBoundaryContextPackTest(unittest.TestCase):
         for required_phrase in (
             "RepeatBlockRoutineSuggestionAnalyticsPayload",
             "LockHistorySessionWriter",
-            "feature-local suggestion object",
+            "domain.repeatblock",
+            "data.repeatblock",
+            "data.lockhistory",
             "feature-private 모델/저장소로 되돌리지 않는다",
         ):
             self.assertIn(required_phrase, context)
