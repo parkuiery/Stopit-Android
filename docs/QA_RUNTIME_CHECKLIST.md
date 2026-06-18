@@ -1652,7 +1652,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584/#748/#870/#873/#946 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584/#748/#870/#873/#897/#913/#946/#970 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 

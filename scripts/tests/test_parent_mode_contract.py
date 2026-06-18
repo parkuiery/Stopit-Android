@@ -156,7 +156,10 @@ class ParentModeContractTest(unittest.TestCase):
             "PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`",
             "PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`",
             "PR #870 merge commit `53e3d25c591c8fa8e2e444bff6636b046b2bd4eb`",
+            "PR #897",
+            "PR #913",
             "PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`",
+            "PR #970",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
             "직접 입력한 custom duration",
@@ -200,6 +203,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`", product_context)
         self.assertIn("PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e`", product_context)
         self.assertIn("PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`", product_context)
+        self.assertIn("PR #897", product_context)
+        self.assertIn("PR #913", product_context)
+        self.assertIn("PR #970", product_context)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", product_context)
         self.assertIn("active controls 미구현", product_context)
         self.assertIn("직접 설정 미구현", product_context)
@@ -277,7 +283,9 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("issue #874 stale Active guard", qa_checklist)
         self.assertIn("stale Active expiry spot-check", qa_checklist)
         self.assertIn("PIN_UNLOCKED", qa_checklist)
-        self.assertIn("PR #519/#584/#748/#870/#873/#946", qa_checklist)
+        self.assertIn("PR #519/#584/#748/#870/#873/#897/#913/#946/#970", qa_checklist)
+        self.assertIn("dedicated block analytics 미구현", qa_checklist)
+        self.assertIn("setup screen_view 미계측", qa_checklist)
         self.assertIn("active controls fresh guardian PIN", qa_checklist)
         self.assertIn("PIN 없는 active 연장/종료 허용", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
