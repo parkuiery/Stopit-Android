@@ -148,6 +148,25 @@ class EmergencyUnlockSettingsViewModelAnalyticsTest {
             analytics.manualResetCalls,
         )
     }
+
+    @Test
+    fun manualResetInDailyRefillModeDoesNotTrackOrMutateManualResetState() = runBlocking {
+        val analytics = RecordingEmergencyUnlockSettingsAnalytics()
+        val dataStore = FakeDataStore.withPrefs {
+            this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = true
+            this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = 0L
+        }
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            dao = RecordingEmergencyUnlockSettingsDao(countSinceResult = 3),
+            analytics = analytics,
+        )
+
+        viewModel.applyManualReset()
+
+        assertEquals(emptyList<ManualResetCall>(), analytics.manualResetCalls)
+        assertEquals(0L, dataStore.snapshot()[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT])
+    }
 }
 
 private fun createViewModel(

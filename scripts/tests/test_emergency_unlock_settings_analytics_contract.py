@@ -131,6 +131,8 @@ class EmergencyUnlockSettingsAnalyticsContractTest(unittest.TestCase):
         self.assertIn("Android analytics wiring 완료", doc)
         self.assertIn("no-op 설정 조작은 change 이벤트를 만들지 않음", doc)
         self.assertIn("adoption/readback 분모가 부풀지 않게", doc)
+        self.assertIn("daily refill mode manual reset no-op", doc)
+        self.assertIn("manual refill mode에서만 발생해야 한다", doc)
         self.assertIn("PR #698", doc)
         self.assertIn("8c303d75204bf9b2b6ab1e0ed4c9b6d8e2489260", doc)
         self.assertIn("PR #789", doc)

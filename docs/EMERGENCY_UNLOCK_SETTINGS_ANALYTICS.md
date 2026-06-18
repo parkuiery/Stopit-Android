@@ -122,8 +122,9 @@ Readback 최소 쿼리:
 
 - PR #698(`8c303d7`): `KeepAnalytics` / `FirebaseKeepAnalytics`에 `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` 이벤트 API와 Firebase payload를 구현했다.
 - PR #698(`8c303d7`): `EmergencyUnlockSettingsViewModel`이 `enabled`, `daily_limit`, `duration_options`, `reason_required`, `refill_mode`, `manual_reset` 변경 경로에서 `source=menu`와 privacy-safe enum/bucket payload만 기록하도록 연결했다.
-- PR #789(`8b9f2793`): 동일 값 재선택과 단일 duration option no-op toggle은 `emergency_unlock_settings_changed`를 기록하지 않도록 보강했다. 이 경계가 없으면 반복 탭/저장값 유지 조작이 setting adoption/readback 분모를 부풀린다.
-- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가고, `unchangedSettingsDoNotTrackSettingChange` 계열 no-op 설정 조작은 change 이벤트를 만들지 않음을 고정.
+- PR #789(`8b9f2793`): 동일 값 재선택과 단일 duration option no-op 설정 조작은 change 이벤트를 만들지 않음. 이 경계가 없으면 반복 탭/저장값 유지 조작이 setting adoption/readback 분모를 부풀린다.
+- 이번 follow-up: daily refill mode에서 잘못 도달한 manual reset 요청은 `manualResetAtMillis`를 변경하거나 `emergency_unlock_manual_reset_requested`를 기록하지 않도록 보강했다. `emergency_unlock_manual_reset_requested`는 manual refill mode에서만 발생해야 한다.
+- 테스트: `FirebaseKeepAnalyticsTest.emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly`와 `EmergencyUnlockSettingsViewModelAnalyticsTest`가 raw reason/app package/raw timestamp/manualResetAtMillis 없이 enum/bucket payload만 나가고, `unchangedSettingsDoNotTrackSettingChange` 계열 no-op 설정 조작 및 daily refill mode manual reset no-op이 analytics 이벤트를 만들지 않음을 고정.
 - 남은 외부 경계: GA4 Admin custom dimension/metric 등록, SemVer tag/Play deploy 포함, D+14/D+30 readback.
 
 ## Historical code-lane handoff

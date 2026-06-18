@@ -167,6 +167,7 @@ class EmergencyUnlockSettingsViewModel
         }
 
         internal suspend fun applyManualReset() {
+            if (settingsStore.readSettings().autoResetEnabled) return
             val availability = emergencyUnlockCoordinator.readAvailability()
             settingsStore.markManualReset()
             analytics.trackEmergencyUnlockManualResetRequested(

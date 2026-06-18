@@ -347,7 +347,7 @@
 - #417 목표 잠금 MVP 계약 (`docs/GOAL_LOCK_MVP.md` 참조; 기간 기반 `all_day`/`scheduled` 장기 잠금, Home card/section, 상세 앱/이름/기간/잠금 방식 수정, enum/bucket analytics, Accessibility/expiration/compact-height 생성·상세 CTA 자동 QA baseline, 남은 TalkBack·실기기/release·GA4/readback 경계)
 - #471 부모 모드 / 아이에게 폰 주기 same-device MVP 계약 (`docs/PARENT_MODE_MVP.md` 참조; 보호자 PIN, 허용 앱, 시간 만료, 직접 분 입력, setup/active/expired 접근성 summary, privacy-safe analytics와 QA baseline)
 - #531 반복 차단 기반 자동 루틴 제안 계약 (`docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md` 참조; 반복 시간대·요일·카테고리 bucket 기반 루틴 prefill, #455와 slot 충돌 방지, privacy-safe analytics와 QA baseline)
-- #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고, PR #789 이후 동일 값 재선택·duration no-op toggle은 change 이벤트에서 제외해 adoption/readback 분모 과대계상을 방지하며, custom reason/app package/raw timestamp/snapshot dump 금지)
+- #694 긴급해제 설정 변경 analytics 계약 (`docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` 참조; 설정 ON/OFF, daily/manual refill, reason required, duration option, manual reset을 enum/bucket으로만 측정하고, PR #789 이후 동일 값 재선택·duration no-op toggle은 change 이벤트에서 제외하며, daily refill mode manual reset no-op도 analytics 분모 과대계상을 방지하고, custom reason/app package/raw timestamp/snapshot dump 금지)
 - #779 긴급해제 단계별 이탈·검증 실패 analytics 계약 (`docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md` 참조; reason/app/duration/countdown step, validation blocked, cancel source를 enum-only로 Android wiring했고(PR #783) raw reason/app/timestamp/history 금지)
 - #250 AdMob application/ad unit id flavor별 config 분리 (`docs/ADMOB_MONETIZATION_RUNBOOK.md`의 #250 handoff 참조)
 
