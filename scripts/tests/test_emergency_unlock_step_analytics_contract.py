@@ -70,6 +70,26 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
             self.assertIn("PR #783", text)
             self.assertIn("Android analytics wiring 완료", text)
 
+        for dimension in [
+            "step_name",
+            "validation_reason",
+            "reason_required_enabled",
+            "entry_surface",
+            "cancel_source",
+        ]:
+            self.assertIn(f"customEvent:{dimension}", ga4)
+
+        ledger_rows = [
+            "| `validation_reason` | Required dimension | 등록 필요 | #779 Android analytics wiring 포함 버전 배포 전후",
+            "| `reason_required_enabled` | Required dimension | 등록 필요 | 동일",
+            "| `entry_surface` | Required dimension | 등록 필요 | 동일",
+            "| `cancel_source` | Required dimension | 등록 필요 | 동일",
+        ]
+        for row in ledger_rows:
+            self.assertIn(row, ga4)
+
+        self.assertNotIn("#779 구현 후에는", ga4)
+
     def test_high_traffic_docs_link_step_analytics_contract(self):
         files = [
             "docs/AGENTS.md",

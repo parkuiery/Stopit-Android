@@ -295,7 +295,7 @@ GA4 Admin 증적 후보:
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
 | --- | --- | --- | --- | --- |
-| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인. #779 구현 후에는 긴급해제 reason/app_selection/duration/countdown 단계에도 같은 dimension을 쓴다. | `customEvent:step_name` |
+| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인. PR #783 이후 긴급해제 reason/app_selection/duration/countdown 단계도 같은 dimension을 쓴다. | `customEvent:step_name` |
 | `permission_name` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:permission_name` |
 | `outcome` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:outcome` |
 | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 미확인/등록 필요 | 동일 | `customEvent:source` |
@@ -472,6 +472,10 @@ GA4 Admin 증적 후보:
 | `duration_count_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_count_bucket` 확인 필요 | duration option 개수 bucket. raw duration list 금지 |
 | `remaining_unlocks_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:remaining_unlocks_bucket` 확인 필요 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 |
 | `reset_result` | Recommended dimension | 필요 시 등록 | manual reset 결과 구분 필요 시 | GA4 Admin 수동 | `customEvent:reset_result` 확인 필요 | requested/completed/unavailable enum만 허용 |
+| `validation_reason` | Required dimension | 등록 필요 | #779 Android analytics wiring 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:validation_reason` 확인 필요 | 긴급해제 validation 실패 종류. custom reason/app 원문 금지 |
+| `reason_required_enabled` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:reason_required_enabled` 확인 필요 | reason-required ON/OFF 분모와 reason distribution confidence 분리 |
+| `entry_surface` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:entry_surface` 확인 필요 | 긴급해제 Lock/Block 진입 표면 bucket. raw route/path 금지 |
+| `cancel_source` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:cancel_source` 확인 필요 | 긴급해제 sheet dismiss/back/cancel/outside/system 중단 bucket |
 
 ### metadata 확인 로그 템플릿
 
