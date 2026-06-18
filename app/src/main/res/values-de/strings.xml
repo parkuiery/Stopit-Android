@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Verwende die bestätigte Eltern-PIN, um diese Sitzung zu verlängern oder zu beenden.</string>
     <string name="parent_mode_active_extend_ten_minutes">10 Minuten verlängern</string>
     <string name="parent_mode_active_end_now">Mit Eltern-PIN beenden</string>
+    <string name="parent_mode_prepare_another_session">Weiteren Elternmodus starten</string>
 
     <string name="lock_history_menu_title">Sperrverlauf anzeigen</string>
     <string name="lock_history_title">Sperrverlauf</string>

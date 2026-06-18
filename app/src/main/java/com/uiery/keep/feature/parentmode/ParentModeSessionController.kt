@@ -134,6 +134,15 @@ internal class ParentModeSessionController @Inject constructor(
         return persistExpiredSession(session)
     }
 
+    suspend fun clearFinishedSession(): ParentModeSessionControllerResult {
+        val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
+        if (session.state == ParentModeSessionState.Active) {
+            return ParentModeSessionControllerResult.NoStateChange(session)
+        }
+        store.clear()
+        return ParentModeSessionControllerResult.Cleared
+    }
+
     private suspend fun persistExpiredSession(session: ParentModeSession): ParentModeSessionControllerResult.Expired {
         val expiredSession = session.copy(state = ParentModeSessionState.Expired)
         store.save(expiredSession)
@@ -171,6 +180,8 @@ internal sealed interface ParentModeSessionControllerResult {
     ) : ParentModeSessionControllerResult
 
     data object InvalidExtension : ParentModeSessionControllerResult
+
+    data object Cleared : ParentModeSessionControllerResult
 
     data object PinRequired : ParentModeSessionControllerResult
 

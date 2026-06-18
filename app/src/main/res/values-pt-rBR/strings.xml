@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">Use o PIN de responsável verificado para estender ou encerrar esta sessão.</string>
     <string name="parent_mode_active_extend_ten_minutes">Estender 10 minutos</string>
     <string name="parent_mode_active_end_now">Encerrar com PIN de responsável</string>
+    <string name="parent_mode_prepare_another_session">Iniciar outro modo parental</string>
 
     <string name="lock_history_menu_title">Ver histórico de bloqueio</string>
     <string name="lock_history_title">Histórico de bloqueio</string>

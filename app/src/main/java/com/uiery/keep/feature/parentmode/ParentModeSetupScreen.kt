@@ -149,6 +149,7 @@ internal fun ParentModeSetupScreen(
                     onRefresh = viewModel::refreshActiveSessionStatus,
                     onExtend = viewModel::extendActiveSessionByTenMinutes,
                     onEnd = viewModel::endActiveSessionFromSetupInput,
+                    onPrepareAnother = viewModel::prepareAnotherParentModeSession,
                     onNavigateBack = onNavigateBack,
                 )
             }
@@ -319,6 +320,7 @@ internal fun ParentModeActiveControls(
     onRefresh: () -> Unit,
     onExtend: () -> Unit,
     onEnd: () -> Unit,
+    onPrepareAnother: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {
     LaunchedEffect(session.expiresAtMillis, session.state) {
@@ -403,6 +405,14 @@ internal fun ParentModeActiveControls(
             onClick = onEnd,
         ) {
             Text(text = stringResource(id = R.string.parent_mode_active_end_now))
+        }
+        if (session.state != ParentModeSessionState.Active) {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onPrepareAnother,
+            ) {
+                Text(text = stringResource(id = R.string.parent_mode_prepare_another_session))
+            }
         }
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),

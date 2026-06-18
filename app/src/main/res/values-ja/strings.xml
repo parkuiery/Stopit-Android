@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">確認済みの保護者PINで、このセッションを延長または終了できます。</string>
     <string name="parent_mode_active_extend_ten_minutes">10分延長</string>
     <string name="parent_mode_active_end_now">保護者PINで終了</string>
+    <string name="parent_mode_prepare_another_session">もう一度ペアレントモードを開始</string>
 
     <string name="lock_history_menu_title">ロック履歴を見る</string>
     <string name="lock_history_title">ロック履歴</string>

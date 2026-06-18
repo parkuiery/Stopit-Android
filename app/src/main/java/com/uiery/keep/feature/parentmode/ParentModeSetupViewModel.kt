@@ -116,6 +116,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 is ParentModeSessionControllerResult.Expired,
                 is ParentModeSessionControllerResult.NoStateChange,
                 ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.Cleared,
                 ParentModeSessionControllerResult.PinRequired,
                 ParentModeSessionControllerResult.NoActiveSession,
                 -> Unit
@@ -142,6 +143,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                     }
                 }
                 ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.Cleared,
                 ParentModeSessionControllerResult.NoActiveSession,
                 is ParentModeSessionControllerResult.Ended,
                 is ParentModeSessionControllerResult.NoStateChange,
@@ -170,6 +172,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                     }
                 }
                 ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.Cleared,
                 ParentModeSessionControllerResult.NoActiveSession,
                 is ParentModeSessionControllerResult.Extended,
                 is ParentModeSessionControllerResult.NoStateChange,
@@ -186,6 +189,34 @@ internal class ParentModeSetupViewModel @Inject constructor(
         }
     }
 
+    fun prepareAnotherParentModeSession() {
+        viewModelScope.launch(Dispatchers.IO) {
+            when (sessionController.clearFinishedSession()) {
+                ParentModeSessionControllerResult.Cleared,
+                ParentModeSessionControllerResult.NoActiveSession,
+                -> {
+                    _state.update { current ->
+                        current.copy(
+                            setupIssues = emptySet(),
+                            activeSession = null,
+                            guardianPin = "",
+                            guardianPinConfirmation = "",
+                        )
+                    }
+                }
+                is ParentModeSessionControllerResult.NoStateChange,
+                ParentModeSessionControllerResult.InvalidExtension,
+                ParentModeSessionControllerResult.PinRequired,
+                is ParentModeSessionControllerResult.Ended,
+                is ParentModeSessionControllerResult.Expired,
+                is ParentModeSessionControllerResult.Extended,
+                is ParentModeSessionControllerResult.SetupBlocked,
+                is ParentModeSessionControllerResult.Started,
+                -> Unit
+            }
+        }
+    }
+
     private fun applyActiveSessionStatus(result: ParentModeSessionControllerResult) {
         when (result) {
             is ParentModeSessionControllerResult.Expired -> {
@@ -195,6 +226,7 @@ internal class ParentModeSetupViewModel @Inject constructor(
                 _state.update { current -> current.copy(activeSession = result.session) }
             }
             ParentModeSessionControllerResult.InvalidExtension,
+            ParentModeSessionControllerResult.Cleared,
             ParentModeSessionControllerResult.NoActiveSession,
             ParentModeSessionControllerResult.PinRequired,
             is ParentModeSessionControllerResult.Ended,

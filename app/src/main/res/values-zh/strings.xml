@@ -181,6 +181,7 @@
     <string name="parent_mode_active_pin_notice">使用已验证的监护人 PIN 来延长或结束此会话。</string>
     <string name="parent_mode_active_extend_ten_minutes">延长 10 分钟</string>
     <string name="parent_mode_active_end_now">使用监护人 PIN 结束</string>
+    <string name="parent_mode_prepare_another_session">再次启动家长模式</string>
 
     <string name="lock_history_menu_title">查看锁定记录</string>
     <string name="lock_history_title">锁定记录</string>
