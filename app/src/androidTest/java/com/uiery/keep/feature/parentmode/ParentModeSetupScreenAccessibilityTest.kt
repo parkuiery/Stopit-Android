@@ -83,6 +83,7 @@ class ParentModeSetupScreenAccessibilityTest {
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
+                    onPrepareAnother = {},
                     onNavigateBack = {},
                 )
             }
@@ -124,6 +125,7 @@ class ParentModeSetupScreenAccessibilityTest {
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
+                    onPrepareAnother = {},
                     onNavigateBack = {},
                 )
             }
@@ -162,6 +164,7 @@ class ParentModeSetupScreenAccessibilityTest {
                     onRefresh = {},
                     onExtend = {},
                     onEnd = {},
+                    onPrepareAnother = {},
                     onNavigateBack = {},
                 )
             }
@@ -180,5 +183,8 @@ class ParentModeSetupScreenAccessibilityTest {
         composeRule.onNodeWithText(context.getString(R.string.parent_mode_active_end_now))
             .assertIsDisplayed()
             .assertIsNotEnabled()
+        composeRule.onNodeWithText(context.getString(R.string.parent_mode_prepare_another_session))
+            .assertIsDisplayed()
+            .assertIsEnabled()
     }
 }
