@@ -64,16 +64,21 @@ Issue: #651
    - 완료: `KeepAnalytics` / `FirebaseKeepAnalytics`는 feature-local `RepeatBlockRoutineSuggestion` 대신 `RepeatBlockRoutineSuggestionAnalyticsPayload`를 받는다.
    - 완료: Routine feature는 prefill 앱/package를 로컬 UI/저장 경계에만 유지하고 analytics boundary에는 reason/time/day/category/repeat/coverage bucket DTO만 넘긴다.
    - 완료: `RepeatBlockRoutineSuggestionAnalyticsTest`, `RoutineBottomSheetViewModelTest`, static feature-domain guard가 이 경계를 검증한다.
-5. **LockHistory recorder boundary**
-   - 완료: `LockHistorySessionWriter`가 runtime Room ledger write boundary를 소유하고, `LockHistoryRepository`는 feature read-model repository로 남긴다.
-   - 완료: service recording path가 feature-private repository를 import하지 않도록 data boundary로 이동했다.
+5. **#987 app-root repeat-block runtime boundary — repo-internal foothold complete**
+   - 완료: 반복 차단 제안의 shared model/policy는 `domain.repeatblock` boundary로 이동했고, dismiss persistence는 `data.repeatblock.RepeatBlockRoutineSuggestionStore`가 소유한다.
+   - 완료: app-root blocking surface(`BlockActivity`, `BlockScreen`, `BlockViewModel`)는 `feature.routine.*` suggestion 타입/정책/store를 직접 import하지 않고 shared domain/data boundary만 사용한다.
+   - 완료: `scripts.tests.test_feature_domain_boundary_contract`가 app-root blocking surface의 `feature.routine` / `feature.lockhistory` import 재도입을 차단한다.
+6. **LockHistory read/write boundary**
+   - 완료: `LockHistorySessionWriter`가 runtime Room ledger write boundary를 소유한다.
+   - 완료: `LockHistoryRepository`는 `data.lockhistory` shared data boundary로 이동했고, service/app-root/feature ViewModel은 feature-private repository import 없이 이 boundary를 사용한다.
 
 ## Static guard 계약
 
 `python3 -m unittest scripts.tests.test_feature_domain_boundary_contract -v`는 아래를 고정한다.
 
 - production `database/`, `service/`, `receiver/`, `analytics/` source의 `feature.*` imports가 비어 있음을 확인한다.
-- issue #651 문서가 현재 inventory의 모든 파일과 migration 방향을 명시한다.
+- app-root blocking surface(`BlockActivity`, `BlockScreen`, `BlockViewModel`)가 repeat-block/lock-history feature-private domain imports를 재도입하지 않는지 확인한다.
+- issue #651/#987 문서가 현재 inventory의 모든 파일과 migration 방향을 명시한다.
 - `docs/AGENTS.md`와 `docs/ops/stopit/engineering-context.md`가 이 문서를 참조해 future docs/code lane이 #520 DAO boundary와 #651 feature-domain boundary를 구분한다.
 
 ## PR / Issue closure rule
@@ -100,6 +105,7 @@ Issue: #651
   - [x] Routine runtime repository/use-case boundary
   - [x] ParentMode runtime session/policy boundary
   - [x] RepeatBlock analytics DTO boundary
+  - [x] #987 app-root repeat-block runtime boundary
   - [x] LockHistory runtime recording boundary
   - [x] static guard inventory 감소
 - 검증:

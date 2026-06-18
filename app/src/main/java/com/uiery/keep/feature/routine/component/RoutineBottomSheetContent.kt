@@ -48,7 +48,7 @@ import kotlinx.datetime.toJavaLocalTime
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime

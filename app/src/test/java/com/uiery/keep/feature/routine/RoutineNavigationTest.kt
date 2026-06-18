@@ -1,5 +1,11 @@
 package com.uiery.keep.feature.routine
 
+import com.uiery.keep.domain.repeatblock.RepeatBlockCategoryBucket
+import com.uiery.keep.domain.repeatblock.RepeatBlockCountBucket
+import com.uiery.keep.domain.repeatblock.RepeatBlockDayType
+import com.uiery.keep.domain.repeatblock.RepeatBlockSuggestionReason
+import com.uiery.keep.domain.repeatblock.RepeatBlockTimeBucket
+import com.uiery.keep.domain.repeatblock.RoutineCoverageState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

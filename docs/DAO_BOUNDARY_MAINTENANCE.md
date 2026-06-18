@@ -147,7 +147,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 #### 검증 후보
 
 - `python3 -m unittest scripts.tests.test_dao_boundary_contract -v`
-- `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.model.RoutineModelMappingTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest'`
+- `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.model.RoutineModelMappingTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.data.lockhistory.LockHistoryRepositoryTest'`
 - `./gradlew --console=plain :app:compileDevDebugAndroidTestKotlin :app:assembleProdDebug`
 
 ### 회귀 방지
@@ -183,10 +183,10 @@ future regression 발견 시에는 새 직접 DAO import를 이 문서의 허용
 python3 -m unittest scripts.tests.test_dao_boundary_contract -v
 python3 -m unittest scripts.tests.test_dao_boundary_maintenance_docs -v
 python3 -m unittest scripts.tests.test_routines_count_coverage_contract -v
-./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.data.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest' --tests 'com.uiery.keep.feature.lockhistory.blockedapps.BlockedAppsViewModelAnalyticsTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.goallock.GoalLockCreationViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockDetailViewModelTest' --tests 'com.uiery.keep.feature.goallock.GoalLockPersistenceMapperTest'
-./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryRecorderTest' --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
+./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.service.LockHistoryRecorderTest' --tests 'com.uiery.keep.service.LockHistoryLedgerTest' --tests 'com.uiery.keep.data.lockhistory.LockHistoryRepositoryTest' --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.home.HomeViewModelReviewTest' --tests 'com.uiery.keep.feature.home.HomeViewModelRoutineStartNoticeTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.lock.LockViewModelTest' --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.*'
 ./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RoutineRepositoryTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelTemplateShareTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelAnalyticsTest' --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest'

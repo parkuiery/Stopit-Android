@@ -27,9 +27,9 @@ import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker

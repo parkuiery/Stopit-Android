@@ -219,7 +219,7 @@ Privacy guardrail:
 ## 검증 명령
 
 - `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' --tests 'com.uiery.keep.feature.lockhistory.LockHistoryViewModelShareTest'`
-- `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStoreTest'`
+- `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStoreTest'`
 - `python3 -m unittest scripts.tests.test_repeat_block_routine_suggestion_contract -v`
 - `git diff --check`
 

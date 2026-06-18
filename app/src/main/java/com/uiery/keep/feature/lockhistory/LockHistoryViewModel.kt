@@ -5,10 +5,11 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
-import com.uiery.keep.feature.routine.RepeatBlockHistorySample
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionPolicy
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.LockHistoryModel
 import com.uiery.keep.service.summarizeLockHistoryLedger

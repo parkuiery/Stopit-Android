@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.lockhistory
+package com.uiery.keep.data.lockhistory
 
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.model.LockHistoryModel
