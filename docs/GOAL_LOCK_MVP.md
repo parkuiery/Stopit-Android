@@ -125,7 +125,7 @@ Home Goal Lock card status copy contract는 `HomeGoalLockCardState.status`가 �
 - `GoalLockMode.homeLabel`처럼 domain/read-model에서 한국어 literal을 반환하는 경계를 제거하고, Home card 전용 resource-backed formatter가 `all_day` / `scheduled` display label을 만든다.
 - `HomeGoalLockCardState`의 raw `daysRemaining` 숫자를 모든 상태에 동일하게 붙이지 않는다. Pending은 시작 전 의미, Active는 남은 보호 기간, Completed/EndedEarly는 완료/종료 상태를 우선한다.
 - 모든 shipped locale의 string key/placeholder parity를 `scripts.tests.test_locale_string_parity` 또는 동등한 locale string parity gate로 고정한다.
-- Compose 또는 formatter regression은 `HomeGoalLockCardContentTest` 같은 상태별 rendering/read-model 테스트로 `Pending / Active / Completed / EndedEarly` title, summary, TalkBack label을 모두 검증한다.
+- Compose 또는 formatter regression은 `HomeGoalLockProgressCardAccessibilityTest` / `HomeGoalLockCardCopyContractTest` 같은 상태별 rendering/read-model 테스트로 `Pending / Active / Completed / EndedEarly` title, summary, TalkBack label을 모두 검증한다. Home card a11y slice 이후 Home 진행 카드는 title·목표명·summary를 하나의 `contentDescription`으로 병합해 active scheduled 대기 상태와 completed terminal 상태를 TalkBack에서 구분한다.
 
 ### 종료/수정 확인 문구 원칙
 

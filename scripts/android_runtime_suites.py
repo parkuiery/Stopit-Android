@@ -33,6 +33,7 @@ INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES: dict[str, str] = {
     "com.uiery.keep.feature.goallock.GoalLockCreationContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
     "com.uiery.keep.feature.goallock.GoalLockDetailContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
     "com.uiery.keep.feature.home.HomeStatusCtaCardIntegrationTest": "screen-local Compose regression; run from Home status/CTA UI PRs",
+    "com.uiery.keep.feature.home.HomeGoalLockProgressCardAccessibilityTest": "screen-local accessibility regression; run from Goal Lock Home card UI/a11y PRs",
     "com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest": "screen-local accessibility regression; run from LockHistory report UI/a11y PRs",
     "com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest": "screen-local accessibility regression; run from Parent Mode UI/a11y PRs",
     "com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest": "screen-local Compose regression; run from Routine card/list UI PRs",
