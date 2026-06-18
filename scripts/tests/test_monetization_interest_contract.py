@@ -58,7 +58,7 @@ class MonetizationInterestContractTest(unittest.TestCase):
         self.assertIn("CTA UI | 완료됨", admob_runbook)
         self.assertIn("MenuScreen.kt", admob_runbook)
         self.assertIn("2026-06-04 메뉴/설정 CTA", ga4_runbook)
-        self.assertIn("관심도 실험/placement measurement 준비", metrics_context)
+        self.assertIn("안전한 관심도/계측 준비 상태", metrics_context)
         self.assertIn("실험 시작", admob_runbook)
         self.assertIn("광고 제거 관심도 측정 handoff", admob_runbook)
         self.assertIn("PR #402 release boundary snapshot", admob_runbook)
@@ -80,16 +80,18 @@ class MonetizationInterestContractTest(unittest.TestCase):
         product_context = PRODUCT_CONTEXT.read_text()
 
         for doc in [admob_runbook, metrics_analysis, product_dashboard, metrics_context, product_context]:
-            self.assertIn("2026-06-11", doc)
+            self.assertIn("2026-06-18", doc)
             self.assertIn("source-split queryability smoke", doc)
-            self.assertIn("13,459", doc)
-            self.assertIn("48.2%", doc)
+            self.assertIn("13,646", doc)
+            self.assertIn("50.1%", doc)
             self.assertIn("release/tag/Play", doc)
 
         self.assertIn("`ad_banner_impression` 125건", metrics_analysis)
         self.assertIn("`ad_banner_revenue` 124건", metrics_analysis)
         self.assertIn("appVersion = 1.7.5", admob_runbook)
-        self.assertIn("20260602..20260605", admob_runbook)
+        self.assertIn("release/1.7.8", admob_runbook)
+        self.assertIn("CONFLICTING", admob_runbook)
+        self.assertIn("monetization_interest_shown", admob_runbook)
         self.assertIn("원인 분리", admob_runbook)
         self.assertIn("placement 실험보다", metrics_context)
 

@@ -583,7 +583,7 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
   - `customEvent:screen_name`
 - 당시 legacy `ad_impression` / `ad_click` / `ad_revenue` breakdown은 `(not set)`/empty가 컸다.
 - 이후 PR #293에서 Stopit 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다.
-- 따라서 광고 쪽 다음 경계는 이 문서의 Admin registration ledger가 아니라 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리` 및 `release boundary snapshot`에 따라 **PR #293 포함 commit이 release/tag/Play deploy에 실제 포함된 뒤 14일 재조회**를 실행하는 것이다. 2026-06-02 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않으므로, 아직 post-split measurement window는 시작되지 않았다.
+- 따라서 광고 쪽 다음 경계는 이 문서의 Admin registration ledger가 아니라 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리` 및 `release boundary snapshot`에 따라 **PR #293 포함 commit이 release/tag/Play deploy에 실제 포함된 뒤 14일 재조회**를 실행하는 것이다. 2026-06-18 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않고, active release PR #975(`release/1.7.8`)는 #16 관련 commits를 포함하지만 `CONFLICTING/DIRTY` + no-checks 상태이므로 아직 post-split measurement window는 시작되지 않았다. 같은 날 GA4 readback에서도 `ad_banner_impression` 125건 / `ad_banner_revenue` 124건은 `appVersion=1.7.5` smoke row이고 publisher surface `(not set)`+empty `adUnitName`은 `13,646 / 27,257 = 50.1%`다.
 
 주의: 이 보정은 광고 파라미터에 한정한다. 활성화(`permission_name`, `source` 등)와 리뷰 `error` 축은 별도 metadata/runReport 확인 전까지 계속 registration gap으로 취급한다. 리뷰 `reason` 축은 2026-06-02T18:06:45Z에 `customEvent:reason` metadata와 `review_prompt_skipped` breakdown이 확인됐으므로, #307 skip reason 판단에는 registration gap으로 반복 보고하지 않는다.
 

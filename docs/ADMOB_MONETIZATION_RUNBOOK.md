@@ -419,6 +419,53 @@ Stopit app custom-event coverage 30일 요약:
 - 2026-06-11 기준 `(not set)` + empty `adUnitName`이 `48.2%`로 더 커졌기 때문에, post-release 창에서도 이 비중이 유지되면 placement 최적화보다 AdMob unit naming / GA4 linkage / SDK automatic event surface / app custom event materialization 원인 분리를 먼저 한다.
 - `잠금 하단 배너`처럼 CTR/eCPM이 좋아 보이는 행도 긴급해제/잠금 인접 trust-sensitive surface이므로 실험 확대 후보로 승격하지 않는다.
 
+### 2026-06-18 `ad_banner_*` / monetization-interest readback: release 후보 포함 전 smoke 유지
+
+2026-06-18 docs-lane에서 같은 GA4 property(`properties/502544175`)를 `30daysAgo..yesterday`로 재조회했다. 이번 readback은 publisher surface의 전체 수익성이 계속 낮고, `(not set)`/empty `adUnitName` 비중이 더 커졌으며, `ad_banner_*` 앱 custom-event row는 여전히 `appVersion = 1.7.5` smoke에 머문다는 점을 확인했다. 또한 `monetization_interest_shown` / `monetization_interest_clicked` row는 아직 없었다.
+
+Publisher surface 30일 요약:
+
+| 지표 | 값 |
+| --- | ---: |
+| totalAdRevenue | `$1.609952` |
+| publisherAdImpressions | `27,257` |
+| publisherAdClicks | `19` |
+| activeUsers | `869` |
+| ARPU | `$0.001853` |
+| CTR | `0.070%` |
+| eCPM | `$0.059` |
+| `(not set)` + empty `adUnitName` impressions | `13,646 / 27,257 = 50.1%` |
+
+Publisher surface 상위 행:
+
+| adUnitName | adFormat | impressions | clicks | CTR | revenue | eCPM | 해석 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `(not set)` | banner | 13,367 | 0 | 0.000% | `$0.000000` | `$0.000` | 노출 절반에 가까운 표시명/매핑 gap. placement 실험보다 원인 분리가 우선. |
+| 블락 상단 배너 | Banner | 8,983 | 7 | 0.078% | `$0.795474` | `$0.089` | 수익 기여는 크지만 차단 경험 인접 trust guardrail 대상. |
+| 홈 하단 배너 | Banner | 2,153 | 3 | 0.139% | `$0.369015` | `$0.171` | 비교적 안전한 후보지만 아직 post-release 실험 근거는 아님. |
+| 메뉴 하단 배너 | Banner | 1,145 | 1 | 0.087% | `$0.166495` | `$0.145` | 설정/신뢰 흐름 방해 여부 확인 필요. |
+| 잠금 하단 배너 | Banner | 694 | 7 | 1.009% | `$0.173613` | `$0.250` | CTR/eCPM은 높아 보여도 긴급해제 인접 위치라 실험 확대 금지/guardrail 우선. |
+
+Stopit app custom-event coverage 30일 요약:
+
+| 이벤트 | placement | appVersion | eventCount | totalUsers | 해석 |
+| --- | --- | --- | ---: | ---: | --- |
+| `ad_banner_impression` | `home_bottom` | `1.7.5` | 113 | 54 | queryability smoke. |
+| `ad_banner_impression` | `block_top` | `1.7.5` | 12 | 11 | queryability smoke. |
+| `ad_banner_revenue` | `home_bottom` | `1.7.5` | 113 | 54 | queryability smoke. |
+| `ad_banner_revenue` | `block_top` | `1.7.5` | 11 | 10 | queryability smoke. |
+| `ad_banner_click` | — | — | 0 | 0 | 클릭 coverage 판단 불가. |
+| `monetization_interest_shown` | — | — | 0 | 0 | CTA 포함 production release 전 상태로 해석. |
+| `monetization_interest_clicked` | — | — | 0 | 0 | 수요 없음/관심 없음으로 해석 금지. |
+
+운영 판단:
+
+- 30일 publisher impressions `27,257` 대비 앱 custom `ad_banner_impression`은 `125`건뿐이므로(`0.46%`), 이 smoke를 placement 성과표와 합산하거나 CTR/eCPM 산식에 섞지 않는다.
+- `(not set)` + empty `adUnitName`이 `13,646 / 27,257 = 50.1%`로 커졌기 때문에, 다음 post-release 창에서도 이 비중이 유지되면 광고 위치 최적화보다 AdMob unit naming / GA4 linkage / SDK automatic event surface / app custom event materialization 원인 분리를 먼저 한다.
+- #16 관련 repo-internal commits(PR #293/#402/#461/#563/#699/#750)는 `origin/develop`과 active release PR #975(`release/1.7.8`) head에는 포함되어 있지만, 2026-06-18 확인 기준 `origin/main`과 최신 production tag `v1.7.7`에는 아직 없다.
+- PR #975는 `mergeable=CONFLICTING`, `mergeStateStatus=DIRTY`, `statusCheckRollup=[]` / `gh pr checks` no-checks 상태이므로, #16의 다음 실제 실행점은 docs 추가 PR이 아니라 release-orchestrator가 #975 conflict/check materialization을 해결한 뒤 `main`/SemVer tag/Play deploy 포함 여부를 확인하는 것이다.
+- `monetization_interest_*` 0건은 CTA 수요 없음이 아니라 release/GA4 Admin/readback 전 상태다. `interest_context` / `interest_surface` metadata 확인과 CTA 포함 production 14일 창 전에는 `clicked users / shown users`를 계산하지 않는다.
+
 다음 재조회 시작 조건:
 
 ```bash
