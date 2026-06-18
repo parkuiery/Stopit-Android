@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.review
 
+import com.uiery.keep.data.review.ReviewEligibilityRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ReviewPromptStateStore
 import java.time.Clock

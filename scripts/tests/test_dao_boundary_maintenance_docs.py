@@ -16,7 +16,7 @@ class DaoBoundaryMaintenanceDocsTest(unittest.TestCase):
             "LockHistoryRecorder",
             "LockHistoryViewModel",
             "BlockedAppsViewModel",
-            "ReviewEligibilityRepository",
+            "data.review.ReviewEligibilityRepository",
             "ReviewEligibilityEvaluator",
             "GoalLockRepository",
             "GoalLockCreationViewModel",
