@@ -151,7 +151,7 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, docs)
 
-    def test_android_gradle_stack_known_incompatible_kotlin_24_is_held(self):
+    def test_android_gradle_stack_known_incompatible_kotlin_23_is_held(self):
         config = DEPENDABOT_CONFIG.read_text()
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
 
@@ -164,16 +164,18 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(dependency=dependency):
                 self.assertRegex(
                     config,
-                    rf"dependency-name:\s*[\"']{re.escape(dependency)}[\"'][\s\S]*?versions:\s*\n\s*-\s*[\"']\[2\.4,\)[\"']",
-                    "#925/#928 requires holding Kotlin 2.4+ until Stopit migrates build scripts to compilerOptions DSL",
+                    rf"dependency-name:\s*[\"']{re.escape(dependency)}[\"'][\s\S]*?versions:\s*\n\s*-\s*[\"']\[2\.3,\)[\"']",
+                    "#984 requires holding Kotlin 2.3+ until Stopit migrates build scripts to compilerOptions DSL",
                 )
 
         for required in [
-            "Kotlin 2.4+",
+            "Kotlin 2.3+",
+            "Kotlin 2.3.21",
             "compilerOptions DSL",
             "kotlinOptions.jvmTarget",
             "#928",
             "#939",
+            "#984",
             "org.jetbrains.kotlin.jvm",
             "Using 'jvmTarget: String' is an error",
             "별도 Kotlin/toolchain lane",

@@ -38,28 +38,28 @@ updates:
         versions:
           - "[2.59,)"
       - dependency-name: "org.jetbrains.kotlin.android"
-        # #925/#928: Kotlin 2.4+ makes legacy kotlinOptions.jvmTarget a Gradle
-        # configuration error. Hold until app/core:kds migrate to compilerOptions
-        # in a dedicated Kotlin/toolchain lane.
+        # #984: Kotlin 2.3.21 already makes legacy kotlinOptions.jvmTarget a
+        # Gradle configuration error. Hold Kotlin 2.3+ until app/core:kds
+        # migrate to compilerOptions in a dedicated Kotlin/toolchain lane.
         versions:
-          - "[2.4,)"
+          - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.plugin.compose"
         # Keep Kotlin Android and Compose compiler plugin aligned; do not let the
-        # broad android-gradle-patch-minor group auto-land the Kotlin 2.4 DSL break.
+        # broad android-gradle-patch-minor group auto-land the Kotlin 2.3 DSL break.
         versions:
-          - "[2.4,)"
+          - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
         # Serialization plugin follows the Kotlin toolchain lane and should not
         # outrun the build-script compilerOptions migration.
         versions:
-          - "[2.4,)"
+          - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.jvm"
-        # #939: the standalone Kotlin JVM plugin shares the same Kotlin 2.4+
+        # #939/#984: the standalone Kotlin JVM plugin shares the same Kotlin 2.3+
         # compilerOptions DSL migration boundary as Android/Compose/serialization.
         # Keep it out of the broad android-gradle-patch-minor group until the
         # dedicated Kotlin/toolchain lane removes legacy kotlinOptions.jvmTarget.
         versions:
-          - "[2.4,)"
+          - "[2.3,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
