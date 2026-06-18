@@ -2,11 +2,16 @@ package com.uiery.keep.notification
 
 import android.app.NotificationManager
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,7 +67,65 @@ class RoutineStartNotificationTapIntegrationTest {
         )
     }
 
+    @Test
+    fun routineStartNotificationShadeTapRoutesToRoutineScreen() {
+        val device = UiDevice.getInstance(instrumentation)
+        val routineName = "QA963 notification tap"
+        val helper = NotificationHelper(context)
+        grantPostNotificationsPermission()
+
+        assertEquals(
+            "Routine start notification must be posted before notification-shade tap QA can run.",
+            RoutineStartNotificationResult.Posted,
+            helper.showRoutineStartNotification(
+                routineName = routineName,
+                routineId = ROUTINE_NOTIFICATION_ID.toLong(),
+            ),
+        )
+
+        device.pressHome()
+        device.openNotification()
+        val row = device.wait(Until.findObject(By.textContains(routineName)), UI_TIMEOUT_MS)
+        assertNotNull(
+            "The real app-posted routine start notification row should be visible in the system shade.",
+            row,
+        )
+
+        row.click()
+
+        assertTrue(
+            "Tapping the real notification row should route back to the Routine screen.",
+            device.wait(Until.hasObject(By.textContains("My Routine")), UI_TIMEOUT_MS) ||
+                device.wait(Until.hasObject(By.textContains("Add Routine")), UI_TIMEOUT_MS),
+        )
+    }
+
+    private fun grantPostNotificationsPermission() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
+        ).close()
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set ${context.packageName} POST_NOTIFICATION allow",
+        ).close()
+        instrumentation.uiAutomation.executeShellCommand(
+            "appops set --uid ${context.packageName} POST_NOTIFICATION allow",
+        ).close()
+        waitUntil("POST_NOTIFICATIONS should be enabled before posting the routine-start notification") {
+            NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
+    }
+
+    private fun waitUntil(message: String, timeoutMs: Long = UI_TIMEOUT_MS, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(100)
+        }
+        assertTrue(message, condition())
+    }
+
     private companion object {
         private const val ROUTINE_NOTIFICATION_ID = 556
+        private const val UI_TIMEOUT_MS = 10_000L
     }
 }
