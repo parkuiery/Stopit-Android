@@ -1862,16 +1862,16 @@ adb shell dumpsys alarm | grep com.uiery.keep
 - [ ] 루틴이 disabled 상태면 재예약되지 않는다.
 - [ ] receiver 실행 후 중복 알림이 연속으로 뜨지 않는다.
 - [ ] 루틴 시작 알림과 긴급해제 countdown/expired 알림의 notification small icon이 `ic_notification_stopit` glyph로 보이며 흰 사각형/풀컬러 launcher bitmap처럼 렌더링되지 않는다.
-- [ ] 루틴 시작 알림을 탭하면 앱이 기본 Splash/Home으로 문맥 없이 떨어지지 않고 Routine 화면으로 진입한다. `ACTION_ROUTINE_START_NOTIFICATION_TAP`에는 `extra_routine_id`가 있어야 하며, 누락되면 안전하게 Splash로 fallback한다.
+- [ ] 루틴 시작 알림을 탭하면 앱이 기본 Splash/Home으로 문맥 없이 떨어지지 않고 Routine 화면으로 진입한다. `ACTION_ROUTINE_START_NOTIFICATION_TAP`에는 `extra_routine_id`가 있어야 한다. malformed intent 처리는 진입 상태별로 분리한다: cold start malformed tap은 Splash fallback, existing-task malformed tap은 현재 화면 유지.
 
 ### routine start notification tap evidence
 
-issue #963 계열 PR은 루틴 시작 알림의 `PendingIntent`가 앱 진입부에서 명시적으로 소비되는지 확인한다. 자동 회귀는 `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.MainActivityTest'`의 `mainStartDestinationRoutesRoutineStartNotificationTapToRoutineScreen` / `mainStartDestinationFallsBackToSplashForMalformedRoutineStartNotificationTap` 계약으로 고정한다.
+issue #963 계열 PR은 루틴 시작 알림의 `PendingIntent`가 앱 진입부에서 명시적으로 소비되는지 확인한다. 자동 회귀는 `./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.MainActivityTest'`의 `mainStartDestinationRoutesRoutineStartNotificationTapToRoutineScreen` / `mainStartDestinationFallsBackToSplashForMalformedRoutineStartNotificationTap` / `onNewIntentRoutesRoutineStartNotificationTapToRoutineScreen` / `onNewIntentIgnoresMalformedRoutineStartNotificationTap` 계약으로 고정한다. Android runtime 증적은 `RoutineStartNotificationTapIntegrationTest`가 실제 앱이 게시한 notification shade row를 UiAutomator로 찾아 탭해 Routine 화면 복귀를 검증하는 경로까지 포함한다. Fresh emulator/install 상태에서는 `POST_NOTIFICATIONS`가 기본 denied일 수 있으므로 테스트 내부 shell grant/appops allow setup 또는 host-side `pm grant` / `appops set ... POST_NOTIFICATION allow`가 선행되어야 한다.
 
 권장 spot-check:
 - Cold start: 앱을 종료한 뒤 가까운 미래 루틴 시작 알림을 탭하고 Routine 화면으로 진입하는지 확인한다.
 - Existing task: 앱이 이미 열려 있거나 최근 task에 남아 있는 상태에서 같은 알림을 탭해 Routine 화면으로 진입하는지 확인한다.
-- Malformed/fallback: `extra_routine_id` 없이 같은 action이 들어오면 crash 없이 Splash 기본 경로로 fallback해야 한다.
+- Malformed/fallback: `extra_routine_id` 없이 같은 action이 들어오면 cold start malformed tap은 Splash fallback으로 처리하고, existing-task malformed tap은 crash 없이 현재 화면 유지로 처리한다.
 
 ### notification small icon visual evidence
 
