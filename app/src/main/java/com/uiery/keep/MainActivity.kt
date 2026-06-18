@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,6 +35,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var deviceTokenManager: DeviceTokenManager
+
+    private var newIntentDestination by mutableStateOf<Any?>(null, neverEqualPolicy())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,10 +68,17 @@ class MainActivity : ComponentActivity() {
                     KeepApp(
                         modifier = Modifier.padding(innerPadding),
                         startDestination = startDestination,
+                        newIntentDestination = newIntentDestination,
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        newIntentDestination = createMainNewIntentDestination(intent)
     }
 
     private fun fetchAndSaveFcmToken() {
@@ -95,6 +108,23 @@ internal const val EXTRA_REPEAT_BLOCK_PREFILL_END_HOUR = "repeat_block_prefill_e
 internal const val EXTRA_REPEAT_BLOCK_PREFILL_END_MINUTE = "repeat_block_prefill_end_minute"
 
 internal fun createMainStartDestination(intent: Intent): Any = createMainStartDestination(
+    action = intent.action,
+    routineId = intent.optionalLongExtra(NotificationHelper.EXTRA_ROUTINE_ID),
+    repeatBlockSurface = intent.getStringExtra(EXTRA_REPEAT_BLOCK_SURFACE),
+    repeatBlockReason = intent.getStringExtra(EXTRA_REPEAT_BLOCK_REASON),
+    repeatBlockTimeBucket = intent.getStringExtra(EXTRA_REPEAT_BLOCK_TIME_BUCKET),
+    repeatBlockDayType = intent.getStringExtra(EXTRA_REPEAT_BLOCK_DAY_TYPE),
+    repeatBlockCategoryBucket = intent.getStringExtra(EXTRA_REPEAT_BLOCK_CATEGORY_BUCKET),
+    repeatBlockCountBucket = intent.getStringExtra(EXTRA_REPEAT_BLOCK_COUNT_BUCKET),
+    repeatBlockCoverageState = intent.getStringExtra(EXTRA_REPEAT_BLOCK_COVERAGE_STATE),
+    prefillPackages = intent.getStringArrayListExtra(EXTRA_REPEAT_BLOCK_PREFILL_PACKAGES).orEmpty(),
+    prefillStartHour = intent.optionalIntExtra(EXTRA_REPEAT_BLOCK_PREFILL_START_HOUR),
+    prefillStartMinute = intent.optionalIntExtra(EXTRA_REPEAT_BLOCK_PREFILL_START_MINUTE),
+    prefillEndHour = intent.optionalIntExtra(EXTRA_REPEAT_BLOCK_PREFILL_END_HOUR),
+    prefillEndMinute = intent.optionalIntExtra(EXTRA_REPEAT_BLOCK_PREFILL_END_MINUTE),
+)
+
+internal fun createMainNewIntentDestination(intent: Intent): Any? = createMainNewIntentDestination(
     action = intent.action,
     routineId = intent.optionalLongExtra(NotificationHelper.EXTRA_ROUTINE_ID),
     repeatBlockSurface = intent.getStringExtra(EXTRA_REPEAT_BLOCK_SURFACE),
@@ -145,6 +175,41 @@ internal fun createMainStartDestination(
         prefillEndHour = prefillEndHour,
         prefillEndMinute = prefillEndMinute,
     ) ?: SplashRoute
+}
+
+internal fun createMainNewIntentDestination(
+    action: String?,
+    routineId: Long?,
+    repeatBlockSurface: String?,
+    repeatBlockReason: String?,
+    repeatBlockTimeBucket: String?,
+    repeatBlockDayType: String?,
+    repeatBlockCategoryBucket: String?,
+    repeatBlockCountBucket: String?,
+    repeatBlockCoverageState: String?,
+    prefillPackages: List<String>,
+    prefillStartHour: Int?,
+    prefillStartMinute: Int?,
+    prefillEndHour: Int?,
+    prefillEndMinute: Int?,
+): Any? {
+    val destination = createMainStartDestination(
+        action = action,
+        routineId = routineId,
+        repeatBlockSurface = repeatBlockSurface,
+        repeatBlockReason = repeatBlockReason,
+        repeatBlockTimeBucket = repeatBlockTimeBucket,
+        repeatBlockDayType = repeatBlockDayType,
+        repeatBlockCategoryBucket = repeatBlockCategoryBucket,
+        repeatBlockCountBucket = repeatBlockCountBucket,
+        repeatBlockCoverageState = repeatBlockCoverageState,
+        prefillPackages = prefillPackages,
+        prefillStartHour = prefillStartHour,
+        prefillStartMinute = prefillStartMinute,
+        prefillEndHour = prefillEndHour,
+        prefillEndMinute = prefillEndMinute,
+    )
+    return destination.takeUnless { it == SplashRoute }
 }
 
 internal fun createRepeatBlockRoutineRoute(intent: Intent): RoutineRoute? = createRepeatBlockRoutineRoute(

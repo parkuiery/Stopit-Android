@@ -56,6 +56,51 @@ class MainActivityTest {
     }
 
     @Test
+    fun newIntentDestinationRoutesRoutineStartNotificationTapToRoutineScreen() {
+        assertEquals(
+            RoutineRoute(),
+            createMainNewIntentDestination(
+                action = NotificationHelper.ACTION_ROUTINE_START_NOTIFICATION_TAP,
+                routineId = 42L,
+                repeatBlockSurface = null,
+                repeatBlockReason = null,
+                repeatBlockTimeBucket = null,
+                repeatBlockDayType = null,
+                repeatBlockCategoryBucket = null,
+                repeatBlockCountBucket = null,
+                repeatBlockCoverageState = null,
+                prefillPackages = emptyList(),
+                prefillStartHour = null,
+                prefillStartMinute = null,
+                prefillEndHour = null,
+                prefillEndMinute = null,
+            ),
+        )
+    }
+
+    @Test
+    fun newIntentDestinationIgnoresMalformedRoutineStartNotificationTap() {
+        assertNull(
+            createMainNewIntentDestination(
+                action = NotificationHelper.ACTION_ROUTINE_START_NOTIFICATION_TAP,
+                routineId = null,
+                repeatBlockSurface = null,
+                repeatBlockReason = null,
+                repeatBlockTimeBucket = null,
+                repeatBlockDayType = null,
+                repeatBlockCategoryBucket = null,
+                repeatBlockCountBucket = null,
+                repeatBlockCoverageState = null,
+                prefillPackages = emptyList(),
+                prefillStartHour = null,
+                prefillStartMinute = null,
+                prefillEndHour = null,
+                prefillEndMinute = null,
+            ),
+        )
+    }
+
+    @Test
     fun repeatBlockRoutineRouteRequiresCompletePostBlockPrefillExtras() {
         assertNull(
             createRepeatBlockRoutineRoute(
