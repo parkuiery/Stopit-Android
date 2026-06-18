@@ -46,7 +46,7 @@ import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.lockscreen.LockScreenEntry
 import com.uiery.keep.lockscreen.LockScreenMode
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent

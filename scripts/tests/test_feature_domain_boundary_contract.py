@@ -21,6 +21,10 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         for relative_root in ("database", "service", "receiver", "analytics"):
             yield from sorted((APP_MAIN / relative_root).rglob("*.kt"))
 
+    def app_root_runtime_sources(self):
+        for file_name in ("BlockActivity.kt", "BlockScreen.kt", "BlockViewModel.kt"):
+            yield APP_MAIN / file_name
+
     def current_feature_import_inventory(self):
         inventory: dict[str, list[str]] = {}
         for source in self.production_boundary_sources():
@@ -35,6 +39,27 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
             self.current_feature_import_inventory(),
             "database/service/receiver/analytics feature.* imports must not grow; "
             "remove entries from the #651 inventory as code-lane migrates them to shared domain/data boundaries",
+        )
+
+    def test_app_root_runtime_surfaces_do_not_import_feature_private_domains(self):
+        forbidden_prefixes = (
+            "com.uiery.keep.feature.routine",
+            "com.uiery.keep.feature.lockhistory",
+        )
+        violations = {}
+        for source in self.app_root_runtime_sources():
+            imports = [
+                import_name
+                for import_name in FEATURE_IMPORT_PATTERN.findall(source.read_text())
+                if import_name.startswith(forbidden_prefixes)
+            ]
+            if imports:
+                violations[str(source.relative_to(REPO_ROOT))] = sorted(imports)
+
+        self.assertEqual(
+            {},
+            violations,
+            "app-root blocking surfaces must use shared repeat-block/lock-history boundaries, not feature-private domains",
         )
 
     def test_runbook_documents_every_current_import_and_migration_boundary(self):
@@ -57,6 +82,7 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
             "Routine runtime repository/use-case boundary",
             "RepeatBlock analytics DTO boundary",
             "LockHistory runtime recording boundary",
+            "#987 app-root repeat-block runtime boundary",
         ):
             self.assertIn(required_phrase, runbook)
 

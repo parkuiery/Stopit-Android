@@ -28,9 +28,9 @@ class DaoBoundaryContractTest(unittest.TestCase):
             "lock-history UI must depend on LockHistoryRepository, not Room DAO directly",
         )
 
-    def test_lock_history_repository_is_the_feature_allowlisted_dao_boundary(self):
-        repository = APP_MAIN / "feature/lockhistory/LockHistoryRepository.kt"
-        self.assertTrue(repository.exists(), "LockHistoryRepository owns feature lock-history read DAO access")
+    def test_lock_history_repository_is_the_shared_data_allowlisted_dao_boundary(self):
+        repository = APP_MAIN / "data/lockhistory/LockHistoryRepository.kt"
+        self.assertTrue(repository.exists(), "LockHistoryRepository owns shared data lock-history read DAO access")
         text = repository.read_text()
         self.assertIn("class LockHistoryRepository", text)
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", text)

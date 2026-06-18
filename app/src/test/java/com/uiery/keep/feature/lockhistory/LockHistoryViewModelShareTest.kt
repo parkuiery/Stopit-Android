@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.lockhistory
 
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
@@ -8,7 +10,7 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.feature.review.FakeDataStore
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay

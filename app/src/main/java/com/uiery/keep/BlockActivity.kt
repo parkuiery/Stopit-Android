@@ -11,7 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.lockscreen.LockScreenEntry
 import dagger.hilt.android.AndroidEntryPoint
 

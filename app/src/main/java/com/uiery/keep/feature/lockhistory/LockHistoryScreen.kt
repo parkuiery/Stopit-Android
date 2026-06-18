@@ -42,7 +42,7 @@ import com.uiery.keep.feature.lockhistory.component.LockHistorySummaryCard
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTab
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTopApps
 import com.uiery.keep.feature.lockhistory.component.LockHistoryWeekCalendar
-import com.uiery.keep.feature.routine.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.util.formatLockHistoryDateHeader
 import com.uiery.keep.util.formatMonthDay
 import com.uiery.keep.util.formatYearMonth

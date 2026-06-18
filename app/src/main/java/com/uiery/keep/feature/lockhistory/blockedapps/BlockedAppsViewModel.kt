@@ -3,7 +3,7 @@ package com.uiery.keep.feature.lockhistory.blockedapps
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.feature.lockhistory.LockHistoryRepository
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
 import org.orbitmvi.orbit.Container
