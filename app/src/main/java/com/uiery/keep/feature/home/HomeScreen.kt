@@ -53,6 +53,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -537,14 +539,31 @@ private fun RepeatBlockRoutineSuggestionCard(
 }
 
 @Composable
-private fun GoalLockProgressCard(
+internal fun GoalLockProgressCard(
     modifier: Modifier = Modifier,
     cardState: HomeGoalLockCardState,
     onClick: () -> Unit,
 ) {
     val displayCopy = cardState.displayCopy()
+    val title = stringResource(displayCopy.titleResId)
+    val lockMode = stringResource(displayCopy.lockModeResId)
+    val summary = stringResource(
+        displayCopy.summaryResId,
+        cardState.daysRemaining,
+        lockMode,
+        cardState.selectedAppCount,
+    )
+    val talkBackSummary = listOf(
+        title,
+        cardState.goalName,
+        summary,
+    ).joinToString(", ")
     Card(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier
+            .semantics(mergeDescendants = true) {
+                contentDescription = talkBackSummary
+            }
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
@@ -553,7 +572,7 @@ private fun GoalLockProgressCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = stringResource(displayCopy.titleResId),
+                text = title,
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
@@ -564,12 +583,7 @@ private fun GoalLockProgressCard(
                 fontSize = 14.sp,
             )
             Text(
-                text = stringResource(
-                    displayCopy.summaryResId,
-                    cardState.daysRemaining,
-                    stringResource(displayCopy.lockModeResId),
-                    cardState.selectedAppCount,
-                ),
+                text = summary,
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontSize = 12.sp,
             )

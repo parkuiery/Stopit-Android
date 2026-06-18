@@ -189,9 +189,11 @@ class GoalLockContractTest(unittest.TestCase):
             self.assertIn("endedEarly는 사용자가 종료한 상태로 설명", document)
             self.assertIn("GoalLockMode.homeLabel", document)
             self.assertIn("resource-backed formatter", document)
-            self.assertIn("HomeGoalLockCardContentTest", document)
+            self.assertIn("HomeGoalLockProgressCardAccessibilityTest", document)
+            self.assertIn("HomeGoalLockCardCopyContractTest", document)
             self.assertIn("locale string parity", document)
             self.assertIn("TalkBack label", document)
+            self.assertIn("contentDescription", document)
 
         self.assertNotIn("pending/completed/ended_early도 진행 중", runbook)
 
