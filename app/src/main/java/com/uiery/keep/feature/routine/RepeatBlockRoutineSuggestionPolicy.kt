@@ -122,12 +122,12 @@ object RepeatBlockRoutineSuggestionPolicy {
         val categoryBucket = first().categoryBucket
         val dayType = resolveDayType(map { it.time.dayOfWeek }.distinct())
         val packages = map { it.packageName }.distinct()
-        val coverage = resolveRoutineCoverageState(
+        val coverage = resolveRoutineCoverage(
             timeBucket = timeBucket,
             packages = packages,
             activeRoutines = activeRoutines,
         )
-        if (coverage == RoutineCoverageState.Covered) return null
+        if (coverage.state == RoutineCoverageState.Covered) return null
         if (dismissedSuggestions.isSuppressed(timeBucket, dayType, categoryBucket, now)) return null
 
         return RepeatBlockCandidate(
@@ -136,9 +136,9 @@ object RepeatBlockRoutineSuggestionPolicy {
             categoryBucket = categoryBucket,
             repeatCountBucket = size.toRepeatCountBucket(),
             repeatCount = size,
-            routineCoverageState = coverage,
+            routineCoverageState = coverage.state,
             rapidRetryCount = rapidRetryCount(),
-            packages = packages,
+            packages = coverage.uncoveredPackages,
             latestSeen = maxOf { it.time },
         )
     }
@@ -155,27 +155,32 @@ object RepeatBlockRoutineSuggestionPolicy {
                     }
             }
 
-    private fun resolveRoutineCoverageState(
+    private fun resolveRoutineCoverage(
         timeBucket: RepeatBlockTimeBucket,
         packages: List<String>,
         activeRoutines: List<RoutineModel>,
-    ): RoutineCoverageState {
-        val coveringRoutine = activeRoutines.firstOrNull { routine ->
-            routine.isEnabled &&
-                routine.lockApplications.orEmpty().containsAll(packages) &&
-                routine.covers(timeBucket)
-        }
-        if (coveringRoutine != null) return RoutineCoverageState.Covered
+    ): RoutineCoverage {
+        val coveredPackages = activeRoutines
+            .asSequence()
+            .filter { routine -> routine.isEnabled && routine.covers(timeBucket) }
+            .flatMap { routine -> routine.lockApplications.orEmpty().asSequence() }
+            .filter { packageName -> packageName in packages }
+            .toSet()
+        val uncoveredPackages = packages.filterNot { packageName -> packageName in coveredPackages }
 
-        val partiallyCoveringRoutine = activeRoutines.firstOrNull { routine ->
-            routine.isEnabled &&
-                routine.lockApplications.orEmpty().any { it in packages } &&
-                routine.covers(timeBucket)
-        }
-        return if (partiallyCoveringRoutine != null) {
-            RoutineCoverageState.PartiallyCovered
-        } else {
-            RoutineCoverageState.NotCovered
+        return when {
+            uncoveredPackages.isEmpty() -> RoutineCoverage(
+                state = RoutineCoverageState.Covered,
+                uncoveredPackages = emptyList(),
+            )
+            coveredPackages.isNotEmpty() -> RoutineCoverage(
+                state = RoutineCoverageState.PartiallyCovered,
+                uncoveredPackages = uncoveredPackages,
+            )
+            else -> RoutineCoverage(
+                state = RoutineCoverageState.NotCovered,
+                uncoveredPackages = packages,
+            )
         }
     }
 
@@ -268,6 +273,11 @@ object RepeatBlockRoutineSuggestionPolicy {
         val time: LocalDateTime,
         val timeBucket: RepeatBlockTimeBucket,
         val categoryBucket: RepeatBlockCategoryBucket,
+    )
+
+    private data class RoutineCoverage(
+        val state: RoutineCoverageState,
+        val uncoveredPackages: List<String>,
     )
 
     private data class RepeatBlockCandidate(

@@ -158,7 +158,7 @@ Privacy guardrail:
 ## 구현 handoff checklist
 
 - [x] 반복 차단 패턴 계산 helper를 pure policy로 분리하고 JVM test를 추가한다. (`RepeatBlockRoutineSuggestionPolicyTest`)
-- [x] 기존 활성 루틴과 겹치는 추천을 노출하지 않는다.
+- [x] 기존 활성 루틴과 완전히 겹치는 추천은 노출하지 않고, 부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외해 uncovered 앱만 제안한다. (`RepeatBlockRoutineSuggestionPolicyTest.partiallyCoveredRoutinePrefillsOnlyUncoveredApps`)
 - [x] 후보가 여러 개여도 최대 1개만 노출한다.
 - [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원하고, Home/LockHistory UI wiring이 같은 store를 재노출 제한 입력으로 사용한다. (`RepeatBlockRoutineSuggestionStoreTest`, `HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
 - [x] 추천 dismiss/apply store를 Home/LockHistory CTA UI에 연결해 실제 재노출 제한을 화면 플로우에서 검증한다. (`HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)

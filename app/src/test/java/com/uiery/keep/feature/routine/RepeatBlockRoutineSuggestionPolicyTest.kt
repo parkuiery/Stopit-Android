@@ -63,6 +63,35 @@ class RepeatBlockRoutineSuggestionPolicyTest {
     }
 
     @Test
+    fun partiallyCoveredRoutinePrefillsOnlyUncoveredApps() {
+        val histories = listOf(
+            history("2026-06-05T23:20:00", "com.instagram.android"),
+            history("2026-06-05T23:25:00", "com.twitter.android"),
+            history("2026-06-04T23:05:00", "com.instagram.android"),
+            history("2026-06-04T23:10:00", "com.twitter.android"),
+            history("2026-06-03T22:45:00", "com.instagram.android"),
+            history("2026-06-03T22:50:00", "com.twitter.android"),
+        )
+        val routine = routine(
+            repeatDays = "1111111",
+            startTime = LocalTime(22, 0),
+            endTime = LocalTime(0, 0),
+            apps = listOf("com.instagram.android"),
+        )
+
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = histories,
+            activeRoutines = listOf(routine),
+            dismissedSuggestions = emptyList(),
+            now = LocalDateTime.of(2026, 6, 6, 12, 0),
+        )
+
+        requireNotNull(suggestion)
+        assertEquals(RoutineCoverageState.PartiallyCovered, suggestion.routineCoverageState)
+        assertEquals(listOf("com.twitter.android"), suggestion.prefillPackages)
+    }
+
+    @Test
     fun dismissedSuggestionIsSuppressedForSevenDays() {
         val now = LocalDateTime.of(2026, 6, 6, 12, 0)
         val histories = listOf(
