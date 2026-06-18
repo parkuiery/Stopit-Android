@@ -68,6 +68,10 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         self.assertIn("현재 production drift inventory", runbook)
         self.assertIn("Migration order", runbook)
         self.assertIn("Closes #651", runbook)
+        self.assertIn("#986 repository ownership follow-up", runbook)
+        self.assertIn("LockHistoryRepository`는 이미 `data.lockhistory`", runbook)
+        self.assertIn("ReviewEligibilityRepository`는 아직 `feature.review`", runbook)
+        self.assertIn("data.review", runbook)
         self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt", runbook)
         self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt", runbook)
         self.assertIn("RepeatBlockRoutineSuggestionAnalyticsPayload", runbook)
@@ -82,9 +86,30 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
             "Routine runtime repository/use-case boundary",
             "RepeatBlock analytics DTO boundary",
             "LockHistory runtime recording boundary",
+            "#986 Review eligibility repository boundary",
             "#987 app-root repeat-block runtime boundary",
         ):
             self.assertIn(required_phrase, runbook)
+
+    def test_issue_986_current_scope_matches_source_tree(self):
+        runbook = RUNBOOK.read_text()
+        lockhistory_repository = APP_MAIN / "data/lockhistory/LockHistoryRepository.kt"
+        review_repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+
+        self.assertEqual(
+            "package com.uiery.keep.data.lockhistory",
+            lockhistory_repository.read_text().splitlines()[0],
+            "#986 docs assume LockHistoryRepository is already in the shared data boundary",
+        )
+
+        review_source = review_repository.read_text()
+        self.assertIn("package com.uiery.keep.feature.review", review_source)
+        self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", review_source)
+        self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", review_source)
+
+        self.assertIn("ReviewEligibilityRepository", runbook)
+        self.assertIn("EmergencyUnlockDao", runbook)
+        self.assertIn("LockHistoryDao", runbook)
 
     def test_high_traffic_docs_link_feature_domain_boundary_contract(self):
         docs_agents = DOCS_AGENTS.read_text()
@@ -92,8 +117,10 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
 
         self.assertIn("FEATURE_DOMAIN_BOUNDARY.md", docs_agents)
         self.assertIn("#651", docs_agents)
+        self.assertIn("#986", docs_agents)
         self.assertIn("FEATURE_DOMAIN_BOUNDARY.md", engineering_context)
         self.assertIn("#651", engineering_context)
+        self.assertIn("#986", engineering_context)
         self.assertIn("DAO_BOUNDARY_MAINTENANCE.md", engineering_context)
 
 
