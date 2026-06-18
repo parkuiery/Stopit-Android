@@ -257,10 +257,10 @@ PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/act
 
 ### 다음 경계
 
-- repo-internal baseline: PR #748/#870/#873/#946에서 active/expired control ViewModel·Controller·Store·Policy regression, 직접 분 입력, active controls fresh guardian PIN 입력/확인, locale/contract tests, AccessibilityService active/expired instrumentation, setup/active/expired accessibility summary baseline이 current-head green으로 확인됐다. 이 상태를 “active controls 구현 전”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”으로 되돌리지 않는다.
+- repo-internal baseline: PR #748/#870/#873/#946에서 active/expired control ViewModel·Controller·Store·Policy regression, 직접 분 입력, active controls fresh guardian PIN 입력/확인, locale/contract tests, AccessibilityService active/expired instrumentation, setup/active/expired accessibility summary baseline이 current-head green으로 확인됐다. PR #897 이후 Parent Mode-origin Block 화면은 기존 `app_block_intercepted(block_source=parent_mode)`와 dedicated `parent_mode_block_intercepted(block_context=disallowed_app)`를 함께 남기며, PR #913 이후 `ParentModeSetupScreen` canonical `screen_view` coverage도 analytics/readback 선행 조건에 포함된다. PR #970 이후 이 source of truth는 run-relative `code-lane PR` 표현 대신 landed PR/merge commit 기준으로 유지한다. 이 상태를 “active controls 구현 전”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”으로 되돌리지 않는다.
 - 남은 manual/release boundary: release-candidate device UX spot-check, 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy 포함, GA4 Admin metadata/queryability, D+14/D+30 readback.
 
-남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 release-candidate device UX spot-check, 실제 기기 screenshot/TalkBack evidence, release/readback 경계를 이어 붙이는 방향으로 잡는다.
+남은 범위는 MVP 전체 릴리스/실측 검증이다. 이미 반영된 repo-internal foothold와 analytics coverage를 “구현 전” 상태로 되돌리지 말고, 다음 실행 lane은 release-candidate device UX spot-check, 실제 기기 screenshot/TalkBack evidence, release/readback 경계를 이어 붙이는 방향으로 잡는다.
 
 ### 후속 별도 이슈 후보
 
@@ -272,7 +272,7 @@ PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/act
 
 ## Closing discipline
 
-- 이 문서는 PR #519/#584/#748/#870/#873/#897/#913/#946 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
+- 이 문서는 PR #519/#584/#748/#870/#873/#897/#913/#946/#970 이후의 repo-internal foothold 상태를 반영한 source of truth다. 후속 docs sync나 code-lane PR은 acceptance 전체를 만족하지 못하면 계속 `Refs #471`를 사용한다.
 - `Closes #471`는 부모 모드 entrypoint, setup/active/expired UI, fresh guardian PIN 확인 runtime flow, time expiry, Accessibility runtime 차단, privacy-safe analytics, setup `screen_view` coverage, QA evidence가 모두 구현·검증되고 release/manual/readback 경계까지 충족된 PR에서만 사용한다.
 - GA4 Admin 등록, release/tag/Play deploy, release-candidate device UX/screenshot/TalkBack spot-check, 14일/30일 readback은 구현 완료 뒤의 외부/manual boundary로 별도 기록한다.
 
