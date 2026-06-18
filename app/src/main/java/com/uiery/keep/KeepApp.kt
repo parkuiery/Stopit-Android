@@ -2,6 +2,7 @@ package com.uiery.keep
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.NavHost
@@ -44,8 +45,17 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 internal fun KeepApp(
     modifier: Modifier = Modifier,
     startDestination: Any = SplashRoute,
+    newIntentDestination: Any? = null,
 ) {
     val navController = rememberNavController()
+
+    LaunchedEffect(newIntentDestination) {
+        newIntentDestination?.let { destination ->
+            navController.navigate(destination) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     val isDevToolEnabled = shouldRegisterDevToolRoute(
         flavor = BuildConfig.FLAVOR,
