@@ -2,11 +2,59 @@ package com.uiery.keep
 
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.feature.routine.RoutineRoute
+import com.uiery.keep.feature.splash.SplashRoute
+import com.uiery.keep.notification.NotificationHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class MainActivityTest {
+    @Test
+    fun mainStartDestinationRoutesRoutineStartNotificationTapToRoutineScreen() {
+        assertEquals(
+            RoutineRoute(),
+            createMainStartDestination(
+                action = NotificationHelper.ACTION_ROUTINE_START_NOTIFICATION_TAP,
+                routineId = 42L,
+                repeatBlockSurface = null,
+                repeatBlockReason = null,
+                repeatBlockTimeBucket = null,
+                repeatBlockDayType = null,
+                repeatBlockCategoryBucket = null,
+                repeatBlockCountBucket = null,
+                repeatBlockCoverageState = null,
+                prefillPackages = emptyList(),
+                prefillStartHour = null,
+                prefillStartMinute = null,
+                prefillEndHour = null,
+                prefillEndMinute = null,
+            ),
+        )
+    }
+
+    @Test
+    fun mainStartDestinationFallsBackToSplashForMalformedRoutineStartNotificationTap() {
+        assertEquals(
+            SplashRoute,
+            createMainStartDestination(
+                action = NotificationHelper.ACTION_ROUTINE_START_NOTIFICATION_TAP,
+                routineId = null,
+                repeatBlockSurface = null,
+                repeatBlockReason = null,
+                repeatBlockTimeBucket = null,
+                repeatBlockDayType = null,
+                repeatBlockCategoryBucket = null,
+                repeatBlockCountBucket = null,
+                repeatBlockCoverageState = null,
+                prefillPackages = emptyList(),
+                prefillStartHour = null,
+                prefillStartMinute = null,
+                prefillEndHour = null,
+                prefillEndMinute = null,
+            ),
+        )
+    }
+
     @Test
     fun repeatBlockRoutineRouteRequiresCompletePostBlockPrefillExtras() {
         assertNull(
