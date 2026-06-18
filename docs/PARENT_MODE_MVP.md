@@ -221,7 +221,7 @@ cd <repo-root>
 
 ### 7차 QA-lane runtime foothold
 
-2026-06-09 QA-lane PR에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 시점에는 full active/expired UX 화면이 별도 후속 경계였지만, 이후 PR #748/#870/#873에서 setup/active/expired controls와 접근성 요약 baseline이 이어졌고, 이 7차 foothold는 device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence로 남는다.
+PR #714 merge commit `1a55a4a0a5969cca3a69f158721224e27f37002d`에서 active Parent Mode session을 실제 AccessibilityService runtime baseline에 연결했다. 이 시점에는 full active/expired UX 화면이 별도 후속 경계였지만, 이후 PR #748/#870/#873에서 setup/active/expired controls와 접근성 요약 baseline이 이어졌고, 이 7차 foothold는 device/emulator에서 저장된 Parent Mode session을 서비스가 관찰하고 허용되지 않은 foreground 앱에 대해 `block_source=parent_mode` BlockActivity 요청을 남기는 evidence로 남는다.
 
 - `KeepAccessibilityServiceDebugState`: 서비스가 관찰한 Parent Mode state와 allowed-app count를 instrumentation evidence로 보존한다.
 - `KeepAccessibilityServiceIntegrationTest.activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution`: manual Keep 없이 active Parent Mode DataStore session만으로 비허용 앱 차단 요청이 발생하고, `observedParentModeState=active`, `observedParentModeAllowedAppCount=1`, `lastLaunchedBlockSource=parent_mode`가 기록되는지 검증한다.
@@ -229,7 +229,7 @@ cd <repo-root>
 
 ### 8차 QA-lane expiry runtime foothold
 
-2026-06-09 QA-lane PR에서 Parent Mode active session이 foreground 앱을 허용한 채 만료되는 순간에도 AccessibilityService가 time-based 재평가를 예약하도록 보강했다. 이전 foothold는 새 window event가 들어오면 expired policy로 차단할 수 있었지만, 같은 앱이 계속 foreground에 머무르는 동안 만료 시각을 지나는 케이스는 서비스가 다시 판단해야 하는 runtime 경계가 남아 있었다.
+PR #716 merge commit `04c8d075bf84081c78ce17748f368c9965acbbb2`에서 Parent Mode active session이 foreground 앱을 허용한 채 만료되는 순간에도 AccessibilityService가 time-based 재평가를 예약하도록 보강했다. 이전 foothold는 새 window event가 들어오면 expired policy로 차단할 수 있었지만, 같은 앱이 계속 foreground에 머무르는 동안 만료 시각을 지나는 케이스는 서비스가 다시 판단해야 하는 runtime 경계가 남아 있었다.
 
 - `nextParentModeExpirationReevaluationDelayMillis(...)`: active Parent Mode session의 `expiresAtMillis`까지 남은 시간을 계산하고, 이미 만료됐거나 active가 아닌 session은 timer를 만들지 않는다.
 - `nextTimeBasedBlockingStartReevaluationDelayMillis(...)`: Routine/Goal Lock 시작 시각뿐 아니라 Parent Mode 만료 시각도 다음 foreground 재평가 후보에 포함한다.
@@ -244,7 +244,7 @@ PR #870 merge commit `53e3d25c591c8fa8e2e444bff6636b046b2bd4eb`로 같은 setup 
 
 PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/active/expired 화면의 접근성 요약도 repo-internal baseline에 포함된다. `ParentModeSetupScreenAccessibilityTest`는 setup summary, active/expired TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 Compose instrumentation으로 반복 검증한다. PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce` 이후 active controls는 fresh guardian PIN 입력/확인 필드를 노출하고, verified PIN이 다시 입력되기 전에는 연장/즉시 종료 CTA가 disabled 상태로 남는 baseline을 추가했다. 이 baseline은 실제 release-candidate 기기의 스크린샷/TalkBack spot-check를 대체하지는 않지만, docs/QA lane이 더 이상 "Parent Mode active/expired TalkBack baseline 미정의" 또는 "PIN 없는 active 연장/종료 허용" 상태로 되돌리지 않도록 한다.
 
-2026-06-14 QA-lane PR에서는 issue #874의 stale Active 액션 경계를 닫았다. active controls가 열린 채 `expiresAtMillis`를 지나면 화면은 만료 시각까지 delay 후 재조회하고, 연장/즉시 종료 액션도 먼저 만료를 확정한다. 따라서 만료된 session은 verified PIN이 있어도 stale expiry 기준으로 10분 연장되지 않고, `unlocked_by_pin`으로 오계측되지 않으며, `expired` state + `parent_mode_completed(end_reason=time_expired)`로 1회 commit된다.
+PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`에서 issue #874의 stale Active 액션 경계를 닫았다. active controls가 열린 채 `expiresAtMillis`를 지나면 화면은 만료 시각까지 delay 후 재조회하고, 연장/즉시 종료 액션도 먼저 만료를 확정한다. 따라서 만료된 session은 verified PIN이 있어도 stale expiry 기준으로 10분 연장되지 않고, `unlocked_by_pin`으로 오계측되지 않으며, `expired` state + `parent_mode_completed(end_reason=time_expired)`로 1회 commit된다.
 
 - `ParentModePolicy`: parent action 요청 시 현재 시각 기준 `Expired`를 PIN 성공/실패보다 먼저 판정한다.
 - `ParentModeSessionController`: `extend(...)` / `endNow(...)` 모두 expired active session을 `TIME_EXPIRED` completion으로 저장하고 연장/핀 종료 analytics를 보내지 않는다.
