@@ -49,7 +49,7 @@ class ReviewPromptPostReleaseFollowthroughDocsTest(unittest.TestCase):
         self.assertIn("shown = 0", followthrough)
         self.assertIn("최신 코드 회귀로 단정하지 않는다", followthrough)
         self.assertIn("2026-06-14T06:07:23Z metrics snapshot smoke", followthrough)
-        self.assertIn("review_prompt_skipped`는 `45 users / 69 events`", followthrough)
+        self.assertIn("review_prompt_skipped`는 `43 users / 74 events`", followthrough)
         self.assertIn("first_core_action_completed 443 users", followthrough)
         self.assertIn("post-PR-308/#312 회귀가 아니라 release/tag/Play deploy 전 baseline smoke", followthrough)
         self.assertIn("git merge-base --is-ancestor cfff411898fbaac43a5c5bbafb48651091e66be2 origin/main", followthrough)
