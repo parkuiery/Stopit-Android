@@ -48,11 +48,13 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
 
         self.assertIn("PR #546", text)
         self.assertIn("PR #804", text)
+        self.assertIn("PR #1002", text)
         self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
         self.assertIn("KDS 적용", text)
         self.assertIn("routine card 공유 icon", text)
         self.assertIn("SetupAppRow remove action", text)
         self.assertIn("error token", text)
+        self.assertIn("remove action error-token 분리", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
