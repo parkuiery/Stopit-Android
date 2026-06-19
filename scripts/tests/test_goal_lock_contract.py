@@ -76,12 +76,21 @@ class GoalLockContractTest(unittest.TestCase):
         self.assertIn("window 종료 시각부터 차단을 멈춘다", runbook)
         self.assertIn("isCurrentlyProtecting", runbook)
         self.assertIn("다음 예약 시간대 대기 중", runbook)
+        self.assertIn("## Analytics 계약", runbook)
+        self.assertIn("repo-internal 계약으로 반영", runbook)
+        self.assertIn("## 구현 패키지 기준선", runbook)
+        self.assertIn("repo-internal MVP foothold는 아래 계층까지 `develop`에 반영", runbook)
+        self.assertIn("남은 작업은 repo-internal 구현 착수가 아니라", runbook)
 
         forbidden_guidance = [
             "긴급 해제 횟수 자동 회복 OFF를 MVP에 포함",
             "목표 이름 원문을 analytics",
             "app package를 analytics",
             "사용자를 가두",
+            "Analytics 계약 초안",
+            "구현 PR은 `KeepAnalytics.kt`",
+            "구현 패키지 추천 범위",
+            "#417 구현 착수 시에는",
         ]
         for phrase in forbidden_guidance:
             self.assertNotIn(phrase, runbook)
