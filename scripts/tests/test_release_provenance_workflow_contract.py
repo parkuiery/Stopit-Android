@@ -268,6 +268,10 @@ class ReleaseProvenanceWorkflowContractTest(unittest.TestCase):
             "prior-run identity semantics",
             "current production-promotion run",
             "current-run metadata drift",
+            "sourceRelease.status",
+            "SOURCE_TRACK=internal",
+            "source release status mismatch",
+            "live Play source-track state blocker",
         ):
             self.assertIn(required, docs)
 
