@@ -161,6 +161,8 @@ class ParentModeContractTest(unittest.TestCase):
             "PR #946 merge commit `b3a6c7a121e88c56353372cbb97366b2a04c0bce`",
             "PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`",
             "PR #970",
+            "PR #980",
+            "a0360ab6",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
             "직접 입력한 custom duration",
@@ -213,6 +215,8 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #897", product_context)
         self.assertIn("PR #913", product_context)
         self.assertIn("PR #970", product_context)
+        self.assertIn("PR #980", product_context)
+        self.assertIn("a0360ab6", product_context)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", product_context)
         self.assertIn("active controls 미구현", product_context)
         self.assertIn("직접 설정 미구현", product_context)
