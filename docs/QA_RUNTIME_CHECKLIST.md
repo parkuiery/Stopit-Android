@@ -1539,16 +1539,21 @@ Android 12+ 실기기/에뮬레이터에서 추가 스크린샷 evidence가 필�
 
 ### FCM token 재생성 baseline
 
-issue #68 계열 PR에서는 아래 focused Android 통합 테스트를 기본 evidence로 남긴다.
+issue #68/#996 계열 PR에서는 아래 focused JVM + Android 통합 테스트를 기본 evidence로 남긴다.
 
 ```bash
 cd <repo-root>
+./gradlew :app:testDevDebugUnitTest \
+  --tests com.uiery.keep.DeviceTokenManagerTest \
+  --tests com.uiery.keep.service.FcmTokenPersistenceRunnerTest
 ./gradlew :app:connectedDevDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.KeepMessagingServiceIntegrationTest
 ```
 
 - `persistNewTokenForContext_overwritesExistingStoredTokenViaEntryPoint`
-- 검증 범위: `KeepMessagingService -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
+- `FcmTokenPersistenceRunnerTest`: 저장 coroutine success/failure containment + Crashlytics sanitized exception message
+- 검증 범위: `KeepMessagingService -> FcmTokenPersistenceRunner -> EntryPointAccessors -> DeviceTokenManager -> DataStore` 저장 wiring
+- 저장 실패 관측 범위: DataStore/Hilt/analytics 예외는 Crashlytics `fcm_token_persistence_failure=true`, `fcm_token_persistence_cause=<exception class>`로 남기며 raw FCM token과 원본 exception message는 기록하지 않는다.
 - 이 baseline은 실제 FCM 서버 콜백을 대체하지 않지만, 새 기기/복원 후 토큰 재생성 시 앱 내부 저장 경로가 끊기지 않았는지 release 전에 반복 검증할 수 있게 한다.
 
 ### 부모 모드 runtime QA baseline
