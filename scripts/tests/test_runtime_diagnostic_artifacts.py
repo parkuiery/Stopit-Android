@@ -16,16 +16,23 @@ RELEASE_CHECKLIST = REPO_ROOT / "docs" / "RELEASE_CHECKLIST.md"
 class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
     def test_android_ci_fast_verification_uploads_diagnostics_even_after_failure(self):
         workflow = ANDROID_CI_WORKFLOW.read_text()
+        scripts_regression_step = self._step_block(workflow, "Run scripts regression tests")
         static_policy_step = self._step_block(workflow, "Run static policy unit tests")
         run_step = self._step_block(workflow, "Run app unit tests")
         upload_step = self._step_block(workflow, "Upload Android CI fast verification diagnostics")
 
+        self.assertIn("python3 -m unittest", scripts_regression_step)
+        self.assertIn("mkdir -p ci-diagnostics", scripts_regression_step)
+        self.assertIn("set -o pipefail", scripts_regression_step)
+        self.assertIn("tee ci-diagnostics/scripts-regression-tests.log", scripts_regression_step)
         self.assertIn("python3 -m unittest", static_policy_step)
         self.assertIn("mkdir -p ci-diagnostics", static_policy_step)
         self.assertIn("set -o pipefail", static_policy_step)
         self.assertIn("tee ci-diagnostics/static-policy-unit-tests.log", static_policy_step)
         self.assertIn("./gradlew --console=plain :app:testDevDebugUnitTest", run_step)
-        self.assertIn("if: always() && (steps.firebase-config.outputs.available == 'true' || steps.firebase-config.outputs.dummy_firebase_config == 'true')", upload_step)
+        self.assertIn("if: always()", upload_step)
+        self.assertNotIn("steps.firebase-config.outputs.available", upload_step)
+        self.assertNotIn("steps.firebase-config.outputs.dummy_firebase_config", upload_step)
         self.assertIn("continue-on-error: true", upload_step)
         self.assertIn("uses: actions/upload-artifact@v7", upload_step)
         self.assertIn("name: stopit-android-ci-fast-verification-diagnostics", upload_step)
@@ -37,6 +44,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
         self.assertIn("app/build/reports/lint-results-devDebug.*", upload_step)
         self.assertIn("app/build/reports/problems/**", upload_step)
         self.assertIn("app/build/outputs/logs/**", upload_step)
+
 
     def test_android_ci_runtime_smoke_uploads_diagnostics_even_after_failure(self):
         workflow = ANDROID_CI_WORKFLOW.read_text()
@@ -62,14 +70,19 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
 
     def test_full_release_qa_uploads_jvm_lint_build_diagnostics_even_after_failure(self):
         workflow = RELEASE_QA_WORKFLOW.read_text()
+        static_policy_step = self._step_block(workflow, "Run static policy unit tests")
         upload_step = self._step_block(workflow, "Upload full release QA diagnostics")
 
+        self.assertIn("mkdir -p release-qa-diagnostics", static_policy_step)
+        self.assertIn("set -o pipefail", static_policy_step)
+        self.assertIn("tee release-qa-diagnostics/static-policy-unit-tests.log", static_policy_step)
         self.assertIn("if: always()", upload_step)
         self.assertIn("continue-on-error: true", upload_step)
         self.assertIn("uses: actions/upload-artifact@v7", upload_step)
         self.assertIn("name: stopit-release-qa-build-diagnostics", upload_step)
         self.assertIn("retention-days: 7", upload_step)
         self.assertIn("if-no-files-found: ignore", upload_step)
+        self.assertIn("release-qa-diagnostics/**", upload_step)
         self.assertIn("app/build/reports/**", upload_step)
         self.assertIn("app/build/test-results/**", upload_step)
         self.assertIn("app/build/outputs/logs/**", upload_step)
@@ -130,6 +143,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
     def test_operator_docs_explain_runtime_diagnostic_artifact_triage_order(self):
         required = [
             "stopit-android-ci-fast-verification-diagnostics",
+            "ci-diagnostics/scripts-regression-tests.log",
             "ci-diagnostics/static-policy-unit-tests.log",
             "app/build/reports/tests",
             "app/build/test-results",
@@ -139,6 +153,7 @@ class RuntimeDiagnosticArtifactsTest(unittest.TestCase):
             "stopit-runtime-smoke-diagnostics",
             "stopit-release-instrumentation-diagnostics",
             "stopit-release-qa-build-diagnostics",
+            "release-qa-diagnostics/static-policy-unit-tests.log",
             "stopit-release-build-diagnostics",
             "stopit-play-deploy-release-diagnostics",
             "app/build/reports/androidTests",
