@@ -47,6 +47,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Emulates the intended backup/restore contract for a transferred device:
@@ -279,7 +280,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }

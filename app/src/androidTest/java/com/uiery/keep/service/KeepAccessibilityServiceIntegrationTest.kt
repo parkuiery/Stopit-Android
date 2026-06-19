@@ -35,6 +35,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.regex.Pattern
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class KeepAccessibilityServiceIntegrationTest {
@@ -303,7 +304,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected expired Goal Lock target to stay foreground without manual Keep or active Goal Lock",
         )
 
-        Thread.sleep(1_000)
+        AndroidTestConditionWaiter.pause(1_000, reason = "allowing service state to settle before negative assertion")
 
         val snapshot = KeepAccessibilityServiceDebugState.read(context)
         assertFalse(
@@ -328,7 +329,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected $bypassPackage to stay foreground while emergency unlock is active",
         )
 
-        Thread.sleep(1_000)
+        AndroidTestConditionWaiter.pause(1_000, reason = "allowing service state to settle before negative assertion")
 
         val debugSnapshot = KeepAccessibilityServiceDebugState.read(context)
         val launchedBlockedPackage = debugSnapshot.lastLaunchedBlockPackage
@@ -394,7 +395,7 @@ class KeepAccessibilityServiceIntegrationTest {
             message = "Expected the app info screen to stay foreground before uninstall confirmation",
         )
 
-        Thread.sleep(750)
+        AndroidTestConditionWaiter.pause(750, reason = "allowing app-info screen to remain stable before negative assertion")
 
         assertTrue(
             "Expected no uninstall dismissal record before the delete confirmation surface is opened",
@@ -872,7 +873,7 @@ class KeepAccessibilityServiceIntegrationTest {
             ) {
                 return true
             }
-            Thread.sleep(250)
+            AndroidTestConditionWaiter.pause(250, reason = "polling instrumentation condition")
         }
         return false
     }
@@ -1024,7 +1025,7 @@ class KeepAccessibilityServiceIntegrationTest {
             if (KeepAccessibilityServiceDebugState.read(context).isServiceConnected) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
 
         val snapshot = KeepAccessibilityServiceDebugState.read(context)
@@ -1147,7 +1148,7 @@ class KeepAccessibilityServiceIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }

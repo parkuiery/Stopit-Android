@@ -66,6 +66,23 @@ cd <repo-root>
 - `:app:connectedDevDebugAndroidTest`: device/emulator 기반 Android 통합 검증
 - 로컬 prerequisite 부족으로 instrumentation을 못 돌리면, 막힌 이유를 PR 본문에 명시하고 아래 수동 QA evidence를 남긴다.
 
+### Android runtime wait helper baseline
+
+runtime smoke / androidTest에서 조건을 기다려야 할 때는 호출부에 raw `Thread.sleep`을 두지 말고 `AndroidTestConditionWaiter`의 조건 기반 wait helper를 사용한다. 실패 메시지는 “무엇이 언제까지 충족되지 않았는지”를 드러내야 하며, 단순 안정화 대기도 helper의 `pause(...)`를 통해 목적 문자열을 남긴다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+python3 -m unittest scripts.tests.test_android_runtime_wait_contract -v
+./gradlew --console=plain :app:compileDevDebugAndroidTestKotlin
+```
+
+확인:
+- [ ] `app/src/androidTest/java/**`의 raw `Thread.sleep`은 `AndroidTestConditionWaiter` 내부로만 제한된다.
+- [ ] 새 polling/wait 추가 시 timeout, poll interval, 실패 메시지를 명시한다.
+- [ ] Android CI / Release QA runtime smoke 실패 triage는 helper 실패 메시지와 `runtime-diagnostics/**`를 함께 본다.
+
 ### 지원 문의 fallback baseline
 
 issue #695 계열 PR은 메뉴의 문의/광고 제거 관심도 문의 진입점에서 이메일 앱이 없을 때 지원 주소와 privacy-safe 진단 템플릿이 클립보드에 남는지 확인한다. 진단 템플릿에는 앱 version, Android OS/SDK, device model만 포함하고 앱 package list, 루틴 이름/ID, 잠금 기록, 긴급해제 reason 원문은 넣지 않는다.

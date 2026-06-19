@@ -24,6 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.fail
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class HomeAccessibilityPermissionIntegrationTest {
@@ -284,7 +285,7 @@ class HomeAccessibilityPermissionIntegrationTest {
                 device.pressHome()
                 launchStopIt()
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(
             "$message; ${accessibilitySettingsSnapshot()}; foreground=${isTargetPackageForeground()}; " +
@@ -324,7 +325,7 @@ class HomeAccessibilityPermissionIntegrationTest {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (condition()) return
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }
