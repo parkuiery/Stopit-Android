@@ -380,6 +380,28 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 - #914/#928/#984류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x` 또는 `known-incompatible: Kotlin 2.3+ requires compilerOptions DSL migration while Stopit still uses kotlinOptions.jvmTarget`를 남긴다.
 - `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ / Kotlin 2.3+ ignore가 빠지거나 이 문서가 #914/#928/#984 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
 
+### AndroidX compileSdk / AGP boundary guard (#1008)
+
+PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX metadata boundary를 드러냈다. 현재 Stopit은 `app`과 `core:kds` 모두 `compileSdk 35`, AGP `8.10.1` 기준인데, 해당 Dependabot batch는 아래처럼 더 높은 toolchain을 요구하는 artifacts를 함께 올렸다.
+
+- `androidx.navigationevent:*:1.0.0` → `compileSdk 36+` 요구. `androidx.navigation:navigation-compose 2.9.x`가 이 축을 끌고 들어온다.
+- `androidx.core:core:1.19.0` / `androidx.core:core-ktx 1.19.0` → `compileSdk 37+` 및 `AGP 9.1.0 or higher` 요구.
+- `androidx.lifecycle:* 2.11.x`, `androidx.activity:activity-compose 1.13.x`, `androidx.compose:compose-bom 2025.12.x`는 같은 AndroidX toolchain 검증 batch로 묶어 판정한다.
+
+현재 정책:
+
+- Stopit이 `compileSdk 35` / AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 weekly `android-gradle-patch-minor` 그룹에서 hold한다.
+  - `androidx.core:core-ktx [1.19,)`
+  - `androidx.navigation:navigation-compose [2.9,)`
+  - `androidx.lifecycle:lifecycle-runtime-ktx [2.11,)`
+  - `androidx.lifecycle:lifecycle-process [2.11,)`
+  - `androidx.lifecycle:lifecycle-runtime-compose [2.11,)`
+  - `androidx.activity:activity-compose [1.13,)`
+  - `androidx.compose:compose-bom [2025.12,)`
+- 이 hold는 AndroidX 업데이트를 영구 보류한다는 뜻이 아니다. `compileSdk 36/37`, AGP 9.1+, Gradle wrapper, Kotlin/KSP/Compose 호환성, Android CI/Release Build 검증을 포함한 **별도 Android toolchain lane**에서 한 번에 승격해야 한다.
+- PR #989처럼 실패 로그가 `requires compileSdk ...` / `AGP ... or higher` metadata 오류를 보이면 app-code regression으로 디버깅하지 않는다. 해당 PR은 close/hold하고, `known-incompatible: AndroidX compileSdk / AGP boundary while Stopit is compileSdk 35 / AGP 8.x`로 분류한다.
+- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 위 AndroidX hold가 빠지거나 이 문서/Git workflow가 #989 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
+
 PR triage checklist:
 
 ```md

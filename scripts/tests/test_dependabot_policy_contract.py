@@ -183,6 +183,42 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, docs)
 
+    def test_androidx_compile_sdk_agp_boundary_updates_are_held(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
+
+        expected_holds = {
+            "androidx.core:core-ktx": r"\[1\.19,\)",
+            "androidx.navigation:navigation-compose": r"\[2\.9,\)",
+            "androidx.lifecycle:lifecycle-runtime-ktx": r"\[2\.11,\)",
+            "androidx.lifecycle:lifecycle-process": r"\[2\.11,\)",
+            "androidx.lifecycle:lifecycle-runtime-compose": r"\[2\.11,\)",
+            "androidx.activity:activity-compose": r"\[1\.13,\)",
+            "androidx.compose:compose-bom": r"\[2025\.12,\)",
+        }
+        for dependency, version_range in expected_holds.items():
+            with self.subTest(dependency=dependency):
+                self.assertRegex(
+                    config,
+                    rf"dependency-name:\s*[\"']{re.escape(dependency)}[\"'][\s\S]*?versions:\s*\n\s*-\s*[\"']{version_range}[\"']",
+                    "#1008 requires holding known AndroidX updates that need compileSdk/AGP above the current stack",
+                )
+
+        for required in [
+            "AndroidX compileSdk / AGP boundary guard (#1008)",
+            "compileSdk 35",
+            "compileSdk 36+",
+            "compileSdk 37+",
+            "AGP 9.1.0 or higher",
+            "androidx.navigationevent:*:1.0.0",
+            "androidx.core:core:1.19.0",
+            "known-incompatible",
+            "별도 Android toolchain lane",
+            "PR #989",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, docs)
+
 
 if __name__ == "__main__":
     unittest.main()
