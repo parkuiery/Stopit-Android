@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal data class FcmTokenPersistenceFailure(
@@ -40,25 +41,41 @@ internal object CrashlyticsFcmTokenPersistenceFailureReporter : FcmTokenPersiste
 }
 
 internal object FcmTokenPersistenceRunner {
+    private const val DefaultMaxAttempts = 3
+    private const val DefaultRetryDelayMillis = 1_000L
+
     fun launch(
         work: suspend () -> Unit,
     ): Job = launch(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         failureReporter = CrashlyticsFcmTokenPersistenceFailureReporter,
+        maxAttempts = DefaultMaxAttempts,
+        retryDelayMillis = DefaultRetryDelayMillis,
         work = work,
     )
 
     fun launch(
         scope: CoroutineScope,
         failureReporter: FcmTokenPersistenceFailureReporter,
+        maxAttempts: Int = DefaultMaxAttempts,
+        retryDelayMillis: Long = DefaultRetryDelayMillis,
         work: suspend () -> Unit,
     ): Job = scope.launch {
-        try {
-            work()
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (exception: Exception) {
-            failureReporter.record(FcmTokenPersistenceFailure(exception))
+        require(maxAttempts > 0) { "maxAttempts must be positive" }
+        repeat(maxAttempts) { attemptIndex ->
+            try {
+                work()
+                return@launch
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                val isFinalAttempt = attemptIndex == maxAttempts - 1
+                if (isFinalAttempt) {
+                    failureReporter.record(FcmTokenPersistenceFailure(exception))
+                } else if (retryDelayMillis > 0) {
+                    delay(retryDelayMillis)
+                }
+            }
         }
     }
 }
