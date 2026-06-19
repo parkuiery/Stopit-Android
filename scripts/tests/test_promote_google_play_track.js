@@ -5,6 +5,7 @@ const {
   resolvePromotionVersionCode,
   selectRelease,
   validateReleaseStatusAndRolloutFraction,
+  validateSourceReleaseForProductionPromotion,
 } = require('../promote-google-play-track.js');
 
 test('resolvePromotionVersionCode requires VERSION_CODE for production promotions', () => {
@@ -30,6 +31,25 @@ test('selectRelease chooses the explicitly requested version code', () => {
     () => selectRelease(sourceTrack, '999'),
     /Version code 999 was not found on source track internal/,
   );
+});
+
+test('validateSourceReleaseForProductionPromotion requires completed internal source release', () => {
+  const completedRelease = { name: 'v1.7.8', versionCodes: ['178'], status: 'completed' };
+  assert.equal(
+    validateSourceReleaseForProductionPromotion('internal', completedRelease, '178'),
+    completedRelease,
+  );
+
+  for (const status of ['draft', 'inProgress', 'halted']) {
+    assert.throws(
+      () => validateSourceReleaseForProductionPromotion(
+        'internal',
+        { name: 'v1.7.8', versionCodes: ['178'], status },
+        '178',
+      ),
+      new RegExp(`source release status mismatch.*sourceTrack=internal.*versionCode=178.*actualStatus=${status}.*expectedStatus=completed`),
+    );
+  }
 });
 
 test('validateReleaseStatusAndRolloutFraction accepts production staged rollout contract', () => {
