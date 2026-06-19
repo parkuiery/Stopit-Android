@@ -224,7 +224,7 @@
   - 앱 이름/package/raw history/raw timestamp를 analytics로 보내지 않고 `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant`만 사용한다.
 - guardrail:
   - onboarding / pre-first-lock 사용자에게는 노출하지 않는다.
-  - 기존 활성 루틴이 같은 패턴을 이미 커버하면 추천하지 않는다.
+  - 기존 활성 루틴이 같은 패턴을 이미 완전히 커버하면 추천하지 않는다. 부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외하고 uncovered 앱만 제안한다.
   - `또 실패했어요`, `중독 패턴`, `못 참음` 같은 blame/shame copy 금지.
   - 추천 prefill은 저장 전 사용자가 요일·시간·앱 범위를 수정할 수 있어야 한다.
 - 성공 판단:
@@ -232,7 +232,7 @@
   - `repeat_block_routine_suggestion_applied / repeat_block_routine_suggestion_clicked`
   - 추천 적용 cohort의 D7/D30 반복 차단/루틴 사용 유지율 vs eligible but not applied cohort
   - 긴급해제 사용률, dismiss율, 리뷰 불만이 악화되면 추천 빈도/문구를 재검토한다.
-- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·apply/dismiss wiring·locale copy parity, PR #835(`8bb6592`)로 Home active Goal Lock suppression, PR #843(`a37a1558`)로 Home active emergency unlock runtime-state suppression, PR #887(`7202aaea`)로 LockHistory 성과 리포트 직후 추천 CTA shown/clicked/dismissed 및 Routine prefill entry surface의 `performance_report` 구현 표면 분리, PR #899(`e083495d`)로 `rapid_retry` 후보 우선순위 회귀, PR #923(`19f5be8`)로 post_block_success 후보 산출·shown/dismissed/store가 `develop`에 반영됐다. PR #931(`2846e6b`) 이후 차단 성공 직후 CTA card/clicked/prefill launch까지 연결됐고, PR #944(`21bdf65e`) 이후 Goal Lock-origin 차단(`block_source=goal_lock`)에서는 post_block_success 추천과 shown analytics를 suppress한다. 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`이며, active protection context는 추천보다 우선한다. release/tag/Play deploy·GA4 Admin 등록/metadata 확인·수동 device/locale/TalkBack QA·14일/30일 readback 전에는 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
+- 현재 상태: PR #537로 `RepeatBlockRoutineSuggestionPolicy`와 `repeat_block_routine_suggestion_*` local policy + analytics adapter 계약, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·apply/dismiss wiring·locale copy parity, PR #835(`8bb6592`)로 Home active Goal Lock suppression, PR #843(`a37a1558`)로 Home active emergency unlock runtime-state suppression, PR #887(`7202aaea`)로 LockHistory 성과 리포트 직후 추천 CTA shown/clicked/dismissed 및 Routine prefill entry surface의 `performance_report` 구현 표면 분리, PR #899(`e083495d`)로 `rapid_retry` 후보 우선순위 회귀, PR #923(`19f5be8`)로 post_block_success 후보 산출·shown/dismissed/store가 `develop`에 반영됐다. PR #931(`2846e6b`) 이후 차단 성공 직후 CTA card/clicked/prefill launch까지 연결됐고, PR #944(`21bdf65e`) 이후 Goal Lock-origin 차단(`block_source=goal_lock`)에서는 post_block_success 추천과 shown analytics를 suppress한다. PR #983(`fd7c515d`) 이후 기존 활성 루틴이 반복 후보 전체를 보호하면 추천을 숨기고, 부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외해 uncovered 앱만 제안한다. 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`이며, active protection context는 추천보다 우선한다. release/tag/Play deploy·GA4 Admin 등록/metadata 확인·수동 device/locale/TalkBack QA·14일/30일 readback 전에는 live event 0건을 수요 없음이나 추천 실패로 해석하지 않는다.
 
 ### LockHistory 성과 리포트
 
