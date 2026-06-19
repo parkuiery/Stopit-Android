@@ -202,6 +202,7 @@ python3 -m unittest \
   scripts.tests.test_play_deploy_tag_governance \
   scripts.tests.test_release_gate_retarget_triggers \
   scripts.tests.test_dependabot_policy_contract \
+  scripts.tests.test_kotlin_compiler_options_contract \
   scripts.tests.test_gradle_wrapper_distribution_checksum \
   scripts.tests.test_ops_ci_workflow -v
 ```
