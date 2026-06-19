@@ -38,9 +38,10 @@ updates:
         versions:
           - "[2.59,)"
       - dependency-name: "org.jetbrains.kotlin.android"
-        # #984: Kotlin 2.3.21 already makes legacy kotlinOptions.jvmTarget a
-        # Gradle configuration error. Hold Kotlin 2.3+ until app/core:kds
-        # migrate to compilerOptions in a dedicated Kotlin/toolchain lane.
+        # #1009 removed legacy kotlinOptions.jvmTarget in app/core:kds and pins
+        # JvmTarget.JVM_17 through compilerOptions. Still hold Kotlin 2.3+ out
+        # of the broad group until a dedicated Kotlin/toolchain lane validates
+        # KSP, Compose, serialization, Android CI, and Release Build together.
         versions:
           - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.plugin.compose"
@@ -50,14 +51,14 @@ updates:
           - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
         # Serialization plugin follows the Kotlin toolchain lane and should not
-        # outrun the build-script compilerOptions migration.
+        # outrun the post-#1009 Kotlin 2.3+ validation package.
         versions:
           - "[2.3,)"
       - dependency-name: "org.jetbrains.kotlin.jvm"
-        # #939/#984: the standalone Kotlin JVM plugin shares the same Kotlin 2.3+
-        # compilerOptions DSL migration boundary as Android/Compose/serialization.
+        # #939/#984/#1009: the standalone Kotlin JVM plugin shares the same
+        # Kotlin 2.3+ validation boundary as Android/Compose/serialization.
         # Keep it out of the broad android-gradle-patch-minor group until the
-        # dedicated Kotlin/toolchain lane removes legacy kotlinOptions.jvmTarget.
+        # dedicated Kotlin/toolchain lane proves the full toolchain together.
         versions:
           - "[2.3,)"
       - dependency-name: "androidx.core:core-ktx"

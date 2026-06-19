@@ -137,6 +137,7 @@ jobs:
               - 'scripts/tests/test_play_deploy_tag_governance.py'
               - 'scripts/tests/test_release_gate_retarget_triggers.py'
               - 'scripts/tests/test_dependabot_policy_contract.py'
+              - 'scripts/tests/test_kotlin_compiler_options_contract.py'
               - 'scripts/tests/test_branch_hygiene_policy.py'
               - 'scripts/tests/test_ops_ci_workflow.py'
               - 'scripts/tests/test_actionlint_gate.py'
@@ -225,6 +226,7 @@ jobs:
           scripts.tests.test_play_deploy_tag_governance
           scripts.tests.test_release_gate_retarget_triggers
           scripts.tests.test_dependabot_policy_contract
+          scripts.tests.test_kotlin_compiler_options_contract
           scripts.tests.test_aso_screenshots_ci_contract
           scripts.tests.test_branch_hygiene_policy
           scripts.tests.test_ops_ci_workflow

@@ -189,6 +189,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "scripts.tests.test_play_deploy_tag_governance",
             "scripts.tests.test_release_gate_retarget_triggers",
             "scripts.tests.test_dependabot_policy_contract",
+            "scripts.tests.test_kotlin_compiler_options_contract",
         ]
         for module in expected_contract_modules:
             with self.subTest(job="docs-contract", module=module):
@@ -210,6 +211,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("test_release_gate_retarget_triggers", combined_docs)
         self.assertIn("test_android_ci_artifact_retention", combined_docs)
         self.assertIn("test_dependabot_policy_contract", combined_docs)
+        self.assertIn("test_kotlin_compiler_options_contract", combined_docs)
 
     def test_operator_docs_name_ops_ci_responsibility(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
@@ -236,6 +238,7 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts.tests.test_release_signing_gradle_contract", doc)
             self.assertIn("scripts.tests.test_gradle_wrapper_distribution_checksum", doc)
             self.assertIn("scripts.tests.test_dependabot_policy_contract", doc)
+            self.assertIn("scripts.tests.test_kotlin_compiler_options_contract", doc)
             self.assertIn("docs-only", doc)
 
         # The main operator workflow table should enumerate the full release-helper
