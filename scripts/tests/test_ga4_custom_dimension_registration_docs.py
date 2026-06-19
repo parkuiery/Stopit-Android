@@ -97,6 +97,12 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
                 for snippet in forbidden:
                     self.assertNotIn(snippet, text)
 
+    def test_screen_view_dictionary_points_to_canonical_screen_name_set(self):
+        dictionary = EVENT_DICTIONARY.read_text()
+
+        self.assertIn("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES", dictionary)
+        self.assertIn("새 화면/route 추가 시 이 set과 screen_view 계약 표를 함께 갱신", dictionary)
+
 
 if __name__ == "__main__":
     unittest.main()

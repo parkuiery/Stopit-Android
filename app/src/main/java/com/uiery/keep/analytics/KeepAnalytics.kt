@@ -461,6 +461,26 @@ object KeepAnalyticsScreen {
     const val PARENT_MODE_SETUP = "ParentModeSetupScreen"
     const val BLOCK = "BlockScreen"
     const val LOCK = "LockScreen"
+
+    val CANONICAL_SCREEN_NAMES = setOf(
+        SPLASH,
+        ONBOARDING_INTRO,
+        ONBOARDING_PERMISSION,
+        ONBOARDING_NOTIFICATION,
+        ONBOARDING_SELECT_APP,
+        HOME,
+        MENU,
+        LOCK_HISTORY,
+        BLOCKED_APPS,
+        ROUTINE,
+        EMERGENCY_UNLOCK_SETTINGS,
+        DEV_TOOL,
+        GOAL_LOCK_CREATION,
+        GOAL_LOCK_DETAIL,
+        PARENT_MODE_SETUP,
+        BLOCK,
+        LOCK,
+    )
 }
 
 object AnalyticsSource {
