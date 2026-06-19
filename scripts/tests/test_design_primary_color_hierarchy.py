@@ -51,6 +51,8 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("더 이상 “문서 계약만 있고 구현 전” 상태가 아니다", text)
         self.assertIn("KDS 적용", text)
         self.assertIn("routine card 공유 icon", text)
+        self.assertIn("SetupAppRow remove action", text)
+        self.assertIn("error token", text)
         self.assertIn("navigation icon", text)
         self.assertIn("색상 단독 금지", text)
         self.assertIn("Refs #468", text)
@@ -122,6 +124,9 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
             ],
             "app/src/main/java/com/uiery/keep/feature/devtool/DevToolScreen.kt": [
                 "contentDescription = stringResource(R.string.cd_navigate_back),\n                            tint = Color(0xFFFE9E0B),",
+            ],
+            "app/src/main/java/com/uiery/keep/ui/component/SetupComponents.kt": [
+                "text = removeLabel,\n                    color = KeepTheme.colors.primary,",
             ],
         }
 
