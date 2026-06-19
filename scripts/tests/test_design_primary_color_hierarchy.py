@@ -6,6 +6,7 @@ DESIGN = REPO_ROOT / "DESIGN.md"
 KDS_README = REPO_ROOT / "core/kds/README.md"
 HIERARCHY_DOC = REPO_ROOT / "docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md"
 DOCS_AGENTS = REPO_ROOT / "docs/AGENTS.md"
+SETUP_COMPONENTS = REPO_ROOT / "app/src/main/java/com/uiery/keep/ui/component/SetupComponents.kt"
 
 
 class DesignPrimaryColorHierarchyTest(unittest.TestCase):
@@ -53,6 +54,8 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
         self.assertIn("KDS 적용", text)
         self.assertIn("routine card 공유 icon", text)
         self.assertIn("SetupAppRow remove action", text)
+        self.assertIn("SetupSecondaryButton", text)
+        self.assertIn("lower-emphasis tertiary/surfaceVariant", text)
         self.assertIn("error token", text)
         self.assertIn("remove action error-token 분리", text)
         self.assertIn("navigation icon", text)
@@ -86,6 +89,28 @@ class DesignPrimaryColorHierarchyTest(unittest.TestCase):
 
         self.assertIn("DESIGN_PRIMARY_COLOR_HIERARCHY.md", text)
         self.assertIn("#468", text)
+
+    def test_setup_secondary_button_stays_below_primary_cta(self):
+        text = SETUP_COMPONENTS.read_text()
+        start = text.index("fun SetupSecondaryButton(")
+        end = text.index("/** A stepper", start)
+        setup_secondary_button = text[start:end]
+
+        self.assertNotIn(
+            ".background(KeepTheme.colors.primary.copy",
+            setup_secondary_button,
+            "SetupSecondaryButton should not use the scarce primary CTA color as its container",
+        )
+        self.assertNotIn(
+            "tint = KeepTheme.colors.primary.copy",
+            setup_secondary_button,
+            "SetupSecondaryButton icon tint should stay lower-emphasis than the primary CTA",
+        )
+        self.assertNotIn(
+            "color = KeepTheme.colors.primary.copy",
+            setup_secondary_button,
+            "SetupSecondaryButton text color should stay lower-emphasis than the primary CTA",
+        )
 
     def test_top_app_bar_navigation_icons_do_not_use_primary(self):
         forbidden_snippets = {
