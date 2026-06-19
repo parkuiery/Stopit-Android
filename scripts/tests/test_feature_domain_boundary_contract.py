@@ -70,8 +70,8 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         self.assertIn("Closes #651", runbook)
         self.assertIn("#986 repository ownership follow-up", runbook)
         self.assertIn("LockHistoryRepository`는 이미 `data.lockhistory`", runbook)
-        self.assertIn("ReviewEligibilityRepository`는 아직 `feature.review`", runbook)
-        self.assertIn("data.review", runbook)
+        self.assertIn("ReviewEligibilityRepository`도 `data.review`", runbook)
+        self.assertIn("ReviewEligibilityEvaluator`는 새 shared repository", runbook)
         self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt", runbook)
         self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt", runbook)
         self.assertIn("RepeatBlockRoutineSuggestionAnalyticsPayload", runbook)
@@ -94,7 +94,8 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
     def test_issue_986_current_scope_matches_source_tree(self):
         runbook = RUNBOOK.read_text()
         lockhistory_repository = APP_MAIN / "data/lockhistory/LockHistoryRepository.kt"
-        review_repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+        feature_review_repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+        shared_review_repository = APP_MAIN / "data/review/ReviewEligibilityRepository.kt"
 
         self.assertEqual(
             "package com.uiery.keep.data.lockhistory",
@@ -102,12 +103,18 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
             "#986 docs assume LockHistoryRepository is already in the shared data boundary",
         )
 
-        review_source = review_repository.read_text()
-        self.assertIn("package com.uiery.keep.feature.review", review_source)
+        self.assertFalse(
+            feature_review_repository.exists(),
+            "#986 moved ReviewEligibilityRepository out of the feature.review ownership boundary",
+        )
+
+        review_source = shared_review_repository.read_text()
+        self.assertIn("package com.uiery.keep.data.review", review_source)
         self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", review_source)
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", review_source)
 
         self.assertIn("ReviewEligibilityRepository", runbook)
+        self.assertIn("data.review", runbook)
         self.assertIn("EmergencyUnlockDao", runbook)
         self.assertIn("LockHistoryDao", runbook)
 
