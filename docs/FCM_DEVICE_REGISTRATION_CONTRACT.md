@@ -7,7 +7,7 @@
 | 책임 | 현재 source of truth | 의미 |
 | --- | --- | --- |
 | FCM token refresh entry point | `app/src/main/java/com/uiery/keep/service/KeepMessagingService.kt` | Firebase `onNewToken()`에서 새 token을 받아 저장 경로로 전달한다. |
-| token 저장 실패 containment | `app/src/main/java/com/uiery/keep/service/FcmTokenPersistenceRunner.kt` | `onNewToken()` 비동기 저장 실패를 삼키지 않고 Crashlytics에 sanitized exception으로 남긴다. raw FCM token은 기록하지 않는다. |
+| token 저장 실패 containment / retry | `app/src/main/java/com/uiery/keep/service/FcmTokenPersistenceRunner.kt` | `onNewToken()` 비동기 저장을 bounded retry로 재시도한 뒤 최종 실패만 Crashlytics에 sanitized exception으로 남긴다. raw FCM token은 기록하지 않는다. |
 | token 저장/analytics 순서 | `app/src/main/java/com/uiery/keep/DeviceTokenManager.kt` | token을 `LocalDeviceDataStore`에 저장하고 현재 analytics 이벤트를 기록한다. |
 | analytics API/상수 | `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt` | 현재 발생 가능한 FCM token / backend-removed registration 이벤트만 노출한다. |
 | Firebase analytics adapter | `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt` | `KeepAnalytics` 호출을 Firebase event로 변환한다. |
@@ -63,8 +63,8 @@
 - 현재 정상 token refresh는 `device_registration_skipped(reason=backend_removed)`까지 함께 기록될 수 있다. 이 값만 보고 장애로 분류하지 않는다.
 - `device_registration_skipped(reason=missing_fcm_token)` 비중이 높아지면 token refresh 입력, Firebase callback, test fixture, restore/reset 경로를 점검한다.
 - 실제 push delivery 문제는 FCM 콘솔/메시징 evidence와 별도로 판단한다. 앱 analytics만으로 delivery 성공을 단정하지 않는다.
-- `KeepMessagingService.onNewToken()` 저장 coroutine이 DataStore/Hilt entry point/analytics 예외를 만나면 `FcmTokenPersistenceRunner`가 예외 class name만 Crashlytics custom key + sanitized exception으로 기록한다. raw FCM token 또는 원본 exception message는 기록하지 않는다.
-- 저장 실패가 관측되면 같은 version에서 `fcm_token_captured` / `device_registration_skipped` 감소 여부와 Crashlytics `fcm_token_persistence_failure=true` issue를 함께 본다. 다음 token refresh 또는 앱 기동 후 재발급 경로가 복구 기회이며, backend registration 성공률처럼 해석하지 않는다.
+- `KeepMessagingService.onNewToken()` 저장 coroutine이 DataStore/Hilt entry point/analytics 예외를 만나면 `FcmTokenPersistenceRunner`가 같은 token 저장 작업을 최대 3회까지 bounded retry한다. 재시도 중 성공하면 실패를 보고하지 않고, 모든 시도가 실패한 경우에만 예외 class name을 Crashlytics custom key + sanitized exception으로 기록한다. raw FCM token 또는 원본 exception message는 기록하지 않는다.
+- 저장 실패가 최종 관측되면 같은 version에서 `fcm_token_captured` / `device_registration_skipped` 감소 여부와 Crashlytics `fcm_token_persistence_failure=true` issue를 함께 본다. 재시도 후에도 실패한 경우이므로 DataStore/Hilt entry point/analytics 예외 원인과 앱 기동 후 token fetch reconciliation 경로를 함께 확인한다. backend registration 성공률처럼 해석하지 않는다.
 
 ## 검증 포인트
 
@@ -94,7 +94,7 @@ cd <repo-root>
 확인 기준:
 
 - `DeviceTokenManagerTest`는 저장 + 현재 analytics event order를 고정한다.
-- `FcmTokenPersistenceRunnerTest`는 `onNewToken()` 비동기 저장 실패가 caller로 새지 않고, raw token 없이 Crashlytics용 sanitized exception으로 관측되는지 고정한다.
+- `FcmTokenPersistenceRunnerTest`는 `onNewToken()` 비동기 저장 실패가 bounded retry로 복구될 수 있고, 모든 시도 실패가 caller로 새지 않으며, raw token 없이 Crashlytics용 sanitized exception으로 관측되는지 고정한다.
 
 ### Android runtime wiring baseline
 

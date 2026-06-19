@@ -46,6 +46,29 @@ class FcmTokenPersistenceRunnerTest {
     }
 
     @Test
+    fun launchRetriesPersistenceFailureBeforeReporting() = runBlocking {
+        val reporter = RecordingFcmTokenPersistenceFailureReporter()
+        var attempts = 0
+        val job = FcmTokenPersistenceRunner.launch(
+            scope = CoroutineScope(coroutineContext + SupervisorJob()),
+            failureReporter = reporter,
+            maxAttempts = 3,
+            retryDelayMillis = 0,
+        ) {
+            attempts += 1
+            if (attempts < 3) {
+                throw IllegalStateException("failed while saving raw-token-123")
+            }
+        }
+
+        job.join()
+
+        assertTrue(job.isCompleted)
+        assertEquals(3, attempts)
+        assertTrue(reporter.failures.isEmpty())
+    }
+
+    @Test
     fun crashlyticsExceptionMessageDoesNotContainRawTokenOrCauseMessage() {
         val exception = FcmTokenPersistenceException(
             FcmTokenPersistenceFailure(
