@@ -182,6 +182,17 @@ function selectRelease(sourceTrack, requestedVersionCode) {
     .sort((left, right) => Math.max(...(right.versionCodes || []).map(versionNumber)) - Math.max(...(left.versionCodes || []).map(versionNumber)))[0];
 }
 
+function validateSourceReleaseForProductionPromotion(sourceTrack, sourceRelease, requestedVersionCode) {
+  const actualStatus = sourceRelease && sourceRelease.status ? sourceRelease.status : 'unknown';
+  if (actualStatus !== 'completed') {
+    const versionCode = requestedVersionCode || (sourceRelease && Array.isArray(sourceRelease.versionCodes) ? sourceRelease.versionCodes.join(',') : 'unknown');
+    throw new Error(
+      `source release status mismatch: sourceTrack=${sourceTrack || 'unknown'} versionCode=${versionCode} actualStatus=${actualStatus} expectedStatus=completed`,
+    );
+  }
+  return sourceRelease;
+}
+
 async function main() {
   const serviceAccountPath = env('GOOGLE_PLAY_SERVICE_ACCOUNT_PATH');
   const packageName = env('PACKAGE_NAME');
@@ -206,6 +217,9 @@ async function main() {
 
   const source = await client.getTrack(editId, sourceTrack);
   const sourceRelease = selectRelease(source, versionCode);
+  if (targetTrack === 'production') {
+    validateSourceReleaseForProductionPromotion(sourceTrack, sourceRelease, versionCode);
+  }
   const release = {
     name: sourceRelease.name,
     versionCodes: sourceRelease.versionCodes,
@@ -240,4 +254,5 @@ module.exports = {
   resolvePromotionVersionCode,
   selectRelease,
   validateReleaseStatusAndRolloutFraction,
+  validateSourceReleaseForProductionPromotion,
 };
