@@ -282,12 +282,14 @@ fun SetupSecondaryButton(
     enabled: Boolean = true,
     leadingIconResId: Int? = null,
 ) {
+    val containerColor = KeepTheme.colors.tertiary.copy(alpha = if (enabled) 0.55f else 0.30f)
+    val contentColor = KeepTheme.colors.surfaceVariant.copy(alpha = if (enabled) 1f else 0.45f)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(KeepTheme.colors.primary.copy(alpha = if (enabled) 0.10f else 0.05f))
+            .background(containerColor)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
@@ -298,13 +300,13 @@ fun SetupSecondaryButton(
                 modifier = Modifier.size(18.dp),
                 painter = painterResource(id = leadingIconResId),
                 contentDescription = null,
-                tint = KeepTheme.colors.primary.copy(alpha = if (enabled) 1f else 0.4f),
+                tint = contentColor,
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
         Text(
             text = text,
-            color = KeepTheme.colors.primary.copy(alpha = if (enabled) 1f else 0.4f),
+            color = contentColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
         )
