@@ -195,6 +195,7 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertNotIn("2026-06-15 code-lane follow-through", runbook)
         self.assertNotIn("2026-06-15 code-lane active-PIN follow-through", runbook)
         self.assertNotIn("2026-06-14 code-lane follow-through", runbook)
+        self.assertNotIn("이번 follow-through", runbook)
 
     def test_product_context_tracks_parent_mode_foothold_not_pre_implementation_handoff(self):
         product_context = PRODUCT_CONTEXT.read_text()
@@ -224,6 +225,7 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertNotIn("원격 자녀 기기 관리 후속 gate를 구현 전 handoff로 고정한다", product_context)
         self.assertNotIn("이번 PR은 setup 화면", product_context)
         self.assertNotIn("2026-06-15 code-lane follow-through", product_context)
+        self.assertNotIn("이번 follow-through", product_context)
 
     def test_high_traffic_docs_link_to_parent_mode_source_of_truth(self):
         documents = [
