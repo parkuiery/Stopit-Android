@@ -189,10 +189,16 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("post_block_success", analytics)
         self.assertIn("performance_report", analytics)
         self.assertIn("performance_report`와 `post_block_success`는 repo-internal 구현 표면", analytics)
+        self.assertIn("#531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`", analytics)
+        self.assertIn("PR #994", analytics)
+        self.assertIn("full-coverage suppression", analytics)
+        self.assertIn("partial-coverage uncovered-app prefill", analytics)
         self.assertIn("release/tag/Play deploy", analytics)
         self.assertIn("PR #843", analytics)
         self.assertIn("Home active emergency unlock runtime state", analytics)
         self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
+        self.assertNotIn("Home/LockHistory CTA UI wiring/release/GA4 등록 전", analytics)
+        self.assertNotIn("미구현 UI 표면", analytics)
 
     def test_high_traffic_docs_link_to_repeat_block_suggestion_source_of_truth(self):
         documents = [
