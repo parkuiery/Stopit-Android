@@ -15,6 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class NotificationSmallIconIntegrationTest {
@@ -88,7 +89,7 @@ class NotificationSmallIconIntegrationTest {
             if (notification != null) {
                 return notification
             }
-            Thread.sleep(50)
+            AndroidTestConditionWaiter.pause(50, reason = "polling instrumentation condition")
         }
         throw AssertionError("Expected active notification id=$notificationId")
     }
@@ -114,7 +115,7 @@ class NotificationSmallIconIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(50)
+            AndroidTestConditionWaiter.pause(50, reason = "polling instrumentation condition")
         }
         throw AssertionError(message)
     }

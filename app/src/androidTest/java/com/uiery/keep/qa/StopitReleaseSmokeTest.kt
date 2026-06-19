@@ -10,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Release-candidate UI smoke test based on Android's testing-setup skill:
@@ -55,7 +56,7 @@ class StopitReleaseSmokeTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }

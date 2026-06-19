@@ -32,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class NotificationChannelDisabledIntegrationTest {
@@ -166,7 +167,7 @@ class NotificationChannelDisabledIntegrationTest {
         val deadline = System.currentTimeMillis() + timeoutMillis
         while (System.currentTimeMillis() < deadline) {
             if (condition()) return
-            Thread.sleep(100L)
+            AndroidTestConditionWaiter.pause(100L, reason = "polling instrumentation condition")
         }
         throw AssertionError(message)
     }

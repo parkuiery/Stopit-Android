@@ -19,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class EmergencyUnlockExpiryIntegrationTest {
@@ -140,7 +141,7 @@ class EmergencyUnlockExpiryIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(50)
+            AndroidTestConditionWaiter.pause(50, reason = "polling instrumentation condition")
         }
         throw AssertionError(message)
     }

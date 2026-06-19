@@ -94,7 +94,7 @@ class AccessibilitySettingsDetailNavigator(
 
     private fun sleep(durationMs: Long) {
         if (durationMs > 0) {
-            Thread.sleep(durationMs)
+            AndroidTestConditionWaiter.pause(durationMs, reason = "accessibility settings navigator polling")
         }
     }
 
