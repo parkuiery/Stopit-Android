@@ -328,7 +328,7 @@
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
     <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
-    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
+    <string name="emergency_unlock_duration_step_purpose">Schritt 3: Halte das Entsperrfenster so kurz wie möglich.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
@@ -365,14 +365,14 @@
     <string name="home_status_first_lock_ready_description">Starte jetzt, um deine erste echte Blockierung zu prüfen, oder stelle einen Timer für später ein.</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
     <string name="home_status_ready_description">Starte jetzt die Blockierung, ändere Apps oder stelle einen Timer für eine geplante Sitzung ein.</string>
-    <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
+    <string name="home_status_keep_active_title">%1$d Apps werden blockiert</string>
     <string name="home_status_keep_active_description">StopIt schützt gerade deine Zeit. Nutze Nebenaktionen nur, wenn du die Sitzung anpassen musst.</string>
     <string name="home_status_timed_lock_active_title">%1$d Apps sind geschützt, bis der Timer endet</string>
     <string name="home_status_timed_lock_active_description">Deine zeitgesteuerte Sperre ist aktiv. Ändere die Zeit nur, wenn du den aktuellen Plan anpassen musst.</string>
     <string name="home_primary_status_timed_lock_active">Timer-Sperre ist aktiv</string>
     <string name="home_primary_cta_select_apps">Apps zum Blockieren auswählen</string>
     <string name="home_primary_cta_start_now">Jetzt blockieren starten</string>
-    <string name="home_primary_status_keep_active">Protection is active</string>
+    <string name="home_primary_status_keep_active">Schutz ist aktiv</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>

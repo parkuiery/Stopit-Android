@@ -326,7 +326,7 @@
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
     <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
-    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
+    <string name="emergency_unlock_duration_step_purpose">第 3 步：尽量缩短解锁时长。</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
@@ -363,14 +363,14 @@
     <string name="home_status_first_lock_ready_description">现在开始以确认第一次真实拦截，或为稍后设置计时器。</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
     <string name="home_status_ready_description">立即开始拦截、更改应用，或为计划的专注时段设置计时器。</string>
-    <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
+    <string name="home_status_keep_active_title">正在阻止 %1$d 个应用</string>
     <string name="home_status_keep_active_description">StopIt 正在守护你的时间。只有需要调整本次时段时才使用辅助操作。</string>
     <string name="home_status_timed_lock_active_title">计时器结束前会保护 %1$d 个应用</string>
     <string name="home_status_timed_lock_active_description">定时锁定已启用。只有在需要调整当前计划时才更改时间。</string>
     <string name="home_primary_status_timed_lock_active">定时锁定已启用</string>
     <string name="home_primary_cta_select_apps">选择要阻止的应用</string>
     <string name="home_primary_cta_start_now">立即开始阻止</string>
-    <string name="home_primary_status_keep_active">Protection is active</string>
+    <string name="home_primary_status_keep_active">保护已开启</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
@@ -380,7 +380,7 @@
     <string name="first_lock_activation_cta_action">开始</string>
     <string name="first_lock_keep_started_guidance">StopIt 已开启。打开一个已选择的应用即可确认首次拦截。</string>
     <string name="first_lock_timer_scheduled_guidance">首次锁定已预约。到时间后打开已选择的应用即可确认拦截。</string>
-    <string name="routine_template_share_payload_title">StopIt focus routine template</string>
+    <string name="routine_template_share_payload_title">StopIt 专注例程模板</string>
     <string name="routine_template_share_payload_cta">Pause apps when you need focus.</string>
     <string name="routine_template_share_category_study">Study</string>
     <string name="routine_template_share_category_work">Work</string>
