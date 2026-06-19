@@ -374,6 +374,8 @@ GA4 Admin 증적 후보:
 | `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
 | `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료(`soft_default`) / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
 | `suggestion_variant` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 문서 계약 추가 / 필요 시 등록 | 반복 차단 루틴 추천 copy/placement 비교가 필요할 때 |
+| `link_surface` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 | Play Store listing, Discord, website, QR, ad 등 링크 표면별 attribution coverage를 비교할 때. raw URL/path 금지 |
+| `lookup_latency_bucket` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 | Install Referrer lookup 지연/timeout 원인 분리가 필요할 때. raw latency 대신 bucket만 사용 |
 | `reset_result` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 요청과 완료/불가 상태를 안전하게 구분할 때 |
 
 ### 3) Recommended 이벤트 지표
@@ -453,6 +455,10 @@ GA4 Admin 증적 후보:
 | `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)와 #531 반복 차단 루틴 추천의 Home/History/post-block 표면별 반응 비교 |
 | `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
 | `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
+| `referrer_status` | Required dimension | 등록 필요 | #581 PR #586/#590 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:referrer_status` 확인 필요 | Install Referrer lookup terminal status별 coverage 확인. raw referrer URL/exception message 금지 |
+| `utm_source_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:utm_source_type` 확인 필요 | Play Store/Discord/web/QR/paid/community 같은 source bucket만 허용. raw source string 금지 |
+| `utm_medium_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:utm_medium_type` 확인 필요 | organic/social/referral/paid/qr/owned 등 medium bucket. raw medium string 금지 |
+| `campaign_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:campaign_bucket` 확인 필요 | ASO baseline/launch/review/routine-share/manual-test 등 privacy-safe campaign bucket. 개인·소규모 raw campaign name 금지 |
 | `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | #455 MVP는 `soft_default` 단일 variant로 시작 |
 | `suggestion_reason` | Required dimension | 등록 필요 | 반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:suggestion_reason` 확인 필요 | #531 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 |
 | `time_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_bucket` 확인 필요 | 추천 시간대별 반응 비교. raw timestamp 금지 |

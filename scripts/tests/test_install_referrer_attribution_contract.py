@@ -84,6 +84,31 @@ class InstallReferrerAttributionContractTest(unittest.TestCase):
         self.assertIn("metadata 확인", ga4_runbook)
         self.assertIn("release/tag/Play deploy", ga4_runbook)
 
+    def test_ga4_registration_ledger_includes_install_referrer_required_and_recommended_axes(self):
+        ga4_runbook = GA4_RUNBOOK.read_text()
+
+        required_rows = [
+            "| `referrer_status` | Required dimension | 등록 필요 | #581 PR #586/#590 포함 버전 배포 전후 |",
+            "| `utm_source_type` | Required dimension | 등록 필요 | 동일 |",
+            "| `utm_medium_type` | Required dimension | 등록 필요 | 동일 |",
+            "| `campaign_bucket` | Required dimension | 등록 필요 | 동일 |",
+        ]
+        for row in required_rows:
+            self.assertIn(row, ga4_runbook)
+
+        for snippet in [
+            "`customEvent:referrer_status` 확인 필요",
+            "raw referrer URL/exception message 금지",
+            "raw source string 금지",
+            "raw medium string 금지",
+            "개인·소규모 raw campaign name 금지",
+            "| `link_surface` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 |",
+            "| `lookup_latency_bucket` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 |",
+            "raw URL/path 금지",
+            "raw latency 대신 bucket만 사용",
+        ]:
+            self.assertIn(snippet, ga4_runbook)
+
     def test_contract_names_pr_586_landed_foothold_and_remaining_runtime_boundary(self):
         contract = CONTRACT.read_text()
         product_context = PRODUCT_CONTEXT.read_text()
