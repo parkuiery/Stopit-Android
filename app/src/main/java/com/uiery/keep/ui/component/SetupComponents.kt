@@ -421,7 +421,7 @@ fun SetupAppRow(
             ) {
                 Text(
                     text = removeLabel,
-                    color = KeepTheme.colors.primary,
+                    color = KeepTheme.colors.error,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
