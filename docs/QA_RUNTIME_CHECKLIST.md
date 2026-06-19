@@ -788,9 +788,9 @@ python3 -m unittest scripts.tests.test_routine_creation_cta_contract -v
 
 ### Routine saved analytics QA baseline
 
-issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, PR #828으로 Home 보조 CTA에서 Routine 생성 흐름으로 들어간 저장 완료가 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 attribution된다. 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
+issue #810 계열 구현 PR은 `docs/ANALYTICS_EVENT_DICTIONARY.md`와 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md` / `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`를 source of truth로 삼고, 루틴 insert 성공 이후 generic 저장 완료 이벤트 `routine_saved`가 수동 생성·post-first-block CTA·repeat-block prefill 저장 완료를 같은 분모로 측정하는지 확인한다. PR #813으로 Android wiring은 `develop`에 반영됐고, PR #828으로 Home 보조 CTA에서 Routine 생성 흐름으로 들어간 저장 완료가 `entry_surface=home_secondary`, `creation_source=post_first_block_cta`로 attribution된다. PR #846 이후 런타임 bucket 값도 문서/GA4 계약과 맞춰져 `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state` spot-check가 같은 source-of-truth를 따른다. 이 baseline은 #455/#531 전환 측정 신뢰도를 보강한다. 다만 GA4 Admin·release/tag/Play deploy 전에는 live 0건을 저장 실패나 수요 없음으로 해석하지 않는다.
 
-자동 baseline(구현 PR에서 추가/확장할 테스트):
+자동 baseline(현재 `develop`에 고정된 회귀 테스트):
 
 ```bash
 cd <repo-root>
@@ -832,7 +832,7 @@ python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v
 - Notes:
 ```
 
-이 증거가 없으면 #810은 문서 계약이 있더라도 Android wiring/QA 경계가 남은 상태로 본다. GA4 Admin 등록, #810 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 외부/manual 경계를 따른다.
+이 증거가 없으면 #810은 Android wiring 자체가 빠진 상태라기보다 current-head QA/readback 증거가 부족한 상태로 본다. GA4 Admin 등록, #810 포함 release/tag/Play deploy, 14일/30일 성과 판단은 `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 외부/manual 경계를 따른다.
 
 ### 반복 차단 기반 자동 루틴 제안 QA baseline
 

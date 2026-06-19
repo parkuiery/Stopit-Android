@@ -44,7 +44,7 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
             "`repeat_days_bucket` | `routine_saved`",
             "`time_window_bucket` | `routine_saved`",
             "`schedule_state` | `routine_saved`",
-            "#810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution 완료 / GA4 등록·release 전",
+            "#810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전",
             "routine saved completion check",
             "routine_saved(creation_source=post_first_block_cta) users / routine_creation_cta_clicked users",
             "routine_saved(creation_source=repeat_block_prefill) users / repeat_block_routine_suggestion_clicked users",
@@ -81,7 +81,7 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
 
         dashboard = PRODUCT_DASHBOARD.read_text()
         self.assertIn("`routine_saved(creation_source=post_first_block_cta)` users / `routine_creation_cta_clicked` users", dashboard)
-        self.assertIn("PR #813 Android wiring과 PR #828 Home CTA attribution 연결 이후에는 `routine_saved(entry_surface=home_secondary, creation_source=post_first_block_cta)`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
+        self.assertIn("PR #813 Android wiring, PR #828 Home CTA attribution, PR #846 runtime bucket alignment 이후에는 `routine_saved(entry_surface=home_secondary, creation_source=post_first_block_cta)`를 CTA click → 실제 저장 완료 전환으로 본다", dashboard)
 
         cta_runbook = ROUTINE_CTA_RUNBOOK.read_text()
         self.assertIn("filtered by `creation_source=post_first_block_cta`", cta_runbook)
@@ -96,14 +96,20 @@ class RoutineSavedAnalyticsContractTest(unittest.TestCase):
 
         for phrase in [
             "Routine saved analytics QA baseline",
+            "PR #846 이후 런타임 bucket 값도 문서/GA4 계약과 맞춰져",
+            "자동 baseline(현재 `develop`에 고정된 회귀 테스트)",
             "manual routine creation",
             "post_first_block_cta",
             "repeat_block_prefill",
             "disabled_exact_alarm_missing",
+            "disabled_user_choice",
+            "current-head QA/readback 증거가 부족한 상태",
             "raw routine name / app package / app list / raw time / routine id absent",
             "python3 -m unittest scripts.tests.test_routine_saved_analytics_contract -v",
         ]:
             self.assertIn(phrase, checklist)
+
+        self.assertNotIn("#810은 문서 계약이 있더라도 Android wiring/QA 경계가 남은 상태", checklist)
 
 
 if __name__ == "__main__":
