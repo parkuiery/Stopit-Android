@@ -60,6 +60,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "RepeatBlockRoutineSuggestionPolicyTest.rapidRetryCandidateUsesRapidRetryReasonAndOutranksNewerNormalCandidate",
             "PR #887",
             "PR #899",
+            "PR #983",
+            "fd7c515d",
+            "부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외하고 uncovered 앱만 제안한다",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, runbook)
@@ -74,6 +77,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "미구현 UI 표면",
             "이번 code-lane",
             "이번 QA-lane",
+            "`partially_covered`는 첫 MVP에서는 보류",
         ]
         for phrase in forbidden_claims:
             self.assertNotIn(phrase, runbook)
@@ -226,6 +230,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("PR #923", document)
             self.assertIn("PR #931", document)
             self.assertIn("PR #944", document)
+            self.assertIn("PR #983", document)
+            self.assertIn("부분 커버", document)
+            self.assertIn("uncovered", document)
             self.assertIn("block_source=goal_lock", document)
             self.assertIn("구현 표면", document)
             self.assertIn("post_block_success", document)
@@ -248,7 +255,9 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "GoalLockPolicy.isCurrentlyProtecting",
             "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
             "onboarding / pre-first-lock 사용자에게 미노출",
-            "기존 활성 루틴과 겹치면 미노출",
+            "기존 활성 루틴이 반복 후보 앱 전체를 이미 보호하면 미노출",
+            "부분 커버 상태에서는 uncovered 앱만 prefill",
+            "RepeatBlockRoutineSuggestionPolicyTest.partiallyCoveredRoutinePrefillsOnlyUncoveredApps",
             "Home active Goal Lock card가 있으면",
             "raw app name / package / history / timestamp absent",
             "repeat_block_routine_suggestion_shown",
