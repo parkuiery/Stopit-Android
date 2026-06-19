@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +48,7 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.ui.component.RepeatBlockRoutineSuggestionCard
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -278,8 +277,12 @@ internal fun BlockScreenContent(
                             .fillMaxWidth()
                             .testTag("block_screen_repeat_block_suggestion_card"),
                         suggestion = suggestion,
+                        titleResId = R.string.repeat_block_suggestion_post_block_success_title,
+                        messageResId = R.string.repeat_block_suggestion_post_block_success_message,
                         onApplyClick = onOpenRoutineSuggestion,
                         onDismissClick = onDismissRoutineSuggestion,
+                        applyActionTestTag = "block_screen_repeat_block_suggestion_apply_action",
+                        dismissActionTestTag = "block_screen_repeat_block_suggestion_dismiss_action",
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -326,58 +329,6 @@ internal fun BlockScreenContent(
                     text = stringResource(id = R.string.block_screen_close),
                     onClick = onClose,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RepeatBlockRoutineSuggestionCard(
-    modifier: Modifier = Modifier,
-    suggestion: RepeatBlockRoutineSuggestion,
-    onApplyClick: () -> Unit,
-    onDismissClick: () -> Unit,
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.repeat_block_suggestion_post_block_success_title),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
-            Text(
-                text = stringResource(
-                    R.string.repeat_block_suggestion_post_block_success_message,
-                    suggestion.prefillPackages.size,
-                    suggestion.prefillStartTime,
-                    suggestion.prefillEndTime,
-                ),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                KeepButton(
-                    modifier = Modifier.testTag("block_screen_repeat_block_suggestion_apply_action"),
-                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
-                    onClick = onApplyClick,
-                )
-                TextButton(
-                    modifier = Modifier.testTag("block_screen_repeat_block_suggestion_dismiss_action"),
-                    onClick = onDismissClick,
-                ) {
-                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
-                }
             }
         }
     }

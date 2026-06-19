@@ -13,6 +13,7 @@ Use this package for UI that depends on app resources, app domain models, reposi
 - `SearchTextField`: app resource-backed search input used by the shared category bottom sheet.
 - `PermissionSettingDialog`: app permission handoff dialog shared by onboarding and Home accessibility-permission recovery; depends on app strings and Material dialog primitives.
 - `TimerPicker`: app timer picker shared by Home and Routine; depends on app string resources and app-level picker utilities.
+- `RepeatBlockRoutineSuggestionCard`: repeat-block routine suggestion card shared by Block, Home, and LockHistory; depends on app string resources, `RepeatBlockRoutineSuggestion`, and KDS buttons while each screen owns its surface-specific copy/test tags.
 - `CountDownContent`: lock/block countdown display shared by Lock and Block runtime surfaces; depends on app strings/plurals and app time-formatting utilities.
 - `EmergencyUnlockBottomSheetContent`: emergency-unlock request flow shared by Lock and Block runtime surfaces; depends on app strings, app icon metadata resolution, KDS buttons, and privacy-safe emergency-unlock UI state.
 

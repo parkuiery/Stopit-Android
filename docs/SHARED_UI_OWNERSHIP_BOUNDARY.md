@@ -24,7 +24,7 @@ Issue: #903
 | 계층 | 경로 | 사용 기준 | 예시 |
 | --- | --- | --- | --- |
 | KDS primitive | `core/kds/src/main/java/com/uiery/kds` | app 리소스/도메인 모델 없이 재사용 가능한 디자인 시스템 primitive | `KeepButton`, `KeepCheckbox`, `KeepSwitch` |
-| app shared UI | `app/src/main/java/com/uiery/keep/ui/component` | 여러 app feature에서 공유하지만 app string/resource/domain boundary에 의존하는 UI | `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker` |
+| app shared UI | `app/src/main/java/com/uiery/keep/ui/component` | 여러 app feature에서 공유하지만 app string/resource/domain boundary에 의존하는 UI | `CategoryButton`, `CategoryBottomSheetContent`, `PermissionSettingDialog`, `TimerPicker`, `RepeatBlockRoutineSuggestionCard` |
 | app root blocking surface | `app/src/main/java/com/uiery/keep/*Screen.kt`, `BlockActivity.kt` 등 | feature screen은 아니지만 차단/잠금 runtime UX를 노출하는 app entry surface. feature-private `component`를 직접 가져오지 않고 app shared UI 또는 문서화된 public entrypoint만 사용한다. | `BlockScreen.kt` |
 | app-level domain boundary | `app/src/main/java/com/uiery/keep/appselection` 등 | UI가 아니라 여러 feature가 공유하는 repository/policy/model boundary | `InstalledAppRepository`, `SelectableAppPolicy` |
 | feature-private UI | `app/src/main/java/com/uiery/keep/feature/<feature>/component` | 해당 feature screen/use case 안에서만 쓰는 UI | emergency unlock duration chip, feature-local row/card |
@@ -64,6 +64,21 @@ Issue: #903
 - `test_app_shared_ui_does_not_import_feature_private_packages`
 - `CountDownContentTest`, `EmergencyUnlockBottomSheetStateTest`, `EmergencyUnlockBottomSheetContentIntegrationTest`
 
+### #1022 완료 baseline: 반복 차단 제안 카드
+
+완료 상태:
+
+- `RepeatBlockRoutineSuggestionCard`는 `app/src/main/java/com/uiery/keep/ui/component` app shared UI 소유권을 가진다.
+- Block, Home, LockHistory는 shared `ui.component.RepeatBlockRoutineSuggestionCard`를 사용한다.
+- 각 화면은 title/message resource와 필요한 test tag만 주입하고, layout/CTA/dismiss hierarchy는 shared component가 소유한다.
+- `BlockScreen.kt`, `feature/home/HomeScreen.kt`, `feature/lockhistory/LockHistoryScreen.kt`에 private duplicate `RepeatBlockRoutineSuggestionCard` 정의를 다시 만들지 않는다.
+
+회귀 방지:
+
+- `test_repeat_block_routine_suggestion_card_has_shared_owner`
+- `test_app_shared_ui_package_documents_resource_bound_components`
+- `test_app_shared_ui_does_not_import_feature_private_packages`
+
 ## #492 완료 baseline
 
 ### `PermissionSettingDialog`
@@ -101,7 +116,7 @@ Issue: #903
 
 아래 component도 이미 shared/KDS boundary 기준으로 관리한다.
 
-- `CategoryButton`, `CategoryBottomSheetContent`, `AppItem`, `SearchTextField`, `CountDownContent`, `EmergencyUnlockBottomSheetContent`: app shared UI.
+- `CategoryButton`, `CategoryBottomSheetContent`, `AppItem`, `SearchTextField`, `CountDownContent`, `EmergencyUnlockBottomSheetContent`, `RepeatBlockRoutineSuggestionCard`: app shared UI.
 - `KeepSwitch`: KDS primitive.
 - `InstalledAppRepository`, `SelectableAppPolicy`: app-level app selection boundary.
 
@@ -110,6 +125,7 @@ Issue: #903
 `python3 -m unittest scripts.tests.test_shared_ui_component_boundaries -v`는 최소한 아래를 고정해야 한다.
 
 - app shared UI가 feature-private package를 import하지 않는다.
+- `RepeatBlockRoutineSuggestionCard`는 app shared UI에 있고 Block/Home/LockHistory private duplicate 정의가 없다.
 - feature-private component package를 다른 feature가 직접 import하지 않는다.
 - `PermissionSettingDialog`는 app shared UI에 있고 onboarding-private duplicate/stub이 없다.
 - `TimerPicker`는 app shared UI에 있고 home-private duplicate/stub이 없다.

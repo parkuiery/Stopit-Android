@@ -25,7 +25,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -83,6 +82,7 @@ import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.ui.component.PermissionSettingDialog
+import com.uiery.keep.ui.component.RepeatBlockRoutineSuggestionCard
 import com.uiery.keep.util.findActivity
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
@@ -355,6 +355,8 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     suggestion = suggestion,
+                    titleResId = R.string.repeat_block_suggestion_home_title,
+                    messageResId = R.string.repeat_block_suggestion_home_message,
                     onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
                     onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
                 )
@@ -484,54 +486,6 @@ fun HomeScreen(
                             screenContext = "main",
                         ),
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RepeatBlockRoutineSuggestionCard(
-    modifier: Modifier = Modifier,
-    suggestion: RepeatBlockRoutineSuggestion,
-    onApplyClick: () -> Unit,
-    onDismissClick: () -> Unit,
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.repeat_block_suggestion_home_title),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
-            Text(
-                text = stringResource(
-                    R.string.repeat_block_suggestion_home_message,
-                    suggestion.prefillPackages.size,
-                    suggestion.prefillStartTime,
-                    suggestion.prefillEndTime,
-                ),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                KeepButton(
-                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
-                    onClick = onApplyClick,
-                )
-                TextButton(onClick = onDismissClick) {
-                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
                 }
             }
         }
