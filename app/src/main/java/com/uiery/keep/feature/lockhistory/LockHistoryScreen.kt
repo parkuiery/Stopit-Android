@@ -13,14 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +40,7 @@ import com.uiery.keep.feature.lockhistory.component.LockHistoryTab
 import com.uiery.keep.feature.lockhistory.component.LockHistoryTopApps
 import com.uiery.keep.feature.lockhistory.component.LockHistoryWeekCalendar
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.ui.component.RepeatBlockRoutineSuggestionCard
 import com.uiery.keep.util.formatLockHistoryDateHeader
 import com.uiery.keep.util.formatMonthDay
 import com.uiery.keep.util.formatYearMonth
@@ -163,7 +161,10 @@ internal fun LockHistoryScreen(
             uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
                 Spacer(modifier = Modifier.height(12.dp))
                 RepeatBlockRoutineSuggestionCard(
+                    modifier = Modifier.fillMaxWidth(),
                     suggestion = suggestion,
+                    titleResId = R.string.repeat_block_suggestion_lock_history_title,
+                    messageResId = R.string.repeat_block_suggestion_lock_history_message,
                     onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
                     onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
                 )
@@ -259,53 +260,6 @@ private fun PeriodSelector(
                 contentDescription = stringResource(R.string.cd_next_period),
                 tint = KeepTheme.colors.onSurfaceVariant,
             )
-        }
-    }
-}
-
-@Composable
-private fun RepeatBlockRoutineSuggestionCard(
-    modifier: Modifier = Modifier,
-    suggestion: RepeatBlockRoutineSuggestion,
-    onApplyClick: () -> Unit,
-    onDismissClick: () -> Unit,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.repeat_block_suggestion_lock_history_title),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
-            Text(
-                text = stringResource(
-                    R.string.repeat_block_suggestion_lock_history_message,
-                    suggestion.prefillPackages.size,
-                    suggestion.prefillStartTime,
-                    suggestion.prefillEndTime,
-                ),
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                KeepButton(
-                    text = stringResource(R.string.repeat_block_suggestion_apply_button),
-                    onClick = onApplyClick,
-                )
-                TextButton(onClick = onDismissClick) {
-                    Text(text = stringResource(R.string.repeat_block_suggestion_dismiss_button))
-                }
-            }
         }
     }
 }

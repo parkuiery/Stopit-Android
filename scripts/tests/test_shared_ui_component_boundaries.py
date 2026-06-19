@@ -146,6 +146,25 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertFalse(private_source.exists(), "home-private TimerPicker duplicate must be removed")
         self.assertIn("fun TimerPicker(", shared_source.read_text())
 
+    def test_repeat_block_routine_suggestion_card_has_shared_owner(self):
+        shared_source = APP_MAIN / "ui/component/RepeatBlockRoutineSuggestionCard.kt"
+        self.assertTrue(
+            shared_source.exists(),
+            "RepeatBlockRoutineSuggestionCard must be owned by app shared UI instead of three private screen copies",
+        )
+        self.assertIn("fun RepeatBlockRoutineSuggestionCard(", shared_source.read_text())
+
+        duplicate_definitions: list[str] = []
+        for source in (
+            APP_MAIN / "BlockScreen.kt",
+            APP_MAIN / "feature/home/HomeScreen.kt",
+            APP_MAIN / "feature/lockhistory/LockHistoryScreen.kt",
+        ):
+            if re.search(r"private\s+fun\s+RepeatBlockRoutineSuggestionCard\s*\(", source.read_text()):
+                duplicate_definitions.append(str(source.relative_to(REPO_ROOT)))
+
+        self.assertEqual([], duplicate_definitions)
+
     def test_app_selection_repository_is_app_level_not_home_private(self):
         home_app_selection_sources = [
             path.relative_to(REPO_ROOT)
@@ -180,6 +199,7 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertIn("CategoryButton", doc)
         self.assertIn("CategoryBottomSheetContent", doc)
         self.assertIn("TimerPicker", doc)
+        self.assertIn("RepeatBlockRoutineSuggestionCard", doc)
         self.assertIn("app resources", doc)
         self.assertIn("feature.home.component", doc)
 
