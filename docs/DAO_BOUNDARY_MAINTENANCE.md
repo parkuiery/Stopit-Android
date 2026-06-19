@@ -24,8 +24,8 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 #### 허용 경계
 
-- `ReviewEligibilityRepository`가 review eligibility의 Room `EmergencyUnlockDao` / `LockHistoryDao` 접근 허용 경계다.
-- `ReviewEligibilityEvaluator`는 kill switch, build flavor, accessibility, quiet hours, cooldown, recent emergency unlock, recent success policy ordering만 소유한다.
+- `data.review.ReviewEligibilityRepository`가 review eligibility의 Room `EmergencyUnlockDao` / `LockHistoryDao` 접근 허용 경계다.
+- `feature.review.ReviewEligibilityEvaluator`는 kill switch, build flavor, accessibility, quiet hours, cooldown, recent emergency unlock, recent success policy ordering만 소유한다.
 - `ReviewEligibilityEvaluator` 테스트는 fake repository 경계를 통해 최근 긴급해제/성공 세션 값을 주입하므로 Room DAO fake에 직접 결합하지 않는다.
 
 ### Goal lock feature boundary
@@ -153,7 +153,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 ### 회귀 방지
 
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
-- 같은 static guard가 `ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
+- 같은 static guard가 `feature.review.ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `data.review.ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `GoalLockCreationViewModel` / `GoalLockDetailViewModel` 아래에서 `GoalLockDao` 직접 import가 재도입되지 않고 `GoalLockRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` 직접 import가 재도입되지 않고 `EmergencyUnlockRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `LockHistoryRecorder` 아래에서 `LockHistoryDao` / `LockHistoryEntity` / feature-private `LockHistoryRepository` 직접 import가 재도입되지 않고 `LockHistorySessionWriter.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다. `LockHistoryRepository`는 feature read-model 조회 경계로, `LockHistoryLedger`는 read-side summary helper로만 남는지도 함께 검사한다.
@@ -168,9 +168,9 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 ## Closure audit
 
-Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete for the original #520 inventory, and PR #881 closed the narrower #875 Home analytics sync exception. `app/src/main`의 Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 기존 #520 대상 ViewModel 경계(Menu/Lock/Routine/GoalLock/LockHistory/Review/Home)는 repository boundary로 정리되어 있다. #875의 repo-internal DAO boundary package is complete for #875 while #479 release/readback measurement remains separate.
+Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete for the original #520 inventory, and PR #881 closed the narrower #875 Home analytics sync exception. `app/src/main`의 Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 기존 #520 대상 ViewModel 경계(Menu/Lock/Routine/GoalLock/LockHistory/Review/Home)는 repository boundary로 정리되어 있다. #986 code-lane 이후 review eligibility의 DAO boundary도 `feature.review`가 아니라 `data.review.ReviewEligibilityRepository`가 소유한다. #875의 repo-internal DAO boundary package is complete for #875 while #479 release/readback measurement remains separate.
 
-- 허용 repository DAO 경계: `ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`.
+- 허용 repository DAO 경계: `data.review.ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`.
 - 허용 DB wiring 경계: `KeepDatabase`, `database/di`, DAO 인터페이스 자체.
 - #875 completed boundary: `HomeViewModel` / `RoutineCountAnalyticsSync`의 Routine count analytics sync 경로는 coverage 보강 의미를 유지하면서 `RoutineRepository` / `RoutineModel` 경계로 분리되어 있다.
 - 테스트 fixture/fake DAO는 production main-source 인벤토리에서 제외한다.

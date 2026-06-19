@@ -1,4 +1,4 @@
-package com.uiery.keep.feature.review
+package com.uiery.keep.data.review
 
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao

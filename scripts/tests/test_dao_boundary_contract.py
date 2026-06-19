@@ -59,16 +59,23 @@ class DaoBoundaryContractTest(unittest.TestCase):
         self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", ledger_text)
         self.assertNotIn("import com.uiery.keep.database.entity.LockHistoryEntity", ledger_text)
 
-    def test_review_eligibility_evaluator_uses_repository_boundary(self):
+    def test_review_eligibility_evaluator_uses_shared_data_repository_boundary(self):
         evaluator = APP_MAIN / "feature/review/ReviewEligibilityEvaluator.kt"
-        repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
-        self.assertTrue(repository.exists(), "ReviewEligibilityRepository owns review DAO access")
+        repository = APP_MAIN / "data/review/ReviewEligibilityRepository.kt"
+        old_feature_repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+        self.assertTrue(repository.exists(), "ReviewEligibilityRepository owns shared data review DAO access")
+        self.assertFalse(
+            old_feature_repository.exists(),
+            "ReviewEligibilityRepository must not remain in feature.review after shared data migration",
+        )
         evaluator_text = evaluator.read_text()
         repository_text = repository.read_text()
 
         self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", evaluator_text)
         self.assertNotIn("import com.uiery.keep.database.dao.LockHistoryDao", evaluator_text)
+        self.assertIn("import com.uiery.keep.data.review.ReviewEligibilityRepository", evaluator_text)
         self.assertIn("private val repository: ReviewEligibilityRepository", evaluator_text)
+        self.assertIn("package com.uiery.keep.data.review", repository_text)
         self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", repository_text)
         self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", repository_text)
         self.assertIn("fun countRecentEmergencyUnlocks", repository_text)

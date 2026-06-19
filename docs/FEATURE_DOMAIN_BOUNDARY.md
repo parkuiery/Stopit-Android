@@ -51,8 +51,8 @@ Issue: #651
 현재 판정:
 
 - `LockHistoryRepository`는 이미 `data.lockhistory` shared data boundary에 있다. #986에서 LockHistory 쪽은 새 코드 migration 후보가 아니라 **완료된 기준선**으로 취급한다.
-- `ReviewEligibilityRepository`는 아직 `feature.review` package에 있고 `EmergencyUnlockDao` / `LockHistoryDao`를 직접 읽는다. review-prompt eligibility가 LockHistory 성공 세션과 EmergencyUnlock 사용 횟수라는 app-wide persisted signal을 사용하므로, 다음 code-lane migration 후보는 이 repository를 `data.review` 또는 명시 shared review-signal boundary로 승격하는 것이다.
-- #986 closure 전에는 `ReviewEligibilityEvaluator` / Hilt 주입 / 관련 JVM tests가 새 shared boundary를 쓰는지 확인하고, 이 문서와 `scripts.tests.test_feature_domain_boundary_contract`의 #986 문구를 함께 줄인다.
+- `ReviewEligibilityRepository`도 `data.review` shared data boundary로 이동했다. `EmergencyUnlockDao` / `LockHistoryDao` 직접 read는 이제 feature-private `feature.review`가 아니라 `data.review.ReviewEligibilityRepository`가 소유한다.
+- `ReviewEligibilityEvaluator`는 새 shared repository를 주입받아 review-prompt eligibility policy ordering만 소유한다. #986 closure 전 남은 repo-internal 확인은 current-head PR checks/merge와 issue closure comment이며, 배포/GA4 measurement 같은 외부 경계는 이 구조 리팩터링의 acceptance가 아니다.
 
 ## Migration order
 
@@ -81,11 +81,11 @@ Issue: #651
 6. **LockHistory read/write boundary**
    - 완료: `LockHistorySessionWriter`가 runtime Room ledger write boundary를 소유한다.
    - 완료: `LockHistoryRepository`는 `data.lockhistory` shared data boundary로 이동했고, service/app-root/feature ViewModel은 feature-private repository import 없이 이 boundary를 사용한다.
-7. **#986 Review eligibility repository boundary — open**
-   - 완료로 보지 않는다: `ReviewEligibilityRepository`는 아직 `feature.review` package에 남아 있고 `EmergencyUnlockDao` / `LockHistoryDao`를 직접 읽는다.
-   - migration 방향: review-prompt eligibility의 persisted signal read boundary를 `data.review` 또는 명시 shared review-signal package로 옮기고, `feature.review`는 evaluator/policy/UI-adjacent orchestration만 소유한다.
-   - LockHistory 쪽은 이미 `data.lockhistory.LockHistoryRepository`로 승격되어 있으므로 #986 code-lane은 LockHistory를 다시 옮기는 작업이 아니라 Review repository 승격과 static guard 축소에 집중한다.
-   - focused 검증 후보: `ReviewEligibilityEvaluatorTest`, `ReviewPromptLifecycleTest` 주변 JVM regression, `scripts.tests.test_feature_domain_boundary_contract`.
+7. **#986 Review eligibility repository boundary — repo-internal foothold complete**
+   - 완료: `ReviewEligibilityRepository`는 `data.review` shared data boundary로 이동했고 `EmergencyUnlockDao` / `LockHistoryDao` 직접 read는 이 repository가 소유한다.
+   - 완료: `feature.review`는 evaluator/policy/UI-adjacent orchestration만 소유하고, `ReviewEligibilityEvaluator`는 `data.review.ReviewEligibilityRepository`를 주입받는다.
+   - LockHistory 쪽은 이미 `data.lockhistory.LockHistoryRepository`로 승격되어 있으므로 #986은 LockHistory 재이동 없이 Review repository 승격과 static guard 축소로 정리됐다.
+   - focused 검증: `ReviewEligibilityEvaluatorTest`, `HomeViewModelReviewTest`, `LockViewModelTest`, `scripts.tests.test_dao_boundary_contract`, `scripts.tests.test_feature_domain_boundary_contract`.
 
 ## Static guard 계약
 
@@ -94,7 +94,7 @@ Issue: #651
 - production `database/`, `service/`, `receiver/`, `analytics/` source의 `feature.*` imports가 비어 있음을 확인한다.
 - app-root blocking surface(`BlockActivity`, `BlockScreen`, `BlockViewModel`)가 repeat-block/lock-history feature-private domain imports를 재도입하지 않는지 확인한다.
 - issue #651/#987 문서가 현재 inventory의 모든 파일과 migration 방향을 명시한다.
-- issue #986 문서가 LockHistory repository는 이미 `data.lockhistory` 완료 기준선이고, ReviewEligibility repository만 남은 feature-local repository drift임을 명시한다.
+- issue #986 문서가 LockHistory repository는 이미 `data.lockhistory` 완료 기준선이고, ReviewEligibility repository도 `data.review` shared data boundary로 이동했음을 명시한다.
 - `docs/AGENTS.md`와 `docs/ops/stopit/engineering-context.md`가 이 문서를 참조해 future docs/code lane이 #520 DAO boundary와 #651 feature-domain boundary를 구분한다.
 
 ## PR / Issue closure rule
