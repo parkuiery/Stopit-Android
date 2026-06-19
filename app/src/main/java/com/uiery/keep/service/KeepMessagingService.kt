@@ -8,9 +8,6 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class KeepMessagingService : FirebaseMessagingService() {
 
@@ -22,7 +19,7 @@ class KeepMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        CoroutineScope(Dispatchers.IO).launch {
+        FcmTokenPersistenceRunner.launch {
             persistNewTokenForContext(applicationContext, token)
         }
     }
