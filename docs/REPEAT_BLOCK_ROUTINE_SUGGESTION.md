@@ -63,7 +63,7 @@ MVP는 외부 추론 서비스나 Usage Access 추가 권한 없이 로컬 기�
 - 또는 최근 14일 동안 같은 `day_type × time_bucket` 조합이 2주 연속 반복
 - 차단 후 5분 이내 같은 category/app 재시도가 2회 이상이면 강한 반복 신호로 가중
 - 후보가 여러 개면 최근성 → 반복 횟수 bucket → 루틴 미커버 상태 순으로 하나만 고른다
-- `routine_coverage_state=covered`는 추천하지 않는다. PR #983 이후 `partially_covered`는 보류 상태가 아니라, 기존 루틴이 보호하지 못한 uncovered 앱만 prefill에 남기는 방식으로 추천할 수 있다.
+- `routine_coverage_state=covered`는 추천하지 않는다. PR #983/#994 이후 `partially_covered`는 보류 상태가 아니라, 기존 루틴이 보호하지 못한 uncovered 앱만 prefill에 남기는 방식으로 추천할 수 있다.
 
 ## UX / copy 원칙
 
