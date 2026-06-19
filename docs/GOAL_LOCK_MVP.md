@@ -140,9 +140,9 @@ Home Goal Lock card status copy contract는 `HomeGoalLockCardState.status`가 �
 - “정말 포기하겠습니까?”
 - 사용자의 선택권을 빼앗거나 벌주는 듯한 표현
 
-## Analytics 계약 초안
+## Analytics 계약
 
-구현 PR은 `KeepAnalytics.kt`, Firebase 구현, 테스트, `docs/ANALYTICS_EVENT_DICTIONARY.md`, GA4 등록 런북을 함께 업데이트한다.
+Goal Lock analytics는 이미 `develop`의 `KeepAnalytics.kt` / Firebase 구현 / focused regression / event dictionary / GA4 등록 런북에 repo-internal 계약으로 반영되어 있다. 이후 code-lane이 event payload를 넓히거나 UI surface를 추가할 때는 이 문서, `docs/ANALYTICS_EVENT_DICTIONARY.md`, `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`, focused analytics tests를 같은 PR에서 함께 갱신한다. 단, GA4 Admin custom dimension 등록·metadata readback과 배포 후 14일/30일 측정은 여전히 외부/manual 경계다.
 
 | 이벤트 | 트리거 | 파라미터 | 민감 정보 정책 |
 | --- | --- | --- | --- |
@@ -266,17 +266,19 @@ Guardrail:
 - 조기 종료 확인 문구가 비난/강압 톤이 아니다.
 - TalkBack에서 홈 목표 잠금 카드가 목표 이름/남은 기간/상태를 이해 가능하게 읽는다.
 
-## 구현 패키지 추천 범위
+## 구현 패키지 기준선
 
-#417 구현 착수 시에는 아래를 한 PR 또는 명확한 code-lane package로 끝까지 묶는다.
+#417의 repo-internal MVP foothold는 아래 계층까지 `develop`에 반영된 상태다. 후속 lane은 이 항목들을 “착수 전”으로 되돌리지 말고, 실제 변경이 생길 때만 같은 source-of-truth 문서·계약 테스트·QA checklist를 함께 갱신한다.
 
-1. 순수 `GoalLockPolicy` / model 추가와 JVM RED/GREEN.
-2. 저장소/DAO 또는 기존 루틴/타이머 모델과의 persistence 경계 정의.
-3. 생성 ViewModel/UI state와 validation.
-4. Home card/section 노출.
-5. Accessibility/blocking runtime이 목표 잠금 상태를 실제 차단 판단에 반영.
+1. 순수 `GoalLockPolicy` / model과 JVM RED/GREEN.
+2. Room `goal_lock` 저장소/DAO, entity mapper, v4→v5 migration 경계.
+3. 생성 ViewModel/UI state, validation, navigation entrypoint, picker-style 앱 선택.
+4. Home card/section 노출, status copy, expiration completion 정규화.
+5. Accessibility/blocking runtime의 all-day/scheduled/expiration 자동 baseline.
 6. analytics 이벤트/테스트/event dictionary/GA4 ledger 동기화.
-7. QA runtime checklist에 all-day/scheduled/expiration evidence 추가.
+7. QA runtime checklist의 all-day/scheduled/expiration/compact-height/summary TalkBack evidence template.
+
+남은 작업은 repo-internal 구현 착수가 아니라 `외부/manual 경계` 절에 적은 release/tag/Play deploy, GA4 Admin/readback, release-candidate 실기기 screenshot/TalkBack spot-check, D+14/D+30 측정이다.
 
 ### 2026-06-04 QA foothold
 
