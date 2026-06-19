@@ -328,7 +328,7 @@
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
     <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
-    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
+    <string name="emergency_unlock_duration_step_purpose">Étape 3 : gardez la fenêtre de déverrouillage aussi courte que possible.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
@@ -365,14 +365,14 @@
     <string name="home_status_first_lock_ready_description">Démarre maintenant pour confirmer ton premier vrai blocage, ou règle un minuteur pour plus tard.</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
     <string name="home_status_ready_description">Démarre le blocage maintenant, change les applis ou règle un minuteur pour une session prévue.</string>
-    <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
+    <string name="home_status_keep_active_title">%1$d apps sont bloquées</string>
     <string name="home_status_keep_active_description">StopIt protège ton temps. Utilise les actions secondaires seulement si tu dois ajuster la session.</string>
     <string name="home_status_timed_lock_active_title">%1$d apps sont protégées jusqu’à la fin du minuteur</string>
     <string name="home_status_timed_lock_active_description">Votre verrouillage programmé est actif. Modifiez l’heure seulement si le plan actuel doit être ajusté.</string>
     <string name="home_primary_status_timed_lock_active">Verrouillage programmé actif</string>
     <string name="home_primary_cta_select_apps">Sélectionner les apps à bloquer</string>
     <string name="home_primary_cta_start_now">Commencer le blocage maintenant</string>
-    <string name="home_primary_status_keep_active">Protection is active</string>
+    <string name="home_primary_status_keep_active">La protection est active</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>

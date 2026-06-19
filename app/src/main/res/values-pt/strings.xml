@@ -328,7 +328,7 @@
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
     <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
-    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
+    <string name="emergency_unlock_duration_step_purpose">Etapa 3: mantenha a janela de desbloqueio o mais curta possível.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
@@ -365,14 +365,14 @@
     <string name="home_status_first_lock_ready_description">Começa agora para confirmar o teu primeiro bloqueio real, ou define um temporizador para mais tarde.</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
     <string name="home_status_ready_description">Começa a bloquear agora, muda as apps ou define um temporizador para uma sessão planeada.</string>
-    <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
+    <string name="home_status_keep_active_title">%1$d apps estão sendo bloqueados</string>
     <string name="home_status_keep_active_description">O StopIt está a proteger o teu tempo. Usa ações secundárias apenas quando precisares de ajustar a sessão.</string>
     <string name="home_status_timed_lock_active_title">%1$d apps ficam protegidos até o timer terminar</string>
     <string name="home_status_timed_lock_active_description">O bloqueio com timer está ativo. Altere o horário apenas se o plano atual precisar de ajuste.</string>
     <string name="home_primary_status_timed_lock_active">Bloqueio com timer ativo</string>
     <string name="home_primary_cta_select_apps">Selecionar apps a bloquear</string>
     <string name="home_primary_cta_start_now">Começar a bloquear agora</string>
-    <string name="home_primary_status_keep_active">Protection is active</string>
+    <string name="home_primary_status_keep_active">A proteção está ativa</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
@@ -382,7 +382,7 @@
     <string name="first_lock_activation_cta_action">Começar</string>
     <string name="first_lock_keep_started_guidance">O StopIt está ativado. Abra um app selecionado para confirmar o primeiro bloqueio.</string>
     <string name="first_lock_timer_scheduled_guidance">Seu primeiro bloqueio foi agendado. Quando chegar a hora, abra um app selecionado para confirmar o bloqueio.</string>
-    <string name="routine_template_share_payload_title">StopIt focus routine template</string>
+    <string name="routine_template_share_payload_title">Modelo de rotina de foco do StopIt</string>
     <string name="routine_template_share_payload_cta">Pause apps when you need focus.</string>
     <string name="routine_template_share_category_study">Study</string>
     <string name="routine_template_share_category_work">Work</string>

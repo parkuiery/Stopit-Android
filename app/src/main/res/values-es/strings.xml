@@ -327,7 +327,7 @@
     <string name="emergency_unlock_reason_other_reflection">Name the exception briefly so this stays intentional.</string>
     <string name="emergency_unlock_reason_step_purpose">Step 1: name why this exception is needed.</string>
     <string name="emergency_unlock_apps_step_purpose">Step 2: limit the exception to only the needed apps.</string>
-    <string name="emergency_unlock_duration_step_purpose">Step 3: keep the unlock window as short as possible.</string>
+    <string name="emergency_unlock_duration_step_purpose">Paso 3: mantén el tiempo de desbloqueo lo más corto posible.</string>
     <string name="emergency_unlock_reason_helper">Choose the closest reason before opening the blocked app.</string>
     <string name="emergency_unlock_reason_required_helper">Choose one reason to continue.</string>
     <string name="emergency_unlock_reason_other_required_helper">Add a short reason to continue.</string>
@@ -364,14 +364,14 @@
     <string name="home_status_first_lock_ready_description">Empieza ahora para confirmar tu primer bloqueo real o configura un temporizador para más tarde.</string>
     <string name="home_status_ready_title">%1$d apps are selected</string>
     <string name="home_status_ready_description">Empieza a bloquear ahora, cambia las apps o configura un temporizador para una sesión planificada.</string>
-    <string name="home_status_keep_active_title">%1$d apps are being blocked</string>
+    <string name="home_status_keep_active_title">Se están bloqueando %1$d apps</string>
     <string name="home_status_keep_active_description">StopIt está protegiendo tu tiempo. Usa las acciones secundarias solo cuando necesites ajustar la sesión.</string>
     <string name="home_status_timed_lock_active_title">%1$d apps están protegidas hasta que termine el temporizador</string>
     <string name="home_status_timed_lock_active_description">Tu bloqueo con temporizador está activo. Cambia la hora solo si necesitas ajustar el plan actual.</string>
     <string name="home_primary_status_timed_lock_active">Bloqueo con temporizador activo</string>
     <string name="home_primary_cta_select_apps">Seleccionar apps para bloquear</string>
     <string name="home_primary_cta_start_now">Empezar a bloquear ahora</string>
-    <string name="home_primary_status_keep_active">Protection is active</string>
+    <string name="home_primary_status_keep_active">La protección está activa</string>
     <string name="home_secondary_change_apps">Change apps</string>
     <string name="home_secondary_timer">Set timer</string>
     <string name="home_secondary_lock_history">View protected time</string>
