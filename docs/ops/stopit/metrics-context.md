@@ -120,6 +120,7 @@ ASO 판정 주의:
 - 2026-06-03 09:12 KST screen quality smoke는 `13,780 / 22,584 = 61.0%`였지만, PR #296/#318이 아직 `origin/main`/production tag `v1.7.7`에 포함되지 않았으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 본다. #13 closure 판단은 해당 PR 포함 release/tag/Play deploy 후 **D+14 screen quality 재측정**으로 한다.
 - 2026-06-19T01:07:53Z metrics snapshot의 30일 합산에서는 `screen_view` `57,114` 중 `(not set)+blank` gap이 `31,619`(`55.4%`)였고, 최신 관측 version `1.7.7` active share도 `395 / 874 = 45.2%`로 `충분`이다. 다만 관련 PR package의 main/tag/Play 포함 여부와 D+14 같은 쿼리 창 재측정 전까지 #13을 닫지 않는 guardrail로만 둔다.
 - PR #755(`08d31da3`)는 Firebase `screen_view` backend payload가 canonical `screen_name`과 `screen_class`를 함께 보내도록 보강한 별도 payload-shape package다. metrics 해석 시 화면 호출 coverage(`#296/#318/#358`)와 backend payload(`#755`)를 섞지 말고, 둘 다 release/tag/Play deploy를 지난 뒤 D+14 readback으로 판단한다.
+- PR #1005(`b1aa97d`) 이후 `KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES`가 앱 코드가 인정하는 canonical screen set이며, 새 화면/route 추가 시 이 set과 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 screen_view 표를 함께 갱신해야 한다. 이 repo-internal guardrail은 canonical 화면 목록/중복 부재 회귀를 막지만, D+14 screen quality 재측정 전에는 live `(not set)` 개선 완료 근거로 쓰지 않는다.
 - `customUser:routines_count`가 보인다고 해서 activation/review/ad 관련 `customEvent:*`까지 조회 가능하다고 가정하지 않는다.
 - `runReport`에 `customEvent:*`를 넣었을 때 `400 INVALID_ARGUMENT` / `Field customEvent:... is not a valid dimension`이 나오면, 최근 데이터 부족이 아니라 **GA4 Admin 미등록**으로 해석한다.
 - 이벤트 의미가 앱 버전별로 바뀐 경우 전체 30일 합산 퍼널을 그대로 믿지 않는다.

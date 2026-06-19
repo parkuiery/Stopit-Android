@@ -75,6 +75,12 @@ PR #913(`9d169449`) 기준 추가 확인:
 - 이 변경은 #471 same-device Parent Mode setup 전환 해석의 screen coverage를 보강하는 동시에 #13 screen 품질 package에 들어가는 repo-internal 화면 호출 coverage다.
 - live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다. Parent Mode setup screen/event 0건은 GA4 Admin 등록·배포·관측 창 전에는 수요 없음으로 해석하지 않는다.
 
+PR #1005(`b1aa97d`) 기준 추가 확인:
+
+- `KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES`가 앱 코드가 인정하는 canonical screen set을 한곳에 고정하고, `FirebaseKeepAnalyticsTest`가 목록/중복 부재를 검증한다.
+- 새 화면/route 추가 시 `KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES`와 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 screen_view 표를 함께 갱신해야 하며, 누락은 #13 screen 품질 회귀로 본다.
+- 이 보강은 화면별 `logScreenView` 호출과 PR #755 backend payload shape 사이의 source-of-truth gap을 줄이는 repo-internal guardrail이다. live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다.
+
 해석:
 
 - 현재 #13은 단순 문서 부재 문제가 아니라 **GA4 Admin 등록, 이벤트 source split, 배포 후 계측 품질 회복이 아직 모두 끝나지 않은 상태**다.

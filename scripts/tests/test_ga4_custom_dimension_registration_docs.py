@@ -103,6 +103,20 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
         self.assertIn("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES", dictionary)
         self.assertIn("새 화면/route 추가 시 이 set과 screen_view 계약 표를 함께 갱신", dictionary)
 
+    def test_canonical_screen_set_package_is_tracked_in_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #1005(`b1aa97d`)",
+            "KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES",
+            "canonical screen set",
+            "screen_view 표",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
 
 if __name__ == "__main__":
     unittest.main()
