@@ -6,7 +6,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.setRoutinesCount
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
-import com.uiery.keep.feature.routine.RoutineRestoreAftercare
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 

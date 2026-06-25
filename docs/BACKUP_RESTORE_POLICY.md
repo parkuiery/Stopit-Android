@@ -88,8 +88,8 @@ Typed store 경계:
 - `EmergencyUnlockSettingsStore`: 긴급해제 설정 key의 default/sanitize/read/write 경계.
 - `ReviewPromptStateStore`: 리뷰 pending/cooldown/background timestamp 경계.
 - `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다. 유지/퇴역 정책, Room-vs-cache conflict-winner, code-lane handoff는 `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`(#511)를 따른다.
-- `RoutineRestoreAftercare`: 복원 직후 앱 실행/Splash 또는 Routine 화면 진입에서 Room enabled routine을 다시 스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 채우는 공통 aftercare 경계다.
-- `SplashViewModel`: 앱 시작 직후 BootReceiver/package-replaced/routine-alarm 이벤트를 기다리지 않고 `RoutineRestoreAftercare`를 호출해 restored Room routine 알람을 복구한다. DataStore `IS_NEW`가 reset되어 기본값이 `true`로 읽히더라도, restored Room routine이 1개 이상 있으면 기존 사용자로 해석해 신규 온보딩/`first_open` 추적을 건너뛰고 Home 경로로 이동한다.
+- `RoutineRestoreAftercare` (`data.routine`): 복원 직후 앱 실행/Splash 또는 Routine 화면 진입에서 Room enabled routine을 다시 스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 채우는 공통 aftercare 경계다.
+- `SplashViewModel`: 앱 시작 직후 BootReceiver/package-replaced/routine-alarm 이벤트를 기다리지 않고 `data.routine.RoutineRestoreAftercare`를 호출해 restored Room routine 알람을 복구한다. DataStore `IS_NEW`가 reset되어 기본값이 `true`로 읽히더라도, restored Room routine이 1개 이상 있으면 기존 사용자로 해석해 신규 온보딩/`first_open` 추적을 건너뛰고 Home 경로로 이동한다.
 - `RoutineViewModel`: 사용자가 루틴 화면에 진입했을 때도 같은 aftercare를 재실행해 cache/알람 복구를 보강한다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 동일하게 해당 루틴을 `enabled=false`로 내리고 권한 안내 prompt를 다시 보여줄 수 있도록 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌린다.
 - `RoutineNoticeStore`: `PENDING_ROUTINE_START_NOTICE_MESSAGE` receiver→Home fallback notice queue와 `HAS_SHOWN_ALARM_PERMISSION` prompt reset 경계. 이 둘은 restored-device에서 되살리지 않는 runtime/UI handoff state다.
 

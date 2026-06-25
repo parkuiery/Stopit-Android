@@ -25,6 +25,9 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         for file_name in ("BlockActivity.kt", "BlockScreen.kt", "BlockViewModel.kt"):
             yield APP_MAIN / file_name
 
+    def startup_runtime_sources(self):
+        yield APP_MAIN / "feature/splash/SplashViewModel.kt"
+
     def current_feature_import_inventory(self):
         inventory: dict[str, list[str]] = {}
         for source in self.production_boundary_sources():
@@ -62,6 +65,42 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
             "app-root blocking surfaces must use shared repeat-block/lock-history boundaries, not feature-private domains",
         )
 
+    def test_startup_runtime_surfaces_do_not_import_routine_feature_aftercare(self):
+        violations = {}
+        for source in self.startup_runtime_sources():
+            imports = [
+                import_name
+                for import_name in FEATURE_IMPORT_PATTERN.findall(source.read_text())
+                if import_name.startswith("com.uiery.keep.feature.routine")
+            ]
+            if imports:
+                violations[str(source.relative_to(REPO_ROOT))] = sorted(imports)
+
+        self.assertEqual(
+            {},
+            violations,
+            "startup/runtime restore-aftercare must use the shared data.routine boundary, not feature.routine internals",
+        )
+
+    def test_routine_repository_binding_and_aftercare_live_in_shared_data_boundary(self):
+        feature_module = APP_MAIN / "feature/routine/RoutineModule.kt"
+        shared_module = APP_MAIN / "data/routine/RoutineModule.kt"
+        feature_aftercare = APP_MAIN / "feature/routine/RoutineRestoreAftercare.kt"
+        shared_aftercare = APP_MAIN / "data/routine/RoutineRestoreAftercare.kt"
+
+        self.assertFalse(
+            feature_module.exists(),
+            "RoutineRepository Hilt binding is app-wide data infrastructure and must not live under feature.routine",
+        )
+        self.assertFalse(
+            feature_aftercare.exists(),
+            "Routine restore-aftercare is startup/runtime infrastructure and must not live under feature.routine",
+        )
+        self.assertTrue(shared_module.exists())
+        self.assertTrue(shared_aftercare.exists())
+        self.assertIn("package com.uiery.keep.data.routine", shared_module.read_text())
+        self.assertIn("package com.uiery.keep.data.routine", shared_aftercare.read_text())
+
     def test_runbook_documents_every_current_import_and_migration_boundary(self):
         runbook = RUNBOOK.read_text()
         self.assertIn("Issue: #651", runbook)
@@ -84,6 +123,8 @@ class FeatureDomainBoundaryContractTest(unittest.TestCase):
         for required_phrase in (
             "GoalLock shared domain boundary",
             "Routine runtime repository/use-case boundary",
+            "data.routine.RoutineRestoreAftercare",
+            "#1050",
             "RepeatBlock analytics DTO boundary",
             "LockHistory runtime recording boundary",
             "#986 Review eligibility repository boundary",
