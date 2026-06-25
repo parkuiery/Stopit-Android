@@ -211,6 +211,47 @@ class RoutineBottomSheetViewModelTest {
     }
 
     @Test
+    fun sameStartAndEndTimeDisablesSaveAndDoesNotPersistOrTrackAllDayRoutine() = runBlocking {
+        val routineDao = RecordingRoutineDao(insertedId = 46L)
+        val analytics = RecordingKeepAnalytics()
+        val routineScheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(routineScheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(routineScheduler.scheduleRoutine(anyRoutine()))
+            .thenReturn(RoutineScheduleResult.Scheduled)
+        val viewModel = createViewModel(
+            routineDao = routineDao,
+            routineScheduler = routineScheduler,
+            analytics = analytics,
+        )
+
+        fillValidRoutine(viewModel)
+        viewModel.setEndTime(LocalTime(hour = 9, minute = 0))
+        val invalidState = awaitState(viewModel) { !it.isButtonEnable }
+        viewModel.addRoutine()
+        delay(100)
+
+        assertEquals(LocalTime(hour = 9, minute = 0), invalidState.startTime)
+        assertEquals(LocalTime(hour = 9, minute = 0), invalidState.endTime)
+        assertEquals(null, routineDao.insertedEntity)
+        Mockito.verify(routineScheduler, Mockito.never()).scheduleRoutine(anyRoutine())
+        assertTrue(analytics.lockScheduledCalls.isEmpty())
+        assertTrue(analytics.routineSavedCalls.isEmpty())
+    }
+
+    @Test
+    fun overnightRoutineLongerThanMinimumRemainsValid() = runBlocking {
+        val viewModel = createViewModel()
+
+        fillValidRoutine(viewModel)
+        viewModel.setStartTime(LocalTime(hour = 23, minute = 0))
+        viewModel.setEndTime(LocalTime(hour = 1, minute = 0))
+        val validState = awaitState(viewModel) { it.isButtonEnable }
+
+        assertEquals(LocalTime(hour = 23, minute = 0), validState.startTime)
+        assertEquals(LocalTime(hour = 1, minute = 0), validState.endTime)
+    }
+
+    @Test
     fun addRoutineWithMissingExactAlarmPermissionStoresDisabledRoutineAndRequestsPermissionBeforeClosingSheet() = runBlocking {
         val routineDao = RecordingRoutineDao(insertedId = 43L)
         val analytics = RecordingKeepAnalytics()

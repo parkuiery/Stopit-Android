@@ -99,7 +99,13 @@ fun RoutineTimeContent(
                 )
             },
         )
-        if (routineDurationMinutes(startTime, endTime) < 15) {
+        if (startTime == endTime) {
+            Text(
+                modifier = Modifier.padding(start = 16.dp),
+                text = stringResource(R.string.routine_same_time_message),
+                color = KeepTheme.colors.surface,
+            )
+        } else if (routineDurationMinutes(startTime, endTime) < 15) {
             Text(
                 modifier = Modifier.padding(start = 16.dp),
                 text = stringResource(R.string.routine_minimum_duration_message),

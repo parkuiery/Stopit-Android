@@ -245,6 +245,26 @@ python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
 - 타이머 예약/실행 중: 즉시 차단과 타이머의 역할이 문구로 구분된다.
 - 목표 잠금 진행 중: `GoalLockProgressCard`류 상태 표면이 Home primary status와 충돌하지 않는다.
 
+### Routine time-window boundary QA evidence
+
+issue #1049 계열 PR은 Routine 생성/편집 bottom sheet에서 시작/종료 시간이 같은 경계값을 24시간 루틴으로 저장하지 않는지 확인한다. `routineDurationMinutes()`는 overnight helper로 남아 있지만, 사용자 입력 validation은 `startTime == endTime`을 명시적으로 거부해야 한다.
+
+자동 baseline:
+
+```bash
+cd <repo-root>
+./gradlew --console=plain :app:testDevDebugUnitTest \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest.sameStartAndEndTimeDisablesSaveAndDoesNotPersistOrTrackAllDayRoutine' \
+  --tests 'com.uiery.keep.feature.routine.RoutineBottomSheetViewModelTest.overnightRoutineLongerThanMinimumRemainsValid'
+./gradlew --console=plain :app:assembleProdDebug
+```
+
+수동 QA matrix:
+- 시작/종료 동일 시간: 저장 버튼이 비활성화되고 `시작 시간과 종료 시간을 다르게 설정해 주세요.` 계열 helper copy가 보인다.
+- 15분 미만 일반 루틴: 기존 최소 15분 helper copy가 보이고 저장되지 않는다.
+- 정상 overnight 루틴(예: 23:00 → 01:00): 저장 가능하며 24시간 루틴으로 오해되지 않는다.
+- analytics debug/log evidence가 가능하면 동일 시간 케이스에서 `lock_scheduled.scheduledDurationMinutes=1440` 또는 `routine_saved.timeWindowBucket=all_day`가 전송되지 않는지 확인한다.
+
 ### Routine creation CTA QA evidence
 
 issue #455 계열 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of truth로 본다. CTA는 onboarding/pre-first-lock이 아니라 첫 핵심 행동 이후(`post_first_core_action`) 루틴 0개 사용자에게만 Home 보조 slot으로 노출되어야 하며, 클릭하면 Routine 생성 흐름으로 이동해야 한다.

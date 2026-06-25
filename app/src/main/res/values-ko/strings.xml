@@ -158,6 +158,7 @@
     <string name="lock_screen_routine_running">%1$s \n루틴 실행 중</string>
     <string name="lock_screen_routines_running">%1$d개의 루틴 실행 중</string>
     <string name="routine_minimum_duration_message">루틴은 최소 15분 이상 설정할 수 있어요.</string>
+    <string name="routine_same_time_message">시작 시간과 종료 시간을 다르게 설정해 주세요.</string>
     <string name="parent_mode_menu_title">아이에게 폰 주기</string>
     <string name="parent_mode_setup_title">부모 모드</string>
     <string name="parent_mode_setup_headline">휴대폰을 넘기기 전에 약속을 정해요</string>

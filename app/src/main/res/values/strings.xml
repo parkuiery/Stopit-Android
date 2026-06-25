@@ -158,6 +158,7 @@
     <string name="lock_screen_routine_running">%1$s \nRoutine in progress</string>
     <string name="lock_screen_routines_running">%1$d routines in progress</string>
     <string name="routine_minimum_duration_message">Routines must be set for at least 15 minutes.</string>
+    <string name="routine_same_time_message">Start and end times must be different.</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
     <string name="parent_mode_setup_title">Parent Mode</string>
     <string name="parent_mode_setup_headline">Set a promise before handing over your phone</string>

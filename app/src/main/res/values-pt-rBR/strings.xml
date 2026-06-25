@@ -150,6 +150,7 @@
     <string name="lock_screen_routine_running">%1$s \nRotina em execução</string>
     <string name="lock_screen_routines_running">%1$d rotinas em execução</string>
     <string name="routine_minimum_duration_message">As rotinas devem ser definidas por pelo menos 15 minutos.</string>
+    <string name="routine_same_time_message">Os horários de início e fim devem ser diferentes.</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
 
     <string name="parent_mode_setup_title">Modo dos pais</string>

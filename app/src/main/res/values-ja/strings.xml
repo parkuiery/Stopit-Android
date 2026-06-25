@@ -150,6 +150,7 @@
     <string name="lock_screen_routine_running">%1$s \nルーティン実行中</string>
     <string name="lock_screen_routines_running">%1$d件のルーティン実行中</string>
     <string name="routine_minimum_duration_message">ルーティンは最低15分以上設定する必要があります。</string>
+    <string name="routine_same_time_message">開始時刻と終了時刻は別々に設定してください。</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
 
     <string name="parent_mode_setup_title">ペアレントモード</string>
