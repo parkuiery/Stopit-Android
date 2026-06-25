@@ -118,12 +118,13 @@ updates:
         versions:
           - "[2.3,)"
       - dependency-name: "androidx.core:core-ktx"
-        # #1008/#1051: core-ktx 1.18.0 already resolves AndroidX metadata that
-        # fails on Stopit's current compileSdk 35 baseline; 1.19.0 then requires
-        # compileSdk 37+ and AGP 9.1.0+. Keep this out of the weekly UI/runtime
-        # lane until a dedicated Android toolchain lane raises compileSdk/AGP.
+        # #1008/#1051: core-ktx 1.17.0 already resolves androidx.core:core
+        # 1.17.0 metadata that fails on Stopit's current compileSdk 35 baseline;
+        # 1.19.0 then requires compileSdk 37+ and AGP 9.1.0+. Keep this out of
+        # the weekly UI/runtime lane until a dedicated Android toolchain lane
+        # raises compileSdk/AGP.
         versions:
-          - "[1.18,)"
+          - "[1.17,)"
       - dependency-name: "androidx.navigation:navigation-compose"
         # #1008 / PR #989: navigation-compose 2.9.x pulls navigationevent 1.0.0,
         # whose published metadata requires compileSdk 36+. Treat this as an
@@ -147,27 +148,28 @@ updates:
         versions:
           - "[2.10,)"
       - dependency-name: "androidx.activity:activity-compose"
-        # #1051 / PR #1042: activity-compose 1.12.4 requires a newer AndroidX
+        # #1051 / PR #1056: activity-compose 1.11.0 requires a newer AndroidX
         # compileSdk baseline than Stopit's current compileSdk 35 / AGP 8.x.
         versions:
-          - "[1.12,)"
+          - "[1.11,)"
       - dependency-name: "androidx.compose:compose-bom"
         # #1051 / PR #1042: Compose BOM 2025.11.x belongs with the same
         # compileSdk/AGP-bound AndroidX batch; move it through a toolchain lane.
         versions:
           - "[2025.11,)"
       - dependency-name: "com.google.devtools.ksp"
-        # #1051 / PR #1043: KSP 2.3.x targets the Kotlin 2.3 toolchain and fails
-        # against Stopit's Kotlin 2.1.x baseline. Keep KSP in a dedicated
-        # Kotlin/toolchain lane rather than the Room patch/minor lane.
+        # #1051 / PR #1057: KSP 2.2.x targets a newer Kotlin toolchain and fails
+        # against Stopit's Kotlin 2.1.x baseline with Gradle/Kotlin API drift.
+        # Keep KSP in a dedicated Kotlin/toolchain lane rather than the Room
+        # patch/minor lane.
         versions:
-          - "[2.3,)"
+          - "[2.2,)"
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization-json"
-        # #1051 / PR #1045: kotlinx-serialization-json 1.11.x can pull Kotlin
+        # #1051 / PR #1058: kotlinx-serialization-json 1.10.x can pull Kotlin
         # metadata 2.3.x artifacts that are not consumable by the current Kotlin
         # 2.1.x toolchain. Validate it with the Kotlin/toolchain lane.
         versions:
-          - "[1.11,)"
+          - "[1.10,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"

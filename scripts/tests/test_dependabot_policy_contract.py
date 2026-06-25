@@ -258,12 +258,12 @@ class DependabotPolicyContractTest(unittest.TestCase):
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
 
         expected_holds = {
-            "androidx.core:core-ktx": r"\[1\.18,\)",
+            "androidx.core:core-ktx": r"\[1\.17,\)",
             "androidx.navigation:navigation-compose": r"\[2\.9,\)",
             "androidx.lifecycle:lifecycle-runtime-ktx": r"\[2\.10,\)",
             "androidx.lifecycle:lifecycle-process": r"\[2\.10,\)",
             "androidx.lifecycle:lifecycle-runtime-compose": r"\[2\.10,\)",
-            "androidx.activity:activity-compose": r"\[1\.12,\)",
+            "androidx.activity:activity-compose": r"\[1\.11,\)",
             "androidx.compose:compose-bom": r"\[2025\.11,\)",
         }
         for dependency, version_range in expected_holds.items():
@@ -276,7 +276,9 @@ class DependabotPolicyContractTest(unittest.TestCase):
 
         for required in [
             "AndroidX compileSdk / AGP boundary guard (#1008, #1051)",
+            "core-ktx 1.17.0",
             "core-ktx 1.18.0",
+            "activity-compose 1.11.0",
             "activity-compose 1.12.4",
             "androidx.lifecycle:* 2.10.x",
             "androidx.compose:compose-bom 2025.11.x",
@@ -290,6 +292,7 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "별도 Android toolchain lane",
             "PR #989",
             "PR #1042",
+            "PR #1056",
         ]:
             with self.subTest(required=required):
                 self.assertIn(required, docs)
@@ -299,8 +302,8 @@ class DependabotPolicyContractTest(unittest.TestCase):
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
 
         expected_holds = {
-            "com.google.devtools.ksp": r"\[2\.3,\)",
-            "org.jetbrains.kotlinx:kotlinx-serialization-json": r"\[1\.11,\)",
+            "com.google.devtools.ksp": r"\[2\.2,\)",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json": r"\[1\.10,\)",
         }
         for dependency, version_range in expected_holds.items():
             with self.subTest(dependency=dependency):
@@ -311,13 +314,18 @@ class DependabotPolicyContractTest(unittest.TestCase):
                 )
 
         for required in [
+            "KSP 2.2.x",
             "KSP 2.3.x",
+            "com.google.devtools.ksp 2.2.21",
             "com.google.devtools.ksp 2.3.9",
+            "kotlinx-serialization-json 1.10.x",
             "kotlinx-serialization-json 1.11.x",
             "Kotlin metadata 2.3.x",
             "Kotlin 2.1.x",
             "PR #1043",
             "PR #1045",
+            "PR #1057",
+            "PR #1058",
             "별도 Kotlin/toolchain lane",
             "known-incompatible",
         ]:
