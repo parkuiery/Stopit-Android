@@ -110,7 +110,8 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 #### 허용 경계
 
 - `RoutineRepository`가 `RoutineRestoreAftercare`의 Room `RoutineDao` read/update 접근 허용 경계다.
-- `RoutineRestoreAftercare`는 restored routine list의 reschedule orchestration, exact-alarm permission prompt reset, `RoutineStore` compatibility cache rewrite만 소유하고, Room entity 조회·enabled update mapping은 repository에 위임한다.
+- `RoutineRestoreAftercare`는 `data.routine` shared runtime/data boundary에서 restored routine list의 reschedule orchestration, exact-alarm permission prompt reset, `RoutineStore` compatibility cache rewrite만 소유하고, Room entity 조회·enabled update mapping은 repository에 위임한다.
+- `RoutineExactAlarmOrchestrator` / `RoutineExactAlarmPermissionPolicy`도 `data.routine` boundary가 소유해 Routine 화면, Splash startup, restore aftercare가 같은 스케줄/권한 계약을 공유한다.
 - `RoutineRepositoryTest`는 `fetchAllOnce()` mapping을 추가로 고정하고, Routine/Splash restore scheduling test fixture는 `RoomRoutineRepository` 경계를 통해 production constructor contract를 검증한다.
 
 ### Routine receiver restore/reschedule boundary

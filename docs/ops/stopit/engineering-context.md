@@ -91,6 +91,7 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
   - 현재 장기 경계: analytics는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO를 통해 runtime suggestion object를 받지 않고, 반복 차단 shared model/policy는 `domain.repeatblock`, dismiss store는 `data.repeatblock`, app-root Block runtime은 이 shared boundary만 사용한다. LockHistory runtime recording은 `LockHistorySessionWriter` data boundary가 소유하고, LockHistory read repository는 `data.lockhistory` boundary가 소유한다. ParentMode runtime session/state와 block decision policy는 `domain.parentmode` boundary가 소유한다. 이 경계들은 새 PR에서 다시 feature-private 모델/저장소로 되돌리지 않는다.
   - #986의 code-lane candidate였던 `feature.review.ReviewEligibilityRepository`는 `data.review.ReviewEligibilityRepository` shared data boundary로 이동했다. `ReviewEligibilityEvaluator`는 policy ordering만 소유하고, `EmergencyUnlockDao` / `LockHistoryDao` 직접 read는 shared data boundary가 소유한다.
   - 남은 migration 축은 `docs/FEATURE_DOMAIN_BOUNDARY.md`의 current inventory를 기준으로 판단한다. GoalLock shared repository/data boundary, ParentMode session store migration은 code-lane/merge-controller가 fresh-base로 줄여야 하며, docs-lane은 open code PR이 같은 source-of-truth 문서를 만지고 있으면 중복 docs PR을 만들지 않는다.
+  - #1050 기준으로 루틴 저장소 Hilt binding, restore aftercare, exact-alarm orchestration/policy는 `data.routine` shared boundary에 있으며, `SplashViewModel` 같은 startup/runtime 경로는 `feature.routine` internals를 import하지 않는다.
 - 오래된 dependency/lint baseline drift
 - DataStore/Room/analytics contract drift
 - 너무 큰 리팩터링은 작은 실행 단위로 쪼갠다.

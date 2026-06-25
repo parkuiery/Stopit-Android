@@ -66,10 +66,12 @@ Issue: #651
    - 완료: `KeepAccessibilityServiceBlockDecision`은 feature package import 없이 parent-mode bypass/block state를 판정한다.
    - 완료: `ParentModeSessionStore`는 `data.parentmode` boundary로 이동했고 AccessibilityService는 feature package가 아니라 shared data store에 의존한다.
    - focused 검증 후보: `ParentModeRuntimePolicyTest`, `ParentModeSessionStoreTest`, `KeepAccessibilityServiceBlockDecisionTest`, parent-mode accessibility integration suites.
-3. **Routine runtime repository boundary — repo-internal foothold complete**
-   - `RoutineRepository` / `RoomRoutineRepository`는 `data.routine` shared data boundary로 이동했다.
+3. **Routine runtime repository/use-case boundary — repo-internal foothold complete**
+   - `RoutineRepository` / `RoomRoutineRepository`는 `data.routine` shared data boundary에 있다.
+   - #1050 기준 `RoutineModule` Hilt binding, `RoutineRestoreAftercare`, `RoutineExactAlarmOrchestrator`, `RoutineExactAlarmPermissionPolicy`도 `data.routine`으로 승격되어 앱 시작/복구/runtime 재스케줄 소유권을 Routine 화면 package와 분리했다.
+   - `SplashViewModel`은 feature-private `feature.routine` aftercare를 import하지 않고 shared `data.routine.RoutineRestoreAftercare`만 주입받는다.
    - Boot/Package/RoutineAlarm receiver와 AccessibilityService는 feature package import 없이 restore/reschedule/cache를 수행한다.
-   - focused 검증 후보: `RoutineReceiverPolicyTest`, `ReceiverRuntimeIntegrationTest`, exact-alarm receiver suites.
+   - focused 검증 후보: `RoutineReceiverPolicyTest`, `RoutineViewModelRestoreSchedulingTest`, `SplashViewModelRestoreSchedulingTest`, `RoutineExactAlarmOrchestratorTest`, exact-alarm receiver suites.
 4. **Analytics DTO boundary**
    - 완료: `KeepAnalytics` / `FirebaseKeepAnalytics`는 feature-local `RepeatBlockRoutineSuggestion` 대신 `RepeatBlockRoutineSuggestionAnalyticsPayload`를 받는다.
    - 완료: Routine feature는 prefill 앱/package를 로컬 UI/저장 경계에만 유지하고 analytics boundary에는 reason/time/day/category/repeat/coverage bucket DTO만 넘긴다.

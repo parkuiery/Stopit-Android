@@ -13,7 +13,7 @@ ROUTINE_STORE = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / 
 RECEIVER_POLICY = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "receiver" / "RoutineReceiverPolicy.kt"
 BOOT_RECEIVER = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "receiver" / "BootReceiver.kt"
 ROUTINE_ALARM_RECEIVER = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "receiver" / "RoutineAlarmReceiver.kt"
-RESTORE_AFTERCARE = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "routine" / "RoutineRestoreAftercare.kt"
+RESTORE_AFTERCARE = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "data" / "routine" / "RoutineRestoreAftercare.kt"
 
 
 class RoutineStoreCompatibilityCacheContractTest(unittest.TestCase):
