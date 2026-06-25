@@ -44,8 +44,9 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 #### 허용 경계
 
-- `EmergencyUnlockRepository`가 emergency-unlock service 경계의 Room `EmergencyUnlockDao` 접근 허용 경계다.
-- `EmergencyUnlockCoordinator`는 settings read/sanitize, daily-limit 정책 순서, DataStore runtime state, analytics, `EmergencyUnlockState` 업데이트 순서만 소유한다.
+- `data.emergencyunlock.EmergencyUnlockRepository`가 emergency-unlock data 경계의 Room `EmergencyUnlockDao` / `EmergencyUnlockEntity` 접근 허용 경계다.
+- `EmergencyUnlockRepository.recordUnlock(...)`는 timestamp/reason/customReason/apps/durationMinutes 같은 도메인 의미 입력을 받아 Room entity 생성과 insert를 소유한다.
+- `EmergencyUnlockCoordinator`는 settings read/sanitize, daily-limit 정책 순서, DataStore runtime state, analytics, `EmergencyUnlockState` 업데이트 순서만 소유하며 Room entity import 금지 경계에 남는다.
 - Block/Lock/Settings test fixture는 coordinator에 DAO를 직접 넘기지 않고 repository 경계를 통해 같은 production constructor contract를 검증한다.
 - `LockHistoryRepository`는 LockHistory 화면/read-model 조회의 Room `LockHistoryDao` 접근 허용 경계다.
 - `LockHistorySessionWriter.recordSession(...)`이 완료된 Home/Lock 잠금 세션의 Room `LockHistoryDao` insert 허용 경계다.
@@ -155,7 +156,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 - `scripts.tests.test_dao_boundary_contract`는 `LockHistoryViewModel` / `BlockedAppsViewModel` 아래에서 `LockHistoryDao` 직접 import가 재도입되지 않는지 검사한다.
 - 같은 static guard가 `feature.review.ReviewEligibilityEvaluator` 아래에서 `EmergencyUnlockDao` / `LockHistoryDao` 직접 import가 재도입되지 않고 `data.review.ReviewEligibilityRepository`가 허용 DAO 경계로 남는지 검사한다.
 - 같은 static guard가 `GoalLockCreationViewModel` / `GoalLockDetailViewModel` 아래에서 `GoalLockDao` 직접 import가 재도입되지 않고 `GoalLockRepository`가 허용 DAO 경계로 남는지 검사한다.
-- 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` 직접 import가 재도입되지 않고 `EmergencyUnlockRepository`가 허용 DAO 경계로 남는지 검사한다.
+- 같은 static guard가 `EmergencyUnlockCoordinator` 아래에서 `EmergencyUnlockDao` / `EmergencyUnlockEntity` 직접 import가 재도입되지 않고 `data.emergencyunlock.EmergencyUnlockRepository.recordUnlock(...)`가 허용 DAO/entity 경계로 남는지 검사한다.
 - 같은 static guard가 `LockHistoryRecorder` 아래에서 `LockHistoryDao` / `LockHistoryEntity` / feature-private `LockHistoryRepository` 직접 import가 재도입되지 않고 `LockHistorySessionWriter.recordSession(...)`이 완료 세션 저장 허용 경계로 남는지 검사한다. `LockHistoryRepository`는 feature read-model 조회 경계로, `LockHistoryLedger`는 read-side summary helper로만 남는지도 함께 검사한다.
 - 같은 static guard가 `MenuViewModel` 아래에서 `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository`가 menu routine read 허용 경계로 남는지 검사한다.
 - 같은 static guard가 `HomeViewModel` / `RoutineCountAnalyticsSync` 아래에서 Routine `RoutineDao` / `RoutineEntity` 직접 import가 재도입되지 않고 `RoutineRepository` / `RoutineModel` 경계가 유지되는지 검사한다.
@@ -170,7 +171,7 @@ Room DAO는 DB/source-of-truth 구현 세부사항이다. Feature ViewModel, Rec
 
 Fresh `origin/develop` 기준 #520 repo-internal DAO boundary package is complete for the original #520 inventory, and PR #881 closed the narrower #875 Home analytics sync exception. `app/src/main`의 Receiver / Service / AccessibilityService 경로에서 직접 DAO import는 더 이상 발견되지 않았고, 기존 #520 대상 ViewModel 경계(Menu/Lock/Routine/GoalLock/LockHistory/Review/Home)는 repository boundary로 정리되어 있다. #986 code-lane 이후 review eligibility의 DAO boundary도 `feature.review`가 아니라 `data.review.ReviewEligibilityRepository`가 소유한다. #875의 repo-internal DAO boundary package is complete for #875 while #479 release/readback measurement remains separate.
 
-- 허용 repository DAO 경계: `data.review.ReviewEligibilityRepository`, `LockHistoryRepository`, `GoalLockRepository`, `EmergencyUnlockRepository`, `RoutineRepository`.
+- 허용 repository DAO 경계: `data.review.ReviewEligibilityRepository`, `data.emergencyunlock.EmergencyUnlockRepository`, `LockHistoryRepository`, `GoalLockRepository`, `RoutineRepository`.
 - 허용 DB wiring 경계: `KeepDatabase`, `database/di`, DAO 인터페이스 자체.
 - #875 completed boundary: `HomeViewModel` / `RoutineCountAnalyticsSync`의 Routine count analytics sync 경로는 coverage 보강 의미를 유지하면서 `RoutineRepository` / `RoutineModel` 경계로 분리되어 있다.
 - 테스트 fixture/fake DAO는 production main-source 인벤토리에서 제외한다.

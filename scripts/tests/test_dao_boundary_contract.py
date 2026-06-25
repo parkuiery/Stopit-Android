@@ -253,14 +253,19 @@ class DaoBoundaryContractTest(unittest.TestCase):
 
     def test_emergency_unlock_coordinator_uses_repository_boundary(self):
         coordinator = APP_MAIN / "service/EmergencyUnlockCoordinator.kt"
-        repository = APP_MAIN / "service/EmergencyUnlockRepository.kt"
+        repository = APP_MAIN / "data/emergencyunlock/EmergencyUnlockRepository.kt"
         self.assertTrue(repository.exists(), "EmergencyUnlockRepository owns emergency-unlock DAO access")
         coordinator_text = coordinator.read_text()
         repository_text = repository.read_text()
 
         self.assertNotIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", coordinator_text)
+        self.assertNotIn("import com.uiery.keep.database.entity.EmergencyUnlockEntity", coordinator_text)
+        self.assertNotRegex(coordinator_text, r"import com\.uiery\.keep\.database\.(dao|entity)\.")
+        self.assertIn("import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository", coordinator_text)
         self.assertIn("private val repository: EmergencyUnlockRepository", coordinator_text)
         self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", repository_text)
-        self.assertIn("suspend fun insert", repository_text)
+        self.assertIn("import com.uiery.keep.database.entity.EmergencyUnlockEntity", repository_text)
+        self.assertIn("suspend fun recordUnlock", repository_text)
+        self.assertNotIn("suspend fun insert(entity: EmergencyUnlockEntity)", repository_text)
         self.assertIn("suspend fun countToday", repository_text)
         self.assertIn("suspend fun countSince", repository_text)

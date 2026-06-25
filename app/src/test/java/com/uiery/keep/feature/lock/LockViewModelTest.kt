@@ -24,7 +24,7 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
-import com.uiery.keep.service.EmergencyUnlockRepository
+import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock

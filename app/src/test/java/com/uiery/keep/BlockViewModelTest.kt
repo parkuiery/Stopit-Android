@@ -20,7 +20,7 @@ import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockCoordinator
-import com.uiery.keep.service.EmergencyUnlockRepository
+import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf

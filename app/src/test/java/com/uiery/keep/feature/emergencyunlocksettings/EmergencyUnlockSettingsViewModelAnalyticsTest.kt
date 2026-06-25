@@ -16,7 +16,7 @@ import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.service.EmergencyUnlockCoordinator
-import com.uiery.keep.service.EmergencyUnlockRepository
+import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
