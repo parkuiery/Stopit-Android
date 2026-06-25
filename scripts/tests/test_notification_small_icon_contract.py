@@ -63,6 +63,13 @@ class NotificationSmallIconContractTest(unittest.TestCase):
         self.assertIn("notification small icon", checklist)
         self.assertIn("ic_notification_stopit", checklist)
         self.assertIn("흰 사각형", checklist)
+        self.assertIn("NotificationSmallIconIntegrationTest", checklist)
+        self.assertIn("dumpsys notification --noredact", checklist)
+        self.assertIn("active record", checklist)
+        self.assertIn("black frame", checklist)
+        self.assertIn("PIL getbbox() == None", checklist)
+        self.assertIn("closure evidence로 쓰지 않는다", checklist)
+        self.assertIn("상태바/notification shade glyph visual QA", checklist)
 
 
 if __name__ == "__main__":
