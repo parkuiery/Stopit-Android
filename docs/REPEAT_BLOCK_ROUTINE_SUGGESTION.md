@@ -160,13 +160,13 @@ Privacy guardrail:
 - [x] 반복 차단 패턴 계산 helper를 pure policy로 분리하고 JVM test를 추가한다. (`RepeatBlockRoutineSuggestionPolicyTest`)
 - [x] 기존 활성 루틴과 완전히 겹치는 추천은 노출하지 않고, 부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외해 uncovered 앱만 제안한다. (`RepeatBlockRoutineSuggestionPolicyTest.partiallyCoveredRoutinePrefillsOnlyUncoveredApps`)
 - [x] 후보가 여러 개여도 최대 1개만 노출한다.
-- [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원하고, Home/LockHistory UI wiring이 같은 store를 재노출 제한 입력으로 사용한다. (`RepeatBlockRoutineSuggestionStoreTest`, `HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
-- [x] 추천 dismiss/apply store를 Home/LockHistory CTA UI에 연결해 실제 재노출 제한을 화면 플로우에서 검증한다. (`HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`; device/TalkBack 수동 QA 전)
+- [x] 추천 dismiss는 privacy-safe bucket + `dismissedAt`만 로컬 DataStore에 저장·복원하고, `home`/`lock_history`/`performance_report`/`post_block_success` 구현 surface가 같은 store를 재노출 제한 입력으로 사용한다. (`RepeatBlockRoutineSuggestionStoreTest`, `HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`, `BlockViewModelTest`; device/TalkBack 수동 QA 전)
+- [x] 추천 dismiss/apply store를 Home/LockHistory/성과 리포트/post-block CTA UI에 연결해 실제 재노출 제한을 화면 플로우에서 검증한다. (`HomeViewModelActivationAnalyticsTest`, `LockHistoryViewModelShareTest`, `BlockViewModelTest`; device/TalkBack 수동 QA 전)
 - [x] Home active Goal Lock card가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. Scheduled Goal Lock은 기간 상태가 active여도 현재 요일/시간대 밖이면 suppress하지 않는다. (`HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`, `HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion`)
 - [x] Home active emergency unlock runtime state가 있으면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. (`HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics`)
 - [x] 루틴 생성 prefill은 저장 전 사용자가 수정 가능하다. (`RoutineBottomSheetViewModel` prefill 계약)
 - [x] analytics는 enum/bucket/boolean만 전송하고 raw 앱 이름/package/history/timestamp를 금지한다. (`repeat_block_routine_suggestion_*` adapter/test)
-- [x] 한국어/영어 등 지원 locale copy가 비난형이 아닌 방어 성공/도움 제안 톤이다. (Home/LockHistory CTA string resource 추가; 실제 device locale/TalkBack QA 전)
+- [x] 한국어/영어 등 지원 locale copy가 비난형이 아닌 방어 성공/도움 제안 톤이다. (Home/LockHistory/Block/performance_report CTA string resource와 #1022 shared `RepeatBlockRoutineSuggestionCard` 기준; 실제 device locale/TalkBack QA 전)
 - [x] LockHistory 성과 리포트 직후 추천 CTA는 shown/clicked/dismissed 및 Routine prefill entry surface를 `performance_report`로 남긴다. (`LockHistoryViewModelShareTest.repeatBlockSuggestionFromPerformanceReportUsesPerformanceReportSurface`)
 - [x] post_block_success Block surface에서도 목표 잠금 차단(`block_source=goal_lock`)이면 반복 차단 추천과 `repeat_block_routine_suggestion_shown` analytics를 suppress한다. PR #944(`21bdf65e`)와 `BlockViewModelTest.goalLockBlockSuppressesPostBlockSuccessRepeatBlockSuggestion`가 이 active protection 우선순위를 고정한다.
 - [ ] 차단 기록 없음/부족, 루틴 이미 존재, 추천 닫힘, emergency unlock 상태 QA가 있다. (policy/Home/LockHistory/performance_report JVM 및 active emergency unlock suppression 완료, UI/runtime QA 전)
