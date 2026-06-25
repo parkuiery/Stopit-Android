@@ -150,6 +150,7 @@
     <string name="lock_screen_routine_running">%1$s \nroutine wordt uitgevoerd</string>
     <string name="lock_screen_routines_running">%1$d routines actief</string>
     <string name="routine_minimum_duration_message">Routines moeten minimaal 15 minuten worden ingesteld.</string>
+    <string name="routine_same_time_message">Start- en eindtijd moeten verschillend zijn.</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
 
     <string name="parent_mode_setup_title">Oudermodus</string>

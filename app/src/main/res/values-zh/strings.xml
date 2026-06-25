@@ -150,6 +150,7 @@
     <string name="lock_screen_routine_running">%1$s \n例程运行中</string>
     <string name="lock_screen_routines_running">%1$d个例程运行中</string>
     <string name="routine_minimum_duration_message">例程必须至少设置15分钟。</string>
+    <string name="routine_same_time_message">开始时间和结束时间必须不同。</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
 
     <string name="parent_mode_setup_title">家长模式</string>

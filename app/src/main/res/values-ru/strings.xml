@@ -150,6 +150,7 @@
     <string name="lock_screen_routine_running">%1$s \nВыполняется рутина</string>
     <string name="lock_screen_routines_running">Выполняется %1$d рутин</string>
     <string name="routine_minimum_duration_message">Рутины должны быть установлены минимум на 15 минут.</string>
+    <string name="routine_same_time_message">Время начала и окончания должны отличаться.</string>
     <string name="parent_mode_menu_title">Give phone to child</string>
 
     <string name="parent_mode_setup_title">Родительский режим</string>

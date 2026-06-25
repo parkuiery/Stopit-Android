@@ -147,6 +147,8 @@ class RoutineBottomSheetViewModel
 
         internal fun addRoutine() =
             intent {
+                if (!state.isValidForSave()) return@intent
+
                 val repeatBlockPrefill = state.repeatBlockSuggestionPrefill
                 val repeatBlockSurface = state.repeatBlockSuggestionSurface
                 val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel())
@@ -198,6 +200,8 @@ class RoutineBottomSheetViewModel
 
         internal fun editRoutine(id: Long?) =
             intent {
+                if (!state.isValidForSave()) return@intent
+
                 id?.let {
                     runCatching {
                         val storedRoutine = routineRepository.fetch(it)
@@ -262,7 +266,7 @@ private fun RepeatBlockDayType.toRoutinePrefillDays(): List<DayOfWeek> = when (t
 
 private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
     val isNameValid = name.isNotEmpty()
-    val isTimeValid = routineDurationMinutes(startTime, endTime) >= 15
+    val isTimeValid = startTime != endTime && routineDurationMinutes(startTime, endTime) >= 15
     val isDaySelected = selectDays.isNotEmpty()
     return isNameValid && isTimeValid && isDaySelected && selectApps.isNotEmpty()
 }
