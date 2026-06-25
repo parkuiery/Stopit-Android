@@ -10,6 +10,9 @@ ROUTINESTORE_CONTRACT = REPO_ROOT / "docs" / "ROUTINESTORE_COMPATIBILITY_CACHE_C
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
 METRICS_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
+ANDROID_SKILLS_QA = REPO_ROOT / "docs" / "ANDROID_SKILLS_TESTING_QA.md"
+PLAY_DEPLOYMENT = REPO_ROOT / "docs" / "PLAY_DEPLOYMENT.md"
+RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
 DEFAULT_STRINGS = REPO_ROOT / "app" / "src" / "main" / "res" / "values" / "strings.xml"
 LOCALIZED_STRING_DIRS = sorted((REPO_ROOT / "app" / "src" / "main" / "res").glob("values-*"))
 ACCESSIBILITY_RUNTIME_TEST = (
@@ -167,6 +170,15 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
         routine_store_contract = ROUTINESTORE_CONTRACT.read_text()
         self.assertIn("#609 활성 루틴 보호 계약", routine_store_contract)
         self.assertIn("현재 triggered routine은 enabled/enforced 상태를 유지한다", routine_store_contract)
+
+    def test_release_exact_alarm_docs_separate_current_alarm_exception_from_downgrade_gates(self):
+        expected_boundary = "routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외"
+        expected_legacy_gate = "legacy release instrumentation selector"
+
+        for path in [ANDROID_SKILLS_QA, PLAY_DEPLOYMENT, RELEASE_CONTEXT, QA_CHECKLIST]:
+            document = path.read_text()
+            self.assertIn(expected_boundary, document, f"{path} must name the current-triggered routine exception")
+            self.assertIn(expected_legacy_gate, document, f"{path} must keep legacy receiver selector interpretation explicit")
 
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"

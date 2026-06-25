@@ -55,6 +55,7 @@ Stopit separates CI, release artifact building, and deployment so failures are e
     - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
     - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
   - 위 deny gate는 exact alarm 재예약 실패 시 단일/다중 요일 루틴 receiver 경로가 enabled 루틴을 `enabled=true`로 조용히 남기지 않고, `enabled=false` 강등 + `HAS_SHOWN_ALARM_PERMISSION=false` reset + no pending intent 계약을 지키는지 검증한다.
+  - 단, routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외는 현재 triggered routine의 enabled/enforced 상태를 유지하는 별도 계약이다. 위 routine-alarm receiver deny 항목은 현재 runtime suite에 남아 있는 **legacy release instrumentation selector**로 기록하고, #609 closure/release evidence에서는 boot/package/restore-aftercare downgrade gate와 현재 발화 루틴 enforcement 유지 예외를 섞지 않는다. 이 예외의 source of truth는 `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md`와 `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`다.
   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow` 후 아래 allow/cancel 경로를 실행
     - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
     - `RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm`
