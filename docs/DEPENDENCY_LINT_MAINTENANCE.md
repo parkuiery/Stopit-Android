@@ -402,27 +402,42 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 - #914/#928/#984류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x` 또는 `known-incompatible: Kotlin 2.3+ requires dedicated Kotlin/toolchain lane validation before broad Dependabot merge`를 남긴다.
 - `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ / Kotlin 2.3+ ignore가 빠지거나 이 문서가 #914/#928/#984 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
 
-### AndroidX compileSdk / AGP boundary guard (#1008)
+### AndroidX compileSdk / AGP boundary guard (#1008, #1051)
 
-PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX metadata boundary를 드러냈다. 현재 Stopit은 `app`과 `core:kds` 모두 `compileSdk 35`, AGP `8.10.1` 기준인데, 해당 Dependabot batch는 아래처럼 더 높은 toolchain을 요구하는 artifacts를 함께 올렸다.
+PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX metadata boundary를 드러냈다. 이후 PR #1042는 같은 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 더 낮은 버전군도 현재 Stopit toolchain과 충돌한다는 점을 확인했다. 현재 Stopit은 `app`과 `core:kds` 모두 `compileSdk 35`, AGP `8.10.1` 기준이며, 아래 artifacts는 broad weekly UI/runtime lane에서 자동 병합하지 않는다.
 
+- `androidx.core:core-ktx 1.18.0` → 현재 `compileSdk 35` baseline에서 AndroidX metadata check가 실패한다. `androidx.core:core:1.19.0` / `androidx.core:core-ktx 1.19.0`는 더 강하게 `compileSdk 37+` 및 `AGP 9.1.0 or higher`를 요구한다.
 - `androidx.navigationevent:*:1.0.0` → `compileSdk 36+` 요구. `androidx.navigation:navigation-compose 2.9.x`가 이 축을 끌고 들어온다.
-- `androidx.core:core:1.19.0` / `androidx.core:core-ktx 1.19.0` → `compileSdk 37+` 및 `AGP 9.1.0 or higher` 요구.
-- `androidx.lifecycle:* 2.11.x`, `androidx.activity:activity-compose 1.13.x`, `androidx.compose:compose-bom 2025.12.x`는 같은 AndroidX toolchain 검증 batch로 묶어 판정한다.
+- `androidx.lifecycle:* 2.10.x`, `androidx.activity:activity-compose 1.12.4`, `androidx.compose:compose-bom 2025.11.x`는 PR #1042에서 같은 compileSdk/AGP-bound AndroidX batch로 확인됐으므로 같이 hold한다.
 
 현재 정책:
 
 - Stopit이 `compileSdk 35` / AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 hold한다.
-  - `androidx.core:core-ktx [1.19,)`
+  - `androidx.core:core-ktx [1.18,)`
   - `androidx.navigation:navigation-compose [2.9,)`
-  - `androidx.lifecycle:lifecycle-runtime-ktx [2.11,)`
-  - `androidx.lifecycle:lifecycle-process [2.11,)`
-  - `androidx.lifecycle:lifecycle-runtime-compose [2.11,)`
-  - `androidx.activity:activity-compose [1.13,)`
-  - `androidx.compose:compose-bom [2025.12,)`
+  - `androidx.lifecycle:lifecycle-runtime-ktx [2.10,)`
+  - `androidx.lifecycle:lifecycle-process [2.10,)`
+  - `androidx.lifecycle:lifecycle-runtime-compose [2.10,)`
+  - `androidx.activity:activity-compose [1.12,)`
+  - `androidx.compose:compose-bom [2025.11,)`
 - 이 hold는 AndroidX 업데이트를 영구 보류한다는 뜻이 아니다. `compileSdk 36/37`, AGP 9.1+, Gradle wrapper, Kotlin/KSP/Compose 호환성, Android CI/Release Build 검증을 포함한 **별도 Android toolchain lane**에서 한 번에 승격해야 한다.
-- PR #989처럼 실패 로그가 `requires compileSdk ...` / `AGP ... or higher` metadata 오류를 보이면 app-code regression으로 디버깅하지 않는다. 해당 PR은 close/hold하고, `known-incompatible: AndroidX compileSdk / AGP boundary while Stopit is compileSdk 35 / AGP 8.x`로 분류한다.
-- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 위 AndroidX hold가 빠지거나 이 문서/Git workflow가 #989 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
+- PR #989 또는 PR #1042처럼 실패 로그가 `requires compileSdk ...` / `:app is currently compiled against android-35` / `AGP ... or higher` metadata 오류를 보이면 app-code regression으로 디버깅하지 않는다. 해당 PR은 close/hold하고, `known-incompatible: AndroidX compileSdk / AGP boundary while Stopit is compileSdk 35 / AGP 8.x`로 분류한다.
+- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 위 AndroidX hold가 빠지거나 이 문서/Git workflow가 #989/#1042 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
+
+### KSP / kotlinx metadata Kotlin toolchain guard (#1051)
+
+PR #1043과 PR #1045는 Gradle group split 이후에도 Kotlin toolchain 경계가 Room/KSP lane과 runtime-libraries lane을 통해 우회될 수 있음을 보여줬다.
+
+- PR #1043: `com.google.devtools.ksp 2.3.9`가 Kotlin 2.3 계열 KSP API를 가져오며 Stopit의 Kotlin `2.1.x` / KSP `2.1.10-1.0.31` baseline에서 Gradle/Kotlin API 오류(`KotlinJvmCompilerOptions.getJvmDefault()` 등)를 만든다.
+- PR #1045: `org.jetbrains.kotlinx:kotlinx-serialization-json 1.11.x`는 Kotlin metadata 2.3.x artifact를 끌어와 Kotlin 2.1.x toolchain으로 소비할 수 없는 실패를 만든다.
+
+현재 정책:
+
+- `.github/dependabot.yml`은 `com.google.devtools.ksp [2.3,)`를 hold한다. Room runtime/compiler/testing patch는 계속 볼 수 있지만, KSP 2.3.x는 Room patch lane이 아니라 Kotlin/KSP toolchain lane에서 검증한다.
+- `.github/dependabot.yml`은 `org.jetbrains.kotlinx:kotlinx-serialization-json [1.11,)`를 hold한다. 다른 runtime-library patch/minor 후보는 별도로 검토할 수 있지만, Kotlin metadata 2.3.x를 요구하는 serialization json은 Kotlin/toolchain lane 경계다.
+- 이 hold도 영구 보류가 아니다. Kotlin 2.3+, KSP, Compose compiler, serialization plugin/runtime, Android CI, Release Build를 함께 검증하는 별도 Kotlin/toolchain PR에서 승격한다.
+- PR #1043/#1045처럼 실패 로그가 Kotlin 2.3 API/metadata 소비 실패를 보이면 app-code regression으로 디버깅하지 않고 `known-incompatible: Kotlin/KSP/serialization metadata 2.3.x while Stopit is Kotlin 2.1.x`로 분류한다.
+- `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 KSP 2.3.x 또는 kotlinx-serialization-json 1.11.x hold가 빠지거나 문서가 PR #1043/#1045 경계를 잃으면 Ops CI docs-contract가 실패해야 한다.
 
 PR triage checklist:
 

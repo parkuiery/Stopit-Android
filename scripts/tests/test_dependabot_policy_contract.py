@@ -258,13 +258,13 @@ class DependabotPolicyContractTest(unittest.TestCase):
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
 
         expected_holds = {
-            "androidx.core:core-ktx": r"\[1\.19,\)",
+            "androidx.core:core-ktx": r"\[1\.18,\)",
             "androidx.navigation:navigation-compose": r"\[2\.9,\)",
-            "androidx.lifecycle:lifecycle-runtime-ktx": r"\[2\.11,\)",
-            "androidx.lifecycle:lifecycle-process": r"\[2\.11,\)",
-            "androidx.lifecycle:lifecycle-runtime-compose": r"\[2\.11,\)",
-            "androidx.activity:activity-compose": r"\[1\.13,\)",
-            "androidx.compose:compose-bom": r"\[2025\.12,\)",
+            "androidx.lifecycle:lifecycle-runtime-ktx": r"\[2\.10,\)",
+            "androidx.lifecycle:lifecycle-process": r"\[2\.10,\)",
+            "androidx.lifecycle:lifecycle-runtime-compose": r"\[2\.10,\)",
+            "androidx.activity:activity-compose": r"\[1\.12,\)",
+            "androidx.compose:compose-bom": r"\[2025\.11,\)",
         }
         for dependency, version_range in expected_holds.items():
             with self.subTest(dependency=dependency):
@@ -275,7 +275,11 @@ class DependabotPolicyContractTest(unittest.TestCase):
                 )
 
         for required in [
-            "AndroidX compileSdk / AGP boundary guard (#1008)",
+            "AndroidX compileSdk / AGP boundary guard (#1008, #1051)",
+            "core-ktx 1.18.0",
+            "activity-compose 1.12.4",
+            "androidx.lifecycle:* 2.10.x",
+            "androidx.compose:compose-bom 2025.11.x",
             "compileSdk 35",
             "compileSdk 36+",
             "compileSdk 37+",
@@ -285,6 +289,37 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "known-incompatible",
             "별도 Android toolchain lane",
             "PR #989",
+            "PR #1042",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, docs)
+
+    def test_ksp_and_kotlinx_metadata_updates_stay_in_kotlin_toolchain_lane(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
+
+        expected_holds = {
+            "com.google.devtools.ksp": r"\[2\.3,\)",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json": r"\[1\.11,\)",
+        }
+        for dependency, version_range in expected_holds.items():
+            with self.subTest(dependency=dependency):
+                self.assertRegex(
+                    config,
+                    rf"dependency-name:\s*[\"']{re.escape(dependency)}[\"'][\s\S]*?versions:\s*\n\s*-\s*[\"']{version_range}[\"']",
+                    "#1051 requires holding KSP/Kotlin metadata 2.3.x artifacts until a dedicated Kotlin toolchain lane validates them",
+                )
+
+        for required in [
+            "KSP 2.3.x",
+            "com.google.devtools.ksp 2.3.9",
+            "kotlinx-serialization-json 1.11.x",
+            "Kotlin metadata 2.3.x",
+            "Kotlin 2.1.x",
+            "PR #1043",
+            "PR #1045",
+            "별도 Kotlin/toolchain lane",
+            "known-incompatible",
         ]:
             with self.subTest(required=required):
                 self.assertIn(required, docs)
