@@ -118,12 +118,12 @@ updates:
         versions:
           - "[2.3,)"
       - dependency-name: "androidx.core:core-ktx"
-        # #1008 / PR #989: core-ktx 1.19.0 resolves androidx.core:core 1.19.0,
-        # which requires compileSdk 37+ and AGP 9.1.0+. Stopit currently builds
-        # app/core:kds at compileSdk 35 on AGP 8.x, so keep this out of the broad
-        # weekly group until a dedicated Android toolchain lane raises both.
+        # #1008/#1051: core-ktx 1.18.0 already resolves AndroidX metadata that
+        # fails on Stopit's current compileSdk 35 baseline; 1.19.0 then requires
+        # compileSdk 37+ and AGP 9.1.0+. Keep this out of the weekly UI/runtime
+        # lane until a dedicated Android toolchain lane raises compileSdk/AGP.
         versions:
-          - "[1.19,)"
+          - "[1.18,)"
       - dependency-name: "androidx.navigation:navigation-compose"
         # #1008 / PR #989: navigation-compose 2.9.x pulls navigationevent 1.0.0,
         # whose published metadata requires compileSdk 36+. Treat this as an
@@ -131,30 +131,43 @@ updates:
         versions:
           - "[2.9,)"
       - dependency-name: "androidx.lifecycle:lifecycle-runtime-ktx"
-        # #1008: lifecycle 2.11.x belongs with the same compileSdk/AGP validation
-        # batch as core/navigation/activity/compose, not the weekly patch/minor group.
+        # #1051: lifecycle 2.10.x arrived in the same failing compileSdk 36+
+        # AndroidX batch as core/activity/compose. Hold it until the Android
+        # toolchain lane validates compileSdk/AGP together.
         versions:
-          - "[2.11,)"
+          - "[2.10,)"
       - dependency-name: "androidx.lifecycle:lifecycle-process"
         # Keep lifecycle artifacts aligned until the Android toolchain lane can
         # validate the required compileSdk/AGP baseline together.
         versions:
-          - "[2.11,)"
+          - "[2.10,)"
       - dependency-name: "androidx.lifecycle:lifecycle-runtime-compose"
         # Keep lifecycle artifacts aligned until the Android toolchain lane can
         # validate the required compileSdk/AGP baseline together.
         versions:
-          - "[2.11,)"
+          - "[2.10,)"
       - dependency-name: "androidx.activity:activity-compose"
-        # #1008: activity 1.13.x was part of PR #989's known-incompatible
-        # AndroidX batch while Stopit is still compileSdk 35 / AGP 8.x.
+        # #1051 / PR #1042: activity-compose 1.12.4 requires a newer AndroidX
+        # compileSdk baseline than Stopit's current compileSdk 35 / AGP 8.x.
         versions:
-          - "[1.13,)"
+          - "[1.12,)"
       - dependency-name: "androidx.compose:compose-bom"
-        # #1008: hold the Compose BOM generation that arrived with the same
+        # #1051 / PR #1042: Compose BOM 2025.11.x belongs with the same
         # compileSdk/AGP-bound AndroidX batch; move it through a toolchain lane.
         versions:
-          - "[2025.12,)"
+          - "[2025.11,)"
+      - dependency-name: "com.google.devtools.ksp"
+        # #1051 / PR #1043: KSP 2.3.x targets the Kotlin 2.3 toolchain and fails
+        # against Stopit's Kotlin 2.1.x baseline. Keep KSP in a dedicated
+        # Kotlin/toolchain lane rather than the Room patch/minor lane.
+        versions:
+          - "[2.3,)"
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization-json"
+        # #1051 / PR #1045: kotlinx-serialization-json 1.11.x can pull Kotlin
+        # metadata 2.3.x artifacts that are not consumable by the current Kotlin
+        # 2.1.x toolchain. Validate it with the Kotlin/toolchain lane.
+        versions:
+          - "[1.11,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
