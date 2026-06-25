@@ -112,6 +112,7 @@ jobs:
               - 'docs/**'
               - '**/*.md'
               - '.github/dependabot.yml'
+              - 'scripts/tests/**'
               - 'scripts/tests/test_aso_screenshots_ci_contract.py'
               - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
               - 'scripts/tests/test_release_build_workflow_scope.py'
@@ -200,38 +201,13 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run docs/runbook contract tests
-        run: >-
-          python3 -m unittest
-          scripts.tests.test_play_deploy_secret_contract_runbook
-          scripts.tests.test_release_build_workflow_scope
-          scripts.tests.test_release_qa_workflow_scope
-          scripts.tests.test_release_qa_runtime_gate_docs
-          scripts.tests.test_android_ci_runtime_smoke_docs
-          scripts.tests.test_release_guard_hotfix_sync
-          scripts.tests.test_readme_version_contract
-          scripts.tests.test_gradle_wrapper_distribution_checksum
-          scripts.tests.test_release_provenance_workflow_contract
-          scripts.tests.test_acquisition_attribution_docs_contract
-          scripts.tests.test_ga4_custom_dimension_registration_docs
-          scripts.tests.test_monetization_interest_contract
-          scripts.tests.test_signed_aab_lint_gate
-          scripts.tests.test_review_prompt_post_release_followthrough_docs
-          scripts.tests.test_workflow_gradle_task_guard
-          scripts.tests.test_release_gradle_task_contract
-          scripts.tests.test_prod_release_shrinking_contract
-          scripts.tests.test_release_signing_gradle_contract
-          scripts.tests.test_query_all_packages_policy_contract
-          scripts.tests.test_android_ci_artifact_retention
-          scripts.tests.test_android_ci_path_gating
-          scripts.tests.test_play_deploy_tag_governance
-          scripts.tests.test_release_gate_retarget_triggers
-          scripts.tests.test_dependabot_policy_contract
-          scripts.tests.test_kotlin_compiler_options_contract
-          scripts.tests.test_aso_screenshots_ci_contract
-          scripts.tests.test_branch_hygiene_policy
-          scripts.tests.test_ops_ci_workflow
-          scripts.tests.test_actionlint_gate
-          scripts.tests.test_runtime_diagnostic_artifacts
+        # Full discovery intentionally covers docs-reading regressions that used
+        # to be hardcoded here, including:
+        # scripts.tests.test_branch_hygiene_policy
+        # scripts.tests.test_gradle_wrapper_distribution_checksum
+        # scripts.tests.test_readme_version_contract
+        # scripts.tests.test_review_prompt_post_release_followthrough_docs
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
   aso-screenshots:
     name: ASO screenshots build

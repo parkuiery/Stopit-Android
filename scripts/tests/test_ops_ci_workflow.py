@@ -99,30 +99,13 @@ class OpsCiWorkflowTest(unittest.TestCase):
             "Ops CI should expose a lightweight docs-only contract job",
         )
         self.assertIn("Run docs/runbook contract tests", workflow)
-        self.assertIn("scripts.tests.test_play_deploy_secret_contract_runbook", workflow)
-        self.assertIn("scripts.tests.test_release_build_workflow_scope", workflow)
-        self.assertIn("scripts.tests.test_release_qa_workflow_scope", workflow)
-        self.assertIn("scripts.tests.test_release_qa_runtime_gate_docs", workflow)
-        self.assertIn("scripts.tests.test_android_ci_runtime_smoke_docs", workflow)
-        self.assertIn("scripts.tests.test_release_guard_hotfix_sync", workflow)
-        self.assertIn("scripts.tests.test_release_provenance_workflow_contract", workflow)
-        self.assertIn("scripts.tests.test_gradle_wrapper_distribution_checksum", workflow)
-        self.assertIn("scripts.tests.test_acquisition_attribution_docs_contract", workflow)
-        self.assertIn("scripts.tests.test_ga4_custom_dimension_registration_docs", workflow)
-        self.assertIn("scripts.tests.test_monetization_interest_contract", workflow)
-        self.assertIn("scripts.tests.test_signed_aab_lint_gate", workflow)
-        self.assertIn("scripts.tests.test_ops_ci_workflow", workflow)
-        self.assertIn("scripts.tests.test_actionlint_gate", workflow)
-        self.assertIn("scripts.tests.test_workflow_gradle_task_guard", workflow)
-        self.assertIn("scripts.tests.test_release_gradle_task_contract", workflow)
-        self.assertIn("scripts.tests.test_prod_release_shrinking_contract", workflow)
-        self.assertIn("scripts.tests.test_release_signing_gradle_contract", workflow)
-        self.assertIn("scripts.tests.test_android_ci_artifact_retention", workflow)
-        self.assertIn("scripts.tests.test_android_ci_path_gating", workflow)
-        self.assertIn("scripts.tests.test_play_deploy_tag_governance", workflow)
-        self.assertIn("scripts.tests.test_release_gate_retarget_triggers", workflow)
-        self.assertIn("scripts.tests.test_dependabot_policy_contract", workflow)
+        docs_contract_job = self._job_block(workflow, "docs-contract")
+        self.assertIn(
+            "python3 -m unittest discover -s scripts/tests -p 'test_*.py'",
+            docs_contract_job,
+        )
         docs_contract_filter = self._filter_block(workflow, "docs_contract")
+        self.assertIn("'scripts/tests/**'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_acquisition_attribution_docs_contract.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_ga4_custom_dimension_registration_docs.py'", docs_contract_filter)
         self.assertIn("'scripts/tests/test_monetization_interest_contract.py'", docs_contract_filter)
@@ -166,34 +149,15 @@ class OpsCiWorkflowTest(unittest.TestCase):
             with self.subTest(filter="docs_contract", workflow_path=workflow_path):
                 self.assertIn(f"'{workflow_path}'", docs_contract_filter)
 
-        expected_contract_modules = [
-            "scripts.tests.test_release_qa_runtime_gate_docs",
-            "scripts.tests.test_release_qa_workflow_scope",
-            "scripts.tests.test_android_ci_runtime_smoke_docs",
-            "scripts.tests.test_release_build_workflow_scope",
-            "scripts.tests.test_gradle_wrapper_distribution_checksum",
-            "scripts.tests.test_release_provenance_workflow_contract",
-            "scripts.tests.test_acquisition_attribution_docs_contract",
-            "scripts.tests.test_ga4_custom_dimension_registration_docs",
-            "scripts.tests.test_monetization_interest_contract",
-            "scripts.tests.test_signed_aab_lint_gate",
-            "scripts.tests.test_review_prompt_post_release_followthrough_docs",
-            "scripts.tests.test_play_deploy_secret_contract_runbook",
-            "scripts.tests.test_release_guard_hotfix_sync",
-            "scripts.tests.test_workflow_gradle_task_guard",
-            "scripts.tests.test_release_gradle_task_contract",
-            "scripts.tests.test_prod_release_shrinking_contract",
-            "scripts.tests.test_release_signing_gradle_contract",
-            "scripts.tests.test_android_ci_artifact_retention",
-            "scripts.tests.test_android_ci_path_gating",
-            "scripts.tests.test_play_deploy_tag_governance",
-            "scripts.tests.test_release_gate_retarget_triggers",
-            "scripts.tests.test_dependabot_policy_contract",
-            "scripts.tests.test_kotlin_compiler_options_contract",
-        ]
-        for module in expected_contract_modules:
-            with self.subTest(job="docs-contract", module=module):
-                self.assertIn(module, docs_contract_job)
+        self.assertIn(
+            "python3 -m unittest discover -s scripts/tests -p 'test_*.py'",
+            docs_contract_job,
+        )
+        self.assertNotIn(
+            "python3 -m unittest\n          scripts.tests.",
+            docs_contract_job,
+            "Docs-contract should use full Python test discovery instead of a stale hardcoded module list",
+        )
 
     def test_operator_docs_name_workflow_contract_materialization_boundary(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
@@ -206,12 +170,13 @@ class OpsCiWorkflowTest(unittest.TestCase):
         self.assertIn("contract-test green", combined_docs)
         self.assertIn("release/CI/CD workflow", combined_docs)
         self.assertIn("Docs/runbook contract tests", combined_docs)
-        self.assertIn("test_android_ci_path_gating", combined_docs)
-        self.assertIn("test_play_deploy_tag_governance", combined_docs)
-        self.assertIn("test_release_gate_retarget_triggers", combined_docs)
-        self.assertIn("test_android_ci_artifact_retention", combined_docs)
+        self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", combined_docs)
+        self.assertIn("test_shared_ui_component_boundaries", combined_docs)
+        self.assertIn("test_feature_domain_boundary_contract", combined_docs)
+        self.assertIn("test_dao_boundary_maintenance_docs", combined_docs)
         self.assertIn("test_dependabot_policy_contract", combined_docs)
         self.assertIn("test_kotlin_compiler_options_contract", combined_docs)
+        self.assertIn("Python/static", combined_docs)
 
     def test_operator_docs_name_ops_ci_responsibility(self):
         git_workflow = GIT_WORKFLOW_DOC.read_text()
@@ -227,16 +192,9 @@ class OpsCiWorkflowTest(unittest.TestCase):
             self.assertIn("scripts/check_workflow_gradle_tasks.py", doc)
             self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", doc)
             self.assertIn("Docs/runbook contract tests", doc)
-            self.assertIn("scripts.tests.test_acquisition_attribution_docs_contract", doc)
-            self.assertIn("scripts.tests.test_ga4_custom_dimension_registration_docs", doc)
-            self.assertIn("scripts.tests.test_monetization_interest_contract", doc)
-            self.assertIn("scripts.tests.test_signed_aab_lint_gate", doc)
-            self.assertIn("scripts.tests.test_review_prompt_post_release_followthrough_docs", doc)
-            self.assertIn("scripts.tests.test_workflow_gradle_task_guard", doc)
-            self.assertIn("scripts.tests.test_release_gradle_task_contract", doc)
-            self.assertIn("scripts.tests.test_prod_release_shrinking_contract", doc)
-            self.assertIn("scripts.tests.test_release_signing_gradle_contract", doc)
-            self.assertIn("scripts.tests.test_gradle_wrapper_distribution_checksum", doc)
+            self.assertIn("scripts.tests.test_shared_ui_component_boundaries", doc)
+            self.assertIn("scripts.tests.test_feature_domain_boundary_contract", doc)
+            self.assertIn("scripts.tests.test_dao_boundary_maintenance_docs", doc)
             self.assertIn("scripts.tests.test_dependabot_policy_contract", doc)
             self.assertIn("scripts.tests.test_kotlin_compiler_options_contract", doc)
             self.assertIn("docs-only", doc)

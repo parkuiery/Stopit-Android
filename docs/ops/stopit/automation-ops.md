@@ -196,18 +196,10 @@ gh pr list --state open --limit 30 --json number,title,headRefName,baseRefName,u
 workflow 변경 PR은 `actionlint-only green`만으로 운영 계약이 안전하다고 해석하지 않는다. YAML 문법 검증은 `Workflow syntax lint`가 담당하고, 릴리즈/CI/CD workflow와 운영 문서의 source-of-truth drift는 `Docs/runbook contract tests`가 담당한다. 특히 아래 기존 workflow contract 테스트는 docs/workflow-only 변경에서도 Ops CI `docs_contract` 경로로 materialize되어야 한다.
 
 ```bash
-python3 -m unittest \
-  scripts.tests.test_android_ci_artifact_retention \
-  scripts.tests.test_android_ci_path_gating \
-  scripts.tests.test_play_deploy_tag_governance \
-  scripts.tests.test_release_gate_retarget_triggers \
-  scripts.tests.test_dependabot_policy_contract \
-  scripts.tests.test_kotlin_compiler_options_contract \
-  scripts.tests.test_gradle_wrapper_distribution_checksum \
-  scripts.tests.test_ops_ci_workflow -v
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-이 묶음은 Android CI artifact retention, Android CI path gating, Play Deploy tag governance, release PR retarget trigger, Dependabot policy contract materialization, Gradle wrapper distribution checksum 계약을 고정한다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter와 `Docs/runbook contract tests` 실행 목록, 그리고 `scripts.tests.test_ops_ci_workflow` meta-contract를 함께 업데이트한다.
+이 묶음은 docs/workflow/dependabot/script-test 변경에서 모든 Python static contract test를 자동 발견해 실행한다. 따라서 `test_shared_ui_component_boundaries`, `test_feature_domain_boundary_contract`, `test_feature_domain_boundary_context_pack`, `test_dao_boundary_maintenance_docs`, `test_gradle_wrapper_distribution_checksum`처럼 source-of-truth 문서를 읽는 테스트가 새로 생기거나 이동해도, `Docs/runbook contract tests`가 특정 모듈을 하드코딩하다가 누락하는 상태로 돌아가면 안 된다. 이 gate는 Python/static 검증 전용으로 유지하고 Gradle, npm, emulator, Firebase/Play/signing secret 작업은 실행하지 않는다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter가 `scripts/tests/**`를 포함하고, `scripts.tests.test_ops_ci_workflow`가 discovery 계약을 고정하는지 함께 확인한다.
 
 ## 이 문서가 다루지 않는 것
 
