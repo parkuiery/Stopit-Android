@@ -1,7 +1,7 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
+import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsSnapshot
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
@@ -98,14 +98,12 @@ class EmergencyUnlockCoordinator
             )
             val unlockData = EmergencyUnlockData(unlockedApps = apps, expireTimeMillis = expireTime)
 
-            val historyId = repository.insert(
-                EmergencyUnlockEntity(
-                    timestamp = nowMillis,
-                    reason = reason,
-                    customReason = customReason,
-                    unlockedApps = apps.toList(),
-                    durationMinutes = durationMinutes,
-                ),
+            val historyId = repository.recordUnlock(
+                timestamp = nowMillis,
+                reason = reason,
+                customReason = customReason,
+                apps = apps,
+                durationMinutes = durationMinutes,
             )
             try {
                 blockingStateStore.saveEmergencyUnlockRuntimeState(apps = apps, expireTimeMillis = expireTime)
