@@ -11,11 +11,67 @@ updates:
       - "maintenance"
       - "automation"
       - "dependencies"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     groups:
-      android-gradle-patch-minor:
+      android-gradle-firebase-google-patch-minor:
         patterns:
-          - "*"
+          - "com.google.firebase:*"
+          - "com.google.gms:google-services"
+          - "com.google.firebase.crashlytics"
+          - "com.google.android.gms:play-services-ads"
+          - "com.google.android.play:*"
+          - "com.android.installreferrer:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-androidx-ui-runtime-patch-minor:
+        patterns:
+          - "androidx.core:*"
+          - "androidx.lifecycle:*"
+          - "androidx.activity:*"
+          - "androidx.compose:*"
+          - "androidx.navigation:*"
+          - "androidx.appcompat:*"
+          - "androidx.datastore:*"
+          - "androidx.hilt:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-room-ksp-patch-minor:
+        patterns:
+          - "androidx.room:*"
+          - "androidx.room"
+          - "com.google.devtools.ksp"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-test-tooling-patch-minor:
+        patterns:
+          - "junit:*"
+          - "androidx.test*:*"
+          - "org.mockito:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-runtime-libraries-patch-minor:
+        patterns:
+          - "org.jetbrains.kotlinx:*"
+          - "com.airbnb.android:*"
+          - "com.google.android.material:*"
+          - "org.orbit-mvi:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-toolchain-held-patch-minor:
+        patterns:
+          - "com.android.application"
+          - "com.android.library"
+          - "org.jetbrains.kotlin.android"
+          - "org.jetbrains.kotlin.plugin.compose"
+          - "org.jetbrains.kotlin.plugin.serialization"
+          - "org.jetbrains.kotlin.jvm"
+          - "com.google.dagger.hilt.android"
+          - "com.google.dagger:*"
         update-types:
           - "minor"
           - "patch"

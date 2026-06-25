@@ -121,6 +121,76 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, runbook)
 
+    def test_gradle_dependabot_patch_minor_groups_are_split_by_risk_lane(self):
+        config = DEPENDABOT_CONFIG.read_text()
+        docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
+
+        gradle_update = re.search(
+            r"package-ecosystem:\s*[\"']gradle[\"'][\s\S]*?(?=\n\s*-\s*package-ecosystem:|\Z)",
+            config,
+        )
+        if gradle_update is None:
+            self.fail("Gradle Dependabot update block must exist")
+        gradle_block = gradle_update.group(0)
+
+        self.assertNotRegex(
+            gradle_block,
+            r"android-gradle-patch-minor:[\s\S]*?patterns:\s*\n\s*-\s*[\"']\*[\"']",
+            "#1034 forbids one broad Gradle patch/minor group that mixes every Android dependency risk lane",
+        )
+        for group_name in [
+            "android-gradle-firebase-google-patch-minor",
+            "android-gradle-androidx-ui-runtime-patch-minor",
+            "android-gradle-room-ksp-patch-minor",
+            "android-gradle-test-tooling-patch-minor",
+            "android-gradle-runtime-libraries-patch-minor",
+            "android-gradle-toolchain-held-patch-minor",
+        ]:
+            with self.subTest(group_name=group_name):
+                self.assertIn(f"{group_name}:", gradle_block)
+
+        expected_patterns = [
+            "com.google.firebase:*",
+            "com.google.gms:google-services",
+            "com.google.firebase.crashlytics",
+            "com.google.android.gms:play-services-ads",
+            "androidx.core:*",
+            "androidx.lifecycle:*",
+            "androidx.activity:*",
+            "androidx.compose:*",
+            "androidx.navigation:*",
+            "androidx.appcompat:*",
+            "androidx.datastore:*",
+            "androidx.hilt:*",
+            "com.google.devtools.ksp",
+            "androidx.room:*",
+            "junit:*",
+            "androidx.test*:*",
+            "org.mockito:*",
+            "org.jetbrains.kotlinx:*",
+            "com.airbnb.android:*",
+            "com.google.android.material:*",
+            "org.orbit-mvi:*",
+        ]
+        for pattern in expected_patterns:
+            with self.subTest(pattern=pattern):
+                self.assertIn(pattern, gradle_block)
+
+        for required in [
+            "Gradle Dependabot risk-lane split (#1034)",
+            "android-gradle-firebase-google-patch-minor",
+            "android-gradle-androidx-ui-runtime-patch-minor",
+            "android-gradle-room-ksp-patch-minor",
+            "android-gradle-test-tooling-patch-minor",
+            "android-gradle-runtime-libraries-patch-minor",
+            "android-gradle-toolchain-held-patch-minor",
+            "broad `patterns: [\"*\"]`",
+            "#1013",
+            "분할 재생성",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, docs)
+
     def test_android_gradle_stack_known_incompatible_hilt_is_held(self):
         config = DEPENDABOT_CONFIG.read_text()
         docs = DEPENDENCY_RUNBOOK.read_text() + "\n" + GIT_WORKFLOW_DOC.read_text()
@@ -142,7 +212,7 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "Hilt 2.59+",
             "AGP 9",
             "AGP 8.x",
-            "android-gradle-patch-minor",
+            "android-gradle-toolchain-held-patch-minor",
             "known-incompatible",
             "#914",
             "Gradle configuration 단계",
