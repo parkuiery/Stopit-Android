@@ -330,6 +330,45 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing() {
+        val matchingRoutine = routine(id = 15L, name = "Morning", isEnabled = true)
+        val otherRoutine = routine(id = 16L, name = "Evening", isEnabled = true)
+        val routines = listOf(matchingRoutine, otherRoutine)
+
+        val result = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
+            routines = routines,
+            routineId = 15L,
+            scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+        )
+
+        assertEquals(emptySet<Long>(), result.disabledRoutineIds)
+        assertEquals(routines, result.routines)
+        assertEquals(true, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
+    fun applyRoutineAlarmRescheduleResultDisablesInvalidTriggeredRoutineWithoutResettingPrompt() {
+        val matchingRoutine = routine(id = 17L, name = "Invalid", isEnabled = true)
+        val otherRoutine = routine(id = 18L, name = "Evening", isEnabled = true)
+
+        val result = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 17L,
+            scheduleResult = RoutineScheduleResult.InvalidRoutine,
+        )
+
+        assertEquals(setOf(17L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            result.routines,
+        )
+        assertEquals(false, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
     fun selectRoutineStartFallbackMessageUsesPermissionDeniedCopyForPermissionDeniedResult() {
         assertEquals(
             "Routine started without notification permission",

@@ -138,6 +138,26 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
         self.assertIn("RoutineListActionPolicyTest", checklist)
         self.assertIn("RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState", checklist)
 
+    def test_routine_alarm_reschedule_failure_preserves_current_enforcement_contract(self):
+        source = SOURCE_DOC.read_text()
+        policy_test = (
+            REPO_ROOT
+            / "app"
+            / "src"
+            / "test"
+            / "java"
+            / "com"
+            / "uiery"
+            / "keep"
+            / "receiver"
+            / "RoutineReceiverPolicyTest.kt"
+        ).read_text()
+
+        self.assertIn("routine-start reschedule", source)
+        self.assertIn("MissingExactAlarmPermission", source)
+        self.assertIn("applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing", policy_test)
+        self.assertIn("applyRoutineAlarmRescheduleResultDisablesInvalidTriggeredRoutineWithoutResettingPrompt", policy_test)
+
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"
         default_text = _strings(DEFAULT_STRINGS)[key]
