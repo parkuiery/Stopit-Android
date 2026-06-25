@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 QA_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 SOURCE_DOC = REPO_ROOT / "docs" / "ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md"
+ROUTINESTORE_CONTRACT = REPO_ROOT / "docs" / "ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
 METRICS_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
@@ -155,8 +156,17 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
 
         self.assertIn("routine-start reschedule", source)
         self.assertIn("MissingExactAlarmPermission", source)
+        self.assertIn(
+            "RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing",
+            QA_CHECKLIST.read_text(),
+        )
+        self.assertIn("InvalidRoutine", QA_CHECKLIST.read_text())
         self.assertIn("applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing", policy_test)
         self.assertIn("applyRoutineAlarmRescheduleResultDisablesInvalidTriggeredRoutineWithoutResettingPrompt", policy_test)
+
+        routine_store_contract = ROUTINESTORE_CONTRACT.read_text()
+        self.assertIn("#609 활성 루틴 보호 계약", routine_store_contract)
+        self.assertIn("현재 triggered routine은 enabled/enforced 상태를 유지한다", routine_store_contract)
 
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"

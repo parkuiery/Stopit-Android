@@ -43,8 +43,20 @@ class RoutineStoreCompatibilityCacheContractTest(unittest.TestCase):
             "blank/malformed",
             "MissingExactAlarmPermission",
             "enabled=false",
+            "routine alarm이 이미 발화한 뒤 next-reschedule",
+            "#609 활성 루틴 보호 계약",
+            "InvalidRoutine",
         ]:
             self.assertIn(phrase, contract)
+
+        self.assertIn(
+            "boot/package/restore-aftercare enabled routine 스케줄 중 `MissingExactAlarmPermission`",
+            contract,
+        )
+        self.assertIn(
+            "현재 triggered routine은 enabled/enforced 상태를 유지한다",
+            contract,
+        )
 
     def test_contract_names_current_code_boundaries(self):
         contract = CONTRACT.read_text()

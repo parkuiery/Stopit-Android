@@ -954,6 +954,7 @@ python3 -m unittest scripts.tests.test_active_routine_enforcement_contract -v
 - 실행 중인 루틴 OFF 전환은 enabled 상태를 변경하지 않고 같은 안내 side effect를 발생시킨다.
 - 루틴 목록 switch를 직접 탭해 OFF를 시도해도 `RoutineListActionPolicyTest` / `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState`가 toggle callback 대신 blocked feedback callback을 고정한다.
 - 루틴 때문에 열린 차단 화면은 `BlockScreenContentIntegrationTest#activeRoutineBlockExplainsRoutineReasonWhileKeepingEmergencyUnlockSecondary`로 `block_screen_routine_active_reason` 사유 copy와 보조 action인 긴급 해제 CTA가 함께 보이는지 고정한다.
+- routine alarm이 이미 발화한 뒤 다음 반복 알람 reschedule 단계에서 `MissingExactAlarmPermission`이 반환되어도 현재 triggered routine은 enabled/enforced 상태를 유지해야 한다. `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`가 이 #609 예외를 고정하며, `InvalidRoutine` stale alarm 정리는 별도 회귀 테스트로 구분한다.
 - 루틴 목록 state가 잠시 stale이어도 삭제/OFF action 직전에 repository의 최신 routine을 다시 읽어, 그 사이 활성/변경잠금 상태가 된 루틴이면 delete/update/cancel/reschedule을 수행하지 않는다.
 - edit sheet가 열린 뒤 루틴 시간이 시작된 경우에도 저장 직전에 Room의 최신 routine 상태를 다시 확인하고, 활성/변경잠금 상태면 `RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked`만 발생하며 update/cancel/reschedule을 수행하지 않는다.
 - Routine 화면은 side effect를 `routine_active_action_blocked_message` snackbar로 표시한다.
