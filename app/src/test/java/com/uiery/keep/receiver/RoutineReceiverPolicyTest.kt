@@ -294,12 +294,34 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun applyScheduleResultDisablesInvalidRoutineWithoutResettingAlarmPermissionPrompt() {
+        val matchingRoutine = routine(id = 12L, name = "No repeat days", isEnabled = true)
+        val otherRoutine = routine(id = 13L, name = "Evening", isEnabled = true)
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 12L,
+            scheduleResult = RoutineScheduleResult.InvalidRoutine,
+        )
+
+        assertEquals(setOf(12L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            result.routines,
+        )
+        assertEquals(false, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
     fun applyScheduleResultLeavesRoutinesUntouchedWhenSchedulingSucceeds() {
-        val routines = listOf(routine(id = 12L, name = "Morning", isEnabled = true))
+        val routines = listOf(routine(id = 14L, name = "Morning", isEnabled = true))
 
         val result = RoutineReceiverPolicy.applyScheduleResult(
             routines = routines,
-            routineId = 12L,
+            routineId = 14L,
             scheduleResult = RoutineScheduleResult.Scheduled,
         )
 

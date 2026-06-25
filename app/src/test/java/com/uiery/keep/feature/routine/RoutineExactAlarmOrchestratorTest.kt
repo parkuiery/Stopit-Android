@@ -56,6 +56,21 @@ class RoutineExactAlarmOrchestratorTest {
     }
 
     @Test
+    fun scheduleEnabledRoutineDisablesInvalidRoutineWithoutPermissionPrompt() {
+        val scheduler = Mockito.mock(RoutineScheduler::class.java)
+        val enabledRoutine = routine(isEnabled = true)
+        Mockito.`when`(scheduler.scheduleRoutine(enabledRoutine))
+            .thenReturn(RoutineScheduleResult.InvalidRoutine)
+        val orchestrator = RoutineExactAlarmOrchestrator(scheduler)
+
+        val result = orchestrator.scheduleEnabledRoutine(enabledRoutine)
+
+        assertFalse(result.routine.isEnabled)
+        assertFalse(result.shouldTrackLockScheduled)
+        assertFalse(result.shouldShowPermissionPrompt)
+    }
+
+    @Test
     fun scheduleEnabledRoutineLeavesDisabledRoutineUnscheduledWithoutPrompt() {
         val scheduler = Mockito.mock(RoutineScheduler::class.java)
         val disabledRoutine = routine(isEnabled = false)

@@ -99,7 +99,13 @@ object RoutineReceiverPolicy {
         routineId: Long,
         scheduleResult: RoutineScheduleResult,
     ): RoutineScheduleApplication {
-        if (scheduleResult != RoutineScheduleResult.MissingExactAlarmPermission) {
+        val shouldDisableRoutine = when (scheduleResult) {
+            RoutineScheduleResult.InvalidRoutine,
+            RoutineScheduleResult.MissingExactAlarmPermission -> true
+            RoutineScheduleResult.NotEnabled,
+            RoutineScheduleResult.Scheduled -> false
+        }
+        if (!shouldDisableRoutine) {
             return RoutineScheduleApplication(
                 routines = routines,
                 disabledRoutineIds = emptySet(),
@@ -125,7 +131,7 @@ object RoutineReceiverPolicy {
                 if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
             },
             disabledRoutineIds = disabledRoutineIds,
-            shouldResetAlarmPermissionPrompt = true,
+            shouldResetAlarmPermissionPrompt = scheduleResult == RoutineScheduleResult.MissingExactAlarmPermission,
         )
     }
 

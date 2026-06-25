@@ -198,6 +198,35 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
+    fun timezoneChangedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms() = runBlocking {
+        grantExactAlarmPermission()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Timezone invalid empty repeat days",
+                repeatDays = emptyList(),
+            ),
+        )
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Timezone invalid empty repeat days", DayOfWeek.entries)
+        assertEveryDayPendingIntentExists(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_TIMEZONE_CHANGED)
+
+        waitUntil("BootReceiver should disable an enabled routine with empty repeatDays") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("BootReceiver should persist the invalid routine as disabled in DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+    }
+
+    @Test
     fun manifestMarksBootReceiverNotExported() {
         val receiverInfo = context.packageManager.getReceiverInfo(
             ComponentName(context, BootReceiver::class.java),
@@ -205,6 +234,35 @@ class ReceiverRuntimeIntegrationTest {
         )
 
         assertFalse(receiverInfo.exported)
+    }
+
+    @Test
+    fun packageReplacedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms() = runBlocking {
+        grantExactAlarmPermission()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Package invalid empty repeat days",
+                repeatDays = emptyList(),
+            ),
+        )
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Package invalid empty repeat days", DayOfWeek.entries)
+        assertEveryDayPendingIntentExists(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("Package-replaced restore should disable an enabled routine with empty repeatDays") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("Package-replaced restore should persist the invalid routine as disabled in DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
     }
 
     @Test
@@ -554,6 +612,36 @@ class ReceiverRuntimeIntegrationTest {
         DayOfWeek.entries.forEach { dayOfWeek ->
             findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
         }
+    }
+
+    private fun seedRoutinePendingIntents(
+        routineId: Long,
+        routineName: String,
+        repeatDays: Iterable<DayOfWeek>,
+    ) {
+        repeatDays.forEach { dayOfWeek ->
+            PendingIntent.getBroadcast(
+                context,
+                RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
+                Intent(context, RoutineAlarmReceiver::class.java).apply {
+                    action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                    data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routineName)
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routineId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+    }
+
+    private fun assertEveryDayPendingIntentExists(routineId: Long) {
+        val missingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) == null }
+        assertEquals(emptyList<DayOfWeek>(), missingDays)
+    }
+
+    private fun assertNoPendingIntentsForAnyDay(routineId: Long) {
+        val remainingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+        assertEquals(emptyList<DayOfWeek>(), remainingDays)
     }
 
     private fun assertRoutinePendingIntentsMatchRepeatDays(routineId: Long, repeatDays: List<DayOfWeek>) {
