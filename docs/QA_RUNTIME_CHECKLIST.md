@@ -1899,10 +1899,20 @@ issue #963 계열 PR은 루틴 시작 알림의 `PendingIntent`가 앱 진입부
 
 issue #952 계열 PR은 launcher/full-color asset을 `setSmallIcon()`에 재사용하지 않고 전용 alpha-mask vector인 `R.drawable.ic_notification_stopit`을 써야 한다. 자동 회귀는 `python3 -m unittest scripts.tests.test_notification_small_icon_contract -v`와 `./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.notification.NotificationSmallIconIntegrationTest`로 확인한다. release/device QA에서는 상태바와 notification shade에 루틴 시작 알림 및 긴급해제 진행/만료 알림이 흰 사각형이 아닌 단색 glyph로 보이는지 스크린샷 또는 관찰 메모를 남긴다.
 
+현재 repo-internal baseline:
+- PR #958 이후 루틴 시작/긴급해제 알림은 `R.drawable.ic_notification_stopit` 전용 small icon을 사용하고, `scripts.tests.test_notification_small_icon_contract`가 launcher/full-color asset 재사용을 차단한다.
+- PR #961 이후 `NotificationSmallIconIntegrationTest`가 루틴 시작, 긴급해제 countdown, 긴급해제 expired posted `Notification.smallIcon.resId`를 자동 검증한다.
+- 2026-06-18~2026-06-25 qa-lane 반복 확인에서 temporary visual-hold androidTest + `adb shell dumpsys notification --noredact` active record는 루틴 시작 / 긴급해제 countdown 알림 모두 `pkg=com.uiery.keep.dev` + same dedicated resource icon(`Icon(typ=RESOURCE ... id=...)`)을 사용함을 확인했다. 이는 runtime resource 증거로 남기되, 상태바 glyph가 실제로 흰 사각형이 아닌지 보는 visual closure evidence를 대체하지 않는다.
+
+남은 closure evidence:
+- `adb shell cmd statusbar expand-notifications` 후 emulator `screencap`이 all-black frame(`PIL getbbox() == None`)으로 저장되거나 SystemUI XML이 Stopit notification row를 노출하지 않는 경우, 그 산출물은 #952 closure evidence로 쓰지 않는다.
+- 이 경우 active `dumpsys notification --noredact` record, `NotificationSmallIconIntegrationTest`, static contract는 "자동/runtime smallIcon resource는 정상" 증거로 기록하고, 실제 상태바/notification shade glyph visual QA는 실기기 또는 screenshot이 정상 캡처되는 emulator에서 별도로 채운다.
+
 권장 spot-check:
 - 루틴 시작 알림: 가까운 미래 루틴을 만들어 알림 수신 후 상태바/notification shade small icon 확인.
 - 긴급해제 countdown: 차단 화면에서 긴급해제를 시작한 뒤 ongoing notification small icon 확인.
 - 긴급해제 expired: 만료 후 expired notification small icon 확인.
+- 캡처가 black frame이면 `dumpsys notification --noredact` active record와 screenshot 파일 hash/크기만 남기고 close하지 않는다. closure에는 glyph가 보이는 정상 screenshot 또는 사람 관찰 메모가 필요하다.
 
 ### 실패 시 남길 evidence
 
