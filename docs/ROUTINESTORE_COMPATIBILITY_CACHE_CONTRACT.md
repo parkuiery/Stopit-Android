@@ -11,9 +11,9 @@ Issue: #511
 | --- | --- | --- |
 | `RoutineStore` | `PreferencesKey.ROUTINES` JSON cache의 typed read/write wrapper | 새 코드가 raw `PreferencesKey.ROUTINES`를 직접 만지지 않도록 중앙화한다. |
 | `RoutineReceiverPolicy.resolveRoutines(...)` | stored cache와 Room routine이 동시에 있을 때 사용할 루틴 집합 결정 | 현재는 **항상 Room routine이 이긴다**. cache는 primary read path가 아니다. |
-| `RoutineReceiverPolicy.shouldRewriteCompatibilityCache(...)` | Room 기준 결과와 스케줄링 후 `updatedRoutines`를 비교해 cache rewrite 여부 결정 | stored-only stale cache를 Room empty 결과로 지우고, exact-alarm 실패로 `enabled=false`가 된 결과도 Room/cache가 같은 값으로 남도록 한다. |
+| `RoutineReceiverPolicy.shouldRewriteCompatibilityCache(...)` | Room 기준 결과와 스케줄링 후 `updatedRoutines`를 비교해 cache rewrite 여부 결정 | stored-only stale cache를 Room empty 결과로 지운다. boot/package/restore-aftercare scheduling 실패로 routine이 `enabled=false`로 downgrade되는 경로는 Room/cache가 같은 값으로 남도록 하되, 이미 발화한 routine alarm의 `MissingExactAlarmPermission` reschedule 실패는 현재 enforcement를 유지하는 예외로 본다. |
 | `BootReceiver.restoreRoutinesForBoot(...)` | boot / package-replaced / time 변경 후 Room 루틴을 읽고 enabled routine을 재스케줄 | Room 기준으로 스케줄하고, cache가 Room과 다르거나 exact-alarm 실패로 enabled 상태가 바뀌면 cache를 Room/result 기준으로 다시 쓴다. |
-| `RoutineAlarmReceiver.handleRoutineAlarm(...)` | routine alarm 진입 시 notification, reschedule, fallback notice 처리 | trigger 자체는 intent extra를 쓰지만, 후속 reschedule 대상은 Room 기준으로 resolve한다. |
+| `RoutineAlarmReceiver.handleRoutineAlarm(...)` | routine alarm 진입 시 notification, reschedule, fallback notice 처리 | trigger 자체는 intent extra를 쓰지만, 후속 reschedule 대상은 Room 기준으로 resolve한다. 현재 alarm이 이미 발화한 루틴은 reschedule 단계의 `MissingExactAlarmPermission` 때문에 조용히 disabled로 내려가면 안 되며, stale/invalid alarm만 정리한다. |
 | `RoutineRestoreAftercare.rescheduleRestoredEnabledRoutinesFromRoom()` | 복원 직후 앱 실행/Splash/Routine 화면 진입에서 Room 루틴 재스케줄 | restored Room routine을 재스케줄하고 `RoutineStore` cache를 Room/result 기준으로 채운다. |
 | `BackupRestoreDataStoreKeyPolicy` | backup/restore에서 DataStore key 분류 | `PreferencesKey.ROUTINES`는 restore하지 않는 `rehydratedCompatibilityCacheKeys` 예외이며, Room에서 재수화 가능해야 한다. |
 
@@ -25,8 +25,9 @@ Issue: #511
 
 1. boot / package-replaced / routine alarm / restore-aftercare 경로가 이미 `RoutineStore`를 통해 cache rehydrate를 수행한다.
 2. backup/restore 정책은 DataStore 전체를 복원하지 않는 대신 Room DB 복원 후 cache를 재작성하는 shape로 고정되어 있다.
-3. exact alarm permission 실패 시 enabled routine을 `enabled=false`로 내리는 결과도 receiver/aftercare가 cache에 반영해 runtime 호환성을 유지한다.
-4. 제거하려면 receiver/alarm/startup 경로가 Room-only로 동작한다는 device/emulator evidence와 fallback notice/notification side effect 검증이 먼저 필요하다.
+3. boot/package/restore-aftercare scheduling에서 exact alarm permission 실패로 enabled routine을 `enabled=false`로 내리는 결과는 receiver/aftercare가 cache에 반영해 runtime 호환성을 유지한다.
+4. 단, routine alarm이 이미 발화한 뒤 다음 반복 알람을 다시 잡는 단계에서 `MissingExactAlarmPermission`이 발생하면 현재 시간대 enforcement를 유지해야 한다. 이 경우 `enabled=false` downgrade/cache rewrite로 현재 활성 보호를 해제하지 않는다.
+5. 제거하려면 receiver/alarm/startup 경로가 Room-only로 동작한다는 device/emulator evidence와 fallback notice/notification side effect 검증이 먼저 필요하다.
 
 따라서 현재 code-lane hardening 기준에서 `RoutineStore`는 아래처럼 해석한다.
 
@@ -34,7 +35,7 @@ Issue: #511
 - **compatibility cache:** `PreferencesKey.ROUTINES`
 - **cache writer:** `RoutineStore.writeCachedRoutines(...)`
 - **cache reader:** `RoutineStore.readCachedRoutines(...)`, 단 primary decision은 `RoutineReceiverPolicy.resolveRoutines(...)`가 Room 우선으로 결정
-- **cache invalidation/rehydration trigger:** boot/package-replaced/time change, routine alarm, restore-aftercare, Routine 화면 aftercare, exact alarm scheduling result update
+- **cache invalidation/rehydration trigger:** boot/package-replaced/time change, routine alarm, restore-aftercare, Routine 화면 aftercare, exact alarm scheduling result update. 단, routine alarm trigger가 이미 발화한 루틴의 현재 enforcement를 유지해야 하는 경우에는 next-reschedule 실패와 현재 활성 보호 상태를 분리한다.
 
 ## conflict-winner 계약
 
@@ -44,9 +45,10 @@ Room과 cache가 불일치하면 Room이 이긴다.
 
 1. `databaseRoutines`가 비어 있고 `storedRoutines`만 있으면, receiver/startup은 stale cache를 authoritative routine으로 승격하지 않는다.
 2. `databaseRoutines`와 `storedRoutines`가 다르면, `RoutineReceiverPolicy.resolveRoutines(...)`는 Room 결과를 반환한다.
-3. enabled routine 스케줄 중 `MissingExactAlarmPermission`이 나오면, Room `enabled=false` 업데이트와 cache rewrite가 같은 결과 집합을 따라야 한다.
-4. cache JSON이 null/blank/malformed이면 empty cache로 취급하고 crash 없이 Room 기준으로 재수화한다.
-5. user-facing routine list, routine card, routine edit/delete flow는 cache가 아니라 Room/repository state를 기준으로 한다.
+3. boot/package/restore-aftercare enabled routine 스케줄 중 `MissingExactAlarmPermission`이 나오면, Room `enabled=false` 업데이트와 cache rewrite가 같은 결과 집합을 따라야 한다.
+4. routine alarm이 이미 발화한 뒤 next-reschedule에서 `MissingExactAlarmPermission`이 나오면, 현재 triggered routine은 enabled/enforced 상태를 유지한다. 이 예외는 #609 활성 루틴 보호 계약이며, `InvalidRoutine` 같은 stale/무효 alarm 정리와 구분한다.
+5. cache JSON이 null/blank/malformed이면 empty cache로 취급하고 crash 없이 Room 기준으로 재수화한다.
+6. user-facing routine list, routine card, routine edit/delete flow는 cache가 아니라 Room/repository state를 기준으로 한다.
 
 ## code-lane 구현/테스트 handoff
 
