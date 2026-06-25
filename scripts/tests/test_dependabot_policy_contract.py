@@ -303,7 +303,8 @@ class DependabotPolicyContractTest(unittest.TestCase):
 
         expected_holds = {
             "com.google.devtools.ksp": r"\[2\.2,\)",
-            "org.jetbrains.kotlinx:kotlinx-serialization-json": r"\[1\.10,\)",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json": r"\[1\.9,\)",
+            "org.jetbrains.kotlinx:kotlinx-datetime": r"\[0\.8,\)",
         }
         for dependency, version_range in expected_holds.items():
             with self.subTest(dependency=dependency):
@@ -318,14 +319,18 @@ class DependabotPolicyContractTest(unittest.TestCase):
             "KSP 2.3.x",
             "com.google.devtools.ksp 2.2.21",
             "com.google.devtools.ksp 2.3.9",
+            "kotlinx-serialization-json 1.9.0",
             "kotlinx-serialization-json 1.10.x",
             "kotlinx-serialization-json 1.11.x",
+            "kotlinx-datetime 0.8.0",
+            "Clock.System",
             "Kotlin metadata 2.3.x",
             "Kotlin 2.1.x",
             "PR #1043",
             "PR #1045",
             "PR #1057",
             "PR #1058",
+            "PR #1062",
             "별도 Kotlin/toolchain lane",
             "known-incompatible",
         ]:

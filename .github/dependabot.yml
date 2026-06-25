@@ -165,11 +165,18 @@ updates:
         versions:
           - "[2.2,)"
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization-json"
-        # #1051 / PR #1058: kotlinx-serialization-json 1.10.x can pull Kotlin
-        # metadata 2.3.x artifacts that are not consumable by the current Kotlin
-        # 2.1.x toolchain. Validate it with the Kotlin/toolchain lane.
+        # #1051 / PR #1062: kotlinx-serialization-json 1.9.0 already requires
+        # Kotlin 2.2+ APIs and breaks Stopit's Kotlin 2.1.x baseline; later
+        # 1.10.x/1.11.x pulls Kotlin metadata 2.3.x. Validate this family with
+        # the Kotlin/toolchain lane.
         versions:
-          - "[1.10,)"
+          - "[1.9,)"
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-datetime"
+        # #1051 / PR #1062: kotlinx-datetime 0.8.0 removes the current
+        # Clock.System / Instant contract and requires code/toolchain migration;
+        # keep it out of the broad runtime-libraries weekly lane.
+        versions:
+          - "[0.8,)"
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
