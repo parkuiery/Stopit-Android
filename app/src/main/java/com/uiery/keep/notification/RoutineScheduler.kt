@@ -25,6 +25,7 @@ import javax.inject.Singleton
 enum class RoutineScheduleResult {
     Scheduled,
     NotEnabled,
+    InvalidRoutine,
     MissingExactAlarmPermission,
 }
 
@@ -65,7 +66,10 @@ class RoutineScheduler @Inject constructor(
         }
 
         val repeatDays = routine.repeatDays.toDayOfWeekList()
-        if (repeatDays.isEmpty()) return RoutineScheduleResult.NotEnabled
+        if (repeatDays.isEmpty()) {
+            cancelRoutine(routine.id)
+            return RoutineScheduleResult.InvalidRoutine
+        }
 
         val hasExactAlarmPermission = canScheduleExactAlarms()
         AppLogger.debug(

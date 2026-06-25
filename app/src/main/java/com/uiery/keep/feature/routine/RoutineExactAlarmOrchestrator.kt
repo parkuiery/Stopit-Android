@@ -44,6 +44,11 @@ class RoutineExactAlarmOrchestrator
                     shouldShowPermissionPrompt = true,
                     shouldTrackLockScheduled = false,
                 )
+                RoutineScheduleResult.InvalidRoutine -> RoutineExactAlarmScheduleDecision(
+                    routine = routine.copy(isEnabled = false),
+                    shouldShowPermissionPrompt = false,
+                    shouldTrackLockScheduled = false,
+                )
                 RoutineScheduleResult.NotEnabled -> RoutineExactAlarmScheduleDecision(
                     routine = routine,
                     shouldShowPermissionPrompt = false,
