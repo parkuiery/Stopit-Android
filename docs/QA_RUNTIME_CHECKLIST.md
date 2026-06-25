@@ -1125,6 +1125,7 @@ python3 -m unittest scripts.tests.test_goal_lock_contract -v
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_denied)"`
   - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow`
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$(python3 scripts/android_runtime_suites.py class-arg android_ci_exact_alarm_allowed)"`
+  - #1030 기준: workflow/수동 명령은 suite 의도를 명확히 하기 위해 host ADB appops를 선행 설정한다. `SCHEDULE_EXACT_ALARM` / `POST_NOTIFICATION` 전환은 target app 프로세스를 죽일 수 있으므로, receiver tests는 테스트 내부에서 전환하지 않는다. 대신 named suite와 assertion 메시지로 setup drift와 제품 회귀를 분리한다.
 - separate host-side appops run:
   - `./gradlew :app:installDevDebug`
   - `adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore`
