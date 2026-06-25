@@ -135,6 +135,23 @@ object RoutineReceiverPolicy {
         )
     }
 
+    fun applyRoutineAlarmRescheduleResult(
+        routines: List<RoutineModel>,
+        routineId: Long,
+        scheduleResult: RoutineScheduleResult,
+    ): RoutineScheduleApplication = when (scheduleResult) {
+        RoutineScheduleResult.MissingExactAlarmPermission -> RoutineScheduleApplication(
+            routines = routines,
+            disabledRoutineIds = emptySet(),
+            shouldResetAlarmPermissionPrompt = routines.any { it.id == routineId && it.isEnabled },
+        )
+        else -> applyScheduleResult(
+            routines = routines,
+            routineId = routineId,
+            scheduleResult = scheduleResult,
+        )
+    }
+
     fun applyMissingExactAlarmPermission(
         routines: List<RoutineModel>,
         routineId: Long,

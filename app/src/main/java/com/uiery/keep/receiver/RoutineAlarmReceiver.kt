@@ -111,7 +111,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         var shouldResetAlarmPermissionPrompt = false
 
         routineToReschedule?.let { routine ->
-            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+            val scheduleApplication = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
                 routines = updatedRoutines,
                 routineId = routine.id,
                 scheduleResult = routineScheduler.scheduleRoutine(routine),

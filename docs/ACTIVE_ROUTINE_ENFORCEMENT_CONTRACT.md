@@ -11,6 +11,7 @@ Issue: #609
 | 범위 | 완료 상태 | 근거 |
 | --- | --- | --- |
 | 루틴 시작 시 foreground 즉시 차단 / 앱 재평가 | 완료 | PR #807: `KeepAccessibilityServiceIntegrationTest#activeRoutineWithoutManualKeep_launchesBlockActivityWithRoutineAttribution`, `foregroundAppBecomesBlockedWhenRoutineStartTimeArrives` |
+| routine-start reschedule 실패 시 현재 활성 보호 유지 | 완료 | `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`, `#applyRoutineAlarmRescheduleResultDisablesInvalidTriggeredRoutineWithoutResettingPrompt` |
 | 실행 중 루틴 상세/수정 진입 차단 | 완료 | `RoutineViewModelActiveRoutineGuardTest`, `RoutineBottomSheetViewModelTest` |
 | 실행 중 루틴 OFF/toggle 우회 차단 | 완료 | PR #815: `RoutineListActionPolicyTest`, `RoutineListContentIntegrationTest#runningRoutineSwitchTapSurfacesBlockedActionFeedbackWithoutChangingEnabledState` |
 | 실행 중 루틴 삭제 우회 차단 | 완료 | PR #825: 삭제 전 최신 routine state 재확인, `ShowActiveRoutineBlocked` 안내 유지 |
@@ -25,7 +26,8 @@ Issue: #609
 3. 차단/보호 정책은 처벌이 아니라 사용자가 미리 정한 약속을 지켜주는 안내로 표현한다.
 4. 허용된 임시 예외 경로는 긴급 해제다. 활성 루틴 보호 UX는 긴급 해제 자체를 막거나 의미를 바꾸지 않는다.
 5. stale UI state 때문에 루틴이 이미 활성/변경잠금 상태가 되었는데도 이전 화면 상태로 update/delete/cancel/reschedule이 실행되면 실패로 본다. action 직전에 Room/repository 최신 상태를 다시 확인해야 한다.
-6. 루틴 때문에 `BlockActivity`가 열린 경우 차단 화면은 generic 차단 copy만 보여주지 않고, 실행 중인 루틴이 현재 시간을 보호하고 있으며 긴급 해제는 짧은 예외 경로라는 점을 비징벌적으로 설명해야 한다.
+6. routine-start reschedule 단계에서 `MissingExactAlarmPermission`이 반환되더라도 이미 발화한 현재 루틴의 활성 보호는 유지해야 한다. 다음 반복 알람 예약 문제는 권한 안내/프롬프트로 노출하되, 현재 시간대 차단 enforcement를 `isEnabled=false`로 조용히 해제하면 실패로 본다. 단, `InvalidRoutine`처럼 stale/무효 알람은 계속 정리한다.
+7. 루틴 때문에 `BlockActivity`가 열린 경우 차단 화면은 generic 차단 copy만 보여주지 않고, 실행 중인 루틴이 현재 시간을 보호하고 있으며 긴급 해제는 짧은 예외 경로라는 점을 비징벌적으로 설명해야 한다.
 
 ## Analytics / 지표 해석
 
