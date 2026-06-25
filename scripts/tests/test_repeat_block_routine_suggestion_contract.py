@@ -38,6 +38,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             "PR #561",
             "PR #835",
             "Home과 LockHistory CTA 표면에서 추천 카드를 실제로 노출",
+            "RepeatBlockRoutineSuggestionCard",
             "apply는 루틴 prefill navigation",
             "dismiss는 privacy-safe store",
             "active emergency unlock runtime state",
@@ -168,7 +169,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
         self.assertIn("Home active Goal Lock suppression", ga4_runbook)
         self.assertIn("Home active emergency unlock runtime-state suppression", ga4_runbook)
         self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
-        self.assertIn("Home/LockHistory", ga4_runbook)
+        self.assertIn("canonical surface(`home`/`lock_history`/`performance_report`/`post_block_success`)", ga4_runbook)
         self.assertIn("PR #887", ga4_runbook)
         self.assertIn("PR #899", ga4_runbook)
         self.assertIn("PR #923", ga4_runbook)
@@ -214,7 +215,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", document)
             self.assertIn("#531", document)
 
-    def test_high_traffic_docs_reflect_prefill_and_dismiss_footholds_without_claiming_full_ui_release(self):
+    def test_high_traffic_docs_reflect_current_repeat_block_surfaces_without_claiming_release_or_readback(self):
         documents = [
             PRODUCT_DASHBOARD.read_text(),
             METRICS_ANALYSIS.read_text(),
@@ -231,6 +232,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("RepeatBlockRoutineSuggestionStore", document)
             self.assertIn("PR #561", document)
             self.assertIn("Home/LockHistory CTA", document)
+            self.assertIn("RepeatBlockRoutineSuggestionCard", document)
             self.assertIn("PR #835", document)
             self.assertIn("active Goal Lock", document)
             self.assertIn("PR #843", document)
@@ -246,6 +248,7 @@ class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
             self.assertIn("uncovered", document)
             self.assertIn("block_source=goal_lock", document)
             self.assertIn("구현 표면", document)
+            self.assertIn("구현 완료", document)
             self.assertIn("post_block_success", document)
             self.assertIn("performance_report", document)
             self.assertIn("release", document)

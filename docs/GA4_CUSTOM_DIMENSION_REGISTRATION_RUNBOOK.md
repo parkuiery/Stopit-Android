@@ -458,7 +458,7 @@ GA4 Admin 증적 후보:
 | `repeat_days_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_days_bucket` 확인 필요 | 요일 패턴별 공유 의도 비교. enum/bucket만 허용 |
 | `time_window_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_window_bucket` 확인 필요 | 시간대 패턴별 공유 의도 비교. raw time/session history 금지 |
 | `routine_name_included` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_name_included` 확인 필요 | 이름 원문 대신 opt-in 여부 boolean만 기록 |
-| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)와 #531 반복 차단 루틴 추천의 Home/History/post-block 표면별 반응 비교 |
+| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)와 #531 반복 차단 루틴 추천의 canonical surface(`home`/`lock_history`/`performance_report`/`post_block_success`)별 반응 비교 |
 | `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
 | `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
 | `referrer_status` | Required dimension | 등록 필요 | #581 PR #586/#590 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:referrer_status` 확인 필요 | Install Referrer lookup terminal status별 coverage 확인. raw referrer URL/exception message 금지 |
