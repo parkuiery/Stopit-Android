@@ -225,6 +225,28 @@
 - 예외: `r0adkll/upload-google-play`는 patch/minor라도 자동 Dependabot PR 대상이 아니다. 이 action은 Google Play 업로드 side effect와 signed AAB provenance를 잇는 release-critical boundary이므로 `.github/dependabot.yml`에서 ignore하고, 새 SHA 검토가 필요할 때만 별도 release-governance PR에서 `.github/workflows/play-deploy.yml`, `scripts.tests.test_release_provenance_workflow_contract`, `docs/PLAY_DEPLOYMENT.md`, `docs/GIT_WORKFLOW.md`, `docs/RELEASE_CHECKLIST.md`, `docs/ops/stopit/release-context.md`를 함께 갱신한다.
 - Play deploy, release secret, signing secret, Firebase service account secret은 semver-major 감사의 산출물이 아니다. major upgrade PR이 이런 secret 경계를 요구하면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 release-governance issue로 분리한다.
 
+## Gradle Dependabot risk-lane split (#1034)
+
+#1034 기준으로 Gradle patch/minor 자동 PR은 더 이상 broad `patterns: ["*"]` 한 그룹으로 묶지 않는다. #1013처럼 29개 업데이트가 한 PR에 섞이면 AndroidX/compileSdk, Firebase/Google, Room/KSP, test tooling, runtime library, toolchain-held 경계가 모두 같은 실패처럼 보이고 lane이 무엇을 되돌려야 하는지 매번 재분석하게 된다.
+
+현재 `.github/dependabot.yml`의 Gradle group 정책:
+
+| Group | 포함 예시 | 기본 triage |
+| --- | --- | --- |
+| `android-gradle-firebase-google-patch-minor` | Firebase BoM/modules, Google Services plugin, Crashlytics plugin, Play Services Ads, Play Review, Install Referrer | Firebase/Google 계열만 좁게 검증한다. Ads/수익화 런타임 영향이 있으면 #16 runbook과 QA evidence를 같이 본다. |
+| `android-gradle-androidx-ui-runtime-patch-minor` | `androidx.core`, lifecycle, activity, compose, navigation, appcompat, datastore, hilt-navigation-compose | UI/runtime AndroidX 영향 범위로 본다. compileSdk/AGP metadata 오류가 보이면 아래 #1008 guard로 hold한다. |
+| `android-gradle-room-ksp-patch-minor` | Room runtime/compiler/testing/plugin, KSP plugin | annotation processing / schema / migration 영향이 있으므로 Room/KSP 전용 verification과 runtime migration risk를 분리한다. |
+| `android-gradle-test-tooling-patch-minor` | JUnit, AndroidX Test, Espresso, UIAutomator, Mockito | 제품 런타임이 아니라 test harness drift로 우선 분류한다. CI/test infra 실패와 app-code regression을 섞지 않는다. |
+| `android-gradle-runtime-libraries-patch-minor` | kotlinx serialization/datetime, Lottie, Material, Orbit | 앱 런타임 라이브러리로 작게 검증하되 release/runtime QA 필요 여부를 PR 본문에 적는다. |
+| `android-gradle-toolchain-held-patch-minor` | AGP plugin, Kotlin plugins, Hilt plugin/runtime/compiler | 자동 merge 후보가 아니라 compatibility matrix가 필요한 toolchain lane이다. 대부분 ignore guard가 먼저 적용되며, 새 후보는 별도 `ready`/`hold` 판단을 남긴다. |
+
+운영 규칙:
+
+- `open-pull-requests-limit`는 Gradle split로 PR이 여러 개 생길 수 있음을 감안하되, weekly 소음이 과도하지 않도록 제한을 유지한다.
+- 같은 주기에 여러 Gradle PR이 생기면 `test-tooling` / 명확한 Firebase patch처럼 blast radius가 작은 PR을 먼저 보고, AndroidX/runtime/toolchain 계열은 실패 로그와 known guard를 확인한다.
+- 기존 broad PR #1013은 새 정책 기준으로는 그대로 merge하지 않는다. 다음 Dependabot 주기에서 분할 재생성하거나, 필요한 경우 lane owner가 안전한 group만 수동 cherry-pick하고 broad PR은 close/hold로 정리한다.
+- 이 정책은 `scripts.tests.test_dependabot_policy_contract`가 고정한다. Gradle group이 다시 broad `patterns: ["*"]`로 돌아가거나 docs에서 group별 triage 기준이 사라지면 Ops CI docs-contract가 실패해야 한다.
+
 ## 기본 검증 명령
 
 문서/운영에서 참조하는 기본 명령:
@@ -368,14 +390,14 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 
 ### Android Gradle stack compatibility guard (#925)
 
-`android-gradle-patch-minor`는 backlog 소음을 줄이기 위한 weekly 감지 그룹이지, AGP/Kotlin/KSP/Hilt/Compose 같은 build stack을 무조건 한 번에 올려도 된다는 승인 신호가 아니다. #914처럼 `Hilt 2.59+`와 `AGP 8.x`가 함께 들어와 Gradle configuration 단계에서 `The Hilt Android Gradle plugin is only compatible with Android Gradle plugin (AGP) version 9.0.0 or higher`로 실패하면 앱/KDS 테스트가 시작되기 전 known-incompatible 조합으로 본다.
+`android-gradle-toolchain-held-patch-minor`는 backlog 소음을 줄이기 위한 weekly 감지 lane이지, AGP/Kotlin/KSP/Hilt/Compose 같은 build stack을 무조건 한 번에 올려도 된다는 승인 신호가 아니다. #914처럼 `Hilt 2.59+`와 `AGP 8.x`가 함께 들어와 Gradle configuration 단계에서 `The Hilt Android Gradle plugin is only compatible with Android Gradle plugin (AGP) version 9.0.0 or higher`로 실패하면 앱/KDS 테스트가 시작되기 전 known-incompatible 조합으로 본다.
 
 현재 정책:
 
 - Stopit이 AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 `com.google.dagger.hilt.android`, `com.google.dagger:hilt-android`, `com.google.dagger:hilt-compiler`의 `[2.59,)` 범위를 ignore한다.
 - 이 hold는 Hilt를 영구 보류한다는 뜻이 아니라, `AGP 9` 전환이 필요한 Android stack upgrade를 별도 toolchain lane에서 다루기 위한 안전장치다.
 - #928/#939/#984처럼 Kotlin plugin이 `Kotlin 2.3.21` 이상으로 올라가면서 기존 `kotlinOptions.jvmTarget` 사용이 `Using 'jvmTarget: String' is an error`로 실패하는 경우도 같은 guard 대상이다. #1009 이후 `app/build.gradle.kts`와 `core/kds/build.gradle.kts`는 `compilerOptions DSL`의 `JvmTarget.JVM_17`로 JVM target을 고정한다.
-- Kotlin 2.3+ 전환은 단순 Dependabot rerun이나 broad `android-gradle-patch-minor` merge가 아니라, #1009 build-script `compilerOptions DSL` migration을 baseline으로 삼고 KSP/Compose 호환성 확인, Android CI/Release Build 검증을 포함한 별도 Kotlin/toolchain lane에서 처리한다. 따라서 `.github/dependabot.yml`의 `[2.3,)` hold는 “legacy `kotlinOptions.jvmTarget`가 아직 남아서”가 아니라, 실제 Kotlin 2.3+ toolchain validation 전까지 broad weekly group이 Kotlin/Compose/serialization/JVM plugin을 자동 병합하지 못하게 하는 안전장치다.
+- Kotlin 2.3+ 전환은 단순 Dependabot rerun이나 broad Gradle Dependabot group merge가 아니라, #1009 build-script `compilerOptions DSL` migration을 baseline으로 삼고 KSP/Compose 호환성 확인, Android CI/Release Build 검증을 포함한 별도 Kotlin/toolchain lane에서 처리한다. 따라서 `.github/dependabot.yml`의 `[2.3,)` hold는 “legacy `kotlinOptions.jvmTarget`가 아직 남아서”가 아니라, 실제 Kotlin 2.3+ toolchain validation 전까지 broad weekly group이 Kotlin/Compose/serialization/JVM plugin을 자동 병합하지 못하게 하는 안전장치다.
 - AGP 9 전환 후보는 Gradle wrapper, AGP plugin, Kotlin, Compose compiler/BOM, KSP, Hilt plugin/runtime/compiler를 한 PR에 섞어 자동 merge하지 않고, compatibility matrix와 release/build verification을 명시한 `ready` issue/PR로 승격한다.
 - #914/#928/#984류 PR이 같은 Gradle configuration 단계 오류를 재현하면 단순 rerun하지 않는다. 해당 Dependabot PR은 close/hold 또는 별도 toolchain lane으로 전환하고, PR/이슈 코멘트에 `known-incompatible: Hilt 2.59+ requires AGP 9 while Stopit is on AGP 8.x` 또는 `known-incompatible: Kotlin 2.3+ requires dedicated Kotlin/toolchain lane validation before broad Dependabot merge`를 남긴다.
 - `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 Hilt 2.59+ / Kotlin 2.3+ ignore가 빠지거나 이 문서가 #914/#928/#984 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
@@ -390,7 +412,7 @@ PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX me
 
 현재 정책:
 
-- Stopit이 `compileSdk 35` / AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 weekly `android-gradle-patch-minor` 그룹에서 hold한다.
+- Stopit이 `compileSdk 35` / AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 hold한다.
   - `androidx.core:core-ktx [1.19,)`
   - `androidx.navigation:navigation-compose [2.9,)`
   - `androidx.lifecycle:lifecycle-runtime-ktx [2.11,)`
