@@ -10,9 +10,9 @@ PR #585는 docs-lane 계약 산출물이었다. PR #586(`7100a45c`) 이후에는
 
 ## 현재 문제
 
-- 2026-06-19T01:07:53Z live readback 기준 `newUsers = 615`이지만 `Direct = 339 / 615 = 55.1%`로 과다하다.
-- `Organic Search = 276 / 615 = 44.9%`로 #65 기준선 178명을 넘었지만, Play Console Search/Explore와 external/campaign source가 확인되지 않아 ASO 회복으로 표현하지 않는다.
-- `Paid Search`는 신규 0명인데 활성 20명·세션 147회가 남아 있어 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상 가능성이 크다.
+- 2026-06-25T21:14:08Z(+30일) live readback 기준 `newUsers = 684`이고 `Organic Search = 374 / 684 = 54.7%`로 #65 기준선 178명을 크게 넘었다.
+- 다만 `Direct = 310 / 684 = 45.3%`로 2026-06-19의 55.1%보다는 완화됐지만, Play Console Search/Explore와 external/campaign source가 확인되지 않아 ASO 회복으로 표현하지 않는다.
+- `Paid Search`는 신규 0명인데 활성 23명·세션 168회가 남아 있어 신규 획득 성과가 아니라 과거 사용자/재방문/분류 잔상 가능성이 크다.
 - PR #590 전까지 앱 코드는 Play Install Referrer SDK를 사용하지 않았으므로, 해당 wiring이 release/tag/Play deploy와 GA4 Admin metadata 확인을 넘기 전까지 GA4 `Direct`에는 진짜 direct와 referrer/UTM 손실이 섞일 수 있다.
 
 ## 범위
