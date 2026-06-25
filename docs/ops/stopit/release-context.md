@@ -90,6 +90,7 @@ Stopit은 `develop`을 일상 개발 기본 브랜치로, `main`을 릴리즈/�
     - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
     - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
     - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
+  - #609 해석 경계: routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외는 현재 triggered routine의 enabled/enforced 상태를 유지해야 한다. 위 두 routine-alarm receiver 항목은 현재 runtime suite에 남아 있는 **legacy release instrumentation selector**이며, release evidence에서는 boot/package/restore-aftercare downgrade gate와 현재 발화 루틴 enforcement 유지 예외를 분리해 기록한다. 예외 source of truth는 `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md`와 `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`다.
   - exact alarm allowed/restore gate: `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow` 후 아래 focused instrumentation을 실행
     - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
     - `RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm`

@@ -84,6 +84,7 @@ Release QA의 세부 단계 source of truth는 `.github/workflows/release-qa.yml
    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
    - 목적: 루틴 alarm 재예약 경로가 권한 부재를 조용히 성공으로 남기지 않는지 확인
+   - 해석 경계: 위 두 항목은 현재 runtime suite에 남아 있는 **legacy release instrumentation selector**다. routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외는 현재 triggered routine의 enabled/enforced 상태를 유지해야 하며, `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`와 `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md`가 source of truth다. boot/package/restore-aftercare downgrade gate와 현재 발화 루틴 enforcement 유지 예외를 release evidence에서 섞지 않는다.
 8. exact alarm allow/cancel/permission-change restore gate
    - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow`
    - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
