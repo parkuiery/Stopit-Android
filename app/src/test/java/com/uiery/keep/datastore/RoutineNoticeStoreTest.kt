@@ -33,6 +33,27 @@ class RoutineNoticeStoreTest {
     }
 
     @Test
+    fun pendingRoutineStartNoticeBoundaryCapsAndDedupesRepeatedMessages() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = RoutineNoticeStore(dataStore)
+
+        store.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Morning routine started"))
+        store.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Lunch routine started"))
+        store.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Evening routine started"))
+        store.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Lunch routine started"))
+        store.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Night routine started"))
+
+        assertEquals(
+            listOf(
+                "Evening routine started",
+                "Lunch routine started",
+                "Night routine started",
+            ),
+            store.readPendingRoutineStartNoticeMessages(),
+        )
+    }
+
+    @Test
     fun legacyPlainRoutineStartNoticeIsDrainedAndCleared() = runBlocking {
         val dataStore = FakeDataStore.withPrefs {
             this[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = "Legacy notice"
