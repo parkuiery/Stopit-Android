@@ -1606,7 +1606,7 @@ cd <repo-root>
 
 ### 부모 모드 runtime QA baseline
 
-issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, `ParentModeSessionController` commit boundary, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. PR #873은 `ParentModeSetupScreenAccessibilityTest`로 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정했다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
+issue #471 구현 PR에서는 `docs/PARENT_MODE_MVP.md`를 source of truth로 두고 same-device / PIN / bypass 경계를 evidence로 남긴다. PR #519로 policy/analytics, PR #584로 session persistence와 Accessibility decision foothold, `ParentModeSessionController` commit boundary, PR #748 merge commit `d73dac88c2bab17b446f4a1b9cd3a9b26ad1134d`로 setup 화면 duration preset, active/expired status, verified-PIN 10분 연장/즉시 종료 control이 `develop`에 반영됐다. PR #870은 직접 분 입력 필드를 추가했으므로 release-candidate QA에서는 preset만 누르지 말고 직접 분 입력 custom duration도 함께 spot-check한다. PR #873은 `ParentModeSetupScreenAccessibilityTest`로 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정했다. PR #1078 이후 이미 종료된 `expired` / `unlocked_by_pin` / `cancelled` session에 대한 연장/즉시 종료 재호출은 no-op으로 유지되어야 하며, release-candidate QA에서는 재활성화/중복 completion analytics 방지 evidence로 분리해 기록한다. QA-lane runtime baseline은 `KeepAccessibilityServiceIntegrationTest#activeParentModeWithoutManualKeep_launchesBlockActivityWithParentModeAttribution` 및 `#expiredActiveParentModeWithoutManualKeep_blocksPreviouslyAllowedAppWithExpiredEvidence`로 active/expired Parent Mode session을 AccessibilityService가 실제로 관찰해 `block_source=parent_mode` 차단을 요청하는 device/emulator evidence를 고정한다. 부모 모드는 기존 긴급해제와 분리된 보호자 확인 flow이므로, 보호자 PIN 해제 성공을 `emergency_unlock_completed`로 기록하지 않는다.
 
 권장 JVM/policy baseline:
 
@@ -1647,6 +1647,7 @@ cd <repo-root>
 - `ParentModeSessionController`가 setup validation 실패 시 저장/analytics를 하지 않고, 성공 시 session 저장과 `parent_mode_started` bucket event를 함께 commit하는지
 - `ParentModeSessionController`가 PIN 성공 후 연장/즉시 종료만 저장하고 PIN 실패/미설정 상태에서는 session과 analytics를 바꾸지 않는지
 - issue #874 stale Active guard: 만료 시각을 지난 active session에서 10분 연장/즉시 종료를 누르면 연장 또는 `PIN_UNLOCKED`가 아니라 `expired` state + `parent_mode_completed(end_reason=time_expired)`가 우선 저장되는지
+- PR #1078 finished-session no-op guard: 이미 `expired` / `unlocked_by_pin` / `cancelled`로 종료된 session에서 `extend(...)` / `endNow(...)` 경로가 다시 호출되어도 session이 재활성화되지 않고 `parent_mode_completed` analytics가 중복으로 남지 않는지
 - `ParentModeSessionController.markExpiredIfNeeded(...)`가 active session의 시간 만료를 `expired` state와 `parent_mode_completed(end_reason=time_expired)`로 한 번만 commit하고, 재호출/비활성 state에서는 no-op인지
 - `ParentModeSetupViewModel`이 setup 화면의 10/20/30분 preset, 직접 분 입력 custom duration, PR #946 active controls fresh guardian PIN 재입력 전 연장/종료 차단, active 상태 10분 연장, 보호자 PIN 즉시 종료, 만료 상태 동기화를 `ParentModeSessionController`와 DataStore session에 반영하는지
 - `ParentModeSetupScreenAccessibilityTest`가 setup/active/expired 화면의 TalkBack summary, 직접 입력 필드, PR #946 active controls guardian PIN 입력/확인 필드, 연장/종료 CTA enabled/disabled 상태를 반복 가능한 Compose baseline으로 고정하는지
@@ -1691,6 +1692,7 @@ cd <repo-root>
   - [ ] verified guardian PIN 상태에서 10분 연장 CTA는 session 만료 시각과 `parent_mode_extended` evidence를 갱신한다.
   - [ ] verified guardian PIN 상태에서 즉시 종료 CTA는 session state를 `unlocked_by_pin`으로 바꾸고 `parent_mode_completed(end_reason=pin_unlocked)` evidence를 남긴다.
   - [ ] stale Active expiry spot-check: active 화면을 켠 채 만료 시각을 넘긴 뒤 10분 연장/즉시 종료를 누르면 `expired` state와 `parent_mode_completed(end_reason=time_expired)`가 우선 기록되고, stale expiry 연장이나 `PIN_UNLOCKED` 오계측이 없다.
+  - [ ] finished-session no-op spot-check: `expired` / `unlocked_by_pin` / `cancelled` 상태가 된 뒤 같은 연장/즉시 종료 action이 재호출되어도 session이 `active`로 되살아나지 않고 `parent_mode_completed`가 중복 기록되지 않는다.
   - [ ] PIN 성공 후에도 0분/음수 extension은 거부되고 양수 extension만 만료 시각을 늘린다.
   - [ ] PIN 성공 시 즉시 종료가 된다.
   - [ ] 최근 앱, 설정, 알림 surface로 쉽게 우회되지 않는다.
@@ -1705,7 +1707,7 @@ cd <repo-root>
 - 원격 자녀 기기 관리, 가족 계정, 서버 동기화, FCM 기반 원격 연장/해제는 #471 MVP runtime QA의 pass/fail 기준이 아니라 후속 gate다.
 - 부모 모드 PIN과 긴급해제 quota/analytics를 섞지 않는다.
 - GA4 Admin 등록/metadata 확인 전에는 `parent_mode_*` 세부 breakdown을 제품 결론으로 과대해석하지 않는다.
-- PR #519/#584/#748/#870/#873/#897/#913/#946/#970 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
+- PR #519/#584/#748/#870/#873/#897/#913/#946/#970/#980/#1078 이후 `develop`에 반영된 repo-internal foothold를 “구현 전”, “active controls 미구현”, “직접 설정 미구현”, “TalkBack baseline 미정의”, “PIN 없는 active 연장/종료 허용”, “dedicated block analytics 미구현”, “setup screen_view 미계측”, “종료 후 재시작 경로 없음”, “finished session 재호출 guard 없음”으로 되돌리지 않는다. 남은 실제 경계는 release-candidate device UX spot-check와 실제 기기 screenshot/TalkBack 확인, release/tag/Play deploy, GA4 Admin metadata/readback이다.
 
 ### Usage Access 개인화 discovery QA baseline
 

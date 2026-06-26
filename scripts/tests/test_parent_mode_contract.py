@@ -162,6 +162,8 @@ class ParentModeContractTest(unittest.TestCase):
             "PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`",
             "PR #970",
             "PR #980",
+            "PR #1078",
+            "1099043541598bbf0d82ce8fd1624c36c3eff8b9",
             "a0360ab6",
             "duration preset 선택 UI",
             "직접 분 입력 필드",
@@ -173,6 +175,7 @@ class ParentModeContractTest(unittest.TestCase):
             "unlocked_by_pin`으로 오계측되지 않으며",
             "finished session 연장/종료 no-op",
             "재활성화와 completion analytics 중복 전송을 막는다",
+            "finished session 재호출 guard 없음",
             "자동 refresh를 예약",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
             "active controls fresh guardian PIN 입력/확인",
@@ -218,12 +221,16 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("PR #913", product_context)
         self.assertIn("PR #970", product_context)
         self.assertIn("PR #980", product_context)
+        self.assertIn("PR #1078", product_context)
+        self.assertIn("10990435", product_context)
         self.assertIn("a0360ab6", product_context)
         self.assertIn("ParentModeSetupScreenAccessibilityTest", product_context)
         self.assertIn("active controls 미구현", product_context)
         self.assertIn("직접 설정 미구현", product_context)
         self.assertIn("TalkBack baseline 미정의", product_context)
         self.assertIn("fresh guardian PIN 입력/확인이 다시 완료되기 전까지 연장/즉시 종료 CTA를 disabled", product_context)
+        self.assertIn("재활성화나 completion analytics 중복", product_context)
+        self.assertIn("finished session 재호출 guard 없음", product_context)
         self.assertIn("상태로 되돌리지 않는다", product_context)
         self.assertIn("남은 경계는 release-candidate device UX spot-check", product_context)
         self.assertNotIn("2026-06-09 code-lane PR", runbook)
@@ -295,11 +302,14 @@ class ParentModeContractTest(unittest.TestCase):
         self.assertIn("expiresAtMillis", qa_checklist)
         self.assertIn("0분/음수 extension은 거부", qa_checklist)
         self.assertIn("issue #874 stale Active guard", qa_checklist)
+        self.assertIn("PR #1078 finished-session no-op guard", qa_checklist)
         self.assertIn("stale Active expiry spot-check", qa_checklist)
+        self.assertIn("finished-session no-op spot-check", qa_checklist)
         self.assertIn("PIN_UNLOCKED", qa_checklist)
-        self.assertIn("PR #519/#584/#748/#870/#873/#897/#913/#946/#970", qa_checklist)
+        self.assertIn("PR #519/#584/#748/#870/#873/#897/#913/#946/#970/#980/#1078", qa_checklist)
         self.assertIn("dedicated block analytics 미구현", qa_checklist)
         self.assertIn("setup screen_view 미계측", qa_checklist)
+        self.assertIn("finished session 재호출 guard 없음", qa_checklist)
         self.assertIn("active controls fresh guardian PIN", qa_checklist)
         self.assertIn("PIN 없는 active 연장/종료 허용", qa_checklist)
         self.assertIn("active controls 미구현", qa_checklist)
