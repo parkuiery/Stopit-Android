@@ -71,6 +71,7 @@ class BlockedAppAnalyticsPrivacyContractTest(unittest.TestCase):
         self.assertIn("PR #617 Android payload 전환 완료", docs["ga4_runbook"])
         self.assertIn("`blocked_app_package` | legacy/deprecated", docs["event_dictionary"])
         self.assertIn("PR #617", docs["event_dictionary"])
+        self.assertNotIn("`blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상", docs["event_dictionary"])
         self.assertIn("PR #617", PRODUCT_DASHBOARD.read_text())
         self.assertIn("PR #617", METRICS_ANALYSIS.read_text())
         self.assertNotIn("후속 code-lane은 `blocked_app_category_bucket`", docs["event_dictionary"])
