@@ -102,12 +102,6 @@ fun EmergencyUnlockBottomSheetContent(
         onStepViewed(state.analyticsStepName)
     }
 
-    LaunchedEffect(state.analyticsStepName, state.validationReason) {
-        state.validationReason?.let { reason ->
-            onValidationBlocked(state.analyticsStepName, reason)
-        }
-    }
-
     fun submitUnlock() {
         val request = state.toUnlockRequest()
         onUnlock(
@@ -116,6 +110,15 @@ fun EmergencyUnlockBottomSheetContent(
             request.apps,
             request.durationMinutes,
         )
+    }
+
+    fun advanceOrReportValidation() {
+        val validationReason = state.validationReason
+        if (validationReason != null) {
+            onValidationBlocked(state.analyticsStepName, validationReason)
+        } else {
+            state = state.goNext()
+        }
     }
 
     Column(
@@ -155,7 +158,7 @@ fun EmergencyUnlockBottomSheetContent(
                     selectedReasonReflectionTextRes = state.selectedReasonReflectionTextRes,
                     onReasonSelected = { state = state.selectReason(it) },
                     onCustomReasonChanged = { state = state.changeCustomReason(it) },
-                    onNext = { state = state.goNext() },
+                    onNext = { advanceOrReportValidation() },
                 )
                 EmergencyUnlockBottomSheetStep.APPS -> AppSelectionStep(
                     blockedApps = state.blockedApps,
@@ -163,14 +166,14 @@ fun EmergencyUnlockBottomSheetContent(
                     stepHelperTextRes = state.stepHelperTextRes,
                     validationHelperTextRes = state.validationHelperTextRes,
                     onSelectionChanged = { state = state.selectApps(it) },
-                    onNext = { state = state.goNext() },
+                    onNext = { advanceOrReportValidation() },
                 )
                 EmergencyUnlockBottomSheetStep.DURATION -> DurationStep(
                     durationOptions = state.durationOptions,
                     selectedDuration = state.selectedDurationMinutes,
                     stepHelperTextRes = state.stepHelperTextRes,
                     onDurationSelected = { state = state.selectDuration(it) },
-                    onRequest = { state = state.goNext() },
+                    onRequest = { advanceOrReportValidation() },
                 )
                 EmergencyUnlockBottomSheetStep.COUNTDOWN -> CountdownStep(
                     seconds = state.countdownSeconds,
@@ -313,7 +316,6 @@ private fun ReasonStep(
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
-            enabled = selectedReason != null && (selectedReason != "other" || customReason.isNotBlank()),
             onClick = onNext,
         )
     }
@@ -396,7 +398,6 @@ private fun AppSelectionStep(
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
             text = stringResource(R.string.emergency_unlock_next),
-            enabled = selectedApps.isNotEmpty(),
             onClick = onNext,
         )
     }

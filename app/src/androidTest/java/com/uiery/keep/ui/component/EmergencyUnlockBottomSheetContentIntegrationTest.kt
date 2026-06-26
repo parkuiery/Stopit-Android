@@ -1,7 +1,6 @@
 package com.uiery.keep.ui.component
 
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -54,7 +53,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_step_purpose)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_required_helper)).assertExists()
-        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsNotEnabled()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled()
 
         composeRule.onNodeWithTag("emergency_unlock_reason_habit").performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_habit_reflection)).assertExists()
@@ -133,6 +132,42 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
 
         assertTrue(dismissed)
         assertEquals(emptyList<EmergencyUnlockBottomSheetRequest>(), unlockedRequests)
+    }
+
+    @Test
+    fun validationBlockedAnalyticsIsEmittedOnlyAfterBlockedNextAttempt() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageName = context.packageName
+        val validationEvents = mutableListOf<Pair<String, String>>()
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onValidationBlocked = { stepName, validationReason ->
+                        validationEvents += stepName to validationReason
+                    },
+                    onUnlock = { _, _, _, _ -> },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        assertEquals(emptyList<Pair<String, String>>(), validationEvents)
+
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
+
+        assertEquals(listOf("app_selection" to "missing_app_selection"), validationEvents)
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_apps)).assertExists()
+
+        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
+
+        assertEquals(listOf("app_selection" to "missing_app_selection"), validationEvents)
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
     }
 
     @Test
