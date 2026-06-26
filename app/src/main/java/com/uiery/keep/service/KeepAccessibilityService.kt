@@ -69,7 +69,7 @@ class KeepAccessibilityService :
     private var cachedParentModeSession: ParentModeSession? = null
 
     private val handler = Handler(Looper.getMainLooper())
-    private val isCleaningUp = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val isCleaningUp = AtomicBoolean(false)
     private var lastBlockKey: String? = null
     private var lastBlockElapsedRealtime: Long = 0L
     private var scheduledEmergencyUnlockExpireTime: Long = 0L
@@ -77,6 +77,7 @@ class KeepAccessibilityService :
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
     private var timeBasedStartReevaluationRunnable: Runnable? = null
+    private val runtimeCollectorBootstrap = AccessibilityRuntimeCollectorBootstrap()
 
     companion object {
         private const val SAME_BLOCK_DEDUPE_WINDOW_MS = 1_500L
@@ -86,71 +87,73 @@ class KeepAccessibilityService :
     override fun onServiceConnected() {
         super.onServiceConnected()
         KeepAccessibilityServiceDebugState.update(applicationContext) { it.copy(isServiceConnected = true) }
-        val entryPoint = EntryPointAccessors.fromApplication(
-            applicationContext,
-            RoutineRuntimeEntryPoint::class.java,
-        )
-        launch {
-            entryPoint.blockingStateStore().accessibilitySnapshot
-                .withAccessibilityRuntimeRecovery(
-                    source = AccessibilityRuntimeFlowSource.BlockingState,
-                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
-                )
-                .collect { snapshot ->
-                    cachedPrefs = snapshot
-                    KeepAccessibilityServiceDebugState.update(applicationContext) {
-                        it.copy(
-                            observedIsKeep = cachedPrefs.isKeep,
-                            observedPreventUninstall = cachedPrefs.preventUninstall,
-                            observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
-                            observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
-                            observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
-                        )
-                    }
-                    scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
-                    syncEmergencyUnlockCountdownNotification(
-                        expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
-                        notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+        runtimeCollectorBootstrap.startIfNeeded {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                applicationContext,
+                RoutineRuntimeEntryPoint::class.java,
+            )
+            launch {
+                entryPoint.blockingStateStore().accessibilitySnapshot
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.BlockingState,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
                     )
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                }
-        }
-        launch {
-            entryPoint.routineRepository().fetchAll()
-                .withAccessibilityRuntimeRecovery(
-                    source = AccessibilityRuntimeFlowSource.Routines,
-                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
-                )
-                .collect { routines ->
-                    cachedRoutines = routines
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextTimeBasedStartReevaluation()
-                }
-        }
-        launch {
-            entryPoint.goalLockRepository().fetchAll()
-                .withAccessibilityRuntimeRecovery(
-                    source = AccessibilityRuntimeFlowSource.GoalLocks,
-                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
-                )
-                .collect { goalLocks ->
-                    cachedGoalLocks = goalLocks
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextTimeBasedStartReevaluation()
-                }
-        }
-        launch {
-            ParentModeSessionStore(applicationContext.dataStore).observe()
-                .withAccessibilityRuntimeRecovery(
-                    source = AccessibilityRuntimeFlowSource.ParentMode,
-                    onRecoveryEvent = ::recordRuntimeFlowRecovery,
-                )
-                .collect { session ->
-                    cachedParentModeSession = session
-                    updateParentModeDebugState(session)
-                    reevaluateCurrentForegroundAfterStateUpdate()
-                    scheduleNextTimeBasedStartReevaluation()
-                }
+                    .collect { snapshot ->
+                        cachedPrefs = snapshot
+                        KeepAccessibilityServiceDebugState.update(applicationContext) {
+                            it.copy(
+                                observedIsKeep = cachedPrefs.isKeep,
+                                observedPreventUninstall = cachedPrefs.preventUninstall,
+                                observedSelectedAppPackages = cachedPrefs.selectedAppPackages,
+                                observedEmergencyUnlockApps = cachedPrefs.emergencyUnlockApps,
+                                observedEmergencyUnlockExpireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                            )
+                        }
+                        scheduleEmergencyUnlockExpiryCheck(cachedPrefs.emergencyUnlockExpireTimeMillis)
+                        syncEmergencyUnlockCountdownNotification(
+                            expireTimeMillis = cachedPrefs.emergencyUnlockExpireTimeMillis,
+                            notificationHelper = entryPoint.emergencyUnlockNotificationHelper(),
+                        )
+                        reevaluateCurrentForegroundAfterStateUpdate()
+                    }
+            }
+            launch {
+                entryPoint.routineRepository().fetchAll()
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.Routines,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                    )
+                    .collect { routines ->
+                        cachedRoutines = routines
+                        reevaluateCurrentForegroundAfterStateUpdate()
+                        scheduleNextTimeBasedStartReevaluation()
+                    }
+            }
+            launch {
+                entryPoint.goalLockRepository().fetchAll()
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.GoalLocks,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                    )
+                    .collect { goalLocks ->
+                        cachedGoalLocks = goalLocks
+                        reevaluateCurrentForegroundAfterStateUpdate()
+                        scheduleNextTimeBasedStartReevaluation()
+                    }
+            }
+            launch {
+                ParentModeSessionStore(applicationContext.dataStore).observe()
+                    .withAccessibilityRuntimeRecovery(
+                        source = AccessibilityRuntimeFlowSource.ParentMode,
+                        onRecoveryEvent = ::recordRuntimeFlowRecovery,
+                    )
+                    .collect { session ->
+                        cachedParentModeSession = session
+                        updateParentModeDebugState(session)
+                        reevaluateCurrentForegroundAfterStateUpdate()
+                        scheduleNextTimeBasedStartReevaluation()
+                    }
+            }
         }
     }
 
@@ -181,6 +184,7 @@ class KeepAccessibilityService :
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        runtimeCollectorBootstrap.reset()
         KeepAccessibilityServiceDebugState.reset(applicationContext)
         job.cancel()
     }
