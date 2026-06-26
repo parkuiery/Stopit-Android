@@ -25,6 +25,12 @@ EXPECTED_STATIC_POLICY_HELPERS = {
 
 
 class AndroidCiPathGatingTest(unittest.TestCase):
+    def test_android_ci_uses_current_paths_filter_major(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("uses: dorny/paths-filter@v4", workflow)
+        self.assertNotIn("dorny/paths-filter@v3", workflow)
+
     def test_android_ci_filter_includes_wrapper_launchers(self):
         workflow = WORKFLOW_PATH.read_text()
 

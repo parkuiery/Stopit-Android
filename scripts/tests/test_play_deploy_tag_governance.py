@@ -47,7 +47,7 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         docs += "\n--- docs/ops/stopit/release-context.md ---\n" + RELEASE_CONTEXT_PATH.read_text()
 
         self.assertIn("Node 22", docs)
-        self.assertIn("actions/setup-node@v5", docs)
+        self.assertIn("actions/setup-node@v6", docs)
         self.assertIn("validate-play-rollout-inputs.js", docs)
         self.assertIn("promote-google-play-track.js", docs)
 
@@ -125,7 +125,7 @@ class PlayDeployTagGovernanceTest(unittest.TestCase):
         self.assertLess(node_setup_index, guardrail_index)
         self.assertLess(node_setup_index, non_production_rollout_index)
         self.assertLess(node_setup_index, production_rollout_index)
-        self.assertIn("uses: actions/setup-node@v5", node_setup_step)
+        self.assertIn("uses: actions/setup-node@v6", node_setup_step)
         self.assertIn("node-version: '22'", node_setup_step)
 
     def test_non_production_staged_rollout_inputs_are_validated_before_secret_decode(self):

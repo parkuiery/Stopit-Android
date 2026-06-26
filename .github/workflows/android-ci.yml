@@ -37,7 +37,7 @@ jobs:
 
       - name: Classify changed paths
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             # Build-critical root files should materialize Android CI even when app sources do not change.
