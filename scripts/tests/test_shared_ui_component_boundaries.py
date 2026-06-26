@@ -7,6 +7,8 @@ APP_MAIN = REPO_ROOT / "app/src/main/java/com/uiery/keep"
 KDS_MAIN = REPO_ROOT / "core/kds/src/main/java/com/uiery/kds"
 KDS_README = REPO_ROOT / "core/kds/README.md"
 APP_SHARED_UI_AGENTS = APP_MAIN / "ui/component/AGENTS.md"
+LOCK_FEATURE_AGENTS = APP_MAIN / "feature/lock/AGENTS.md"
+LOCK_COMPONENT_AGENTS = APP_MAIN / "feature/lock/component/AGENTS.md"
 SHARED_UI_RUNBOOK = REPO_ROOT / "docs/SHARED_UI_OWNERSHIP_BOUNDARY.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs/METRICS_ANALYSIS.md"
 ENGINEERING_CONTEXT = REPO_ROOT / "docs/ops/stopit/engineering-context.md"
@@ -267,6 +269,23 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertIn("#492", doc)
         self.assertIn("closed baseline", doc)
 
+    def test_lock_component_agents_describes_issue_876_cleaned_baseline(self):
+        lock_doc = LOCK_FEATURE_AGENTS.read_text()
+        component_doc = LOCK_COMPONENT_AGENTS.read_text()
+
+        for text in (lock_doc, component_doc):
+            self.assertIn("#876", text)
+            self.assertIn("app shared UI", text)
+            self.assertIn("CountDownContent", text)
+            self.assertIn("EmergencyUnlockBottomSheetContent", text)
+
+        for stale in (
+            "Composable building blocks for the lock screen countdown and emergency-unlock bottom sheet",
+            "`CountDownContent.kt` | Kotlin source for count down content",
+            "`EmergencyUnlockBottomSheetContent.kt` | Kotlin source for emergency unlock bottom sheet content",
+        ):
+            self.assertNotIn(stale, component_doc)
+
     def test_downstream_docs_describe_issue_492_as_closed_baseline(self):
         documents = {
             "docs/METRICS_ANALYSIS.md": METRICS_ANALYSIS.read_text(),
@@ -284,7 +303,8 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertIn("#492 closed 이후 app shared UI baseline", documents["docs/ops/stopit/engineering-context.md"])
         self.assertIn("#492 closed 이후 PermissionSettingDialog/TimerPicker app shared UI baseline", documents["docs/AGENTS.md"])
         self.assertIn("#876", documents["docs/ops/stopit/engineering-context.md"])
-        self.assertIn("#876 app root `BlockScreen` → lock feature-private component open drift", documents["docs/AGENTS.md"])
+        self.assertIn("#876 app root `BlockScreen` → lock feature-private component drift는 repo-internal cleaned baseline", documents["docs/AGENTS.md"])
+        self.assertNotIn("#876 app root `BlockScreen` → lock feature-private component open drift", documents["docs/AGENTS.md"])
 
 
 if __name__ == "__main__":

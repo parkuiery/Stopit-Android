@@ -1,16 +1,20 @@
 <!-- Parent: ../AGENTS.md -->
 <!-- Generated: 2026-04-27 | Updated: 2026-04-27 -->
 
-# Compose components
+# lock feature-private components
 
 ## Purpose
-Composable building blocks for the lock screen countdown and emergency-unlock bottom sheet.
+Feature-private component package for lock-only UI. The shared Lock/Block countdown and emergency-unlock bottom sheet primitives no longer live here; #876 moved them to app shared UI under `app/src/main/java/com/uiery/keep/ui/component`.
 
 ## Key Files
-| File | Description |
+No Kotlin source files are currently owned by this package.
+
+Shared Lock/Block UI ownership now lives in app shared UI:
+
+| Shared file | Current owner |
 |------|-------------|
-| `CountDownContent.kt` | Kotlin source for count down content. |
-| `EmergencyUnlockBottomSheetContent.kt` | Kotlin source for emergency unlock bottom sheet content. |
+| `app/src/main/java/com/uiery/keep/ui/component/CountDownContent.kt` | Countdown display shared by Lock and Block runtime surfaces. |
+| `app/src/main/java/com/uiery/keep/ui/component/EmergencyUnlockBottomSheetContent.kt` | Emergency-unlock bottom sheet flow shared by Lock and Block runtime surfaces. |
 
 ## Subdirectories
 No documented child directories.
@@ -20,7 +24,7 @@ No documented child directories.
 ### Working In This Directory
 - Follow the existing Orbit MVI pattern: immutable `UiState`, one-time `SideEffect`, and intent methods that reduce state or post effects.
 - Keep Composable screens stateless where practical; route user events into the feature ViewModel.
-- Place feature-private UI pieces in `component/` instead of expanding screen files indefinitely.
+- Do not reintroduce `CountDownContent.kt` or `EmergencyUnlockBottomSheetContent.kt` here. If a lock-only UI piece is added later, keep it feature-private only when no other feature/app-root blocking surface imports it.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest
