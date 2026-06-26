@@ -112,6 +112,7 @@ jobs:
           path: |
             release-qa-diagnostics/**
             app/build/reports/**
+            app/build/reports/problems/**
             app/build/test-results/**
             app/build/outputs/logs/**
             app/build/outputs/mapping/prodRelease/**
@@ -213,6 +214,7 @@ jobs:
           name: stopit-release-instrumentation-diagnostics
           path: |
             app/build/reports/androidTests/**
+            app/build/reports/problems/**
             app/build/outputs/androidTest-results/**
             runtime-diagnostics/**
           if-no-files-found: ignore
