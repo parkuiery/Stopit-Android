@@ -6,7 +6,7 @@ Issue: #779
 
 긴급해제 플로우는 신뢰/안전 민감 흐름이다. 기존 `emergency_unlock_used`와 `emergency_unlock_completed`만으로는 사용자가 reason → app selection → duration → countdown 중 어느 단계에서 멈추는지, 어떤 검증 실패가 실제 병목인지 알기 어렵다.
 
-이 문서는 #779의 source of truth다. PR #781은 Android 구현 전 계약을 먼저 고정했고, PR #783(`12c47108`)은 Android `KeepAnalytics` / `FirebaseKeepAnalytics` API, `EmergencyUnlockBottomSheetContent` 단계/검증/취소 wiring, Block/Lock entry surface 연결, privacy-safe payload 테스트를 `develop`에 반영했다. 후속 QA hardening은 `emergency_unlock_validation_blocked`가 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven signal이 되도록 고정한다. 이제 repo-internal Android wiring은 완료 상태이며, 남은 경계는 GA4 Admin custom dimension 등록, release/tag/Play deploy 포함, 배포 후 D+14/D+30 readback이다. 후속 repo-internal acceptance가 추가되지 않는 한 이 이슈는 `Refs #779` 상태로 외부/측정 경계를 추적한다.
+이 문서는 #779의 source of truth다. PR #781은 Android 구현 전 계약을 먼저 고정했고, PR #783(`12c47108`)은 Android `KeepAnalytics` / `FirebaseKeepAnalytics` API, `EmergencyUnlockBottomSheetContent` 단계/검증/취소 wiring, Block/Lock entry surface 연결, privacy-safe payload 테스트를 `develop`에 반영했다. PR #1086(`af8a7be1`)은 `emergency_unlock_validation_blocked`가 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven signal일 때만 기록되도록 좁혔다. 이제 repo-internal Android wiring과 action-driven validation-blocked QA hardening은 완료 상태이며, 남은 경계는 GA4 Admin custom dimension 등록, release/tag/Play deploy 포함, 배포 후 D+14/D+30 readback이다. 후속 repo-internal acceptance가 추가되지 않는 한 이 이슈는 `Refs #779` 상태로 외부/측정 경계를 추적한다.
 
 ## 현재 기준선
 
@@ -144,6 +144,13 @@ GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문�
 - `FirebaseKeepAnalyticsTest`, `EmergencyUnlockBottomSheetStateTest`, `BlockViewModelTest`가 payload/enum/source contract를 고정한다.
 - PR #783의 검증: `python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract -v`, focused `:app:testDevDebugUnitTest` for `FirebaseKeepAnalyticsTest` / `EmergencyUnlockBottomSheetStateTest` / Block source test, `git diff --check`, broader `:app:testDevDebugUnitTest :app:assembleProdDebug`, remote Branch Hygiene / Android CI / Ops CI green.
 
+후속 QA hardening (PR #1086 / merge commit `af8a7be1d1e810e72d813cd2a7eaa3412173a827`):
+
+- `emergency_unlock_validation_blocked`는 passive invalid render나 initial disabled state에서 자동 기록하지 않는다.
+- 사용자가 Next/Request를 눌렀지만 현재 단계 검증에 막힌 경우에만 `validation_reason` enum을 기록한다.
+- `EmergencyUnlockBottomSheetContentIntegrationTest#validationBlockedAnalyticsIsEmittedOnlyAfterBlockedNextAttempt`가 initial invalid render에서는 이벤트 없음, blocked Next attempt에서는 `app_selection/missing_app_selection` 기록을 고정한다.
+- PR #1086의 원격 검증: Branch Hygiene, Android CI Fast verification, Android CI Runtime smoke gate, Ops CI docs/runbook contract, Release helper script verification green.
+
 남은 경계:
 
 - GA4 Admin custom dimension 등록과 metadata 재확인.
@@ -190,7 +197,7 @@ GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문�
 
 Repo-internal 완료:
 
-- [x] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다. 검증 실패 이벤트는 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven attempt에서만 기록된다. (`PR #783` + QA hardening)
+- [x] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다. 검증 실패 이벤트는 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven attempt에서만 기록된다. (`PR #783`, `PR #1086`)
 - [x] custom reason 원문, app name/package/list, raw timestamp/history가 payload에 들어가지 않음을 테스트로 보장한다. (`PR #783`)
 - [x] reason-required ON/OFF 양쪽 flow 테스트가 새 이벤트 계약을 검증한다. (`PR #783` + QA baseline)
 - [x] GA4 등록 runbook, event dictionary, metrics/product docs, QA checklist, ops context pack에 신규 event/parameter readback 기준과 14일 확인 조건이 추가된다. (`PR #781`, `PR #798`)
@@ -201,4 +208,4 @@ Repo-internal 완료:
 - [ ] #779 포함 버전이 release/tag/Play deploy를 지난다.
 - [ ] 배포 후 D+14/D+30 readback으로 단계별 이탈/검증 실패 분포를 해석한다.
 
-PR #781은 계약과 운영 경계를 고정했고, PR #783은 Android 이벤트 구현을 `develop`에 반영했으며, PR #798은 post-wiring 문서/런북 동기화를 완료했다. 후속 QA hardening은 validation-blocked를 passive invalid render가 아닌 action-driven blocked attempt로 좁혔다. 현재 남은 경계는 GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback이다.
+PR #781은 계약과 운영 경계를 고정했고, PR #783은 Android 이벤트 구현을 `develop`에 반영했으며, PR #798은 post-wiring 문서/런북 동기화를 완료했다. PR #1086은 validation-blocked를 passive invalid render가 아닌 action-driven blocked attempt로 좁힌 최종 repo-internal hardening이다. 현재 남은 경계는 GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback이다.
