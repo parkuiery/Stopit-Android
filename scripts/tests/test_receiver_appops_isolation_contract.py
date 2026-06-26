@@ -20,8 +20,8 @@ class ReceiverAppOpsIsolationContractTest(unittest.TestCase):
             "bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm",
             "packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent",
             "packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm",
-            "routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent",
-            "routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm",
+            "routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent",
+            "routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm",
         ]
         for test_name in deny_tests:
             body = self._kotlin_test_body(text, test_name)
@@ -37,7 +37,7 @@ class ReceiverAppOpsIsolationContractTest(unittest.TestCase):
         expectations = {
             "bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent": "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             "packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent": "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            "routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule": "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            "routineAlarmReceiverWithoutExactAlarmPermissionKeepsTriggeredRoutineEnabledAndDoesNotReschedule": "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             "routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine": "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
         }
         for test_name, message in expectations.items():
@@ -51,7 +51,7 @@ class ReceiverAppOpsIsolationContractTest(unittest.TestCase):
         suites = RUNTIME_SUITES.read_text()
         self.assertIsNotNone(
             re.search(
-                r'"release_exact_alarm_denied": \[.*ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent.*ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm.*\]',
+                r'"release_exact_alarm_denied": \[.*ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent.*ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm.*\]',
                 suites,
                 re.S,
             )

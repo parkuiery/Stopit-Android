@@ -247,7 +247,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     }
 
     @Test
-    fun routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent() = runBlocking {
+    fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent() = runBlocking {
         assertTrue(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             !RoutineScheduler(context).canScheduleExactAlarms(),
@@ -271,20 +271,20 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         waitUntil("RoutineAlarmReceiver should post the current routine-start notification even when exact alarm permission is missing") {
             activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
-        waitUntil("RoutineAlarmReceiver should disable the routine in DataStore when exact alarm permission is missing") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should keep the triggered routine enabled in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
         assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
-        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNotNull(findPostedNotification(TEST_ROUTINE_ID))
         assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
     @Test
-    fun routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
+    fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm() = runBlocking {
         grantPostNotificationsPermission()
         val repeatDays = multiDayRepeatDays()
         assertTrue(
@@ -315,13 +315,13 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineId = TEST_ROUTINE_ID,
         )
 
-        waitUntil("RoutineAlarmReceiver should disable the multi-day routine in DataStore when exact alarm permission is missing") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should keep the triggered multi-day routine enabled in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
         assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
-        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNotNull(findPostedNotification(TEST_ROUTINE_ID))
         assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
