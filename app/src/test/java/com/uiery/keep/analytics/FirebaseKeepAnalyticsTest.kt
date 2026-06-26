@@ -316,24 +316,24 @@ class FirebaseKeepAnalyticsTest {
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
-                    KeepAnalyticsParam.ROUTINE_ID to "42",
                 ),
             ),
             backend.loggedEvents[4],
         )
         assertFalse(backend.loggedEvents[4].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[4].params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
-                    KeepAnalyticsParam.GOAL_LOCK_ID to "77",
                 ),
             ),
             backend.loggedEvents[5],
         )
         assertFalse(backend.loggedEvents[5].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[5].params.containsKey(KeepAnalyticsParam.GOAL_LOCK_ID))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
@@ -351,9 +351,9 @@ class FirebaseKeepAnalyticsTest {
     fun coreActionAndDeviceRegistrationEventsUseRequiredContract() {
         analytics.trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds = 120,
-            blockingMode = AnalyticsBlockSource.MANUAL_KEEP,
+            blockingMode = AnalyticsBlockSource.GOAL_LOCK,
             blockedAppPackage = "com.example.blocked",
-            routineId = null,
+            goalLockId = "goal-1",
         )
         analytics.trackCoreActionCompleted(
             elapsedSinceFirstOpenSeconds = 180,
@@ -370,13 +370,14 @@ class FirebaseKeepAnalyticsTest {
                 name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 120L,
-                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.MANUAL_KEEP,
+                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.GOAL_LOCK,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[0],
         )
         assertFalse(backend.loggedEvents[0].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.GOAL_LOCK_ID))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
@@ -384,12 +385,12 @@ class FirebaseKeepAnalyticsTest {
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 180L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.ROUTINE,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
-                    KeepAnalyticsParam.ROUTINE_ID to "routine-1",
                 ),
             ),
             backend.loggedEvents[1],
         )
         assertFalse(backend.loggedEvents[1].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
         assertEquals(

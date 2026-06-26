@@ -62,11 +62,11 @@
 
 | 이벤트 | 기존/legacy 축 | 새 privacy-safe 축 | 전환 상태 |
 | --- | --- | --- | --- |
-| `app_block_intercepted` | `blocked_app_package` | `blocked_app_category_bucket`, `block_source`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
-| `first_core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
-| `core_action_completed` | `blocked_app_package` | `blocked_app_category_bucket`, `blocking_mode`, `routine_id?`, `goal_lock_id?` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료 |
+| `app_block_intercepted` | `blocked_app_package`, `routine_id`, `goal_lock_id` | `blocked_app_category_bucket`, `block_source` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료. #1079 이후 routine/goal-lock row id도 외부 GA4 payload에서 제거 |
+| `first_core_action_completed` | `blocked_app_package`, `routine_id`, `goal_lock_id` | `blocked_app_category_bucket`, `blocking_mode` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료. #1079 이후 routine/goal-lock row id도 외부 GA4 payload에서 제거 |
+| `core_action_completed` | `blocked_app_package`, `routine_id`, `goal_lock_id` | `blocked_app_category_bucket`, `blocking_mode` | PR #617(`f8eb0ebe`) 이후 raw package payload 제거 및 category bucket 전환 완료. #1079 이후 routine/goal-lock row id도 외부 GA4 payload에서 제거 |
 
-`routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 id다. 목표 이름, 루틴 이름, 앱 label/package를 이 id 대신 보내지 않는다. Parent Mode 차단은 `block_source=parent_mode`로 분리하되, 아이 이름, 허용 앱 package/name/list, PIN 원문/세부값을 차단 앱 analytics 축으로 끌어오지 않는다.
+`routine_id`와 `goal_lock_id`는 이름/앱 원문이 아니라 내부 row id지만, 장기 행동을 특정 루틴/목표 잠금에 연결할 수 있는 attribution key다. #1079 이후 이 값들은 Activity extra, BlockActivity debug-state, instrumentation QA 같은 repo-internal 경계에만 남기고 GA4/Firebase Analytics payload와 GA4 Admin custom dimension 신규 등록 대상에서는 제외한다. Parent Mode 차단은 `block_source=parent_mode`로 분리하되, 아이 이름, 허용 앱 package/name/list, PIN 원문/세부값을 차단 앱 analytics 축으로 끌어오지 않는다.
 
 ## repo-internal 구현 상태
 
