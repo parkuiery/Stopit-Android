@@ -389,6 +389,7 @@ jobs:
           name: stopit-play-deploy-release-diagnostics
           path: |
             app/build/reports/**
+            app/build/reports/problems/**
             app/build/test-results/**
             app/build/outputs/logs/**
             app/build/outputs/mapping/prodRelease/**
