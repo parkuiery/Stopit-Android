@@ -119,8 +119,8 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
-| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 첫 핵심 행동 완료. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
-| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 반복 핵심 행동 완료. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
+| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 첫 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
+| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 반복 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
 
 첫 가치 경험 해석:
 - `first_lock_configured`는 차단 준비 완료 신호이며 실제 차단 완료가 아니다. 홈 CTA/타이머 안내 문구가 이 이벤트 직후에 “차단 완료”라고 과장하면 안 된다.
@@ -143,7 +143,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약. 홈 countdown은 선택한 `day/hour/minute` duration 자체를 분 단위로 기록하고, timer는 예약 deadline까지 남은 시간을 기록한다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. `blocked_app_package` 원문은 #611 privacy 계약에 따라 퇴역 대상 |
+| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 | `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. PR #783 Android wiring은 `develop`에 반영됐지만 GA4 등록·release 전 live 0건은 병목 부재로 해석하지 않는다. |
