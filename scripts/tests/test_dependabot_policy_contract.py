@@ -337,6 +337,35 @@ class DependabotPolicyContractTest(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, docs)
 
+    def test_current_semver_major_audit_records_issue_1069_decisions(self):
+        runbook = DEPENDENCY_RUNBOOK.read_text()
+
+        for required in [
+            "2026-06-26 Dependabot semver-major audit (#1069)",
+            "actions/setup-node v5 -> v6",
+            "dorny/paths-filter v3 -> v4",
+            "Orbit MVI `9.x -> 10/11`",
+            "firebase-admin 13 -> 14",
+            "Play Services Ads `23.x -> 24/25`",
+            "AGP `8.10.1 -> 9.x`",
+            "Kotlin `2.1.x -> 2.3+/2.4`",
+            "KSP `2.2+`",
+            "Hilt `2.59+`",
+            "compileSdk 36/37",
+            "r0adkll/upload-google-play",
+            "#1065",
+            "#1064",
+            "#1061",
+            "#1060",
+            "#1046",
+            "#1044",
+            "#1041",
+            "#918",
+            "다음 월간 maintenance backlog review",
+        ]:
+            with self.subTest(required=required):
+                self.assertIn(required, runbook)
+
 
 if __name__ == "__main__":
     unittest.main()

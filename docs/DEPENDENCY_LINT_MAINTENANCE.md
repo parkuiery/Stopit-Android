@@ -225,6 +225,80 @@
 - 예외: `r0adkll/upload-google-play`는 patch/minor라도 자동 Dependabot PR 대상이 아니다. 이 action은 Google Play 업로드 side effect와 signed AAB provenance를 잇는 release-critical boundary이므로 `.github/dependabot.yml`에서 ignore하고, 새 SHA 검토가 필요할 때만 별도 release-governance PR에서 `.github/workflows/play-deploy.yml`, `scripts.tests.test_release_provenance_workflow_contract`, `docs/PLAY_DEPLOYMENT.md`, `docs/GIT_WORKFLOW.md`, `docs/RELEASE_CHECKLIST.md`, `docs/ops/stopit/release-context.md`를 함께 갱신한다.
 - Play deploy, release secret, signing secret, Firebase service account secret은 semver-major 감사의 산출물이 아니다. major upgrade PR이 이런 secret 경계를 요구하면 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 release-governance issue로 분리한다.
 
+## 2026-06-26 Dependabot semver-major audit (#1069)
+
+Audit date: `2026-06-26 12:12 KST` / `2026-06-26T03:12:45Z`
+
+확인 소스:
+
+- GitHub open PR queue: #1065, #1064, #1061, #1060, #1046, #1044, #1041, #918은 모두 patch/minor Dependabot PR이며, 이번 감사의 semver-major 승격 대상 자체는 아니다.
+- Repo config/docs: `.github/dependabot.yml`, `gradle/libs.versions.toml`, `build.gradle.kts`, `app/build.gradle.kts`, `core/kds/build.gradle.kts`, `gradle/wrapper/gradle-wrapper.properties`, `functions/package.json`, `functions/package-lock.json`, `tools/aso-screenshots/package.json`, `tools/aso-screenshots/bun.lock`, `.github/workflows/*.yml`.
+- Tooling snapshot: Maven/Google Maven metadata lookup, `npm outdated --json --long --include=dev` under `functions/`, `bun outdated` under `tools/aso-screenshots/`.
+- Local caveat: Functions local shell reported Node `v20.18.0` while `functions/package.json` requires Node `22`; Functions major verification must run in Node 22/CI before execution PRs are promoted.
+
+### 현재 감사 결론
+
+| Classification | 후보 | 다음 처리 |
+| --- | --- | --- |
+| `ready` | `actions/setup-node v5 -> v6`, `dorny/paths-filter v3 -> v4` | workflow/runtime governance 영향만 있는 좁은 `ci/issue-*` PR 후보. `actionlint`, Ops CI docs-contract, path-gate/static contract 검증을 요구한다. Play deploy secret, signing, production promotion 경계는 건드리지 않는다. |
+| `ready` | Firebase BoM `34.14.1 -> 34.15.0`, Google Services plugin `4.4.4 -> 4.5.0`, Mockito `5.14.2 -> 5.23.0`, Lottie `6.6.3 -> 6.7.1` | semver-major가 아니라 patch/minor 유지보수 후보다. 기존 weekly Dependabot PR queue에서 각각 Firebase/Google, test-tooling, runtime-libraries lane으로 처리한다. |
+| `backlog` | Orbit MVI `9.x -> 10/11`, TypeScript `5.x -> 6` in `functions/`, TypeScript `5.x -> 6` and `@types/node 20 -> 26` in ASO screenshots | 별도 좁은 maintenance issue/PR 후보. Orbit은 앱 state/runtime 회귀, Functions/ASO TS major는 build/test/type 결과를 먼저 요구한다. |
+| `hold` | AGP `8.10.1 -> 9.x`, Gradle wrapper, Kotlin `2.1.x -> 2.3+/2.4`, KSP `2.2+`, Hilt `2.59+`, Compose BOM `2025.11+ / 2026.x`, AndroidX compileSdk-bound batch, kotlinx serialization `1.9+`, kotlinx datetime `0.8+` | Android toolchain lane에서 compatibility matrix, compileSdk/AGP/Kotlin/KSP/Compose/Hilt 정합성, Android CI, Release Build evidence를 함께 요구한다. Dependabot ignore를 제거하지 않는다. |
+| `hold` | Play Services Ads `23.x -> 24/25` | #16 수익화/runtime-sensitive 후보. 광고 SDK major는 AdMob/analytics/placement guardrail과 device/runtime QA 없이는 자동 승격하지 않는다. |
+| `hold` | `firebase-admin 13 -> 14`, `@types/node 22 -> 26` in `functions/` | `firebase-functions 7.2.5` peer가 `firebase-admin ^13`까지만 허용하고, runtime은 Node 22다. Functions major는 Firebase deploy/runtime verification 계획이 생길 때까지 보류한다. |
+| `hold` | `r0adkll/upload-google-play` SHA pin refresh | semver-major 후보가 아니라 release-critical provenance boundary다. Dependabot 자동 PR 대상이 아니며 release-governance PR에서 workflow + provenance contract + operator docs를 함께 갱신할 때만 다룬다. |
+| `no-op/current` | Firebase Crashlytics plugin, Play Review, Install Referrer, `actions/setup-java`, `actions/upload-artifact`, `oven-sh/setup-bun`, `reactivecircus/android-emulator-runner`, ASO `next`/`react`/`react-dom`/`html-to-image` major line | 이번 #1069 감사에서 별도 major issue로 승격하지 않는다. |
+
+### Ecosystem별 상세 판단
+
+#### Gradle / Android stack
+
+| 후보 | 현재 기준 | 감사 분류 | 근거 |
+| --- | --- | --- | --- |
+| AGP / Gradle wrapper / Kotlin / KSP / Hilt / Compose | AGP `8.10.1`, Gradle `8.11.1`, Kotlin `2.1.10`, KSP `2.1.10-1.0.31`, Hilt `2.56.1` | `hold` | #925/#984/#1008/#1051 guard와 동일하다. Hilt `2.59+`는 AGP 9, Kotlin `2.3+`/KSP `2.2+`는 별도 Kotlin/toolchain lane 검증이 필요하다. |
+| AndroidX compileSdk-bound batch | app/KDS `compileSdk 35` | `hold` | `core-ktx 1.17+`, Navigation `2.9+`, Lifecycle `2.10+`, Activity `1.11+`, Compose BOM `2025.11+`는 compileSdk 36/37 또는 AGP 9.1+ 경계다. |
+| Play Services Ads | `23.0.0` | `hold` | #16 광고/수익화 runtime-sensitive 후보. event-source split/release/readback 경계와 같이 판단한다. |
+| Orbit MVI | `9.0.0` | `backlog` | 실제 semver-major 후보지만 앱 state flow 영향이 커서 별도 MVI migration issue/PR로 분리한다. |
+| Room `2.7.1 -> 2.8.x`, Material/Lottie patch-minor, Firebase/Google patch-minor, Mockito patch-minor | 현재 Gradle split PR queue에 일부 존재 | `ready` 또는 `backlog` | semver-major 감사 대상이 아니라 기존 Dependabot patch/minor risk lane에서 처리한다. |
+
+#### GitHub Actions
+
+| 후보 | 현재 기준 | 감사 분류 | 근거 |
+| --- | --- | --- | --- |
+| `actions/setup-node v5 -> v6` | Ops CI / Play Deploy helper setup | `ready` | Node setup action만 바꾸는 좁은 workflow-governance PR 가능. `actionlint`와 docs/static contract를 함께 요구한다. |
+| `dorny/paths-filter v3 -> v4` | Android/Ops CI path classification | `ready` | path-gating 영향은 있지만 scope가 CI classification에 한정된다. path filter materialization contract를 반드시 확인한다. |
+| `actions/checkout v6 -> v7` | repo 표준은 checkout v6 | `backlog` | upstream major가 있어도 현재 release-context 표준은 v6 정렬이다. 전체 workflow standard migration으로만 다룬다. |
+| `gradle/actions/* v6`, `setup-java v5`, `upload-artifact v7`, `setup-bun v2`, emulator runner v2 | 현재 major line 유지 | `no-op/current` | 이번 감사에서 major 승격 후보 없음. |
+
+#### Firebase Functions npm
+
+| 후보 | 현재 기준 | 감사 분류 | 근거 |
+| --- | --- | --- | --- |
+| `firebase-admin 13.10.0 -> 14.x` | `firebase-functions 7.2.5` | `hold` | `firebase-functions` peer range가 Admin 14를 아직 허용하지 않는다. Admin/Functions major는 deploy/runtime verification까지 묶는다. |
+| `typescript 5.8.2 -> 6.x` | Functions TS build/test | `backlog` | runtime 직접 영향은 작지만 compiler major다. Node 22에서 `npm ci`, `npm run build`, `npm test` green이 필요하다. |
+| `@types/node 22 -> 26` | runtime engine Node 22 | `hold` | runtime/type major를 불일치시키지 않는다. Node runtime 전환 후보가 생길 때 재검토한다. |
+
+#### ASO screenshots Bun
+
+| 후보 | 현재 기준 | 감사 분류 | 근거 |
+| --- | --- | --- | --- |
+| `typescript 5.9.3 -> 6.x`, `@types/node 20 -> 26` | `tools/aso-screenshots` local build tool | `backlog` | Play deploy와 분리된 screenshot generator 전용 후보다. `bun install --frozen-lockfile`, `bun run build` 증거가 필요하다. |
+| `next 16`, `react 19`, `react-dom 19`, `html-to-image 1.x`, Tailwind/PostCSS patch | current major line | `no-op/current` | 이번 semver-major 감사에서 별도 승격 없음. |
+
+### Open Dependabot PR queue 처리 권고
+
+- #1065 `android-gradle-runtime-libraries-patch-minor`: runtime library patch/minor lane이다. Kotlin metadata/datetime hold guard를 먼저 확인하고, Orbit/Ads major와 섞지 않는다.
+- #1064 `android-gradle-toolchain-held-patch-minor`: toolchain-held lane이므로 Hilt/AGP/Kotlin known-incompatible가 보이면 merge하지 말고 hold/close 또는 별도 toolchain lane으로 전환한다.
+- #1061 `android-gradle-room-ksp-patch-minor`: Room/KSP 전용 verification이 필요하다. KSP `2.2+`가 포함되면 Kotlin/toolchain boundary로 hold한다.
+- #1060 `android-gradle-androidx-ui-runtime-patch-minor`: compileSdk/AGP boundary guard를 먼저 확인한다. `requires compileSdk 36+` 또는 AGP 9.1+ metadata가 보이면 app-code regression이 아니라 known-incompatible hold다.
+- #1046 ASO Bun, #1044 test tooling, #1041 Firebase/Google, #918 Functions npm은 각 ecosystem의 patch/minor lane으로 유지한다. major 후보는 이 PR들에 억지로 섞지 않는다.
+
+### #1069 다음 재검토 조건
+
+- 다음 정기 감사: 다음 월간 maintenance backlog review 또는 `release/*` 후보 생성 전.
+- 즉시 재감사 조건: GitHub Actions runtime deprecation, Firebase Functions runtime deprecation, Play/AdMob SDK 정책 변경, AGP 9/compileSdk 36+ 전환 승인, Firebase Functions가 `firebase-admin 14` peer를 허용하는 새 major/minor release.
+- 이번 감사에서 바로 실행할 수 있는 repo-internal 후속은 `actions/setup-node v6`와 `dorny/paths-filter v4`를 좁은 workflow-governance PR로 분리하는 것이다. Android toolchain/Ads/Functions Admin major는 외부 runtime/release/deploy 경계가 있어 docs-lane에서 즉시 버전 변경하지 않는다.
+
 ## Gradle Dependabot risk-lane split (#1034)
 
 #1034 기준으로 Gradle patch/minor 자동 PR은 더 이상 broad `patterns: ["*"]` 한 그룹으로 묶지 않는다. #1013처럼 29개 업데이트가 한 PR에 섞이면 AndroidX/compileSdk, Firebase/Google, Room/KSP, test tooling, runtime library, toolchain-held 경계가 모두 같은 실패처럼 보이고 lane이 무엇을 되돌려야 하는지 매번 재분석하게 된다.
