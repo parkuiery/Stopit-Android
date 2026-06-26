@@ -100,7 +100,7 @@ Use this as the PR body for `release/* -> main` and `hotfix/* -> main` PRs.
 - [ ] Manual-only runtime evidence is explicit in the PR body when still required (for example real cold boot, broader device/OEM-specific Accessibility surfaces, end-to-end emergency-unlock foreground return).
 - [ ] If the release contains #101 Crashlytics fatal/ANR fixes, the PR body links `docs/QA_RUNTIME_CHECKLIST.md#101-release-후-crashlytics-recurrence-evidence-template` and records `Crashlytics #101 post-release recurrence evidence` separately from the local JVM/runtime smoke evidence:
   - included fixes: PR #143 / PR #304 / PR #320 / PR #322 or a later #101 PR
-  - Crashlytics issue IDs to re-check after deploy, including `d1369c1905b65f09a031309198552d10` and the startup ANR / background SDK fatal issue IDs listed in the runtime QA checklist
+  - Crashlytics issue IDs to re-check after deploy, including `d1369c1905b65f09a031309198552d10`, `25c2cd9145a68386d7ad14742a511544`, and the startup ANR / background SDK fatal issue IDs listed in the runtime QA checklist
   - observation window and source (`Firebase Console`, Crashlytics MCP, or Discord alert payload)
   - release 후 closure decision boundary: #101 remains open until the release is live and the same fatal/ANR issue IDs are checked against the shipped version
 - [ ] If backup/restore rules or persisted state contracts changed, `docs/BACKUP_RESTORE_POLICY.md` was reviewed and the relevant QA evidence is attached.

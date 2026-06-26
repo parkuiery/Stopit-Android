@@ -157,7 +157,7 @@ Stopit은 `develop`을 일상 개발 기본 브랜치로, `main`을 릴리즈/�
 
 - #101 Crashlytics fatal/ANR fixes가 release 후보에 포함되면, release PR은 `docs/QA_RUNTIME_CHECKLIST.md#101-release-후-crashlytics-recurrence-evidence-template`를 링크하고 코드 방어 evidence와 live Crashlytics recurrence evidence를 분리해서 기록한다.
 - 현재 #101 release follow-through에 포함된 대표 repo-internal fixes는 PR #143, PR #304, PR #320, PR #322이며, 이후 같은 이슈의 추가 PR도 이 묶음에 추가한다.
-- release 후 확인할 대표 issue ID에는 fatal `d1369c1905b65f09a031309198552d10`와 startup ANR / background SDK fatal issue IDs가 포함된다.
+- release 후 확인할 대표 issue ID에는 fatal `d1369c1905b65f09a031309198552d10`, 2026-06-25 raw fatal alert `25c2cd9145a68386d7ad14742a511544`, 그리고 startup ANR / background SDK fatal issue IDs가 포함된다.
 - #101은 해당 fix가 포함된 release/tag가 실제 배포되고, Firebase Console / Crashlytics MCP / Discord alert payload 기준으로 동일 fatal/ANR issue IDs의 새 버전 재발 여부를 확인한 뒤에만 closure 판단한다.
 
 ## 버전 규칙

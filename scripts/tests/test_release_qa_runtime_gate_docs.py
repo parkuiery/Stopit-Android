@@ -139,6 +139,7 @@ class ReleaseQaRuntimeGateDocsTest(unittest.TestCase):
             "PR #320",
             "PR #322",
             "d1369c1905b65f09a031309198552d10",
+            "25c2cd9145a68386d7ad14742a511544",
             "release 후",
             "#101",
         ]
