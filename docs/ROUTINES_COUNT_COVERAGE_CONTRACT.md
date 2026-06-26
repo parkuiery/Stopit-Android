@@ -1,7 +1,7 @@
 # routines_count user property 커버리지 보강 계약
 
 Issue: #479
-상태: **PR #525 중앙 sync 구현 develop 반영 완료 / origin/main·SemVer tag·Play deploy·D+14·D+30 readback 전**
+상태: **PR #525 중앙 sync 구현 develop 및 active release PR #975 포함 / origin/main·SemVer tag·Play deploy·D+14·D+30 readback 전**
 
 이 문서는 `customUser:routines_count`가 조회 가능하다는 사실과 실제 사용자 커버리지가 충분하다는 사실을 분리하기 위한 source of truth다. 2026-06-03 루틴 보유/미보유 코호트 기준선에서 `routines_count=(not set)` activeUsers가 가장 큰 그룹으로 남았기 때문에, #455 루틴 생성 CTA, #407 루틴 템플릿 공유, 루틴 retention 판단은 user property set 시점 보강 전까지 낮은 confidence로 둔다.
 
@@ -20,6 +20,8 @@ Issue: #479
 | 루틴 보유 (`>=1`) | 150 | `150 / 865 = 17.3%` | 루틴 1개 이상이 GA4 user property에 반영된 사용자. 반복 사용 신호가 강하지만 전체 사용자 결론으로 일반화하지 않는다. |
 
 PR #525(`3246b088`)가 `develop`에 merge되면서 `KeepAnalyticsUserProperty.ROUTINES_COUNT`와 `RoutineCountAnalyticsSync`가 중앙 owner가 됐다. `RoutineViewModel`의 루틴 목록 collect 경로와 Home 진입 경로는 같은 sync helper를 호출하고, Splash restore-aftercare 경로는 Room 루틴 재수화/재스케줄 직후 `KeepAnalytics.setRoutinesCount(...)` API로 restored count를 set한다. 즉 Routine 화면/ViewModel만 거치지 않은 active user도 앱 시작/Home 진입 시 Room count 기반으로 `0` 또는 실제 루틴 수를 명시적으로 set하도록 repo-internal 구현이 반영된 상태다.
+
+2026-06-26 확인 기준 PR #525 commit `3246b088`은 `origin/develop`과 active release PR #975(`release/1.7.8`, head `2edfc5bd`)에는 포함되어 있지만 `origin/main`에는 아직 포함되지 않았다. 또한 PR #975는 현재 `mergeable=CONFLICTING` / `mergeStateStatus=DIRTY` / required checks materialization 없음 상태이므로, #975가 해결되어 main/tag/Play deploy까지 진행되기 전의 live GA4 수치를 post-#479 coverage 개선 결과로 승격하지 않는다.
 
 ## 문제 정의
 
@@ -79,7 +81,7 @@ flavorless `testDebugUnitTest`는 사용하지 않는다.
 - `RoutineViewModel` collect 경로가 루틴 생성/수정/삭제/restore-aftercare 반영 이후 같은 중앙 sync helper로 count를 재설정한다.
 - focused JVM regression은 `RoutineCountAnalyticsSyncTest`에서 `0`, `>=1`, 삭제 후 감소를 고정하고, `HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry`가 Routine 화면 진입 없이 Home init에서 Room count를 set하는 경로를 고정한다. `SplashViewModelRestoreSchedulingTest.splashStartupReschedulesRestoredRoomRoutineBeforeOnboardingNavigation`는 restore-aftercare 재스케줄 직후 restored count가 set되는 경로를 고정한다.
 
-남은 경계는 PR #525 코드가 `origin/main`/SemVer tag/Play deploy에 포함된 뒤 최신 production version adoption을 확인하고 D+14/D+30 GA4 readback으로 `(not set)` 감소를 검증하는 것이다.
+남은 경계는 PR #525 코드가 `origin/main`/SemVer tag/Play deploy에 포함된 뒤 최신 production version adoption을 확인하고 D+14/D+30 GA4 readback으로 `(not set)` 감소를 검증하는 것이다. `release/1.7.8` 같은 active release PR head에 포함됐다는 사실은 release 후보 증거일 뿐, PR conflict/check materialization 해결·main merge·tag·Play deploy 전에는 production readback window를 시작하지 않는다.
 
 ## DAO boundary completion (#875)
 
@@ -96,7 +98,7 @@ PR #525의 coverage foothold는 유지하되, PR #881이 `HomeViewModel` / `Rout
 
 배포 후 판단은 “코드가 develop에 있다”가 아니라 아래 경계를 지난 뒤 시작한다.
 
-1. PR #525(`3246b088`) 또는 동등한 `routines_count` coverage 개선 commit이 `origin/main`에 포함된다.
+1. PR #525(`3246b088`) 또는 동등한 `routines_count` coverage 개선 commit이 `origin/main`에 포함된다. 현재 active release PR #975(`release/1.7.8`) head에는 포함되어 있지만, `origin/main` 미포함 + PR #975 `CONFLICTING/DIRTY` + checks 없음 상태에서는 이 조건이 충족되지 않는다.
 2. 해당 commit이 SemVer tag와 Play deploy에 포함된다.
 3. 최신 production version active share가 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분` 또는 최소 `주의`로 해석 가능한 수준인지 기록한다.
 4. D+14/D+30 window에서 같은 쿼리를 재조회한다.

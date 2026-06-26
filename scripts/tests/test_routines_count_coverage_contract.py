@@ -21,8 +21,12 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
 
         for phrase in [
             "Issue: #479",
-            "PR #525 중앙 sync 구현 develop 반영 완료",
+            "PR #525 중앙 sync 구현 develop 및 active release PR #975 포함",
             "PR #525(`3246b088`)",
+            "release PR #975(`release/1.7.8`, head `2edfc5bd`)",
+            "`origin/main`에는 아직 포함되지 않았다",
+            "`mergeable=CONFLICTING` / `mergeStateStatus=DIRTY`",
+            "checks materialization 없음",
             "560 / 865 = 64.7%",
             "routines_count=(not set)",
             "RoutineCountAnalyticsSync",
@@ -56,6 +60,8 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
             "SemVer tag",
             "Play deploy",
             "D+14/D+30",
+            "active release PR #975",
+            "PR conflict/check materialization 해결·main merge·tag·Play deploy 전",
             "최신 production version active share",
             "`(not set)` activeUsers 비중",
             "Crashlytics crash-free users",
@@ -88,6 +94,14 @@ class RoutinesCountCoverageContractTest(unittest.TestCase):
             PRODUCT_CONTEXT.read_text(),
         ]:
             self.assertIn("RoutineCountAnalyticsSync", document)
+
+        for document in [
+            METRICS_CONTEXT.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+        ]:
+            self.assertIn("active release PR #975", document)
+            self.assertIn("`origin/main`에는", document)
+            self.assertIn("`CONFLICTING/DIRTY` + checks 없음", document)
 
         contract = CONTRACT.read_text()
         self.assertIn("HomeViewModelActivationAnalyticsTest.homeInitSyncsRoutinesCountFromRoomWithoutRoutineScreenEntry", contract)
