@@ -20,6 +20,7 @@ REQUIRED_STATIC_POLICY_MODULES = (
     "scripts.tests.test_locale_string_quality_contract",
     "scripts.tests.test_verify_lint_registry",
     "scripts.tests.test_lint_registry_workflows",
+    "scripts.tests.test_test_source_lint_policy",
 )
 REQUIRED_FLAGS = (
     '--require-section "Included Additional Checks"',
