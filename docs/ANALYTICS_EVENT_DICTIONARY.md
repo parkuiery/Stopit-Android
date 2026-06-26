@@ -119,15 +119,15 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
-| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 첫 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
-| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 반복 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
+| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` | 첫 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
+| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` | 반복 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
 
 첫 가치 경험 해석:
 - `first_lock_configured`는 차단 준비 완료 신호이며 실제 차단 완료가 아니다. 홈 CTA/타이머 안내 문구가 이 이벤트 직후에 “차단 완료”라고 과장하면 안 된다.
 - 홈 Keep 시작/타이머 예약 안내 snackbar는 `first_lock_configured`가 최초 기록될 때만 1회 노출한다. 이미 첫 잠금을 기록한 사용자는 `first_core_action_completed` / `app_block_intercepted` 흐름으로 해석하고 준비 안내를 반복하지 않는다.
 - 현재 block 화면 진입 경로는 `BlockViewModel.trackBlockShown(...)`에서 `app_block_intercepted`를 먼저 기록한 뒤, 최초 1회만 `first_core_action_completed`를 기록한다. #14 후속 피드백/문구/테스트는 이 순서를 유지해야 한다.
-- 루틴 차단의 `routine_id`는 Activity extra 경계에서 문자열로 정규화해 analytics payload까지 전달한다. `block_source=routine`일 때만 non-null이어야 하며, 수동 Keep/타이머/목표 잠금 차단에서는 null/미전송 상태를 유지한다.
-- 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel analytics payload 경계에서 문자열로 정규화해 전달한다. `block_source=goal_lock`일 때만 non-null이어야 하며, 수동 Keep/타이머/루틴 차단에서는 null/미전송 상태를 유지한다.
+- 루틴 차단의 `routine_id`는 Activity extra / debug-state 경계에서 문자열로 정규화해 내부 런타임 attribution에만 사용한다. #1079 이후 외부 GA4 payload/custom dimension에는 전송하지 않으며, `block_source=routine` + `blocked_app_category_bucket` + `routines_count` 같은 privacy-safe 축으로 제품 지표를 해석한다.
+- 목표 잠금 차단의 `goal_lock_id`는 AccessibilityService block decision → BlockActivity extra → BlockViewModel debug-state 경계에서 문자열로 정규화해 내부 QA attribution에만 사용한다. #1079 이후 외부 GA4 payload/custom dimension에는 전송하지 않으며, `block_source=goal_lock` + `lock_mode` / duration bucket 계열 이벤트로 제품 지표를 해석한다.
 - 차단 화면의 첫 성공 피드백은 `HAS_TRACKED_FIRST_CORE_ACTION=false`인 최초 차단 진입에서만 노출한다. 반복 차단은 `core_action_completed`만 기록하고 같은 축하/성공 피드백을 반복하지 않는다.
 - 첫 성공 피드백을 추가하더라도 차단 앱 이름/package 같은 민감 정보는 불필요하게 노출하지 않는다.
 - 차단 앱 analytics privacy 계약은 `docs/BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md`(#611)를 source of truth로 본다. PR #617(`f8eb0ebe`) 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 등록 대상에서 퇴역했고, `blocked_app_category_bucket` 같은 privacy-safe bucket만 activation/runtime 세부 해석에 사용한다.
@@ -143,7 +143,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약. 홈 countdown은 선택한 `day/hour/minute` duration 자체를 분 단위로 기록하고, timer는 예약 deadline까지 남은 시간을 기록한다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `routine_id?`, `goal_lock_id?` | 실제 차단 발생. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. |
+| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket` | 실제 차단 발생. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 | `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. PR #783 Android wiring은 `develop`에 반영됐지만 GA4 등록·release 전 live 0건은 병목 부재로 해석하지 않는다. |
@@ -239,7 +239,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 ### 목표 잠금
 
-목표 잠금 MVP의 제품/QA 계약은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP는 기간 기반 장기 잠금을 `all_day`와 `scheduled` 두 방식으로 지원하고, Home card/section에 진행 상태를 보여준다. 목표 이름 원문/app package/app label 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 2026-06-07 기준 `goal_lock_created`, `goal_lock_ended_early`, `goal_lock_completed`, goal-lock source의 `goal_lock_id` attribution 코드 계약은 `develop`에 반영됐으며, 생성/상세/Home 완료 경로는 유효한 상태 전환에서만 bucket-only payload를 기록하도록 고정한다. 생성 화면 compact-height CTA 접근성도 Compose instrumentation baseline으로 들어왔지만, GA4 Admin 등록, release/tag/Play deploy, live metadata/readback 전에는 이벤트 0건이나 breakdown 부재를 제품 실패로 해석하지 않는다.
+목표 잠금 MVP의 제품/QA 계약은 `docs/GOAL_LOCK_MVP.md`를 source of truth로 본다. MVP는 기간 기반 장기 잠금을 `all_day`와 `scheduled` 두 방식으로 지원하고, Home card/section에 진행 상태를 보여준다. 목표 이름 원문/app package/app label 금지 원칙을 적용하고 enum/bucket만 analytics에 남긴다. 2026-06-07 기준 `goal_lock_created`, `goal_lock_ended_early`, `goal_lock_completed` 코드 계약은 `develop`에 반영됐으며, 생성/상세/Home 완료 경로는 유효한 상태 전환에서만 bucket-only payload를 기록하도록 고정한다. goal-lock source의 `goal_lock_id`는 #1079 이후 외부 GA4 payload가 아니라 repo-internal debug/QA attribution으로만 다룬다. 생성 화면 compact-height CTA 접근성도 Compose instrumentation baseline으로 들어왔지만, GA4 Admin 등록, release/tag/Play deploy, live metadata/readback 전에는 이벤트 0건이나 breakdown 부재를 제품 실패로 해석하지 않는다.
 
 | 이벤트명 | 주요 파라미터 | 설명 |
 | --- | --- | --- |
@@ -439,8 +439,8 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `refill_mode` | 긴급해제 refill 방식 enum (`daily`, `manual`, `not_applicable`) |
 | `reset_result` | 긴급해제 manual reset 결과 enum 후보 (`requested`, `completed`, `unavailable`) |
 | `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
-| `routine_id` | 루틴 식별자 |
-| `goal_lock_id` | 목표 잠금 식별자. 목표 이름/app package/app label 원문이 아니라 내부 id만 전달하며, goal-lock source 차단성과 디버깅에만 사용한다. |
+| `routine_id` | Deprecated / 외부 GA4 전송 금지. Activity extra / debug-state 내부 attribution에는 남을 수 있지만 GA4 custom dimension 신규 등록 대상이 아니다. |
+| `goal_lock_id` | Deprecated / 외부 GA4 전송 금지. BlockActivity extra / debug-state 내부 attribution에는 남을 수 있지만 GA4 custom dimension 신규 등록 대상이 아니다. |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
 | `screen_context` | 같은 화면 안에서의 광고 문맥 (`empty_state`, `inline`, `footer` 등) |
 | `ad_placement` | 제품 관점에서의 광고 위치 식별자 |
@@ -531,8 +531,6 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `block_context` | `block_context` | `parent_mode_block_intercepted` | 부모 모드 중 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
 | Recommended | `error` | `error` | `review_prompt_failed` | 리뷰 프롬프트 실패 원인 파악 |
 | Recommended | `blocking_mode` | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 첫 핵심 행동과 반복 핵심 행동의 모드 비교 |
-| Recommended | `routine_id` | `routine_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 루틴 성과/문제 추적 |
-| Recommended | `goal_lock_id` | `goal_lock_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 특정 목표 잠금 차단성과/문제 추적. 목표 이름·앱 label 원문은 금지 |
 | Recommended | `screen_name` | `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 광고 성과와 화면 계약 드리프트 동시 분석 |
 | Recommended | `ad_currency` | `ad_currency` | `ad_banner_revenue` | 통화 코드 확인 |
 | Recommended | `ad_precision_type` | `ad_precision_type` | `ad_banner_revenue` | 추정 수익 vs 정밀 수익 구분 |

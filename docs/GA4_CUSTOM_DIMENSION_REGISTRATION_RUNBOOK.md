@@ -108,6 +108,7 @@ PR #1005(`b1aa97d`) 기준 추가 확인:
 - `first_open -> onboarding -> permission -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted` 해석 confidence를 올리는 최소 집합이다.
 - issue #14 `첫 잠금 활성화 퍼널 개선`의 다음 실행 판단이 이 묶음에 직접 의존한다.
 - `blocked_app_package` 원문은 #611 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 차단 앱별 해석이 필요하면 `blocked_app_category_bucket`과 local-only QA evidence를 조합한다.
+- `routine_id` / `goal_lock_id` row id는 #1079 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 루틴/목표잠금별 live 디버깅이 필요하면 repo-internal debug-state/instrumentation evidence를 사용하고, 제품 지표는 `block_source`, `blocking_mode`, `routines_count`, goal-lock bucket 이벤트로 해석한다.
 
 ### 2순위: 세션 종료/리뷰/신뢰 흐름
 
@@ -308,6 +309,8 @@ GA4 Admin 증적 후보:
 | `block_source` | `app_block_intercepted` | 미확인/등록 필요 | 동일 | `customEvent:block_source` |
 | `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #611 문서 계약 + PR #617 Android payload 전환 완료 | PR #617 포함 버전의 release/tag/Play deploy 전후로 GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:blocked_app_category_bucket` |
 | `blocked_app_package` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | GA4 Admin 신규 등록 대상에서 제외. 기존 live 흔적은 legacy baseline으로만 해석 | 등록하지 않음 |
+| `routine_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
+| `goal_lock_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
 | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 미확인/등록 필요 | 동일 | `customEvent:selected_app_count` |
 | `is_onboarding` | `app_selection_completed` | 미확인/등록 필요 | 동일 | `customEvent:is_onboarding` |
 | `is_routine` | `lock_session_start`, `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:is_routine` |
@@ -371,8 +374,6 @@ GA4 Admin 증적 후보:
 | --- | --- | --- | --- |
 | `error` | `review_prompt_failed` | 2026-06-02T18:06:45Z 미등록 확인 (`customEvent:error` invalid dimension) | review 실패 원인 추적이 실제로 필요할 때 GA4 Admin 등록 |
 | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 미확인 | 첫 가치 경험 비교를 appVersion별로 재분석할 때 |
-| `routine_id` | `first_core_action_completed`, `core_action_completed` | 미확인 | 루틴별 성과/문제 추적이 필요할 때. 앱 내부 계약은 문자열이며 `block_source=routine`인 차단 경로에서만 non-null이다. |
-| `goal_lock_id` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #417 code-lane 계약 추가 / 미확인 | 목표 잠금별 차단성과/문제 추적이 필요할 때. 앱 내부 계약은 문자열이며 `block_source=goal_lock`인 차단 경로에서만 non-null이다. 목표 이름/app label 원문은 등록·전송하지 않는다. |
 | `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
 | `ad_currency` | `ad_banner_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
 | `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
@@ -439,6 +440,8 @@ GA4 Admin 증적 후보:
 | `block_source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `blocked_app_category_bucket` | Required dimension | 등록 필요 | PR #617 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:blocked_app_category_bucket` 확인 필요 | #611 privacy-safe 대체 축 |
 | `blocked_app_package` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | raw package 원문. #611에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
+| `routine_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 routine row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
+| `goal_lock_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 goal-lock row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `selected_app_count` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `is_onboarding` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `is_routine` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |

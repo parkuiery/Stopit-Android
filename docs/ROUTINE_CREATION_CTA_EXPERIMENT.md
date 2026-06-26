@@ -64,7 +64,7 @@ Privacy guardrail:
 
 - 앱 이름, package name, `lockApplications`, raw session history, raw lock timestamp를 이벤트 payload나 query 축에 넣지 않는다.
 - `routines_count` user property는 최신 상태 스냅샷이다. CTA의 직접 원인/세션 attribution으로 과해석하지 않는다.
-- `routine_id`는 루틴 생성 완료 후 기존 루틴/차단 이벤트 계약에서만 다룬다. CTA shown/clicked/dismissed에는 넣지 않는다.
+- `routine_id`는 루틴 생성 완료 후에도 외부 GA4 payload/custom dimension에 넣지 않는다. #1079 이후 루틴별 live 디버깅은 repo-internal debug/QA attribution으로만 다루고, CTA 전환은 `routine_saved(entry_surface=..., creation_source=...)`와 `routines_count` coverage로 해석한다.
 
 ## 측정 기준
 

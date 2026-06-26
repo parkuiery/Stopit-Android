@@ -118,7 +118,7 @@ Docs/analytics에서 `surface=post_block_success`를 볼 수 있게 등록하더
 Privacy guardrail:
 
 - 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, raw retry count, raw routine name은 이벤트 payload나 query 축에 넣지 않는다.
-- `routine_id`는 추천 shown/clicked/dismissed payload에 넣지 않는다. 저장 완료 후 기존 루틴/차단 이벤트 계약에서만 다룬다.
+- `routine_id`는 추천 shown/clicked/dismissed/applied payload에 넣지 않는다. #1079 이후 기존 차단/core-action 이벤트에서도 외부 GA4 payload/custom dimension에는 row id를 보내지 않으며, 루틴별 확인은 repo-internal debug/QA evidence로만 다룬다.
 - `category_bucket=unknown`이 과도하면 앱 카테고리 매핑 정확도 문제로 보되, raw package를 GA4로 보내 해결하지 않는다.
 
 ## 측정 기준

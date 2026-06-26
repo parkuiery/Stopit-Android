@@ -165,8 +165,9 @@ class FirebaseKeepAnalytics
                         KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
                         blockedAppCategoryBucketForPackage(blockedAppPackage),
                     )
-                    routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
-                    goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
+                    // routineId/goalLockId remain local/debug attribution inputs, but are not exported to GA4.
+                    // They can link long-lived user behavior to a specific routine/goal-lock row, so keep
+                    // external analytics on privacy-safe source/category/bucket dimensions only.
                 },
             )
         }
@@ -788,7 +789,8 @@ class FirebaseKeepAnalytics
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
             put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
-            routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
-            goalLockId?.let { put(KeepAnalyticsParam.GOAL_LOCK_ID, it) }
+            // routineId/goalLockId remain local/debug attribution inputs, but are not exported to GA4.
+            // They can link long-lived user behavior to a specific routine/goal-lock row, so keep
+            // external analytics on privacy-safe source/category/bucket dimensions only.
         }
     }

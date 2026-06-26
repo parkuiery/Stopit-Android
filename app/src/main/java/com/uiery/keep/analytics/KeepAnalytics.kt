@@ -390,7 +390,9 @@ object KeepAnalyticsParam {
     const val REMAINING_UNLOCKS = "remaining_unlocks"
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
     const val BLOCKING_MODE = "blocking_mode"
+    // Do not export routine row IDs to GA4; use block_source/routines_count/bucketed params instead.
     const val ROUTINE_ID = "routine_id"
+    // Do not export goal-lock row IDs to GA4; use block_source/lock_mode/duration buckets instead.
     const val GOAL_LOCK_ID = "goal_lock_id"
     const val ERROR = "error"
     const val PERIOD_TYPE = "period_type"
