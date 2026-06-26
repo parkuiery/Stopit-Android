@@ -171,6 +171,8 @@ class ParentModeContractTest(unittest.TestCase):
             "issue #874의 stale Active 액션 경계",
             "stale expiry 기준으로 10분 연장되지 않고",
             "unlocked_by_pin`으로 오계측되지 않으며",
+            "finished session 연장/종료 no-op",
+            "재활성화와 completion analytics 중복 전송을 막는다",
             "자동 refresh를 예약",
             "verified guardian PIN 상태로 10분 연장 또는 즉시 종료",
             "active controls fresh guardian PIN 입력/확인",

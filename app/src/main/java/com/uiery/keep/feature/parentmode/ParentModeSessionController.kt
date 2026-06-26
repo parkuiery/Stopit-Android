@@ -52,6 +52,9 @@ internal class ParentModeSessionController @Inject constructor(
         nowMillis: Long,
     ): ParentModeSessionControllerResult {
         val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
+        if (session.state != ParentModeSessionState.Active) {
+            return ParentModeSessionControllerResult.NoStateChange(session)
+        }
         val decision = ParentModePolicy.requestParentAction(
             session = session,
             action = ParentModeParentAction.Extend(extensionMinutes),
@@ -86,6 +89,9 @@ internal class ParentModeSessionController @Inject constructor(
         nowMillis: Long,
     ): ParentModeSessionControllerResult {
         val session = store.read() ?: return ParentModeSessionControllerResult.NoActiveSession
+        if (session.state != ParentModeSessionState.Active) {
+            return ParentModeSessionControllerResult.NoStateChange(session)
+        }
         val decision = ParentModePolicy.requestParentAction(
             session = session,
             action = ParentModeParentAction.EndNow,
