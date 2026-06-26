@@ -14,7 +14,8 @@
 
 따라서 현 시점의 정책은 다음과 같다.
 
-- `checkTestSources = false`는 유지할 수 있지만, 반드시 이 문서와 `scripts.tests.test_test_source_lint_policy`가 함께 존재해야 한다.
+- 기본 `checkTestSources = false`는 유지할 수 있지만, 반드시 이 문서와 `scripts.tests.test_test_source_lint_policy`가 함께 존재해야 한다.
+- QA/code lane에서 baseline을 캡처할 때는 기본 CI gate를 바꾸지 않고 `-Pstopit.lint.checkTestSources=true`를 붙여 test/androidTest source lint를 opt-in으로 켠다.
 - test/androidTest source lint를 계속 제외하는 동안에는 아래 대체 guard를 유지한다.
 - 이 정책을 바꾸는 PR은 `app/build.gradle.kts`, 이 문서, `docs/ANDROID_SKILLS_TESTING_QA.md`, `docs/ops/stopit/release-context.md`, 관련 static contract test를 함께 갱신해야 한다.
 
@@ -65,7 +66,7 @@ Android CI `Fast verification`와 Release QA `Full release QA`는 Gradle lint와
 
 `checkTestSources`를 켜는 PR은 단순 토글로 끝내지 않는다. 최소 요구사항:
 
-1. RED baseline: 현재 branch에서 `./gradlew --console=plain :app:lintDevDebug` 또는 별도 lint task로 test/androidTest source warning을 캡처한다.
+1. RED baseline: 현재 branch에서 `./gradlew --console=plain :app:lintDevDebug -Pstopit.lint.checkTestSources=true`로 test/androidTest source warning을 캡처한다.
 2. Warning triage: release/runtime 신뢰도에 영향을 주는 warning과 harmless/test-harness warning을 분리한다.
 3. GREEN: `checkTestSources = true` 또는 좁은 allowlist/별도 test-source lint task를 도입하고, 발생 warning을 정리하거나 명시적으로 제외한다.
 4. CI: Android CI 또는 Release QA에서 의도한 gate가 materialize되는지 static contract test로 고정한다.
@@ -83,6 +84,7 @@ PR/이슈 코멘트에는 아래 형식으로 남긴다.
   - `python3 -m unittest scripts.tests.test_test_source_lint_policy -v`
   - `python3 -m unittest scripts.tests.test_lint_registry_workflows -v`
   - `./gradlew -q help --task :app:lintDevDebug`
+  - `./gradlew --console=plain :app:lintDevDebug -Pstopit.lint.checkTestSources=true`
 - 남은 경계:
   - test/androidTest source lint warning baseline 캡처
   - warning triage 및 활성화/allowlist 결정
@@ -90,4 +92,26 @@ PR/이슈 코멘트에는 아래 형식으로 남긴다.
 
 ## 현재 남은 경계
 
-이 문서/contract PR은 `checkTestSources = false`를 **의식적인 정책 예외**로 고정하고, 관련 운영 문서와 static guard를 연결한다. 그러나 test/androidTest source lint warning을 실제로 캡처하거나 `checkTestSources = true`로 전환하지는 않는다. 남은 repo-internal 실행 경계는 QA/code lane에서 warning baseline을 잡고 활성화 또는 allowlist 정책을 구현하는 것이다.
+이 문서/contract PR은 `checkTestSources = false`를 **의식적인 정책 예외**로 고정하고, 관련 운영 문서와 static guard를 연결한다. 후속 QA/code lane은 `-Pstopit.lint.checkTestSources=true` opt-in baseline으로 warning을 캡처한 뒤, 활성화 또는 allowlist 정책을 구현해야 한다.
+
+## 2026-06-27 opt-in baseline (#1091)
+
+QA lane에서 `-Pstopit.lint.checkTestSources=true`를 실제로 켠 뒤 `:app:lintDevDebug`를 실행해 baseline을 캡처했다.
+
+- 명령: `./gradlew --no-daemon --console=plain :app:lintDevDebug -Pstopit.lint.checkTestSources=true`
+- 환경: local qa-lane, Corretto 17, `GRADLE_OPTS=-XX:-TieredCompilation`
+- 결과: `BUILD SUCCESSFUL`, `app/build/reports/lint-results-devDebug.html` 기준 `232 warnings`
+- 상위 warning group:
+  - `StringFormatCount`: 50
+  - `PluralsCandidate`: 36
+  - `UnusedResources`: 36
+  - `MissingQuantity`: 25
+  - `GradleDependency`: 21
+  - `AutoboxingStateValueProperty`: 8
+  - `UseKtx`: 7
+- 런타임/릴리즈 신뢰도에 직접 가까운 후속 triage 후보:
+  - `HardwareIds` 1건: test/androidTest helper인지 production source인지 먼저 분리한다.
+  - locale/plural 계열(`StringFormatCount`, `PluralsCandidate`, `MissingQuantity`, `UnusedQuantity`): shipped locale 품질 guard와 겹치므로 `docs/LOCALE_STRING_QUALITY.md` 기준으로 실제 사용자 copy 영향 여부를 분리한다.
+  - `ConfigurationScreenWidthHeight`, `LocalContextResourcesRead`, `ModifierParameter`: Compose UI/test helper warning인지 production UI warning인지 분리한다.
+
+주의: 같은 lint 경로가 macOS/Corretto 환경에서 `org.jetbrains.uast.kotlin.FirKotlinUastResolveProviderService::getArgumentForParameter` JIT crash를 낸 적이 있다. 이 경우 결과를 코드 회귀로 보지 말고 Corretto 17 + `GRADLE_OPTS=-XX:-TieredCompilation`으로 재실행해 baseline을 캡처한다.
