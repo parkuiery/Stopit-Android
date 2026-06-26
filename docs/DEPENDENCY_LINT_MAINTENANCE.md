@@ -240,7 +240,7 @@ Audit date: `2026-06-26 12:12 KST` / `2026-06-26T03:12:45Z`
 
 | Classification | 후보 | 다음 처리 |
 | --- | --- | --- |
-| `ready` | `actions/setup-node v5 -> v6`, `dorny/paths-filter v3 -> v4` | workflow/runtime governance 영향만 있는 좁은 `ci/issue-*` PR 후보. `actionlint`, Ops CI docs-contract, path-gate/static contract 검증을 요구한다. Play deploy secret, signing, production promotion 경계는 건드리지 않는다. |
+| `completed` | `actions/setup-node v5 -> v6`, `dorny/paths-filter v3 -> v4` | #1071 package에서 workflow/runtime governance 후보를 좁게 검증해 Android/Ops CI `paths-filter`와 Ops CI/Play Deploy `setup-node` major를 갱신했다. Play deploy secret, signing, production promotion 경계는 변경하지 않았다. |
 | `ready` | Firebase BoM `34.14.1 -> 34.15.0`, Google Services plugin `4.4.4 -> 4.5.0`, Mockito `5.14.2 -> 5.23.0`, Lottie `6.6.3 -> 6.7.1` | semver-major가 아니라 patch/minor 유지보수 후보다. 기존 weekly Dependabot PR queue에서 각각 Firebase/Google, test-tooling, runtime-libraries lane으로 처리한다. |
 | `backlog` | Orbit MVI `9.x -> 10/11`, TypeScript `5.x -> 6` in `functions/`, TypeScript `5.x -> 6` and `@types/node 20 -> 26` in ASO screenshots | 별도 좁은 maintenance issue/PR 후보. Orbit은 앱 state/runtime 회귀, Functions/ASO TS major는 build/test/type 결과를 먼저 요구한다. |
 | `hold` | AGP `8.10.1 -> 9.x`, Gradle wrapper, Kotlin `2.1.x -> 2.3+/2.4`, KSP `2.2+`, Hilt `2.59+`, Compose BOM `2025.11+ / 2026.x`, AndroidX compileSdk-bound batch, kotlinx serialization `1.9+`, kotlinx datetime `0.8+` | Android toolchain lane에서 compatibility matrix, compileSdk/AGP/Kotlin/KSP/Compose/Hilt 정합성, Android CI, Release Build evidence를 함께 요구한다. Dependabot ignore를 제거하지 않는다. |
@@ -265,8 +265,8 @@ Audit date: `2026-06-26 12:12 KST` / `2026-06-26T03:12:45Z`
 
 | 후보 | 현재 기준 | 감사 분류 | 근거 |
 | --- | --- | --- | --- |
-| `actions/setup-node v5 -> v6` | Ops CI / Play Deploy helper setup | `ready` | Node setup action만 바꾸는 좁은 workflow-governance PR 가능. `actionlint`와 docs/static contract를 함께 요구한다. |
-| `dorny/paths-filter v3 -> v4` | Android/Ops CI path classification | `ready` | path-gating 영향은 있지만 scope가 CI classification에 한정된다. path filter materialization contract를 반드시 확인한다. |
+| `actions/setup-node v5 -> v6` | Ops CI / Play Deploy helper setup | `completed` | #1071 package에서 Node 22 pinning을 유지한 채 `actions/setup-node@v6`로 갱신했다. |
+| `dorny/paths-filter v3 -> v4` | Android/Ops CI path classification | `completed` | #1071 package에서 Android/Ops CI path classification filter를 `dorny/paths-filter@v4`로 갱신하고 path-gate/static contract를 함께 고정했다. |
 | `actions/checkout v6 -> v7` | repo 표준은 checkout v6 | `backlog` | upstream major가 있어도 현재 release-context 표준은 v6 정렬이다. 전체 workflow standard migration으로만 다룬다. |
 | `gradle/actions/* v6`, `setup-java v5`, `upload-artifact v7`, `setup-bun v2`, emulator runner v2 | 현재 major line 유지 | `no-op/current` | 이번 감사에서 major 승격 후보 없음. |
 

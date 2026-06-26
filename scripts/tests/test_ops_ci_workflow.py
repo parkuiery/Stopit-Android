@@ -11,6 +11,14 @@ AUTOMATION_OPS_DOC = REPO_ROOT / "docs" / "ops" / "stopit" / "automation-ops.md"
 
 
 class OpsCiWorkflowTest(unittest.TestCase):
+    def test_ops_ci_uses_current_action_majors_for_node_and_path_filters(self):
+        workflow = OPS_CI_WORKFLOW.read_text()
+
+        self.assertIn("uses: dorny/paths-filter@v4", workflow)
+        self.assertIn("uses: actions/setup-node@v6", workflow)
+        self.assertNotIn("dorny/paths-filter@v3", workflow)
+        self.assertNotIn("actions/setup-node@v5", workflow)
+
     def test_ops_ci_workflow_verifies_functions_and_release_helpers(self):
         self.assertTrue(OPS_CI_WORKFLOW.exists(), "ops-ci workflow should exist")
         workflow = OPS_CI_WORKFLOW.read_text()
