@@ -466,6 +466,52 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun enqueuePendingRoutineStartNoticeCapsQueueToLatestThreeDistinctMessages() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf(
+                    "Morning focus started",
+                    "Lunch focus started",
+                    "Evening focus started",
+                ),
+            ),
+            notice = PendingRoutineStartNotice(message = "Night focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Lunch focus started",
+                "Evening focus started",
+                "Night focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeDedupesRepeatedMessageAsLatestNotice() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf(
+                    "Morning focus started",
+                    "Lunch focus started",
+                    "Evening focus started",
+                ),
+            ),
+            notice = PendingRoutineStartNotice(message = "Lunch focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Morning focus started",
+                "Evening focus started",
+                "Lunch focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
     fun enqueuePendingRoutineStartNoticeKeepsLegacySingleMessageBeforeNewNotice() {
         val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
             storedValue = "Morning focus started",

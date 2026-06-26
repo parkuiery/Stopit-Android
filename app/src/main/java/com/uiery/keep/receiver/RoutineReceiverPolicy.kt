@@ -28,6 +28,8 @@ data class RoutineScheduleApplication(
 )
 
 object RoutineReceiverPolicy {
+    private const val MAX_PENDING_ROUTINE_START_NOTICES = 3
+
     // Room is the authoritative routine source of truth.
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
     // from Room after boot/restore/alarm entry, never the primary read path.
@@ -183,9 +185,13 @@ object RoutineReceiverPolicy {
     fun enqueuePendingRoutineStartNotice(
         storedValue: String?,
         notice: PendingRoutineStartNotice,
-    ): String? = encodePendingRoutineStartNotices(
-        decodePendingRoutineStartNotices(storedValue) + notice.message,
-    )
+    ): String? {
+        val latestDistinctNotices = (
+            decodePendingRoutineStartNotices(storedValue)
+                .filterNot { it == notice.message } + notice.message
+            ).takeLast(MAX_PENDING_ROUTINE_START_NOTICES)
+        return encodePendingRoutineStartNotices(latestDistinctNotices)
+    }
 
     fun drainNextPendingRoutineStartNotice(storedValue: String?): PendingRoutineStartNoticeDrain {
         val notices = decodePendingRoutineStartNotices(storedValue)

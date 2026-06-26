@@ -26,6 +26,7 @@ import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.RecordingKeepAnalytics
 import com.uiery.keep.feature.review.fakeReviewEligibilityRepository
 import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.receiver.PendingRoutineStartNotice
 import com.uiery.keep.receiver.RoutineReceiverPolicy
 import com.uiery.keep.service.LockHistoryRecorder
 import java.time.Clock
@@ -99,6 +100,36 @@ class HomeViewModelRoutineStartNoticeTest {
             viewModel.container.stateFlow.value.snackbarMessage,
         )
         assertEquals(null, dataStore.snapshot()[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE])
+    }
+
+    @Test
+    fun homeDrainUsesCappedDistinctRoutineStartNoticeQueue() = runBlocking {
+        val dataStore = FakeDataStore()
+        val noticeStore = RoutineNoticeStore(dataStore)
+        noticeStore.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Morning focus started without notification permission"))
+        noticeStore.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Lunch focus started without notification permission"))
+        noticeStore.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Evening focus started without notification permission"))
+        noticeStore.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Lunch focus started without notification permission"))
+        noticeStore.enqueuePendingRoutineStartNotice(PendingRoutineStartNotice("Night focus started without notification permission"))
+        val viewModel = createViewModel(dataStore = dataStore)
+
+        delay(50)
+        viewModel.maybeDrainRoutineStartNotice()
+        delay(50)
+
+        assertEquals(
+            "Evening focus started without notification permission",
+            viewModel.container.stateFlow.value.snackbarMessage,
+        )
+        assertEquals(
+            listOf(
+                "Lunch focus started without notification permission",
+                "Night focus started without notification permission",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(
+                dataStore.snapshot()[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
+            ),
+        )
     }
 
     @Test
