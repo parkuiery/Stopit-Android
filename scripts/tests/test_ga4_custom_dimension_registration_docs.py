@@ -1,4 +1,5 @@
 import pathlib
+import re
 import unittest
 
 
@@ -8,6 +9,58 @@ GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
+KEEP_ANALYTICS = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "KeepAnalytics.kt"
+
+
+def _canonical_screen_names_from_code():
+    source = KEEP_ANALYTICS.read_text()
+    object_match = re.search(
+        r"object\s+KeepAnalyticsScreen\s*\{(?P<body>.*?)\n\}",
+        source,
+        flags=re.DOTALL,
+    )
+    if not object_match:
+        raise AssertionError("KeepAnalyticsScreen object not found")
+
+    body = object_match.group("body")
+    constants = dict(re.findall(r"const\s+val\s+(\w+)\s*=\s*\"([^\"]+)\"", body))
+    set_match = re.search(
+        r"CANONICAL_SCREEN_NAMES\s*=\s*setOf\((?P<items>.*?)\n\s*\)",
+        body,
+        flags=re.DOTALL,
+    )
+    if not set_match:
+        raise AssertionError("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES set not found")
+
+    constant_names = re.findall(r"\b([A-Z][A-Z0-9_]*)\b", set_match.group("items"))
+    missing_constants = sorted(name for name in constant_names if name not in constants)
+    if missing_constants:
+        raise AssertionError(f"CANONICAL_SCREEN_NAMES references undefined constants: {missing_constants}")
+
+    return {constants[name] for name in constant_names}
+
+
+def _screen_view_names_from_dictionary():
+    dictionary = EVENT_DICTIONARY.read_text()
+    section_match = re.search(
+        r"## screen_view 계약(?P<section>.*?)(?:\n## |\Z)",
+        dictionary,
+        flags=re.DOTALL,
+    )
+    if not section_match:
+        raise AssertionError("screen_view 계약 section not found in ANALYTICS_EVENT_DICTIONARY.md")
+
+    names = set()
+    for line in section_match.group("section").splitlines():
+        if not line.startswith("|") or "`" not in line:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[1] in {"screen_name", "---"}:
+            continue
+        match = re.search(r"`([^`]+Screen)`", cells[1])
+        if match:
+            names.add(match.group(1))
+    return names
 
 
 class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
@@ -102,6 +155,17 @@ class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
 
         self.assertIn("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES", dictionary)
         self.assertIn("새 화면/route 추가 시 이 set과 screen_view 계약 표를 함께 갱신", dictionary)
+
+        code_screen_names = _canonical_screen_names_from_code()
+        dictionary_screen_names = _screen_view_names_from_dictionary()
+        self.assertEqual(
+            code_screen_names,
+            dictionary_screen_names,
+            "KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES and docs/ANALYTICS_EVENT_DICTIONARY.md "
+            "screen_view table must be updated together. "
+            f"Missing in docs: {sorted(code_screen_names - dictionary_screen_names)}; "
+            f"extra in docs: {sorted(dictionary_screen_names - code_screen_names)}",
+        )
 
     def test_canonical_screen_set_package_is_tracked_in_high_traffic_surfaces(self):
         required_snippets = [
