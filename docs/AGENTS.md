@@ -47,6 +47,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `QUERY_ALL_PACKAGES_POLICY.md` | #904용 `QUERY_ALL_PACKAGES` Play 정책 증적, 앱 선택 picker 한정 사용 목적, 대체 가능성 검토, Play Console 권한 선언 문안, static guard 기준. |
 | `FCM_DEVICE_REGISTRATION_CONTRACT.md` | #194/#1090용 FCM token 로컬 저장, legacy backend registration 제거, 초기 token fetch와 `onNewToken()` 공통 retry/observability 계약. |
 | `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
+| `TEST_SOURCE_LINT_POLICY.md` | #1091용 `app/src/test` / `app/src/androidTest` lint 제외 정책, 대체 guard, 재검토/활성화 조건, static contract 기준. |
 
 ## Subdirectories
 | Directory | Purpose |

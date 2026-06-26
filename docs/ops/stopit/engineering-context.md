@@ -93,6 +93,7 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
   - 남은 migration 축은 `docs/FEATURE_DOMAIN_BOUNDARY.md`의 current inventory를 기준으로 판단한다. GoalLock shared repository/data boundary, ParentMode session store migration은 code-lane/merge-controller가 fresh-base로 줄여야 하며, docs-lane은 open code PR이 같은 source-of-truth 문서를 만지고 있으면 중복 docs PR을 만들지 않는다.
   - #1050 기준으로 루틴 저장소 Hilt binding, restore aftercare, exact-alarm orchestration/policy는 `data.routine` shared boundary에 있으며, `SplashViewModel` 같은 startup/runtime 경로는 `feature.routine` internals를 import하지 않는다.
 - 오래된 dependency/lint baseline drift
+- test/androidTest source lint exclusion drift. #1091 source of truth is `docs/TEST_SOURCE_LINT_POLICY.md`: current `checkTestSources = false` is allowed only as an explicit exception with Android CI/Release QA substitute guards and static contract coverage; enabling it requires warning baseline + triage + workflow/docs sync.
 - DataStore/Room/analytics contract drift
 - 너무 큰 리팩터링은 작은 실행 단위로 쪼갠다.
 
