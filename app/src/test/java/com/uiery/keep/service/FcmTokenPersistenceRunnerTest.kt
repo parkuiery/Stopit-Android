@@ -69,6 +69,58 @@ class FcmTokenPersistenceRunnerTest {
     }
 
     @Test
+    fun launchDeviceTokenPersistenceRetriesStartupTokenSaveBeforeReporting() = runBlocking {
+        val reporter = RecordingFcmTokenPersistenceFailureReporter()
+        val savedTokens = mutableListOf<String>()
+        var attempts = 0
+        val job = FcmTokenPersistenceRunner.launchDeviceTokenPersistence(
+            scope = CoroutineScope(coroutineContext + SupervisorJob()),
+            failureReporter = reporter,
+            token = "startup-token-123",
+            maxAttempts = 3,
+            retryDelayMillis = 0,
+        ) { token ->
+            attempts += 1
+            if (attempts < 3) {
+                throw IllegalStateException("failed while saving $token")
+            }
+            savedTokens += token
+        }
+
+        job.join()
+
+        assertTrue(job.isCompleted)
+        assertEquals(3, attempts)
+        assertEquals(listOf("startup-token-123"), savedTokens)
+        assertTrue(reporter.failures.isEmpty())
+    }
+
+    @Test
+    fun launchDeviceTokenPersistenceReportsFinalFailureWithoutRawToken() = runBlocking {
+        val reporter = RecordingFcmTokenPersistenceFailureReporter()
+        val job = FcmTokenPersistenceRunner.launchDeviceTokenPersistence(
+            scope = CoroutineScope(coroutineContext + SupervisorJob()),
+            failureReporter = reporter,
+            token = "startup-token-123",
+            maxAttempts = 2,
+            retryDelayMillis = 0,
+        ) { token ->
+            throw IllegalStateException("failed while saving $token")
+        }
+
+        job.join()
+
+        assertTrue(job.isCompleted)
+        assertEquals(
+            listOf(IllegalStateException::class.java.name),
+            reporter.failures.map { it.causeClassName },
+        )
+        val crashlyticsException = FcmTokenPersistenceException(reporter.failures.single())
+        assertFalse(crashlyticsException.message.orEmpty().contains("startup-token-123"))
+        assertFalse(crashlyticsException.message.orEmpty().contains("failed while saving"))
+    }
+
+    @Test
     fun crashlyticsExceptionMessageDoesNotContainRawTokenOrCauseMessage() {
         val exception = FcmTokenPersistenceException(
             FcmTokenPersistenceFailure(

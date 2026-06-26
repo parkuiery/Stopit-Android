@@ -19,8 +19,8 @@ class KeepMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        FcmTokenPersistenceRunner.launch {
-            persistNewTokenForContext(applicationContext, token)
+        FcmTokenPersistenceRunner.launchDeviceTokenPersistence(token) { newToken ->
+            persistNewTokenForContext(applicationContext, newToken)
         }
     }
 

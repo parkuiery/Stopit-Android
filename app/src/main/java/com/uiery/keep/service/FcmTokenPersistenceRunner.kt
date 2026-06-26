@@ -54,6 +54,34 @@ internal object FcmTokenPersistenceRunner {
         work = work,
     )
 
+    fun launchDeviceTokenPersistence(
+        token: String,
+        saveDeviceToken: suspend (String) -> Unit,
+    ): Job = launchDeviceTokenPersistence(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+        failureReporter = CrashlyticsFcmTokenPersistenceFailureReporter,
+        maxAttempts = DefaultMaxAttempts,
+        retryDelayMillis = DefaultRetryDelayMillis,
+        token = token,
+        saveDeviceToken = saveDeviceToken,
+    )
+
+    fun launchDeviceTokenPersistence(
+        scope: CoroutineScope,
+        failureReporter: FcmTokenPersistenceFailureReporter,
+        token: String,
+        maxAttempts: Int = DefaultMaxAttempts,
+        retryDelayMillis: Long = DefaultRetryDelayMillis,
+        saveDeviceToken: suspend (String) -> Unit,
+    ): Job = launch(
+        scope = scope,
+        failureReporter = failureReporter,
+        maxAttempts = maxAttempts,
+        retryDelayMillis = retryDelayMillis,
+    ) {
+        saveDeviceToken(token)
+    }
+
     fun launch(
         scope: CoroutineScope,
         failureReporter: FcmTokenPersistenceFailureReporter,

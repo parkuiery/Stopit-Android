@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.messaging.FirebaseMessaging
+import com.uiery.keep.service.FcmTokenPersistenceRunner
 import com.uiery.keep.util.AppLogger
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.feature.routine.RoutineRoute
@@ -87,8 +88,8 @@ class MainActivity : ComponentActivity() {
                 AppLogger.debug("MainActivity", task.exception.toString(), task.exception)
                 return@addOnCompleteListener
             }
-            lifecycleScope.launch {
-                deviceTokenManager.saveDeviceToken(deviceToken = task.result)
+            FcmTokenPersistenceRunner.launchDeviceTokenPersistence(task.result) { token ->
+                deviceTokenManager.saveDeviceToken(deviceToken = token)
             }
         }
     }
