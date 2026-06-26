@@ -27,6 +27,7 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
             "reason-required OFF",
             "PR #783(`12c47108`)",
             "repo-internal Android wiring은 완료 상태",
+            "action-driven signal",
             "PR #783 / merge commit `12c4710815746e79bde1a94fd5ad5f5d52fb81b7`",
             "GA4 Admin 등록 또는 release/tag/Play deploy 전의 0건은 adoption/UX 문제로 해석하지 않는다",
         ]
@@ -113,6 +114,8 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
             "emergency_unlock_step_viewed",
             "emergency_unlock_validation_blocked",
             "emergency_unlock_cancelled",
+            "invalid step render",
+            "action-driven signal",
             "reason-required ON/OFF",
             "no custom reason raw text",
             "no app name/package/list",
@@ -127,7 +130,7 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
 
         required_done_phrases = [
             "Repo-internal 완료:",
-            "- [x] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다. (`PR #783`)",
+            "- [x] reason/app/duration/countdown 단계 노출·검증 실패·취소가 privacy-safe 이벤트로 기록된다. 검증 실패 이벤트는 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven attempt에서만 기록된다. (`PR #783` + QA hardening)",
             "- [x] custom reason 원문, app name/package/list, raw timestamp/history가 payload에 들어가지 않음을 테스트로 보장한다. (`PR #783`)",
             "- [x] reason-required ON/OFF 양쪽 flow 테스트가 새 이벤트 계약을 검증한다. (`PR #783` + QA baseline)",
             "- [x] GA4 등록 runbook, event dictionary, metrics/product docs, QA checklist, ops context pack에 신규 event/parameter readback 기준과 14일 확인 조건이 추가된다. (`PR #781`, `PR #798`)",

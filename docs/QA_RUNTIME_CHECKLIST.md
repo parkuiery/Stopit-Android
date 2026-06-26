@@ -493,7 +493,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
   - short reason labels scan quickly: pass / fail
   - step purpose explains why this exception is needed before app selection: pass / fail
   - selected reason reflection helper reinforces intentional use without changing enum key: pass / fail
-  - disabled Next explains missing reason/custom reason: pass / fail
+  - visible helper explains missing reason/custom reason before Next; blocked Next attempt stays on the same step: pass / fail
   - selected reason maps to existing enum key: pass / fail
 - Reason required OFF:
   - app selection starts naturally without reason step: pass / fail
@@ -509,7 +509,7 @@ Use this after PR #517(`572eb559`) + PR #575(`1a7c677`) + PR #593(`79fdee8`) + P
   - `emergency_unlock_completed.reason` keeps enum key, not display label/custom text: pass / fail
   - no app name/package/custom reason/raw history added to analytics: pass / fail
 - Accessibility/TalkBack:
-  - reason/app/duration selection and disabled helper are understandable: pass / fail
+  - reason/app/duration selection and blocked-action helper are understandable: pass / fail
   - countdown reads as one reconsideration state with remaining seconds and cancel option: pass / fail
 - Verification:
   - PR #517 merge commit included in tested build: yes / no / unknown
@@ -1760,7 +1760,7 @@ issue #119는 아직 구현 `ready`가 아니지만, discovery/contract child is
 
 ### Emergency unlock step analytics QA baseline
 
-Issue: #779 계열 PR은 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`를 source of truth로 두고 reason/app selection/duration/countdown 단계 노출, validation blocked, cancel source가 privacy-safe enum-only payload로 기록되는지 확인한다. 이 baseline은 #467 copy/step QA와 연결되지만, #694 설정 변경 analytics와 섞지 않는다.
+Issue: #779 계열 PR은 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`를 source of truth로 두고 reason/app selection/duration/countdown 단계 노출, validation blocked, cancel source가 privacy-safe enum-only payload로 기록되는지 확인한다. `emergency_unlock_validation_blocked`는 invalid step render가 아니라 사용자가 Next/Request를 눌렀지만 진행이 막힌 action-driven signal이어야 한다. 이 baseline은 #467 copy/step QA와 연결되지만, #694 설정 변경 analytics와 섞지 않는다.
 
 ```bash
 cd <repo-root>
@@ -1773,7 +1773,7 @@ python3 -m unittest scripts.tests.test_emergency_unlock_step_analytics_contract 
 확인:
 
 - `emergency_unlock_step_viewed`: reason-required ON/OFF에 맞게 `step_name=reason|app_selection|duration|countdown`, `reason_required_enabled`, `entry_surface`만 기록한다.
-- `emergency_unlock_validation_blocked`: `validation_reason=missing_reason|missing_custom_reason|missing_app_selection|missing_duration|duration_options_unavailable|unknown` enum만 기록한다.
+- `emergency_unlock_validation_blocked`: initial invalid render에서는 기록하지 않고, 사용자가 Next/Request를 눌렀지만 진행이 막힌 경우에만 `validation_reason=missing_reason|missing_custom_reason|missing_app_selection|missing_duration|duration_options_unavailable|unknown` enum을 기록한다.
 - `emergency_unlock_cancelled`: sheet dismiss/back/cancel button/outside/system을 `cancel_source` enum으로만 기록하고, countdown cancel은 `emergency_unlock_completed`로 과장하지 않는다.
 - reason-required ON/OFF: OFF flow에서는 reason step viewed나 missing reason/custom reason validation이 나오지 않아야 한다.
 - Privacy: no custom reason raw text, no app name/package/list, no raw timestamp/history/duration list/settings snapshot.
