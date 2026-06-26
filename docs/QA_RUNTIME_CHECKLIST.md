@@ -1556,7 +1556,8 @@ adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow
   - 권한 부족/스케줄 실패 경로에서는 성공 예약 analytics인 `lock_scheduled(schedule_type=routine)`을 남기지 않는지
   - `BootReceiver`가 부팅/패키지 교체 복구 중 exact alarm 재예약 실패를 만나도 해당 루틴을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌리는지
   - `MY_PACKAGE_REPLACED` 경로에서도 동일한 downgrade/no-pending-intent 계약이 유지되는지
-  - `RoutineAlarmReceiver`가 루틴 시작 알림은 현재 시점에 계속 보여주되, 다음 exact alarm 재예약 실패 시 루틴을 `enabled=false`로 내리고 다음 `PendingIntent`를 남기지 않는지
+  - `RoutineAlarmReceiver`가 루틴 시작 알림은 현재 시점에 계속 보여주되, 다음 exact alarm 재예약 실패 시 현재 triggered routine의 enabled/enforced 상태를 유지하고 다음 `PendingIntent`를 남기지 않는지
+  - boot/package/restore-aftercare deny gate의 `enabled=false` downgrade와 routine alarm already-triggered gate의 enforcement 유지 예외를 같은 release evidence에서 섞지 않는지
 - 허용 경로 검증 범위:
   - `RoutineViewModel.changeEnabled(...)`가 루틴을 다시 `enabled=true`로 올리는지
   - exact alarm `PendingIntent`가 실제로 예약되는지

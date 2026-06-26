@@ -185,6 +185,17 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
             self.assertIn(expected_multiday_selector, document, f"{path} must point release QA to the current-triggered multi-day keep-enabled selector")
             self.assertNotIn("legacy release instrumentation selector", document, f"{path} must not keep the obsolete legacy selector boundary")
 
+        qa_checklist = QA_CHECKLIST.read_text()
+        self.assertNotIn(
+            "RoutineAlarmReceiver`가 루틴 시작 알림은 현재 시점에 계속 보여주되, 다음 exact alarm 재예약 실패 시 루틴을 `enabled=false`로 내리고",
+            qa_checklist,
+            "QA checklist must not regress routine-alarm already-triggered denial into the boot/package downgrade contract.",
+        )
+        self.assertIn(
+            "routine alarm already-triggered gate의 enforcement 유지 예외",
+            qa_checklist,
+        )
+
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"
         default_text = _strings(DEFAULT_STRINGS)[key]
