@@ -247,9 +247,9 @@ PR #873 merge commit `d1be39ae764b53386baeba8bfc1fa3c400ff941e` 이후 setup/act
 PR #883 merge commit `2ea625f3bdb082966332ac8d5e28ae870ad3838a`에서 issue #874의 stale Active 액션 경계를 닫았다. active controls가 열린 채 `expiresAtMillis`를 지나면 화면은 만료 시각까지 delay 후 재조회하고, 연장/즉시 종료 액션도 먼저 만료를 확정한다. 따라서 만료된 session은 verified PIN이 있어도 stale expiry 기준으로 10분 연장되지 않고, `unlocked_by_pin`으로 오계측되지 않으며, `expired` state + `parent_mode_completed(end_reason=time_expired)`로 1회 commit된다.
 
 - `ParentModePolicy`: parent action 요청 시 현재 시각 기준 `Expired`를 PIN 성공/실패보다 먼저 판정한다.
-- `ParentModeSessionController`: `extend(...)` / `endNow(...)` 모두 expired active session을 `TIME_EXPIRED` completion으로 저장하고 연장/핀 종료 analytics를 보내지 않는다.
+- `ParentModeSessionController`: `extend(...)` / `endNow(...)` 모두 expired active session을 `TIME_EXPIRED` completion으로 저장하고 연장/핀 종료 analytics를 보내지 않는다. 이미 `expired`/`unlocked_by_pin`/`cancelled`로 저장된 finished session에는 연장/즉시 종료를 다시 적용하지 않고 `NoStateChange`로 둬서 재활성화와 completion analytics 중복 전송을 막는다.
 - `ParentModeSetupScreen`: active session의 `expiresAtMillis`까지 남은 시간을 계산해 자동 refresh를 예약한다.
-- `ParentModePolicyTest`, `ParentModeSessionControllerTest`, `ParentModeSetupViewModelTest`: stale Active 연장/종료 차단, 자동 refresh delay 계산, `TIME_EXPIRED` analytics 경계를 검증한다.
+- `ParentModePolicyTest`, `ParentModeSessionControllerTest`, `ParentModeSetupViewModelTest`: stale Active 연장/종료 차단, finished session 연장/종료 no-op, 자동 refresh delay 계산, `TIME_EXPIRED` analytics 경계를 검증한다.
 
 - `ParentModeSetupScreen`: duration preset 선택 UI와 직접 분 입력 필드, active/expired/ended status copy, active controls fresh guardian PIN 입력/확인 필드, 10분 연장 CTA, 보호자 PIN 종료 CTA, finished session 이후 `부모 모드 다시 시작` CTA를 제공한다.
 - `ParentModeSetupViewModel`: setup 화면에서 `ParentModeSessionController.extend(...)`, `endNow(...)`, `markExpiredIfNeeded(...)`, `clearFinishedSession(...)`를 호출해 session 저장소와 화면 state를 함께 갱신하고, active controls가 fresh PIN 재입력 전에는 연장/종료를 시도하지 못하도록 guardian PIN input을 검증한다. Active session은 새 setup으로 지우지 않고, expired/unlocked_by_pin 같은 finished session만 clear 후 다른 부모 모드 setup으로 돌아간다.
