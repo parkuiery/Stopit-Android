@@ -168,9 +168,12 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 운영 원칙:
 
+- `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`가 #194 legacy-backend 제거 계약과 #1090 초기 token fetch / refresh callback persistence 통합 계약의 source of truth다.
 - `fcm_token_captured`와 `device_registration_skipped(reason=backend_removed)`는 “토큰 저장은 됐지만 backend device registration은 제거되어 호출하지 않았다”는 계약으로 함께 해석한다.
 - `device_registration_succeeded` / `device_registration_failed`가 GA4에 새로 보이면 먼저 과거 앱 버전, manual/test event, 또는 코드 call site 재도입 여부를 확인한다. 현재 dictionary 기준에서는 살아 있는 제품 지표가 아니라 제거된 legacy 이벤트다.
 - 백업/복원 또는 새 기기 QA에서 확인할 것은 backend registration 성공이 아니라 `KeepMessagingServiceIntegrationTest` 기준의 stale FCM token overwrite / local persistence wiring이다.
+- #1090 완료 전에는 `KeepMessagingService.onNewToken()` 경로와 `MainActivity.fetchAndSaveFcmToken()` 경로를 같은 신뢰도로 해석하지 않는다. 앱 기동 초기 token fetch 성공 후 save 실패가 shared bounded retry/reporting 경로를 타는 code-lane evidence가 필요하다.
+- token fetch 실패와 token save 실패는 운영/Crashlytics에서 구분하되 raw FCM token, 앱 package/list, 사용자 식별자, 원본 exception message는 기록하지 않는다.
 
 ### 리뷰 프롬프트
 

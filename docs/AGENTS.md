@@ -45,6 +45,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. #986 ReviewEligibility repository shared data-boundary 승격 baseline도 여기서 추적한다. |
 | `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |
 | `QUERY_ALL_PACKAGES_POLICY.md` | #904용 `QUERY_ALL_PACKAGES` Play 정책 증적, 앱 선택 picker 한정 사용 목적, 대체 가능성 검토, Play Console 권한 선언 문안, static guard 기준. |
+| `FCM_DEVICE_REGISTRATION_CONTRACT.md` | #194/#1090용 FCM token 로컬 저장, legacy backend registration 제거, 초기 token fetch와 `onNewToken()` 공통 retry/observability 계약. |
 | `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
 
 ## Subdirectories

@@ -1,11 +1,12 @@
 # FCM Device Token / Registration Analytics Contract
 
-이 문서는 issue #194의 문서·운영 계약 표면이다. 백엔드 API가 제거된 현재 Stopit에서 **FCM token 로컬 저장**과 **백엔드 device registration**을 혼동하지 않도록 실제 발생 이벤트, 남아 있는 legacy 계약, 검증 경계를 분리한다.
+이 문서는 issue #194의 문서·운영 계약 표면이자 issue #1090의 FCM token persistence follow-up source of truth다. 백엔드 API가 제거된 현재 Stopit에서 **FCM token 로컬 저장**과 **백엔드 device registration**을 혼동하지 않도록 실제 발생 이벤트, 남아 있는 legacy 계약, 검증 경계를 분리한다. 또한 token refresh callback(`KeepMessagingService.onNewToken`)과 앱 기동 초기 token fetch(`MainActivity.fetchAndSaveFcmToken`)가 같은 retry/observability 정책을 공유해야 한다는 운영 계약을 고정한다.
 
 ## 현재 코드 source of truth
 
 | 책임 | 현재 source of truth | 의미 |
 | --- | --- | --- |
+| 앱 기동 초기 token fetch entry point | `app/src/main/java/com/uiery/keep/MainActivity.kt` | 앱 시작 시 `FirebaseMessaging.getInstance().token`을 조회해 로컬 token 저장 경로로 넘긴다. #1090 기준으로 이 경로도 refresh callback과 같은 persistence runner/retry/reporting 정책을 공유해야 한다. |
 | FCM token refresh entry point | `app/src/main/java/com/uiery/keep/service/KeepMessagingService.kt` | Firebase `onNewToken()`에서 새 token을 받아 저장 경로로 전달한다. |
 | token 저장 실패 containment / retry | `app/src/main/java/com/uiery/keep/service/FcmTokenPersistenceRunner.kt` | `onNewToken()` 비동기 저장을 bounded retry로 재시도한 뒤 최종 실패만 Crashlytics에 sanitized exception으로 남긴다. raw FCM token은 기록하지 않는다. |
 | token 저장/analytics 순서 | `app/src/main/java/com/uiery/keep/DeviceTokenManager.kt` | token을 `LocalDeviceDataStore`에 저장하고 현재 analytics 이벤트를 기록한다. |
@@ -66,6 +67,22 @@
 - `KeepMessagingService.onNewToken()` 저장 coroutine이 DataStore/Hilt entry point/analytics 예외를 만나면 `FcmTokenPersistenceRunner`가 같은 token 저장 작업을 최대 3회까지 bounded retry한다. 재시도 중 성공하면 실패를 보고하지 않고, 모든 시도가 실패한 경우에만 예외 class name을 Crashlytics custom key + sanitized exception으로 기록한다. raw FCM token 또는 원본 exception message는 기록하지 않는다.
 - 저장 실패가 최종 관측되면 같은 version에서 `fcm_token_captured` / `device_registration_skipped` 감소 여부와 Crashlytics `fcm_token_persistence_failure=true` issue를 함께 본다. 재시도 후에도 실패한 경우이므로 DataStore/Hilt entry point/analytics 예외 원인과 앱 기동 후 token fetch reconciliation 경로를 함께 확인한다. backend registration 성공률처럼 해석하지 않는다.
 
+## #1090 초기 token fetch / refresh callback 통합 계약
+
+`onNewToken()`과 앱 기동 초기 fetch는 서로 fallback 관계다. 둘 중 하나만 안정적이면 새 설치, 복원, callback 누락, lifecycle 취소, DataStore 일시 오류 상황에서 push registration 해석이 조용히 stale해질 수 있다.
+
+| 경로 | 현재 책임 | #1090 완료 기준 |
+| --- | --- | --- |
+| `KeepMessagingService.onNewToken()` | Firebase token refresh callback을 받으면 `FcmTokenPersistenceRunner.launch { persistNewTokenForContext(...) }`로 저장한다. | 기존 bounded retry + sanitized Crashlytics reporting 정책을 유지한다. |
+| `MainActivity.fetchAndSaveFcmToken()` | 앱 기동 시 현재 token을 조회하고 성공하면 저장한다. | 성공 후 save 실패도 `FcmTokenPersistenceRunner` 또는 동등한 shared helper를 통해 bounded retry/reporting 경로를 탄다. lifecycle scope 취소나 저장 예외가 조용히 사라지면 안 된다. |
+| token fetch 실패 | Firebase token 조회 자체가 실패한 상태다. | save 실패와 다른 failure class로 기록한다. 원본 token, exception message, Firebase 내부 payload 원문은 남기지 않고 sanitized failure type만 남긴다. |
+
+운영 판독:
+
+- `fcm_token_captured`가 줄었다고 바로 FCM delivery 장애로 단정하지 않는다. 먼저 초기 fetch 실패, save retry 최종 실패, refresh callback 미발생, 배포 버전 차이를 분리한다.
+- `device_registration_skipped(reason=backend_removed)`는 여전히 정상 legacy-backend-removed marker다. #1090은 backend registration 재도입이 아니라 로컬 token persistence 안정화다.
+- Crashlytics key/log는 token 저장 실패와 token fetch 실패를 구분해야 하지만 raw FCM token, 앱 목록, 사용자 식별자, exception message 원문은 금지한다.
+
 ## 검증 포인트
 
 ### 문서/계약 점검
@@ -95,6 +112,7 @@ cd <repo-root>
 
 - `DeviceTokenManagerTest`는 저장 + 현재 analytics event order를 고정한다.
 - `FcmTokenPersistenceRunnerTest`는 `onNewToken()` 비동기 저장 실패가 bounded retry로 복구될 수 있고, 모든 시도 실패가 caller로 새지 않으며, raw token 없이 Crashlytics용 sanitized exception으로 관측되는지 고정한다.
+- #1090 code-lane은 `MainActivity.fetchAndSaveFcmToken()` 또는 새 shared helper 경로가 동일 runner/retry/reporting 정책을 쓰는 focused JVM/Android test를 추가해야 한다. docs-lane은 이 계약을 고정하지만 Android wiring 자체를 완료하지 않는다.
 
 ### Android runtime wiring baseline
 
@@ -114,6 +132,13 @@ cd <repo-root>
 - `device_registration_succeeded` / `device_registration_failed`는 API/event constant까지 제거된 legacy 이벤트이며, backend registration 재도입 전에는 성공/실패 제품 지표로 해석하지 않는다.
 
 issue #194를 완전히 닫으려면 이제 배포 후 실제 GA4/운영 화면에서 legacy success/fail 이벤트가 새로 유입되지 않는지 관측하는 후속만 남는다.
+
+issue #1090은 별도 follow-up이다. 이 문서가 고정하는 repo-internal docs-lane 경계는 완료됐지만, 이슈 자체를 닫으려면 code-lane에서 아래 구현/검증이 추가로 필요하다.
+
+- [ ] `MainActivity.fetchAndSaveFcmToken()`의 token fetch 성공 후 save 실패가 `FcmTokenPersistenceRunner` 또는 동등한 shared helper의 bounded retry/reporting 경로를 탄다.
+- [ ] token fetch 실패와 token save 실패가 sanitized Crashlytics/logging에서 구분된다.
+- [ ] raw FCM token, 앱 package/list, 사용자 식별자, 원본 exception message가 Crashlytics/analytics/logcat에 남지 않는다.
+- [ ] `KeepMessagingService`와 `MainActivity`가 같은 persistence policy를 공유한다는 focused test와 PR CI evidence가 남는다.
 
 - `KeepAnalyticsEvent.ACTIVE_DEVICE_REGISTRATION_EVENTS`와 `FirebaseKeepAnalyticsTest`가 현재 런타임 이벤트 집합을 고정한다.
 - `DeviceTokenManager`는 계속 token 저장 + backend removed skip marker를 기록한다.
