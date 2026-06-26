@@ -1413,13 +1413,12 @@ adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm
-# #609 해석 경계: routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외는 현재 triggered routine의 enabled/enforced 상태를 유지한다.
-# 위 routine-alarm receiver deny command들은 현재 runtime suite에 남아 있는 legacy release instrumentation selector로 기록하고,
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm
+# #609 해석 경계: routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하면 현재 triggered routine의 enabled/enforced 상태를 유지한다.
 # boot/package/restore-aftercare downgrade gate와 현재 발화 루틴 enforcement 유지 예외를 release evidence에서 섞지 않는다.
 # source of truth: docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md + RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing
 ./gradlew :app:installDevDebug
@@ -1538,7 +1537,7 @@ adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:installDevDebug
 adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny
 ./gradlew :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent
+  -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent
 
 # 허용 상태: 동일 경로에서 실제 PendingIntent 예약이 생겨야 한다.
 ./gradlew :app:installDevDebug

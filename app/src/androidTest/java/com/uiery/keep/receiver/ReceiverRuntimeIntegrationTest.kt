@@ -500,7 +500,7 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
-    fun routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule() = runBlocking {
+    fun routineAlarmReceiverWithoutExactAlarmPermissionKeepsTriggeredRoutineEnabledAndDoesNotReschedule() = runBlocking {
         val scheduler = RoutineScheduler(context)
         assertFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
@@ -522,16 +522,16 @@ class ReceiverRuntimeIntegrationTest {
             routineId = TEST_ROUTINE_ID,
         )
 
-        waitUntil("RoutineAlarmReceiver should disable the routine when exact alarm permission is missing") {
-            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        waitUntil("RoutineAlarmReceiver should keep the triggered routine enabled when exact alarm permission is missing") {
+            database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
         }
-        waitUntil("RoutineAlarmReceiver should persist disabled routine state into DataStore") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should persist the enabled triggered routine state into DataStore") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
         assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
-        assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertTrue(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 

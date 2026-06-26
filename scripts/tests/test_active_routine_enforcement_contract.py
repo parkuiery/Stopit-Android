@@ -172,13 +172,18 @@ class ActiveRoutineEnforcementContractTest(unittest.TestCase):
         self.assertIn("현재 triggered routine은 enabled/enforced 상태를 유지한다", routine_store_contract)
 
     def test_release_exact_alarm_docs_separate_current_alarm_exception_from_downgrade_gates(self):
-        expected_boundary = "routine alarm이 이미 발화한 뒤 next-reschedule에서 MissingExactAlarmPermission이 발생하는 #609 예외"
-        expected_legacy_gate = "legacy release instrumentation selector"
+        expected_boundary = "routine alarm이 이미 발화한 뒤 next-reschedule"
+        expected_permission = "MissingExactAlarmPermission"
+        expected_selector = "routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent"
+        expected_multiday_selector = "routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm"
 
         for path in [ANDROID_SKILLS_QA, PLAY_DEPLOYMENT, RELEASE_CONTEXT, QA_CHECKLIST]:
             document = path.read_text()
             self.assertIn(expected_boundary, document, f"{path} must name the current-triggered routine exception")
-            self.assertIn(expected_legacy_gate, document, f"{path} must keep legacy receiver selector interpretation explicit")
+            self.assertIn(expected_permission, document, f"{path} must name MissingExactAlarmPermission in the current-triggered routine boundary")
+            self.assertIn(expected_selector, document, f"{path} must point release QA to the current-triggered routine keep-enabled selector")
+            self.assertIn(expected_multiday_selector, document, f"{path} must point release QA to the current-triggered multi-day keep-enabled selector")
+            self.assertNotIn("legacy release instrumentation selector", document, f"{path} must not keep the obsolete legacy selector boundary")
 
     def test_active_routine_blocked_message_is_localized_in_shipped_locales(self):
         key = "routine_active_action_blocked_message"
