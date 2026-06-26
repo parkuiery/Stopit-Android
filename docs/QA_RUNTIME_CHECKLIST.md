@@ -1240,6 +1240,7 @@ Issue #101의 최근 fatal topIssues에는 앱 코드 직접 line이 아니라 G
 - `d1369c1905b65f09a031309198552d10`: `ScionFrontendApi` background thread, `play-services-base@@18.9.0` / `Firebase measurement`, `getAttributionSource()` `NoSuchMethodError`, lastSeen `1.7.7`.
 - `8a2cfe07f945b5bcc4e7cbd4928d42a6`: `androidx.profileinstaller.ProfileVerifier$Api33Impl.getPackageInfo`, `PackageInfoFlags.of` `NoSuchMethodError`, lastSeen `1.7.7`.
 - `5c3f76729005f60fffa2beae30e770c7`: Compose font resolver `fontWeightAdjustment`, `NoSuchFieldError`, lastSeen `1.7.7`.
+- `25c2cd9145a68386d7ad14742a511544`: 2026-06-25 `postNewFatalIssueToDiscord` raw alert로 새로 확인된 fatal issue. Firebase Functions alert payload에는 stack/title/version 정보가 없어, release recurrence 판단 전에 Crashlytics Console/MCP에서 title, sample stack, affected version/events/users를 먼저 보강한다.
 
 ```bash
 cd <repo-root>
@@ -1280,6 +1281,7 @@ cd <repo-root>
   - `0864599aefbd42499c770e81e4426ddf` (BlockActivity/startup ANR): last seen in this release? yes/no, events/users:
   - `8a2cfe07f945b5bcc4e7cbd4928d42a6` (`PackageInfoFlags` fatal): last seen in this release? yes/no, events/users:
   - `5c3f76729005f60fffa2beae30e770c7` (`fontWeightAdjustment` fatal): last seen in this release? yes/no, events/users:
+  - `25c2cd9145a68386d7ad14742a511544` (2026-06-25 raw fatal alert; stack/title pending): last seen in this release? yes/no, events/users:
 - New fatal/ANR alerts during window:
   - none / issue IDs:
 - Closure decision:
