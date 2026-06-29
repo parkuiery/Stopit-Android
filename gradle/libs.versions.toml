@@ -28,7 +28,7 @@ hilt = "2.56.1"
 ksp = "2.1.10-1.0.31"
 gmsGoogleServices = "4.4.4"
 firebaseCrashlytics = "3.0.7"
-mockitoCore = "5.14.2"
+mockitoCore = "5.23.0"
 playReview = "2.0.2"
 installReferrer = "2.2"
 
