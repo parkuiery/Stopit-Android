@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.home
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -52,6 +50,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -63,27 +62,28 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import android.app.Activity
+import androidx.annotation.DrawableRes
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
+import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.toMetadata
+import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.home.component.ContentDescription
-import com.uiery.kds.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
-import com.uiery.keep.ui.component.RepeatBlockRoutineSuggestionCard
-import com.uiery.keep.util.findActivity
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 import com.uiery.keep.util.toPx
@@ -98,10 +98,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
-    onNavigateLockHistory: () -> Unit,
-    onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit,
-    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
-    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit,
+    onNavigateLockHistory: () -> Unit = {},
+    onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit = { _, _ -> },
+    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit = {},
+    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit = {},
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -137,9 +137,6 @@ fun HomeScreen(
                         }
                     delay(2000L)
                     job.cancel()
-                    if (effect.drainNextRoutineStartNoticeAfterDismiss) {
-                        viewModel.onRoutineStartNoticeSnackbarFinished()
-                    }
                 }
             }
 
@@ -148,9 +145,8 @@ fun HomeScreen(
                 effect.routineSavedEntrySurface,
                 effect.routineSavedCreationSource,
             )
-            is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill -> {
+            is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill ->
                 onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
-            }
         }
     }
 
@@ -160,18 +156,12 @@ fun HomeScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activity = context.findActivity()
+    val activity = context as? Activity
     val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
-    val firstLockKeepStartedMessage = stringResource(R.string.first_lock_keep_started_guidance)
-    val firstLockTimerScheduledMessage = stringResource(R.string.first_lock_timer_scheduled_guidance)
     DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 syncAccessibilityPermissionDialogState()
-                coroutineScope.launch {
-                    delay(300L)
-                    syncAccessibilityPermissionDialogState()
-                }
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
             }
@@ -221,21 +211,13 @@ fun HomeScreen(
                 blockTime = uiState.blockTime,
                 countdownDays = uiState.countdownDays,
                 countdownTime = uiState.countdownTime,
-                manualLockMode = uiState.manualLockMode,
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
-                onChangeManualLockMode = viewModel::updateManualLockMode,
                 onLockClick = {
                     if (uiState.selectedAppPackage.isEmpty()) {
                         viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
                     } else {
-                        viewModel.lockTime(
-                            firstLockScheduledMessage = if (uiState.showFirstLockActivationCta) {
-                                firstLockTimerScheduledMessage
-                            } else {
-                                null
-                            },
-                        )
+                        viewModel.lockTime()
                         coroutineScope
                             .launch {
                                 timeBottomSheetState.hide()
@@ -306,59 +288,22 @@ fun HomeScreen(
                         )
                 }
             }
-            val homeStatusCtaModel = buildHomeStatusCtaModel(
-                isKeep = uiState.isKeep,
-                selectedAppCount = uiState.selectedAppPackage.size,
-                showFirstLockActivationCta = uiState.showFirstLockActivationCta,
-                showRoutineCreationCta = uiState.showRoutineCreationCta,
-                hasGoalLockCard = uiState.goalLockCard != null,
-                hasActiveTimedLock = uiState.hasActiveTimedLock,
-            )
-            HomeStatusCtaCard(
+            CategoryButton(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                model = homeStatusCtaModel,
-                onPrimaryClick = {
-                    when {
-                        homeStatusCtaModel.shouldOpenAppSelection -> viewModel.showCategoryBottomSheet()
-                        homeStatusCtaModel.shouldToggleKeep -> {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.changeIsKeep(
-                                firstLockStartedMessage = if (uiState.showFirstLockActivationCta) {
-                                    firstLockKeepStartedMessage
-                                } else {
-                                    null
-                                },
-                            )
-                        }
-                    }
-                },
-                onChangeAppsClick = viewModel::showCategoryBottomSheet,
-                onTimerClick = viewModel::showTimeBottomSheet,
-                onLockHistoryClick = onNavigateLockHistory,
-                onRoutineCreationClick = viewModel::onRoutineCreationCtaClick,
+                        .padding(horizontal = 20.dp),
+                onClick = viewModel::showCategoryBottomSheet,
+                enabled = !uiState.isKeep,
+                categorySize = uiState.selectedAppPackage.size,
             )
-            uiState.goalLockCard?.let { goalLockCard ->
-                GoalLockProgressCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    cardState = goalLockCard,
-                    onClick = { onNavigateGoalLockDetail(goalLockCard.goalLockId) },
-                )
-            }
-            uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
-                RepeatBlockRoutineSuggestionCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    suggestion = suggestion,
-                    titleResId = R.string.repeat_block_suggestion_home_title,
-                    messageResId = R.string.repeat_block_suggestion_home_message,
-                    onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
-                    onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
+            if (uiState.showFirstLockActivationCta) {
+                FirstLockActivationCta(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                    onClick = { viewModel.changeIsKeep() },
                 )
             }
             Box(
@@ -403,17 +348,8 @@ fun HomeScreen(
                                         if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
                                             viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                         } else {
-                                            val isStartingFirstLock = !uiState.isKeep && uiState.showFirstLockActivationCta
-                                            if (!isStartingFirstLock) {
-                                                viewModel.showSnackBar(message)
-                                            }
-                                            viewModel.changeIsKeep(
-                                                firstLockStartedMessage = if (isStartingFirstLock) {
-                                                    firstLockKeepStartedMessage
-                                                } else {
-                                                    null
-                                                },
-                                            )
+                                            viewModel.showSnackBar(message)
+                                            viewModel.changeIsKeep()
                                         }
                                     },
                             painter = painterResource(id = image),
@@ -429,17 +365,8 @@ fun HomeScreen(
                                     if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
                                         viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                     } else {
-                                        val isStartingFirstLock = !uiState.isKeep && uiState.showFirstLockActivationCta
-                                        if (!isStartingFirstLock) {
-                                            viewModel.showSnackBar(message)
-                                        }
-                                        viewModel.changeIsKeep(
-                                            firstLockStartedMessage = if (isStartingFirstLock) {
-                                                firstLockKeepStartedMessage
-                                            } else {
-                                                null
-                                            },
-                                        )
+                                        viewModel.showSnackBar(message)
+                                        viewModel.changeIsKeep()
                                     }
                                 },
                             )
@@ -456,7 +383,7 @@ fun HomeScreen(
                                             enabled = !uiState.isKeep,
                                         ).padding(4.dp),
                                 painter = painterResource(id = R.drawable.timer_outline),
-                                contentDescription = stringResource(R.string.cd_open_timer),
+                                contentDescription = null,
                             )
                         }
                     }
@@ -481,14 +408,55 @@ fun HomeScreen(
                         startTime = uiState.startTime,
                     )
                     TrackedBannerAd(
-                        metadata = AdPlacement.HomeBottom.toMetadata(
+                        metadata = AdPlacementMetadata(
                             screenName = KeepAnalyticsScreen.HOME,
                             screenContext = "main",
+                            placement = AdPlacement.HomeBottom.analyticsPlacement,
+                            adUnitId = AdPlacement.HomeBottom.adUnitId,
                         ),
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FirstLockActivationCta(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(KeepTheme.colors.onSecondary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_title),
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = stringResource(R.string.first_lock_activation_cta_description),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+        }
+        Text(
+            text = stringResource(R.string.first_lock_activation_cta_action),
+            color = KeepTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+        )
     }
 }
 
