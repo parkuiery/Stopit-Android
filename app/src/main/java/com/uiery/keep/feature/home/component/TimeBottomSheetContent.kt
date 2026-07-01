@@ -15,6 +15,10 @@ import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,11 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.LocalDate
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.home.CountdownDuration
-import com.uiery.keep.feature.home.ManualLockMode
 import com.uiery.keep.ui.component.TimerPicker
 import com.uiery.keep.util.timeNow
 import kotlinx.datetime.LocalTime
@@ -38,16 +40,11 @@ fun TimeBottomSheetContent(
     blockTime: LocalTime,
     countdownDays: Int = 0,
     countdownTime: LocalTime = LocalTime(0, 0),
-    manualLockMode: ManualLockMode = ManualLockMode.COUNTDOWN,
     onChangeCountdownDuration: (CountdownDuration) -> Unit,
     onChangeTimerTIme: (LocalTime) -> Unit,
-    onChangeManualLockMode: (ManualLockMode) -> Unit,
     onLockClick: () -> Unit,
 ) {
-    val selectedIndex = when (manualLockMode) {
-        ManualLockMode.COUNTDOWN -> 0
-        ManualLockMode.TIMER -> 1
-    }
+    var selectedIndex by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier
@@ -70,16 +67,13 @@ fun TimeBottomSheetContent(
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                if (manualLockMode == ManualLockMode.COUNTDOWN && countdownDays > 0) {
-                    val targetDateTime = calculateCountdownEndDateTimePreview(
-                        today = LocalDate.now(),
-                        now = timeNow,
-                        countdownDays = countdownDays,
-                        countdownTime = countdownTime,
+                if (countdownDays > 0) {
+                    val targetDate = java.time.LocalDate.now().plusDays(
+                        countdownDays.toLong() + if (timeNow > blockTime) 1L else 0L
                     )
                     Text(
                         modifier = Modifier.padding(end = 4.dp),
-                        text = stringResource(R.string.lock_time_with_date, targetDateTime.monthValue, targetDateTime.dayOfMonth, targetDateTime.hour, targetDateTime.minute),
+                        text = stringResource(R.string.lock_time_with_date, targetDate.monthValue, targetDate.dayOfMonth, blockTime.hour, blockTime.minute),
                         color = KeepTheme.colors.primary,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -112,14 +106,7 @@ fun TimeBottomSheetContent(
                     .padding(top = 8.dp)
                     .padding(horizontal = 68.dp),
                 items = listOf(stringResource(R.string.countdown), stringResource(R.string.timer)),
-                onItemSelection = {
-                    onChangeManualLockMode(
-                        when (it) {
-                            0 -> ManualLockMode.COUNTDOWN
-                            else -> ManualLockMode.TIMER
-                        },
-                    )
-                },
+                onItemSelection = { selectedIndex = it },
             )
             Crossfade(
                 modifier = Modifier
@@ -142,24 +129,23 @@ fun TimeBottomSheetContent(
             color = KeepTheme.colors.surface,
         )
         val timerDuration = calculateTimerDuration(now = timeNow, target = blockTime)
-        val hour = if (manualLockMode == ManualLockMode.COUNTDOWN) {
+        val hour = if (selectedIndex == 0) {
             countdownTime.hour
         } else {
             timerDuration.hours
         }
-        val minute = if (manualLockMode == ManualLockMode.COUNTDOWN) {
+        val minute = if (selectedIndex == 0) {
             countdownTime.minute
         } else {
             timerDuration.minutes
         }
-        val hasCountdownDay = manualLockMode == ManualLockMode.COUNTDOWN && countdownDays > 0
         Button(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp, bottom = 24.dp),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(vertical = 12.dp),
-            enabled = hasCountdownDay || hour != 0 || minute != 0,
+            enabled = countdownDays > 0 || hour != 0 || minute != 0,
             colors = ButtonColors(
                 containerColor = KeepTheme.colors.primary,
                 contentColor = Color.White,
@@ -169,7 +155,7 @@ fun TimeBottomSheetContent(
             onClick = onLockClick,
         ) {
             Text(
-                text = if (hasCountdownDay) {
+                text = if (countdownDays > 0) {
                     stringResource(R.string.lock_duration_with_day, countdownDays, hour, minute)
                 } else {
                     stringResource(R.string.lock_duration, hour, minute)
@@ -188,10 +174,8 @@ private fun TimeBottomSheetContentPreview() {
         blockTime = timeNow,
         countdownDays = 0,
         countdownTime = LocalTime(0, 0),
-        manualLockMode = ManualLockMode.COUNTDOWN,
         onChangeCountdownDuration = {},
         onChangeTimerTIme = {},
-        onChangeManualLockMode = {},
         onLockClick = {},
     )
 }
