@@ -10,7 +10,6 @@ RES_DIR = REPO_ROOT / "app" / "src" / "main" / "res"
 MANUAL_REFILL_STRING_NAMES = {
     "emergency_unlock_settings_manual_reset_button",
     "emergency_unlock_settings_count_management",
-    "emergency_unlock_settings_daily_refill_badge",
     "emergency_unlock_settings_manual_refill_title",
     "emergency_unlock_settings_manual_refill_subtitle",
     "emergency_unlock_settings_remaining_count",

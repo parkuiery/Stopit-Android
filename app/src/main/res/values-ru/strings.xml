@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">PIN-коды не совпадают.</string>
     <string name="parent_mode_setup_start">Запустить родительский режим</string>
     <string name="parent_mode_setup_start_disabled">Требуется настройка PIN</string>
-    <string name="parent_mode_setup_back_to_menu">Назад в меню</string>
     <string name="parent_mode_setup_duration_label">Разрешённое время</string>
     <string name="parent_mode_setup_duration_minutes">%1$d мин</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -305,7 +304,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Выберите, когда пополнять количество экстренных разблокировок.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Пополнять каждый день</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">Количество экстренных разблокировок пополняется каждый день в полночь.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Рекомендуется большинству пользователей.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Пополнять вручную</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">Количество не будет автоматически пополняться после смены даты. Используйте это для более строгого самоконтроля.</string>
     <string name="emergency_unlock_settings_remaining_count">Текущее оставшееся количество %1$d/%2$d</string>
@@ -421,4 +419,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">Поделиться шаблоном рутины</string>
     <string name="cd_share_routine_template">Поделиться шаблоном рутины</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d с</string>
+    <string name="emergency_unlock_settings_countdown">Ожидание перед разблокировкой</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Добавьте короткую паузу перед разблокировкой</string>
+    <string name="parent_mode_active_guardian_title">Подтверждение родителя</string>
+    <string name="parent_mode_active_remaining_label">Оставшееся время</string>
+    <string name="parent_mode_status_active">Активен</string>
+    <string name="parent_mode_status_ended">Завершён</string>
+    <string name="parent_mode_status_expired">Время вышло</string>
 </resources>

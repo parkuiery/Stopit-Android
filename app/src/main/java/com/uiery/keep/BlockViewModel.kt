@@ -18,6 +18,8 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
 import com.uiery.keep.data.lockhistory.LockHistoryRepository
 import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
@@ -211,6 +213,8 @@ class BlockViewModel
                     emergencyUnlockDailyLimit = availability.dailyLimit,
                     emergencyUnlockDurationOptions = availability.durationOptions,
                     emergencyUnlockReasonRequired = availability.reasonRequired,
+                    emergencyUnlockCountdownEnabled = availability.countdownEnabled,
+                    emergencyUnlockCountdownSeconds = availability.countdownSeconds,
                     emergencyUnlockAvailabilityReason = availability.reason,
                     dailyLimitReached = availability.dailyLimitReached,
                     dailyUnlockRemaining = availability.dailyUnlockRemaining,
@@ -291,6 +295,8 @@ data class BlockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val emergencyUnlockCountdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val emergencyUnlockCountdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
     val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val showFirstCoreActionFeedback: Boolean = false,
     val timedLockDeadline: LocalDateTime? = null,

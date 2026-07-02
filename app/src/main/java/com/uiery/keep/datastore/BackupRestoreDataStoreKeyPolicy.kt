@@ -29,6 +29,8 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED,
         PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED,
         PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT,
+        PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+        PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
         PreferencesKey.HAS_TRACKED_FIRST_OPEN,
         PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED,
         PreferencesKey.FIRST_OPEN_TIMESTAMP,

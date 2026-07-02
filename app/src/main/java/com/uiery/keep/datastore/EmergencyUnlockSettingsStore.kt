@@ -4,9 +4,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS
 import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.sanitizeEmergencyUnlockCountdownSeconds
 import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
 import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +64,20 @@ class EmergencyUnlockSettingsStore
             }
         }
 
+        suspend fun setCountdownEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED] = enabled
+            }
+        }
+
+        suspend fun setCountdownSeconds(seconds: Int) {
+            if (seconds !in ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS) return
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS] =
+                    sanitizeEmergencyUnlockCountdownSeconds(seconds)
+            }
+        }
+
         suspend fun setReasonRequired(required: Boolean) {
             dataStore.edit { preferences ->
                 preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = required
@@ -90,6 +108,11 @@ class EmergencyUnlockSettingsStore
                 reasonRequired = this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] ?: true,
                 autoResetEnabled = this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] ?: true,
                 manualResetAtMillis = this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] ?: 0L,
+                countdownEnabled = this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED]
+                    ?: DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+                countdownSeconds = sanitizeEmergencyUnlockCountdownSeconds(
+                    this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS],
+                ),
             )
     }
 
@@ -100,4 +123,6 @@ data class EmergencyUnlockSettingsSnapshot(
     val reasonRequired: Boolean = true,
     val autoResetEnabled: Boolean = true,
     val manualResetAtMillis: Long = 0L,
+    val countdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val countdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
 )

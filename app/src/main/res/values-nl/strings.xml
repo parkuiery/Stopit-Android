@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">PIN-codes komen niet overeen.</string>
     <string name="parent_mode_setup_start">Oudermodus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-instelling vereist</string>
-    <string name="parent_mode_setup_back_to_menu">Terug naar menu</string>
     <string name="parent_mode_setup_duration_label">Toegestane tijd</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -299,7 +298,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Kies wanneer het aantal noodontgrendelingen wordt aangevuld.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Elke dag aanvullen</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">Het aantal noodontgrendelingen wordt elke dag om middernacht aangevuld.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Aanbevolen voor de meeste gebruikers.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Handmatig aanvullen</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">Het aantal wordt niet automatisch aangevuld na een datumwisseling. Gebruik dit als je een strengere zelflimiet wilt.</string>
     <string name="emergency_unlock_settings_remaining_count">Huidig resterend aantal %1$d/%2$d</string>
@@ -411,4 +409,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">Routinesjabloon delen</string>
     <string name="cd_share_routine_template">Routinesjabloon delen</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d sec</string>
+    <string name="emergency_unlock_settings_countdown">Wachttijd voor ontgrendelen</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Voeg een korte pauze toe voordat de ontgrendeling wordt verleend</string>
+    <string name="parent_mode_active_guardian_title">Verificatie door ouder</string>
+    <string name="parent_mode_active_remaining_label">Resterende tijd</string>
+    <string name="parent_mode_status_active">Actief</string>
+    <string name="parent_mode_status_ended">Beëindigd</string>
+    <string name="parent_mode_status_expired">Tijd voorbij</string>
 </resources>

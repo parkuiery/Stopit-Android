@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">PIN 不一致。</string>
     <string name="parent_mode_setup_start">开始家长模式</string>
     <string name="parent_mode_setup_start_disabled">需要设置 PIN</string>
-    <string name="parent_mode_setup_back_to_menu">返回菜单</string>
     <string name="parent_mode_setup_duration_label">允许时长</string>
     <string name="parent_mode_setup_duration_minutes">%1$d 分钟</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -297,7 +296,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">选择什么时候恢复紧急解锁次数。</string>
     <string name="emergency_unlock_settings_daily_refill_title">每天恢复</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">紧急解锁次数会在每天午夜恢复。</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">推荐给大多数用户。</string>
     <string name="emergency_unlock_settings_manual_refill_title">手动恢复</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">日期变化后次数不会自动恢复。想要更强的自我限制时可以使用。</string>
     <string name="emergency_unlock_settings_remaining_count">当前剩余次数 %1$d/%2$d</string>
@@ -409,4 +407,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">分享例程模板</string>
     <string name="cd_share_routine_template">分享例程模板</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d秒</string>
+    <string name="emergency_unlock_settings_countdown">解除前的等待时间</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">在解除生效前加入短暂的等待</string>
+    <string name="parent_mode_active_guardian_title">监护人验证</string>
+    <string name="parent_mode_active_remaining_label">剩余时间</string>
+    <string name="parent_mode_status_active">进行中</string>
+    <string name="parent_mode_status_ended">已结束</string>
+    <string name="parent_mode_status_expired">时间到</string>
 </resources>

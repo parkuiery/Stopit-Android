@@ -171,6 +171,11 @@
     <string name="parent_mode_ended_title">부모 모드가 종료됐어요</string>
     <string name="parent_mode_active_summary">설정 시간 %1$d분 · 허용 앱 %2$d개</string>
     <string name="parent_mode_active_pin_notice">확인된 보호자 PIN으로 시간을 연장하거나 세션을 종료할 수 있어요.</string>
+    <string name="parent_mode_active_remaining_label">남은 시간</string>
+    <string name="parent_mode_status_active">진행 중</string>
+    <string name="parent_mode_status_expired">시간 종료</string>
+    <string name="parent_mode_status_ended">종료됨</string>
+    <string name="parent_mode_active_guardian_title">보호자 인증</string>
     <string name="parent_mode_active_extend_ten_minutes">10분 연장</string>
     <string name="parent_mode_active_end_now">보호자 PIN으로 종료</string>
     <string name="parent_mode_prepare_another_session">부모 모드 다시 시작</string>
@@ -181,7 +186,6 @@
     <string name="parent_mode_setup_pin_mismatch">PIN이 일치하지 않아요.</string>
     <string name="parent_mode_setup_start">부모 모드 시작</string>
     <string name="parent_mode_setup_start_disabled">PIN 설정 필요</string>
-    <string name="parent_mode_setup_back_to_menu">메뉴로 돌아가기</string>
     <string name="parent_mode_setup_duration_label">허용 시간</string>
     <string name="parent_mode_setup_duration_minutes">%1$d분</string>
     <string name="parent_mode_setup_duration_custom_label">직접 입력</string>
@@ -284,6 +288,9 @@
     <string name="emergency_unlock_settings_daily_limit">하루 허용 횟수</string>
     <string name="emergency_unlock_settings_limit_count">%d</string>
     <string name="emergency_unlock_settings_durations">허용할 해제 시간</string>
+    <string name="emergency_unlock_settings_countdown">해제 전 대기 시간</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">해제되기 직전에 잠깐 기다리는 시간을 둬요</string>
+    <string name="emergency_unlock_countdown_seconds">%d초</string>
     <string name="emergency_unlock_settings_reason_required">해제 이유 묻기</string>
     <string name="emergency_unlock_settings_reason_required_subtitle">앱 선택 전에 이유 선택 단계를 보여줘요</string>
     <string name="emergency_unlock_settings_auto_reset">긴급 해제 횟수 관리</string>
@@ -294,7 +301,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">긴급 해제 횟수를 언제 다시 채울지 선택하세요.</string>
     <string name="emergency_unlock_settings_daily_refill_title">매일 다시 채우기</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">매일 0시에 긴급 해제 횟수가 다시 채워져요.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">대부분의 사용자에게 추천해요.</string>
     <string name="emergency_unlock_settings_manual_refill_title">직접 다시 채우기</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">날짜가 지나도 횟수가 자동으로 채워지지 않아요. 스스로 더 강하게 제한하고 싶을 때 좋아요.</string>
     <string name="emergency_unlock_settings_remaining_count">현재 남은 횟수 %1$d/%2$d</string>

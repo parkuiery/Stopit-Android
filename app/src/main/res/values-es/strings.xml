@@ -165,7 +165,6 @@
     <string name="parent_mode_setup_pin_mismatch">Los PIN no coinciden.</string>
     <string name="parent_mode_setup_start">Iniciar modo padres</string>
     <string name="parent_mode_setup_start_disabled">Configuración de PIN necesaria</string>
-    <string name="parent_mode_setup_back_to_menu">Volver al menú</string>
     <string name="parent_mode_setup_duration_label">Tiempo permitido</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -298,7 +297,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Elige cuándo recuperar el conteo de desbloqueos de emergencia.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Recuperar cada día</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">El conteo de desbloqueos de emergencia se recupera cada día a medianoche.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Recomendado para la mayoría de usuarios.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Recuperar manualmente</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">El conteo no se recuperará automáticamente al cambiar la fecha. Úsalo cuando quieras un autolímite más fuerte.</string>
     <string name="emergency_unlock_settings_remaining_count">Conteo restante actual %1$d/%2$d</string>
@@ -410,4 +408,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d horas %2$d minutos</string>
     <string name="routine_template_share_chooser_title">Compartir plantilla de rutina</string>
     <string name="cd_share_routine_template">Compartir plantilla de rutina</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d s</string>
+    <string name="emergency_unlock_settings_countdown">Espera antes de desbloquear</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Añade una breve pausa antes de conceder el desbloqueo</string>
+    <string name="parent_mode_active_guardian_title">Verificación del tutor</string>
+    <string name="parent_mode_active_remaining_label">Tiempo restante</string>
+    <string name="parent_mode_status_active">En curso</string>
+    <string name="parent_mode_status_ended">Finalizado</string>
+    <string name="parent_mode_status_expired">Tiempo agotado</string>
 </resources>

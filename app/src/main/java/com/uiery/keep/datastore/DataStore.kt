@@ -32,6 +32,8 @@ object PreferencesKey {
     val EMERGENCY_UNLOCK_REASON_REQUIRED = booleanPreferencesKey("emergency_unlock_reason_required")
     val EMERGENCY_UNLOCK_AUTO_RESET_ENABLED = booleanPreferencesKey("emergency_unlock_auto_reset_enabled")
     val EMERGENCY_UNLOCK_MANUAL_RESET_AT = longPreferencesKey("emergency_unlock_manual_reset_at")
+    val EMERGENCY_UNLOCK_COUNTDOWN_ENABLED = booleanPreferencesKey("emergency_unlock_countdown_enabled")
+    val EMERGENCY_UNLOCK_COUNTDOWN_SECONDS = intPreferencesKey("emergency_unlock_countdown_seconds")
     val HAS_TRACKED_FIRST_OPEN = booleanPreferencesKey("has_tracked_first_open")
     val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
     val FIRST_OPEN_TIMESTAMP = longPreferencesKey("first_open_timestamp")

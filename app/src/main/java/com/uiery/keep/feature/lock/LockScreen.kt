@@ -95,6 +95,8 @@ fun LockScreen(
                 blockedApps = uiState.selectedAppPackage,
                 durationOptions = uiState.emergencyUnlockDurationOptions,
                 reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
+                countdownEnabled = uiState.emergencyUnlockCountdownEnabled,
+                countdownSeconds = uiState.emergencyUnlockCountdownSeconds,
                 onStepViewed = viewModel::trackEmergencyUnlockStepViewed,
                 onValidationBlocked = viewModel::trackEmergencyUnlockValidationBlocked,
                 onCancelled = viewModel::trackEmergencyUnlockCancelled,

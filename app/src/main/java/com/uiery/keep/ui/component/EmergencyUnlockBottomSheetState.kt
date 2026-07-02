@@ -41,6 +41,7 @@ internal data class EmergencyUnlockBottomSheetState(
     val selectedApps: Set<String> = emptySet(),
     val selectedDurationMinutes: Int,
     val countdownSeconds: Int = DEFAULT_COUNTDOWN_SECONDS,
+    val totalCountdownSeconds: Int = DEFAULT_COUNTDOWN_SECONDS,
 ) {
     val visibleSteps: List<EmergencyUnlockBottomSheetStep> = if (reasonStepEnabled) {
         listOf(
@@ -188,11 +189,13 @@ internal data class EmergencyUnlockBottomSheetState(
     )
 
     fun toUnlockRequest(): EmergencyUnlockBottomSheetRequest = requireNotNull(toUnlockRequestOrNull()) {
-        "Emergency unlock request requires countdown step and selected apps"
+        "Emergency unlock request requires countdown or duration step and selected apps"
     }
 
     fun toUnlockRequestOrNull(): EmergencyUnlockBottomSheetRequest? {
-        if (step != EmergencyUnlockBottomSheetStep.COUNTDOWN || selectedApps.isEmpty()) return null
+        val submittableStep = step == EmergencyUnlockBottomSheetStep.COUNTDOWN ||
+            step == EmergencyUnlockBottomSheetStep.DURATION
+        if (!submittableStep || selectedApps.isEmpty()) return null
         return EmergencyUnlockBottomSheetRequest(
             reason = if (reasonStepEnabled) selectedReason.orEmpty() else EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
             customReason = if (reasonStepEnabled && selectedReason == OTHER_REASON_KEY) customReason else null,
@@ -209,8 +212,10 @@ internal data class EmergencyUnlockBottomSheetState(
             blockedApps: Set<String>,
             durationOptions: List<Int>,
             reasonStepEnabled: Boolean,
+            countdownSeconds: Int = DEFAULT_COUNTDOWN_SECONDS,
         ): EmergencyUnlockBottomSheetState {
             val safeDurationOptions = durationOptions.ifEmpty { DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS }
+            val safeCountdownSeconds = countdownSeconds.coerceAtLeast(0)
             return EmergencyUnlockBottomSheetState(
                 blockedApps = blockedApps,
                 durationOptions = safeDurationOptions,
@@ -221,6 +226,8 @@ internal data class EmergencyUnlockBottomSheetState(
                     EmergencyUnlockBottomSheetStep.APPS
                 },
                 selectedDurationMinutes = safeDurationOptions.first(),
+                countdownSeconds = safeCountdownSeconds,
+                totalCountdownSeconds = safeCountdownSeconds,
             )
         }
     }

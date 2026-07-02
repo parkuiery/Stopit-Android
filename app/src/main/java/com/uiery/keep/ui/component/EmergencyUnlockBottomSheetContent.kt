@@ -61,6 +61,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 import kotlinx.coroutines.delay
 
@@ -82,18 +83,21 @@ fun EmergencyUnlockBottomSheetContent(
     blockedApps: Set<String>,
     durationOptions: List<Int>,
     reasonStepEnabled: Boolean,
+    countdownEnabled: Boolean = true,
+    countdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
     onStepViewed: (stepName: String) -> Unit = {},
     onValidationBlocked: (stepName: String, validationReason: String) -> Unit = { _, _ -> },
     onCancelled: (stepName: String) -> Unit = {},
     onUnlock: (reason: String, customReason: String?, apps: Set<String>, durationMinutes: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var state by remember(blockedApps, durationOptions, reasonStepEnabled) {
+    var state by remember(blockedApps, durationOptions, reasonStepEnabled, countdownEnabled, countdownSeconds) {
         mutableStateOf(
             EmergencyUnlockBottomSheetState.initial(
                 blockedApps = blockedApps,
                 durationOptions = durationOptions,
                 reasonStepEnabled = reasonStepEnabled,
+                countdownSeconds = if (countdownEnabled) countdownSeconds else 0,
             )
         )
     }
@@ -173,10 +177,17 @@ fun EmergencyUnlockBottomSheetContent(
                     selectedDuration = state.selectedDurationMinutes,
                     stepHelperTextRes = state.stepHelperTextRes,
                     onDurationSelected = { state = state.selectDuration(it) },
-                    onRequest = { advanceOrReportValidation() },
+                    onRequest = {
+                        if (countdownEnabled) {
+                            advanceOrReportValidation()
+                        } else {
+                            submitUnlock()
+                        }
+                    },
                 )
                 EmergencyUnlockBottomSheetStep.COUNTDOWN -> CountdownStep(
                     seconds = state.countdownSeconds,
+                    totalSeconds = state.totalCountdownSeconds,
                     onTick = {
                         val transition = state.countdownTick()
                         state = transition.state
@@ -475,6 +486,7 @@ private fun StepHelperText(textRes: Int?) {
 @Composable
 private fun CountdownStep(
     seconds: Int,
+    totalSeconds: Int,
     onTick: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -493,7 +505,7 @@ private fun CountdownStep(
     }
 
     val progress by animateFloatAsState(
-        targetValue = seconds / 30f,
+        targetValue = if (totalSeconds > 0) seconds.toFloat() / totalSeconds else 0f,
         animationSpec = tween(durationMillis = 900),
         label = "countdown_progress",
     )

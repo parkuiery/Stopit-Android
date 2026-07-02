@@ -12,12 +12,16 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
+import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS
 import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.MAX_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.MIN_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.sanitizeEmergencyUnlockCountdownSeconds
 import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,6 +50,8 @@ class EmergencyUnlockSettingsViewModel
                         reasonRequired = settings.reasonRequired,
                         autoResetEnabled = settings.autoResetEnabled,
                         manualResetAtMillis = settings.manualResetAtMillis,
+                        countdownEnabled = settings.countdownEnabled,
+                        countdownSeconds = settings.countdownSeconds,
                         refillMode = EmergencyUnlockRefillMode.fromAutoResetEnabled(settings.autoResetEnabled),
                         remainingUnlockCount = availability.dailyUnlockRemaining,
                     )
@@ -119,6 +125,44 @@ class EmergencyUnlockSettingsViewModel
             )
         }
 
+        fun setCountdownEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                applyCountdownEnabled(enabled)
+            }
+        }
+
+        internal suspend fun applyCountdownEnabled(enabled: Boolean) {
+            if (settingsStore.readSettings().countdownEnabled == enabled) return
+            settingsStore.setCountdownEnabled(enabled)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.COUNTDOWN,
+                valueBucket = onOffBucket(enabled),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
+        }
+
+        fun setCountdownSeconds(seconds: Int) {
+            if (seconds !in ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS) return
+            viewModelScope.launch {
+                applyCountdownSeconds(seconds)
+            }
+        }
+
+        internal suspend fun applyCountdownSeconds(seconds: Int) {
+            val sanitized = sanitizeEmergencyUnlockCountdownSeconds(seconds)
+            if (settingsStore.readSettings().countdownSeconds == sanitized) return
+            settingsStore.setCountdownSeconds(sanitized)
+            analytics.trackEmergencyUnlockSettingsChanged(
+                settingName = AnalyticsEmergencyUnlockSettingName.COUNTDOWN_SECONDS,
+                valueBucket = countdownSecondsBucket(sanitized),
+                refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                source = AnalyticsSource.MENU,
+            )
+        }
+
         fun setReasonRequired(required: Boolean) {
             viewModelScope.launch {
                 applyReasonRequired(required)
@@ -188,6 +232,13 @@ class EmergencyUnlockSettingsViewModel
                 else -> AnalyticsEmergencyUnlockSettingsValueBucket.FOUR_PLUS
             }
 
+        private fun countdownSecondsBucket(seconds: Int): String =
+            when (seconds) {
+                10 -> AnalyticsEmergencyUnlockSettingsValueBucket.SECONDS_10
+                60 -> AnalyticsEmergencyUnlockSettingsValueBucket.SECONDS_60
+                else -> AnalyticsEmergencyUnlockSettingsValueBucket.SECONDS_30
+            }
+
         private fun durationOptionsBucket(options: List<Int>): String =
             when {
                 options.isEmpty() -> AnalyticsEmergencyUnlockSettingsValueBucket.NONE
@@ -224,8 +275,11 @@ data class EmergencyUnlockSettingsUiState(
     val reasonRequired: Boolean = true,
     val autoResetEnabled: Boolean = true,
     val manualResetAtMillis: Long = 0L,
+    val countdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val countdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
     val refillMode: EmergencyUnlockRefillMode = EmergencyUnlockRefillMode.Daily,
     val remainingUnlockCount: Int = dailyLimit,
     val allowedDailyLimits: IntRange = MIN_EMERGENCY_UNLOCK_DAILY_LIMIT..MAX_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val allowedDurations: List<Int> = ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS,
+    val allowedCountdownSeconds: List<Int> = ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS,
 )
