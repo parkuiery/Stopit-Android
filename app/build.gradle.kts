@@ -76,8 +76,8 @@ android {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
         targetSdk = 35
-        versionCode = 27
-        versionName = "1.7.5"
+        versionCode = 30
+        versionName = "1.7.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
