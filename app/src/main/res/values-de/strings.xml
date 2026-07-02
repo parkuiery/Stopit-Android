@@ -409,4 +409,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d Stunden %2$d Minuten</string>
     <string name="routine_template_share_chooser_title">Routinenvorlage teilen</string>
     <string name="cd_share_routine_template">Routinenvorlage teilen</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d Sek.</string>
+    <string name="emergency_unlock_settings_countdown">Wartezeit vor dem Entsperren</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Füge eine kurze Wartezeit ein, bevor die Entsperrung gewährt wird</string>
+    <string name="parent_mode_active_guardian_title">Bestätigung der Eltern</string>
+    <string name="parent_mode_active_remaining_label">Verbleibende Zeit</string>
+    <string name="parent_mode_status_active">Aktiv</string>
+    <string name="parent_mode_status_ended">Beendet</string>
+    <string name="parent_mode_status_expired">Zeit abgelaufen</string>
 </resources>

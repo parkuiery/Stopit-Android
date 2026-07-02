@@ -407,4 +407,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">分享例程模板</string>
     <string name="cd_share_routine_template">分享例程模板</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d秒</string>
+    <string name="emergency_unlock_settings_countdown">解除前的等待时间</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">在解除生效前加入短暂的等待</string>
+    <string name="parent_mode_active_guardian_title">监护人验证</string>
+    <string name="parent_mode_active_remaining_label">剩余时间</string>
+    <string name="parent_mode_status_active">进行中</string>
+    <string name="parent_mode_status_ended">已结束</string>
+    <string name="parent_mode_status_expired">时间到</string>
 </resources>

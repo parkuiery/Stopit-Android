@@ -409,4 +409,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">Routinesjabloon delen</string>
     <string name="cd_share_routine_template">Routinesjabloon delen</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d sec</string>
+    <string name="emergency_unlock_settings_countdown">Wachttijd voor ontgrendelen</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Voeg een korte pauze toe voordat de ontgrendeling wordt verleend</string>
+    <string name="parent_mode_active_guardian_title">Verificatie door ouder</string>
+    <string name="parent_mode_active_remaining_label">Resterende tijd</string>
+    <string name="parent_mode_status_active">Actief</string>
+    <string name="parent_mode_status_ended">Beëindigd</string>
+    <string name="parent_mode_status_expired">Tijd voorbij</string>
 </resources>

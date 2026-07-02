@@ -407,4 +407,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">ルーティンテンプレートを共有</string>
     <string name="cd_share_routine_template">ルーティンテンプレートを共有</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d秒</string>
+    <string name="emergency_unlock_settings_countdown">解除前の待機時間</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">解除される直前に少しだけ待つ時間を設けます</string>
+    <string name="parent_mode_active_guardian_title">保護者の確認</string>
+    <string name="parent_mode_active_remaining_label">残り時間</string>
+    <string name="parent_mode_status_active">実行中</string>
+    <string name="parent_mode_status_ended">終了</string>
+    <string name="parent_mode_status_expired">時間切れ</string>
 </resources>

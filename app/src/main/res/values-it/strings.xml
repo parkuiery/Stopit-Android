@@ -409,4 +409,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">Condividi modello di routine</string>
     <string name="cd_share_routine_template">Condividi modello di routine</string>
+    <!-- Parent Mode active status & emergency unlock countdown -->
+    <string name="emergency_unlock_countdown_seconds">%d s</string>
+    <string name="emergency_unlock_settings_countdown">Attesa prima dello sblocco</string>
+    <string name="emergency_unlock_settings_countdown_subtitle">Aggiungi una breve pausa prima di concedere lo sblocco</string>
+    <string name="parent_mode_active_guardian_title">Verifica del tutore</string>
+    <string name="parent_mode_active_remaining_label">Tempo rimanente</string>
+    <string name="parent_mode_status_active">In corso</string>
+    <string name="parent_mode_status_ended">Terminato</string>
+    <string name="parent_mode_status_expired">Tempo scaduto</string>
 </resources>
