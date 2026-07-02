@@ -90,6 +90,14 @@ class EmergencyUnlockPolicyTest {
     }
 
     @Test
+    fun countdownSecondsFallBackToDefaultWhenNotAllowed() {
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, sanitizeEmergencyUnlockCountdownSeconds(null))
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, sanitizeEmergencyUnlockCountdownSeconds(45))
+        assertEquals(10, sanitizeEmergencyUnlockCountdownSeconds(10))
+        assertEquals(60, sanitizeEmergencyUnlockCountdownSeconds(60))
+    }
+
+    @Test
     fun reasonNotRequiredUsesStableReasonKey() {
         assertEquals("not_required", EMERGENCY_UNLOCK_REASON_NOT_REQUIRED)
     }

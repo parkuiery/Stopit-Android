@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">PINs stimmen nicht überein.</string>
     <string name="parent_mode_setup_start">Eltern-Modus starten</string>
     <string name="parent_mode_setup_start_disabled">PIN-Einrichtung erforderlich</string>
-    <string name="parent_mode_setup_back_to_menu">Zurück zum Menü</string>
     <string name="parent_mode_setup_duration_label">Erlaubte Zeit</string>
     <string name="parent_mode_setup_duration_minutes">%1$d Min.</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -299,7 +298,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Lege fest, wann die Notfallentsperrungen wieder aufgefüllt werden.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Täglich wieder auffüllen</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">Die Notfallentsperrungen werden jeden Tag um Mitternacht aufgefüllt.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Für die meisten Nutzer empfohlen.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Manuell wieder auffüllen</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">Die Anzahl wird nach dem Datumswechsel nicht automatisch aufgefüllt. Nutze dies, wenn du eine stärkere Selbstbegrenzung möchtest.</string>
     <string name="emergency_unlock_settings_remaining_count">Aktuell verbleibende Anzahl %1$d/%2$d</string>

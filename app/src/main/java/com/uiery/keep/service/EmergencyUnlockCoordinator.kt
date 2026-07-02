@@ -14,6 +14,8 @@ internal data class EmergencyUnlockAvailability(
     val dailyLimit: Int,
     val durationOptions: List<Int>,
     val reasonRequired: Boolean,
+    val countdownEnabled: Boolean,
+    val countdownSeconds: Int,
     val reason: EmergencyUnlockAvailabilityReason,
     val dailyLimitReached: Boolean,
     val dailyUnlockRemaining: Int,
@@ -159,6 +161,8 @@ class EmergencyUnlockCoordinator
                 dailyLimit = settings.dailyLimit,
                 durationOptions = settings.durationOptions,
                 reasonRequired = settings.reasonRequired,
+                countdownEnabled = settings.countdownEnabled,
+                countdownSeconds = settings.countdownSeconds,
                 reason = reason,
                 dailyLimitReached = reason == EmergencyUnlockAvailabilityReason.DailyLimitExhausted,
                 dailyUnlockRemaining = emergencyUnlockDailyRemaining(

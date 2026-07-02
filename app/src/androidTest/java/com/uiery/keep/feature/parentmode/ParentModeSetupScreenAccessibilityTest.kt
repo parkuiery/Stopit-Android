@@ -43,7 +43,6 @@ class ParentModeSetupScreenAccessibilityTest {
                     onGuardianPinChanged = {},
                     onGuardianPinConfirmationChanged = {},
                     onStart = {},
-                    onNavigateBack = {},
                 )
             }
         }
@@ -84,7 +83,6 @@ class ParentModeSetupScreenAccessibilityTest {
                     onExtend = {},
                     onEnd = {},
                     onPrepareAnother = {},
-                    onNavigateBack = {},
                 )
             }
         }
@@ -126,7 +124,6 @@ class ParentModeSetupScreenAccessibilityTest {
                     onExtend = {},
                     onEnd = {},
                     onPrepareAnother = {},
-                    onNavigateBack = {},
                 )
             }
         }
@@ -165,7 +162,6 @@ class ParentModeSetupScreenAccessibilityTest {
                     onExtend = {},
                     onEnd = {},
                     onPrepareAnother = {},
-                    onNavigateBack = {},
                 )
             }
         }

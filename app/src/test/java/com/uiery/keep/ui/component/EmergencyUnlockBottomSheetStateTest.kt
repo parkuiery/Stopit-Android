@@ -58,6 +58,42 @@ class EmergencyUnlockBottomSheetStateTest {
     }
 
     @Test
+    fun configuredCountdownSecondsSeedBothCurrentAndTotalCountdown() {
+        val state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app"),
+            durationOptions = listOf(5),
+            reasonStepEnabled = false,
+            countdownSeconds = 60,
+        )
+
+        assertEquals(60, state.countdownSeconds)
+        assertEquals(60, state.totalCountdownSeconds)
+    }
+
+    @Test
+    fun zeroCountdownAllowsUnlockRequestDirectlyFromDurationStep() {
+        var state = EmergencyUnlockBottomSheetState.initial(
+            blockedApps = setOf("com.social.app"),
+            durationOptions = listOf(5),
+            reasonStepEnabled = false,
+            countdownSeconds = 0,
+        )
+
+        state = state.toggleApp("com.social.app").goNext().selectDuration(5)
+
+        assertEquals(EmergencyUnlockBottomSheetStep.DURATION, state.step)
+        assertEquals(
+            EmergencyUnlockBottomSheetRequest(
+                reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                customReason = null,
+                apps = setOf("com.social.app"),
+                durationMinutes = 5,
+            ),
+            state.toUnlockRequest(),
+        )
+    }
+
+    @Test
     fun stepPurposeTextExplainsEachNonCountdownStepIntent() {
         var state = EmergencyUnlockBottomSheetState.initial(
             blockedApps = setOf("com.social.app", "com.game.app"),

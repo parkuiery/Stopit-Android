@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">Os PINs não coincidem.</string>
     <string name="parent_mode_setup_start">Iniciar Modo dos pais</string>
     <string name="parent_mode_setup_start_disabled">Configuração de PIN necessária</string>
-    <string name="parent_mode_setup_back_to_menu">Voltar ao menu</string>
     <string name="parent_mode_setup_duration_label">Tempo permitido</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -299,7 +298,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Escolha quando repor a contagem de desbloqueios de emergência.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Repor todos os dias</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">A contagem de desbloqueios de emergência é reposta todos os dias à meia-noite.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Recomendado para a maioria dos utilizadores.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Repor manualmente</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">A contagem não será reposta automaticamente após a mudança de data. Use isto quando quiser um autolimite mais forte.</string>
     <string name="emergency_unlock_settings_remaining_count">Contagem restante atual %1$d/%2$d</string>

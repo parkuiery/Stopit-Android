@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">Les codes PIN ne correspondent pas.</string>
     <string name="parent_mode_setup_start">Démarrer le mode parental</string>
     <string name="parent_mode_setup_start_disabled">Configuration du PIN requise</string>
-    <string name="parent_mode_setup_back_to_menu">Retour au menu</string>
     <string name="parent_mode_setup_duration_label">Temps autorisé</string>
     <string name="parent_mode_setup_duration_minutes">%1$d min</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -299,7 +298,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">Choisissez quand recharger le compteur de déverrouillages d\'urgence.</string>
     <string name="emergency_unlock_settings_daily_refill_title">Recharger chaque jour</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">Le compteur de déverrouillages d\'urgence se recharge chaque jour à minuit.</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">Recommandé pour la plupart des utilisateurs.</string>
     <string name="emergency_unlock_settings_manual_refill_title">Recharger manuellement</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">Le compteur ne se rechargera pas automatiquement au changement de date. Utilisez ce mode pour une autolimitation plus stricte.</string>
     <string name="emergency_unlock_settings_remaining_count">Compteur restant actuel %1$d/%2$d</string>

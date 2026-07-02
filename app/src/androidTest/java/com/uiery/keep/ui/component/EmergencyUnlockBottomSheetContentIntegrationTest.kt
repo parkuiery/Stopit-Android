@@ -135,6 +135,52 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
     }
 
     @Test
+    fun countdownDisabledSubmitsImmediatelyFromDurationWithoutShowingCountdown() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageName = context.packageName
+        val unlockedRequests = mutableListOf<EmergencyUnlockBottomSheetRequest>()
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    countdownEnabled = false,
+                    onUnlock = { reason, customReason, apps, durationMinutes ->
+                        unlockedRequests += EmergencyUnlockBottomSheetRequest(
+                            reason = reason,
+                            customReason = customReason,
+                            apps = apps,
+                            durationMinutes = durationMinutes,
+                        )
+                    },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_waiting)).assertDoesNotExist()
+        assertEquals(
+            listOf(
+                EmergencyUnlockBottomSheetRequest(
+                    reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                    customReason = null,
+                    apps = setOf(packageName),
+                    durationMinutes = 5,
+                )
+            ),
+            unlockedRequests,
+        )
+    }
+
+    @Test
     fun validationBlockedAnalyticsIsEmittedOnlyAfterBlockedNextAttempt() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val packageName = context.packageName

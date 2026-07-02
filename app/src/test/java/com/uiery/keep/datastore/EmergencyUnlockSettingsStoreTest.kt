@@ -1,6 +1,7 @@
 package com.uiery.keep.datastore
 
 import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
 import kotlinx.coroutines.flow.first
@@ -30,6 +31,37 @@ class EmergencyUnlockSettingsStoreTest {
         assertFalse(settings.reasonRequired)
         assertTrue(settings.autoResetEnabled)
         assertEquals(0L, settings.manualResetAtMillis)
+        assertTrue(settings.countdownEnabled)
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, settings.countdownSeconds)
+    }
+
+    @Test
+    fun countdownSecondsSanitizesInvalidPersistedValueToDefault() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS] = 45
+            }
+        val store = EmergencyUnlockSettingsStore(dataStore)
+
+        val settings = store.settings.first()
+
+        assertFalse(settings.countdownEnabled)
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, settings.countdownSeconds)
+    }
+
+    @Test
+    fun countdownWriteOperationsPersistSanitizedValues() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = EmergencyUnlockSettingsStore(dataStore)
+
+        store.setCountdownEnabled(false)
+        store.setCountdownSeconds(60)
+        store.setCountdownSeconds(45)
+
+        val snapshot = dataStore.snapshot()
+        assertEquals(false, snapshot[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED])
+        assertEquals(60, snapshot[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS])
     }
 
     @Test

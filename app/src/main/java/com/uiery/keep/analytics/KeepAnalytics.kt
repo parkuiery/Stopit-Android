@@ -503,6 +503,8 @@ object AnalyticsEmergencyUnlockSettingName {
     const val DURATION_OPTIONS = "duration_options"
     const val REASON_REQUIRED = "reason_required"
     const val REFILL_MODE = "refill_mode"
+    const val COUNTDOWN = "countdown"
+    const val COUNTDOWN_SECONDS = "countdown_seconds"
 }
 
 object AnalyticsEmergencyUnlockSettingsValueBucket {
@@ -518,6 +520,9 @@ object AnalyticsEmergencyUnlockSettingsValueBucket {
     const val LONG_INCLUDED = "long_included"
     const val DAILY = "daily"
     const val MANUAL = "manual"
+    const val SECONDS_10 = "10s"
+    const val SECONDS_30 = "30s"
+    const val SECONDS_60 = "60s"
 }
 
 object AnalyticsEmergencyUnlockRefillMode {

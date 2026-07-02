@@ -166,7 +166,6 @@
     <string name="parent_mode_setup_pin_mismatch">PINが一致しません。</string>
     <string name="parent_mode_setup_start">ペアレントモードを開始</string>
     <string name="parent_mode_setup_start_disabled">PIN設定が必要です</string>
-    <string name="parent_mode_setup_back_to_menu">メニューに戻る</string>
     <string name="parent_mode_setup_duration_label">許可する時間</string>
     <string name="parent_mode_setup_duration_minutes">%1$d分</string>
     <string name="parent_mode_setup_duration_custom_label">Custom minutes</string>
@@ -297,7 +296,6 @@
     <string name="emergency_unlock_settings_count_management_subtitle">緊急解除回数をいつ回復するか選択します。</string>
     <string name="emergency_unlock_settings_daily_refill_title">毎日回復</string>
     <string name="emergency_unlock_settings_daily_refill_subtitle">緊急解除回数は毎日深夜に回復します。</string>
-    <string name="emergency_unlock_settings_daily_refill_badge">ほとんどのユーザーにおすすめです。</string>
     <string name="emergency_unlock_settings_manual_refill_title">手動で回復</string>
     <string name="emergency_unlock_settings_manual_refill_subtitle">日付が変わっても回数は自動回復しません。より強い自己制限をしたいときに使います。</string>
     <string name="emergency_unlock_settings_remaining_count">現在の残り回数 %1$d/%2$d</string>

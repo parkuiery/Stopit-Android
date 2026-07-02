@@ -118,6 +118,8 @@ fun BlockScreen(
                 blockedApps = setOf(packageName),
                 durationOptions = uiState.emergencyUnlockDurationOptions,
                 reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
+                countdownEnabled = uiState.emergencyUnlockCountdownEnabled,
+                countdownSeconds = uiState.emergencyUnlockCountdownSeconds,
                 onStepViewed = viewModel::trackEmergencyUnlockStepViewed,
                 onValidationBlocked = viewModel::trackEmergencyUnlockValidationBlocked,
                 onCancelled = viewModel::trackEmergencyUnlockCancelled,

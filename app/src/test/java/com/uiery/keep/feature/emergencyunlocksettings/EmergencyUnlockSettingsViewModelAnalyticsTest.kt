@@ -87,6 +87,46 @@ class EmergencyUnlockSettingsViewModelAnalyticsTest {
     }
 
     @Test
+    fun countdownSettingChangesTrackPrivacySafeBuckets() = runBlocking {
+        val analytics = RecordingEmergencyUnlockSettingsAnalytics()
+        val viewModel = createViewModel(analytics = analytics)
+
+        viewModel.applyCountdownEnabled(false)
+        viewModel.applyCountdownSeconds(60)
+
+        assertEquals(
+            listOf(
+                SettingsChangedCall(
+                    settingName = AnalyticsEmergencyUnlockSettingName.COUNTDOWN,
+                    valueBucket = AnalyticsEmergencyUnlockSettingsValueBucket.OFF,
+                    refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                    durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                    source = AnalyticsSource.MENU,
+                ),
+                SettingsChangedCall(
+                    settingName = AnalyticsEmergencyUnlockSettingName.COUNTDOWN_SECONDS,
+                    valueBucket = AnalyticsEmergencyUnlockSettingsValueBucket.SECONDS_60,
+                    refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                    durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.NOT_APPLICABLE,
+                    source = AnalyticsSource.MENU,
+                ),
+            ),
+            analytics.settingsChangedCalls,
+        )
+    }
+
+    @Test
+    fun unchangedCountdownSettingsDoNotTrackSettingChange() = runBlocking {
+        val analytics = RecordingEmergencyUnlockSettingsAnalytics()
+        val viewModel = createViewModel(analytics = analytics)
+
+        viewModel.applyCountdownEnabled(true)
+        viewModel.applyCountdownSeconds(30)
+
+        assertEquals(emptyList<SettingsChangedCall>(), analytics.settingsChangedCalls)
+    }
+
+    @Test
     fun unchangedSettingsDoNotTrackSettingChange() = runBlocking {
         val analytics = RecordingEmergencyUnlockSettingsAnalytics()
         val viewModel = createViewModel(analytics = analytics)

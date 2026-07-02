@@ -181,6 +181,25 @@ fun EmergencyUnlockSettingsScreen(
                     enabled = uiState.enabled,
                     onToggle = viewModel::toggleDuration,
                 )
+
+                GroupDivider()
+
+                SwitchRow(
+                    title = stringResource(R.string.emergency_unlock_settings_countdown),
+                    subtitle = stringResource(R.string.emergency_unlock_settings_countdown_subtitle),
+                    checked = uiState.countdownEnabled,
+                    enabled = uiState.enabled,
+                    onCheckedChange = viewModel::setCountdownEnabled,
+                )
+                if (uiState.countdownEnabled) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CountdownSecondsSelector(
+                        options = uiState.allowedCountdownSeconds,
+                        selected = uiState.countdownSeconds,
+                        enabled = uiState.enabled,
+                        onSelected = viewModel::setCountdownSeconds,
+                    )
+                }
             }
 
             SettingsGroupCard(modifier = Modifier.dimWhen(!uiState.enabled)) {
@@ -430,7 +449,7 @@ private fun RefillModeSection(
     RefillModeOption(
         title = stringResource(R.string.emergency_unlock_settings_daily_refill_title),
         subtitle = stringResource(R.string.emergency_unlock_settings_daily_refill_subtitle),
-        badge = stringResource(R.string.emergency_unlock_settings_daily_refill_badge),
+        badge = null,
         selected = uiState.refillMode == EmergencyUnlockRefillMode.Daily,
         enabled = uiState.enabled,
         contentDescription = stringResource(R.string.cd_emergency_unlock_daily_refill_mode),
@@ -594,6 +613,47 @@ private fun DailyLimitSelector(
             ) {
                 Text(
                     text = value.toString(),
+                    color = if (isSelected) Color.White else KeepTheme.colors.onSurfaceVariant,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 14.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CountdownSecondsSelector(
+    options: List<Int>,
+    selected: Int,
+    enabled: Boolean,
+    onSelected: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(KeepTheme.colors.background)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        options.forEach { seconds ->
+            val isSelected = seconds == selected
+            val bg by animateFloatAsState(
+                targetValue = if (isSelected) 1f else 0f,
+                label = "countdown_bg",
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(KeepTheme.colors.primary.copy(alpha = bg * 0.95f))
+                    .clickable(enabled = enabled) { onSelected(seconds) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.emergency_unlock_countdown_seconds, seconds),
                     color = if (isSelected) Color.White else KeepTheme.colors.onSurfaceVariant,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 14.sp,
