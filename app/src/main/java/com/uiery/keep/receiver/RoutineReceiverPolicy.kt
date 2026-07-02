@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.content.Intent
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduleResult
@@ -27,6 +28,8 @@ data class RoutineScheduleApplication(
 )
 
 object RoutineReceiverPolicy {
+    private const val MAX_PENDING_ROUTINE_START_NOTICES = 3
+
     // Room is the authoritative routine source of truth.
     // PreferencesKey.ROUTINES is only a runtime compatibility cache that may be rehydrated
     // from Room after boot/restore/alarm entry, never the primary read path.
@@ -34,7 +37,8 @@ object RoutineReceiverPolicy {
         action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == Intent.ACTION_TIME_CHANGED ||
-            action == Intent.ACTION_TIMEZONE_CHANGED
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
 
     fun parseRoutineAlarmTrigger(
         action: String?,
@@ -76,17 +80,34 @@ object RoutineReceiverPolicy {
         databaseRoutines: List<RoutineModel>,
     ): Boolean = storedRoutines != databaseRoutines
 
+    fun shouldRewriteCompatibilityCache(
+        storedRoutines: List<RoutineModel>,
+        databaseRoutines: List<RoutineModel>,
+        updatedRoutines: List<RoutineModel>,
+    ): Boolean = storedRoutines != updatedRoutines || databaseRoutines != updatedRoutines
+
     fun findEnabledRoutineToReschedule(
         routines: List<RoutineModel>,
         routineId: Long,
     ): RoutineModel? = routines.firstOrNull { it.id == routineId && it.isEnabled }
+
+    fun shouldShowRoutineStartNotice(
+        routines: List<RoutineModel>,
+        routineId: Long,
+    ): Boolean = findEnabledRoutineToReschedule(routines, routineId) != null
 
     fun applyScheduleResult(
         routines: List<RoutineModel>,
         routineId: Long,
         scheduleResult: RoutineScheduleResult,
     ): RoutineScheduleApplication {
-        if (scheduleResult != RoutineScheduleResult.MissingExactAlarmPermission) {
+        val shouldDisableRoutine = when (scheduleResult) {
+            RoutineScheduleResult.InvalidRoutine,
+            RoutineScheduleResult.MissingExactAlarmPermission -> true
+            RoutineScheduleResult.NotEnabled,
+            RoutineScheduleResult.Scheduled -> false
+        }
+        if (!shouldDisableRoutine) {
             return RoutineScheduleApplication(
                 routines = routines,
                 disabledRoutineIds = emptySet(),
@@ -112,7 +133,24 @@ object RoutineReceiverPolicy {
                 if (routine.id in disabledRoutineIds) routine.copy(isEnabled = false) else routine
             },
             disabledRoutineIds = disabledRoutineIds,
-            shouldResetAlarmPermissionPrompt = true,
+            shouldResetAlarmPermissionPrompt = scheduleResult == RoutineScheduleResult.MissingExactAlarmPermission,
+        )
+    }
+
+    fun applyRoutineAlarmRescheduleResult(
+        routines: List<RoutineModel>,
+        routineId: Long,
+        scheduleResult: RoutineScheduleResult,
+    ): RoutineScheduleApplication = when (scheduleResult) {
+        RoutineScheduleResult.MissingExactAlarmPermission -> RoutineScheduleApplication(
+            routines = routines,
+            disabledRoutineIds = emptySet(),
+            shouldResetAlarmPermissionPrompt = routines.any { it.id == routineId && it.isEnabled },
+        )
+        else -> applyScheduleResult(
+            routines = routines,
+            routineId = routineId,
+            scheduleResult = scheduleResult,
         )
     }
 
@@ -125,11 +163,21 @@ object RoutineReceiverPolicy {
         scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
     )
 
+    fun selectRoutineStartFallbackMessage(
+        notificationResult: RoutineStartNotificationResult,
+        permissionDeniedMessage: String,
+        channelDisabledMessage: String,
+    ): String = when (notificationResult) {
+        RoutineStartNotificationResult.PermissionDenied -> permissionDeniedMessage
+        RoutineStartNotificationResult.ChannelDisabled -> channelDisabledMessage
+        RoutineStartNotificationResult.Posted -> ""
+    }
+
     fun buildPendingRoutineStartNotice(
         notificationResult: RoutineStartNotificationResult,
         fallbackMessage: String,
     ): PendingRoutineStartNotice? = when {
-        notificationResult != RoutineStartNotificationResult.PermissionDenied -> null
+        notificationResult == RoutineStartNotificationResult.Posted -> null
         fallbackMessage.isBlank() -> null
         else -> PendingRoutineStartNotice(message = fallbackMessage)
     }
@@ -137,9 +185,13 @@ object RoutineReceiverPolicy {
     fun enqueuePendingRoutineStartNotice(
         storedValue: String?,
         notice: PendingRoutineStartNotice,
-    ): String? = encodePendingRoutineStartNotices(
-        decodePendingRoutineStartNotices(storedValue) + notice.message,
-    )
+    ): String? {
+        val latestDistinctNotices = (
+            decodePendingRoutineStartNotices(storedValue)
+                .filterNot { it == notice.message } + notice.message
+            ).takeLast(MAX_PENDING_ROUTINE_START_NOTICES)
+        return encodePendingRoutineStartNotices(latestDistinctNotices)
+    }
 
     fun drainNextPendingRoutineStartNotice(storedValue: String?): PendingRoutineStartNoticeDrain {
         val notices = decodePendingRoutineStartNotices(storedValue)

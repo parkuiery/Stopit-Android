@@ -3,28 +3,48 @@ package com.uiery.keep.feature.home
 import android.app.Activity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
+import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaActivationStage
+import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaSurface
+import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaVariant
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.domain.goallock.GoalLock
+import com.uiery.keep.domain.goallock.GoalLockMode
+import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.data.goallock.GoalLockRepository
+import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
+import com.uiery.keep.domain.goallock.GoalLockStoredStatus
+import com.uiery.keep.feature.goallock.analyticsLockMode
+import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
-import com.uiery.keep.receiver.RoutineReceiverPolicy
-import com.uiery.keep.service.recordLockHistorySession
+import com.uiery.keep.service.LockHistoryRecorder
 import com.uiery.keep.util.timeNow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalTime
@@ -33,7 +53,10 @@ import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,8 +64,16 @@ class HomeViewModel
     @Inject
     constructor(
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
+        private val reviewPromptStateStore: ReviewPromptStateStore,
+        private val routineNoticeStore: RoutineNoticeStore,
         private val analytics: KeepAnalytics,
-        private val lockHistoryDao: LockHistoryDao,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
+        private val lockHistoryRecorder: LockHistoryRecorder,
+        private val goalLockRepository: GoalLockRepository,
+        private val lockHistoryRepository: LockHistoryRepository,
+        private val routineRepository: RoutineRepository,
+        private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -51,10 +82,18 @@ class HomeViewModel
 
         init {
             getIsKeep()
+            getActiveTimedLock()
             getSelectedApp()
+            getRoutineCreationCta()
+            syncRoutinesCount()
+            getGoalLockCard()
+            loadRepeatBlockRoutineSuggestion()
         }
 
-        internal fun changeIsKeep(noSelectedAppsMessage: String? = null) =
+        internal fun changeIsKeep(
+            noSelectedAppsMessage: String? = null,
+            firstLockStartedMessage: String? = null,
+        ) =
             intent {
                 val isKeep = !state.isKeep
                 if (isKeep && state.selectedAppPackage.isEmpty()) {
@@ -73,7 +112,17 @@ class HomeViewModel
                 analytics.trackKeepModeToggled(isEnabled = isKeep)
                 if (isKeep) {
                     if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME)) {
-                        reduce { state.copy(showFirstLockActivationCta = false) }
+                        if (!firstLockStartedMessage.isNullOrBlank()) {
+                            postSideEffect(HomeSideEffect.ShowSnackBar(firstLockStartedMessage))
+                            reduce {
+                                state.copy(
+                                    showFirstLockActivationCta = false,
+                                    snackbarMessage = firstLockStartedMessage,
+                                )
+                            }
+                        } else {
+                            reduce { state.copy(showFirstLockActivationCta = false) }
+                        }
                     }
                     analytics.trackLockSessionStart(
                         source = AnalyticsSource.HOME_KEEP_SWITCH,
@@ -88,7 +137,13 @@ class HomeViewModel
                     )
                     storeBlockTime(System.currentTimeMillis() - state.startTime)
                 }
-                reduce { state.copy(isKeep = isKeep, startTime = System.currentTimeMillis()) }
+                reduce {
+                    state.copy(
+                        isKeep = isKeep,
+                        startTime = System.currentTimeMillis(),
+                        showRoutineCreationCta = false,
+                    )
+                }
                 storeIsKeep()
             }
 
@@ -102,6 +157,8 @@ class HomeViewModel
 
         internal fun showCategoryBottomSheet() =
             intent {
+                // 잠금 활성 중에는 차단 앱 선택을 변경할 수 없다 (우회 방지).
+                if (state.isKeep) return@intent
                 reduce {
                     state.copy(
                         isShowCategoryBottomSheet = true,
@@ -130,7 +187,12 @@ class HomeViewModel
                 }
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (!pendingMessage.isNullOrBlank()) {
-                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    postSideEffect(
+                        HomeSideEffect.ShowSnackBar(
+                            message = pendingMessage,
+                            drainNextRoutineStartNoticeAfterDismiss = true,
+                        ),
+                    )
                     reduce { state.copy(snackbarMessage = pendingMessage) }
                 }
             }
@@ -145,16 +207,19 @@ class HomeViewModel
                 }
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (!pendingMessage.isNullOrBlank()) {
-                    postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                    postSideEffect(
+                        HomeSideEffect.ShowSnackBar(
+                            message = pendingMessage,
+                            drainNextRoutineStartNoticeAfterDismiss = true,
+                        ),
+                    )
                     reduce { state.copy(snackbarMessage = pendingMessage) }
                 }
             }
 
         internal fun maybeDrainReviewFlag(activity: Activity?) =
             intent {
-                val prefs = dataStore.data.firstOrNull()
-                val pending = prefs?.get(PreferencesKey.REVIEW_PENDING) ?: false
-                if (!pending) return@intent
+                if (!reviewPromptStateStore.readState().isPending) return@intent
                 if (state.sheetVisible) {
                     analytics.reviewPromptSkipped(SkipReason.NotHomeRoot.name)
                     return@intent
@@ -162,15 +227,17 @@ class HomeViewModel
                 val live = reviewEligibility.evaluateLive()
                 if (live is ReviewEligibilityDecision.Ineligible) {
                     analytics.reviewPromptSkipped(live.reason.name)
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
+                    reviewPromptStateStore.clearPending()
                     return@intent
                 }
                 if (activity == null) {
                     analytics.reviewPromptSkipped(SkipReason.NoActivity.name)
                     return@intent
                 }
-                dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = false }
-                inAppReviewManager.launchIfReady(activity)
+                val launched = inAppReviewManager.launchIfReady(activity)
+                if (launched) {
+                    reviewPromptStateStore.clearPending()
+                }
             }
 
         internal fun maybeDrainRoutineStartNotice() =
@@ -178,60 +245,274 @@ class HomeViewModel
                 val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
                 if (pendingMessage.isNullOrBlank()) return@intent
 
-                postSideEffect(HomeSideEffect.ShowSnackBar(pendingMessage))
+                postSideEffect(
+                    HomeSideEffect.ShowSnackBar(
+                        message = pendingMessage,
+                        drainNextRoutineStartNoticeAfterDismiss = true,
+                    ),
+                )
+                reduce { state.copy(snackbarMessage = pendingMessage) }
+            }
+
+        internal fun onRoutineStartNoticeSnackbarFinished() =
+            intent {
+                val pendingMessage = takePendingRoutineStartNoticeIfReady(sheetVisible = state.sheetVisible)
+                if (pendingMessage.isNullOrBlank()) return@intent
+
+                postSideEffect(
+                    HomeSideEffect.ShowSnackBar(
+                        message = pendingMessage,
+                        drainNextRoutineStartNoticeAfterDismiss = true,
+                    ),
+                )
                 reduce { state.copy(snackbarMessage = pendingMessage) }
             }
 
         private suspend fun takePendingRoutineStartNoticeIfReady(sheetVisible: Boolean): String? {
-            val pendingStoredValue = dataStore.data.firstOrNull()?.get(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
-            if (pendingStoredValue.isNullOrBlank()) return null
             if (sheetVisible) return null
-
-            val drain = RoutineReceiverPolicy.drainNextPendingRoutineStartNotice(pendingStoredValue)
-            val pendingMessage = drain.message ?: return null
-            dataStore.edit { preferences ->
-                val remainingStoredValue = drain.remainingStoredValue
-                if (remainingStoredValue == null) {
-                    preferences.remove(PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE)
-                } else {
-                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = remainingStoredValue
-                }
-            }
-            return pendingMessage
+            return routineNoticeStore.drainNextPendingRoutineStartNotice()
         }
 
-        internal fun moveToLock() =
+        internal fun dismissRepeatBlockRoutineSuggestion() =
             intent {
-                val targetDateTime = if (state.countdownDays > 0) {
-                    calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
-                } else {
-                    calculateTargetLockDateTime(state.blockTime)
-                }
-                postSideEffect(HomeSideEffect.MoveToLock(targetDateTime.toString(), false))
+                val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+                repeatBlockSuggestionStore.recordDismissed(
+                    suggestion = suggestion,
+                    dismissedAt = LocalDateTime.now(),
+                )
+                analytics.trackRepeatBlockRoutineSuggestionDismissed(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+                reduce { state.copy(repeatBlockRoutineSuggestion = null) }
             }
 
-        private fun getSelectedApp() =
+        internal fun openRepeatBlockRoutineSuggestion() =
             intent {
-                val preferences = dataStore.data.firstOrNull()
-                val selectedAppPackage = preferences?.get(PreferencesKey.SELECTED_APP_PACKAGES).orEmpty()
-                val hasTrackedFirstLock = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
-                reduce {
-                    state.copy(
-                        selectedAppPackage = selectedAppPackage,
-                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
-                            selectedAppPackage = selectedAppPackage,
-                            hasTrackedFirstLock = hasTrackedFirstLock,
-                            isKeep = state.isKeep,
-                        ),
+                val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+                analytics.trackRepeatBlockRoutineSuggestionClicked(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+                postSideEffect(HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
+            }
+
+        private fun loadRepeatBlockRoutineSuggestion() =
+            intent {
+                val now = LocalDateTime.now()
+                val startMillis = now.minusDays(14)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                val endMillis = now.plusDays(1)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                val hasActiveGoalLock = goalLockRepository.fetchAll()
+                    .firstOrNull()
+                    .orEmpty()
+                    .any { goalLock ->
+                        GoalLockPolicy.isCurrentlyProtecting(goalLock, now)
+                    }
+                if (hasActiveGoalLock) {
+                    reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+                    return@intent
+                }
+
+                val hasActiveEmergencyUnlock = blockingStateStore.accessibilitySnapshot
+                    .firstOrNull()
+                    ?.let { snapshot ->
+                        snapshot.emergencyUnlockApps.isNotEmpty() &&
+                            snapshot.emergencyUnlockExpireTimeMillis > System.currentTimeMillis()
+                    } == true
+                if (hasActiveEmergencyUnlock) {
+                    reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+                    return@intent
+                }
+
+                val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
+                    .firstOrNull()
+                    .orEmpty()
+                    .map { history ->
+                        RepeatBlockHistorySample(
+                            startDateTime = history.startDateTime,
+                            blockedPackages = history.lockedApps,
+                        )
+                    }
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
+                val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+                    histories = histories,
+                    activeRoutines = routines,
+                    dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+                    now = now,
+                )
+
+                reduce { state.copy(repeatBlockRoutineSuggestion = suggestion) }
+                if (suggestion != null) {
+                    analytics.trackRepeatBlockRoutineSuggestionShown(
+                        surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                        suggestion = suggestion.toAnalyticsPayload(),
                     )
                 }
             }
 
+        internal fun moveToLock() =
+            intent {
+                val routeDeadline = state.pendingManualLockRouteDeadline ?: run {
+                    val targetDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
+                        calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
+                    } else {
+                        calculateTargetLockDateTime(state.blockTime)
+                    }
+                    val targetInstant = targetDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                    ManualLockTimePolicy.encodeDeadline(targetInstant)
+                }
+                postSideEffect(HomeSideEffect.MoveToLock(routeDeadline, false))
+                reduce { state.copy(pendingManualLockRouteDeadline = null) }
+            }
+
+        internal fun onRoutineCreationCtaClick() =
+            intent {
+                if (!state.showRoutineCreationCta) return@intent
+
+                analytics.trackRoutineCreationCtaClicked(
+                    surface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
+                    activationStage = AnalyticsRoutineCreationCtaActivationStage.POST_FIRST_CORE_ACTION,
+                    hasRoutine = state.routineCount > 0,
+                    ctaVariant = AnalyticsRoutineCreationCtaVariant.SOFT_DEFAULT,
+                )
+                postSideEffect(
+                    HomeSideEffect.MoveToRoutine(
+                        routineSavedEntrySurface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
+                        routineSavedCreationSource = RoutineSavedCreationSource.POST_FIRST_BLOCK_CTA,
+                    ),
+                )
+            }
+
+        private fun getSelectedApp() =
+            intent {
+                val selectionState = blockingStateStore.readSelectionState()
+                val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
+                    fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
+                )
+                val showRoutineCreationCta = shouldShowRoutineCreationCta(
+                    selectedAppPackage = selectionState.selectedAppPackages,
+                    hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction,
+                    routineCount = state.routineCount,
+                    isKeep = state.isKeep,
+                )
+                trackRoutineCreationCtaShownIfNeeded(
+                    shouldShow = showRoutineCreationCta,
+                    wasShowing = state.showRoutineCreationCta,
+                    hasRoutine = state.routineCount > 0,
+                )
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectionState.selectedAppPackages,
+                        showFirstLockActivationCta = shouldShowFirstLockActivationCta(
+                            selectedAppPackage = selectionState.selectedAppPackages,
+                            hasTrackedFirstLock = selectionState.hasTrackedFirstLockConfigured,
+                            isKeep = state.isKeep,
+                        ),
+                        showRoutineCreationCta = showRoutineCreationCta,
+                    )
+                }
+            }
+
+        private fun getRoutineCreationCta() =
+            intent {
+                routineRepository.fetchAll().collect { routines ->
+                    val selectionState = blockingStateStore.readSelectionState()
+                    val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
+                        fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
+                    )
+                    val showRoutineCreationCta = shouldShowRoutineCreationCta(
+                        selectedAppPackage = selectionState.selectedAppPackages,
+                        hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction,
+                        routineCount = routines.size,
+                        isKeep = state.isKeep,
+                    )
+                    trackRoutineCreationCtaShownIfNeeded(
+                        shouldShow = showRoutineCreationCta,
+                        wasShowing = state.showRoutineCreationCta,
+                        hasRoutine = routines.isNotEmpty(),
+                    )
+                    reduce {
+                        state.copy(
+                            routineCount = routines.size,
+                            showRoutineCreationCta = showRoutineCreationCta,
+                        )
+                    }
+                }
+            }
+
+        private fun syncRoutinesCount() =
+            intent {
+                routineCountAnalyticsSync.syncFromRepository()
+            }
+
+        private fun getGoalLockCard() =
+            intent {
+                goalLockRepository.fetchAll().collect { goalLocks ->
+                    val now = LocalDateTime.now()
+                    val today = now.toLocalDate()
+                    val card = selectGoalLockForHomeCard(goalLocks, now)
+                        ?.toHomeGoalLockCardState(today, now)
+                    reduce { state.copy(goalLockCard = card) }
+                }
+            }
+
+        private fun selectGoalLockForHomeCard(
+            goalLocks: List<GoalLock>,
+            now: LocalDateTime,
+        ): HomeGoalLockCardCandidate? = goalLocks
+            .map { goalLock ->
+                val today = now.toLocalDate()
+                val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
+                HomeGoalLockCardCandidate(
+                    goalLock = normalizedGoalLock,
+                    runtimeStatus = GoalLockPolicy.runtimeStatus(normalizedGoalLock, today.atStartOfDay()),
+                )
+            }
+            .minWithOrNull(
+                compareBy<HomeGoalLockCardCandidate> { it.runtimeStatus.homeCardPriority }
+                    .thenBy { it.homeCardSecondarySortKey }
+                    .thenBy { it.goalLock.id },
+            )
+
+        private fun HomeGoalLockCardCandidate.toHomeGoalLockCardState(
+            today: LocalDate,
+            now: LocalDateTime,
+        ): HomeGoalLockCardState =
+            HomeGoalLockCardState(
+                goalLockId = goalLock.id,
+                goalName = goalLock.goalName,
+                status = runtimeStatus.toHomeStatus(),
+                daysRemaining = ChronoUnit.DAYS.between(today, goalLock.endDate).toInt().plus(1).coerceAtLeast(0),
+                lockMode = goalLock.lockMode.toHomeCardLockMode(),
+                selectedAppCount = goalLock.selectedPackages.size,
+                isCurrentlyProtecting = GoalLockPolicy.isCurrentlyProtecting(goalLock, now),
+            )
+
+        private fun completeExpiredGoalLockIfNeeded(
+            goalLock: GoalLock,
+            today: LocalDate,
+        ): GoalLock {
+            if (goalLock.status != GoalLockStoredStatus.Active) return goalLock
+            if (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay()) != GoalLockRuntimeStatus.Completed) return goalLock
+
+            val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
+            goalLockRepository.update(completed)
+            analytics.trackGoalLockCompleted(
+                lockMode = goalLock.lockMode.analyticsLockMode,
+                durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
+            )
+            return completed
+        }
+
         private fun storeSelectedApp(selectedAppPackage: Set<String>) =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.SELECTED_APP_PACKAGES] = selectedAppPackage
-                }
+                blockingStateStore.saveSelectedAppPackages(selectedAppPackage)
             }
 
         private fun storeBlockTime(
@@ -240,9 +521,7 @@ class HomeViewModel
         ) = intent {
             val endTime = System.currentTimeMillis()
             val startTime = endTime - lockedMillis
-            recordLockHistorySession(
-                dataStore = dataStore,
-                lockHistoryDao = lockHistoryDao,
+            lockHistoryRecorder.recordSession(
                 startTimestamp = startTime,
                 endTimestamp = endTime,
                 lockedApps = state.selectedAppPackage,
@@ -257,8 +536,21 @@ class HomeViewModel
                     isOnboarding = false,
                 )
                 storeSelectedApp(selectedAppPackage)
-                val hasTrackedFirstLock =
-                    dataStore.data.firstOrNull()?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+                val hasTrackedFirstLock = blockingStateStore.readSelectionState().hasTrackedFirstLockConfigured
+                val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
+                    fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
+                )
+                val showRoutineCreationCta = shouldShowRoutineCreationCta(
+                    selectedAppPackage = selectedAppPackage,
+                    hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction,
+                    routineCount = state.routineCount,
+                    isKeep = state.isKeep,
+                )
+                trackRoutineCreationCtaShownIfNeeded(
+                    shouldShow = showRoutineCreationCta,
+                    wasShowing = state.showRoutineCreationCta,
+                    hasRoutine = state.routineCount > 0,
+                )
                 reduce {
                     state.copy(
                         selectedAppPackage = selectedAppPackage,
@@ -267,45 +559,45 @@ class HomeViewModel
                             hasTrackedFirstLock = hasTrackedFirstLock,
                             isKeep = state.isKeep,
                         ),
+                        showRoutineCreationCta = showRoutineCreationCta,
                     )
                 }
             }
 
         private fun storeIsKeep() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.IS_KEEP] = state.isKeep
-                }
+                blockingStateStore.setIsKeep(state.isKeep)
             }
 
         private fun storeStartTime() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.START_TIME] = System.currentTimeMillis()
-                }
+                blockingStateStore.saveStartTime(System.currentTimeMillis())
             }
 
         private fun getStartTime() =
             intent {
-                val startTime =
-                    dataStore.data
-                        .map { preferences ->
-                            preferences[PreferencesKey.START_TIME]
-                        }.firstOrNull()
+                val startTime = blockingStateStore.readStartTime()
                 reduce { state.copy(startTime = startTime ?: System.currentTimeMillis()) }
             }
 
         private fun getIsKeep() =
             intent {
-                val isKeep =
-                    dataStore.data
-                        .map { preferences ->
-                            preferences[PreferencesKey.IS_KEEP]
-                        }.firstOrNull()
-                reduce { state.copy(isKeep = isKeep == true) }
-                if (isKeep == true) {
+                val isKeep = blockingStateStore.readIsKeep()
+                reduce { state.copy(isKeep = isKeep) }
+                if (isKeep) {
                     getStartTime()
                 }
+            }
+
+        private fun getActiveTimedLock() =
+            intent {
+                val storedDeadline = blockingStateStore.readLockTime()
+                val isActive = ManualLockTimePolicy.isActiveAt(
+                    storedDeadline = storedDeadline,
+                    now = java.time.Instant.now(),
+                    zone = ZoneId.systemDefault(),
+                )
+                reduce { state.copy(hasActiveTimedLock = isActive) }
             }
 
         internal fun updateCountdownDuration(duration: CountdownDuration) =
@@ -318,6 +610,7 @@ class HomeViewModel
                         .toKotlinLocalTime()
                 reduce {
                     state.copy(
+                        manualLockMode = ManualLockMode.COUNTDOWN,
                         countdownTime = LocalTime(duration.hour, duration.minute),
                         countdownDays = duration.day,
                         blockTime = blockTime,
@@ -327,10 +620,36 @@ class HomeViewModel
 
         internal fun updateTimerTime(timerTime: LocalTime) =
             intent {
-                reduce { state.copy(timerTime = timerTime, blockTime = timerTime, countdownDays = 0) }
+                reduce {
+                    state.copy(
+                        manualLockMode = ManualLockMode.TIMER,
+                        timerTime = timerTime,
+                        blockTime = timerTime,
+                    )
+                }
             }
 
-        internal fun lockTime(noSelectedAppsMessage: String? = null) =
+        internal fun updateManualLockMode(mode: ManualLockMode) =
+            intent {
+                reduce {
+                    state.copy(
+                        manualLockMode = mode,
+                        blockTime = when (mode) {
+                            ManualLockMode.COUNTDOWN -> timeNow
+                                .toJavaLocalTime()
+                                .plusHours(state.countdownTime.hour.toLong())
+                                .plusMinutes(state.countdownTime.minute.toLong())
+                                .toKotlinLocalTime()
+                            ManualLockMode.TIMER -> state.timerTime
+                        },
+                    )
+                }
+            }
+
+        internal fun lockTime(
+            noSelectedAppsMessage: String? = null,
+            firstLockScheduledMessage: String? = null,
+        ) =
             intent {
                 if (state.selectedAppPackage.isEmpty()) {
                     reduce {
@@ -345,29 +664,48 @@ class HomeViewModel
                     }
                     return@intent
                 }
-                val targetLockDateTime = if (state.countdownDays > 0) {
+                if (state.manualLockMode == ManualLockMode.COUNTDOWN && state.countdownDurationIsZero()) {
+                    return@intent
+                }
+                val sessionStartTime = System.currentTimeMillis()
+                val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
                 }
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.LOCK_TIME] = targetLockDateTime.toString()
-                }
-                val lockedDuration =
+                val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
+                blockingStateStore.saveLockTime(encodedDeadline)
+                blockingStateStore.saveStartTime(sessionStartTime)
+                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline, hasActiveTimedLock = true) }
+                val lockedDurationMinutes = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
+                    state.countdownDurationMinutes()
+                } else {
                     Duration
-                        .between(LocalDateTime.now(), targetLockDateTime)
+                        .between(java.time.Instant.now(), targetLockInstant)
                         .toMillis()
-                        .coerceAtLeast(0L)
+                        .coerceAtLeast(0L) / 60_000L
+                }
                 if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
-                    reduce { state.copy(showFirstLockActivationCta = false) }
+                    if (!firstLockScheduledMessage.isNullOrBlank()) {
+                        postSideEffect(HomeSideEffect.ShowSnackBar(firstLockScheduledMessage))
+                        reduce {
+                            state.copy(
+                                showFirstLockActivationCta = false,
+                                snackbarMessage = firstLockScheduledMessage,
+                            )
+                        }
+                    } else {
+                        reduce { state.copy(showFirstLockActivationCta = false) }
+                    }
                 }
                 analytics.trackLockScheduled(
-                    scheduleType = if (state.countdownDays > 0) {
+                    scheduleType = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                         AnalyticsScheduleType.COUNTDOWN
                     } else {
                         AnalyticsScheduleType.TIMER
                     },
-                    scheduledDurationMinutes = lockedDuration / 60_000L,
+                    scheduledDurationMinutes = lockedDurationMinutes,
                 )
                 analytics.trackLockSessionStart(
                     source = AnalyticsSource.HOME_TIMER,
@@ -376,24 +714,14 @@ class HomeViewModel
             }
 
         private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
-            val preferences = dataStore.data.firstOrNull()
-            val hasTracked = preferences?.get(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED) == true
+            if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return false
 
-            if (hasTracked) return false
-
-            val selectedAppCount =
-                preferences
-                    ?.get(PreferencesKey.SELECTED_APP_PACKAGES)
-                    ?.size ?: 0
+            val selectedAppCount = blockingStateStore.readSelectedAppPackages().size
 
             analytics.trackFirstLockConfigured(
                 source = source,
                 selectedAppCount = selectedAppCount,
             )
-
-            dataStore.edit { mutablePreferences ->
-                mutablePreferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
-            }
             return true
         }
 
@@ -402,6 +730,28 @@ class HomeViewModel
             hasTrackedFirstLock: Boolean,
             isKeep: Boolean,
         ): Boolean = selectedAppPackage.isNotEmpty() && !hasTrackedFirstLock && !isKeep
+
+        private fun shouldShowRoutineCreationCta(
+            selectedAppPackage: Set<String>,
+            hasTrackedFirstCoreAction: Boolean,
+            routineCount: Int,
+            isKeep: Boolean,
+        ): Boolean = selectedAppPackage.isNotEmpty() && hasTrackedFirstCoreAction && routineCount == 0 && !isKeep
+
+        private fun trackRoutineCreationCtaShownIfNeeded(
+            shouldShow: Boolean,
+            wasShowing: Boolean,
+            hasRoutine: Boolean,
+        ) {
+            if (!shouldShow || wasShowing) return
+
+            analytics.trackRoutineCreationCtaShown(
+                surface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
+                activationStage = AnalyticsRoutineCreationCtaActivationStage.POST_FIRST_CORE_ACTION,
+                hasRoutine = hasRoutine,
+                ctaVariant = AnalyticsRoutineCreationCtaVariant.SOFT_DEFAULT,
+            )
+        }
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()
@@ -437,22 +787,115 @@ data class HomeUiState(
     val searchContent: String = "",
     val isSelectAll: Boolean = true,
     val blockTime: LocalTime = timeNow,
-    val countdownTime: LocalTime = timeNow,
+    val countdownTime: LocalTime = LocalTime(0, 0),
     val timerTime: LocalTime = timeNow,
+    val manualLockMode: ManualLockMode = ManualLockMode.COUNTDOWN,
     val countdownDays: Int = 0,
     val sheetVisible: Boolean = false,
     val showFirstLockActivationCta: Boolean = false,
+    val showRoutineCreationCta: Boolean = false,
+    val routineCount: Int = 0,
+    val pendingManualLockRouteDeadline: String? = null,
+    val hasActiveTimedLock: Boolean = false,
+    val goalLockCard: HomeGoalLockCardState? = null,
+    val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
+) {
+    fun countdownDurationIsZero(): Boolean =
+        countdownDurationMinutes() == 0L
+
+    fun countdownDurationMinutes(): Long =
+        countdownDays * 24L * 60L + countdownTime.hour * 60L + countdownTime.minute
+}
+
+private data class HomeGoalLockCardCandidate(
+    val goalLock: GoalLock,
+    val runtimeStatus: GoalLockRuntimeStatus,
+)
+
+private val GoalLockRuntimeStatus.homeCardPriority: Int
+    get() = when (this) {
+        GoalLockRuntimeStatus.Active -> 0
+        GoalLockRuntimeStatus.Pending -> 1
+        GoalLockRuntimeStatus.Completed -> 2
+        GoalLockRuntimeStatus.EndedEarly -> 3
+    }
+
+private val HomeGoalLockCardCandidate.homeCardSecondarySortKey: Long
+    get() = when (runtimeStatus) {
+        GoalLockRuntimeStatus.Active -> goalLock.endDate.toEpochDay()
+        GoalLockRuntimeStatus.Pending -> goalLock.startDate.toEpochDay()
+        GoalLockRuntimeStatus.Completed,
+        GoalLockRuntimeStatus.EndedEarly,
+        -> -goalLock.endDate.toEpochDay()
+    }
+
+data class HomeGoalLockCardState(
+    val goalLockId: Long,
+    val goalName: String,
+    val status: HomeGoalLockStatus,
+    val daysRemaining: Int,
+    val lockMode: HomeGoalLockCardLockMode,
+    val selectedAppCount: Int,
+    val isCurrentlyProtecting: Boolean = false,
+)
+
+enum class HomeGoalLockStatus {
+    Pending,
+    Active,
+    Completed,
+    EndedEarly,
+}
+
+private fun GoalLockRuntimeStatus.toHomeStatus(): HomeGoalLockStatus = when (this) {
+    GoalLockRuntimeStatus.Pending -> HomeGoalLockStatus.Pending
+    GoalLockRuntimeStatus.Active -> HomeGoalLockStatus.Active
+    GoalLockRuntimeStatus.EndedEarly -> HomeGoalLockStatus.EndedEarly
+    GoalLockRuntimeStatus.Completed -> HomeGoalLockStatus.Completed
+}
+
+enum class HomeGoalLockCardLockMode {
+    AllDay,
+    Scheduled,
+}
+
+private fun GoalLockMode.toHomeCardLockMode(): HomeGoalLockCardLockMode = when (this) {
+    GoalLockMode.AllDay -> HomeGoalLockCardLockMode.AllDay
+    is GoalLockMode.Scheduled -> HomeGoalLockCardLockMode.Scheduled
+}
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
 )
 
 data class CountdownDuration(val day: Int = 0, val hour: Int = 0, val minute: Int = 0)
 
+enum class ManualLockMode {
+    COUNTDOWN,
+    TIMER,
+}
+
 sealed class HomeSideEffect {
     data class ShowSnackBar(
         val message: String,
+        val drainNextRoutineStartNoticeAfterDismiss: Boolean = false,
     ) : HomeSideEffect()
 
     data class MoveToLock(
         val lockTime: String?,
         val isRoutine: Boolean,
+    ) : HomeSideEffect()
+
+    data class MoveToRoutine(
+        val routineSavedEntrySurface: String? = null,
+        val routineSavedCreationSource: String? = null,
+    ) : HomeSideEffect()
+
+    data class NavigateToRoutineWithRepeatBlockPrefill(
+        val suggestion: RepeatBlockRoutineSuggestion,
     ) : HomeSideEffect()
 }

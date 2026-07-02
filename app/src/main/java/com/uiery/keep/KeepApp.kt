@@ -2,6 +2,7 @@ package com.uiery.keep
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.NavHost
@@ -12,11 +13,16 @@ import com.uiery.keep.feature.emergencyunlocksettings.emergencyUnlockSettingsScr
 import com.uiery.keep.feature.emergencyunlocksettings.navigateToEmergencyUnlockSettings
 import com.uiery.keep.feature.lockhistory.blockedapps.blockedAppsScreen
 import com.uiery.keep.feature.lockhistory.blockedapps.navigateToBlockedApps
+import com.uiery.keep.feature.goallock.GoalLockCreationRoute
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import com.uiery.keep.feature.lockhistory.lockHistoryScreen
 import com.uiery.keep.feature.lockhistory.navigateToLockHistory
 import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
+import com.uiery.keep.feature.goallock.goalLockCreationScreen
+import com.uiery.keep.feature.goallock.goalLockDetailScreen
+import com.uiery.keep.feature.goallock.navigateToGoalLockCreation
+import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
 import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
@@ -26,14 +32,30 @@ import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSett
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
+import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
+import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
+import com.uiery.keep.feature.routine.navigateToRoutineWithRepeatBlockPrefill
 import com.uiery.keep.feature.routine.routineScreen
 import com.uiery.keep.feature.splash.SplashRoute
 import com.uiery.keep.feature.splash.splashScreen
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 
 @Composable
-internal fun KeepApp(modifier: Modifier = Modifier) {
+internal fun KeepApp(
+    modifier: Modifier = Modifier,
+    startDestination: Any = SplashRoute,
+    newIntentDestination: Any? = null,
+) {
     val navController = rememberNavController()
+
+    LaunchedEffect(newIntentDestination) {
+        newIntentDestination?.let { destination ->
+            navController.navigate(destination) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     val isDevToolEnabled = shouldRegisterDevToolRoute(
         flavor = BuildConfig.FLAVOR,
@@ -45,7 +67,7 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .testTag("stopit_app_nav_host"),
         navController = navController,
-        startDestination = SplashRoute,
+        startDestination = startDestination,
     ) {
         splashScreen(
             onNavigateHome = navController::navigateToHome,
@@ -61,6 +83,20 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,
             onNavigateLock = navController::navigateToLock,
+            onNavigateLockHistory = navController::navigateToLockHistory,
+            onNavigateRoutine = { entrySurface, creationSource ->
+                navController.navigateToRoutine(
+                    routineSavedEntrySurface = entrySurface,
+                    routineSavedCreationSource = creationSource,
+                )
+            },
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
+            onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
+                navController.navigateToRoutineWithRepeatBlockPrefill(
+                    surface = RepeatBlockRoutineSuggestionSurface.HOME,
+                    suggestion = suggestion,
+                )
+            },
         )
         menuScreen(
             onNavigateDevTool = if (isDevToolEnabled) {
@@ -70,6 +106,8 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
             },
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
+            onNavigateGoalLockCreation = navController::navigateToGoalLockCreation,
+            onNavigateParentModeSetup = navController::navigateToParentModeSetup,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
         )
@@ -84,9 +122,21 @@ internal fun KeepApp(modifier: Modifier = Modifier) {
         lockHistoryScreen(
             onNavigateBack = navController::navigateUp,
             onNavigateBlockedApps = navController::navigateToBlockedApps,
+            onNavigateRoutineWithRepeatBlockPrefill = { suggestion ->
+                navController.navigateToRoutineWithRepeatBlockPrefill(
+                    surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+                    suggestion = suggestion,
+                )
+            },
         )
         blockedAppsScreen(onNavigateBack = navController::navigateUp)
         emergencyUnlockSettingsScreen(onNavigateBack = navController::navigateUp)
+        parentModeSetupScreen(onNavigateBack = navController::navigateUp)
+        goalLockCreationScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
+        )
+        goalLockDetailScreen(onNavigateBack = navController::navigateUp)
     }
 }
 
@@ -98,3 +148,7 @@ internal fun shouldRegisterDevToolRoute(
 internal fun canonicalHistoryRoute() = LockHistoryRoute
 
 internal fun shouldRegisterLegacyHistoryRoute(): Boolean = false
+
+internal fun canonicalGoalLockCreationRoute() = GoalLockCreationRoute
+
+internal fun shouldRegisterGoalLockCreationEntryRoute(): Boolean = true

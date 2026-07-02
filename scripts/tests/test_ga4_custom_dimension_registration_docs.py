@@ -1,0 +1,186 @@
+import pathlib
+import re
+import unittest
+
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+EVENT_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
+GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
+PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
+METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
+METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
+KEEP_ANALYTICS = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "analytics" / "KeepAnalytics.kt"
+
+
+def _canonical_screen_names_from_code():
+    source = KEEP_ANALYTICS.read_text()
+    object_match = re.search(
+        r"object\s+KeepAnalyticsScreen\s*\{(?P<body>.*?)\n\}",
+        source,
+        flags=re.DOTALL,
+    )
+    if not object_match:
+        raise AssertionError("KeepAnalyticsScreen object not found")
+
+    body = object_match.group("body")
+    constants = dict(re.findall(r"const\s+val\s+(\w+)\s*=\s*\"([^\"]+)\"", body))
+    set_match = re.search(
+        r"CANONICAL_SCREEN_NAMES\s*=\s*setOf\((?P<items>.*?)\n\s*\)",
+        body,
+        flags=re.DOTALL,
+    )
+    if not set_match:
+        raise AssertionError("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES set not found")
+
+    constant_names = re.findall(r"\b([A-Z][A-Z0-9_]*)\b", set_match.group("items"))
+    missing_constants = sorted(name for name in constant_names if name not in constants)
+    if missing_constants:
+        raise AssertionError(f"CANONICAL_SCREEN_NAMES references undefined constants: {missing_constants}")
+
+    return {constants[name] for name in constant_names}
+
+
+def _screen_view_names_from_dictionary():
+    dictionary = EVENT_DICTIONARY.read_text()
+    section_match = re.search(
+        r"## screen_view 계약(?P<section>.*?)(?:\n## |\Z)",
+        dictionary,
+        flags=re.DOTALL,
+    )
+    if not section_match:
+        raise AssertionError("screen_view 계약 section not found in ANALYTICS_EVENT_DICTIONARY.md")
+
+    names = set()
+    for line in section_match.group("section").splitlines():
+        if not line.startswith("|") or "`" not in line:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[1] in {"screen_name", "---"}:
+            continue
+        match = re.search(r"`([^`]+Screen)`", cells[1])
+        if match:
+            names.add(match.group(1))
+    return names
+
+
+class Ga4CustomDimensionRegistrationDocsTest(unittest.TestCase):
+    def test_metadata_summary_does_not_collapse_custom_user_and_custom_event_queryability(self):
+        dictionary = EVENT_DICTIONARY.read_text()
+
+        self.assertIn("`routines_count`는 live metadata에서 확인된 `customUser` dimension", dictionary)
+        self.assertIn("activation/review/ad 관련 `customEvent:*` 조회성", dictionary)
+        self.assertNotIn("custom dimension은 `customUser:routines_count` 하나뿐", dictionary)
+
+    def test_runbook_summary_splits_activation_review_reason_and_review_error_boundaries(self):
+        runbook = GA4_RUNBOOK.read_text()
+
+        self.assertIn("활성화용 `customEvent:*`와 review failure `customEvent:error`", runbook)
+        self.assertIn("review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능", runbook)
+        self.assertNotIn("활성화/리뷰용 `customEvent:*` 차원/지표는 아직 보이지 않음", runbook)
+
+    def test_blocked_app_package_is_not_a_new_registration_target(self):
+        runbook = GA4_RUNBOOK.read_text()
+
+        self.assertIn("`blocked_app_category_bucket` | Required dimension", runbook)
+        self.assertIn("`blocked_app_package` | Deprecated / 금지", runbook)
+        self.assertIn("#611 privacy 계약", runbook)
+        self.assertNotIn("`blocked_app_package` | Required dimension", runbook)
+
+    def test_screen_quality_boundary_mentions_docs_sync_pr_across_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #296/#318/#358",
+            "6ceaecc4",
+            "post-fix 성과가 아니라 release boundary 전 중간 smoke",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
+    def test_screen_quality_payload_package_is_tracked_separately_from_screen_call_coverage(self):
+        required_snippets = [
+            "PR #755",
+            "08d31da3",
+            "Firebase `screen_view` backend payload",
+            "`screen_name`과 `screen_class`",
+            "release/tag/Play deploy",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
+    def test_goal_lock_screen_view_package_is_tracked_in_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #769",
+            "07c7bc0a",
+            "`GoalLockCreationScreen`",
+            "`GoalLockDetailScreen`",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+    def test_parent_mode_setup_screen_view_package_is_tracked_in_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #913(`9d169449`)",
+            "`ParentModeSetupScreen`",
+            "Parent Mode setup",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
+    def test_parent_mode_setup_screen_view_docs_do_not_use_run_relative_wording(self):
+        forbidden = [
+            "이번 code-lane follow-through",
+            "이번 code-lane 기준 추가 확인",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in forbidden:
+                    self.assertNotIn(snippet, text)
+
+    def test_screen_view_dictionary_points_to_canonical_screen_name_set(self):
+        dictionary = EVENT_DICTIONARY.read_text()
+
+        self.assertIn("KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES", dictionary)
+        self.assertIn("새 화면/route 추가 시 이 set과 screen_view 계약 표를 함께 갱신", dictionary)
+
+        code_screen_names = _canonical_screen_names_from_code()
+        dictionary_screen_names = _screen_view_names_from_dictionary()
+        self.assertEqual(
+            code_screen_names,
+            dictionary_screen_names,
+            "KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES and docs/ANALYTICS_EVENT_DICTIONARY.md "
+            "screen_view table must be updated together. "
+            f"Missing in docs: {sorted(code_screen_names - dictionary_screen_names)}; "
+            f"extra in docs: {sorted(dictionary_screen_names - code_screen_names)}",
+        )
+
+    def test_canonical_screen_set_package_is_tracked_in_high_traffic_surfaces(self):
+        required_snippets = [
+            "PR #1005(`b1aa97d`)",
+            "KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES",
+            "canonical screen set",
+            "screen_view 표",
+            "D+14 screen quality 재측정",
+        ]
+        for path in [GA4_RUNBOOK, EVENT_DICTIONARY, PRODUCT_DASHBOARD, METRICS_ANALYSIS, METRICS_CONTEXT]:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                for snippet in required_snippets:
+                    self.assertIn(snippet, text)
+
+
+if __name__ == "__main__":
+    unittest.main()

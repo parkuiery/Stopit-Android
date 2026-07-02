@@ -19,7 +19,7 @@ KeepTheme {
 
 | 토큰 | Light | Dark | 용도 |
 |------|-------|------|------|
-| `primary` | `#FFA927` | `#FFA927` | 주요 액션, 강조 |
+| `primary` | `#FFA927` | `#FFA927` | 주요 CTA, 선택/활성 상태, 중요한 진행/성과 강조 |
 | `error` | `#F04452` | `#F04452` | 에러, 경고 |
 | `background` | `#FFFFFF` | `#17171C` | 화면 배경 |
 | `onBackground` | `#17171C` | `#8E000000` | 딤 배경 |
@@ -48,6 +48,25 @@ KeepTheme {
 | gray700 | `#4E5968` | `#C3C3C6` |
 | gray800 | `#333D4B` | `#E4E4E5` |
 | gray900 | `#191F28` | `#FFFFFF` |
+
+### Primary color 사용 위계
+
+`primary`는 브랜드 강조색이지만 기본 icon/text 색이 아닙니다. 화면의 모든 action을 같은 orange로 칠하면 primary CTA, 현재 선택 상태, navigation icon의 위계가 무너집니다.
+
+권장 사용:
+
+- 화면/시트의 단일 primary CTA (`KeepButton`, 저장/시작/확인/선택 완료)
+- 선택된 tab/day/chip/filter 같은 현재 선택 상태
+- 활성 잠금/루틴/집중 상태, 카운트다운, 중요한 진행/성과 강조
+
+낮은 위계 색상으로 처리할 후보:
+
+- TopAppBar 뒤로가기/메뉴/닫기 icon
+- 일반 추가/삭제/편집 icon-only action
+- 보조 설명, caption, metadata
+- 파괴/긴급 동작: `error` 또는 confirmation pattern 사용
+
+선택/활성 상태는 색상만으로 전달하지 말고 텍스트, badge/chip shape, border/background, contentDescription/semantics 중 하나 이상을 함께 사용합니다. 앱 화면별 audit와 후속 체크리스트는 루트 `docs/DESIGN_PRIMARY_COLOR_HIERARCHY.md`를 기준으로 합니다.
 
 ### 타이포그래피
 
@@ -123,6 +142,31 @@ KeepCheckbox(
 
 ---
 
+### KeepSwitch
+
+cross-feature 토글/설정 화면에서 쓰는 KDS 스위치.
+
+```kotlin
+KeepSwitch(
+    checked = enabled,
+    onCheckedChange = { enabled = it },
+)
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `checked` | Boolean | (필수) | 선택 상태 |
+| `onCheckedChange` | ((Boolean) -> Unit)? | (필수) | 상태 변경 콜백 |
+| `modifier` | Modifier | Modifier | 레이아웃 수정자 |
+| `thumbContent` | @Composable (() -> Unit)? | null | thumb 내부 콘텐츠 |
+| `enabled` | Boolean | true | 활성화 상태 |
+| `colors` | SwitchColors | KDS primary/onTertiary 색상 | 스위치 색상 |
+| `interactionSource` | MutableInteractionSource | 새 인스턴스 | 인터랙션 소스 |
+
+**소유권:** Home, Menu, Routine, Emergency Unlock Settings처럼 여러 feature에서 공유하는 switch는 home feature-private component가 아니라 KDS `com.uiery.kds.KeepSwitch`를 사용합니다.
+
+---
+
 ### KeepSnackBar
 
 앱 전용 스낵바.
@@ -175,22 +219,9 @@ KeepModalBottomSheet(
 
 ---
 
-### KeepBannerAd
+### 광고/수익화 경계
 
-Google AdMob 적응형 배너 광고.
-
-```kotlin
-KeepBannerAd(
-    adUnitId = "ca-app-pub-xxx/yyy",
-)
-```
-
-| 파라미터 | 타입 | 기본값 | 설명 |
-|----------|------|--------|------|
-| `modifier` | Modifier | Modifier | 레이아웃 수정자 |
-| `adUnitId` | String | (필수) | AdMob 단위 ID |
-
-**특징:** 화면 너비에 맞는 적응형 배너 크기. 프리뷰 모드에서 로딩 생략. 라이프사이클 자동 관리 (resume/pause). `INTERNET` 권한 필요.
+KDS는 AdMob SDK 런타임을 직접 소유하지 않습니다. 배너 광고 UI와 노출/클릭/수익 callback은 앱의 monetization/analytics 경계(`app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`)에서 관리합니다.
 
 ---
 

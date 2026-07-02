@@ -1,23 +1,22 @@
 package com.uiery.keep.feature.routine
 
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
-import com.uiery.keep.model.toModel
-import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -27,10 +26,13 @@ import javax.inject.Inject
 class RoutineViewModel
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
+        private val routineRepository: RoutineRepository,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
         private val analytics: KeepAnalytics,
-        private val routineScheduler: RoutineScheduler,
+        private val routineCountAnalyticsSync: RoutineCountAnalyticsSync,
+        private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
+        private val routineNoticeStore: RoutineNoticeStore,
+        private val routineRestoreAftercare: RoutineRestoreAftercare,
     ) : ViewModel(),
         ContainerHost<RoutineUiState, RoutineSideEffect> {
         override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
@@ -72,10 +74,10 @@ class RoutineViewModel
         internal fun getRoutineDetail(id: Long) =
             intent {
                 runCatching {
-                    routineDao.fetch(id)
-                }.onSuccess {
-                    val routine = it.toModel()
+                    routineRepository.fetch(id)
+                }.onSuccess { routine ->
                     if (routine.isRunningNow() || routine.isChangeLocked()) {
+                        postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                         return@onSuccess
                     }
                     showEditRoutineBottomSheet(routine)
@@ -84,92 +86,68 @@ class RoutineViewModel
 
         private fun getRoutines() =
             intent {
-                routineDao.fetchAll().collect { routines ->
-                    val routinesModel = routines.map { it.toModel() }
-                    reduce { state.copy(routines = routinesModel) }
-                    storeRoutine(routines.map { it.toModel() })
-                    analytics.setUserProperty("routines_count", routines.size.toString())
-                }
-            }
-
-        internal fun addRoutine(routineModel: RoutineModel) =
-            intent {
-                val insertedId = routineDao.insert(routineModel.toEntity())
-                val routineWithId = routineModel.copy(id = insertedId)
-                if (routineModel.isEnabled) {
-                    routineScheduler.scheduleRoutine(routineWithId)
-                }
-                analyticsAddRoutine()
-
-                // Show the newly created routine in edit bottom sheet
-                if (!routineWithId.isRunningNow()) {
-                    reduce {
-                        state.copy(
-                            isShowEditRoutineBottomSheet = true,
-                            selectedRoutine = routineWithId,
-                        )
+                routineRepository.fetchAll().collect { routinesModel ->
+                    val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutines(routinesModel)
+                    reduce { state.copy(routines = restoreResult.routines) }
+                    storeRoutine(restoreResult.routines)
+                    if (restoreResult.shouldShowAlarmPermissionPrompt) {
+                        postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                     }
-                }
-            }
-
-        internal fun updateRoutine(routineModel: RoutineModel) =
-            intent {
-                routineDao.update(routineModel.toEntity())
-                routineScheduler.cancelRoutine(routineModel.id)
-                if (routineModel.isEnabled) {
-                    routineScheduler.scheduleRoutine(routineModel)
+                    routineCountAnalyticsSync.syncCount(restoreResult.routines.size)
                 }
             }
 
         internal fun deleteRoutine(id: Long) =
             intent {
-                val routine = state.routines.find { it.id == id }
+                val routine = fetchRoutineForAction(id, state.routines)
                 if (routine?.isRunningNow() == true || routine?.isChangeLocked() == true) {
+                    postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                     return@intent
                 }
-                routineScheduler.cancelRoutine(id)
-                routineDao.deleteById(id)
+                exactAlarmOrchestrator.cancelRoutine(id)
+                routineRepository.deleteById(id)
+                postSideEffect(RoutineSideEffect.CloseEditRoutineBottomSheet)
             }
 
         internal fun changeEnabled(
             id: Long,
             isEnabled: Boolean,
         ) = intent {
-            val routine = state.routines.find { it.id == id }
+            val routine = fetchRoutineForAction(id, state.routines)
             val isRunningRoutine = routine?.isRunningNow() == true
 
             if (!isEnabled && isRunningRoutine) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
             if (routine?.isChangeLocked() == true) {
+                postSideEffect(RoutineSideEffect.ShowActiveRoutineBlocked)
                 return@intent
             }
 
             routine?.let {
-                val resolvedRoutine = resolveRoutineExactAlarmPermission(
-                    routine = it.copy(isEnabled = isEnabled),
-                    canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
-                )
-                routineDao.updateIsEnabledById(id, resolvedRoutine.routine.isEnabled)
-                var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
-                if (resolvedRoutine.routine.isEnabled) {
-                    when (routineScheduler.scheduleRoutine(resolvedRoutine.routine)) {
-                        com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> Unit
-                        com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
-                            routineDao.updateIsEnabledById(id, false)
-                            shouldShowPermissionPrompt = true
-                        }
-                        com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
-                    }
-                } else {
-                    routineScheduler.cancelRoutine(id)
+                val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(it.copy(isEnabled = isEnabled))
+                routineRepository.updateIsEnabledById(id, resolvedRoutine.routine.isEnabled)
+                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
+                if (scheduleDecision.routine.isEnabled != resolvedRoutine.routine.isEnabled) {
+                    routineRepository.updateIsEnabledById(id, scheduleDecision.routine.isEnabled)
                 }
-                if (shouldShowPermissionPrompt) {
+                if (!resolvedRoutine.routine.isEnabled) {
+                    exactAlarmOrchestrator.cancelRoutine(id)
+                }
+                if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                     postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                 }
             }
         }
+
+        private suspend fun fetchRoutineForAction(
+            id: Long,
+            fallbackRoutines: List<RoutineModel>,
+        ): RoutineModel? =
+            runCatching { routineRepository.fetch(id) }
+                .getOrElse { fallbackRoutines.find { routine -> routine.id == id } }
 
         private fun storeRoutine(routines: List<RoutineModel>) =
             intent {
@@ -181,27 +159,63 @@ class RoutineViewModel
                 analytics.logScreenView(KeepAnalyticsScreen.ROUTINE)
             }
 
-        private fun analyticsAddRoutine() =
-            intent {
-                analytics.logEvent("add_routine")
-            }
-
         internal fun checkAlarmPermissionNeeded() =
             intent {
-                val preferences = dataStore.data.first()
-                val hasShown = preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] ?: false
-                if (!hasShown && state.routines.isNotEmpty()) {
+                val hasShown = routineNoticeStore.hasShownAlarmPermissionPrompt()
+                if (!hasShown && state.routines.isNotEmpty() && !exactAlarmOrchestrator.canScheduleExactAlarms()) {
                     postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                 }
             }
 
         internal fun markAlarmPermissionShown() =
             intent {
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = true
+                routineNoticeStore.markAlarmPermissionPromptShown()
+            }
+
+        internal fun routineTemplateShareSheetOpened(payload: RoutineTemplateSharePayload) =
+            intent {
+                analytics.trackRoutineTemplateShareSheetOpened(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    repeatDaysBucket = payload.repeatDaysBucket.analyticsValue,
+                    timeWindowBucket = payload.timeWindowBucket.analyticsValue,
+                    routineNameIncluded = payload.routineNameIncluded,
+                )
+            }
+
+        internal fun routineTemplateShareFailed(payload: RoutineTemplateSharePayload) =
+            intent {
+                analytics.trackRoutineTemplateShareFailed(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    reason = RoutineTemplateShareFailureReason.ACTIVITY_NOT_FOUND,
+                )
+            }
+
+        internal fun shareRoutineTemplate(routineId: Long) =
+            intent {
+                val routine = state.routines.find { it.id == routineId }
+                val payload = routine?.let { buildRoutineTemplateSharePayload(it) }
+                if (payload == null) {
+                    analytics.trackRoutineTemplateShareFailed(
+                        templateCategory = routine?.let { buildRoutineTemplateSharePayloadForFailure(it) }
+                            ?: RoutineTemplateCategory.CUSTOM.analyticsValue,
+                        reason = RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+                    )
+                    return@intent
                 }
+
+                analytics.trackRoutineTemplateShareTapped(
+                    templateCategory = payload.templateCategory.analyticsValue,
+                    repeatDaysBucket = payload.repeatDaysBucket.analyticsValue,
+                    timeWindowBucket = payload.timeWindowBucket.analyticsValue,
+                    routineNameIncluded = payload.routineNameIncluded,
+                )
+                postSideEffect(RoutineSideEffect.ShareRoutineTemplate(payload))
             }
     }
+
+private fun buildRoutineTemplateSharePayloadForFailure(routine: RoutineModel): String =
+    buildRoutineTemplateSharePayload(routine)?.templateCategory?.analyticsValue
+        ?: RoutineTemplateCategory.CUSTOM.analyticsValue
 
 data class RoutineUiState(
     val isShowRoutineBottomSheet: Boolean = false,
@@ -217,4 +231,12 @@ sealed class RoutineSideEffect {
     ) : RoutineSideEffect()
 
     data object ShowAlarmPermission : RoutineSideEffect()
+
+    data object ShowActiveRoutineBlocked : RoutineSideEffect()
+
+    data object CloseEditRoutineBottomSheet : RoutineSideEffect()
+
+    data class ShareRoutineTemplate(
+        val payload: RoutineTemplateSharePayload,
+    ) : RoutineSideEffect()
 }

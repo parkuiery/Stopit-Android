@@ -256,11 +256,19 @@ def internal_payload(tag: str, url: str) -> dict:
     return payload
 
 
-def production_payload(tag: str, url: str) -> dict:
+def production_payload(tag: str, url: str, release_status: str | None = None) -> dict:
+    status = (release_status or env("RELEASE_STATUS", "completed") or "completed").strip()
+    if status == "completed":
+        marker_line = "- production 완료 marker를 작성합니다. 다음 release gate가 열립니다."
+    else:
+        marker_line = "- production 완료 marker를 작성하지 않습니다. 다음 release gate는 아직 열리지 않습니다."
+
     lines = [
-        "🚀 **Stopit production 배포 workflow 시작/완료 알림**",
+        "🚀 **Stopit production 배포 workflow 알림**",
         f"- 버전/ref: `{tag}`",
         "- Play track: `production`",
+        f"- release_status: `{status}`",
+        marker_line,
         f"- GitHub Actions: {url}" if url else "- GitHub Actions: unknown",
         "",
         "Google Play Console에서 실제 노출/심사 상태를 최종 확인하세요.",
@@ -287,7 +295,16 @@ def main() -> int:
         print(f"Track {track!r} does not require a deploy-channel notification")
         return 0
 
-    post_discord_message(token, channel_id, payload)
+    try:
+        post_discord_message(token, channel_id, payload)
+    except (RuntimeError, urllib.error.URLError) as error:
+        print(
+            "::warning::Discord deploy notification failed; Play deploy result is unchanged. "
+            f"Check Discord bot/channel permissions and retry notification if needed: {error}",
+            file=sys.stderr,
+        )
+        return 0
+
     print(f"Posted {track} deploy notification for {tag} to Discord channel {channel_id}")
     return 0
 

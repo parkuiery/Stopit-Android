@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""Source of truth for Stopit Android runtime instrumentation suites.
+
+The workflow layer owns appops/install sequencing. This module owns only the
+instrumentation class/method selectors that are passed to
+`android.testInstrumentationRunnerArguments.class`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import pathlib
+import re
+import shlex
+import subprocess
+import sys
+from collections.abc import Iterable
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+ANDROID_TEST_SOURCE_ROOT = REPO_ROOT / "app" / "src" / "androidTest"
+ANDROID_TEST_ROOT = ANDROID_TEST_SOURCE_ROOT / "java"
+ANDROID_TEST_ROOTS = [
+    ANDROID_TEST_SOURCE_ROOT / "java",
+    ANDROID_TEST_SOURCE_ROOT / "kotlin",
+]
+
+# Android instrumentation tests that intentionally do not run in the default
+# Android CI / Release QA runtime gates. Keep this list small and policy-based:
+# anything not suite-covered or listed here fails the manifest inventory test.
+INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES: dict[str, str] = {
+    "com.uiery.keep.ExampleInstrumentedTest": "template smoke; not a Stopit runtime contract",
+    "com.uiery.keep.BlockScreenContentIntegrationTest": "screen-local Compose regression; run from the owning issue/PR when Block copy/UI changes",
+    "com.uiery.keep.feature.goallock.GoalLockCreationContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
+    "com.uiery.keep.feature.goallock.GoalLockDetailContentIntegrationTest": "screen-local Compose regression; run from Goal Lock UI/code PRs",
+    "com.uiery.keep.feature.home.HomeStatusCtaCardIntegrationTest": "screen-local Compose regression; run from Home status/CTA UI PRs",
+    "com.uiery.keep.feature.home.HomeGoalLockProgressCardAccessibilityTest": "screen-local accessibility regression; run from Goal Lock Home card UI/a11y PRs",
+    "com.uiery.keep.feature.lockhistory.component.LockHistoryPerformanceReportAccessibilityTest": "screen-local accessibility regression; run from LockHistory report UI/a11y PRs",
+    "com.uiery.keep.feature.parentmode.ParentModeSetupScreenAccessibilityTest": "screen-local accessibility regression; run from Parent Mode UI/a11y PRs",
+    "com.uiery.keep.feature.routine.component.RoutineListContentIntegrationTest": "screen-local Compose regression; run from Routine card/list UI PRs",
+    "com.uiery.keep.testing.AccessibilitySettingsDetailNavigatorTest": "test-helper/navigation utility regression; run from accessibility settings navigator PRs",
+}
+
+SUITES: dict[str, list[str]] = {
+    "android_ci_focused_runtime_smoke": [
+        "com.uiery.keep.qa.StopitReleaseSmokeTest",
+        "com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest",
+        "com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest",
+        "com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest",
+        "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
+        "com.uiery.keep.ui.component.TimerPickerIntegrationTest",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine",
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
+        "com.uiery.keep.service.KeepMessagingServiceIntegrationTest",
+        "com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest",
+    ],
+    "android_ci_exact_alarm_default": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability",
+    ],
+    "android_ci_exact_alarm_denied": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt",
+    ],
+    "android_ci_exact_alarm_allowed": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm",
+    ],
+    "release_focused_ui_smoke": [
+        "com.uiery.keep.qa.StopitReleaseSmokeTest",
+    ],
+    "release_prod_debug_smoke": [
+        "com.uiery.keep.qa.StopitReleaseSmokeTest",
+    ],
+    "release_exact_alarm_default": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability",
+    ],
+    "release_exact_alarm_denied": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt",
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm",
+    ],
+    "release_exact_alarm_allowed": [
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm",
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm",
+        "com.uiery.keep.feature.routine.RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEnabledRoutineFromRoom",
+        "com.uiery.keep.receiver.ReceiverExactAlarmPermissionIntegrationTest#exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEveryRepeatDayAlarm",
+    ],
+    "release_remaining_runtime": [
+        "com.uiery.keep.qa.StopitReleaseSmokeTest",
+        "com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest",
+        "com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest",
+        "com.uiery.keep.database.KeepDatabaseMigrationTest",
+        "com.uiery.keep.notification.RoutineStartNotificationTapIntegrationTest",
+        "com.uiery.keep.notification.NotificationSmallIconIntegrationTest",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine",
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine",
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
+        "com.uiery.keep.service.KeepMessagingServiceIntegrationTest",
+        "com.uiery.keep.manifest.ManifestContractIntegrationTest",
+        "com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest",
+    ],
+    "notification_denied_receiver": [
+        "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine",
+    ],
+    "notification_denied_emergency_unlock": [
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification",
+    ],
+    "notification_channel_disabled": [
+        "com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest",
+    ],
+}
+
+RELEASE_QA_SEQUENCE = [
+    "release_focused_ui_smoke",
+    "release_prod_debug_smoke",
+    "release_exact_alarm_default",
+    "release_exact_alarm_denied",
+    "release_exact_alarm_allowed",
+    "release_remaining_runtime",
+    "notification_denied_receiver",
+    "notification_denied_emergency_unlock",
+    "notification_channel_disabled",
+]
+
+ANDROID_CI_SEQUENCE = [
+    "android_ci_focused_runtime_smoke",
+    "android_ci_exact_alarm_default",
+    "android_ci_exact_alarm_denied",
+    "android_ci_exact_alarm_allowed",
+    "notification_denied_receiver",
+    "notification_denied_emergency_unlock",
+    "notification_channel_disabled",
+]
+
+
+def selectors_for(suite_names: Iterable[str]) -> list[str]:
+    selectors: list[str] = []
+    for suite_name in suite_names:
+        try:
+            selectors.extend(SUITES[suite_name])
+        except KeyError as exc:
+            raise SystemExit(f"Unknown suite: {suite_name}") from exc
+    return selectors
+
+
+def class_arg(suite_names: Iterable[str]) -> str:
+    return ",".join(selectors_for(suite_names))
+
+
+def android_test_roots() -> list[pathlib.Path]:
+    # Keep ANDROID_TEST_ROOT for older tests/patches, but scan both canonical
+    # Android source roots so Kotlin-only instrumentation tests cannot bypass
+    # the runtime-suite inventory guard.
+    roots = list(globals().get("ANDROID_TEST_ROOTS", [ANDROID_TEST_ROOT]))
+    if ANDROID_TEST_ROOT not in roots:
+        roots.insert(0, ANDROID_TEST_ROOT)
+    return roots
+
+
+def android_test_source_for(class_name: str) -> pathlib.Path:
+    relative = pathlib.Path(*class_name.split(".")).with_suffix(".kt")
+    candidates = [root / relative for root in android_test_roots()]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def android_test_class_name_for(source_path: pathlib.Path) -> str:
+    for root in android_test_roots():
+        try:
+            relative = source_path.relative_to(root).with_suffix("")
+        except ValueError:
+            continue
+        return ".".join(relative.parts)
+    raise ValueError(f"Android test source is outside configured roots: {source_path}")
+
+
+def covered_android_test_classes() -> set[str]:
+    return {selector.partition("#")[0] for selectors in SUITES.values() for selector in selectors}
+
+
+def all_android_test_classes() -> set[str]:
+    return {
+        android_test_class_name_for(path)
+        for root in android_test_roots()
+        for path in root.rglob("*Test.kt")
+    }
+
+
+def unclassified_android_test_classes() -> list[str]:
+    covered = covered_android_test_classes()
+    excluded = set(INTENTIONALLY_EXCLUDED_ANDROID_TEST_CLASSES)
+    return sorted(all_android_test_classes() - covered - excluded)
+
+
+def kotlin_method_exists(source: str, method_name: str) -> bool:
+    return re.search(rf"\bfun\s+{re.escape(method_name)}\s*\(", source) is not None
+
+
+def validate_sources() -> list[str]:
+    missing: list[str] = []
+    for suite_name, selectors in SUITES.items():
+        for selector in selectors:
+            class_name, _, method_name = selector.partition("#")
+            source_path = android_test_source_for(class_name)
+            if not source_path.exists():
+                missing.append(f"{suite_name}: {selector} (missing class source: {source_path.relative_to(REPO_ROOT)})")
+                continue
+            if method_name and not kotlin_method_exists(source_path.read_text(), method_name):
+                missing.append(f"{suite_name}: {selector} (missing method in {source_path.relative_to(REPO_ROOT)})")
+    return missing
+
+
+def render_markdown(suite_names: Iterable[str]) -> str:
+    lines: list[str] = []
+    for suite_name in suite_names:
+        lines.append(f"### `{suite_name}`")
+        lines.extend(f"- `{selector}`" for selector in SUITES[suite_name])
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+def run_connected_tests(
+    suite_names: Iterable[str],
+    before: Iterable[str] = (),
+    *,
+    continue_on_failure: bool = False,
+    variant: str = "devDebug",
+) -> int:
+    selectors = selectors_for(suite_names)
+    before_commands = [shlex.split(command) for command in before]
+    first_failure = 0
+    failed_steps: list[str] = []
+    connected_task = f":app:connected{variant[0].upper()}{variant[1:]}AndroidTest"
+
+    for selector in selectors:
+        before_failed = False
+        for command in before_commands:
+            completed = subprocess.run(command, cwd=REPO_ROOT)
+            if completed.returncode:
+                if not first_failure:
+                    first_failure = completed.returncode
+                failed_steps.append(f"before {shlex.join(command)} -> {completed.returncode}")
+                before_failed = True
+                if not continue_on_failure:
+                    return completed.returncode
+                break
+        if before_failed:
+            print(f"[android-runtime-suite] SKIP selector after before failure: {selector}", file=sys.stderr)
+            continue
+
+        completed = subprocess.run(
+            [
+                "./gradlew",
+                "--console=plain",
+                connected_task,
+                f"-Pandroid.testInstrumentationRunnerArguments.class={selector}",
+            ],
+            cwd=REPO_ROOT,
+        )
+        if completed.returncode:
+            if not first_failure:
+                first_failure = completed.returncode
+            failed_steps.append(f"selector {selector} -> {completed.returncode}")
+            if not continue_on_failure:
+                return completed.returncode
+
+    if failed_steps:
+        print("[android-runtime-suite] Aggregate failures:", file=sys.stderr)
+        for failure in failed_steps:
+            print(f"- {failure}", file=sys.stderr)
+    return first_failure
+
+
+ANDROID_CI_BEFORE_COMMANDS: dict[str, list[str]] = {
+    "android_ci_exact_alarm_default": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell cmd appops reset com.uiery.keep.dev",
+    ],
+    "android_ci_exact_alarm_denied": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny",
+    ],
+    "android_ci_exact_alarm_allowed": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow",
+    ],
+    "notification_denied_receiver": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+    "notification_denied_emergency_unlock": [
+        "./gradlew --console=plain :app:installDevDebug",
+        "adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore",
+    ],
+}
+
+
+def run_android_ci_sequence() -> int:
+    """Run Android CI runtime smoke suites in aggregate mode."""
+    first_failure = 0
+    print("[android-runtime-suite] Android CI aggregate mode: running all runtime smoke suites before final failure.")
+    for suite_name in ANDROID_CI_SEQUENCE:
+        print(f"[android-runtime-suite] Running suite: {suite_name}")
+        result = run_connected_tests(
+            [suite_name],
+            before=ANDROID_CI_BEFORE_COMMANDS.get(suite_name, []),
+            continue_on_failure=True,
+        )
+        if result and not first_failure:
+            first_failure = result
+    if first_failure:
+        print(f"[android-runtime-suite] Android CI aggregate mode completed with failure: {first_failure}", file=sys.stderr)
+    return first_failure
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    class_arg_parser = subparsers.add_parser("class-arg", help="Print comma-separated instrumentation selector argument")
+    class_arg_parser.add_argument("suite", nargs="+")
+
+    lines_parser = subparsers.add_parser("lines", help="Print one selector per line")
+    lines_parser.add_argument("suite", nargs="+")
+
+    selector_parser = subparsers.add_parser("selector", help="Print one selector by suite and zero-based index")
+    selector_parser.add_argument("suite")
+    selector_parser.add_argument("index", type=int)
+
+    markdown_parser = subparsers.add_parser("markdown", help="Print Markdown list for suites")
+    markdown_parser.add_argument("suite", nargs="+")
+
+    run_parser = subparsers.add_parser("run-connected", help="Run each selector as a separate connectedDevDebugAndroidTest Gradle invocation")
+    run_parser.add_argument("suite", nargs="+")
+    run_parser.add_argument("--before", action="append", default=[], help="Command to run before each selector; may be supplied multiple times")
+    run_parser.add_argument(
+        "--variant",
+        default="devDebug",
+        choices=["devDebug", "prodDebug"],
+        help="Android variant for the connected test task (default: devDebug)",
+    )
+    run_parser.add_argument(
+        "--continue-on-failure",
+        action="store_true",
+        help="Run remaining selectors and print an aggregate failure summary before returning non-zero",
+    )
+
+    subparsers.add_parser("run-android-ci", help="Run Android CI runtime smoke suites in aggregate diagnostic mode")
+    subparsers.add_parser("list-suites", help="Print known suite names")
+    subparsers.add_parser("validate-sources", help="Verify selectors point to existing androidTest classes/methods")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.command == "class-arg":
+        print(class_arg(args.suite))
+    elif args.command == "lines":
+        print("\n".join(selectors_for(args.suite)))
+    elif args.command == "selector":
+        selectors = selectors_for([args.suite])
+        try:
+            print(selectors[args.index])
+        except IndexError:
+            print(f"Index {args.index} out of range for {args.suite}", file=sys.stderr)
+            return 2
+    elif args.command == "markdown":
+        print(render_markdown(args.suite))
+    elif args.command == "run-connected":
+        return run_connected_tests(
+            args.suite,
+            before=args.before,
+            continue_on_failure=args.continue_on_failure,
+            variant=args.variant,
+        )
+    elif args.command == "run-android-ci":
+        return run_android_ci_sequence()
+    elif args.command == "list-suites":
+        print("\n".join(SUITES.keys()))
+    elif args.command == "validate-sources":
+        missing = validate_sources()
+        if missing:
+            print("\n".join(missing), file=sys.stderr)
+            return 1
+        print("OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -35,6 +35,6 @@ No direct source files; this directory organizes subdirectories listed below.
 - Consumed by `:app` via `implementation(project(":core:kds"))`.
 
 ### External
-- Jetpack Compose Material 3, AndroidX UI tooling, Google Mobile Ads where banner components are used.
+- Jetpack Compose Material 3 and AndroidX UI tooling. AdMob SDK/runtime ownership belongs in the app monetization boundary.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->

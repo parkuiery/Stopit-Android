@@ -6,6 +6,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
 import kotlinx.coroutines.flow.first
@@ -18,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class EmergencyUnlockExpiryIntegrationTest {
@@ -83,6 +85,7 @@ class EmergencyUnlockExpiryIntegrationTest {
             foregroundPackage = blockedPackage,
             applicationId = context.packageName,
             isForegroundStillEmergencyUnlocked = false,
+            clearExpiredEmergencyUnlockState = BlockingStateStore(context.dataStore)::clearEmergencyUnlockRuntimeState,
             nowMillis = expireTimeMillis,
         )
 
@@ -138,7 +141,7 @@ class EmergencyUnlockExpiryIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(50)
+            AndroidTestConditionWaiter.pause(50, reason = "polling instrumentation condition")
         }
         throw AssertionError(message)
     }

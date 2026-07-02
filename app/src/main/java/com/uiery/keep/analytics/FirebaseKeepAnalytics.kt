@@ -1,5 +1,9 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineAnalyticsEvents
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -151,13 +155,19 @@ class FirebaseKeepAnalytics
             blockSource: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = buildMap {
                     put(KeepAnalyticsParam.BLOCK_SOURCE, blockSource)
-                    put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
-                    routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+                    put(
+                        KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                        blockedAppCategoryBucketForPackage(blockedAppPackage),
+                    )
+                    // routineId/goalLockId remain local/debug attribution inputs, but are not exported to GA4.
+                    // They can link long-lived user behavior to a specific routine/goal-lock row, so keep
+                    // external analytics on privacy-safe source/category/bucket dimensions only.
                 },
             )
         }
@@ -177,11 +187,96 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackEmergencyUnlockSettingsChanged(
+            settingName: String,
+            valueBucket: String,
+            refillMode: String,
+            durationCountBucket: String,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_SETTINGS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.SETTING_NAME to settingName,
+                    KeepAnalyticsParam.VALUE_BUCKET to valueBucket,
+                    KeepAnalyticsParam.REFILL_MODE to refillMode,
+                    KeepAnalyticsParam.DURATION_COUNT_BUCKET to durationCountBucket,
+                    KeepAnalyticsParam.SOURCE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockManualResetRequested(
+            remainingUnlocksBucket: String,
+            source: String,
+            resetResult: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED,
+                params = buildMap {
+                    put(KeepAnalyticsParam.REFILL_MODE, AnalyticsEmergencyUnlockRefillMode.MANUAL)
+                    put(KeepAnalyticsParam.REMAINING_UNLOCKS_BUCKET, remainingUnlocksBucket)
+                    put(KeepAnalyticsParam.SOURCE, source)
+                    resetResult?.let { put(KeepAnalyticsParam.RESET_RESULT, it) }
+                },
+            )
+        }
+
+        override fun trackEmergencyUnlockStepViewed(
+            stepName: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_STEP_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockValidationBlocked(
+            stepName: String,
+            validationReason: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_VALIDATION_BLOCKED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.VALIDATION_REASON to validationReason,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackEmergencyUnlockCancelled(
+            stepName: String,
+            reasonRequiredEnabled: Boolean,
+            source: String,
+            cancelSource: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_CANCELLED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to stepName,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to reasonRequiredEnabled,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                    KeepAnalyticsParam.CANCEL_SOURCE to cancelSource,
+                ),
+            )
+        }
+
         override fun trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
@@ -190,6 +285,7 @@ class FirebaseKeepAnalytics
                     blockingMode = blockingMode,
                     blockedAppPackage = blockedAppPackage,
                     routineId = routineId,
+                    goalLockId = goalLockId,
                 ),
             )
         }
@@ -199,6 +295,7 @@ class FirebaseKeepAnalytics
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
@@ -207,6 +304,7 @@ class FirebaseKeepAnalytics
                     blockingMode = blockingMode,
                     blockedAppPackage = blockedAppPackage,
                     routineId = routineId,
+                    goalLockId = goalLockId,
                 ),
             )
         }
@@ -291,6 +389,363 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackLockHistoryPerformanceSummaryViewed(
+            periodType: String,
+            reportState: String,
+            sessionCountBucket: String,
+            durationMinutesBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.REPORT_STATE to reportState,
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to sessionCountBucket,
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                ),
+            )
+        }
+
+        override fun trackLockHistoryTopAppsViewed(
+            periodType: String,
+            topAppsCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to periodType,
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to topAppsCountBucket,
+                ),
+            )
+        }
+
+        override fun trackMonetizationInterestShown(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.MONETIZATION_INTEREST_SHOWN,
+                params = monetizationInterestParams(
+                    interestSurface = interestSurface,
+                    interestContext = interestContext,
+                    interestVariant = interestVariant,
+                    purchaseAvailable = purchaseAvailable,
+                ),
+            )
+        }
+
+        override fun trackMonetizationInterestClicked(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.MONETIZATION_INTEREST_CLICKED,
+                params = monetizationInterestParams(
+                    interestSurface = interestSurface,
+                    interestContext = interestContext,
+                    interestVariant = interestVariant,
+                    purchaseAvailable = purchaseAvailable,
+                ),
+            )
+        }
+
+        override fun trackSupportContactStarted(surface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.SUPPORT_CONTACT_STARTED,
+                params = mapOf(KeepAnalyticsParam.SURFACE to surface),
+            )
+        }
+
+        override fun trackSupportContactFallbackUsed(
+            surface: String,
+            fallbackType: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.SUPPORT_CONTACT_FALLBACK_USED,
+                params = mapOf(
+                    KeepAnalyticsParam.SURFACE to surface,
+                    KeepAnalyticsParam.FALLBACK_TYPE to fallbackType,
+                ),
+            )
+        }
+
+        override fun trackRoutineTemplateShareTapped(
+            templateCategory: String,
+            repeatDaysBucket: String,
+            timeWindowBucket: String,
+            routineNameIncluded: Boolean,
+        ) {
+            log(
+                RoutineAnalyticsEvents.templateShareTapped(
+                    templateCategory = templateCategory,
+                    repeatDaysBucket = repeatDaysBucket,
+                    timeWindowBucket = timeWindowBucket,
+                    routineNameIncluded = routineNameIncluded,
+                ),
+            )
+        }
+
+        override fun trackRoutineTemplateShareSheetOpened(
+            templateCategory: String,
+            repeatDaysBucket: String,
+            timeWindowBucket: String,
+            routineNameIncluded: Boolean,
+        ) {
+            log(
+                RoutineAnalyticsEvents.templateShareSheetOpened(
+                    templateCategory = templateCategory,
+                    repeatDaysBucket = repeatDaysBucket,
+                    timeWindowBucket = timeWindowBucket,
+                    routineNameIncluded = routineNameIncluded,
+                ),
+            )
+        }
+
+        override fun trackRoutineTemplateShareFailed(
+            templateCategory: String,
+            reason: String,
+        ) {
+            log(
+                RoutineAnalyticsEvents.templateShareFailed(
+                    templateCategory = templateCategory,
+                    reason = reason,
+                ),
+            )
+        }
+
+        override fun trackParentModeDurationSelected(durationMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_DURATION_SELECTED,
+                params = mapOf(KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeAllowedAppsSelected(allowedAppCountBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_ALLOWED_APPS_SELECTED,
+                params = mapOf(KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket),
+            )
+        }
+
+        override fun trackParentModeStarted(
+            durationMinutesBucket: String,
+            allowedAppCountBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to allowedAppCountBucket,
+                ),
+            )
+        }
+
+        override fun trackParentModeCompleted(
+            durationMinutesBucket: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeUnlockedByPin(
+            pinResult: String,
+            endReason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_UNLOCKED_BY_PIN,
+                params = mapOf(
+                    KeepAnalyticsParam.PIN_RESULT to pinResult,
+                    KeepAnalyticsParam.END_REASON to endReason,
+                ),
+            )
+        }
+
+        override fun trackParentModeExtended(extensionMinutesBucket: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_EXTENDED,
+                params = mapOf(KeepAnalyticsParam.EXTENSION_MINUTES_BUCKET to extensionMinutesBucket),
+            )
+        }
+
+        override fun trackParentModeBlockIntercepted(blockContext: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                params = mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to blockContext),
+            )
+        }
+
+        override fun trackParentModeCancelled(endReason: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PARENT_MODE_CANCELLED,
+                params = mapOf(KeepAnalyticsParam.END_REASON to endReason),
+            )
+        }
+
+        override fun trackGoalLockCreateStarted(entrySurface: String) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                params = mapOf(KeepAnalyticsParam.ENTRY_SURFACE to entrySurface),
+            )
+        }
+
+        override fun trackGoalLockCreated(
+            durationSelectionType: String,
+            lockMode: String,
+            selectedAppCountBucket: String,
+            goalNameType: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_CREATED,
+                params = mapOf(
+                    KeepAnalyticsParam.DURATION_SELECTION_TYPE to durationSelectionType,
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to selectedAppCountBucket,
+                    KeepAnalyticsParam.GOAL_NAME_TYPE to goalNameType,
+                ),
+            )
+        }
+
+        override fun trackGoalLockEndedEarly(
+            lockMode: String,
+            elapsedDaysBucket: String,
+            reason: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_ENDED_EARLY,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.ELAPSED_DAYS_BUCKET to elapsedDaysBucket,
+                    KeepAnalyticsParam.REASON to reason,
+                ),
+            )
+        }
+
+        override fun trackGoalLockCompleted(
+            lockMode: String,
+            durationDaysBucket: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.DURATION_DAYS_BUCKET to durationDaysBucket,
+                ),
+            )
+        }
+
+        override fun trackGoalLockUpdated(
+            lockMode: String,
+            changedField: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                params = mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to lockMode,
+                    KeepAnalyticsParam.CHANGED_FIELD to changedField,
+                ),
+            )
+        }
+
+        override fun trackRoutineCreationCtaShown(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_SHOWN,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
+        override fun trackRoutineCreationCtaClicked(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_CLICKED,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
+        override fun trackRoutineCreationCtaDismissed(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ROUTINE_CREATION_CTA_DISMISSED,
+                params = routineCreationCtaParams(
+                    surface = surface,
+                    activationStage = activationStage,
+                    hasRoutine = hasRoutine,
+                    ctaVariant = ctaVariant,
+                ),
+            )
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionShown(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+        ) {
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionShown(surface, suggestion))
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionClicked(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+        ) {
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionClicked(surface, suggestion))
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionDismissed(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+        ) {
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionDismissed(surface, suggestion))
+        }
+
+        override fun trackRepeatBlockRoutineSuggestionApplied(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestionAnalyticsPayload,
+        ) {
+            log(RoutineAnalyticsEvents.repeatBlockSuggestionApplied(surface, suggestion))
+        }
+
+        override fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) {
+            log(RoutineAnalyticsEvents.routineSaved(payload))
+        }
+
+        override fun trackInstallReferrerAttributionChecked(attribution: AcquisitionAttribution) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = attribution.toAnalyticsParams(),
+            )
+        }
+
         private fun focusSummaryShareParams(
             periodType: String,
             sessionCountBucket: String,
@@ -301,15 +756,41 @@ class FirebaseKeepAnalytics
             KeepAnalyticsParam.DURATION_MINUTES_BUCKET to durationMinutesBucket,
         )
 
+        private fun monetizationInterestParams(
+            interestSurface: String,
+            interestContext: String,
+            interestVariant: String?,
+            purchaseAvailable: Boolean?,
+        ): Map<String, Any?> = buildMap {
+            put(KeepAnalyticsParam.INTEREST_SURFACE, interestSurface)
+            put(KeepAnalyticsParam.INTEREST_CONTEXT, interestContext)
+            interestVariant?.let { put(KeepAnalyticsParam.INTEREST_VARIANT, it) }
+            purchaseAvailable?.let { put(KeepAnalyticsParam.PURCHASE_AVAILABLE, it) }
+        }
+
+        private fun routineCreationCtaParams(
+            surface: String,
+            activationStage: String,
+            hasRoutine: Boolean,
+            ctaVariant: String?,
+        ): Map<String, Any?> = buildMap {
+            put(KeepAnalyticsParam.SURFACE, surface)
+            put(KeepAnalyticsParam.ACTIVATION_STAGE, activationStage)
+            put(KeepAnalyticsParam.HAS_ROUTINE, hasRoutine)
+            ctaVariant?.let { put(KeepAnalyticsParam.CTA_VARIANT, it) }
+        }
         private fun coreActionParams(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,
             blockedAppPackage: String,
             routineId: String?,
+            goalLockId: String?,
         ): Map<String, Any?> = buildMap {
             put(KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS, elapsedSinceFirstOpenSeconds)
             put(KeepAnalyticsParam.BLOCKING_MODE, blockingMode)
-            put(KeepAnalyticsParam.BLOCKED_APP_PACKAGE, blockedAppPackage)
-            routineId?.let { put(KeepAnalyticsParam.ROUTINE_ID, it) }
+            put(KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, blockedAppCategoryBucketForPackage(blockedAppPackage))
+            // routineId/goalLockId remain local/debug attribution inputs, but are not exported to GA4.
+            // They can link long-lived user behavior to a specific routine/goal-lock row, so keep
+            // external analytics on privacy-safe source/category/bucket dimensions only.
         }
     }

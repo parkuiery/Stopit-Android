@@ -1,5 +1,8 @@
 package com.uiery.keep.util
 
-import com.blankj.utilcode.util.DeviceUtils
+import android.content.Context
+import android.provider.Settings
 
-fun deviceId(): String = DeviceUtils.getUniqueDeviceId()
+fun deviceId(context: Context): String =
+    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        ?: "unknown"

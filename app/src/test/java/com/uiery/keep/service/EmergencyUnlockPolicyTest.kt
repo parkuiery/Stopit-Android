@@ -8,12 +8,13 @@ import org.junit.Test
 class EmergencyUnlockPolicyTest {
 
     @Test
-    fun emergencyUnlockNotificationPostResultRequiresEnabledNotificationsAndPermission() {
+    fun emergencyUnlockNotificationPostResultDistinguishesPermissionDeniedFromChannelDisabled() {
         assertEquals(
             EmergencyUnlockNotificationPostResult.PermissionDenied,
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = false,
                 postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = true,
             )
         )
         assertEquals(
@@ -21,6 +22,15 @@ class EmergencyUnlockPolicyTest {
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = true,
                 postNotificationsPermissionGranted = false,
+                notificationChannelEnabled = true,
+            )
+        )
+        assertEquals(
+            EmergencyUnlockNotificationPostResult.ChannelDisabled,
+            resolveEmergencyUnlockNotificationPostResult(
+                notificationsEnabled = true,
+                postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = false,
             )
         )
         assertEquals(
@@ -28,6 +38,7 @@ class EmergencyUnlockPolicyTest {
             resolveEmergencyUnlockNotificationPostResult(
                 notificationsEnabled = true,
                 postNotificationsPermissionGranted = true,
+                notificationChannelEnabled = true,
             )
         )
     }
@@ -76,6 +87,14 @@ class EmergencyUnlockPolicyTest {
         assertEquals(listOf(3, 5, 10), sanitizeEmergencyUnlockDurationOptions(emptySet()))
         assertEquals(listOf(3, 10), sanitizeEmergencyUnlockDurationOptions(setOf("10", "999", "3", "bad")))
         assertEquals(listOf(3, 5, 10), sanitizeEmergencyUnlockDurationOptions(setOf("999", "bad")))
+    }
+
+    @Test
+    fun countdownSecondsFallBackToDefaultWhenNotAllowed() {
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, sanitizeEmergencyUnlockCountdownSeconds(null))
+        assertEquals(DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS, sanitizeEmergencyUnlockCountdownSeconds(45))
+        assertEquals(10, sanitizeEmergencyUnlockCountdownSeconds(10))
+        assertEquals(60, sanitizeEmergencyUnlockCountdownSeconds(60))
     }
 
     @Test
@@ -193,6 +212,60 @@ class EmergencyUnlockPolicyTest {
             null,
             emergencyUnlockExpiryDelayMillis(
                 expireTimeMillis = 0L,
+                nowMillis = 1_000L,
+            )
+        )
+    }
+
+    @Test
+    fun emergencyUnlockNotificationSyncUsesStoredExpireTimeForRemainingSeconds() {
+        assertEquals(
+            EmergencyUnlockNotificationSyncPlan.ShowCountdown(remainingSeconds = 90, totalSeconds = 90),
+            resolveEmergencyUnlockNotificationSyncPlan(
+                expireTimeMillis = 91_000L,
+                nowMillis = 1_000L,
+            )
+        )
+    }
+
+    @Test
+    fun emergencyUnlockNotificationSyncCancelsWhenNoStoredActiveUnlockRemains() {
+        assertEquals(
+            EmergencyUnlockNotificationSyncPlan.Cancel,
+            resolveEmergencyUnlockNotificationSyncPlan(
+                expireTimeMillis = 0L,
+                nowMillis = 1_000L,
+            )
+        )
+        assertEquals(
+            EmergencyUnlockNotificationSyncPlan.Cancel,
+            resolveEmergencyUnlockNotificationSyncPlan(
+                expireTimeMillis = 1_000L,
+                nowMillis = 1_000L,
+            )
+        )
+    }
+
+    @Test
+    fun emergencyUnlockNotificationTickDelayKeepsCountdownAliveUntilStoredExpiry() {
+        assertEquals(
+            1_000L,
+            emergencyUnlockNotificationTickDelayMillis(
+                expireTimeMillis = 5_000L,
+                nowMillis = 1_000L,
+            )
+        )
+        assertEquals(
+            500L,
+            emergencyUnlockNotificationTickDelayMillis(
+                expireTimeMillis = 1_500L,
+                nowMillis = 1_000L,
+            )
+        )
+        assertEquals(
+            null,
+            emergencyUnlockNotificationTickDelayMillis(
+                expireTimeMillis = 1_000L,
                 nowMillis = 1_000L,
             )
         )

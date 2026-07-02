@@ -8,6 +8,7 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
@@ -45,11 +46,10 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
-    fun notificationTracksSettingsOpenedBeforeGrantAndOnlyCompletesWhenGranted() {
+    fun notificationTracksRuntimeDeniedOrGrantedAndOnlyCompletesWhenGrantedOrDeniedWithContinue() {
         val viewModel = NotificationSettingViewModel(analytics)
 
         viewModel.onStepViewed()
-        viewModel.onPermissionSettingsOpened()
         viewModel.onPermissionDenied()
         viewModel.onPermissionGranted()
 
@@ -59,17 +59,31 @@ class OnboardingAnalyticsViewModelTest {
                 AnalyticsCall.StepViewed(OnboardingStepName.NOTIFICATION),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
-                    outcome = AnalyticsOutcome.SETTINGS_OPENED,
-                    stepName = OnboardingStepName.NOTIFICATION,
-                ),
-                AnalyticsCall.PermissionOutcome(
-                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
                     outcome = AnalyticsOutcome.DENIED,
                     stepName = OnboardingStepName.NOTIFICATION,
                 ),
                 AnalyticsCall.PermissionOutcome(
                     permissionName = AnalyticsPermissionName.NOTIFICATIONS,
                     outcome = AnalyticsOutcome.GRANTED,
+                    stepName = OnboardingStepName.NOTIFICATION,
+                ),
+                AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
+    fun notificationPermissionDeniedWithContinueTracksDeniedAndCompletesStep() {
+        val viewModel = NotificationSettingViewModel(analytics)
+
+        viewModel.onPermissionDeniedAndContinue()
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.PermissionOutcome(
+                    permissionName = AnalyticsPermissionName.NOTIFICATIONS,
+                    outcome = AnalyticsOutcome.DENIED,
                     stepName = OnboardingStepName.NOTIFICATION,
                 ),
                 AnalyticsCall.StepCompleted(OnboardingStepName.NOTIFICATION),
@@ -109,7 +123,7 @@ class OnboardingAnalyticsViewModelTest {
     @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
-            dataStore = UnusedPreferencesDataStore,
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
             analytics = analytics,
         )
 
@@ -128,7 +142,7 @@ class OnboardingAnalyticsViewModelTest {
     fun selectAppCompletionWithEmptySelectionDoesNotCompleteOnboardingOrFirstLock() = runBlocking {
         val dataStore = FakeDataStore()
         val viewModel = SelectAppViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
         )
 
@@ -145,7 +159,7 @@ class OnboardingAnalyticsViewModelTest {
     fun selectAppCompletionWithSelectionTracksAndStoresOnboardingCompletion() = runBlocking {
         val dataStore = FakeDataStore()
         val viewModel = SelectAppViewModel(
-            dataStore = dataStore,
+            blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
         )
 

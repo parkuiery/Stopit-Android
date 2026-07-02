@@ -63,6 +63,7 @@
 
 - `database/keep-database`만 cloud backup / device transfer 대상으로 포함
 - DataStore 파일은 포함하지 않는다. Android lint의 `FullBackupContent` 규칙상 `database/keep-database`만 include하면 `file/datastore/keep-datastore.preferences_pb` exclude는 중복이므로 XML에는 두지 않는다.
+- 정적 회귀 가드는 `scripts/tests/test_android_manifest_contract.py`가 담당한다. 이 테스트는 `AndroidManifest.xml`이 `@xml/backup_rules` / `@xml/data_extraction_rules`를 가리키는지와 두 XML이 `database/keep-database`만 include하는지를 고정한다. 즉 DataStore 제외 효과는 명시적 exclude 태그가 아니라 **DB-only include scope**로 검증한다.
 
 즉, **Room DB는 복원되고 DataStore는 복원되지 않는다.** 루틴의 authoritative source of truth는 Room이며, `PreferencesKey.ROUTINES`는 boot/routine alarm/accessibility 호환성을 위한 비권위(runtime compatibility) 캐시로만 취급한다. 따라서 boot/routine alarm 경로에서는 필요 시 Room에 복원된 routine 목록으로 `PreferencesKey.ROUTINES` 캐시를 다시 채우되, 후속 스케줄링/차단 판단은 항상 Room 기준과 일치해야 한다.
 
@@ -71,6 +72,26 @@
 ### DataStore (`keep-datastore`)
 
 정의 위치: `app/src/main/java/com/uiery/keep/datastore/DataStore.kt`
+
+정적 분류 계약:
+
+- `app/src/main/java/com/uiery/keep/datastore/BackupRestoreDataStoreKeyPolicy.kt`가 모든 `PreferencesKey`를 아래 둘 중 하나로 분류한다.
+  - `resetOnlyKeys`: 복원 후 absent여야 하는 기기/런타임/리뷰/분석/알림 상태
+  - `rehydratedCompatibilityCacheKeys`: DataStore 파일에서는 복원하지 않지만 Room에서 다시 채울 수 있는 compatibility cache
+- 현재 `rehydratedCompatibilityCacheKeys`의 유일한 예외는 `PreferencesKey.ROUTINES`다. 이 값은 backup/transfer로 복원하지 않고, Boot/Routine alarm 진입에서 restored Room routine으로 재수화한다.
+- 새 `PreferencesKey`를 추가하면 반드시 이 정책 파일과 아래 표를 함께 갱신한다. 누락 시 `BackupRestoreDataStoreKeyPolicyTest.everyPreferencesKeyHasABackupRestoreClassification`가 실패해야 한다.
+- reset-only 키가 늘어나면 `BackupRestoreRuntimeResetIntegrationTest.assertRestoreResetOnlyStateAbsent()`도 같은 allowlist를 사용하므로 restored-device runtime baseline에서 자동으로 absent 검증 대상이 된다.
+
+Typed store 경계:
+
+- `BlockingStateStore`: lock/session/activation/reset-only runtime key의 read/write 경계.
+- `EmergencyUnlockSettingsStore`: 긴급해제 설정 key의 default/sanitize/read/write 경계.
+- `ReviewPromptStateStore`: 리뷰 pending/cooldown/background timestamp 경계.
+- `RoutineStore`: `PreferencesKey.ROUTINES` compatibility cache 경계. Room이 루틴 source of truth이고 이 cache는 boot/routine alarm 호환성 재수화용이다. 유지/퇴역 정책, Room-vs-cache conflict-winner, code-lane handoff는 `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`(#511)를 따른다.
+- `RoutineRestoreAftercare` (`data.routine`): 복원 직후 앱 실행/Splash 또는 Routine 화면 진입에서 Room enabled routine을 다시 스케줄하고 `RoutineStore` compatibility cache를 Room 기준으로 채우는 공통 aftercare 경계다.
+- `SplashViewModel`: 앱 시작 직후 BootReceiver/package-replaced/routine-alarm 이벤트를 기다리지 않고 `data.routine.RoutineRestoreAftercare`를 호출해 restored Room routine 알람을 복구한다. DataStore `IS_NEW`가 reset되어 기본값이 `true`로 읽히더라도, restored Room routine이 1개 이상 있으면 기존 사용자로 해석해 신규 온보딩/`first_open` 추적을 건너뛰고 Home 경로로 이동한다.
+- `RoutineViewModel`: 사용자가 루틴 화면에 진입했을 때도 같은 aftercare를 재실행해 cache/알람 복구를 보강한다. exact alarm 권한/스케줄 실패가 확인되면 receiver 경로와 동일하게 해당 루틴을 `enabled=false`로 내리고 권한 안내 prompt를 다시 보여줄 수 있도록 `HAS_SHOWN_ALARM_PERMISSION=false`로 되돌린다.
+- `RoutineNoticeStore`: `PENDING_ROUTINE_START_NOTICE_MESSAGE` receiver→Home fallback notice queue와 `HAS_SHOWN_ALARM_PERMISSION` prompt reset 경계. 이 둘은 restored-device에서 되살리지 않는 runtime/UI handoff state다.
 
 아래 키들은 현재 모두 같은 파일에 있으므로 **이번 정책에서 전부 복원 제외**다.
 
@@ -99,6 +120,7 @@
 | `successful_session_count` | 누적 세션 카운트 | 복원 안 함 |
 | `last_backgrounded_at_ms` | 최근 백그라운드 시각 | 복원 안 함 |
 | `is_new` / `total_block_time` / `long_block_time` | UX/누적 상태 | 복원 안 함 |
+| `pending_routine_start_notice_message` | 루틴 시작 fallback notice 대기 메시지 | 복원 안 함 |
 
 ### Room (`keep-database`)
 
@@ -142,7 +164,12 @@
 확인:
 - [ ] 루틴 목록이 유지된다.
 - [ ] 루틴 활성 여부가 비정상적으로 초기화되지 않는다.
-- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+- [ ] `IS_NEW`가 DataStore reset으로 absent/default true가 되더라도, restored Room routine이 있으면 Splash가 신규 온보딩으로 재분기하지 않고 Home으로 이동한다.
+- [ ] 위 restored-user Splash 경로에서는 `first_open`을 새로 추적하지 않는다.
+- [ ] 앱 실행 후 Routine 화면 진입만으로 Room의 enabled routine이 다시 스케줄되고 `PreferencesKey.ROUTINES` compatibility cache가 Room 기준으로 재작성된다.
+- [ ] exact alarm 권한/스케줄 실패 상태에서는 enabled routine이 조용히 성공 상태로 남지 않고 `enabled=false`로 내려가며 권한 안내 prompt가 다시 노출될 수 있다.
+- [ ] 자동 JVM baseline: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.splash.SplashViewModelRestoreSchedulingTest' --tests 'com.uiery.keep.feature.routine.RoutineViewModelRestoreSchedulingTest'`
+- [ ] 자동 Android baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
 
 ### 시나리오 B — DataStore 상태 미복원
 1. 기존 기기에서 차단 앱 선택, 수동 잠금 또는 timed lock 활성화
@@ -155,7 +182,7 @@
 - [ ] 복원 직후 stale lock state 때문에 예상치 못한 즉시 차단이 발생하지 않는다.
 - [ ] 이전 기기의 긴급해제 상태가 복원되어 차단이 계속 우회되지 않는다.
 - [ ] 긴급해제 설정값도 새 기기 기준으로 다시 잡아야 하는 상태다.
-- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
+- [ ] 자동 baseline: `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
 
 ### 시나리오 C — 리뷰/토큰/분석 재초기화
 1. 복원 후 앱 실행
@@ -172,9 +199,20 @@
 
 ### 저장소 자동 baseline 범위
 
-- `com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest`
+- JVM static contract: `./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicyTest'`
+  - 모든 `PreferencesKey`가 backup/restore 분류 allowlist에 들어 있는지 확인
+  - `PreferencesKey.ROUTINES`만 Room 재수화 compatibility cache 예외인지 확인
+  - reset-only key 목록이 runtime/device/review/analytics/notice 상태를 모두 포함하는지 확인
+- `BackupRestoreRuntimeResetIntegrationTest`
   - 복원된 Room routine을 Boot/Routine alarm 진입에서 `PreferencesKey.ROUTINES`로 재수화하는지 확인
   - DataStore가 비어 있는 restored-device shape에서 선택 앱/lock/emergency/review/analytics session/FCM token 키를 되살리지 않는지 확인
+- `RoutineViewModelRestoreSchedulingTest`
+  - 복원 직후 앱 실행 후 Routine 화면 진입 경로에서 Room enabled routine을 재스케줄하고 `RoutineStore` cache를 Room 기준으로 재작성하는지 확인
+  - exact alarm 권한/스케줄 실패 시 enabled routine을 `enabled=false`로 내리고 `HAS_SHOWN_ALARM_PERMISSION=false` reset + `ShowAlarmPermission` side effect를 유지하는지 확인
+- `RoutineStore` compatibility cache 계약(#511)
+  - source of truth: `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`
+  - Room과 `PreferencesKey.ROUTINES` cache가 불일치할 때 Room이 이기는지, malformed/blank cache가 crash 없이 empty cache로 취급되는지, exact-alarm 실패 후 Room/cache rewrite 결과가 같은지 확인
+  - cache 제거를 선택하는 PR은 backup/restore policy의 `rehydratedCompatibilityCacheKeys` 예외 제거와 receiver/restore runtime evidence를 같은 package에서 증명해야 한다.
 - focused `com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest` 7종
   - Boot/package-replaced/routine-start 재수화·재예약 contract와 multi-day repeat-day pending-intent coverage 확인
 - `com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest`
@@ -192,7 +230,7 @@
 - Variant:
 - Commands:
   - `./gradlew :app:assembleDevDebug`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest`
 - Room restore (routines): pass/fail
 - DataStore reset (selected apps / lock / emergency / review / token): pass/fail
 - Notes:

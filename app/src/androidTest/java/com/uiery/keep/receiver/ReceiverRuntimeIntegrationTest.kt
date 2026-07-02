@@ -1,12 +1,12 @@
 package com.uiery.keep.receiver
 
+import com.uiery.keep.data.routine.RoutineRepository
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -20,9 +20,11 @@ import com.uiery.keep.R
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
@@ -42,6 +44,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class ReceiverRuntimeIntegrationTest {
@@ -79,7 +82,7 @@ class ReceiverRuntimeIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -98,6 +101,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        grantExactAlarmPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -108,7 +112,7 @@ class ReceiverRuntimeIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -141,10 +145,11 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Clock changed restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -163,6 +168,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms() = runBlocking {
+        grantExactAlarmPermission()
         database.routineDao().insert(
             enabledRoutineEntity(
                 id = TEST_ROUTINE_ID,
@@ -172,7 +178,7 @@ class ReceiverRuntimeIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -192,21 +198,71 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
-    fun manifestMarksBootReceiverNotExported() {
-        val receiverInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getReceiverInfo(
-                ComponentName(context, BootReceiver::class.java),
-                PackageManager.ComponentInfoFlags.of(0),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getReceiverInfo(
-                ComponentName(context, BootReceiver::class.java),
-                0,
-            )
+    fun timezoneChangedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms() = runBlocking {
+        grantExactAlarmPermission()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Timezone invalid empty repeat days",
+                repeatDays = emptyList(),
+            ),
+        )
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Timezone invalid empty repeat days", DayOfWeek.entries)
+        assertEveryDayPendingIntentExists(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
+        receiver.restoreRoutinesForBoot(Intent.ACTION_TIMEZONE_CHANGED)
+
+        waitUntil("BootReceiver should disable an enabled routine with empty repeatDays") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("BootReceiver should persist the invalid routine as disabled in DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+    }
+
+    @Test
+    fun manifestMarksBootReceiverNotExported() {
+        val receiverInfo = context.packageManager.getReceiverInfo(
+            ComponentName(context, BootReceiver::class.java),
+            PackageManager.ComponentInfoFlags.of(0),
+        )
+
         assertFalse(receiverInfo.exported)
+    }
+
+    @Test
+    fun packageReplacedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms() = runBlocking {
+        grantExactAlarmPermission()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Package invalid empty repeat days",
+                repeatDays = emptyList(),
+            ),
+        )
+        seedRoutinePendingIntents(TEST_ROUTINE_ID, "Package invalid empty repeat days", DayOfWeek.entries)
+        assertEveryDayPendingIntentExists(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
+
+        waitUntil("Package-replaced restore should disable an enabled routine with empty repeatDays") {
+            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        }
+        waitUntil("Package-replaced restore should persist the invalid routine as disabled in DataStore") {
+            storedRoutineEnabledStates() == listOf(false)
+        }
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
     }
 
     @Test
@@ -215,7 +271,7 @@ class ReceiverRuntimeIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced restore"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -242,7 +298,7 @@ class ReceiverRuntimeIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = scheduler
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -270,7 +326,7 @@ class ReceiverRuntimeIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = scheduler
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -290,6 +346,7 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm() = runBlocking {
+        grantExactAlarmPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -300,7 +357,7 @@ class ReceiverRuntimeIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
         }
 
@@ -325,7 +382,7 @@ class ReceiverRuntimeIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
         }
@@ -337,7 +394,7 @@ class ReceiverRuntimeIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post a notification") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room") {
             storedRoutineNames() == listOf("Morning focus")
@@ -346,13 +403,14 @@ class ReceiverRuntimeIntegrationTest {
             findRoutinePendingIntent(TEST_ROUTINE_ID) != null
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Morning focus"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
     @Test
     fun routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine() = runBlocking {
+        grantExactAlarmPermission()
         grantPostNotificationsPermission()
         val repeatDays = multiDayRepeatDays()
         database.routineDao().insert(
@@ -365,7 +423,7 @@ class ReceiverRuntimeIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
         }
@@ -377,7 +435,7 @@ class ReceiverRuntimeIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post a notification for the multi-day routine") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should rehydrate DataStore routines from Room for the multi-day routine") {
             storedRoutineNames() == listOf("Morning focus multi-day")
@@ -386,7 +444,7 @@ class ReceiverRuntimeIntegrationTest {
             repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Morning focus multi-day"), storedRoutineNames())
         assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
     }
@@ -404,7 +462,7 @@ class ReceiverRuntimeIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
         }
@@ -442,7 +500,7 @@ class ReceiverRuntimeIntegrationTest {
     }
 
     @Test
-    fun routineAlarmReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndDoesNotReschedule() = runBlocking {
+    fun routineAlarmReceiverWithoutExactAlarmPermissionKeepsTriggeredRoutineEnabledAndDoesNotReschedule() = runBlocking {
         val scheduler = RoutineScheduler(context)
         assertFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
@@ -453,7 +511,7 @@ class ReceiverRuntimeIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = scheduler
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
         }
@@ -464,16 +522,16 @@ class ReceiverRuntimeIntegrationTest {
             routineId = TEST_ROUTINE_ID,
         )
 
-        waitUntil("RoutineAlarmReceiver should disable the routine when exact alarm permission is missing") {
-            !database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
+        waitUntil("RoutineAlarmReceiver should keep the triggered routine enabled when exact alarm permission is missing") {
+            database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled
         }
-        waitUntil("RoutineAlarmReceiver should persist disabled routine state into DataStore") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should persist the enabled triggered routine state into DataStore") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
-        assertFalse(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
+        assertTrue(database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertEquals(null, findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
@@ -539,12 +597,12 @@ class ReceiverRuntimeIntegrationTest {
         routineId: Long,
         dayOfWeek: DayOfWeek = today,
     ): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -554,6 +612,36 @@ class ReceiverRuntimeIntegrationTest {
         DayOfWeek.entries.forEach { dayOfWeek ->
             findRoutinePendingIntent(routineId, dayOfWeek)?.cancel()
         }
+    }
+
+    private fun seedRoutinePendingIntents(
+        routineId: Long,
+        routineName: String,
+        repeatDays: Iterable<DayOfWeek>,
+    ) {
+        repeatDays.forEach { dayOfWeek ->
+            PendingIntent.getBroadcast(
+                context,
+                RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
+                Intent(context, RoutineAlarmReceiver::class.java).apply {
+                    action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                    data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routineName)
+                    putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routineId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+    }
+
+    private fun assertEveryDayPendingIntentExists(routineId: Long) {
+        val missingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) == null }
+        assertEquals(emptyList<DayOfWeek>(), missingDays)
+    }
+
+    private fun assertNoPendingIntentsForAnyDay(routineId: Long) {
+        val remainingDays = DayOfWeek.entries.filter { dayOfWeek -> findRoutinePendingIntent(routineId, dayOfWeek) != null }
+        assertEquals(emptyList<DayOfWeek>(), remainingDays)
     }
 
     private fun assertRoutinePendingIntentsMatchRepeatDays(routineId: Long, repeatDays: List<DayOfWeek>) {
@@ -573,20 +661,16 @@ class ReceiverRuntimeIntegrationTest {
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 
     private fun matchingReceiverClassNames(action: String): Set<String> {
         val intent = Intent(action).setPackage(context.packageName)
-        val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.queryBroadcastReceivers(
-                intent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.queryBroadcastReceivers(intent, PackageManager.MATCH_ALL)
-        }
+        val receivers = context.packageManager.queryBroadcastReceivers(
+            intent,
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+        )
 
         return receivers.mapNotNull { it.activityInfo?.name }.toSet()
     }
@@ -625,7 +709,7 @@ class ReceiverRuntimeIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }

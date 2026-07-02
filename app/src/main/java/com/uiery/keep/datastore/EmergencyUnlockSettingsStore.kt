@@ -1,0 +1,128 @@
+package com.uiery.keep.datastore
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import com.uiery.keep.KeepDataSource
+import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS
+import com.uiery.keep.service.ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.sanitizeEmergencyUnlockCountdownSeconds
+import com.uiery.keep.service.sanitizeEmergencyUnlockDailyLimit
+import com.uiery.keep.service.sanitizeEmergencyUnlockDurationOptions
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Typed access boundary for emergency-unlock settings stored in keep-datastore.
+ *
+ * Preference keys stay unchanged for backwards compatibility. UI and service code should use this
+ * store so default/sanitize rules cannot drift between settings screens and unlock orchestration.
+ */
+@Singleton
+class EmergencyUnlockSettingsStore
+    @Inject
+    constructor(
+        @KeepDataSource private val dataStore: DataStore<Preferences>,
+    ) {
+        val settings: Flow<EmergencyUnlockSettingsSnapshot> =
+            dataStore.data.map { preferences -> preferences.toEmergencyUnlockSettingsSnapshot() }
+
+        suspend fun readSettings(): EmergencyUnlockSettingsSnapshot = settings.first()
+
+        suspend fun setEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = enabled
+            }
+        }
+
+        suspend fun setDailyLimit(limit: Int) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = sanitizeEmergencyUnlockDailyLimit(limit)
+            }
+        }
+
+        suspend fun toggleDuration(minutes: Int) {
+            if (minutes !in ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS) return
+            dataStore.edit { preferences ->
+                val current = sanitizeEmergencyUnlockDurationOptions(
+                    preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
+                ).toSet()
+                val next =
+                    if (minutes in current) {
+                        if (current.size == 1) current else current - minutes
+                    } else {
+                        current + minutes
+                    }
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = next.map { it.toString() }.toSet()
+            }
+        }
+
+        suspend fun setCountdownEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED] = enabled
+            }
+        }
+
+        suspend fun setCountdownSeconds(seconds: Int) {
+            if (seconds !in ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS) return
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS] =
+                    sanitizeEmergencyUnlockCountdownSeconds(seconds)
+            }
+        }
+
+        suspend fun setReasonRequired(required: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = required
+            }
+        }
+
+        suspend fun setAutoResetEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = enabled
+            }
+        }
+
+        suspend fun markManualReset(nowMillis: Long = System.currentTimeMillis()) {
+            dataStore.edit { preferences ->
+                preferences[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = nowMillis
+            }
+        }
+
+        private fun Preferences.toEmergencyUnlockSettingsSnapshot(): EmergencyUnlockSettingsSnapshot =
+            EmergencyUnlockSettingsSnapshot(
+                enabled = this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] ?: true,
+                dailyLimit = sanitizeEmergencyUnlockDailyLimit(
+                    this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT],
+                ),
+                durationOptions = sanitizeEmergencyUnlockDurationOptions(
+                    this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS],
+                ),
+                reasonRequired = this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] ?: true,
+                autoResetEnabled = this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] ?: true,
+                manualResetAtMillis = this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] ?: 0L,
+                countdownEnabled = this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_ENABLED]
+                    ?: DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+                countdownSeconds = sanitizeEmergencyUnlockCountdownSeconds(
+                    this[PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS],
+                ),
+            )
+    }
+
+data class EmergencyUnlockSettingsSnapshot(
+    val enabled: Boolean = true,
+    val dailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
+    val durationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
+    val reasonRequired: Boolean = true,
+    val autoResetEnabled: Boolean = true,
+    val manualResetAtMillis: Long = 0L,
+    val countdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val countdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
+)

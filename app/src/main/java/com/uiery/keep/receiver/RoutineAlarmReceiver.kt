@@ -5,16 +5,15 @@ import android.content.Context
 import android.content.Intent
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.R
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
-import com.uiery.keep.model.toModel
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
+import com.uiery.keep.notification.RoutineStartNotificationResult
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -29,7 +28,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     lateinit var routineScheduler: RoutineScheduler
 
     @Inject
-    lateinit var routineDao: RoutineDao
+    lateinit var routineRepository: RoutineRepository
 
     @Inject
     @KeepDataSource
@@ -74,41 +73,45 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             routineId = routineId,
         ) ?: return
 
-        val notificationResult = notificationHelper.showRoutineStartNotification(
-            trigger.routineName,
-            trigger.routineId,
-        )
-        RoutineReceiverPolicy.buildPendingRoutineStartNotice(
-            notificationResult = notificationResult,
-            fallbackMessage = dataStoreFallbackMessage(trigger.routineName),
-        )?.let { pendingNotice ->
-            dataStore.edit { preferences ->
-                RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
-                    storedValue = preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE],
-                    notice = pendingNotice,
-                )?.let { encodedNotices ->
-                    preferences[PreferencesKey.PENDING_ROUTINE_START_NOTICE_MESSAGE] = encodedNotices
-                }
-            }
-        }
-
         val routineStore = RoutineStore(dataStore)
         val storedRoutines = routineStore.readCachedRoutines()
-        val databaseRoutines = routineDao.fetchAllOnce().map { it.toModel() }
+        val databaseRoutines = routineRepository.fetchAllOnce()
         val routines = RoutineReceiverPolicy.resolveRoutines(
             storedRoutines = storedRoutines,
             databaseRoutines = databaseRoutines,
         )
 
+        val routineToReschedule = RoutineReceiverPolicy.findEnabledRoutineToReschedule(
+            routines = routines,
+            routineId = trigger.routineId,
+        )
+
+        if (RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = routines,
+                routineId = trigger.routineId,
+            )
+        ) {
+            val notificationResult = notificationHelper.showRoutineStartNotification(
+                trigger.routineName,
+                trigger.routineId,
+            )
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = notificationResult,
+                fallbackMessage = dataStoreFallbackMessage(
+                    routineName = trigger.routineName,
+                    notificationResult = notificationResult,
+                ),
+            )?.let { pendingNotice ->
+                RoutineNoticeStore(dataStore).enqueuePendingRoutineStartNotice(pendingNotice)
+            }
+        }
+
         var updatedRoutines = routines
         val disabledRoutineIds = linkedSetOf<Long>()
         var shouldResetAlarmPermissionPrompt = false
 
-        RoutineReceiverPolicy.findEnabledRoutineToReschedule(
-            routines = routines,
-            routineId = trigger.routineId,
-        )?.let { routine ->
-            val scheduleApplication = RoutineReceiverPolicy.applyScheduleResult(
+        routineToReschedule?.let { routine ->
+            val scheduleApplication = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
                 routines = updatedRoutines,
                 routineId = routine.id,
                 scheduleResult = routineScheduler.scheduleRoutine(routine),
@@ -120,25 +123,37 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         }
 
         disabledRoutineIds.forEach { routineId ->
-            routineDao.updateIsEnabledById(routineId, false)
+            routineRepository.updateIsEnabledById(routineId, false)
         }
 
-        if (
-            RoutineReceiverPolicy.shouldRehydrateStoredRoutines(storedRoutines, databaseRoutines) ||
-            disabledRoutineIds.isNotEmpty()
+        if (RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = storedRoutines,
+                databaseRoutines = databaseRoutines,
+                updatedRoutines = updatedRoutines,
+            )
         ) {
             routineStore.writeCachedRoutines(updatedRoutines)
         }
 
         if (shouldResetAlarmPermissionPrompt) {
-            dataStore.edit { preferences ->
-                preferences[PreferencesKey.HAS_SHOWN_ALARM_PERMISSION] = false
-            }
+            RoutineNoticeStore(dataStore).resetAlarmPermissionPrompt()
         }
     }
 
-    private fun dataStoreFallbackMessage(routineName: String): String =
-        appContext.getString(R.string.routine_notification_permission_fallback_message, routineName)
+    private fun dataStoreFallbackMessage(
+        routineName: String,
+        notificationResult: RoutineStartNotificationResult,
+    ): String = RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+        notificationResult = notificationResult,
+        permissionDeniedMessage = appContext.getString(
+            R.string.routine_notification_permission_fallback_message,
+            routineName,
+        ),
+        channelDisabledMessage = appContext.getString(
+            R.string.routine_notification_channel_disabled_fallback_message,
+            routineName,
+        ),
+    )
 
     companion object {
         const val EXTRA_ROUTINE_NAME = "extra_routine_name"

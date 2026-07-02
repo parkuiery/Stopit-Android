@@ -25,6 +25,7 @@ import javax.inject.Singleton
 enum class RoutineScheduleResult {
     Scheduled,
     NotEnabled,
+    InvalidRoutine,
     MissingExactAlarmPermission,
 }
 
@@ -40,16 +41,19 @@ class RoutineScheduler @Inject constructor(
             return true
         }
 
-        val appOpsAllowed = appOpsManager.unsafeCheckOpNoThrow(
+        val appOpsMode = appOpsManager.unsafeCheckOpNoThrow(
             EXACT_ALARM_APP_OP,
             context.applicationInfo.uid,
             context.packageName,
-        ) == AppOpsManager.MODE_ALLOWED
+        )
         val alarmManagerAllowed = alarmManager.canScheduleExactAlarms()
-        val canSchedule = appOpsAllowed && alarmManagerAllowed
+        val canSchedule = resolveExactAlarmAvailability(
+            appOpsMode = appOpsMode,
+            alarmManagerAllowed = alarmManagerAllowed,
+        )
         AppLogger.debug(
             "RoutineScheduler",
-            "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsAllowed=$appOpsAllowed alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
+            "canScheduleExactAlarms package=${context.packageName} uid=${context.applicationInfo.uid} sdk=${Build.VERSION.SDK_INT} appOpsMode=$appOpsMode alarmManagerAllowed=$alarmManagerAllowed result=$canSchedule",
         )
 
         return canSchedule
@@ -62,7 +66,10 @@ class RoutineScheduler @Inject constructor(
         }
 
         val repeatDays = routine.repeatDays.toDayOfWeekList()
-        if (repeatDays.isEmpty()) return RoutineScheduleResult.NotEnabled
+        if (repeatDays.isEmpty()) {
+            cancelRoutine(routine.id)
+            return RoutineScheduleResult.InvalidRoutine
+        }
 
         val hasExactAlarmPermission = canScheduleExactAlarms()
         AppLogger.debug(
@@ -76,10 +83,11 @@ class RoutineScheduler @Inject constructor(
 
         repeatDays.forEach { dayOfWeek ->
             val nextAlarmTime = calculateNextAlarmTime(routine.startTime, dayOfWeek)
-            val requestCode = (routine.id * 10 + dayOfWeek.ordinal).toInt()
+            val requestCode = RoutineIdentifierPolicy.alarmRequestCode(routine.id, dayOfWeek)
 
             val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routine.id, dayOfWeek)
                 putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routine.name)
                 putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routine.id)
             }
@@ -90,6 +98,8 @@ class RoutineScheduler @Inject constructor(
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+
+            cancelLegacyRoutineAlarm(routine.id, dayOfWeek)
 
             try {
                 alarmManager.setExactAndAllowWhileIdle(
@@ -108,10 +118,11 @@ class RoutineScheduler @Inject constructor(
 
     fun cancelRoutine(routineId: Long) {
         DayOfWeek.entries.forEach { dayOfWeek ->
-            val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
+            val requestCode = RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek)
 
             val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
@@ -123,7 +134,23 @@ class RoutineScheduler @Inject constructor(
 
             alarmManager.cancel(pendingIntent)
             pendingIntent.cancel()
+
+            cancelLegacyRoutineAlarm(routineId, dayOfWeek)
         }
+    }
+
+    private fun cancelLegacyRoutineAlarm(routineId: Long, dayOfWeek: DayOfWeek) {
+        val intent = Intent(context, RoutineAlarmReceiver::class.java).apply {
+            action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            RoutineIdentifierPolicy.legacyAlarmRequestCode(routineId, dayOfWeek),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
     }
 
     fun scheduleAllRoutines(routines: List<RoutineModel>) {
@@ -158,5 +185,18 @@ class RoutineScheduler @Inject constructor(
 
     private companion object {
         private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
+    }
+}
+
+internal fun resolveExactAlarmAvailability(
+    appOpsMode: Int,
+    alarmManagerAllowed: Boolean,
+): Boolean {
+    if (!alarmManagerAllowed) return false
+
+    return when (appOpsMode) {
+        AppOpsManager.MODE_ALLOWED,
+        AppOpsManager.MODE_DEFAULT -> true
+        else -> false
     }
 }

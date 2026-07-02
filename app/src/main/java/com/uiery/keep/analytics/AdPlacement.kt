@@ -31,3 +31,13 @@ internal enum class AdPlacement(
         adUnitId = BuildConfig.ADMOB_ROUTINE_EMPTY_BOTTOM_AD_UNIT_ID,
     );
 }
+
+internal fun AdPlacement.toMetadata(
+    screenName: String,
+    screenContext: String,
+): AdPlacementMetadata = AdPlacementMetadata(
+    screenName = screenName,
+    screenContext = screenContext,
+    placement = analyticsPlacement,
+    adUnitId = adUnitId,
+)

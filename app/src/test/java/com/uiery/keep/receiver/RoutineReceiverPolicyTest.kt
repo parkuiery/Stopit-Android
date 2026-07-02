@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.content.Intent
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineStartNotificationResult
@@ -8,7 +9,9 @@ import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineReceiverPolicyTest {
@@ -20,6 +23,16 @@ class RoutineReceiverPolicyTest {
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIME_CHANGED))
         assertEquals(true, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(Intent.ACTION_TIMEZONE_CHANGED))
         assertEquals(false, RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(null))
+    }
+
+    @Test
+    fun shouldRestoreRoutinesOnBootReturnsTrueForExactAlarmPermissionStateChanged() {
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRestoreRoutinesOnBoot(
+                AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+            ),
+        )
     }
 
     @Test
@@ -132,6 +145,31 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun shouldShowRoutineStartNoticeReturnsTrueOnlyForMatchingEnabledRoutine() {
+        val enabled = routine(id = 7L, name = "Enabled", isEnabled = true)
+        val disabled = routine(id = 8L, name = "Disabled", isEnabled = false)
+
+        assertTrue(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 7L,
+            ),
+        )
+        assertFalse(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 8L,
+            ),
+        )
+        assertFalse(
+            RoutineReceiverPolicy.shouldShowRoutineStartNotice(
+                routines = listOf(enabled, disabled),
+                routineId = 99L,
+            ),
+        )
+    }
+
+    @Test
     fun resolveRoutinesPrefersDatabaseRoutinesWhenPresentEvenIfStoredRoutinesExist() {
         val stored = listOf(routine(id = 1L, name = "Stored", isEnabled = true))
         val database = listOf(routine(id = 2L, name = "Database", isEnabled = true))
@@ -190,6 +228,49 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun shouldRewriteCompatibilityCacheReturnsTrueWhenStoredOnlyCacheMustBeClearedToRoomSourceOfTruth() {
+        val stored = listOf(routine(id = 6L, name = "Stored stale", isEnabled = true))
+
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = stored,
+                databaseRoutines = emptyList(),
+                updatedRoutines = emptyList(),
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRewriteCompatibilityCacheReturnsTrueWhenExactAlarmResultChangesUpdatedRoutineState() {
+        val database = listOf(routine(id = 7L, name = "Database", isEnabled = true))
+        val disabled = listOf(routine(id = 7L, name = "Database", isEnabled = false))
+
+        assertEquals(
+            true,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = database,
+                databaseRoutines = database,
+                updatedRoutines = disabled,
+            ),
+        )
+    }
+
+    @Test
+    fun shouldRewriteCompatibilityCacheReturnsFalseWhenCacheAlreadyMatchesUpdatedRoomResult() {
+        val updated = listOf(routine(id = 8L, name = "Database", isEnabled = false))
+
+        assertEquals(
+            false,
+            RoutineReceiverPolicy.shouldRewriteCompatibilityCache(
+                storedRoutines = updated,
+                databaseRoutines = updated,
+                updatedRoutines = updated,
+            ),
+        )
+    }
+
+    @Test
     fun applyScheduleResultDisablesMatchingRoutineWhenExactAlarmPermissionMissing() {
         val routines = listOf(
             routine(id = 10L, name = "Morning", isEnabled = true),
@@ -213,17 +294,114 @@ class RoutineReceiverPolicyTest {
     }
 
     @Test
+    fun applyScheduleResultDisablesInvalidRoutineWithoutResettingAlarmPermissionPrompt() {
+        val matchingRoutine = routine(id = 12L, name = "No repeat days", isEnabled = true)
+        val otherRoutine = routine(id = 13L, name = "Evening", isEnabled = true)
+
+        val result = RoutineReceiverPolicy.applyScheduleResult(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 12L,
+            scheduleResult = RoutineScheduleResult.InvalidRoutine,
+        )
+
+        assertEquals(setOf(12L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            result.routines,
+        )
+        assertEquals(false, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
     fun applyScheduleResultLeavesRoutinesUntouchedWhenSchedulingSucceeds() {
-        val routines = listOf(routine(id = 12L, name = "Morning", isEnabled = true))
+        val routines = listOf(routine(id = 14L, name = "Morning", isEnabled = true))
 
         val result = RoutineReceiverPolicy.applyScheduleResult(
             routines = routines,
-            routineId = 12L,
+            routineId = 14L,
             scheduleResult = RoutineScheduleResult.Scheduled,
         )
 
         assertEquals(emptySet<Long>(), result.disabledRoutineIds)
         assertEquals(routines, result.routines)
+    }
+
+    @Test
+    fun applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing() {
+        val matchingRoutine = routine(id = 15L, name = "Morning", isEnabled = true)
+        val otherRoutine = routine(id = 16L, name = "Evening", isEnabled = true)
+        val routines = listOf(matchingRoutine, otherRoutine)
+
+        val result = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
+            routines = routines,
+            routineId = 15L,
+            scheduleResult = RoutineScheduleResult.MissingExactAlarmPermission,
+        )
+
+        assertEquals(emptySet<Long>(), result.disabledRoutineIds)
+        assertEquals(routines, result.routines)
+        assertEquals(true, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
+    fun applyRoutineAlarmRescheduleResultDisablesInvalidTriggeredRoutineWithoutResettingPrompt() {
+        val matchingRoutine = routine(id = 17L, name = "Invalid", isEnabled = true)
+        val otherRoutine = routine(id = 18L, name = "Evening", isEnabled = true)
+
+        val result = RoutineReceiverPolicy.applyRoutineAlarmRescheduleResult(
+            routines = listOf(matchingRoutine, otherRoutine),
+            routineId = 17L,
+            scheduleResult = RoutineScheduleResult.InvalidRoutine,
+        )
+
+        assertEquals(setOf(17L), result.disabledRoutineIds)
+        assertEquals(
+            listOf(
+                matchingRoutine.copy(isEnabled = false),
+                otherRoutine,
+            ),
+            result.routines,
+        )
+        assertEquals(false, result.shouldResetAlarmPermissionPrompt)
+    }
+
+    @Test
+    fun selectRoutineStartFallbackMessageUsesPermissionDeniedCopyForPermissionDeniedResult() {
+        assertEquals(
+            "Routine started without notification permission",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.PermissionDenied,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
+    fun selectRoutineStartFallbackMessageUsesChannelDisabledCopyForChannelDisabledResult() {
+        assertEquals(
+            "Routine started while notification channel was disabled",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.ChannelDisabled,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
+    }
+
+    @Test
+    fun selectRoutineStartFallbackMessageReturnsBlankWhenNotificationPosted() {
+        assertEquals(
+            "",
+            RoutineReceiverPolicy.selectRoutineStartFallbackMessage(
+                notificationResult = RoutineStartNotificationResult.Posted,
+                permissionDeniedMessage = "Routine started without notification permission",
+                channelDisabledMessage = "Routine started while notification channel was disabled",
+            ),
+        )
     }
 
     @Test
@@ -233,6 +411,17 @@ class RoutineReceiverPolicyTest {
             RoutineReceiverPolicy.buildPendingRoutineStartNotice(
                 notificationResult = RoutineStartNotificationResult.PermissionDenied,
                 fallbackMessage = "Routine started without notification permission",
+            ),
+        )
+    }
+
+    @Test
+    fun buildPendingRoutineStartNoticeReturnsPendingNoticeWhenRoutineChannelDisabled() {
+        assertEquals(
+            PendingRoutineStartNotice(message = "Routine started while notification channel was disabled"),
+            RoutineReceiverPolicy.buildPendingRoutineStartNotice(
+                notificationResult = RoutineStartNotificationResult.ChannelDisabled,
+                fallbackMessage = "Routine started while notification channel was disabled",
             ),
         )
     }
@@ -271,6 +460,52 @@ class RoutineReceiverPolicyTest {
                 "Morning focus started",
                 "Lunch focus started",
                 "Evening focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeCapsQueueToLatestThreeDistinctMessages() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf(
+                    "Morning focus started",
+                    "Lunch focus started",
+                    "Evening focus started",
+                ),
+            ),
+            notice = PendingRoutineStartNotice(message = "Night focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Lunch focus started",
+                "Evening focus started",
+                "Night focus started",
+            ),
+            RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
+        )
+    }
+
+    @Test
+    fun enqueuePendingRoutineStartNoticeDedupesRepeatedMessageAsLatestNotice() {
+        val encoded = RoutineReceiverPolicy.enqueuePendingRoutineStartNotice(
+            storedValue = RoutineReceiverPolicy.encodePendingRoutineStartNotices(
+                listOf(
+                    "Morning focus started",
+                    "Lunch focus started",
+                    "Evening focus started",
+                ),
+            ),
+            notice = PendingRoutineStartNotice(message = "Lunch focus started"),
+        )
+
+        assertEquals(
+            listOf(
+                "Morning focus started",
+                "Evening focus started",
+                "Lunch focus started",
             ),
             RoutineReceiverPolicy.decodePendingRoutineStartNotices(encoded),
         )

@@ -1,0 +1,258 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    labels:
+      - "maintenance"
+      - "automation"
+      - "dependencies"
+    open-pull-requests-limit: 5
+    groups:
+      android-gradle-firebase-google-patch-minor:
+        patterns:
+          - "com.google.firebase:*"
+          - "com.google.gms:google-services"
+          - "com.google.firebase.crashlytics"
+          - "com.google.android.gms:play-services-ads"
+          - "com.google.android.play:*"
+          - "com.android.installreferrer:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-androidx-ui-runtime-patch-minor:
+        patterns:
+          - "androidx.core:*"
+          - "androidx.lifecycle:*"
+          - "androidx.activity:*"
+          - "androidx.compose:*"
+          - "androidx.navigation:*"
+          - "androidx.appcompat:*"
+          - "androidx.datastore:*"
+          - "androidx.hilt:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-room-ksp-patch-minor:
+        patterns:
+          - "androidx.room:*"
+          - "androidx.room"
+          - "com.google.devtools.ksp"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-test-tooling-patch-minor:
+        patterns:
+          - "junit:*"
+          - "androidx.test*:*"
+          - "org.mockito:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-runtime-libraries-patch-minor:
+        patterns:
+          - "org.jetbrains.kotlinx:*"
+          - "com.airbnb.android:*"
+          - "com.google.android.material:*"
+          - "org.orbit-mvi:*"
+        update-types:
+          - "minor"
+          - "patch"
+      android-gradle-toolchain-held-patch-minor:
+        patterns:
+          - "com.android.application"
+          - "com.android.library"
+          - "org.jetbrains.kotlin.android"
+          - "org.jetbrains.kotlin.plugin.compose"
+          - "org.jetbrains.kotlin.plugin.serialization"
+          - "org.jetbrains.kotlin.jvm"
+          - "com.google.dagger.hilt.android"
+          - "com.google.dagger:*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "com.google.dagger.hilt.android"
+        # #925: Hilt 2.59+ requires AGP 9. Keep Stopit on the AGP 8.x
+        # toolchain until a dedicated Android stack/toolchain lane upgrades AGP,
+        # Gradle, Kotlin, KSP, Compose, and Hilt together.
+        versions:
+          - "[2.59,)"
+      - dependency-name: "com.google.dagger:hilt-android"
+        # Same AGP 9 boundary as the Hilt Gradle plugin above. Do not let the
+        # broad android-gradle-patch-minor group recreate #914's known-incompatible
+        # Hilt 2.59.x + AGP 8.x Gradle configuration failure.
+        versions:
+          - "[2.59,)"
+      - dependency-name: "com.google.dagger:hilt-compiler"
+        # Keep Hilt runtime/compiler/plugin aligned; release together from a
+        # dedicated toolchain PR after AGP 9 readiness is explicit.
+        versions:
+          - "[2.59,)"
+      - dependency-name: "org.jetbrains.kotlin.android"
+        # #1009 removed legacy kotlinOptions.jvmTarget in app/core:kds and pins
+        # JvmTarget.JVM_17 through compilerOptions. Still hold Kotlin 2.3+ out
+        # of the broad group until a dedicated Kotlin/toolchain lane validates
+        # KSP, Compose, serialization, Android CI, and Release Build together.
+        versions:
+          - "[2.3,)"
+      - dependency-name: "org.jetbrains.kotlin.plugin.compose"
+        # Keep Kotlin Android and Compose compiler plugin aligned; do not let the
+        # broad android-gradle-patch-minor group auto-land the Kotlin 2.3 DSL break.
+        versions:
+          - "[2.3,)"
+      - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
+        # Serialization plugin follows the Kotlin toolchain lane and should not
+        # outrun the post-#1009 Kotlin 2.3+ validation package.
+        versions:
+          - "[2.3,)"
+      - dependency-name: "org.jetbrains.kotlin.jvm"
+        # #939/#984/#1009: the standalone Kotlin JVM plugin shares the same
+        # Kotlin 2.3+ validation boundary as Android/Compose/serialization.
+        # Keep it out of the broad android-gradle-patch-minor group until the
+        # dedicated Kotlin/toolchain lane proves the full toolchain together.
+        versions:
+          - "[2.3,)"
+      - dependency-name: "androidx.core:core-ktx"
+        # #1008/#1051: core-ktx 1.17.0 already resolves androidx.core:core
+        # 1.17.0 metadata that fails on Stopit's current compileSdk 35 baseline;
+        # 1.19.0 then requires compileSdk 37+ and AGP 9.1.0+. Keep this out of
+        # the weekly UI/runtime lane until a dedicated Android toolchain lane
+        # raises compileSdk/AGP.
+        versions:
+          - "[1.17,)"
+      - dependency-name: "androidx.navigation:navigation-compose"
+        # #1008 / PR #989: navigation-compose 2.9.x pulls navigationevent 1.0.0,
+        # whose published metadata requires compileSdk 36+. Treat this as an
+        # AndroidX toolchain boundary, not an app-code regression.
+        versions:
+          - "[2.9,)"
+      - dependency-name: "androidx.lifecycle:lifecycle-runtime-ktx"
+        # #1051: lifecycle 2.10.x arrived in the same failing compileSdk 36+
+        # AndroidX batch as core/activity/compose. Hold it until the Android
+        # toolchain lane validates compileSdk/AGP together.
+        versions:
+          - "[2.10,)"
+      - dependency-name: "androidx.lifecycle:lifecycle-process"
+        # Keep lifecycle artifacts aligned until the Android toolchain lane can
+        # validate the required compileSdk/AGP baseline together.
+        versions:
+          - "[2.10,)"
+      - dependency-name: "androidx.lifecycle:lifecycle-runtime-compose"
+        # Keep lifecycle artifacts aligned until the Android toolchain lane can
+        # validate the required compileSdk/AGP baseline together.
+        versions:
+          - "[2.10,)"
+      - dependency-name: "androidx.activity:activity-compose"
+        # #1051 / PR #1056: activity-compose 1.11.0 requires a newer AndroidX
+        # compileSdk baseline than Stopit's current compileSdk 35 / AGP 8.x.
+        versions:
+          - "[1.11,)"
+      - dependency-name: "androidx.compose:compose-bom"
+        # #1051 / PR #1042: Compose BOM 2025.11.x belongs with the same
+        # compileSdk/AGP-bound AndroidX batch; move it through a toolchain lane.
+        versions:
+          - "[2025.11,)"
+      - dependency-name: "com.google.devtools.ksp"
+        # #1051 / PR #1057: KSP 2.2.x targets a newer Kotlin toolchain and fails
+        # against Stopit's Kotlin 2.1.x baseline with Gradle/Kotlin API drift.
+        # Keep KSP in a dedicated Kotlin/toolchain lane rather than the Room
+        # patch/minor lane.
+        versions:
+          - "[2.2,)"
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization-json"
+        # #1051 / PR #1062: kotlinx-serialization-json 1.9.0 already requires
+        # Kotlin 2.2+ APIs and breaks Stopit's Kotlin 2.1.x baseline; later
+        # 1.10.x/1.11.x pulls Kotlin metadata 2.3.x. Validate this family with
+        # the Kotlin/toolchain lane.
+        versions:
+          - "[1.9,)"
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-datetime"
+        # #1051 / PR #1062: kotlinx-datetime 0.8.0 removes the current
+        # Clock.System / Instant contract and requires code/toolchain migration;
+        # keep it out of the broad runtime-libraries weekly lane.
+        versions:
+          - "[0.8,)"
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: "Asia/Seoul"
+    labels:
+      - "maintenance"
+      - "automation"
+      - "dependencies"
+    open-pull-requests-limit: 2
+    groups:
+      github-actions-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "r0adkll/upload-google-play"
+        # Release-critical Play upload provenance boundary. Refresh only through
+        # a reviewed release-governance PR that updates workflow, contract test,
+        # and operator docs together.
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: "Asia/Seoul"
+    labels:
+      - "maintenance"
+      - "automation"
+      - "dependencies"
+    open-pull-requests-limit: 2
+    groups:
+      functions-npm-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "bun"
+    directory: "/tools/aso-screenshots"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:30"
+      timezone: "Asia/Seoul"
+    labels:
+      - "maintenance"
+      - "automation"
+      - "dependencies"
+    open-pull-requests-limit: 2
+    groups:
+      aso-screenshots-bun-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"

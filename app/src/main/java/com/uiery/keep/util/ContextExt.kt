@@ -1,7 +1,9 @@
 package com.uiery.keep.util
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.provider.Settings
 import com.uiery.keep.service.KeepAccessibilityService
@@ -56,4 +58,16 @@ fun requestAccessibilityPermission(context: Context) {
     val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
     context.startActivity(intent)
+}
+
+fun Context.findActivity(): Activity? {
+    var current: Context? = this
+    while (current != null) {
+        when (current) {
+            is Activity -> return current
+            is ContextWrapper -> current = current.baseContext
+            else -> return null
+        }
+    }
+    return null
 }

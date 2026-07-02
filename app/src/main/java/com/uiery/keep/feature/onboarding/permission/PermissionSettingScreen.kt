@@ -30,7 +30,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
-import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 

@@ -1,99 +1,86 @@
-```markdown
 # Stopit-Android Development Patterns
 
-> Auto-generated skill from repository analysis
+> Repo-local ECC skill for AI agents working in `parkuiery/Stopit-Android`.
 
 ## Overview
-This skill teaches the development patterns and conventions used in the Stopit-Android repository, a Python codebase with no detected framework. You'll learn about file naming, import/export styles, commit patterns, and how to write and organize tests. This guide is ideal for contributors aiming for consistency and maintainability in this project.
 
-## Coding Conventions
+Stopit is a Kotlin Android screen-time management app. The main application module is `:app` under package `com.uiery.keep`; shared Compose design-system components live in `:core:kds`. The app uses Jetpack Compose, Orbit MVI, Hilt, Room, DataStore, Firebase Analytics/Crashlytics/Messaging, and Android services/receivers for app-blocking behavior.
 
-### File Naming
-- Use **kebab-case** for all file names.
-  - Example: `user-profile.py`, `data-manager.py`
+Use this skill together with the root `AGENTS.md` and the nearest nested `AGENTS.md` for the files being changed.
 
-### Import Style
-- Use **relative imports** within the package.
-  - Example:
-    ```python
-    from .utils import helper_function
-    ```
+## Repository Boundaries
 
-### Export Style
-- Use **named exports** (i.e., explicitly define what is exported).
-  - Example:
-    ```python
-    __all__ = ['MyClass', 'my_function']
-    ```
+- Keep app-specific feature orchestration in `app/`.
+- Put reusable visual primitives and theme-level UI components in `core/kds/`.
+- Do not commit local secrets, `local.properties` changes, generated build output, or flavor `google-services.json` edits unless explicitly requested.
+- For Play deploy or release-secret work, treat `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` as the source of truth before changing helpers, workflows, or docs.
+- Prefer existing app and KDS utilities before adding new abstractions or dependencies.
 
-### Commit Patterns
-- Follow **conventional commits**.
-- Use prefixes like `ci` for commit messages.
-- Keep commit messages concise (average 36 characters).
-  - Example: `ci: update deployment workflow`
+## Architecture Patterns
 
-## Workflows
+### Feature Structure
 
-### Commit Changes
-**Trigger:** When you make code changes and are ready to commit.
-**Command:** `/commit-changes`
+Feature code generally lives under `app/src/main/java/com/uiery/keep/feature/<feature>/` and commonly includes:
 
-1. Stage your changes:
-    ```bash
-    git add .
-    ```
-2. Write a conventional commit message, e.g.:
-    ```bash
-    git commit -m "ci: fix bug in data-manager"
-    ```
-3. Push your changes:
-    ```bash
-    git push
-    ```
+- `<Feature>Screen.kt` for Compose UI
+- `<Feature>ViewModel.kt` for Orbit MVI state management
+- `<Feature>Navigation.kt` for type-safe navigation routes
+- `component/` for feature-specific composables
 
-### Add a New Module
-**Trigger:** When you need to create a new Python module.
-**Command:** `/add-module`
+### State Management
 
-1. Create a new file using kebab-case, e.g., `new-feature.py`.
-2. Use relative imports for any internal dependencies.
-    ```python
-    from .existing-module import ExistingClass
-    ```
-3. Define `__all__` to specify exports.
-    ```python
-    __all__ = ['NewFeatureClass']
-    ```
-4. Write code following the project's style.
+- ViewModels use Orbit MVI via `ContainerHost`.
+- UI state should be represented with data classes.
+- One-time events should be represented as sealed side effects.
+- Mutate state inside `intent { reduce { ... } }` and emit one-time events with `postSideEffect(...)`.
 
-### Write and Run Tests
-**Trigger:** When adding new features or fixing bugs.
-**Command:** `/run-tests`
+### Data and Runtime Services
 
-1. Create a test file using the pattern `*.test.*`, e.g., `user-profile.test.py`.
-2. Write your tests (framework is unknown—follow existing patterns).
-3. Run tests using the project's test runner (consult project docs or use typical Python test runners like `pytest` if unsure).
+- Room database code lives under `app/src/main/java/com/uiery/keep/database/`.
+- DataStore preference keys live in `datastore/PreferencesKey.kt`.
+- Firebase, Crashlytics, Analytics, and FCM remain in use; the first-party Retrofit/OkHttp backend API layer has been removed.
+- Accessibility service, receivers, alarm/exact-alarm behavior, emergency unlock, and notification flows often require Android runtime or instrumentation validation beyond unit tests.
 
-## Testing Patterns
+## Build Variants and Verification
 
-- Test files follow the pattern: `*.test.*` (e.g., `data-manager.test.py`).
-- The testing framework is **unknown**; review existing test files for conventions.
-- Place tests alongside or near the modules they test.
-- Example test file structure:
-    ```python
-    # data-manager.test.py
+This repo defines `dev` and `prod` flavors. Do not use flavor-less Gradle tasks such as `testDebugUnitTest`, `lintDebug`, or `assembleDebug` as default guidance because they are ambiguous.
 
-    from .data-manager import DataManager
+Use these commands by default:
 
-    def test_data_manager_behavior():
-        dm = DataManager()
-        assert dm.do_something() == expected_result
-    ```
-
-## Commands
-| Command         | Purpose                                 |
-|-----------------|-----------------------------------------|
-| /commit-changes | Commit code changes with conventions    |
-| /add-module     | Add a new module following conventions  |
-| /run-tests      | Run the test suite                      |
+```bash
+./gradlew :app:testDevDebugUnitTest
+./gradlew :app:assembleProdDebug
 ```
+
+Use release-path checks when release behavior, minification, Play deploy, secrets, or prod-only configuration is affected:
+
+```bash
+./gradlew :app:testProdReleaseUnitTest :app:bundleProdRelease
+```
+
+Use Android instrumentation when framework behavior, Room migrations, services, receivers, accessibility, alarms, or notifications are affected:
+
+```bash
+./gradlew :app:connectedDevDebugAndroidTest
+```
+
+## Change Guidelines
+
+- Kotlin package paths should match directory structure.
+- Prefer small, focused changes tied to one issue or product/quality slice.
+- Keep generated files and build artifacts out of source and docs.
+- When modifying user-visible strings, check locale/string parity rather than updating only one locale.
+- When modifying Firebase, Play Deploy, Crashlytics, GA4, or release workflows, update or verify the related runbook/docs in the same change when the contract changes.
+- For UI work, reuse KDS components and theme tokens where possible.
+- For runtime gates and permissions, verify both code paths and user-facing fallback behavior.
+
+## Useful Review Checklist
+
+Before opening or merging a PR, check:
+
+- Does the change respect the `:app` vs `:core:kds` boundary?
+- Are Gradle commands flavor-qualified?
+- Are secrets and generated artifacts excluded?
+- Are tests appropriate for the changed layer?
+- Do docs/runbooks match workflow or release-contract changes?
+- Are Crashlytics/Analytics/Play Deploy assumptions backed by code, docs, or console evidence?

@@ -19,6 +19,7 @@ REQUIRED_SECRET_NAMES = [
     "ANDROID_KEY_PASSWORD",
     "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON",
     "GOOGLE_SERVICES_JSON",
+    "GOOGLE_SERVICES_JSON_DEV",
     "DISCORD_BOT_TOKEN",
     "DISCORD_DEPLOY_CHANNEL_ID",
 ]
@@ -44,7 +45,7 @@ class CheckPlayDeploySecretContractScriptTest(unittest.TestCase):
             self.assertIn("gh auth status", invocation_log)
             self.assertIn("gh secret list --json name --jq .[].name", invocation_log)
             self.assertIn(
-                "rg -n GOOGLE_SERVICES_JSON|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_PLAY_SERVICE_ACCOUNT_JSON .github/workflows",
+                "rg -n GOOGLE_SERVICES_JSON|GOOGLE_SERVICES_JSON_DEV|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_PLAY_SERVICE_ACCOUNT_JSON .github/workflows",
                 invocation_log,
             )
             self.assertIn(

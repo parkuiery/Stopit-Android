@@ -15,14 +15,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.util.formatMonthDayLabel
+import com.uiery.keep.util.formatWeekdayShort
 import java.time.LocalDate
-import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
@@ -35,6 +44,7 @@ internal fun LockHistoryWeekCalendar(
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val context = LocalContext.current
+    val appLocale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     val dates = generateSequence(startDate) { it.plusDays(1) }
         .takeWhile { !it.isAfter(endDate) }
         .toList()
@@ -52,6 +62,7 @@ internal fun LockHistoryWeekCalendar(
                 isToday = date == LocalDate.now(),
                 onClick = { onSelectDate(date) },
                 context = context,
+                locale = appLocale,
             )
         }
     }
@@ -66,8 +77,17 @@ private fun DayItem(
     isToday: Boolean,
     onClick: () -> Unit,
     context: Context,
+    locale: Locale,
 ) {
-    val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    val dayOfWeek = formatWeekdayShort(date.dayOfWeek, locale)
+    val durationText = formatDurationShort(context, duration)
+    val dateLabel = formatMonthDayLabel(date, locale)
+    val statusDescription = when {
+        isToday && isSelected -> stringResource(R.string.cd_lock_history_date_today_selected)
+        isToday -> stringResource(R.string.cd_lock_history_date_today)
+        isSelected -> stringResource(R.string.cd_lock_history_date_selected)
+        else -> stringResource(R.string.cd_lock_history_date_not_selected)
+    }
 
     Column(
         modifier = modifier
@@ -87,6 +107,12 @@ private fun DayItem(
                 if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.1f)
                 else KeepTheme.colors.tertiary
             )
+            .semantics {
+                role = Role.Button
+                selected = isSelected
+                contentDescription = "$dateLabel, $dayOfWeek, $durationText"
+                stateDescription = statusDescription
+            }
             .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -104,7 +130,7 @@ private fun DayItem(
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
         )
         Text(
-            text = formatDurationShort(context, duration),
+            text = durationText,
             color = if (duration > 0) KeepTheme.colors.onSurfaceVariant else KeepTheme.colors.onTertiaryContainer,
             fontSize = 9.sp,
             fontWeight = if (duration > 0) FontWeight.Medium else FontWeight.Normal,

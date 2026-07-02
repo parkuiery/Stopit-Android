@@ -10,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Release-candidate UI smoke test based on Android's testing-setup skill:
@@ -31,21 +32,22 @@ class StopitReleaseSmokeTest {
             .assertExists()
 
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        waitUntil("Expected StopIt package to be visible after release UI smoke launch") {
-            isTargetPackageForeground(device)
+        val targetPackage = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        waitUntil("Expected StopIt package $targetPackage to be visible after release UI smoke launch") {
+            isTargetPackageForeground(device, targetPackage)
         }
     }
 
-    private fun isTargetPackageForeground(device: UiDevice): Boolean {
+    private fun isTargetPackageForeground(device: UiDevice, targetPackage: String): Boolean {
         if (device.executeShellCommand(
                 "dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'",
-            ).contains("$TARGET_PACKAGE/")) {
+            ).contains("$targetPackage/")) {
             return true
         }
 
         return device.executeShellCommand(
             "dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'",
-        ).contains(TARGET_PACKAGE)
+        ).contains(targetPackage)
     }
 
     private fun waitUntil(message: String, timeoutMs: Long = LAUNCH_TIMEOUT_MS, condition: () -> Boolean) {
@@ -54,13 +56,12 @@ class StopitReleaseSmokeTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }
 
     private companion object {
-        const val TARGET_PACKAGE = "com.uiery.keep"
         const val LAUNCH_TIMEOUT_MS = 5_000L
     }
 }

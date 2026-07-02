@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -48,7 +50,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,24 +63,27 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import android.app.Activity
+import androidx.annotation.DrawableRes
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepSnackBar
+import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
-import com.uiery.keep.feature.home.component.CategoryButton
 import com.uiery.keep.feature.home.component.ContentDescription
-import com.uiery.keep.feature.home.component.KeepSwitch
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
-import com.uiery.keep.feature.onboarding.permission.component.PermissionSettingDialog
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryButton
+import com.uiery.keep.ui.component.PermissionSettingDialog
+import com.uiery.kds.KeepSwitch
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 import com.uiery.keep.util.toPx
@@ -89,6 +98,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateMenu: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
+    onNavigateLockHistory: () -> Unit = {},
+    onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit = { _, _ -> },
+    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit = {},
+    onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit = {},
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -128,6 +141,12 @@ fun HomeScreen(
             }
 
             is HomeSideEffect.MoveToLock -> onNavigateLock(effect.lockTime, effect.isRoutine)
+            is HomeSideEffect.MoveToRoutine -> onNavigateRoutine(
+                effect.routineSavedEntrySurface,
+                effect.routineSavedCreationSource,
+            )
+            is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill ->
+                onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
         }
     }
 
@@ -223,8 +242,8 @@ fun HomeScreen(
                     IconButton(onClick = onNavigateMenu) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
-                            contentDescription = null,
-                            tint = KeepTheme.colors.primary,
+                            contentDescription = stringResource(R.string.cd_open_menu),
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -438,5 +457,170 @@ private fun FirstLockActivationCta(
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
         )
+    }
+}
+
+@Composable
+internal fun GoalLockProgressCard(
+    modifier: Modifier = Modifier,
+    cardState: HomeGoalLockCardState,
+    onClick: () -> Unit,
+) {
+    val displayCopy = cardState.displayCopy()
+    val title = stringResource(displayCopy.titleResId)
+    val lockMode = stringResource(displayCopy.lockModeResId)
+    val summary = stringResource(
+        displayCopy.summaryResId,
+        cardState.daysRemaining,
+        lockMode,
+        cardState.selectedAppCount,
+    )
+    val talkBackSummary = listOf(
+        title,
+        cardState.goalName,
+        summary,
+    ).joinToString(", ")
+    Card(
+        modifier = modifier
+            .semantics(mergeDescendants = true) {
+                contentDescription = talkBackSummary
+            }
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+            Text(
+                text = cardState.goalName,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 14.sp,
+            )
+            Text(
+                text = summary,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickAction(
+    modifier: Modifier = Modifier,
+    @DrawableRes iconResId: Int,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            modifier = Modifier.size(24.dp),
+            painter = painterResource(id = iconResId),
+            contentDescription = null,
+            tint = KeepTheme.colors.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            color = KeepTheme.colors.surfaceVariant,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
+    }
+}
+
+@Composable
+internal fun HomeStatusCtaCard(
+    modifier: Modifier = Modifier,
+    model: HomeStatusCtaModel,
+    onPrimaryClick: () -> Unit,
+    onChangeAppsClick: () -> Unit,
+    onTimerClick: () -> Unit,
+    onLockHistoryClick: () -> Unit,
+    onRoutineCreationClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier.testTag("home_status_cta_card"),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val title = when (model.statusKind) {
+                HomeStatusKind.NO_SELECTED_APPS -> stringResource(model.titleResId)
+                else -> stringResource(model.titleResId, model.selectedAppCount)
+            }
+            Text(
+                text = title,
+                color = KeepTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+            )
+            Text(
+                text = stringResource(model.descriptionResId),
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 13.sp,
+            )
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(model.primaryCtaResId),
+                enabled = model.shouldOpenAppSelection || model.shouldToggleKeep,
+                onClick = onPrimaryClick,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (model.showChangeAppsSecondary) {
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.baseline_format_list_bulleted_24,
+                        label = stringResource(R.string.home_secondary_change_apps),
+                        onClick = onChangeAppsClick,
+                    )
+                }
+                if (model.timerEnabled) {
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.timer_outline,
+                        label = stringResource(R.string.home_secondary_timer),
+                        onClick = onTimerClick,
+                    )
+                }
+                if (model.showLockHistorySecondary) {
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_history,
+                        label = stringResource(R.string.home_secondary_lock_history),
+                        onClick = onLockHistoryClick,
+                    )
+                }
+                if (model.showRoutineCreationSecondary) {
+                    HomeQuickAction(
+                        modifier = Modifier.weight(1f),
+                        iconResId = R.drawable.ic_routine,
+                        label = stringResource(R.string.home_secondary_create_routine),
+                        onClick = onRoutineCreationClick,
+                    )
+                }
+            }
+        }
     }
 }

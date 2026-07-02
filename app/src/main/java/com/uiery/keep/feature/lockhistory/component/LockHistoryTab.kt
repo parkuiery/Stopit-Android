@@ -13,6 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,12 +59,20 @@ private fun TabItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val selectedStateDescription = stringResource(R.string.cd_tab_selected)
+    val notSelectedStateDescription = stringResource(R.string.cd_tab_not_selected)
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(
                 if (isSelected) KeepTheme.colors.primary else KeepTheme.colors.tertiary
             )
+            .semantics {
+                role = Role.Tab
+                selected = isSelected
+                stateDescription = if (isSelected) selectedStateDescription else notSelectedStateDescription
+            }
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,

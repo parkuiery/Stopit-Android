@@ -3,9 +3,15 @@ package com.uiery.keep.feature.lockhistory
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.LockHistoryDao
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.LockHistoryModel
-import com.uiery.keep.model.toModel
 import com.uiery.keep.service.summarizeLockHistoryLedger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.firstOrNull
@@ -24,8 +30,11 @@ enum class PeriodType {
 
 @HiltViewModel
 class LockHistoryViewModel @Inject constructor(
-    private val lockHistoryDao: LockHistoryDao,
+    private val lockHistoryRepository: LockHistoryRepository,
+    private val routineRepository: RoutineRepository,
+    private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
     private val analytics: KeepAnalytics,
+    private val focusSummaryShareTextProvider: FocusSummaryShareTextProvider,
 ) : ContainerHost<LockHistoryUiState, LockHistorySideEffect>, ViewModel() {
 
     override val container: Container<LockHistoryUiState, LockHistorySideEffect> =
@@ -68,7 +77,16 @@ class LockHistoryViewModel @Inject constructor(
 
     internal fun selectDate(date: LocalDate) = intent {
         val newSelectedDate = if (state.selectedDate == date) null else date
+        val selectedDateReport = newSelectedDate?.let { selected ->
+            buildLockHistoryDisplayReport(
+                groupedSessions = state.groupedSessions,
+                selectedDate = selected,
+                periodType = state.periodType,
+                fallbackReport = state.performanceReport,
+            ).performanceReport
+        }
         reduce { state.copy(selectedDate = newSelectedDate) }
+        selectedDateReport?.let(::trackPerformanceReportViewed)
     }
 
     private fun loadHistory() = intent {
@@ -76,12 +94,28 @@ class LockHistoryViewModel @Inject constructor(
         val startMillis = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endMillis = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        val sessions = lockHistoryDao.fetchByDateRange(startMillis, endMillis)
+        val sessions = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
             .firstOrNull()
-            ?.map { it.toModel() }
             ?: emptyList()
 
         val summary = summarizeLockHistoryLedger(sessions)
+        val performanceReport = buildLockHistoryPerformanceReport(
+            periodType = state.periodType,
+            totalDurationMillis = summary.totalDurationMillis,
+            sessionCount = summary.sessionCount,
+            topApps = summary.topApps.map { it to 1 },
+        )
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = sessions.map { session ->
+                RepeatBlockHistorySample(
+                    startDateTime = session.startDateTime,
+                    blockedPackages = session.lockedApps,
+                )
+            },
+            activeRoutines = routineRepository.fetchAll().firstOrNull().orEmpty(),
+            dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+            now = java.time.LocalDateTime.now(),
+        )
 
         reduce {
             state.copy(
@@ -93,11 +127,36 @@ class LockHistoryViewModel @Inject constructor(
                 topApps = summary.topApps,
                 durationByDate = summary.durationByDate,
                 selectedDate = null,
+                performanceReport = performanceReport,
                 focusSummarySharePayload = buildFocusSummarySharePayload(
                     periodType = state.periodType,
                     sessionCount = summary.sessionCount,
                     totalDurationMillis = summary.totalDurationMillis,
+                    textProvider = focusSummaryShareTextProvider,
                 ),
+                repeatBlockRoutineSuggestion = suggestion,
+            )
+        }
+        trackPerformanceReportViewed(performanceReport)
+        if (suggestion != null) {
+            analytics.trackRepeatBlockRoutineSuggestionShown(
+                surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+        }
+    }
+
+    private fun trackPerformanceReportViewed(performanceReport: LockHistoryPerformanceReportReadModel) {
+        analytics.trackLockHistoryPerformanceSummaryViewed(
+            periodType = performanceReport.periodTypeAnalyticsValue,
+            reportState = performanceReport.state.analyticsValue,
+            sessionCountBucket = performanceReport.sessionCountBucket,
+            durationMinutesBucket = performanceReport.durationMinutesBucket,
+        )
+        if (performanceReport.shouldShowTopApps) {
+            analytics.trackLockHistoryTopAppsViewed(
+                periodType = performanceReport.periodTypeAnalyticsValue,
+                topAppsCountBucket = performanceReport.topAppsCountBucket,
             )
         }
     }
@@ -110,6 +169,28 @@ class LockHistoryViewModel @Inject constructor(
             durationMinutesBucket = payload.durationMinutesBucket,
         )
         postSideEffect(LockHistorySideEffect.ShareFocusSummary(payload))
+    }
+
+    internal fun openRepeatBlockRoutineSuggestion() = intent {
+        val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+        analytics.trackRepeatBlockRoutineSuggestionClicked(
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+            suggestion = suggestion.toAnalyticsPayload(),
+        )
+        postSideEffect(LockHistorySideEffect.NavigateToRoutineWithRepeatBlockPrefill(suggestion))
+    }
+
+    internal fun dismissRepeatBlockRoutineSuggestion() = intent {
+        val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+        repeatBlockSuggestionStore.recordDismissed(
+            suggestion = suggestion,
+            dismissedAt = java.time.LocalDateTime.now(),
+        )
+        analytics.trackRepeatBlockRoutineSuggestionDismissed(
+            surface = RepeatBlockRoutineSuggestionSurface.PERFORMANCE_REPORT,
+            suggestion = suggestion.toAnalyticsPayload(),
+        )
+        reduce { state.copy(repeatBlockRoutineSuggestion = null) }
     }
 
     internal fun onFocusSummaryShareSheetOpened(payload: FocusSummarySharePayload) {
@@ -154,9 +235,35 @@ data class LockHistoryUiState(
     val topApps: List<String> = emptyList(),
     val durationByDate: Map<LocalDate, Long> = emptyMap(),
     val selectedDate: LocalDate? = null,
+    val performanceReport: LockHistoryPerformanceReportReadModel = buildLockHistoryPerformanceReport(
+        periodType = PeriodType.WEEK,
+        totalDurationMillis = 0L,
+        sessionCount = 0,
+        topApps = emptyList(),
+    ),
     val focusSummarySharePayload: FocusSummarySharePayload? = null,
+    val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
 )
 
 sealed class LockHistorySideEffect {
     data class ShareFocusSummary(val payload: FocusSummarySharePayload) : LockHistorySideEffect()
+    data class NavigateToRoutineWithRepeatBlockPrefill(
+        val suggestion: RepeatBlockRoutineSuggestion,
+    ) : LockHistorySideEffect()
 }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
+
+private val LockHistoryPerformanceReportState.analyticsValue: String
+    get() = when (this) {
+        LockHistoryPerformanceReportState.EMPTY -> "empty"
+        LockHistoryPerformanceReportState.LOW_DATA -> "low_data"
+        LockHistoryPerformanceReportState.HAS_HISTORY -> "has_history"
+    }

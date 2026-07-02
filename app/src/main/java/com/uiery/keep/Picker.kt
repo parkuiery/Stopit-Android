@@ -43,9 +43,12 @@ fun Picker(
 ) {
     val visibleItemsMiddle = visibleItemsCount / 2
     val listScrollCount = if(isInfinity) Integer.MAX_VALUE else items.size
-    val listScrollMiddle = listScrollCount / 2
-    val listStartIndex =
-        listScrollMiddle - listScrollMiddle % items.size - visibleItemsMiddle + startIndex
+    val listStartIndex = pickerListStartIndex(
+        itemsSize = items.size,
+        startIndex = startIndex,
+        visibleItemsCount = visibleItemsCount,
+        isInfinity = isInfinity,
+    )
 
     fun getItem(index: Int) = items[index % items.size]
 
@@ -68,6 +71,12 @@ fun Picker(
             .map { index -> getItem(index + visibleItemsMiddle) }
             .distinctUntilChanged()
             .collect { item -> state.selectedItem = item }
+    }
+
+    LaunchedEffect(listStartIndex) {
+        if (listState.firstVisibleItemIndex != listStartIndex) {
+            listState.scrollToItem(listStartIndex)
+        }
     }
 
     LazyColumn(
@@ -105,6 +114,18 @@ private fun pixelsToDp(pixels: Int) = with(LocalDensity.current) { pixels.toDp()
 
 @Composable
 fun rememberPickerState() = remember { PickerState() }
+
+internal fun pickerListStartIndex(
+    itemsSize: Int,
+    startIndex: Int,
+    visibleItemsCount: Int,
+    isInfinity: Boolean,
+): Int {
+    val visibleItemsMiddle = visibleItemsCount / 2
+    val listScrollCount = if (isInfinity) Integer.MAX_VALUE else itemsSize
+    val listScrollMiddle = listScrollCount / 2
+    return listScrollMiddle - listScrollMiddle % itemsSize - visibleItemsMiddle + startIndex
+}
 
 class PickerState {
     var selectedItem by mutableStateOf("")

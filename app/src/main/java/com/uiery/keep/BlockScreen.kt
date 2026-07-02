@@ -1,10 +1,12 @@
 package com.uiery.keep
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,11 +22,12 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,13 +39,22 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
-import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.toMetadata
+import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.lockscreen.LockScreenMode
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.service.emergencyUnlockActionUiState
+import com.uiery.keep.ui.component.CountDownContent
+import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.ui.component.RepeatBlockRoutineSuggestionCard
+import com.uiery.keep.util.rememberAppDisplayMetadataResolver
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,22 +63,49 @@ fun BlockScreen(
     packageName: String,
     blockSource: String,
     routineId: String?,
+    goalLockId: String?,
     viewModel: BlockViewModel = hiltViewModel(),
     onClose: () -> Unit,
+    onOpenRoutineSuggestion: (RepeatBlockRoutineSuggestion) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val uiState by viewModel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val emergencyUnlockSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val appName = remember(packageName, appDisplayMetadataResolver) {
+        appDisplayMetadataResolver.resolve(packageName).label
+    }
+    val lockScreenEntry = remember(packageName, blockSource, routineId, goalLockId) {
+        LockScreenEntry.fromBlockActivity(
+            packageName = packageName,
+            blockSource = blockSource,
+            routineId = routineId,
+            goalLockId = goalLockId,
+        )
+    }
 
-    LaunchedEffect(packageName, blockSource, routineId) {
-        viewModel.trackBlockShown(packageName, blockSource, routineId)
+    LaunchedEffect(lockScreenEntry) {
+        viewModel.syncManualTimedLockReentry(lockScreenEntry)
+        viewModel.trackBlockShown(lockScreenEntry)
+    }
+
+    LaunchedEffect(uiState.timedLockDeadline) {
+        val deadline = uiState.timedLockDeadline ?: return@LaunchedEffect
+        while (true) {
+            val remainingMillis = deadline.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - System.currentTimeMillis()
+            if (remainingMillis <= 0L) {
+                onClose()
+                return@LaunchedEffect
+            }
+            delay(remainingMillis.coerceAtMost(1_000L))
+        }
     }
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
-            is BlockSideEffect.UnlockCompleted -> onClose()
+            is BlockSideEffect.UnlockCompleted,
+            is BlockSideEffect.TimedLockExpired -> onClose()
+            is BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill -> onOpenRoutineSuggestion(effect.suggestion)
         }
     }
 
@@ -79,6 +118,11 @@ fun BlockScreen(
                 blockedApps = setOf(packageName),
                 durationOptions = uiState.emergencyUnlockDurationOptions,
                 reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
+                countdownEnabled = uiState.emergencyUnlockCountdownEnabled,
+                countdownSeconds = uiState.emergencyUnlockCountdownSeconds,
+                onStepViewed = viewModel::trackEmergencyUnlockStepViewed,
+                onValidationBlocked = viewModel::trackEmergencyUnlockValidationBlocked,
+                onCancelled = viewModel::trackEmergencyUnlockCancelled,
                 onUnlock = { reason, customReason, apps, duration ->
                     viewModel.emergencyUnlock(reason, customReason, apps, duration)
                     coroutineScope.launch {
@@ -102,35 +146,60 @@ fun BlockScreen(
         }
     }
 
+    BlockScreenContent(
+        modifier = modifier,
+        appName = appName,
+        blockMode = lockScreenEntry.mode,
+        uiState = uiState,
+        onShowEmergencyUnlock = viewModel::showEmergencyUnlockSheet,
+        onOpenRoutineSuggestion = viewModel::openRepeatBlockRoutineSuggestion,
+        onDismissRoutineSuggestion = viewModel::dismissRepeatBlockRoutineSuggestion,
+        onClose = onClose,
+    )
+}
+
+@Composable
+internal fun BlockScreenContent(
+    appName: String,
+    blockMode: LockScreenMode = LockScreenMode.ManualKeep,
+    uiState: BlockUiState,
+    onShowEmergencyUnlock: () -> Unit,
+    onOpenRoutineSuggestion: () -> Unit = {},
+    onDismissRoutineSuggestion: () -> Unit = {},
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    showBannerAd: Boolean = true,
+) {
+    BackHandler(enabled = true) {
+        // Keep the protection surface in front. The explicit close CTA remains the
+        // allowed way to leave the blocked app by sending the user Home.
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(KeepTheme.colors.background),
         contentAlignment = Alignment.Center,
     ) {
-        TrackedBannerAd(
-            modifier = Modifier.align(Alignment.TopCenter),
-            metadata = AdPlacementMetadata(
-                screenName = KeepAnalyticsScreen.BLOCK,
-                screenContext = "blocked_app",
-                placement = AdPlacement.BlockTop.analyticsPlacement,
-                adUnitId = AdPlacement.BlockTop.adUnitId,
-            ),
-        )
+        if (showBannerAd) {
+            TrackedBannerAd(
+                modifier = Modifier.align(Alignment.TopCenter),
+                metadata = AdPlacement.BlockTop.toMetadata(
+                    screenName = KeepAnalyticsScreen.BLOCK,
+                    screenContext = "blocked_app",
+                ),
+            )
+        }
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val appName = runCatching {
-                val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-                packageManager.getApplicationLabel(applicationInfo).toString()
-            }.getOrDefault("")
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 20.dp)
+                    .testTag("block_screen_copy_area"),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -144,7 +213,7 @@ fun BlockScreen(
                             RoundedCornerShape(12.dp)
                         ),
                     painter = painterResource(id = R.drawable.kepp_icon),
-                    contentDescription = null
+                    contentDescription = null,
                 )
                 Spacer(modifier = Modifier.padding(top = 8.dp))
                 Text(
@@ -161,6 +230,41 @@ fun BlockScreen(
                     textAlign = TextAlign.Center,
                     color = KeepTheme.colors.surfaceVariant,
                 )
+                if (blockMode == LockScreenMode.Routine) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KeepTheme.colors.onSecondary)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        text = stringResource(id = R.string.block_screen_routine_active_reason),
+                        textAlign = TextAlign.Center,
+                        color = KeepTheme.colors.surfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
+                uiState.timedLockDeadline?.let { deadline ->
+                    Spacer(modifier = Modifier.height(20.dp))
+                    CountDownContent(
+                        modifier = Modifier.testTag("block_screen_timed_lock_countdown"),
+                        endTime = deadline,
+                    )
+                }
+                if (uiState.showFirstCoreActionFeedback) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(KeepTheme.colors.primaryContainer)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        text = stringResource(id = R.string.block_screen_first_core_action_feedback),
+                        textAlign = TextAlign.Center,
+                        color = KeepTheme.colors.onPrimaryContainer,
+                    )
+                }
             }
             Column(
                 modifier = Modifier
@@ -169,30 +273,61 @@ fun BlockScreen(
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
+                    RepeatBlockRoutineSuggestionCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("block_screen_repeat_block_suggestion_card"),
+                        suggestion = suggestion,
+                        titleResId = R.string.repeat_block_suggestion_post_block_success_title,
+                        messageResId = R.string.repeat_block_suggestion_post_block_success_message,
+                        onApplyClick = onOpenRoutineSuggestion,
+                        onDismissClick = onDismissRoutineSuggestion,
+                        applyActionTestTag = "block_screen_repeat_block_suggestion_apply_action",
+                        dismissActionTestTag = "block_screen_repeat_block_suggestion_dismiss_action",
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                 TextButton(
-                    onClick = viewModel::showEmergencyUnlockSheet,
-                    enabled = !uiState.dailyLimitReached,
+                    modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
+                    onClick = onShowEmergencyUnlock,
+                    enabled = emergencyUnlockAction.enabled,
                 ) {
                     Text(
-                        text = if (uiState.dailyLimitReached) {
-                            stringResource(R.string.emergency_unlock_daily_limit_reached)
-                        } else {
+                        text = if (emergencyUnlockAction.enabled) {
                             stringResource(
-                                R.string.emergency_unlock_with_count,
+                                emergencyUnlockAction.textRes,
                                 uiState.dailyUnlockRemaining,
                                 uiState.emergencyUnlockDailyLimit,
                             )
-                        },
-                        color = if (uiState.dailyLimitReached) {
-                            KeepTheme.colors.surfaceVariant
                         } else {
+                            stringResource(emergencyUnlockAction.textRes)
+                        },
+                        color = if (emergencyUnlockAction.enabled) {
                             KeepTheme.colors.primary
+                        } else {
+                            KeepTheme.colors.surfaceVariant
                         },
                         fontSize = 13.sp,
                     )
                 }
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .testTag("block_screen_emergency_unlock_helper"),
+                    text = stringResource(emergencyUnlockAction.helperTextRes),
+                    textAlign = TextAlign.Center,
+                    color = KeepTheme.colors.surfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 KeepButton(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("block_screen_close_cta"),
                     text = stringResource(id = R.string.block_screen_close),
                     onClick = onClose,
                 )

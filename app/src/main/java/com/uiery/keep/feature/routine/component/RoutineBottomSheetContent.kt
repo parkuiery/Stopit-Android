@@ -45,9 +45,10 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.util.toTimeString
 import kotlinx.datetime.toJavaLocalTime
-import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
@@ -61,7 +62,12 @@ fun RoutineBottomSheetContent(
     viewModel: RoutineBottomSheetViewModel = hiltViewModel(),
     isEdit: Boolean,
     routine: RoutineModel? = null,
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
+    routineSavedEntrySurface: String? = null,
+    routineSavedCreationSource: String? = null,
     onRequireAlarmPermission: () -> Unit = { },
+    onActiveRoutineBlocked: () -> Unit = { },
     onCloseBottomSheet: () -> Unit,
 ) {
     val state by viewModel.collectAsState()
@@ -86,19 +92,36 @@ fun RoutineBottomSheetContent(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(
+        isEdit,
+        routine,
+        repeatBlockSuggestionSurface,
+        repeatBlockSuggestion,
+        routineSavedEntrySurface,
+        routineSavedCreationSource,
+    ) {
         if (isEdit) {
             routine?.let {
                 viewModel.resetEditState(it)
             }
+        } else if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.applyRepeatBlockRoutineSuggestionPrefill(
+                surface = repeatBlockSuggestionSurface,
+                suggestion = repeatBlockSuggestion,
+            )
         } else {
-            viewModel.resetState()
+            viewModel.resetState(
+                routineSavedEntrySurface = routineSavedEntrySurface,
+                routineSavedCreationSource = routineSavedCreationSource,
+            )
         }
     }
 
     viewModel.collectSideEffect { sideEffect ->
         when (sideEffect) {
             RoutineBottomSheetSideEffect.ShowAlarmPermission -> onRequireAlarmPermission()
+            RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked -> onActiveRoutineBlocked()
+            RoutineBottomSheetSideEffect.CloseBottomSheet -> onCloseBottomSheet()
         }
     }
 
@@ -124,11 +147,9 @@ fun RoutineBottomSheetContent(
                 onSelectDay = viewModel::setSelectDays,
                 onChangeLockHoursChanged = viewModel::setChangeLockHours,
                 onAddRoutine = {
-                    onCloseBottomSheet()
                     viewModel.addRoutine()
                 },
                 onEditRoutine = {
-                    onCloseBottomSheet()
                     viewModel.editRoutine(routine?.id)
                 }
             )
@@ -335,8 +356,8 @@ private fun RoutineAppSelectionContent(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                    contentDescription = null,
-                    tint = KeepTheme.colors.primary,
+                    contentDescription = stringResource(R.string.cd_navigate_back),
+                    tint = KeepTheme.colors.onSurfaceVariant,
                 )
             }
         }

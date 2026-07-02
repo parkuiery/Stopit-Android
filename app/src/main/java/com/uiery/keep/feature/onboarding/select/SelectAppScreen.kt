@@ -23,7 +23,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepButton
 import com.uiery.keep.R
-import com.uiery.keep.feature.home.component.CategoryBottomSheetContent
+import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import androidx.compose.ui.res.stringResource

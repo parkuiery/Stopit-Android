@@ -150,6 +150,19 @@ text = path.read_text()
 text = re.sub(r'versionCode\s*=\s*\d+', f'versionCode = {new_code}', text, count=1)
 text = re.sub(r'versionName\s*=\s*"[^"]+"', f'versionName = "{version_name}"', text, count=1)
 path.write_text(text)
+
+readme_path = Path('README.md')
+readme_text = readme_path.read_text()
+readme_text, replacements = re.subn(
+    r'^- \*\*현재 버전\*\*: \d+\.\d+\.\d+ \(versionCode \d+\)$',
+    f'- **현재 버전**: {version_name} (versionCode {new_code})',
+    readme_text,
+    count=1,
+    flags=re.MULTILINE,
+)
+if replacements != 1:
+    raise SystemExit('Could not find README current version line to update')
+readme_path.write_text(readme_text)
 PY
 
 echo "Bumped Android version: $old_name ($old_code) -> $version_name ($new_code)"

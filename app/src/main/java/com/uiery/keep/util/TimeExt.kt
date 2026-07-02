@@ -81,9 +81,10 @@ fun formatMinuteSecondCountdown(totalSeconds: Int): String {
 }
 
 fun formatHourAwareCountdown(totalSeconds: Int): String {
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
+    val clampedSeconds = totalSeconds.coerceAtLeast(0)
+    val hours = clampedSeconds / 3600
+    val minutes = (clampedSeconds % 3600) / 60
+    val seconds = clampedSeconds % 60
 
     return if (hours > 0) {
         listOf(hours, minutes, seconds).joinToString(":") { it.toString().padStart(2, '0') }

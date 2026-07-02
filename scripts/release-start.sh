@@ -58,7 +58,7 @@ git checkout -b "$branch"
 
 scripts/bump-version.sh "$version_name" "${extra_args[@]}"
 
-git add app/build.gradle.kts
+git add app/build.gradle.kts README.md
 git commit -m "chore: bump version to $version_name"
 
 echo "Prepared $branch. Next:"

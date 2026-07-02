@@ -4,7 +4,7 @@
 # lock feature
 
 ## Purpose
-Lock overlay feature shown when a blocked app is opened. Handles countdown display and emergency-unlock user flow.
+Lock overlay feature shown when a blocked app is opened. Handles lock-specific state/navigation and uses app shared UI for the countdown display and emergency-unlock user flow.
 
 ## Key Files
 | File | Description |
@@ -16,14 +16,14 @@ Lock overlay feature shown when a blocked app is opened. Handles countdown displ
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
-| `component/` | Composable building blocks for the lock screen countdown and emergency-unlock bottom sheet. (see `component/AGENTS.md`) |
+| `component/` | Feature-private lock-only UI pieces. Countdown and emergency-unlock bottom sheet primitives moved to app shared UI; see `component/AGENTS.md`. |
 
 ## For AI Agents
 
 ### Working In This Directory
 - Follow the existing Orbit MVI pattern: immutable `UiState`, one-time `SideEffect`, and intent methods that reduce state or post effects.
 - Keep Composable screens stateless where practical; route user events into the feature ViewModel.
-- Place feature-private UI pieces in `component/` instead of expanding screen files indefinitely.
+- Place only lock-specific feature-private UI pieces in `component/`; shared Lock/Block UI such as `CountDownContent` and `EmergencyUnlockBottomSheetContent` belongs in `app/src/main/java/com/uiery/keep/ui/component` per `docs/SHARED_UI_OWNERSHIP_BOUNDARY.md` (#876 cleaned baseline).
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

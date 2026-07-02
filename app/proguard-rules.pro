@@ -12,13 +12,10 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve enough source context for Crashlytics/R8 release stack traces
+# without disabling obfuscation.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;

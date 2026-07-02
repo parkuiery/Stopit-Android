@@ -21,7 +21,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
 
@@ -57,11 +57,9 @@ fun RoutineNoContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(alignment = Alignment.BottomCenter),
-            metadata = AdPlacementMetadata(
+            metadata = AdPlacement.RoutineEmptyBottom.toMetadata(
                 screenName = KeepAnalyticsScreen.ROUTINE,
                 screenContext = "empty_state",
-                placement = AdPlacement.RoutineEmptyBottom.analyticsPlacement,
-                adUnitId = AdPlacement.RoutineEmptyBottom.adUnitId,
             ),
         )
     }

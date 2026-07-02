@@ -1,26 +1,39 @@
 package com.uiery.keep
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockCancelSource
+import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
+import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.lockscreen.LockScreenEntry
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockRequestResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -28,9 +41,12 @@ import javax.inject.Inject
 class BlockViewModel
     @Inject
     constructor(
-        @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
+        private val lockHistoryRepository: LockHistoryRepository,
+        private val routineRepository: RoutineRepository,
+        private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -40,51 +56,153 @@ class BlockViewModel
             checkDailyLimit()
         }
 
+        internal fun syncManualTimedLockReentry(
+            entry: LockScreenEntry,
+            now: Instant = Instant.now(),
+            zone: ZoneId = ZoneId.systemDefault(),
+        ) = syncManualTimedLockReentry(
+            blockSource = entry.blockSource,
+            now = now,
+            zone = zone,
+        )
+
+        internal fun syncManualTimedLockReentry(
+            blockSource: String,
+            now: Instant = Instant.now(),
+            zone: ZoneId = ZoneId.systemDefault(),
+        ) = intent {
+            if (blockSource != AnalyticsBlockSource.TIMED_LOCK) {
+                reduce { state.copy(timedLockDeadline = null) }
+                return@intent
+            }
+
+            val storedDeadline = blockingStateStore.readLockTime()
+            val deadline = ManualLockTimePolicy.toLocalDateTime(storedDeadline = storedDeadline, zone = zone)
+            if (deadline == null || !ManualLockTimePolicy.isActiveAt(storedDeadline, now = now, zone = zone)) {
+                reduce { state.copy(timedLockDeadline = null) }
+                postSideEffect(BlockSideEffect.TimedLockExpired)
+                return@intent
+            }
+
+            reduce { state.copy(timedLockDeadline = deadline) }
+        }
+
+        internal fun trackBlockShown(entry: LockScreenEntry) = trackBlockShown(
+            packageName = entry.blockedPackageName,
+            blockSource = entry.blockSource,
+            routineId = entry.routineId,
+            goalLockId = entry.goalLockId,
+        )
+
         internal fun trackBlockShown(
             packageName: String,
             blockSource: String,
             routineId: String?,
+            goalLockId: String? = null,
         ) = intent {
-            val firstOpenTimestamp =
-                dataStore.data
-                    .map { preferences -> preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] }
-                    .firstOrNull()
-                    ?: System.currentTimeMillis()
+            val normalizedGoalLockId = goalLockId?.trim()?.takeIf { it.isNotEmpty() }
+            val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
+                fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
+            )
+            val firstOpenTimestamp = firstCoreActionState.firstOpenTimestampMillis
             val elapsedSeconds =
                 TimeUnit.MILLISECONDS
                     .toSeconds(System.currentTimeMillis() - firstOpenTimestamp)
                     .coerceAtLeast(0L)
-            val hasTrackedFirstCoreAction =
-                dataStore.data
-                    .map { preferences -> preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] == true }
-                    .firstOrNull() == true
+            val hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction
 
             analytics.trackAppBlockIntercepted(
                 blockSource = blockSource,
                 blockedAppPackage = packageName,
                 routineId = routineId,
+                goalLockId = normalizedGoalLockId,
             )
+            if (blockSource == AnalyticsBlockSource.PARENT_MODE) {
+                analytics.trackParentModeBlockIntercepted(
+                    blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+                )
+            }
             if (hasTrackedFirstCoreAction) {
+                reduce { state.copy(showFirstCoreActionFeedback = false) }
                 analytics.trackCoreActionCompleted(
                     elapsedSinceFirstOpenSeconds = elapsedSeconds,
                     blockingMode = blockSource,
                     blockedAppPackage = packageName,
                     routineId = routineId,
+                    goalLockId = normalizedGoalLockId,
                 )
             } else {
+                reduce { state.copy(showFirstCoreActionFeedback = true) }
                 analytics.trackFirstCoreActionCompleted(
                     elapsedSinceFirstOpenSeconds = elapsedSeconds,
                     blockingMode = blockSource,
                     blockedAppPackage = packageName,
                     routineId = routineId,
+                    goalLockId = normalizedGoalLockId,
                 )
-                dataStore.edit { preferences ->
-                    preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION] = true
-                    if (preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] == null) {
-                        preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP] = firstOpenTimestamp
-                    }
-                }
+                blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
             }
+            val suggestion = if (blockSource.shouldShowPostBlockRepeatBlockSuggestion()) {
+                loadPostBlockRepeatBlockRoutineSuggestion()
+            } else {
+                null
+            }
+            reduce { state.copy(repeatBlockRoutineSuggestion = suggestion) }
+            if (suggestion != null) {
+                analytics.trackRepeatBlockRoutineSuggestionShown(
+                    surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                    suggestion = suggestion.toAnalyticsPayload(),
+                )
+            }
+        }
+
+        internal fun dismissRepeatBlockRoutineSuggestion() = intent {
+            val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+            repeatBlockSuggestionStore.recordDismissed(
+                suggestion = suggestion,
+                dismissedAt = LocalDateTime.now(),
+            )
+            analytics.trackRepeatBlockRoutineSuggestionDismissed(
+                surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+            reduce { state.copy(repeatBlockRoutineSuggestion = null) }
+        }
+
+        internal fun openRepeatBlockRoutineSuggestion() = intent {
+            val suggestion = state.repeatBlockRoutineSuggestion ?: return@intent
+            analytics.trackRepeatBlockRoutineSuggestionClicked(
+                surface = RepeatBlockRoutineSuggestionSurface.POST_BLOCK_SUCCESS,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+            postSideEffect(BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill(suggestion))
+        }
+
+        private suspend fun loadPostBlockRepeatBlockRoutineSuggestion(): RepeatBlockRoutineSuggestion? {
+            val now = LocalDateTime.now()
+            val startMillis = now.minusDays(14)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val endMillis = now.plusDays(1)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val histories = lockHistoryRepository.sessionsInRange(startMillis, endMillis)
+                .firstOrNull()
+                .orEmpty()
+                .map { history ->
+                    RepeatBlockHistorySample(
+                        startDateTime = history.startDateTime,
+                        blockedPackages = history.lockedApps,
+                    )
+                }
+            return RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+                histories = histories,
+                activeRoutines = routineRepository.fetchAll().firstOrNull().orEmpty(),
+                dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+                now = now,
+            )
         }
 
         private fun checkDailyLimit() = intent {
@@ -95,6 +213,9 @@ class BlockViewModel
                     emergencyUnlockDailyLimit = availability.dailyLimit,
                     emergencyUnlockDurationOptions = availability.durationOptions,
                     emergencyUnlockReasonRequired = availability.reasonRequired,
+                    emergencyUnlockCountdownEnabled = availability.countdownEnabled,
+                    emergencyUnlockCountdownSeconds = availability.countdownSeconds,
+                    emergencyUnlockAvailabilityReason = availability.reason,
                     dailyLimitReached = availability.dailyLimitReached,
                     dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
@@ -107,6 +228,35 @@ class BlockViewModel
 
         internal fun hideEmergencyUnlockSheet() = intent {
             reduce { state.copy(isShowEmergencyUnlockSheet = false) }
+        }
+
+        internal fun trackEmergencyUnlockStepViewed(stepName: String) {
+            analytics.trackEmergencyUnlockStepViewed(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockValidationBlocked(
+            stepName: String,
+            validationReason: String,
+        ) {
+            analytics.trackEmergencyUnlockValidationBlocked(
+                stepName = stepName,
+                validationReason = validationReason,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockCancelled(stepName: String) {
+            analytics.trackEmergencyUnlockCancelled(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.BLOCK_SCREEN,
+                cancelSource = AnalyticsEmergencyUnlockCancelSource.CANCEL_BUTTON,
+            )
         }
 
         internal fun emergencyUnlock(
@@ -145,16 +295,39 @@ data class BlockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val emergencyUnlockCountdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val emergencyUnlockCountdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
+    val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
+    val showFirstCoreActionFeedback: Boolean = false,
+    val timedLockDeadline: LocalDateTime? = null,
+    val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
 )
 
 sealed class BlockSideEffect {
     data object UnlockCompleted : BlockSideEffect()
+    data object TimedLockExpired : BlockSideEffect()
+    data class NavigateRoutineWithRepeatBlockPrefill(
+        val suggestion: RepeatBlockRoutineSuggestion,
+    ) : BlockSideEffect()
 }
 
 internal fun String?.orDefaultBlockSource(): String =
     when (this) {
         AnalyticsBlockSource.MANUAL_KEEP,
         AnalyticsBlockSource.TIMED_LOCK,
-        AnalyticsBlockSource.ROUTINE -> this
+        AnalyticsBlockSource.ROUTINE,
+        AnalyticsBlockSource.GOAL_LOCK,
+        AnalyticsBlockSource.PARENT_MODE -> this
         else -> AnalyticsBlockSource.MANUAL_KEEP
     }
+
+private fun String.shouldShowPostBlockRepeatBlockSuggestion(): Boolean = this != AnalyticsBlockSource.GOAL_LOCK
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)

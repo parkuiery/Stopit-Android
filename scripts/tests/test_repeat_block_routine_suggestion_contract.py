@@ -1,0 +1,294 @@
+import pathlib
+import unittest
+
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+RUNBOOK = REPO_ROOT / "docs" / "REPEAT_BLOCK_ROUTINE_SUGGESTION.md"
+PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
+METRICS_ANALYSIS = REPO_ROOT / "docs" / "METRICS_ANALYSIS.md"
+ANALYTICS_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
+GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md"
+QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
+METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
+PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
+DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
+
+
+class RepeatBlockRoutineSuggestionContractTest(unittest.TestCase):
+    def test_runbook_locks_issue_scope_privacy_and_external_boundaries(self):
+        runbook = RUNBOOK.read_text()
+
+        required_phrases = [
+            "Issue: #531",
+            "Refs #531",
+            "반복 차단 패턴",
+            "로컬에서 해석",
+            "first_core_action_completed",
+            "app_block_intercepted",
+            "기존 활성 루틴과 완전히 겹치는 추천은 노출하지 않고",
+            "부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외해 uncovered 앱만 제안한다",
+            "RepeatBlockRoutineSuggestionPolicyTest.partiallyCoveredRoutinePrefillsOnlyUncoveredApps",
+            "Usage Access 권한을 새 필수 전제로 요구하지 않는다",
+            "origin/main",
+            "SemVer tag",
+            "Play deploy",
+            "14일 체크",
+            "30일 체크",
+            "RepeatBlockRoutineSuggestionStore",
+            "PR #561",
+            "PR #835",
+            "Home과 LockHistory CTA 표면에서 추천 카드를 실제로 노출",
+            "RepeatBlockRoutineSuggestionCard",
+            "apply는 루틴 prefill navigation",
+            "dismiss는 privacy-safe store",
+            "active emergency unlock runtime state",
+            "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
+            "BlockViewModelTest.goalLockBlockSuppressesPostBlockSuccessRepeatBlockSuggestion",
+            "PR #944",
+            "21bdf65e",
+            "block_source=goal_lock",
+            "post_block_success BlockActivity CTA/navigation 구현",
+            "PR #923",
+            "BlockActivity → MainActivity → RoutineRoute",
+            "post_block_success를 실제 구현 표면으로 승격",
+            "performance_report 구현 표면",
+            "Surface sequencing 계약",
+            "post_block_success",
+            "performance_report",
+            "entry_surface=repeat_block_suggestion|home|lock_history|post_block_success|performance_report",
+            "raw app name/package/list/history/timestamp를 저장·전송하지 않는다",
+            "rapid_retry 구현 완료",
+            "RepeatBlockRoutineSuggestionPolicyTest.rapidRetryCandidateUsesRapidRetryReasonAndOutranksNewerNormalCandidate",
+            "PR #887",
+            "PR #899",
+            "PR #983",
+            "fd7c515d",
+            "부분 커버 상태에서는 이미 루틴이 보호하는 앱을 prefill에서 제외하고 uncovered 앱만 제안한다",
+        ]
+        for phrase in required_phrases:
+            self.assertIn(phrase, runbook)
+
+        forbidden_claims = [
+            "Closes #531",
+            "서버/LLM",
+            "raw 앱 이름을 GA4",
+            "package name을 GA4",
+            "UI wiring 전",
+            "code-lane 구현 전 handoff",
+            "미구현 UI 표면",
+            "이번 code-lane",
+            "이번 QA-lane",
+            "`partially_covered`는 첫 MVP에서는 보류",
+        ]
+        for phrase in forbidden_claims:
+            self.assertNotIn(phrase, runbook)
+
+    def test_runbook_defines_privacy_safe_events_parameters_and_buckets(self):
+        runbook = RUNBOOK.read_text()
+
+        for event_name in [
+            "repeat_block_routine_suggestion_shown",
+            "repeat_block_routine_suggestion_clicked",
+            "repeat_block_routine_suggestion_dismissed",
+            "repeat_block_routine_suggestion_applied",
+        ]:
+            self.assertIn(event_name, runbook)
+
+        for parameter in [
+            "surface",
+            "suggestion_reason",
+            "time_bucket",
+            "day_type",
+            "category_bucket",
+            "repeat_count_bucket",
+            "routine_coverage_state",
+            "suggestion_variant",
+        ]:
+            self.assertIn(parameter, runbook)
+
+        for phrase in [
+            "morning",
+            "afternoon",
+            "evening",
+            "night",
+            "overnight",
+            "weekday",
+            "weekend",
+            "social",
+            "video",
+            "game",
+            "3_5",
+            "6_10",
+            "10_plus",
+            "not_covered",
+            "partially_covered",
+        ]:
+            self.assertIn(phrase, runbook)
+
+        for privacy_phrase in [
+            "앱 이름",
+            "package name",
+            "lockApplications",
+            "raw session history",
+            "raw timestamp",
+            "raw retry count",
+        ]:
+            self.assertIn(privacy_phrase, runbook)
+
+    def test_analytics_dictionary_and_ga4_runbook_track_repeat_block_suggestion_contract(self):
+        analytics = ANALYTICS_DICTIONARY.read_text()
+        ga4_runbook = GA4_RUNBOOK.read_text()
+
+        for event_name in [
+            "repeat_block_routine_suggestion_shown",
+            "repeat_block_routine_suggestion_clicked",
+            "repeat_block_routine_suggestion_dismissed",
+            "repeat_block_routine_suggestion_applied",
+        ]:
+            self.assertIn(event_name, analytics)
+            self.assertIn(event_name, ga4_runbook)
+
+        for parameter in [
+            "customEvent:suggestion_reason",
+            "customEvent:time_bucket",
+            "customEvent:day_type",
+            "customEvent:category_bucket",
+            "customEvent:repeat_count_bucket",
+            "customEvent:routine_coverage_state",
+            "customEvent:suggestion_variant",
+        ]:
+            self.assertIn(parameter, ga4_runbook)
+
+        self.assertIn("반복 차단 기반 루틴 제안 조회성", ga4_runbook)
+        self.assertIn("repeat block routine suggestion check", ga4_runbook)
+        self.assertIn("PR #552", ga4_runbook)
+        self.assertIn("PR #555", ga4_runbook)
+        self.assertIn("PR #561", ga4_runbook)
+        self.assertIn("PR #835", ga4_runbook)
+        self.assertIn("PR #843", ga4_runbook)
+        self.assertIn("Home active Goal Lock suppression", ga4_runbook)
+        self.assertIn("Home active emergency unlock runtime-state suppression", ga4_runbook)
+        self.assertIn("RepeatBlockRoutineSuggestionStore", ga4_runbook)
+        self.assertIn("canonical surface(`home`/`lock_history`/`performance_report`/`post_block_success`)", ga4_runbook)
+        self.assertIn("PR #887", ga4_runbook)
+        self.assertIn("PR #899", ga4_runbook)
+        self.assertIn("PR #923", ga4_runbook)
+        self.assertIn("PR #931", ga4_runbook)
+        self.assertIn("PR #944", ga4_runbook)
+        self.assertIn("21bdf65e", ga4_runbook)
+        self.assertIn("block_source=goal_lock", ga4_runbook)
+        self.assertIn("active protection context는 추천보다 우선", ga4_runbook)
+        self.assertIn("performance_report surface 구현", ga4_runbook)
+        self.assertIn("post_block_success card/clicked/prefill launch 구현", ga4_runbook)
+        self.assertIn("PR #983", ga4_runbook)
+        self.assertIn("PR #994", ga4_runbook)
+        self.assertIn("full-coverage suppression + partial-coverage uncovered-app prefill", ga4_runbook)
+        self.assertIn("covered`는 추천 미노출", ga4_runbook)
+        self.assertIn("#531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`", ga4_runbook)
+        self.assertNotIn("CTA UI wiring·release·GA4 등록 전", ga4_runbook)
+        self.assertNotIn("post_block_success`는 예약 enum/미구현 표면", ga4_runbook)
+        self.assertIn("post_block_success", analytics)
+        self.assertIn("performance_report", analytics)
+        self.assertIn("performance_report`와 `post_block_success`는 repo-internal 구현 표면", analytics)
+        self.assertIn("#531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`", analytics)
+        self.assertIn("PR #994", analytics)
+        self.assertIn("full-coverage suppression", analytics)
+        self.assertIn("partial-coverage uncovered-app prefill", analytics)
+        self.assertIn("release/tag/Play deploy", analytics)
+        self.assertIn("PR #843", analytics)
+        self.assertIn("Home active emergency unlock runtime state", analytics)
+        self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", analytics)
+        self.assertNotIn("Home/LockHistory CTA UI wiring/release/GA4 등록 전", analytics)
+        self.assertNotIn("미구현 UI 표면", analytics)
+
+    def test_high_traffic_docs_link_to_repeat_block_suggestion_source_of_truth(self):
+        documents = [
+            PRODUCT_DASHBOARD.read_text(),
+            METRICS_ANALYSIS.read_text(),
+            QA_RUNTIME_CHECKLIST.read_text(),
+            METRICS_CONTEXT.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+            DOCS_AGENTS.read_text(),
+        ]
+
+        for document in documents:
+            self.assertIn("REPEAT_BLOCK_ROUTINE_SUGGESTION.md", document)
+            self.assertIn("#531", document)
+
+    def test_high_traffic_docs_reflect_current_repeat_block_surfaces_without_claiming_release_or_readback(self):
+        documents = [
+            PRODUCT_DASHBOARD.read_text(),
+            METRICS_ANALYSIS.read_text(),
+            METRICS_CONTEXT.read_text(),
+            PRODUCT_CONTEXT.read_text(),
+        ]
+
+        for document in documents:
+            self.assertIn("PR #537", document)
+            self.assertIn("local policy + analytics", document)
+            self.assertIn("PR #552", document)
+            self.assertIn("prefill", document)
+            self.assertIn("PR #555", document)
+            self.assertIn("RepeatBlockRoutineSuggestionStore", document)
+            self.assertIn("PR #561", document)
+            self.assertIn("Home/LockHistory CTA", document)
+            self.assertIn("RepeatBlockRoutineSuggestionCard", document)
+            self.assertIn("PR #835", document)
+            self.assertIn("active Goal Lock", document)
+            self.assertIn("PR #843", document)
+            self.assertIn("active emergency unlock", document)
+            self.assertIn("PR #887", document)
+            self.assertIn("PR #899", document)
+            self.assertIn("PR #923", document)
+            self.assertIn("PR #931", document)
+            self.assertIn("PR #944", document)
+            self.assertIn("PR #983", document)
+            self.assertIn("PR #994", document)
+            self.assertIn("부분 커버", document)
+            self.assertIn("uncovered", document)
+            self.assertIn("block_source=goal_lock", document)
+            self.assertIn("구현 표면", document)
+            self.assertIn("구현 완료", document)
+            self.assertIn("post_block_success", document)
+            self.assertIn("performance_report", document)
+            self.assertIn("release", document)
+            self.assertIn("GA4", document)
+            self.assertIn("수요 없음", document)
+
+    def test_qa_checklist_defines_non_shaming_repeat_block_evidence(self):
+        qa_checklist = QA_RUNTIME_CHECKLIST.read_text()
+
+        for phrase in [
+            "반복 차단 기반 자동 루틴 제안 QA baseline",
+            "Repeat block routine suggestion QA evidence",
+            "RoutineNavigationTest",
+            "RoutineBottomSheetViewModelTest",
+            "RepeatBlockRoutineSuggestionStoreTest",
+            "HomeViewModelActivationAnalyticsTest.activeGoalLockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
+            "HomeViewModelActivationAnalyticsTest.scheduledGoalLockOutsideCurrentWindowDoesNotSuppressRepeatedBlockRoutineSuggestion",
+            "GoalLockPolicy.isCurrentlyProtecting",
+            "HomeViewModelActivationAnalyticsTest.activeEmergencyUnlockSuppressesRepeatedBlockRoutineSuggestionAndShownAnalytics",
+            "onboarding / pre-first-lock 사용자에게 미노출",
+            "기존 활성 루틴이 반복 후보 앱 전체를 이미 보호하면 미노출",
+            "부분 커버 상태에서는 uncovered 앱만 prefill",
+            "RepeatBlockRoutineSuggestionPolicyTest.partiallyCoveredRoutinePrefillsOnlyUncoveredApps",
+            "Home active Goal Lock card가 있으면",
+            "raw app name / package / history / timestamp absent",
+            "repeat_block_routine_suggestion_shown",
+            "BlockScreenContentIntegrationTest#postBlockSuccessRepeatSuggestionSurfacesStableQaActions",
+            "block_screen_repeat_block_suggestion_apply_action",
+            "block_screen_repeat_block_suggestion_dismiss_action",
+            "카드 UI, clicked/applied analytics, `BlockActivity → MainActivity → RoutineRoute` prefill navigation까지 구현된 표면",
+            "비난형 copy 금지",
+        ]:
+            self.assertIn(phrase, qa_checklist)
+
+        for stale_phrase in [
+            "카드 UI·clicked/applied analytics·BlockActivity→Routine prefill navigation은 아직 미구현",
+            "full UI completion으로 체크하지 않는다",
+        ]:
+            self.assertNotIn(stale_phrase, qa_checklist)
+
+
+if __name__ == "__main__":
+    unittest.main()

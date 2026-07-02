@@ -74,7 +74,7 @@ class ReleaseStartScriptTest(unittest.TestCase):
                   "checkout develop") exit 0 ;;
                   "pull --ff-only origin develop") exit 0 ;;
                   checkout\ -b\ release/*) exit 0 ;;
-                  "add app/build.gradle.kts") exit 0 ;;
+                  "add app/build.gradle.kts README.md") exit 0 ;;
                   commit\ -m\ chore:\ bump\ version\ to\ *) exit 0 ;;
                   *) echo "unexpected git args: $*" >&2; exit 99 ;;
                 esac

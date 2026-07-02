@@ -18,12 +18,14 @@ Room persistence layer for routines, lock history, and emergency unlock records.
 | `dao/` | Room DAO interfaces for routines, lock-history sessions, and emergency-unlock records. (see `dao/AGENTS.md`) |
 | `di/` | Hilt database providers and DAO bindings. (see `di/AGENTS.md`) |
 | `entity/` | Room entity definitions that define persisted table shape and migration-sensitive fields. (see `entity/AGENTS.md`) |
+| `mapper/` | Room entity ↔ shared model mapping helpers owned by the persistence boundary. |
 
 ## For AI Agents
 
 ### Working In This Directory
 - Treat entity and migration changes as schema changes: update `KeepDatabase`, export schemas, and add/adjust migration tests.
 - Prefer explicit DAO queries and suspend/Flow APIs consistent with existing Room usage.
+- Keep Room entity ↔ shared model mapping in `database/mapper/`; do not move those helpers into `model/`.
 
 ### Testing Requirements
 - ./gradlew :app:connectedDevDebugAndroidTest for Room migrations or Android framework integration.

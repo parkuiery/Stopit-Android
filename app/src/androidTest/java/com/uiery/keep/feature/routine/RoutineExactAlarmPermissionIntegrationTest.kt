@@ -1,5 +1,11 @@
 package com.uiery.keep.feature.routine
 
+import com.uiery.keep.data.routine.RoomRoutineRepository
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
+import android.app.AlarmManager
+import android.app.AppOpsManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -11,11 +17,15 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.KeepDatabase
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.RoutineAlarmReceiver
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
@@ -32,6 +42,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class RoutineExactAlarmPermissionIntegrationTest {
@@ -65,8 +76,8 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
-            routineScheduler = RoutineScheduler(context),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
 
@@ -78,11 +89,17 @@ class RoutineExactAlarmPermissionIntegrationTest {
         viewModel.setSelectApps(setOf("com.example.blocked"))
         viewModel.addRoutine()
 
-        val sideEffect = withTimeout(5_000) { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = withTimeout(5_000) { viewModel.container.sideEffectFlow.take(2).toList() }
         waitUntil("Routine should be stored") { database.routineDao().fetchAllOnce().isNotEmpty() }
         val savedRoutine = database.routineDao().fetchAllOnce().single()
 
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect)
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            sideEffects,
+        )
         assertFalse(savedRoutine.isEnabled)
         assertEquals(0, analytics.lockScheduledCalls)
         assertNoScheduledAlarm(TEST_ROUTINE_ID)
@@ -94,8 +111,8 @@ class RoutineExactAlarmPermissionIntegrationTest {
         assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
-            routineDao = database.routineDao(),
-            routineScheduler = RoutineScheduler(context),
+            routineRepository = RoomRoutineRepository(database.routineDao()),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(RoutineScheduler(context)),
             analytics = analytics,
         )
 
@@ -107,11 +124,17 @@ class RoutineExactAlarmPermissionIntegrationTest {
         viewModel.setSelectApps(setOf("com.example.blocked"))
         viewModel.addRoutine()
 
-        val sideEffect = withTimeout(5_000) { viewModel.container.sideEffectFlow.first() }
+        val sideEffects = withTimeout(5_000) { viewModel.container.sideEffectFlow.take(2).toList() }
         waitUntil("Multi-day routine should be stored") { database.routineDao().fetchAllOnce().isNotEmpty() }
         val savedRoutine = database.routineDao().fetchAllOnce().single()
 
-        assertEquals(RoutineBottomSheetSideEffect.ShowAlarmPermission, sideEffect)
+        assertEquals(
+            listOf(
+                RoutineBottomSheetSideEffect.ShowAlarmPermission,
+                RoutineBottomSheetSideEffect.CloseBottomSheet,
+            ),
+            sideEffects,
+        )
         assertFalse(savedRoutine.isEnabled)
         assertEquals(repeatDays.toSet(), savedRoutine.repeatDays.toSet())
         assertEquals(0, analytics.lockScheduledCalls)
@@ -119,14 +142,36 @@ class RoutineExactAlarmPermissionIntegrationTest {
     }
 
     @Test
+    fun defaultExactAlarmAppOpsFollowsAlarmManagerAvailability() {
+        resetExactAlarmAppOpsToDefault()
+        val appOpsMode = exactAlarmAppOpsMode()
+        val alarmManagerAllowed = alarmManagerAllowsExactAlarms()
+
+        assertEquals(AppOpsManager.MODE_DEFAULT, appOpsMode)
+        assertEquals(alarmManagerAllowed, RoutineScheduler(context).canScheduleExactAlarms())
+    }
+
+    @Test
     fun enablingRoutineWithExactAlarmPermissionSchedulesAlarm() = runBlocking {
         assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
         database.routineDao().insert(disabledRoutineEntity(TEST_ROUTINE_ID, "Grant path"))
+        val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
-            dataStore = createDataStore(),
+            routineRepository = routineRepository,
+            dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Routine list should load from Room") {
@@ -154,11 +199,23 @@ class RoutineExactAlarmPermissionIntegrationTest {
                 repeatDays = repeatDays,
             ),
         )
+        val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
-            dataStore = createDataStore(),
+            routineRepository = routineRepository,
+            dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Multi-day routine list should load from Room") {
@@ -186,11 +243,23 @@ class RoutineExactAlarmPermissionIntegrationTest {
                 repeatDays = repeatDays,
             ),
         )
+        val dataStore = createDataStore()
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
         val viewModel = RoutineViewModel(
-            routineDao = database.routineDao(),
-            dataStore = createDataStore(),
+            routineRepository = routineRepository,
+            dataStore = dataStore,
             analytics = RecordingKeepAnalytics(),
-            routineScheduler = RoutineScheduler(context),
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, RecordingKeepAnalytics()),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
         )
 
         waitUntil("Cleanup multi-day routine list should load from Room") {
@@ -242,12 +311,12 @@ class RoutineExactAlarmPermissionIntegrationTest {
         findRoutinePendingIntent(routineId, today)
 
     private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -287,6 +356,27 @@ class RoutineExactAlarmPermissionIntegrationTest {
             ?.forEach(File::delete)
     }
 
+    private fun resetExactAlarmAppOpsToDefault() {
+        instrumentation.uiAutomation.executeShellCommand("cmd appops reset ${context.packageName}").close()
+        waitUntil("SCHEDULE_EXACT_ALARM should return to MODE_DEFAULT") {
+            exactAlarmAppOpsMode() == AppOpsManager.MODE_DEFAULT
+        }
+    }
+
+    private fun exactAlarmAppOpsMode(): Int {
+        val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        return appOpsManager.unsafeCheckOpNoThrow(
+            EXACT_ALARM_APP_OP,
+            context.applicationInfo.uid,
+            context.packageName,
+        )
+    }
+
+    private fun alarmManagerAllowsExactAlarms(): Boolean {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        return alarmManager.canScheduleExactAlarms()
+    }
+
     private fun createDataStore(): DataStore<Preferences> = PreferenceDataStoreFactory.create(
         produceFile = { dataStoreFile() },
     )
@@ -301,7 +391,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }
@@ -329,6 +419,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
         private const val DATABASE_NAME = "keep-database"
         private const val DATASTORE_PREFIX = "routine-exact-alarm"
         private const val TEST_ROUTINE_ID = 77L
+        private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek
     }
 }

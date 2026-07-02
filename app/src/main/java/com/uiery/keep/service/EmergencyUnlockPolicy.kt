@@ -8,9 +8,23 @@ internal const val EMERGENCY_UNLOCK_REASON_NOT_REQUIRED = "not_required"
 internal val ALLOWED_EMERGENCY_UNLOCK_DURATION_OPTIONS = listOf(3, 5, 10, 15)
 internal val DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS = listOf(3, 5, 10)
 
+internal const val DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED = true
+internal const val DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS = 30
+internal val ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS = listOf(10, 30, 60)
+
 internal enum class EmergencyUnlockNotificationPostResult {
     Posted,
     PermissionDenied,
+    ChannelDisabled,
+}
+
+internal sealed interface EmergencyUnlockNotificationSyncPlan {
+    data class ShowCountdown(
+        val remainingSeconds: Int,
+        val totalSeconds: Int,
+    ) : EmergencyUnlockNotificationSyncPlan
+
+    data object Cancel : EmergencyUnlockNotificationSyncPlan
 }
 
 @Deprecated("Use DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT")
@@ -27,6 +41,11 @@ internal fun sanitizeEmergencyUnlockDailyLimit(value: Int?): Int =
     value
         ?.takeIf { it in MIN_EMERGENCY_UNLOCK_DAILY_LIMIT..MAX_EMERGENCY_UNLOCK_DAILY_LIMIT }
         ?: DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
+
+internal fun sanitizeEmergencyUnlockCountdownSeconds(value: Int?): Int =
+    value
+        ?.takeIf { it in ALLOWED_EMERGENCY_UNLOCK_COUNTDOWN_OPTIONS }
+        ?: DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 
 internal fun sanitizeEmergencyUnlockDurationOptions(values: Set<String>?): List<Int> {
     val sanitized = values
@@ -99,11 +118,14 @@ internal fun isEmergencyUnlockActiveForPackage(
 internal fun resolveEmergencyUnlockNotificationPostResult(
     notificationsEnabled: Boolean,
     postNotificationsPermissionGranted: Boolean,
+    notificationChannelEnabled: Boolean,
 ): EmergencyUnlockNotificationPostResult =
-    if (notificationsEnabled && postNotificationsPermissionGranted) {
-        EmergencyUnlockNotificationPostResult.Posted
-    } else {
-        EmergencyUnlockNotificationPostResult.PermissionDenied
+    when {
+        !notificationsEnabled || !postNotificationsPermissionGranted ->
+            EmergencyUnlockNotificationPostResult.PermissionDenied
+        !notificationChannelEnabled ->
+            EmergencyUnlockNotificationPostResult.ChannelDisabled
+        else -> EmergencyUnlockNotificationPostResult.Posted
     }
 
 internal fun emergencyUnlockExpiryDelayMillis(
@@ -115,6 +137,33 @@ internal fun emergencyUnlockExpiryDelayMillis(
     } else {
         null
     }
+
+internal fun resolveEmergencyUnlockNotificationSyncPlan(
+    expireTimeMillis: Long,
+    nowMillis: Long = System.currentTimeMillis(),
+): EmergencyUnlockNotificationSyncPlan {
+    val remainingMillis = expireTimeMillis - nowMillis
+    if (expireTimeMillis <= 0L || remainingMillis <= 0L) {
+        return EmergencyUnlockNotificationSyncPlan.Cancel
+    }
+
+    val remainingSeconds = ((remainingMillis + 999L) / 1_000L).coerceAtLeast(1L).toInt()
+    return EmergencyUnlockNotificationSyncPlan.ShowCountdown(
+        remainingSeconds = remainingSeconds,
+        totalSeconds = remainingSeconds,
+    )
+}
+
+internal fun emergencyUnlockNotificationTickDelayMillis(
+    expireTimeMillis: Long,
+    nowMillis: Long = System.currentTimeMillis(),
+): Long? {
+    val remainingMillis = expireTimeMillis - nowMillis
+    if (expireTimeMillis <= 0L || remainingMillis <= 0L) {
+        return null
+    }
+    return remainingMillis.coerceAtMost(1_000L)
+}
 
 internal fun shouldHandleEmergencyUnlockExpiry(
     expectedExpireTimeMillis: Long,

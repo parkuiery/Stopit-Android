@@ -51,15 +51,16 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
     }
 
     internal fun showCountdown(remainingSeconds: Int, totalSeconds: Int): EmergencyUnlockNotificationPostResult {
-        if (!canPostNotification()) {
+        val postResult = resolveNotificationPostResult()
+        if (postResult != EmergencyUnlockNotificationPostResult.Posted) {
             cancel()
-            return EmergencyUnlockNotificationPostResult.PermissionDenied
+            return postResult
         }
         val timeText = formatMinuteSecondCountdown(remainingSeconds)
         val progress = if (totalSeconds > 0) (remainingSeconds * 100) / totalSeconds else 0
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.kepp_icon)
+            .setSmallIcon(R.drawable.ic_notification_stopit)
             .setContentTitle(context.getString(R.string.emergency_unlock_active))
             .setContentText(
                 context.getString(R.string.emergency_unlock_remaining_time, timeText)
@@ -74,13 +75,30 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         return EmergencyUnlockNotificationPostResult.Posted
     }
 
+    internal fun syncWithStoredExpireTime(
+        expireTimeMillis: Long,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): EmergencyUnlockNotificationPostResult? =
+        when (val plan = resolveEmergencyUnlockNotificationSyncPlan(expireTimeMillis, nowMillis)) {
+            EmergencyUnlockNotificationSyncPlan.Cancel -> {
+                cancel()
+                null
+            }
+            is EmergencyUnlockNotificationSyncPlan.ShowCountdown ->
+                showCountdown(
+                    remainingSeconds = plan.remainingSeconds,
+                    totalSeconds = plan.totalSeconds,
+                )
+        }
+
     internal fun showExpired(): EmergencyUnlockNotificationPostResult {
-        if (!canPostNotification()) {
+        val postResult = resolveNotificationPostResult()
+        if (postResult != EmergencyUnlockNotificationPostResult.Posted) {
             cancel()
-            return EmergencyUnlockNotificationPostResult.PermissionDenied
+            return postResult
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.kepp_icon)
+            .setSmallIcon(R.drawable.ic_notification_stopit)
             .setContentTitle(context.getString(R.string.emergency_unlock_expired))
             .setAutoCancel(true)
             .build()
@@ -93,13 +111,17 @@ class EmergencyUnlockNotificationHelper @Inject constructor(
         notificationManager.cancel(NOTIFICATION_ID)
     }
 
-    private fun canPostNotification(): Boolean {
+    private fun resolveNotificationPostResult(): EmergencyUnlockNotificationPostResult {
         val notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
         val permissionGranted =
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         return resolveEmergencyUnlockNotificationPostResult(
             notificationsEnabled = notificationsEnabled,
             postNotificationsPermissionGranted = permissionGranted,
-        ) == EmergencyUnlockNotificationPostResult.Posted
+            notificationChannelEnabled = isNotificationChannelEnabled(),
+        )
     }
+
+    private fun isNotificationChannelEnabled(): Boolean =
+        notificationManager.getNotificationChannel(CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
 }

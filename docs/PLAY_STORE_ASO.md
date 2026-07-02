@@ -15,7 +15,8 @@
   - Play Console listing copy 반영
   - Play Console 스크린샷 업로드
 - 후속 수동 기록 작업:
-  - listing 전환율 / 평점 / 리뷰 수 기록
+  - listing 전환율은 Play Console Cloud Storage `store_performance` CSV로 자동 조회 가능
+  - 평점 / 리뷰 수 기록
   - 반영 당시 실제 노출값과 저장소 문서 일치 여부 재확인
 
 > 운영 메모: 이 이슈의 실제 Play Console 반영은 저장소 CI가 아니라 대표님 수동 배포로 처리될 수 있다. 따라서 repo/CI 자동화 흔적이 없다는 이유만으로 미반영으로 판단하지 않는다.
@@ -25,10 +26,10 @@
 이번 run 기준으로 저장소 안에서 더 밀 수 있는 문서 계약은 정리했다. 남은 항목은 모두 **Play Console 수동 확인 또는 시간 경과 후 측정**이 필요한 외부 경계다.
 
 - Play Console 현재 노출값을 열어 정확한 반영 시각/범위/스크린샷 버전명을 기록해야 함
-- listing 전환율 / 평점 / 리뷰 수 / 최근 리뷰 톤은 저장소에서 자동 조회할 수 없어 수동 확인이 필요함
-- 14일·30일 성과 비교는 실제 시간이 지나야 채울 수 있음
+- listing 전환율은 Play Console Cloud Storage 보고서로 조회 가능함. 평점 / 리뷰 수 / 최근 리뷰 톤 / 실제 노출 copy·스크린샷 버전은 여전히 Play Console 수동 확인이 필요함
+- 14일·30일 성과 비교는 GA4 repo-observable readback 기준으로 채웠고, Play Console Search/Explore/external source·현재 노출 copy·평점/리뷰 수는 수동 확인이 필요함
 
-따라서 이 문서는 이제 "반영 여부 의심" 문서가 아니라, **이미 반영된 수동 작업의 사후 복원 기록 + 후속 측정 런북**으로 해석한다.
+따라서 이 문서는 이제 "반영 여부 의심" 문서가 아니라, **이미 반영된 수동 작업의 사후 복원 기록 + GA4/Store performance readback + 남은 Play Console 수동 경계 런북**으로 해석한다.
 
 ### 2026-06-01 repo-observable 중간 스냅샷
 
@@ -54,6 +55,8 @@
 
 #65의 14일/30일 ASO 판정 전에 #242의 획득 채널 기준을 먼저 고정한다. 2026-06-01 GA4 스냅샷에서는 전체 신규 유저가 회복된 것처럼 보이지만 `Direct` 비중이 크게 늘었고 `Paid Search`는 신규 유저 없이 활성/세션만 남아 있어, 이 상태로 ASO 효과를 `Organic Search` 변화만으로 판정하면 오판 가능성이 크다.
 
+2026-06-07 repo-observable 스냅샷에서도 같은 문제가 유지됐다. +30일 체크포인트 이후 최신 재조회(`2026-06-30T17:09:40Z`, 2026-07-01 KST run) 기준 전체 `newUsers`는 661명으로 직전 30일 274명 대비 `+141.2%`이고, `Organic Search` 신규 사용자는 409명으로 #65 기준선 178명을 크게 넘었다. `Direct` 신규 사용자는 252명으로 전체 신규의 `38.1%`까지 완화됐지만 여전히 Play Console Search/Explore와 external/campaign/UTM 원인 분리가 필요하다. `sessions`는 8,252회로 직전 4,486회 대비 `+84.0%`이며, `Paid Search`는 활성 20명·세션 227회가 남아 있으면서 신규 사용자는 계속 0명이다. 따라서 +30일 이후 GA4 readback은 강한 유입/세션 반등 신호이지만, Play Console Search/Explore와 external/campaign 확인 전까지는 **ASO 회복 확정이 아니라 attribution 확인 대기**로 둔다.
+
 | 항목 | 2026-06-01 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
 | --- | ---: | ---: | --- |
 | 전체 `newUsers` | 274 | 직전 373 대비 -26.5% | 신규 유입은 아직 완전 회복 전 |
@@ -63,11 +66,137 @@
 | `Direct` 신규 사용자 | 107 | 107 / 274 = 39.1% | 실제 direct 유입인지, 링크/캠페인 attribution 누락인지 확인 필요 |
 | `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 225회와 함께 보면 과거 유저/재방문/분류 잔상 가능성 확인 필요 |
 
+#### 2026-06-02 추가 스냅샷
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-02T22:16:16Z`
+
+| 항목 | 2026-06-02 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 432 | 직전 366 대비 +18.0% | 신규 유저는 반등했지만 channel mix가 ASO 효과로 보기 어려움 |
+| 전체 `activeUsers` | 688 | 직전 613 대비 +12.2% | 활성 사용자도 반등했지만 세션은 여전히 약함 |
+| 전체 `sessions` | 4,721 | 직전 6,401 대비 -26.3% | 유입 반등이 참여 회복으로 충분히 이어졌다고 보기 어려움 |
+| `Organic Search` 신규 사용자 | 169 | 169 / 432 = 39.1% | #65 기준선 178보다 낮고 비중도 2026-06-01보다 더 낮아짐 |
+| `Direct` 신규 사용자 | 263 | 263 / 432 = 60.9% | attribution 누락/외부 링크/캠페인 유입 가능성을 먼저 확인해야 함 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 215회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-03 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-03T06:12:47Z`
+
+| 항목 | 2026-06-03 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 432 | 직전 366 대비 +18.0% | 전일 최신값과 동일하게 신규 유저 반등은 유지 |
+| 전체 `activeUsers` | 688 | 직전 613 대비 +12.2% | 활성 사용자 반등은 유지되지만 세션 회복은 약함 |
+| 전체 `sessions` | 4,733 | 직전 6,401 대비 -26.1% | 세션은 여전히 직전 30일보다 크게 낮음 |
+| `Organic Search` 신규 사용자 | 169 | 169 / 432 = 39.1% | #65 기준선 178보다 낮아 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 263 | 263 / 432 = 60.9% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 215회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-03 second live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-03T15:18:34Z`
+
+| 항목 | 2026-06-03 두 번째 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 457 | 직전 360 대비 +26.9% | 신규 유저 반등 폭은 더 커졌지만 channel mix가 더 불안정함 |
+| 전체 `activeUsers` | 707 | 직전 608 대비 +16.3% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 4,744 | 직전 6,350 대비 -25.3% | 세션은 여전히 직전 30일보다 크게 낮아 참여 회복으로 단정 불가 |
+| `Organic Search` 신규 사용자 | 176 | 176 / 457 = 38.5% | #65 기준선 178보다 아직 낮아 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 281 | 281 / 457 = 61.5% | Direct 과다 상태가 더 커져 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 200회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-04 late live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-04T20:14:53Z`
+
+| 항목 | 2026-06-04 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 506 | 직전 349 대비 +45.0% | 신규 유저 반등 폭은 더 커졌지만 channel mix 불안정은 유지 |
+| 전체 `activeUsers` | 757 | 직전 601 대비 +26.0% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 4,897 | 직전 6,269 대비 -21.9% | 세션은 여전히 직전 30일보다 낮아 참여 회복으로 단정 불가 |
+| `Organic Search` 신규 사용자 | 179 | 179 / 506 = 35.4% | #65 기준선 178을 간신히 넘었지만 Play Console 확인 전까지 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 327 | 327 / 506 = 64.6% | Direct 과다 상태가 더 커져 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 190회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-05 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-05T21:24:54Z`
+
+| 항목 | 2026-06-05 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 520 | 직전 346 대비 +50.3% | 신규 유저 반등 폭은 더 커졌지만 channel mix 불안정은 유지 |
+| 전체 `activeUsers` | 766 | 직전 594 대비 +29.0% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 4,924 | 직전 6,297 대비 -21.8% | 세션은 여전히 직전 30일보다 낮아 참여 회복으로 단정 불가 |
+| `Organic Search` 신규 사용자 | 187 | 187 / 520 = 36.0% | #65 기준선 178을 넘었지만 Direct 과다/Play Console 미확인 전까지 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 333 | 333 / 520 = 64.0% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 180회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-14 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-14T00:09:03Z`
+
+| 항목 | 2026-06-14 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 578 | 직전 273 대비 +111.7% | 신규 유저 반등은 유지됐지만 channel mix 불안정은 계속됨 |
+| 전체 `activeUsers` | 841 | 직전 528 대비 +59.3% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 5,778 | 직전 5,577 대비 +3.6% | 세션은 직전 30일과 거의 같은 수준이라 참여 회복으로 단정 불가 |
+| `Organic Search` 신규 사용자 | 243 | 243 / 578 = 42.0% | #65 기준선 178을 넘었지만 Direct 과다/Play Console 미확인 전까지 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 335 | 335 / 578 = 58.0% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 19명·세션 142회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-19 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-19T01:07:53Z`
+
+| 항목 | 2026-06-19 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 615 | 직전 217 대비 +183.4% | 신규 유저 반등은 더 커졌지만 channel mix 불안정은 계속됨 |
+| 전체 `activeUsers` | 874 | 직전 478 대비 +82.8% | 활성 사용자도 반등했지만 신규 반등 원천은 아직 attribution 확인 필요 |
+| 전체 `sessions` | 6,245 | 직전 5,034 대비 +24.1% | 세션도 반등했지만 ASO/외부 링크/캠페인 분리가 선행되어야 함 |
+| `Organic Search` 신규 사용자 | 276 | 276 / 615 = 44.9% | #65 기준선 178을 넘었지만 Direct 과다/Play Console 미확인 전까지 ASO 회복으로 승격 불가 |
+| `Direct` 신규 사용자 | 339 | 339 / 615 = 55.1% | Direct 과다 상태가 유지되어 Play Console/external/campaign 확인이 선행 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 23명·세션 170회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-26 +30일 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-26T02:07:51Z` (`2026-06-26 KST` cron run)
+
+| 항목 | 2026-06-26 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 688 | 직전 222 대비 +209.9% | +30일 창에서 신규 유저 반등은 더 커졌지만 attribution 확인 전까지 ASO 확정 금지 |
+| 전체 `activeUsers` | 938 | 직전 468 대비 +100.4% | 활성 사용자도 크게 반등했지만 유입 원천 분리 필요 |
+| 전체 `sessions` | 7,486 | 직전 4,428 대비 +69.1% | 세션도 반등해 긍정적이나 외부 링크/캠페인/검색 분해가 선행되어야 함 |
+| `Organic Search` 신규 사용자 | 378 | 378 / 688 = 54.9% | #65 기준선 178을 크게 넘었지만 Play Console Search/Explore 확인 전까지 ASO 회복 확정 불가 |
+| `Direct` 신규 사용자 | 310 | 310 / 688 = 45.1% | 2026-06-19의 55.1%보다는 완화됐지만 여전히 external/campaign/UTM 누락 가능성 확인 필요 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 23명·세션 170회는 신규 획득 성과로 계산하지 않음 |
+
+#### 2026-06-30 post-+30일 live readback
+
+명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+확인 시각: `2026-06-30T17:09:40Z` (`2026-07-01 KST` cron run)
+
+| 항목 | 2026-06-30 GA4 30일 창 | 직전 30일 대비/비중 | 현재 해석 |
+| --- | ---: | ---: | --- |
+| 전체 `newUsers` | 661 | 직전 274 대비 +141.2% | +30일 이후 창에서도 신규 유저 반등은 유지됐지만 attribution 확인 전까지 ASO 확정 금지 |
+| 전체 `activeUsers` | 906 | 직전 523 대비 +73.2% | 활성 사용자도 반등했지만 유입 원천 분리 필요 |
+| 전체 `sessions` | 8,252 | 직전 4,486 대비 +84.0% | 세션 반등은 더 강해졌지만 외부 링크/캠페인/검색 분해가 선행되어야 함 |
+| `Organic Search` 신규 사용자 | 409 | 409 / 661 = 61.9% | #65 기준선 178을 크게 넘었지만 Play Console Search/Explore 확인 전까지 ASO 회복 확정 불가 |
+| `Direct` 신규 사용자 | 252 | 252 / 661 = 38.1% | 2026-06-26의 45.1%보다 완화됐지만 external/campaign/UTM 누락 가능성 확인 필요 |
+| `Paid Search` 신규 사용자 | 0 | 신규 비중 0% | 활성 20명·세션 227회는 신규 획득 성과로 계산하지 않음 |
+
 #### ASO 성과 판정 전 attribution 확인 순서
 
 1. Play Console `Store performance` / acquisition report에서 같은 최근 30일 창의 검색·탐색·외부/캠페인 유입을 확인한다.
 2. GA4 `firstUserDefaultChannelGroup`의 `Organic Search`, `Direct`, `Paid Search`와 Play Console acquisition source가 같은 방향인지 표로 비교한다.
-3. 실제 Paid Search 캠페인이 집행 중인지 확인한다. 집행 중이 아니라면 `Paid Search`의 활성 19명·세션 225회는 신규 유입 성과가 아니라 과거 사용자/재방문/분류 잔상으로 분리한다.
+3. 실제 Paid Search 캠페인이 집행 중인지 확인한다. 집행 중이 아니라면 최신 스냅샷의 `Paid Search` 활성 23명·세션 170회는 신규 유입 성과가 아니라 과거 사용자/재방문/분류 잔상으로 분리한다.
 4. Discord, 웹, 문서, QR, 캠페인 링크가 Play Store로 유입을 만들고 있다면 UTM 또는 Play Install Referrer 적용 여부를 점검한다.
 5. #65의 14일/30일 판정은 아래 `획득 채널 판정 표`가 채워진 뒤에만 “ASO 효과”로 표현한다. 표가 비어 있으면 `newUsers`/`Organic Search` 변화는 중간 신호로만 둔다.
 
@@ -76,8 +205,17 @@
 | 시점 | GA4 `newUsers` | GA4 `Organic Search` 신규 | GA4 `Direct` 신규 | GA4 `Paid Search` 신규 | Play Console Search/Explore | Play Console external/campaign | Paid campaign 집행 여부 | 판단 |
 | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
 | 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 39.1%와 Paid Search 신규 0명 때문에 ASO 회복 판정 보류 |
-| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
-| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| 2026-06-02 중간 스냅샷 | 432 | 169 | 263 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 60.9%까지 상승. 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-03 live readback | 432 | 169 | 263 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 60.9% 유지. Play Console/external 확인 전까지 ASO 회복 판정 보류 |
+| 2026-06-03 second live readback | 457 | 176 | 281 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 61.5%까지 상승. 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-04 late live readback | 506 | 179 | 327 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 64.6%까지 상승. Organic Search는 기준선을 간신히 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-05 live readback | 520 | 187 | 333 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 64.0% 과다 상태 유지. Organic Search는 기준선을 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-11 live readback | 568 | 235 | 333 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 58.6% 과다 상태 유지. Organic Search는 기준선을 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-14 live readback | 578 | 243 | 335 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 58.0% 과다 상태 유지. Organic Search는 기준선을 넘었지만 Play Console 확인 전까지 신규 유입 반등을 ASO 효과로 표현 금지 |
+| 2026-06-19 live readback | 615 | 276 | 339 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Direct 55.1% 과다 상태 유지. Organic Search는 기준선을 넘었지만 Play Console 확인 전까지 ASO 효과 확정 금지 |
+| +14일 (`2026-06-10 KST 이후`) | 578 | 243 | 335 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | 2026-06-14 readback으로 대체 기록. Direct 58.0% 과다 때문에 ASO 효과 판정 보류 |
+| +30일 (`2026-06-26 KST 이후`) | 688 | 378 | 310 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | 2026-06-26 +30일 live readback. Organic Search와 세션은 크게 반등했지만 Direct 45.1% 과다 상태 완화 수준이라 Play Console/external 확인 전까지 ASO 효과 확정 금지 |
+| post-+30일 (`2026-06-30T17:09:40Z`) | 661 | 409 | 252 | 0 | `TODO: Play Console 수동 확인` | `TODO: Play Console 수동 확인` | `TODO: 캠페인 운영 확인` | Organic Search 비중은 61.9%로 커지고 Direct는 38.1%까지 완화됐지만, Search/Explore vs external/campaign 확인 전까지 ASO 효과 확정 금지 |
 
 #### 판정 규칙
 
@@ -85,6 +223,114 @@
 - `newUsers`가 늘었지만 `Direct` 또는 external/campaign만 늘면 ASO 효과가 아니라 링크/캠페인/어트리뷰션 변화로 분리한다.
 - `Paid Search` 신규 사용자가 0인데 활성/세션만 남으면 신규 획득 성과로 계산하지 않는다. 실제 캠페인 집행이 확인될 때만 유료 획득 실험으로 해석한다.
 - Play Console source와 GA4 channel group이 크게 어긋나면 #65 성과 판정 전에 UTM/Install Referrer 운영 규칙을 먼저 보강한다.
+
+#### Link / campaign attribution 운영 규칙
+
+#242가 닫히기 전까지 ASO/캠페인 효과를 판단할 때는 아래 규칙을 함께 적용한다. 이 섹션의 목적은 `Direct` 급증을 무조건 제품 성장으로 읽거나, `Organic Search` 변화만으로 #65 ASO 효과를 단정하는 일을 막는 것이다.
+
+| 유입 표면 | 기본 분류 | 필요한 태깅/기록 | ASO 판정 시 처리 |
+| --- | --- | --- | --- |
+| Play Store 검색/탐색 | Play Console Search/Explore | Play Console source, listing visitors, conversion rate | `Organic Search`와 같은 방향이면 ASO 후보 |
+| Discord/커뮤니티/문서 링크 | external/campaign 후보 | 링크 URL, 게시 시각, `utm_source`, `utm_medium`, `utm_campaign` | GA4 `Direct` 증가와 겹치면 ASO 효과에서 분리 |
+| 유료 검색/광고 | Paid campaign | 집행 여부, 기간, 예산, campaign name | 신규 `Paid Search`가 0이면 신규 획득 성과로 계산하지 않음 |
+| QR/오프라인 공유 | external/unknown | 배포 위치, 날짜, 가능하면 전용 링크 또는 UTM | `Direct` 급증 원인 후보로 별도 메모 |
+| 앱 내/웹 redirect 또는 짧은 링크 | attribution risk | redirect 보존 여부, final Play URL, referrer 보존 여부 | Play Console/GA4 불일치 원인으로 먼저 점검 |
+
+운영 계약:
+
+1. 대표님이나 자동화가 Play Store 링크를 새로 배포할 때는 가능한 한 `utm_source`, `utm_medium`, `utm_campaign`을 붙인 URL을 기록한다.
+2. Play Store로 redirect되는 짧은 링크/문서 링크를 쓰면 final URL에서 UTM이 보존되는지 확인한다.
+3. PR #586으로 parser/helper/analytics foothold가, PR #590(`ae26293a`)으로 Play Install Referrer SDK provider와 첫 실행 one-shot lookup path가 연결됐다. 단, 이 코드가 포함된 release/tag/Play deploy와 GA4 Admin metadata 확인 전까지 GA4 `Direct`를 “출처 없음/어트리뷰션 누락 가능성”으로 보수적으로 해석한다.
+4. #65의 +14일/+30일 ASO 판정 표에는 GA4 채널뿐 아니라 Play Console Search/Explore와 external/campaign source를 같이 적는다.
+5. campaign 집행이 없었다는 운영 확인이 있으면 `Paid Search` 활성/세션 잔상은 신규 획득 성과에서 제외한다.
+6. 외부 링크/캠페인 운영 규칙이 실제로 필요해진 뒤에는 #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`를 source of truth로 본다. 현재 상태는 PR #586 parser/helper/analytics foothold와 PR #590 SDK provider/첫 실행 one-shot lookup wiring 완료, GA4 Admin 등록, release/tag/Play deploy, 14일/30일 readback 대기이므로 Direct 감소나 ASO 회복을 주장하지 않는다.
+7. #242/#65 acquisition snapshot 또는 #581 Install Referrer/UTM 계약을 고칠 때는 downstream 문서 drift를 막기 위해 `python3 -m unittest scripts.tests.test_acquisition_attribution_docs_contract -v`와 `python3 -m unittest scripts.tests.test_install_referrer_attribution_contract -v`를 함께 실행한다.
+
+### 2026-06-11 Play Console Store performance Cloud Storage readback
+
+- 확인 시각: `2026-06-11 KST`
+- 명령:
+  - `export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH"`
+  - `gsutil -m cp 'gs://pubsite_prod_4966532873904693612/stats/store_performance/*store_performance_com.uiery.keep_*.csv' /tmp/stopit_store_performance_20260611_144739/`
+- 분석 파일: `store_performance_com.uiery.keep_202508~202606_{country,traffic_source}.csv` 및 `total_store_performance_*`
+- 분석 기간: `2025-08-01..2026-06-04` (`2026-06`은 4일치 부분월, Play 보고서 지연 3~7일 감안)
+
+이 readback으로 기존 `TODO: Play Console 수동 확인` 중 **listing visitors / acquisitions / conversion rate**는 저장소 밖 Play Console UI가 아니라 Cloud Storage CSV로 확인 가능해졌다. 다만 Play Console UI의 현재 노출 copy·스크린샷 버전, 평점/리뷰 수, 캠페인 집행 여부는 여전히 수동 확인 경계다.
+
+| 월 | 방문자 | 등록정보 획득 | 전환율 | 해석 |
+| --- | ---: | ---: | ---: | --- |
+| 2026-01 | 863 | 242 | 28.0% | 1월부터 유입 규모 확대 |
+| 2026-02 | 1,611 | 358 | 22.2% | 방문자는 최고점이나 전환율은 낮아 유입 품질/매칭 확인 필요 |
+| 2026-03 | 1,432 | 354 | 24.7% | 유입 유지, 전환율 일부 회복 |
+| 2026-04 | 1,112 | 319 | 28.7% | 전환율 양호, 방문자 감소 시작 |
+| 2026-05 | 521 | 154 | 29.6% | 방문자 -53.1%, 전환율 +0.9p — 병목은 listing 설득력보다 유입/노출 감소 |
+| 2026-06 partial | 89 | 25 | 28.1% | 4일치 부분 데이터, 전환율은 5월과 유사 |
+
+#### Play Console readback 판정
+
+- `2026-04 -> 2026-05`: 방문자 `1,112 -> 521` (`-53.1%`), 등록정보 획득 `319 -> 154` (`-51.7%`), 전환율 `28.7% -> 29.6%` (`+0.9p`).
+- 따라서 5월 성과 악화는 **전환율 하락이 아니라 store listing visitor 급감**으로 본다.
+- 최근 7일(`2026-05-29..2026-06-04`)은 직전 7일 대비 visitors `+55.3%`, acquisitions `+125.9%`, CVR `34.5%`로 단기 반등 신호가 있으나, 6월 데이터가 아직 4일치라 월간 회복으로 단정하지 않는다.
+- Traffic source CSV는 `Other`가 전체 visitors의 `97.0%`로 thresholding되어 Search/Explore/external을 세밀하게 분리하지 못한다. 노출 회복 원인은 Play Console UI 또는 후속 attribution readback과 결합해 판정한다.
+- KR 전환율은 전체 기간 `468 / 1,942 = 24.1%`, Other는 `1,341 / 5,103 = 26.3%`로 KR listing copy/screenshot 개선 여지는 있으나, 우선순위는 **5월 visitor 급감 원인 확인과 유입 회복**이다.
+
+#### 후속 실행 우선순위
+
+1. #65의 +14일 체크에는 위 Cloud Storage readback을 baseline으로 넣고, `2026-06-10 KST 이후` 누적 데이터가 충분히 쌓이면 같은 `store_performance` CSV로 다시 비교한다.
+2. 한국어 listing은 전면 개편보다 1~2개 메시지/스크린샷 실험으로 제한한다. 목표는 KR CVR `24.1% -> 27%+`다.
+3. ASO 회복 목표는 전환율이 아니라 방문자/일 회복으로 잡는다. 5월 `16.8 visitors/day`에서 4월 `37.1 visitors/day` 근처, 1차 목표 `30 visitors/day`를 기준으로 본다.
+
+### 2026-06-30 Play Console Store performance Cloud Storage follow-up
+
+- 확인 시각: `2026-06-30T17:09:40Z` (`2026-07-01 KST` cron run)
+- 명령:
+  - `gsutil -o 'GSUtil:parallel_process_count=1' -m cp 'gs://pubsite_prod_4966532873904693612/stats/store_performance/*store_performance_com.uiery.keep_202606_*.csv' /tmp/stopit_store_performance_20260630_single/`
+- 분석 파일: `store_performance_com.uiery.keep_202606_{country,traffic_source}.csv` 및 `total_store_performance_com.uiery.keep_202606_{country,traffic_source}.csv`
+- 분석 기간: `2026-06-01..2026-06-16` (`2026-06` 부분월, Play 보고서 지연 때문에 30일 전체 아님)
+
+| 기간 | 방문자 | 등록정보 획득 | 전환율 | 해석 |
+| --- | ---: | ---: | ---: | --- |
+| 2026-05 full month | 521 | 154 | 29.6% | 5월 visitor 급감 기준선 |
+| 2026-06-01..2026-06-16 partial | 341 | 113 | 33.1% | visitors/day는 `341 / 16 = 21.3`으로 5월 `16.8`보다 개선됐지만 4월 `37.1`에는 못 미침 |
+
+#### 2026-06-30 Store performance 판정
+
+- `2026-06-01..2026-06-16`: store listing visitors `341`, acquisitions `113`, CVR `113 / 341 = 33.1%`.
+- 방문자/일은 5월 `16.8`에서 6월 부분월 `21.3`으로 개선됐고, conversion rate도 5월 `29.6%`보다 높다.
+- 다만 6월 CSV는 16일치 부분월이며 traffic source/country는 여전히 `Other`로 thresholding되어 Search/Explore/external 원인을 분해하지 못한다.
+- 따라서 Store performance follow-up은 “전환율은 악화되지 않았고 visitor/day는 일부 회복”으로 기록하되, ASO 회복 확정은 Play Console Search/Explore와 external/campaign 확인 뒤로 둔다.
+
+#### Play Console 수동 확인 템플릿
+
+Play Console 접근은 저장소에서 자동 확정할 수 없는 외부 경계다. 확인자가 아래 값을 채운 뒤 #242 또는 #65에 코멘트로 남긴다.
+
+```md
+## Play Console acquisition 확인
+
+- 확인 시각(KST):
+- 확인 기간: 최근 30일 / +14일 / +30일 중 선택
+- Play Console source:
+  - Search:
+  - Explore:
+  - External/campaign:
+  - Other/unknown:
+- Store listing:
+  - visitors:
+  - acquisitions/conversions:
+  - conversion rate:
+- 캠페인 집행 여부:
+  - Paid Search 집행: yes/no/unknown
+  - 링크/Discord/웹/QR 배포: yes/no/unknown
+  - 사용한 UTM/campaign name:
+- GA4와 비교:
+  - GA4 newUsers:
+  - GA4 Organic Search 신규:
+  - GA4 Direct 신규:
+  - GA4 Paid Search 신규:
+- 판정:
+  - ASO 효과 후보 / attribution 불명 / campaign 효과 / 판정 보류 중 선택
+- 후속 작업:
+```
 
 ## 지표/근거
 
@@ -205,6 +451,8 @@ Select the apps that break your concentration, then lock them instantly, by time
 
 StopIt is designed for practical focus: real blocking, routine support, and a safer fallback than all-or-nothing locking.
 
+in-app Accessibility permission copy는 `docs/ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md`를 source of truth로 본다. Store listing / Accessibility declaration은 `Accessibility API`를, 온보딩 권한 화면은 `Accessibility permission` 또는 locale별 Android 접근성 권한 표현을 사용해야 하며, `Screen Time permission`을 Android 권한명처럼 쓰지 않는다.
+
 ## Accessibility 정책 대응 제출 문안
 
 ### Play Console Accessibility declaration
@@ -244,6 +492,18 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 - 긴급 해제는 소개하되, 차단 강도를 약하게 보이게 만들지 않는다.
 - 기록 화면은 단순 통계보다 "집중을 이어온 증거"로 표현한다.
 
+### 스크린샷 생성기 / CI 검증
+
+스크린샷 편집 source는 `tools/aso-screenshots`의 Next/Bun 생성기다. 생성기 코드, 템플릿, 캡처 asset, `package.json`, `bun.lock`을 바꾼 PR은 Play Console 반영과 별개로 로컬/CI build 증적을 남긴다.
+
+```bash
+cd tools/aso-screenshots
+bun install --frozen-lockfile
+bun run build
+```
+
+Ops CI의 `ASO screenshots build` job이 같은 명령을 실행한다. 이 gate는 Android 앱 빌드와 분리된 스크린샷 생성기 검증이며, Gradle/Firebase signing/Play deploy secret을 요구하지 않는다.
+
 ### 스크린샷 자산 체크리스트
 
 | 슬롯 | 필요 화면 | 캡션 확정 | 실제 캡처 | 최종 편집본 | Play Console 반영 |
@@ -257,7 +517,7 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 
 ## baseline / 사후 복원 기록
 
-원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`, `평점`, `리뷰 수`, `현재 listing copy`는 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
+원래는 실제 Play Console 반영 직전에 아래 표를 채우는 절차였다. 현재는 대표님 수동 배포가 먼저 완료된 상태이므로, 확인 가능한 항목은 사후라도 최대한 복원해 기록한다. `listing 전환율`은 Play Console Cloud Storage `store_performance` CSV로 조회할 수 있다. `평점`, `리뷰 수`, `현재 listing copy`와 스크린샷 버전은 저장소에서 자동 조회할 수 없으므로 수동 기록이 필요하다.
 
 ### 수동 복원 우선순위
 
@@ -271,7 +531,7 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 - [ ] Play Console `Main store listing` 현재 KR 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
 - [ ] Play Console `Main store listing` 현재 EN 제목/짧은 설명/긴 설명을 확인해 아래 표에 채움
 - [ ] 스크린샷 6장 순서와 실제 노출 자산이 이 문서 구성안과 일치하는지 확인
-- [ ] `Store listing performance`에서 listing 전환율을 기록
+- [x] `Store listing performance` Cloud Storage CSV에서 listing visitors/acquisitions/conversion rate를 기록 (`2026-06-11` readback)
 - [ ] 현재 평점/리뷰 수와 최근 리뷰 5~10개 톤 요약을 기록
 - [ ] 가능하면 대표님 메모/히스토리 기준으로 정확한 반영 날짜·시각을 보강
 
@@ -289,7 +549,7 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | 최근 30일 `Organic Search` 신규 사용자 | `178` | issue #65 기준 |
 | 최근 30일 `activeUsers` | `457` | issue #65 기준 |
 | 최근 30일 `sessions` | `4,636` | issue #65 기준 |
-| listing 전환율 | `TODO` | Play Console 수동 확인 |
+| listing 전환율 | `2026-05: 154 / 521 = 29.6%`; `2026-06 partial: 25 / 89 = 28.1%` | Play Console Cloud Storage `store_performance` CSV |
 | rating count | `TODO` | Play Console 수동 확인 |
 | 평균 평점 | `TODO` | Play Console 수동 확인 |
 | 최근 리뷰 톤 메모 | `TODO` | 최근 리뷰 5~10개 수동 요약 |
@@ -326,8 +586,8 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | KR listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
 | EN listing 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 이미 수동 반영 완료 상태 확인 |
 | 스크린샷 반영 | 완료 | `2026-05-27 01:18 KST 이전` | 대표님 | issue #65 코멘트 기준 Play Console 실제 반영 완료 확인 |
-| 14일 점검 | 예정 | `2026-06-10 KST 이후` | `TODO` | Play Console 반영이 `2026-05-27 01:18 KST 이전`인 점을 기준으로 한 최소 14일 후 체크 |
-| 30일 점검 | 예정 | `2026-06-26 KST 이후` | `TODO` | 같은 분자/분모로 `Organic Search`, 전체 `newUsers`, listing conversion, 평점/리뷰 수 비교 |
+| 14일 점검 | 완료(외부 일부 경계 남음) | `2026-06-14T00:09:03Z` | docs-lane | GA4 readback은 기록 완료. Play Console Search/Explore·external/campaign, 평점/리뷰 수, 실제 노출 copy는 수동 확인 필요 |
+| 30일 점검 | 완료(외부 일부 경계 남음) | `2026-06-26T02:07:51Z` / `2026-06-30T17:09:40Z` | docs-lane | GA4 +30일 및 post-+30일 readback 기록 완료. Store performance는 2026-06-16 부분월까지 확인됨. ASO 회복 확정은 Play Console source/캠페인 확인 전까지 보류 |
 
 ## 14일 / 30일 검증 포맷
 
@@ -355,20 +615,31 @@ This update does not introduce a new Accessibility permission scope. StopIt cont
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | baseline | 203 | 178 | 25 | `TODO` | 457 | 4,636 | `TODO` | `TODO` | `TODO` | 반영 전 |
 | 2026-06-01 중간 스냅샷 | 274 | 167 | 107 | 0 | 523 | 4,484 | `TODO` | `TODO` | `TODO` | 반영 전/후 혼합 30일 창. 전체 신규 유저는 반등했지만 Organic Search는 아직 기준선보다 낮고 Direct가 39.1%까지 커져 성과 판정 보류 |
-| +14일 (`2026-06-10 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
-| +30일 (`2026-06-26 KST 이후`) | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` | `TODO` |
+| 2026-06-02 중간 스냅샷 | 432 | 169 | 263 | 0 | 688 | 4,721 | `TODO` | `TODO` | `TODO` | 전체 신규/활성은 반등했지만 Organic Search는 기준선 178보다 낮고 Direct가 60.9%까지 커져 ASO 효과 판정 보류 |
+| 2026-06-03 live readback | 432 | 169 | 263 | 0 | 688 | 4,733 | `TODO` | `TODO` | `TODO` | Direct 60.9% 과다 상태가 유지되고 세션은 직전 30일 대비 -26.1%라 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-03 second live readback | 457 | 176 | 281 | 0 | 707 | 4,744 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌지만 Direct 61.5% 과다와 Organic Search 기준선 미회복 때문에 ASO 효과 판정 보류 |
+| 2026-06-04 late live readback | 506 | 179 | 327 | 0 | 757 | 4,897 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 넘었지만 Direct 64.6% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-05 live readback | 520 | 187 | 333 | 0 | 766 | 4,924 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 더 커졌고 Organic Search는 기준선 178을 넘었지만 Direct 64.0% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-11 live readback | 568 | 235 | 333 | 0 | 821 | 5,557 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 유지됐고 Organic Search는 기준선 178을 넘었지만 Direct 58.6% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-14 live readback | 578 | 243 | 335 | 0 | 841 | 5,778 | `TODO` | `TODO` | `TODO` | 신규/활성 반등은 유지됐고 Organic Search는 기준선 178을 넘었지만 Direct 58.0% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 판정 보류 |
+| 2026-06-19 live readback | 615 | 276 | 339 | 0 | 874 | 6,245 | `TODO` | `TODO` | `TODO` | 신규/활성/세션 반등은 유지됐고 Organic Search는 기준선 178을 넘었지만 Direct 55.1% 과다 때문에 Play Console/external/campaign 확인 전까지 ASO 효과 확정 금지 |
+| +14일 (`2026-06-10 KST 이후`) | 578 | 243 | 335 | 0 | 841 | 5,778 | `2026-06 partial: 113 / 341 = 33.1%` | `TODO` | `TODO` | 2026-06-14 readback으로 대체 기록. Direct 58.0% 과다 때문에 ASO 효과 판정 보류. Store performance는 2026-06-16 부분월까지 개선 신호만 기록 |
+| +30일 (`2026-06-26 KST 이후`) | 688 | 378 | 310 | 0 | 938 | 7,486 | `2026-06 partial: 113 / 341 = 33.1%` | `TODO` | `TODO` | 2026-06-26 +30일 live readback. 신규/활성/세션과 Organic Search는 크게 반등했지만 Direct 45.1% 과다 상태 완화 수준이라 Play Console/external/campaign 확인 전까지 ASO 효과 확정 금지 |
+| post-+30일 (`2026-06-30T17:09:40Z`) | 661 | 409 | 252 | 0 | 906 | 8,252 | `2026-06 partial: 113 / 341 = 33.1%` | `TODO` | `TODO` | Organic Search 비중은 61.9%, Direct는 38.1%까지 완화됐고 sessions도 +84.0%지만 Play Console Search/Explore와 external/campaign 확인 전까지 ASO 효과 확정 금지 |
 
 ## 브랜딩 점검 메모
 
-현재 repo에는 `StopIt`과 `Keep` 흔적이 혼재해 있다.
+현재 repo에는 내부 코드명/리소스 key의 `Keep` 흔적과 사용자 노출 브랜드명이 함께 남아 있다. #510 기준으로 사용자에게 보이는 표기는 아래처럼 분리한다.
 
-- 사용자 노출 앱명은 `StopIt / 스탑잇`
-- 일부 영문 문자열에 `Keep` 표현이 남아 있음
+- Play listing copy와 영문/다국어 locale은 `StopIt` 기준을 유지한다.
+- 인앱 한국어 사용자 노출 문자열은 `values-ko/strings.xml`에서 `스탑잇` 기준으로 통일한다.
+- 내부 코드명, resource key, theme/class/package name의 `Keep`/`StopIt`은 사용자 노출 copy가 아니므로 #510 범위에서 제외한다.
+- 회귀 방지: `python3 -m unittest scripts.tests.test_korean_brand_copy_contract -v`로 `values-ko/strings.xml`의 사용자 노출 문자열에 `StopIt`/`Keep`이 재유입되지 않는지 확인한다.
 
 ASO 반영 후 후속 체크:
 
 - Play listing copy는 전부 `StopIt` 기준으로 통일
-- 인앱 사용자 노출 문자열의 `Keep` 잔재는 별도 UI 카피 정리 이슈로 분리 검토
+- 인앱 한국어 사용자 노출 문자열은 `스탑잇` 기준으로 유지
 
 ## 키워드/카피 가드
 
@@ -399,7 +670,8 @@ ASO 반영 후 후속 체크:
 
 - [x] Play Console에 실제 copy/스크린샷이 반영되었다.
 - [ ] 반영 일시와 범위가 실행 로그에 기록된다.
-- [ ] 14일 또는 30일 후 전후 비교 결과가 남는다.
+- [x] GA4 기준 14일·30일 후 전후 비교 결과가 남는다.
+- [ ] Play Console Search/Explore·external/campaign source와 평점/리뷰 수 수동 확인 결과가 남는다.
 
 ## 운영 메모
 

@@ -2,6 +2,7 @@ package com.uiery.keep.feature.review
 
 import android.app.Activity
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -30,10 +31,11 @@ class InAppReviewManagerTest {
         val launcher = FakeReviewLauncher(nextResult = ReviewLaunchResult.Success)
         val analytics = RecordingKeepAnalytics()
         val dataStore = FakeDataStore()
-        val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
+        val manager = InAppReviewManager(launcher, analytics, ReviewPromptStateStore(dataStore), clock)
 
-        manager.launchIfReady(mockActivity())
+        val launched = manager.launchIfReady(mockActivity())
 
+        assertEquals(true, launched)
         assertEquals(1, launcher.launchCount)
         assertEquals(listOf(AnalyticsEventRecord.Shown), analytics.events)
         assertEquals(nowMs, dataStore.snapshot()[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])
@@ -44,10 +46,11 @@ class InAppReviewManagerTest {
         val launcher = FakeReviewLauncher(nextResult = ReviewLaunchResult.Failure("no_play_services"))
         val analytics = RecordingKeepAnalytics()
         val dataStore = FakeDataStore()
-        val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
+        val manager = InAppReviewManager(launcher, analytics, ReviewPromptStateStore(dataStore), clock)
 
-        manager.launchIfReady(mockActivity())
+        val launched = manager.launchIfReady(mockActivity())
 
+        assertEquals(false, launched)
         assertEquals(1, launcher.launchCount)
         assertEquals(listOf(AnalyticsEventRecord.Failed("no_play_services")), analytics.events)
         assertNull(dataStore.snapshot()[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])
@@ -59,7 +62,7 @@ class InAppReviewManagerTest {
         val launcher = GatedLauncher(gate)
         val analytics = RecordingKeepAnalytics()
         val dataStore = FakeDataStore()
-        val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
+        val manager = InAppReviewManager(launcher, analytics, ReviewPromptStateStore(dataStore), clock)
 
         val first = async(Dispatchers.Default) { manager.launchIfReady(mockActivity()) }
         while (!launcher.entered.value) {
@@ -83,7 +86,7 @@ class InAppReviewManagerTest {
         val launcher = FakeReviewLauncher()
         val analytics = RecordingKeepAnalytics()
         val dataStore = FakeDataStore()
-        val manager = InAppReviewManager(launcher, analytics, dataStore, clock)
+        val manager = InAppReviewManager(launcher, analytics, ReviewPromptStateStore(dataStore), clock)
 
         manager.launchIfReady(null)
 

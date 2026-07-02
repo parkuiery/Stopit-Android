@@ -3,7 +3,7 @@ import { onNewFatalIssuePublished, onNewNonfatalIssuePublished, onNewAnrIssuePub
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import nacl from "tweetnacl";
-import { csvSecretValues, hexToBytes, issueUrl, promotionTagFromCustomId } from "./runtime-helpers.js";
+import { csvSecretValues, formatCrashlyticsAlert, hexToBytes, promotionTagFromCustomId } from "./runtime-helpers.js";
 
 const githubOwner = "parkuiery";
 const githubRepo = "Stopit-Android";
@@ -60,20 +60,7 @@ async function postToDiscord(username: string, content: string) {
 async function sendCrashlyticsAlert(kind: string, emoji: string, event: any) {
   const appId = event.appId ?? "unknown-app";
   const issue = issueSummary(event);
-  const url = issueUrl(appId, issue.id);
-  const lines = [
-    `${emoji} **Stopit Crashlytics Alert**`,
-    `- 유형: ${kind}`,
-    `- 앱: ${appId}`,
-    `- 버전: ${issue.appVersion ?? "unknown"}`,
-    `- 이슈: ${issue.title ?? "unknown issue"}`,
-  ];
-
-  if (issue.subtitle) lines.push(`- 요약: ${issue.subtitle}`);
-  if (issue.id) lines.push(`- Issue ID: \`${issue.id}\``);
-  if (url) lines.push(`- 링크: ${url}`);
-
-  const content = lines.join("\n");
+  const content = formatCrashlyticsAlert({ kind, emoji, appId, issue });
   logger.info("Sending Crashlytics alert to Discord", { kind, appId, issueId: issue.id });
   await postToDiscord("Stopit Crashlytics", content);
 }

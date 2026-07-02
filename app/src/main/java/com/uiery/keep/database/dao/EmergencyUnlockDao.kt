@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface EmergencyUnlockDao {
     @Insert
-    suspend fun insert(entity: EmergencyUnlockEntity)
+    suspend fun insert(entity: EmergencyUnlockEntity): Long
+
+    @Query("DELETE FROM emergency_unlock WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query("SELECT * FROM emergency_unlock WHERE timestamp BETWEEN :start AND :end ORDER BY timestamp DESC")
     fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>>

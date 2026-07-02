@@ -9,9 +9,11 @@ import com.uiery.keep.database.converter.DayOfWeekTypeConverter
 import com.uiery.keep.database.converter.ListStringTypeConverter
 import com.uiery.keep.database.converter.TimeTypeConverter
 import com.uiery.keep.database.dao.EmergencyUnlockDao
+import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
+import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
 
@@ -20,8 +22,9 @@ import com.uiery.keep.database.entity.RoutineEntity
         RoutineEntity::class,
         LockHistoryEntity::class,
         EmergencyUnlockEntity::class,
+        GoalLockEntity::class,
     ],
-    version = 4,
+    version = 5,
 )
 @TypeConverters(
     value = [
@@ -34,6 +37,7 @@ abstract class KeepDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao
     abstract fun lockHistoryDao(): LockHistoryDao
     abstract fun emergencyUnlockDao(): EmergencyUnlockDao
+    abstract fun goalLockDao(): GoalLockDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -70,6 +74,27 @@ abstract class KeepDatabase : RoomDatabase() {
                         custom_reason TEXT,
                         unlocked_apps TEXT NOT NULL,
                         duration_minutes INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS goal_lock (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        goal_name TEXT NOT NULL,
+                        start_date TEXT NOT NULL,
+                        end_date TEXT NOT NULL,
+                        lock_mode TEXT NOT NULL,
+                        repeat_days TEXT,
+                        start_time TEXT,
+                        end_time TEXT,
+                        selected_packages TEXT NOT NULL,
+                        status TEXT NOT NULL
                     )
                     """.trimIndent()
                 )

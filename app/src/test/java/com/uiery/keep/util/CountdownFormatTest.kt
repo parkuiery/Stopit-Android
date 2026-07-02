@@ -31,6 +31,13 @@ class CountdownFormatTest {
     }
 
     @Test
+    fun formatHourAwareCountdownClampsExpiredValuesToZero() {
+        assertEquals("00:00", formatHourAwareCountdown(-1))
+        assertEquals("00:00", formatHourAwareCountdown(0))
+        assertEquals("00:01", formatHourAwareCountdown(1))
+    }
+
+    @Test
     fun formatLockEndTimeUsesAsciiDigitsUnderArabicLocale() {
         val previous = Locale.getDefault()
         Locale.setDefault(Locale("ar", "EG"))

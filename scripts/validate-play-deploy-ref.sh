@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# GitHub Actions tag-push guard for Android Play Deploy.
-# Manual workflow_dispatch ref governance is handled by the dispatch-specific guard;
-# this script closes the direct SemVer tag-push path so it cannot bypass the same
-# release-tag safety contract used by scripts/release-tag.sh.
+# GitHub Actions ref guard for Android Play Deploy.
+# Both direct SemVer tag pushes and manual workflow_dispatch runs must use a
+# release tag that is reachable from origin/main and respects the previous
+# production-completion marker gate.
 
 event_name="${GITHUB_EVENT_NAME:-}"
 ref="${GITHUB_REF:-}"
 tag="${GITHUB_REF_NAME:-}"
 
-if [[ "$event_name" != "push" ]]; then
-  echo "Skipping tag-push Play deploy guard for event ${event_name:-<unset>}."
+if [[ "$event_name" != "push" && "$event_name" != "workflow_dispatch" ]]; then
+  echo "Skipping Play deploy release guard for event ${event_name:-<unset>}."
   exit 0
 fi
 
 if [[ "$ref" != refs/tags/* ]]; then
-  echo "Play deploy tag-push guard expected refs/tags/* on push; got ${ref:-<unset>}" >&2
+  echo "Play deploy release guard expected refs/tags/* on ${event_name:-<unset>}; got ${ref:-<unset>}" >&2
   exit 1
 fi
 
 if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Play deploy tag-push guard only accepts SemVer tags like v1.7.2; got ${tag:-<unset>}" >&2
+  echo "Play deploy release guard only accepts SemVer tags like v1.7.2; got ${tag:-<unset>}" >&2
   exit 1
 fi
 

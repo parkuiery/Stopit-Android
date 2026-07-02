@@ -13,12 +13,13 @@
 
 | Secret | 설정 helper / 방법 | 사용하는 경로 | 실제 복원/사용 위치 |
 | --- | --- | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy | runner temp keystore 파일 |
-| `ANDROID_KEYSTORE_PASSWORD` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy | Gradle signing env |
-| `ANDROID_KEY_ALIAS` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy | Gradle signing env |
-| `ANDROID_KEY_PASSWORD` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy | Gradle signing env |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | `scripts/setup-play-deploy-secrets.sh` | Version Guard, Play Deploy | runner temp service-account JSON |
-| `GOOGLE_SERVICES_JSON` | `scripts/setup-play-deploy-secrets.sh` | Android CI, Release QA, Release Build, Play Deploy | 아래 workflow matrix 참고 |
+| `ANDROID_KEYSTORE_BASE64` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy non-production build/upload | runner temp keystore 파일 |
+| `ANDROID_KEYSTORE_PASSWORD` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy non-production build/upload | Gradle signing env |
+| `ANDROID_KEY_ALIAS` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy non-production build/upload | Gradle signing env |
+| `ANDROID_KEY_PASSWORD` | `scripts/setup-play-deploy-secrets.sh` | Release Build, Play Deploy non-production build/upload | Gradle signing env |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | `scripts/setup-play-deploy-secrets.sh` | Version Guard, Play Deploy non-production build/upload, Play Deploy production promotion | runner temp service-account JSON |
+| `GOOGLE_SERVICES_JSON` | `scripts/setup-play-deploy-secrets.sh --google-services <prod-json>` | Android CI, Release QA, Release Build, Play Deploy non-production build/upload | prod Firebase config. 아래 workflow matrix 참고 |
+| `GOOGLE_SERVICES_JSON_DEV` | `scripts/setup-play-deploy-secrets.sh --google-services-dev <dev-json>` 또는 `gh secret set` | Android CI, Release QA | dev Firebase config. `com.uiery.keep.dev` client를 포함해야 함 |
 | `DISCORD_BOT_TOKEN` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy | `scripts/notify-discord-deploy.py`가 Discord 메시지 POST에 사용 |
 | `DISCORD_DEPLOY_CHANNEL_ID` | `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` | Play Deploy, Firebase Functions | `scripts/notify-discord-deploy.py`의 deploy 알림 채널 + `functions/src/index.ts`의 Discord interaction 채널 검증 |
 
@@ -43,17 +44,24 @@
 
 | Workflow | `GOOGLE_SERVICES_JSON` 동작 | 기타 핵심 secret |
 | --- | --- | --- |
-| `android-ci.yml` | `app/src/dev/google-services.json`, `app/src/prod/google-services.json` 둘 다 복원 | 없음 |
-| `release-qa.yml` | `app/src/dev/google-services.json`, `app/src/prod/google-services.json` 둘 다 복원 | 없음 |
+| `android-ci.yml` | `GOOGLE_SERVICES_JSON_DEV` -> `app/src/dev/google-services.json`, `GOOGLE_SERVICES_JSON` -> `app/src/prod/google-services.json` | 없음 |
+| `release-qa.yml` | `GOOGLE_SERVICES_JSON_DEV` -> `app/src/dev/google-services.json`, `GOOGLE_SERVICES_JSON` -> `app/src/prod/google-services.json` | 없음 |
 | `release-build.yml` | `app/src/prod/google-services.json`만 복원 | `ANDROID_*` |
-| `play-deploy.yml` | `app/src/prod/google-services.json`만 복원 | `ANDROID_*`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID` |
+| `play-deploy.yml` non-production build/upload (`internal`, `alpha`, `beta`) | `app/src/prod/google-services.json`만 복원 | `ANDROID_*`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID` |
+| `play-deploy.yml` production promotion | 사용 안 함 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` + SemVer tag / `versionCode` governance. `ANDROID_*`와 `GOOGLE_SERVICES_JSON`는 필요 없음 |
 | `version-guard.yml` | 사용 안 함 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` |
 | `functions/README.md`에 설명된 Discord promotion flow | GitHub secret 아님 | Firebase Functions secrets 사용 |
 
 해석 규칙:
-- `GOOGLE_SERVICES_JSON`을 “prod 전용 secret”으로 이해하면 Android CI / Release QA 실패 원인을 놓치기 쉽다.
-- 더 정확한 계약은 **하나의 secret 값을 workflow마다 다른 source set에 복원한다**이다.
-- 현재 steady-state에서는 Android CI / Release QA가 dev+prod 둘 다를 요구하고, Release Build / Play Deploy는 prod만 요구한다.
+- `GOOGLE_SERVICES_JSON`을 “모든 flavor 공용 secret” 또는 “모든 Play Deploy 경로에서 쓰는 secret”으로 이해하면 dev/prod `applicationId` 분리 후 Android CI / Release QA 실패와 production promotion 실패 원인을 놓치기 쉽다.
+- 현재 steady-state에서는 Android CI / Release QA가 dev+prod 둘 다를 요구하지만, dev는 `GOOGLE_SERVICES_JSON_DEV`, prod는 `GOOGLE_SERVICES_JSON`를 복원한다.
+- Dependabot PR에서는 GitHub repository secret이 노출되지 않을 수 있다. Android CI는 actor가 `dependabot[bot]`이고 `GOOGLE_SERVICES_JSON_DEV` / `GOOGLE_SERVICES_JSON`가 비어 있으면 `dev`/`prod` source set에 dummy `google-services.json`을 생성해 app Gradle verification(`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`)을 계속 materialize한다. emulator `runtime smoke`는 실제 Firebase secret이 필요한 신뢰 경계로 유지하므로 `Dependabot Firebase secret boundary` summary와 함께 neutral-deferred 처리하고, trusted branch 또는 수동 `workflow_dispatch`에서 repository Firebase secrets로 재실행한다. 일반 PR / 내부 브랜치 / 수동 실행에서는 같은 Firebase secret 누락을 계속 hard fail로 유지한다.
+- Release Build / Play Deploy non-production build/upload는 prod만 요구하므로 계속 `GOOGLE_SERVICES_JSON`만 사용한다.
+- Play Deploy non-production staged rollout 입력 검증은 secret 복원보다 먼저 실패해야 한다. `release_status=inProgress`이면 `rollout_fraction`이 숫자이고 `0 < rollout_fraction <= 1`이어야 하며, `completed`/`draft`/`halted`는 `rollout_fraction`을 비워야 한다.
+- Play Deploy production staged rollout 입력 검증도 production promotion secret boundary보다 먼저 실패해야 한다. `release_status=inProgress`이면 `rollout_fraction`이 숫자이고 `0 < rollout_fraction <= 1`이어야 하며, `completed`/`draft`/`halted`는 `rollout_fraction`을 비워야 한다. 이 검증은 before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` presence check/decode 단계에서 실행되어 잘못된 수동 production dispatch가 Play API 호출까지 진행하지 않게 한다.
+- Play Deploy production promotion은 이미 internal track에 올라간 같은 SemVer tag의 `versionCode`를 production으로 승격하는 경로다. 이 경로는 AAB를 다시 빌드/서명하지 않으므로 `ANDROID_*`와 `GOOGLE_SERVICES_JSON`를 복원하지 않으며, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`와 tag/versionCode governance만 필요하다. 단, Play API를 호출할 수 있는 시점에는 helper가 `SOURCE_TRACK=internal` + tag `VERSION_CODE`로 선택한 live source release의 `sourceRelease.status == "completed"`도 확인해야 한다. 이 검증은 prior provenance와 별개의 live Play source-track 상태 guard이며, 실패 시 `source release status mismatch`로 분류한다.
+- GitHub Release의 durable `release-provenance.json` fallback은 production promotion용 internal completed evidence다. `play-deploy.yml`은 `track=internal` + `release_status=completed` non-production upload에서만 이 asset을 publish/overwrite해야 하며, `alpha`/`beta` uploads는 short-retention Actions artifact evidence만 남기고 single fallback asset을 clobber하면 안 된다. Production promotion의 prior artifact verification은 `scripts/release_provenance_manifest.py verify --prior-run`으로 prior internal run identity를 감사 증거로 보존하되, current production run의 `github_actions.run_id/run_attempt/run_url`과 같을 것을 요구하지 않는다. Android signing/Firebase secret 여부와 무관한 provenance-mode 경계이므로, run_id mismatch는 secret 복구 문제가 아니라 release provenance verifier 계약 문제로 분류한다.
+- dev/prod `applicationId`를 분리하거나 분리하지 않는 결정을 바꿀 때는 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다. `dev` package가 `com.uiery.keep.dev`로 바뀌면 dev Firebase client도 그 package를 포함해야 하고, Release Build / Play Deploy는 계속 production package `com.uiery.keep`와 prod-only restore 경로를 사용해야 한다.
 
 ## 3. 권장 setup 순서
 
@@ -64,7 +72,8 @@ scripts/setup-play-deploy-secrets.sh \
   --keystore /path/to/upload-key.jks \
   --service-account /path/to/google-play-service-account.json \
   --alias <upload-key-alias> \
-  --google-services app/src/prod/google-services.json
+  --google-services app/src/prod/google-services.json \
+  --google-services-dev app/src/dev/google-services.json
 ```
 
 이 helper가 설정하는 범위:
@@ -74,6 +83,11 @@ scripts/setup-play-deploy-secrets.sh \
 - `ANDROID_KEY_PASSWORD`
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 - `GOOGLE_SERVICES_JSON`
+- `GOOGLE_SERVICES_JSON_DEV`
+
+적용 범위:
+- Release Build와 Play Deploy non-production build/upload(`internal`, `alpha`, `beta`)에는 위 build-upload secret 묶음이 필요하다.
+- Play Deploy production promotion은 이 helper가 설정하는 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`만 사용한다. Android keystore와 `GOOGLE_SERVICES_JSON` 누락은 production promotion 실패 원인이 아니다.
 
 ### B. GitHub Actions Discord deploy notification secrets
 
@@ -90,6 +104,13 @@ DISCORD_DEPLOY_CHANNEL_ID=<deploy-channel-id> \
 의도적인 범위 제한:
 - 이 helper는 GitHub Actions의 deploy 알림/approval card 발송 계약만 다룬다.
 - Firebase Functions deploy approval secret은 아래 수동 단계에서 따로 설정한다.
+
+#### Discord deploy notification failure boundary
+
+- 알림 실패 != Play 배포 실패다. `scripts/notify-discord-deploy.py`의 Discord HTTP/권한/API 오류는 workflow warning으로 남기되 Play 업로드/승격 결과를 뒤집지 않는다.
+- `.github/workflows/play-deploy.yml`의 `Notify Discord deploy channel` step은 non-blocking 알림 단계이며, Google Play upload/promotion 성공 여부는 그 이전 Play step과 production marker step 결과로 판단한다.
+- production completion marker 작성 경계는 기존 그대로 `track=production` + `release_status=completed` 성공이다. Discord notification failure boundary는 marker 작성/미작성 판단을 바꾸지 않는다.
+- 운영자가 Discord 실패를 보면 bot token/channel permission/API 상태를 복구한 뒤 알림만 재시도하거나 수동 공지한다. 같은 Play 배포를 실패로 오진해 tag/play upload를 재실행하지 않는다.
 
 ### C. Firebase Functions production promotion secrets
 
@@ -138,20 +159,22 @@ gh secret list
 - `ANDROID_KEY_PASSWORD`
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 - `GOOGLE_SERVICES_JSON`
+- `GOOGLE_SERVICES_JSON_DEV`
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_DEPLOY_CHANNEL_ID`
 
 ### Workflow / consumer contract 확인
 
 ```bash
-rg -n 'GOOGLE_SERVICES_JSON|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_PLAY_SERVICE_ACCOUNT_JSON' .github/workflows
+rg -n 'GOOGLE_SERVICES_JSON|GOOGLE_SERVICES_JSON_DEV|DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID|GOOGLE_PLAY_SERVICE_ACCOUNT_JSON' .github/workflows
 rg -n 'DISCORD_BOT_TOKEN|DISCORD_DEPLOY_CHANNEL_ID' scripts/notify-discord-deploy.py
 rg -n 'DISCORD_PUBLIC_KEY|DISCORD_DEPLOY_CHANNEL_ID|DISCORD_DEPLOY_ALLOWED_ROLE_IDS|DISCORD_DEPLOY_ALLOWED_USER_IDS|GITHUB_ACTIONS_DISPATCH_TOKEN' functions/src/index.ts
 ```
 
 기대 결과:
-- Android CI / Release QA는 `GOOGLE_SERVICES_JSON`을 dev+prod 둘 다에 복원한다.
-- Release Build / Play Deploy는 `GOOGLE_SERVICES_JSON`을 prod만 복원한다.
+- Android CI / Release QA는 `GOOGLE_SERVICES_JSON_DEV`를 dev에, `GOOGLE_SERVICES_JSON`을 prod에 복원한다.
+- Release Build / Play Deploy non-production build/upload는 `GOOGLE_SERVICES_JSON`을 prod만 복원한다.
+- Play Deploy production promotion은 `GOOGLE_SERVICES_JSON`과 `ANDROID_*`를 복원하지 않고, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`로 selected tag의 matching internal release를 승격한다.
 - Play Deploy workflow는 `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`를 `scripts/notify-discord-deploy.py`에만 전달한다.
 - Firebase Functions는 `functions/src/index.ts`에서 `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, `DISCORD_DEPLOY_ALLOWED_ROLE_IDS`, `DISCORD_DEPLOY_ALLOWED_USER_IDS`, `GITHUB_ACTIONS_DISPATCH_TOKEN`을 별도 secret으로 정의한다.
 - Version Guard와 Play Deploy가 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`을 사용한다.
@@ -181,11 +204,12 @@ python3 -m unittest scripts.tests.test_check_play_deploy_secret_contract -v
 
 ## 5. Operator pitfalls
 
-1. `GOOGLE_SERVICES_JSON`을 prod-only 의미로 저장해 두고, Android CI / Release QA에서 dev flavor 복원을 잊기.
+1. `GOOGLE_SERVICES_JSON` 하나로 dev/prod를 모두 처리한다고 오해하고, Android CI / Release QA에서 `GOOGLE_SERVICES_JSON_DEV` dev flavor 복원을 잊기.
 2. `DISCORD_DEPLOY_CHANNEL_ID`를 GitHub secret에만 넣고 Firebase Functions secret은 빼먹기.
 3. `scripts/setup-play-deploy-secrets.sh` 하나로 Discord deploy approval까지 전부 끝났다고 오해하기.
 4. 값이 있는지 확인하려고 secret 내용을 출력하거나 repo에 커밋하기.
 5. Functions secret을 바꾼 뒤 `firebase deploy --only functions`를 하지 않아 이전 secret version을 계속 쓰기.
+6. Production promotion 실패를 Android keystore 또는 `GOOGLE_SERVICES_JSON` 누락으로 오진하기. Production promotion은 build/upload가 아니라 기존 internal release 승격이므로 `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, SemVer tag ref, selected tag `versionCode`, Play internal release 존재 여부를 먼저 확인한다.
 
 ## 6. Canonical 문서 동기화 상태
 
@@ -196,13 +220,13 @@ python3 -m unittest scripts.tests.test_check_play_deploy_secret_contract -v
 1. `docs/PLAY_DEPLOYMENT.md`
    - `scripts/setup-play-deploy-secrets.sh`가 **Android/Play build-upload secrets만** 다룬다고 설명한다.
    - `DISCORD_BOT_TOKEN`, `DISCORD_DEPLOY_CHANNEL_ID`는 `scripts/setup-discord-deploy-secrets.sh` 또는 `gh secret set` 경로로 분리한다.
-   - `GOOGLE_SERVICES_JSON` 설명은 `app/src/prod` 전용 문구가 아니라 workflow별 restore matrix를 요약하고, 자세한 감사는 이 runbook을 따른다.
+   - `GOOGLE_SERVICES_JSON` / `GOOGLE_SERVICES_JSON_DEV` 설명은 workflow별 restore matrix와 production promotion 예외를 요약하고, 자세한 감사는 이 runbook을 따른다.
 2. `docs/GIT_WORKFLOW.md`
    - Play deploy secret/setup source of truth가 이 runbook임을 링크한다.
    - Discord deploy notification secret과 Firebase Functions production-promotion secret 경계를 짧게 남긴다.
 3. `docs/RELEASE_CHECKLIST.md`
    - release evidence 작성 시 secret setup self-check를 이 runbook 기준으로 참조한다.
-   - `GOOGLE_SERVICES_JSON` dev+prod/prod-only 차이는 runbook matrix를 따라가게 한다.
+   - `GOOGLE_SERVICES_JSON_DEV` dev restore와 `GOOGLE_SERVICES_JSON` prod/prod-only/production-promotion-unused 차이는 runbook matrix를 따라가게 한다.
 4. `docs/ops/stopit/release-context.md`
    - release guardrail 문맥에서 secret restore/source-set 계약은 이 runbook을 우선 참조한다고 연결한다.
 

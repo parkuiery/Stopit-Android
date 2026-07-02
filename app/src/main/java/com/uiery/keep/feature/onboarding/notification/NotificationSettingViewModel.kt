@@ -18,15 +18,16 @@ class NotificationSettingViewModel @Inject constructor(
         analytics.trackOnboardingStepView(OnboardingStepName.NOTIFICATION)
     }
 
-    fun onPermissionSettingsOpened() {
-        analytics.trackPermissionOutcome(
-            permissionName = AnalyticsPermissionName.NOTIFICATIONS,
-            outcome = AnalyticsOutcome.SETTINGS_OPENED,
-            stepName = OnboardingStepName.NOTIFICATION,
-        )
+    fun onPermissionDenied() {
+        trackNotificationPermissionDenied()
     }
 
-    fun onPermissionDenied() {
+    fun onPermissionDeniedAndContinue() {
+        trackNotificationPermissionDenied()
+        analytics.trackOnboardingStepComplete(OnboardingStepName.NOTIFICATION)
+    }
+
+    private fun trackNotificationPermissionDenied() {
         analytics.trackPermissionOutcome(
             permissionName = AnalyticsPermissionName.NOTIFICATIONS,
             outcome = AnalyticsOutcome.DENIED,

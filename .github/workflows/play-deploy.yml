@@ -34,6 +34,7 @@ on:
 permissions:
   contents: write
   deployments: write
+  actions: read
 
 concurrency:
   group: android-play-deploy-${{ github.ref }}
@@ -45,6 +46,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.track == 'production' && 'production' || 'play-deploy-non-production' }}
 
     env:
       PACKAGE_NAME: com.uiery.keep
@@ -60,16 +63,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
       - name: Set up JDK 17
+        if: env.DEPLOY_TRACK != 'production'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
+        if: env.DEPLOY_TRACK != 'production'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Make Gradle wrapper executable
+        if: env.DEPLOY_TRACK != 'production'
         run: chmod +x ./gradlew
 
       - name: Validate manual deploy ref is a SemVer tag
@@ -82,12 +96,32 @@ jobs:
             exit 1
           fi
 
-      - name: Validate tag-push release guardrails
+      - name: Validate Play deploy release guardrails
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/validate-play-deploy-ref.sh
 
-      - name: Validate deployment secrets
+      - name: Validate non-production staged rollout inputs
+        if: env.DEPLOY_TRACK != 'production'
+        run: node scripts/validate-play-rollout-inputs.js
+
+      - name: Validate production staged rollout inputs
+        if: env.DEPLOY_TRACK == 'production'
+        run: |
+          node - <<'NODE'
+          const { validateReleaseStatusAndRolloutFraction } = require('./scripts/promote-google-play-track.js');
+          validateReleaseStatusAndRolloutFraction(process.env.RELEASE_STATUS || 'completed', process.env.ROLLOUT_FRACTION || '');
+          console.log(`Validated production staged rollout input: release_status=${process.env.RELEASE_STATUS || 'completed'}, rollout_fraction=${process.env.ROLLOUT_FRACTION || ''}`);
+          NODE
+
+      - name: Verify production Environment approval protection
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-production-environment-approval.sh
+
+      - name: Validate build/upload deployment secrets
+        if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -105,6 +139,7 @@ jobs:
           test -n "$GOOGLE_SERVICES_JSON" || { echo 'GOOGLE_SERVICES_JSON secret is missing'; exit 1; }
 
       - name: Decode signing, Firebase, and Play credentials
+        if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -118,7 +153,27 @@ jobs:
           chmod 600 "$ANDROID_KEYSTORE_PATH" "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH" app/src/prod/google-services.json
 
       - name: Run release unit tests
-        run: ./gradlew testProdReleaseUnitTest
+        if: env.DEPLOY_TRACK != 'production'
+        run: ./gradlew :app:testProdReleaseUnitTest
+
+      - name: Run prod release lint
+        if: env.DEPLOY_TRACK != 'production'
+        run: ./gradlew :app:lintProdRelease
+
+      - name: Verify Navigation/Compose lint registry coverage
+        if: env.DEPLOY_TRACK != 'production'
+        run: >-
+          python3 scripts/verify_lint_registry.py
+          --report app/build/reports/lint-results-prodRelease.html
+          --require-section "Included Additional Checks"
+          --require-identifier androidx.navigation.common
+          --require-identifier androidx.navigation.compose
+          --require-identifier androidx.navigation.runtime
+          --require-issue-id MissingSerializableAnnotation
+          --require-issue-id MissingKeepAnnotation
+          --require-issue-id WrongNavigateRouteType
+          --forbid-text "Requires newer lint; these checks will be skipped!"
+          --forbid-text ObsoleteLintCustomCheck
 
       - name: Resolve production promotion versionCode from selected tag
         if: env.DEPLOY_TRACK == 'production'
@@ -144,26 +199,219 @@ jobs:
           echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "Resolved production promotion tag $GITHUB_REF_NAME to versionCode=$version_code"
 
+      - name: Download prior internal provenance artifact
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stopit-prior-internal-provenance
+          echo "PROVENANCE_VERIFY_MODE=full" >> "$GITHUB_ENV"
+
+          download_durable_fallback() {
+            echo "Attempting durable release-provenance.json fallback from GitHub Release $GITHUB_REF_NAME" >&2
+            if gh release download "$GITHUB_REF_NAME" \
+              --pattern release-provenance.json \
+              --dir /tmp/stopit-prior-internal-provenance \
+              --clobber; then
+              test -f /tmp/stopit-prior-internal-provenance/release-provenance.json || {
+                echo "durable fallback missing: GitHub Release asset download completed but release-provenance.json is absent." >&2
+                return 1
+              }
+              echo "PROVENANCE_VERIFY_MODE=metadata-only" >> "$GITHUB_ENV"
+              echo "Recovered durable release-provenance.json fallback for $GITHUB_REF_NAME; production promotion will run metadata-only provenance verification before secrets." >&2
+              return 0
+            fi
+            echo "durable fallback missing: GitHub Release $GITHUB_REF_NAME has no release-provenance.json asset available to recover expired/missing prior internal artifact evidence." >&2
+            return 1
+          }
+
+          try_candidate_run() {
+            local candidate_run_id="$1"
+            local candidate_event="$2"
+            local candidate_dir="/tmp/stopit-prior-internal-provenance-candidate-${candidate_run_id}"
+            rm -rf "$candidate_dir"
+            mkdir -p "$candidate_dir"
+
+            if ! gh run download "$candidate_run_id" \
+              --name stopit-prod-release-signed-aab \
+              --dir "$candidate_dir"; then
+              echo "Prior internal provenance artifact expired/missing for run_id=$candidate_run_id event=$candidate_event ($GITHUB_REF_NAME / $GITHUB_SHA); continuing search before durable fallback." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            local manifest_path
+            manifest_path="$(find "$candidate_dir" -name release-provenance.json -print -quit)"
+            if [[ -z "$manifest_path" ]]; then
+              echo "Downloaded prior candidate run_id=$candidate_run_id event=$candidate_event is missing release-provenance.json; classify this separately from provenance mismatch and continue search." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            if ! python3 scripts/release_provenance_manifest.py verify \
+              --aab-glob "$candidate_dir/**/*.aab" \
+              --manifest "$manifest_path" \
+              --artifact-name stopit-prod-release-signed-aab \
+              --package-name "$PACKAGE_NAME" \
+              --upload-mode play-upload \
+              --track internal \
+              --release-status completed \
+              --rollout-fraction '' \
+              --expected-version-code "$VERSION_CODE" \
+              --expected-git-sha "$GITHUB_SHA" \
+              --expected-git-ref "$GITHUB_REF" \
+              --expected-git-ref-name "$GITHUB_REF_NAME" \
+              --allow-artifact-path-relocation \
+              --prior-run; then
+              echo "prior internal track mismatch or provenance mismatch for run_id=$candidate_run_id event=$candidate_event; production promotion requires track=internal release_status=completed evidence, so continuing search." >&2
+              rm -rf "$candidate_dir"
+              return 1
+            fi
+
+            rm -rf /tmp/stopit-prior-internal-provenance
+            mv "$candidate_dir" /tmp/stopit-prior-internal-provenance
+            echo "PRIOR_PROVENANCE_RUN_EVENT=$candidate_event" >> "$GITHUB_ENV"
+            echo "Selected prior internal Play Deploy run_id=$candidate_run_id from event=$candidate_event for $GITHUB_REF_NAME / $GITHUB_SHA after manifest track/status verification"
+            return 0
+          }
+
+          selected_run=""
+          for event_name in push workflow_dispatch; do
+            while IFS= read -r candidate_run_id; do
+              [[ -n "$candidate_run_id" ]] || continue
+              if try_candidate_run "$candidate_run_id" "$event_name"; then
+                selected_run="$candidate_run_id"
+                break 2
+              fi
+            done < <(gh run list \
+              --workflow 'Android Play Deploy' \
+              --branch "$GITHUB_REF_NAME" \
+              --event "$event_name" \
+              --status success \
+              --limit 20 \
+              --json databaseId,headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$GITHUB_SHA\" and .conclusion == \"success\") | .databaseId")
+          done
+
+          if [[ -z "$selected_run" ]]; then
+            echo "No successful prior internal Play Deploy run found for $GITHUB_REF_NAME / $GITHUB_SHA across push or workflow_dispatch events after requiring manifest track=internal and release_status=completed; alpha/beta/production or mismatched candidates are not valid prior internal evidence." >&2
+            download_durable_fallback || {
+              echo "Recovery: rerun a non-production Play Deploy with track=internal and release_status=completed for this SemVer tag or attach the long-lived release-provenance.json fallback before production promotion." >&2
+              exit 1
+            }
+            exit 0
+          fi
+
+      - name: Verify prior internal provenance before production promotion
+        if: env.DEPLOY_TRACK == 'production'
+        run: |
+          set -euo pipefail
+          args=(
+            verify
+            --aab-glob '/tmp/stopit-prior-internal-provenance/**/*.aab'
+            --manifest /tmp/stopit-prior-internal-provenance/release-provenance.json
+            --artifact-name stopit-prod-release-signed-aab
+            --package-name "$PACKAGE_NAME"
+            --upload-mode play-upload
+            --track internal
+            --release-status completed
+            --rollout-fraction ''
+            --expected-version-code "$VERSION_CODE"
+            --expected-git-sha "$GITHUB_SHA"
+            --expected-git-ref "$GITHUB_REF"
+            --expected-git-ref-name "$GITHUB_REF_NAME"
+            --allow-artifact-path-relocation
+          )
+          if [[ "${PROVENANCE_VERIFY_MODE:-full}" == "metadata-only" ]]; then
+            args+=(--metadata-only)
+          else
+            args+=(--prior-run)
+          fi
+          python3 scripts/release_provenance_manifest.py "${args[@]}"
+
+      - name: Validate production promotion secrets
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" || { echo 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is missing'; exit 1; }
+
+      - name: Decode Play credentials for production promotion
+        if: env.DEPLOY_TRACK == 'production'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+          chmod 600 "$GOOGLE_PLAY_SERVICE_ACCOUNT_PATH"
+
       - name: Build signed prod release bundle
         if: env.DEPLOY_TRACK != 'production'
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew bundleProdRelease
+        run: ./gradlew :app:bundleProdRelease
+
+      - name: Generate Play upload provenance manifest
+        if: env.DEPLOY_TRACK != 'production'
+        run: >-
+          python3 scripts/release_provenance_manifest.py generate
+          --aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'
+          --output app/build/outputs/bundle/prodRelease/release-provenance.json
+          --artifact-name stopit-prod-release-signed-aab
+          --package-name "$PACKAGE_NAME"
+          --upload-mode play-upload
+          --track "$DEPLOY_TRACK"
+          --release-status "$RELEASE_STATUS"
+          --rollout-fraction "$ROLLOUT_FRACTION"
+
+      - name: Verify Play upload provenance manifest
+        if: env.DEPLOY_TRACK != 'production'
+        run: >-
+          python3 scripts/release_provenance_manifest.py verify
+          --aab-glob 'app/build/outputs/bundle/prodRelease/*.aab'
+          --manifest app/build/outputs/bundle/prodRelease/release-provenance.json
+          --artifact-name stopit-prod-release-signed-aab
+          --package-name "$PACKAGE_NAME"
+          --upload-mode play-upload
+          --track "$DEPLOY_TRACK"
+          --release-status "$RELEASE_STATUS"
+          --rollout-fraction "$ROLLOUT_FRACTION"
+
+      - name: Upload Play deploy release diagnostics
+        if: always() && env.DEPLOY_TRACK != 'production'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: stopit-play-deploy-release-diagnostics
+          path: |
+            app/build/reports/**
+            app/build/reports/problems/**
+            app/build/test-results/**
+            app/build/outputs/logs/**
+            app/build/outputs/mapping/prodRelease/**
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload signed AAB artifact
         if: env.DEPLOY_TRACK != 'production'
         uses: actions/upload-artifact@v7
         with:
           name: stopit-prod-release-signed-aab
-          path: app/build/outputs/bundle/prodRelease/*.aab
+          path: |
+            app/build/outputs/bundle/prodRelease/*.aab
+            app/build/outputs/bundle/prodRelease/release-provenance.json
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload to Google Play
         if: env.DEPLOY_TRACK != 'production'
-        uses: r0adkll/upload-google-play@v1
+        # Release-critical deploy action: pinned to the audited r0adkll/upload-google-play v1 commit.
+        # Update only through a reviewed provenance PR that refreshes scripts/tests/test_release_provenance_workflow_contract.py.
+        uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6
         with:
           serviceAccountJson: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH }}
           packageName: ${{ env.PACKAGE_NAME }}
@@ -172,6 +420,58 @@ jobs:
           status: ${{ env.RELEASE_STATUS }}
           userFraction: ${{ env.ROLLOUT_FRACTION }}
 
+      - name: Publish durable provenance fallback to GitHub Release
+        if: env.DEPLOY_TRACK == 'internal' && env.RELEASE_STATUS == 'completed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          post_upload_failure() {
+            local reason="$1"
+            {
+              echo "## Post-upload durable internal provenance publish failure"
+              echo ""
+              echo "Google Play internal upload already completed before this step, but publishing the durable GitHub Release \`release-provenance.json\` fallback failed: $reason"
+              echo ""
+              echo "Treat this as an evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same versionCode. Recover by rerunning the same-tag internal completed Play Deploy or by attaching the verified internal \`release-provenance.json\` fallback before production promotion. alpha/beta deploys must not clobber the internal durable fallback."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "post-upload durable internal provenance publish failure: $reason" >&2
+            echo "Play internal upload succeeded earlier in this job; classify recovery separately from Google Play upload failure and avoid blind same-versionCode re-upload." >&2
+            exit 1
+          }
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            post_upload_failure "SemVer tag ref is required; got $GITHUB_REF_NAME"
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "GitHub Release $GITHUB_REF_NAME already exists; checking existing internal release-provenance.json fallback before clobber."
+            existing_fallback_dir="$(mktemp -d)"
+            if gh release download "$GITHUB_REF_NAME" \
+              --pattern release-provenance.json \
+              --dir "$existing_fallback_dir"; then
+              existing_fallback_manifest="$existing_fallback_dir/release-provenance.json"
+              test -f "$existing_fallback_manifest" \
+                || post_upload_failure "Existing release-provenance.json asset download completed but the manifest file is absent; refusing to clobber"
+              python3 scripts/release_provenance_manifest.py compare \
+                --existing-manifest "$existing_fallback_manifest" \
+                --current-manifest app/build/outputs/bundle/prodRelease/release-provenance.json \
+                || post_upload_failure "Existing durable fallback identity mismatch; refusing to clobber release-provenance.json"
+              echo "Existing durable internal fallback identity matches this internal completed manifest; clobber is safe."
+            else
+              echo "GitHub Release $GITHUB_REF_NAME exists without release-provenance.json; first durable fallback publish will upload the verified internal completed manifest."
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "$GITHUB_REF_NAME" \
+              --notes "Stopit $GITHUB_REF_NAME internal release provenance fallback." \
+              || post_upload_failure "GitHub Release create failed for $GITHUB_REF_NAME"
+          fi
+          gh release upload "$GITHUB_REF_NAME" app/build/outputs/bundle/prodRelease/release-provenance.json --clobber \
+            || post_upload_failure "GitHub Release upload failed for release-provenance.json"
+          echo "Published durable internal release-provenance.json fallback for $GITHUB_REF_NAME after successful internal completed Play upload."
+
       - name: Promote internal release to production
         if: env.DEPLOY_TRACK == 'production'
         env:
@@ -179,7 +479,7 @@ jobs:
         run: node scripts/promote-google-play-track.js
 
       - name: Mark production deployment complete
-        if: success() && env.DEPLOY_TRACK == 'production'
+        if: success() && env.DEPLOY_TRACK == 'production' && env.RELEASE_STATUS == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -260,6 +560,7 @@ jobs:
 
       - name: Notify Discord deploy channel
         if: success() && (env.DEPLOY_TRACK == 'internal' || env.DEPLOY_TRACK == 'production')
+        continue-on-error: true
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_DEPLOY_CHANNEL_ID: ${{ secrets.DISCORD_DEPLOY_CHANNEL_ID }}

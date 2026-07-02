@@ -1,6 +1,5 @@
 package com.uiery.keep.model
 
-import com.uiery.keep.database.entity.LockHistoryEntity
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -29,21 +28,3 @@ data class LockHistoryModel(
     val date: LocalDate
         get() = startDateTime.toLocalDate()
 }
-
-fun LockHistoryEntity.toModel(): LockHistoryModel = LockHistoryModel(
-    id = id,
-    startTimestamp = startTimestamp,
-    endTimestamp = endTimestamp,
-    durationMillis = durationMillis,
-    lockedApps = lockedApps,
-    isRoutine = isRoutine,
-)
-
-fun LockHistoryModel.toEntity(): LockHistoryEntity = LockHistoryEntity(
-    id = id,
-    startTimestamp = startTimestamp,
-    endTimestamp = endTimestamp,
-    durationMillis = durationMillis,
-    lockedApps = lockedApps,
-    isRoutine = isRoutine,
-)

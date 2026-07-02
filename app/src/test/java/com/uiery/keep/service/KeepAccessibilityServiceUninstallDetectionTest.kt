@@ -29,6 +29,30 @@ class KeepAccessibilityServiceUninstallDetectionTest {
     }
 
     @Test
+    fun knownInstallerPackage_withEventTextMatch_returnsTrue() {
+        assertTrue(
+            shouldInterceptUninstallAttempt(
+                eventPackageName = "com.google.android.packageinstaller",
+                hasApplicationIdMatch = false,
+                hasAppNameMatch = false,
+                hasEventTextMatch = true,
+            ),
+        )
+    }
+
+    @Test
+    fun permissionControllerUninstallPackage_withEventTextMatch_returnsTrue() {
+        assertTrue(
+            shouldInterceptUninstallAttempt(
+                eventPackageName = "com.google.android.permissioncontroller",
+                hasApplicationIdMatch = false,
+                hasAppNameMatch = false,
+                hasEventTextMatch = true,
+            ),
+        )
+    }
+
+    @Test
     fun knownInstallerPackage_withoutProtectedAppMarkers_returnsFalse() {
         assertFalse(
             shouldInterceptUninstallAttempt(
@@ -56,6 +80,7 @@ class KeepAccessibilityServiceUninstallDetectionTest {
             setOf(
                 "com.android.packageinstaller",
                 "com.google.android.packageinstaller",
+                "com.google.android.permissioncontroller",
                 "com.samsung.android.packageinstaller",
                 "com.android.vending",
             ),

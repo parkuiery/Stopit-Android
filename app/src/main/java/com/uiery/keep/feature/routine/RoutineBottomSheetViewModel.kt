@@ -1,12 +1,24 @@
 package com.uiery.keep.feature.routine
 
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineExactAlarmScheduleDecision
+import com.uiery.keep.data.routine.RoutineRepository
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsScheduleType
+import com.uiery.keep.analytics.AnalyticsSelectedAppCountBucket
+import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
-import com.uiery.keep.database.dao.RoutineDao
+import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedRepeatDaysBucketName
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
+import com.uiery.keep.analytics.routine.RoutineSavedTimeWindowBucketName
+import com.uiery.keep.domain.repeatblock.RepeatBlockDayType
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toEntity
-import com.uiery.keep.notification.RoutineScheduler
+import com.uiery.keep.util.isChangeLocked
+import com.uiery.keep.util.isRunningNow
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.timeNow
 import com.uiery.keep.util.toDayOfWeekList
@@ -25,8 +37,8 @@ import javax.inject.Inject
 class RoutineBottomSheetViewModel
     @Inject
     constructor(
-        private val routineDao: RoutineDao,
-        private val routineScheduler: RoutineScheduler,
+        private val routineRepository: RoutineRepository,
+        private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val analytics: KeepAnalytics,
     ) : ViewModel(),
         ContainerHost<RoutineBottomSheetUiState, RoutineBottomSheetSideEffect> {
@@ -34,9 +46,17 @@ class RoutineBottomSheetViewModel
             container(
                 RoutineBottomSheetUiState(),
             )
-        internal fun resetState() =
+        internal fun resetState(
+            routineSavedEntrySurface: String? = null,
+            routineSavedCreationSource: String? = null,
+        ) =
             intent {
-                reduce { RoutineBottomSheetUiState() }
+                reduce {
+                    RoutineBottomSheetUiState(
+                        routineSavedEntrySurface = routineSavedEntrySurface,
+                        routineSavedCreationSource = routineSavedCreationSource,
+                    )
+                }
             }
 
         internal fun resetEditState(routineModel: RoutineModel) =
@@ -51,11 +71,34 @@ class RoutineBottomSheetViewModel
                             selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
                             isEnabled = routineModel.isEnabled,
                             changeLockHours = routineModel.changeLockHours,
+                            repeatBlockSuggestionPrefill = null,
+                            repeatBlockSuggestionSurface = null,
                         )
 
                     editState.copy(isButtonEnable = editState.isValidForSave())
                 }
             }
+
+        internal fun applyRepeatBlockRoutineSuggestionPrefill(
+            surface: String,
+            suggestion: RepeatBlockRoutineSuggestion,
+        ) = intent {
+            analytics.trackRepeatBlockRoutineSuggestionClicked(
+                surface = surface,
+                suggestion = suggestion.toAnalyticsPayload(),
+            )
+            reduce {
+                val prefilledState = state.copy(
+                    startTime = suggestion.prefillStartTime,
+                    endTime = suggestion.prefillEndTime,
+                    selectDays = suggestion.dayType.toRoutinePrefillDays(),
+                    selectApps = suggestion.prefillPackages.toSet(),
+                    repeatBlockSuggestionPrefill = suggestion,
+                    repeatBlockSuggestionSurface = surface,
+                )
+                prefilledState.copy(isButtonEnable = prefilledState.isValidForSave())
+            }
+        }
 
         internal fun setChangeLockHours(hours: Int?) =
             intent {
@@ -106,67 +149,89 @@ class RoutineBottomSheetViewModel
 
         internal fun addRoutine() =
             intent {
-                val routineModel = state.toRoutineModel()
-                val resolvedRoutine = resolveRoutineExactAlarmPermission(
-                    routine = routineModel,
-                    canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
-                )
-                val insertedId = routineDao.insert(routineEntity = resolvedRoutine.routine.toEntity())
+                if (!state.isValidForSave()) return@intent
+
+                val repeatBlockPrefill = state.repeatBlockSuggestionPrefill
+                val repeatBlockSurface = state.repeatBlockSuggestionSurface
+                val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel())
+                val insertedId = routineRepository.insert(resolvedRoutine.routine)
                 val routineWithId = resolvedRoutine.routine.copy(id = insertedId)
-                var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
-                if (routineWithId.isEnabled) {
-                    when (routineScheduler.scheduleRoutine(routineWithId)) {
-                        com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> {
-                            analytics.trackLockScheduled(
-                                scheduleType = AnalyticsScheduleType.ROUTINE,
-                                scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
-                            )
-                        }
-                        com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
-                            routineDao.update(routineWithId.copy(isEnabled = false).toEntity())
-                            shouldShowPermissionPrompt = true
-                        }
-                        com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
+                val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(routineWithId)
+
+                if (scheduleDecision.routine != routineWithId) {
+                    routineRepository.update(scheduleDecision.routine)
+                }
+                if (scheduleDecision.shouldTrackLockScheduled) {
+                    analytics.trackLockScheduled(
+                        scheduleType = AnalyticsScheduleType.ROUTINE,
+                        scheduledDurationMinutes = routineDurationMinutes(routineWithId.startTime, routineWithId.endTime),
+                    )
+                }
+                analytics.trackRoutineSaved(
+                    state.toRoutineSavedAnalyticsPayload(
+                        entrySurface = repeatBlockSurface ?: state.routineSavedEntrySurface ?: AnalyticsSource.ROUTINE,
+                        creationSource = if (repeatBlockPrefill != null) {
+                            RoutineSavedCreationSource.REPEAT_BLOCK_PREFILL
+                        } else {
+                            state.routineSavedCreationSource ?: RoutineSavedCreationSource.MANUAL
+                        },
+                        scheduleState = scheduleDecision.toRoutineSavedScheduleState(
+                            permissionPromptRequested = resolvedRoutine.shouldShowPermissionPrompt,
+                        ),
+                    ),
+                )
+                if (repeatBlockPrefill != null && repeatBlockSurface != null) {
+                    analytics.trackRepeatBlockRoutineSuggestionApplied(
+                        surface = repeatBlockSurface,
+                        suggestion = repeatBlockPrefill.toAnalyticsPayload(),
+                    )
+                    reduce {
+                        state.copy(
+                            repeatBlockSuggestionPrefill = null,
+                            repeatBlockSuggestionSurface = null,
+                            routineSavedEntrySurface = null,
+                            routineSavedCreationSource = null,
+                        )
                     }
                 }
-                if (shouldShowPermissionPrompt) {
+                if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                     postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                 }
+                postSideEffect(RoutineBottomSheetSideEffect.CloseBottomSheet)
             }
 
         internal fun editRoutine(id: Long?) =
             intent {
+                if (!state.isValidForSave()) return@intent
+
                 id?.let {
                     runCatching {
-                        val routineModel = state.toRoutineModel(id = it)
-                        val resolvedRoutine = resolveRoutineExactAlarmPermission(
-                            routine = routineModel,
-                            canScheduleExactAlarms = routineScheduler.canScheduleExactAlarms(),
-                        )
-                        routineDao.update(resolvedRoutine.routine.toEntity())
-                        routineScheduler.cancelRoutine(id)
-                        var shouldShowPermissionPrompt = resolvedRoutine.shouldShowPermissionPrompt
-                        if (resolvedRoutine.routine.isEnabled) {
-                            when (routineScheduler.scheduleRoutine(resolvedRoutine.routine)) {
-                                com.uiery.keep.notification.RoutineScheduleResult.Scheduled -> {
-                                    analytics.trackLockScheduled(
-                                        scheduleType = AnalyticsScheduleType.ROUTINE,
-                                        scheduledDurationMinutes = routineDurationMinutes(
-                                            resolvedRoutine.routine.startTime,
-                                            resolvedRoutine.routine.endTime,
-                                        ),
-                                    )
-                                }
-                                com.uiery.keep.notification.RoutineScheduleResult.MissingExactAlarmPermission -> {
-                                    routineDao.update(resolvedRoutine.routine.copy(isEnabled = false).toEntity())
-                                    shouldShowPermissionPrompt = true
-                                }
-                                com.uiery.keep.notification.RoutineScheduleResult.NotEnabled -> Unit
-                            }
+                        val storedRoutine = routineRepository.fetch(it)
+                        if (storedRoutine.isRunningNow() || storedRoutine.isChangeLocked()) {
+                            postSideEffect(RoutineBottomSheetSideEffect.ShowActiveRoutineBlocked)
+                            return@runCatching
                         }
-                        if (shouldShowPermissionPrompt) {
+
+                        val resolvedRoutine = exactAlarmOrchestrator.resolveBeforePersist(state.toRoutineModel(id = it))
+                        routineRepository.update(resolvedRoutine.routine)
+                        exactAlarmOrchestrator.cancelRoutine(id)
+                        val scheduleDecision = exactAlarmOrchestrator.scheduleEnabledRoutine(resolvedRoutine.routine)
+                        if (scheduleDecision.routine != resolvedRoutine.routine) {
+                            routineRepository.update(scheduleDecision.routine)
+                        }
+                        if (scheduleDecision.shouldTrackLockScheduled) {
+                            analytics.trackLockScheduled(
+                                scheduleType = AnalyticsScheduleType.ROUTINE,
+                                scheduledDurationMinutes = routineDurationMinutes(
+                                    resolvedRoutine.routine.startTime,
+                                    resolvedRoutine.routine.endTime,
+                                ),
+                            )
+                        }
+                        if (resolvedRoutine.shouldShowPermissionPrompt || scheduleDecision.shouldShowPermissionPrompt) {
                             postSideEffect(RoutineBottomSheetSideEffect.ShowAlarmPermission)
                         }
+                        postSideEffect(RoutineBottomSheetSideEffect.CloseBottomSheet)
                     }
                 }
             }
@@ -181,14 +246,41 @@ data class RoutineBottomSheetUiState(
     val selectApps: Set<String> = emptySet(),
     val isEnabled: Boolean = true,
     val changeLockHours: Int? = null,
+    val repeatBlockSuggestionPrefill: RepeatBlockRoutineSuggestion? = null,
+    val repeatBlockSuggestionSurface: String? = null,
+    val routineSavedEntrySurface: String? = null,
+    val routineSavedCreationSource: String? = null,
 )
+
+private fun RepeatBlockDayType.toRoutinePrefillDays(): List<DayOfWeek> = when (this) {
+    RepeatBlockDayType.Weekday -> listOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+    )
+
+    RepeatBlockDayType.Weekend -> listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    RepeatBlockDayType.Daily -> DayOfWeek.entries
+    RepeatBlockDayType.CustomDays -> emptyList()
+}
 
 private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
     val isNameValid = name.isNotEmpty()
-    val isTimeValid = routineDurationMinutes(startTime, endTime) >= 15
+    val isTimeValid = startTime != endTime && routineDurationMinutes(startTime, endTime) >= 15
     val isDaySelected = selectDays.isNotEmpty()
     return isNameValid && isTimeValid && isDaySelected && selectApps.isNotEmpty()
 }
+
+private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
+    reason = reason.analyticsValue,
+    timeBucket = timeBucket.analyticsValue,
+    dayType = dayType.analyticsValue,
+    categoryBucket = categoryBucket.analyticsValue,
+    repeatCountBucket = repeatCountBucket.analyticsValue,
+    routineCoverageState = routineCoverageState.analyticsValue,
+)
 
 private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
     RoutineModel(
@@ -202,6 +294,56 @@ private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
         changeLockHours = changeLockHours,
     )
 
+private fun RoutineBottomSheetUiState.toRoutineSavedAnalyticsPayload(
+    entrySurface: String,
+    creationSource: String,
+    scheduleState: String,
+) = RoutineSavedAnalyticsPayload(
+    entrySurface = entrySurface,
+    creationSource = creationSource,
+    selectedAppCountBucket = selectedAppCountBucket(selectApps.size),
+    repeatDaysBucket = repeatDaysBucket(selectDays.toSet()),
+    timeWindowBucket = timeWindowBucket(startTime, endTime),
+    scheduleState = scheduleState,
+)
+
+private fun RoutineExactAlarmScheduleDecision.toRoutineSavedScheduleState(permissionPromptRequested: Boolean): String = when {
+    shouldShowPermissionPrompt || permissionPromptRequested -> RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING
+    routine.isEnabled -> RoutineSavedScheduleState.ENABLED
+    else -> RoutineSavedScheduleState.DISABLED_USER_CHOICE
+}
+
+private fun selectedAppCountBucket(count: Int): String = when (count) {
+    1 -> AnalyticsSelectedAppCountBucket.ONE
+    in 2..3 -> AnalyticsSelectedAppCountBucket.TWO_TO_THREE
+    in 4..6 -> AnalyticsSelectedAppCountBucket.FOUR_TO_SIX
+    else -> AnalyticsSelectedAppCountBucket.SEVEN_PLUS
+}
+
+private fun repeatDaysBucket(days: Set<DayOfWeek>): String = when {
+    days.size <= 1 -> RoutineSavedRepeatDaysBucketName.ONE
+    days.size in 2..3 -> RoutineSavedRepeatDaysBucketName.TWO_TO_THREE
+    days.size in 4..6 -> RoutineSavedRepeatDaysBucketName.FOUR_TO_SIX
+    else -> RoutineSavedRepeatDaysBucketName.SEVEN
+}
+
+private fun timeWindowBucket(
+    startTime: LocalTime,
+    endTime: LocalTime,
+): String {
+    if (endTime == startTime) return RoutineSavedTimeWindowBucketName.ALL_DAY
+    if (endTime < startTime) return RoutineSavedTimeWindowBucketName.OVERNIGHT
+    return when (startTime.hour) {
+        in 5..11 -> RoutineSavedTimeWindowBucketName.MORNING
+        in 12..16 -> RoutineSavedTimeWindowBucketName.AFTERNOON
+        in 17..20 -> RoutineSavedTimeWindowBucketName.EVENING
+        in 21..23, in 0..4 -> RoutineSavedTimeWindowBucketName.NIGHT
+        else -> RoutineSavedTimeWindowBucketName.CUSTOM
+    }
+}
+
 sealed interface RoutineBottomSheetSideEffect {
     data object ShowAlarmPermission : RoutineBottomSheetSideEffect
+    data object ShowActiveRoutineBlocked : RoutineBottomSheetSideEffect
+    data object CloseBottomSheet : RoutineBottomSheetSideEffect
 }

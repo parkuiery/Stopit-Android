@@ -1,5 +1,6 @@
 package com.uiery.keep.qa
 
+import com.uiery.keep.data.routine.RoutineRepository
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -12,11 +13,20 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.RoutineCountAnalyticsSync
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
+import com.uiery.keep.data.routine.RoomRoutineRepository
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
+import com.uiery.keep.feature.routine.RoutineViewModel
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.BootReceiver
 import com.uiery.keep.receiver.RoutineAlarmReceiver
@@ -37,6 +47,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Emulates the intended backup/restore contract for a transferred device:
@@ -81,7 +92,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore boot routine"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
         }
 
@@ -105,7 +116,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
             appContext = context
         }
@@ -117,7 +128,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post routine notification") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
         waitUntil("RoutineAlarmReceiver should persist restored routines into DataStore") {
             storedRoutineNames() == listOf("Restore alarm routine")
@@ -126,8 +137,42 @@ class BackupRestoreRuntimeResetIntegrationTest {
             findRoutinePendingIntent(TEST_ROUTINE_ID) != null
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
         assertEquals(listOf("Restore alarm routine"), storedRoutineNames())
+        assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        assertRestoreResetOnlyStateAbsent()
+    }
+
+    @Test
+    fun appOpenRoutineEntryRehydratesRoomRoutineCacheAndSchedulesAlarmWithoutRevivingResetOnlyDataStoreState() = runBlocking {
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Restore app-open routine"))
+        val scheduler = RoutineScheduler(context)
+        val noticeStore = RoutineNoticeStore(dataStore)
+        val routineRepository = RoomRoutineRepository(database.routineDao())
+
+        RoutineViewModel(
+            routineRepository = routineRepository,
+            dataStore = dataStore,
+            analytics = NoopBackupRestoreAnalytics,
+            routineCountAnalyticsSync = RoutineCountAnalyticsSync(routineRepository, NoopBackupRestoreAnalytics),
+            exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+            routineNoticeStore = noticeStore,
+            routineRestoreAftercare = RoutineRestoreAftercare(
+                routineRepository = routineRepository,
+                dataStore = dataStore,
+                exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
+                routineNoticeStore = noticeStore,
+            ),
+        )
+
+        waitUntil("Routine screen app-open path should persist restored routines into DataStore") {
+            storedRoutineNames() == listOf("Restore app-open routine")
+        }
+        waitUntil("Routine screen app-open path should schedule restored routine PendingIntent") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+
+        assertEquals(listOf("Restore app-open routine"), storedRoutineNames())
         assertNotNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
         assertRestoreResetOnlyStateAbsent()
     }
@@ -149,24 +194,9 @@ class BackupRestoreRuntimeResetIntegrationTest {
             runCatching { dataStore.data.first() }.getOrElse { emptyPreferences() }
         }
 
-        assertNull(preferences[PreferencesKey.SELECTED_APP_PACKAGES])
-        assertNull(preferences[PreferencesKey.IS_KEEP])
-        assertNull(preferences[PreferencesKey.LOCK_TIME])
-        assertNull(preferences[PreferencesKey.FCM_TOKEN])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_ENABLED])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS])
-        assertNull(preferences[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_OPEN])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
-        assertNull(preferences[PreferencesKey.FIRST_OPEN_TIMESTAMP])
-        assertNull(preferences[PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION])
-        assertNull(preferences[PreferencesKey.REVIEW_PENDING])
-        assertNull(preferences[PreferencesKey.LAST_REVIEW_PROMPT_AT_MS])
-        assertNull(preferences[PreferencesKey.SUCCESSFUL_SESSION_COUNT])
-        assertNull(preferences[PreferencesKey.LAST_BACKGROUNDED_AT_MS])
+        BackupRestoreDataStoreKeyPolicy.resetOnlyKeys.forEach { key ->
+            assertNull("${key.name} should remain absent after restored-device runtime rehydration", preferences[key])
+        }
     }
 
     private fun clearAppState() = runBlocking {
@@ -188,12 +218,12 @@ class BackupRestoreRuntimeResetIntegrationTest {
     }
 
     private fun findRoutinePendingIntent(routineId: Long): PendingIntent? {
-        val requestCode = (routineId * 10 + today.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, today),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, today)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -201,6 +231,14 @@ class BackupRestoreRuntimeResetIntegrationTest {
 
     private fun cancelRoutineAlarm(routineId: Long) {
         findRoutinePendingIntent(routineId)?.cancel()
+        PendingIntent.getBroadcast(
+            context,
+            RoutineIdentifierPolicy.legacyAlarmRequestCode(routineId, today),
+            Intent(context, RoutineAlarmReceiver::class.java).apply {
+                action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+            },
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )?.cancel()
     }
 
     private fun activeNotificationIds(): Set<Int> {
@@ -210,6 +248,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 
@@ -241,7 +280,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }
@@ -252,4 +291,18 @@ class BackupRestoreRuntimeResetIntegrationTest {
         private const val TEST_ROUTINE_ID = 103L
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek
     }
+}
+
+private object NoopBackupRestoreAnalytics : KeepAnalytics {
+    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    override fun logScreenView(screenName: String) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun trackFirstOpen() = Unit
+    override fun trackOnboardingStepView(stepName: String) = Unit
+    override fun trackOnboardingStepComplete(stepName: String) = Unit
+    override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
+    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) = Unit
+    override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
+    override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
+    override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
 }

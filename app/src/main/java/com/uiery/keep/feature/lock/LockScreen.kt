@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.lock
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -46,12 +47,13 @@ import com.uiery.kds.RotatingCircleGradient
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.feature.home.component.CategoryButton
-import com.uiery.keep.feature.lock.component.CountDownContent
-import com.uiery.keep.feature.lock.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.ui.component.CategoryButton
+import com.uiery.keep.ui.component.CountDownContent
+import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
+import com.uiery.keep.service.emergencyUnlockActionUiState
 import com.uiery.keep.util.formatLockEndTime
 import com.uiery.keep.util.formatMinuteSecondCountdown
 import kotlinx.coroutines.launch
@@ -65,6 +67,11 @@ fun LockScreen(
     viewModel: LockViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit,
 ) {
+    BackHandler(enabled = true) {
+        // Active locks must not be dismissed by system back; only explicit policy
+        // exits such as timer completion or emergency unlock may navigate home.
+    }
+
     val uiState by viewModel.collectAsState()
     val configuration = LocalConfiguration.current
 
@@ -88,6 +95,11 @@ fun LockScreen(
                 blockedApps = uiState.selectedAppPackage,
                 durationOptions = uiState.emergencyUnlockDurationOptions,
                 reasonStepEnabled = uiState.emergencyUnlockReasonRequired,
+                countdownEnabled = uiState.emergencyUnlockCountdownEnabled,
+                countdownSeconds = uiState.emergencyUnlockCountdownSeconds,
+                onStepViewed = viewModel::trackEmergencyUnlockStepViewed,
+                onValidationBlocked = viewModel::trackEmergencyUnlockValidationBlocked,
+                onCancelled = viewModel::trackEmergencyUnlockCancelled,
                 onUnlock = { reason, customReason, apps, duration ->
                     viewModel.emergencyUnlock(reason, customReason, apps, duration)
                     coroutineScope.launch {
@@ -241,24 +253,25 @@ fun LockScreen(
                     textAlign = TextAlign.Center,
                 )
                 if (!uiState.isEmergencyUnlockActive) {
+                    val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
                     TextButton(
                         onClick = viewModel::showEmergencyUnlockSheet,
-                        enabled = !uiState.dailyLimitReached,
+                        enabled = emergencyUnlockAction.enabled,
                     ) {
                         Text(
-                            text = if (uiState.dailyLimitReached) {
-                                stringResource(R.string.emergency_unlock_daily_limit_reached)
-                            } else {
+                            text = if (emergencyUnlockAction.enabled) {
                                 stringResource(
-                                    R.string.emergency_unlock_with_count,
+                                    emergencyUnlockAction.textRes,
                                     uiState.dailyUnlockRemaining,
                                     uiState.emergencyUnlockDailyLimit,
                                 )
-                            },
-                            color = if (uiState.dailyLimitReached) {
-                                KeepTheme.colors.surfaceVariant
                             } else {
+                                stringResource(emergencyUnlockAction.textRes)
+                            },
+                            color = if (emergencyUnlockAction.enabled) {
                                 KeepTheme.colors.primary
+                            } else {
+                                KeepTheme.colors.surfaceVariant
                             },
                             fontSize = 13.sp,
                         )
@@ -266,11 +279,9 @@ fun LockScreen(
                 }
                 TrackedBannerAd(
                     modifier = Modifier.padding(top = 16.dp),
-                    metadata = AdPlacementMetadata(
+                    metadata = AdPlacement.LockBottom.toMetadata(
                         screenName = KeepAnalyticsScreen.LOCK,
                         screenContext = if (uiState.isRoutine) "routine" else "manual",
-                        placement = AdPlacement.LockBottom.analyticsPlacement,
-                        adUnitId = AdPlacement.LockBottom.adUnitId,
                     ),
                 )
             }

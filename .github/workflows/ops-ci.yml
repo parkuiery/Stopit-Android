@@ -12,9 +12,22 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/validate-play-rollout-inputs.js'
+      - 'scripts/release-tag.sh'
+      - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/check-production-environment-approval.sh'
+      - 'scripts/setup-play-deploy-secrets.sh'
+      - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
+      - 'scripts/release_provenance_manifest.py'
+      - 'scripts/verify_lint_registry.py'
+      - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
+      - 'tools/aso-screenshots/**'
+      - '.github/dependabot.yml'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '**/*.md'
   push:
     branches: [main, develop]
     paths:
@@ -26,23 +39,128 @@ on:
       - 'scripts/release-start.sh'
       - 'scripts/bump-version.sh'
       - 'scripts/validate-play-deploy-ref.sh'
+      - 'scripts/validate-play-rollout-inputs.js'
+      - 'scripts/release-tag.sh'
+      - 'scripts/check-play-deploy-secret-contract.sh'
+      - 'scripts/check-production-environment-approval.sh'
+      - 'scripts/setup-play-deploy-secrets.sh'
+      - 'scripts/setup-discord-deploy-secrets.sh'
       - 'scripts/play_version_code_guard.py'
+      - 'scripts/release_provenance_manifest.py'
+      - 'scripts/verify_lint_registry.py'
+      - 'scripts/check_workflow_gradle_tasks.py'
       - 'scripts/tests/**'
+      - 'tools/aso-screenshots/**'
+      - '.github/dependabot.yml'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ops-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  classify_ops_ci:
+    name: Classify Ops CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      functions: ${{ steps.filter.outputs.functions }}
+      release_helpers: ${{ steps.filter.outputs.release_helpers }}
+      aso_screenshots: ${{ steps.filter.outputs.aso_screenshots }}
+      docs_contract: ${{ steps.filter.outputs.docs_contract }}
+      workflow_syntax: ${{ steps.filter.outputs.workflow_syntax }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Classify changed paths
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            functions:
+              - 'functions/**'
+            release_helpers:
+              - 'scripts/promote-google-play-track.js'
+              - 'scripts/notify-discord-deploy.py'
+              - 'scripts/check-release-readiness.sh'
+              - 'scripts/check-latest-production-deployed.sh'
+              - 'scripts/release-start.sh'
+              - 'scripts/bump-version.sh'
+              - 'scripts/validate-play-deploy-ref.sh'
+              - 'scripts/validate-play-rollout-inputs.js'
+              - 'scripts/release-tag.sh'
+              - 'scripts/check-play-deploy-secret-contract.sh'
+              - 'scripts/check-production-environment-approval.sh'
+              - 'scripts/setup-play-deploy-secrets.sh'
+              - 'scripts/setup-discord-deploy-secrets.sh'
+              - 'scripts/play_version_code_guard.py'
+              - 'scripts/release_provenance_manifest.py'
+              - 'scripts/verify_lint_registry.py'
+              - 'scripts/check_workflow_gradle_tasks.py'
+              - 'scripts/tests/**'
+            aso_screenshots:
+              - 'tools/aso-screenshots/**'
+            docs_contract:
+              - 'docs/**'
+              - '**/*.md'
+              - '.github/dependabot.yml'
+              - 'scripts/tests/**'
+              - 'scripts/tests/test_aso_screenshots_ci_contract.py'
+              - 'scripts/tests/test_play_deploy_secret_contract_runbook.py'
+              - 'scripts/tests/test_release_build_workflow_scope.py'
+              - 'scripts/tests/test_release_qa_workflow_scope.py'
+              - 'scripts/tests/test_release_qa_runtime_gate_docs.py'
+              - 'scripts/tests/test_android_ci_runtime_smoke_docs.py'
+              - 'scripts/tests/test_release_guard_hotfix_sync.py'
+              - 'scripts/tests/test_readme_version_contract.py'
+              - 'scripts/tests/test_gradle_wrapper_distribution_checksum.py'
+              - 'scripts/tests/test_release_provenance_workflow_contract.py'
+              - 'scripts/tests/test_acquisition_attribution_docs_contract.py'
+              - 'scripts/tests/test_ga4_custom_dimension_registration_docs.py'
+              - 'scripts/tests/test_monetization_interest_contract.py'
+              - 'scripts/tests/test_signed_aab_lint_gate.py'
+              - 'scripts/tests/test_review_prompt_post_release_followthrough_docs.py'
+              - 'scripts/tests/test_workflow_gradle_task_guard.py'
+              - 'scripts/tests/test_release_gradle_task_contract.py'
+              - 'scripts/tests/test_prod_release_shrinking_contract.py'
+              - 'scripts/tests/test_release_signing_gradle_contract.py'
+              - 'scripts/tests/test_query_all_packages_policy_contract.py'
+              - 'scripts/tests/test_android_ci_artifact_retention.py'
+              - 'scripts/tests/test_android_ci_path_gating.py'
+              - 'scripts/tests/test_play_deploy_tag_governance.py'
+              - 'scripts/tests/test_release_gate_retarget_triggers.py'
+              - 'scripts/tests/test_dependabot_policy_contract.py'
+              - 'scripts/tests/test_kotlin_compiler_options_contract.py'
+              - 'scripts/tests/test_branch_hygiene_policy.py'
+              - 'scripts/tests/test_ops_ci_workflow.py'
+              - 'scripts/tests/test_actionlint_gate.py'
+              - 'scripts/tests/test_runtime_diagnostic_artifacts.py'
+              - '.github/workflows/branch-hygiene.yml'
+              - '.github/workflows/android-ci.yml'
+              - '.github/workflows/ops-ci.yml'
+              - '.github/workflows/play-deploy.yml'
+              - '.github/workflows/release-build.yml'
+              - '.github/workflows/release-qa.yml'
+              - '.github/workflows/version-guard.yml'
+            workflow_syntax:
+              - '.github/workflows/**'
+
   actionlint:
     name: Workflow syntax lint
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.workflow_syntax == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: 1.7.12
 
     steps:
       - name: Checkout
@@ -51,13 +169,74 @@ jobs:
       - name: Install actionlint
         run: |
           set -euo pipefail
-          curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash -s -- latest /usr/local/bin
+          os="linux"
+          case "$(uname -m)" in
+            x86_64) arch="amd64" ;;
+            aarch64|arm64) arch="arm64" ;;
+            *) echo "Unsupported actionlint architecture: $(uname -m)" >&2; exit 1 ;;
+          esac
+          base_url="https://github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION"
+          archive="actionlint_${ACTIONLINT_VERSION}_${os}_${arch}.tar.gz"
+          checksum_file="actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          curl -fsSLO "$base_url/$archive"
+          curl -fsSLO "$base_url/$checksum_file"
+          grep "  $archive$" "$checksum_file" > "$archive.sha256"
+          sha256sum --check "$archive.sha256"
+          tar -xzf "$archive" actionlint
+          install -m 0755 actionlint /usr/local/bin/actionlint
+          actionlint --version
 
       - name: Run actionlint
         run: actionlint
 
+  docs-contract:
+    name: Docs/runbook contract tests
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.docs_contract == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run docs/runbook contract tests
+        # Full discovery intentionally covers docs-reading regressions that used
+        # to be hardcoded here, including:
+        # scripts.tests.test_branch_hygiene_policy
+        # scripts.tests.test_gradle_wrapper_distribution_checksum
+        # scripts.tests.test_readme_version_contract
+        # scripts.tests.test_review_prompt_post_release_followthrough_docs
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
+  aso-screenshots:
+    name: ASO screenshots build
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.aso_screenshots == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: tools/aso-screenshots
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install ASO screenshot dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build ASO screenshot generator
+        run: bun run build
+
   functions:
     name: Firebase Functions verification
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.functions == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -70,7 +249,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Node 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
@@ -87,6 +266,8 @@ jobs:
 
   release-helper-scripts:
     name: Release helper script verification
+    needs: classify_ops_ci
+    if: github.event_name == 'workflow_dispatch' || needs.classify_ops_ci.outputs.release_helpers == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -95,18 +276,24 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Node 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
       - name: Run Google Play promotion helper tests
         run: node --test scripts/tests/test_promote_google_play_track.js
 
+      - name: Check staged rollout validator syntax
+        run: node --check scripts/validate-play-rollout-inputs.js
+
       - name: Run release-helper guardrail Python tests
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
       - name: Check release-helper shell syntax
-        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh
+        run: bash -n scripts/check-release-readiness.sh scripts/check-latest-production-deployed.sh scripts/release-start.sh scripts/bump-version.sh scripts/validate-play-deploy-ref.sh scripts/release-tag.sh scripts/check-play-deploy-secret-contract.sh scripts/check-production-environment-approval.sh scripts/setup-play-deploy-secrets.sh scripts/setup-discord-deploy-secrets.sh
 
       - name: Compile Discord deploy notification script
         run: python3 -m py_compile scripts/notify-discord-deploy.py
+
+      - name: Compile release provenance manifest script
+        run: python3 -m py_compile scripts/release_provenance_manifest.py

@@ -1,6 +1,18 @@
 package com.uiery.keep.analytics
 
+import com.uiery.keep.analytics.acquisition.AcquisitionAttributionParser
+import com.uiery.keep.analytics.acquisition.InstallReferrerLookupStatus
+import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
+import com.uiery.keep.analytics.routine.RoutineAnalyticsParam
+import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
+import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
+import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
+import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
+import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
+import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class FirebaseKeepAnalyticsTest {
@@ -118,6 +130,118 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun emergencyUnlockSettingsEventsUsePrivacySafeBucketsOnly() {
+        analytics.trackEmergencyUnlockSettingsChanged(
+            settingName = AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+            valueBucket = AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+            refillMode = AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+            durationCountBucket = AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+            source = AnalyticsSource.MENU,
+        )
+        analytics.trackEmergencyUnlockManualResetRequested(
+            remainingUnlocksBucket = AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+            source = AnalyticsSource.MENU,
+            resetResult = AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_SETTINGS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.SETTING_NAME to AnalyticsEmergencyUnlockSettingName.DURATION_OPTIONS,
+                    KeepAnalyticsParam.VALUE_BUCKET to AnalyticsEmergencyUnlockSettingsValueBucket.LONG_INCLUDED,
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.NOT_APPLICABLE,
+                    KeepAnalyticsParam.DURATION_COUNT_BUCKET to AnalyticsEmergencyUnlockDurationCountBucket.TWO_TO_THREE,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[0].params.containsKey("manualResetAtMillis"))
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_MANUAL_RESET_REQUESTED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFILL_MODE to AnalyticsEmergencyUnlockRefillMode.MANUAL,
+                    KeepAnalyticsParam.REMAINING_UNLOCKS_BUCKET to AnalyticsEmergencyUnlockRemainingUnlocksBucket.ZERO,
+                    KeepAnalyticsParam.SOURCE to AnalyticsSource.MENU,
+                    KeepAnalyticsParam.RESET_RESULT to AnalyticsEmergencyUnlockManualResetResult.COMPLETED,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.REASON))
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents[1].params.containsKey("manualResetAtMillis"))
+    }
+
+    @Test
+    fun emergencyUnlockStepEventsUsePrivacySafeEnumsOnly() {
+        analytics.trackEmergencyUnlockStepViewed(
+            stepName = AnalyticsEmergencyUnlockStepName.REASON,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockValidationBlocked(
+            stepName = AnalyticsEmergencyUnlockStepName.APPS,
+            validationReason = AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+            reasonRequiredEnabled = true,
+            source = AnalyticsSource.LOCK_SCREEN,
+        )
+        analytics.trackEmergencyUnlockCancelled(
+            stepName = AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+            reasonRequiredEnabled = false,
+            source = AnalyticsSource.BLOCK_SCREEN,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_STEP_VIEWED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.REASON,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_VALIDATION_BLOCKED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.APPS,
+                    KeepAnalyticsParam.VALIDATION_REASON to AnalyticsEmergencyUnlockValidationReason.MISSING_APP_SELECTION,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to true,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.LOCK_SCREEN,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_CANCELLED,
+                params = mapOf(
+                    KeepAnalyticsParam.STEP_NAME to AnalyticsEmergencyUnlockStepName.COUNTDOWN,
+                    KeepAnalyticsParam.REASON_REQUIRED_ENABLED to false,
+                    KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsSource.BLOCK_SCREEN,
+                    KeepAnalyticsParam.CANCEL_SOURCE to AnalyticsEmergencyUnlockCancelSource.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+        backend.loggedEvents.forEach { event ->
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.REASON))
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey("custom_reason"))
+            assertFalse(event.params.containsKey("app_package"))
+            assertFalse(event.params.containsKey("duration_minutes"))
+            assertFalse(event.params.containsKey("timestamp"))
+        }
+    }
+
+    @Test
     fun dpcBaselineEventsUseRequiredNamesAndParams() {
         analytics.trackAppSelectionCompleted(
             selectedAppCount = 2,
@@ -136,6 +260,11 @@ class FirebaseKeepAnalyticsTest {
             blockSource = AnalyticsBlockSource.ROUTINE,
             blockedAppPackage = "com.example.routine",
             routineId = "42",
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.GOAL_LOCK,
+            blockedAppPackage = "com.example.goal",
+            goalLockId = "77",
         )
         analytics.trackEmergencyUnlockCompleted(
             reason = "work",
@@ -175,22 +304,36 @@ class FirebaseKeepAnalyticsTest {
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[3],
         )
+        assertFalse(backend.loggedEvents[3].params.containsKey("blocked_app_package"))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
                 params = mapOf(
                     KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
-                    KeepAnalyticsParam.ROUTINE_ID to "42",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[4],
         )
+        assertFalse(backend.loggedEvents[4].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[4].params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                params = mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.GOAL_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents[5],
+        )
+        assertFalse(backend.loggedEvents[5].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[5].params.containsKey(KeepAnalyticsParam.GOAL_LOCK_ID))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.EMERGENCY_UNLOCK_COMPLETED,
@@ -200,7 +343,7 @@ class FirebaseKeepAnalyticsTest {
                     KeepAnalyticsParam.REMAINING_UNLOCKS to 1,
                 ),
             ),
-            backend.loggedEvents[5],
+            backend.loggedEvents[6],
         )
     }
 
@@ -208,9 +351,9 @@ class FirebaseKeepAnalyticsTest {
     fun coreActionAndDeviceRegistrationEventsUseRequiredContract() {
         analytics.trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds = 120,
-            blockingMode = AnalyticsBlockSource.MANUAL_KEEP,
+            blockingMode = AnalyticsBlockSource.GOAL_LOCK,
             blockedAppPackage = "com.example.blocked",
-            routineId = null,
+            goalLockId = "goal-1",
         )
         analytics.trackCoreActionCompleted(
             elapsedSinceFirstOpenSeconds = 180,
@@ -227,24 +370,27 @@ class FirebaseKeepAnalyticsTest {
                 name = KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 120L,
-                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.MANUAL_KEEP,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.blocked",
+                    KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.GOAL_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[0],
         )
+        assertFalse(backend.loggedEvents[0].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[0].params.containsKey(KeepAnalyticsParam.GOAL_LOCK_ID))
         assertEquals(
             LoggedEvent(
                 name = KeepAnalyticsEvent.CORE_ACTION_COMPLETED,
                 params = mapOf(
                     KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS to 180L,
                     KeepAnalyticsParam.BLOCKING_MODE to AnalyticsBlockSource.ROUTINE,
-                    KeepAnalyticsParam.BLOCKED_APP_PACKAGE to "com.example.routine",
-                    KeepAnalyticsParam.ROUTINE_ID to "routine-1",
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
                 ),
             ),
             backend.loggedEvents[1],
         )
+        assertFalse(backend.loggedEvents[1].params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents[1].params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
         assertEquals(LoggedEvent(KeepAnalyticsEvent.FCM_TOKEN_CAPTURED, emptyMap()), backend.loggedEvents[2])
         assertEquals(LoggedEvent(KeepAnalyticsEvent.DEVICE_REGISTRATION_ATTEMPTED, emptyMap()), backend.loggedEvents[3])
         assertEquals(
@@ -254,6 +400,98 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents[4],
         )
+    }
+
+    @Test
+    fun routineTemplateShareEventsUseSafeBucketedParamsOnly() {
+        analytics.trackRoutineTemplateShareTapped(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareSheetOpened(
+            templateCategory = RoutineTemplateCategoryName.STUDY,
+            repeatDaysBucket = RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+            timeWindowBucket = RoutineTemplateTimeWindowBucketName.EVENING,
+            routineNameIncluded = false,
+        )
+        analytics.trackRoutineTemplateShareFailed(
+            templateCategory = RoutineTemplateCategoryName.CUSTOM,
+            reason = RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_TAPPED,
+                params = mapOf(
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_SHEET_OPENED,
+                params = mapOf(
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.STUDY,
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to RoutineTemplateRepeatDaysBucketName.WEEKDAY,
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to RoutineTemplateTimeWindowBucketName.EVENING,
+                    RoutineAnalyticsParam.ROUTINE_NAME_INCLUDED to false,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_TEMPLATE_SHARE_FAILED,
+                params = mapOf(
+                    RoutineAnalyticsParam.TEMPLATE_CATEGORY to RoutineTemplateCategoryName.CUSTOM,
+                    KeepAnalyticsParam.REASON to RoutineTemplateShareFailureReason.INVALID_TEMPLATE,
+                ),
+            ),
+            backend.loggedEvents[2],
+        )
+    }
+
+    @Test
+    fun routineSavedEventUsesPrivacySafeBucketsOnly() {
+        analytics.trackRoutineSaved(
+            RoutineSavedAnalyticsPayload(
+                entrySurface = "routine",
+                creationSource = RoutineSavedCreationSource.MANUAL,
+                selectedAppCountBucket = "2_3",
+                repeatDaysBucket = "2_3",
+                timeWindowBucket = "morning",
+                scheduleState = RoutineSavedScheduleState.ENABLED,
+            ),
+        )
+
+        assertEquals(
+            LoggedEvent(
+                name = RoutineAnalyticsEvent.ROUTINE_SAVED,
+                params = mapOf(
+                    KeepAnalyticsParam.ENTRY_SURFACE to "routine",
+                    RoutineAnalyticsParam.CREATION_SOURCE to RoutineSavedCreationSource.MANUAL,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to "2_3",
+                    RoutineAnalyticsParam.REPEAT_DAYS_BUCKET to "2_3",
+                    RoutineAnalyticsParam.TIME_WINDOW_BUCKET to "morning",
+                    RoutineAnalyticsParam.SCHEDULE_STATE to RoutineSavedScheduleState.ENABLED,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        val params = backend.loggedEvents[0].params
+        assertFalse(params.containsKey("routine_name"))
+        assertFalse(params.containsKey("routine_id"))
+        assertFalse(params.containsKey("app_package"))
+        assertFalse(params.containsKey("app_packages"))
+        assertFalse(params.containsKey("start_time"))
+        assertFalse(params.containsKey("end_time"))
+        assertFalse(params.containsKey("history"))
     }
 
     @Test
@@ -345,17 +583,310 @@ class FirebaseKeepAnalyticsTest {
     }
 
     @Test
+    fun lockHistoryPerformanceEventsUsePrivacySafeBuckets() {
+        analytics.trackLockHistoryPerformanceSummaryViewed(
+            periodType = "month",
+            reportState = "has_history",
+            sessionCountBucket = "4_6",
+            durationMinutesBucket = "120_239",
+        )
+        analytics.trackLockHistoryTopAppsViewed(
+            periodType = "month",
+            topAppsCountBucket = "2_3",
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.REPORT_STATE to "has_history",
+                    KeepAnalyticsParam.SESSION_COUNT_BUCKET to "4_6",
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to "120_239",
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED,
+                mapOf(
+                    KeepAnalyticsParam.PERIOD_TYPE to "month",
+                    KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET to "2_3",
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+    }
+
+    @Test
+    fun monetizationInterestEventsUseExperimentContextParams() {
+        analytics.trackMonetizationInterestShown(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+        )
+        analytics.trackMonetizationInterestClicked(
+            interestSurface = AnalyticsMonetizationInterestSurface.MENU,
+            interestContext = AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.MONETIZATION_INTEREST_SHOWN,
+                mapOf(
+                    KeepAnalyticsParam.INTEREST_SURFACE to AnalyticsMonetizationInterestSurface.MENU,
+                    KeepAnalyticsParam.INTEREST_CONTEXT to AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+                ),
+            ),
+            backend.loggedEvents[0],
+        )
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.MONETIZATION_INTEREST_CLICKED,
+                mapOf(
+                    KeepAnalyticsParam.INTEREST_SURFACE to AnalyticsMonetizationInterestSurface.MENU,
+                    KeepAnalyticsParam.INTEREST_CONTEXT to AnalyticsMonetizationInterestContext.POST_SPLIT_ADMOB_AUDIT,
+                ),
+            ),
+            backend.loggedEvents[1],
+        )
+    }
+
+    @Test
+    fun parentModeStartedUsesSafeBucketedParamsOnly() {
+        analytics.trackParentModeStarted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+            allowedAppCountBucket = AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_STARTED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.ELEVEN_TO_TWENTY,
+                    KeepAnalyticsParam.ALLOWED_APP_COUNT_BUCKET to AnalyticsParentModeAllowedAppCountBucket.TWO_TO_THREE,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun parentModeBlockInterceptedUsesSafeBlockContextOnly() {
+        analytics.trackParentModeBlockIntercepted(
+            blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_BLOCK_INTERCEPTED,
+                mapOf(KeepAnalyticsParam.BLOCK_CONTEXT to AnalyticsParentModeBlockContext.DISALLOWED_APP),
+            ),
+            backend.loggedEvents.single(),
+        )
+        assertFalse(backend.loggedEvents.single().params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+        assertFalse(backend.loggedEvents.single().params.containsKey("allowed_app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("pin"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("timestamp"))
+    }
+
+    @Test
+    fun parentModeCompletedDoesNotSendRawTimestampsOrPackages() {
+        analytics.trackParentModeCompleted(
+            durationMinutesBucket = AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+            endReason = AnalyticsParentModeEndReason.TIME_EXPIRED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.PARENT_MODE_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_MINUTES_BUCKET to AnalyticsParentModeDurationBucket.TWENTY_ONE_TO_THIRTY,
+                    KeepAnalyticsParam.END_REASON to AnalyticsParentModeEndReason.TIME_EXPIRED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockCreateStartedUsesEntrySurfaceOnly() {
+        analytics.trackGoalLockCreateStarted(entrySurface = AnalyticsGoalLockEntrySurface.MENU)
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATE_STARTED,
+                mapOf(KeepAnalyticsParam.ENTRY_SURFACE to AnalyticsGoalLockEntrySurface.MENU),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockCreatedUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockCreated(
+            durationSelectionType = AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            selectedAppCountBucket = AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+            goalNameType = AnalyticsGoalLockNameType.PRESET_EXAM,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_CREATED,
+                mapOf(
+                    KeepAnalyticsParam.DURATION_SELECTION_TYPE to AnalyticsGoalLockDurationSelectionType.PRESET_DAYS,
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.SELECTED_APP_COUNT_BUCKET to AnalyticsSelectedAppCountBucket.FOUR_TO_SIX,
+                    KeepAnalyticsParam.GOAL_NAME_TYPE to AnalyticsGoalLockNameType.PRESET_EXAM,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockEndedEarlyUsesSafeBucketedParamsOnly() {
+        analytics.trackGoalLockEndedEarly(
+            lockMode = AnalyticsGoalLockMode.SCHEDULED,
+            elapsedDaysBucket = AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+            reason = AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_ENDED_EARLY,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.SCHEDULED,
+                    KeepAnalyticsParam.ELAPSED_DAYS_BUCKET to AnalyticsGoalLockElapsedDaysBucket.SEVEN_TO_FOURTEEN,
+                    KeepAnalyticsParam.REASON to AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockCompletedUsesDurationBucketOnly() {
+        analytics.trackGoalLockCompleted(
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            durationDaysBucket = AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_COMPLETED,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.DURATION_DAYS_BUCKET to AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
+    fun goalLockUpdatedUsesSafeChangedFieldOnly() {
+        analytics.trackGoalLockUpdated(
+            lockMode = AnalyticsGoalLockMode.ALL_DAY,
+            changedField = AnalyticsGoalLockChangedField.APPS,
+        )
+
+        assertEquals(
+            LoggedEvent(
+                KeepAnalyticsEvent.GOAL_LOCK_UPDATED,
+                mapOf(
+                    KeepAnalyticsParam.LOCK_MODE to AnalyticsGoalLockMode.ALL_DAY,
+                    KeepAnalyticsParam.CHANGED_FIELD to AnalyticsGoalLockChangedField.APPS,
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+        assertFalse(backend.loggedEvents.single().params.containsKey("goal_name"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("blocked_app_package"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("start_date"))
+        assertFalse(backend.loggedEvents.single().params.containsKey("end_date"))
+    }
+
+    @Test
+    fun installReferrerAttributionEventUsesPrivacySafeParams() {
+        val attribution = AcquisitionAttributionParser.parse(
+            rawReferrer = "utm_source=discord&utm_medium=social&utm_campaign=aso_baseline&email=private@example.com",
+            lookupStatus = InstallReferrerLookupStatus.SUCCESS,
+            latencyMillis = 450,
+        )
+
+        analytics.trackInstallReferrerAttributionChecked(attribution)
+
+        assertEquals(
+            LoggedEvent(
+                name = KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED,
+                params = mapOf(
+                    KeepAnalyticsParam.REFERRER_STATUS to "success",
+                    KeepAnalyticsParam.UTM_SOURCE_TYPE to "discord",
+                    KeepAnalyticsParam.UTM_MEDIUM_TYPE to "social",
+                    KeepAnalyticsParam.CAMPAIGN_BUCKET to "aso_baseline",
+                    KeepAnalyticsParam.LINK_SURFACE to "discord",
+                    KeepAnalyticsParam.LOOKUP_LATENCY_BUCKET to "0_499ms",
+                ),
+            ),
+            backend.loggedEvents.single(),
+        )
+    }
+
+    @Test
     fun analyticsConstantValuesStayQueryableInGa4() {
         assertEquals("fcm_token_captured", KeepAnalyticsEvent.FCM_TOKEN_CAPTURED)
         assertEquals("focus_summary_share_tapped", KeepAnalyticsEvent.FOCUS_SUMMARY_SHARE_TAPPED)
+        assertEquals("lock_history_performance_summary_viewed", KeepAnalyticsEvent.LOCK_HISTORY_PERFORMANCE_SUMMARY_VIEWED)
+        assertEquals("lock_history_top_apps_viewed", KeepAnalyticsEvent.LOCK_HISTORY_TOP_APPS_VIEWED)
         assertEquals("session_count_bucket", KeepAnalyticsParam.SESSION_COUNT_BUCKET)
+        assertEquals("report_state", KeepAnalyticsParam.REPORT_STATE)
+        assertEquals("top_apps_count_bucket", KeepAnalyticsParam.TOP_APPS_COUNT_BUCKET)
         assertEquals("missing_fcm_token", AnalyticsDeviceRegistrationSkipReason.MISSING_FCM_TOKEN)
+        assertEquals("SplashScreen", KeepAnalyticsScreen.SPLASH)
         assertEquals("HomeScreen", KeepAnalyticsScreen.HOME)
         assertEquals("MenuScreen", KeepAnalyticsScreen.MENU)
         assertEquals("LockHistoryScreen", KeepAnalyticsScreen.LOCK_HISTORY)
+        assertEquals("BlockedAppsScreen", KeepAnalyticsScreen.BLOCKED_APPS)
         assertEquals("RoutineScreen", KeepAnalyticsScreen.ROUTINE)
+        assertEquals("EmergencyUnlockSettingsScreen", KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS)
+        assertEquals("ParentModeSetupScreen", KeepAnalyticsScreen.PARENT_MODE_SETUP)
         assertEquals("BlockScreen", KeepAnalyticsScreen.BLOCK)
         assertEquals("LockScreen", KeepAnalyticsScreen.LOCK)
+        assertEquals(
+            setOf(
+                KeepAnalyticsScreen.SPLASH,
+                KeepAnalyticsScreen.ONBOARDING_INTRO,
+                KeepAnalyticsScreen.ONBOARDING_PERMISSION,
+                KeepAnalyticsScreen.ONBOARDING_NOTIFICATION,
+                KeepAnalyticsScreen.ONBOARDING_SELECT_APP,
+                KeepAnalyticsScreen.HOME,
+                KeepAnalyticsScreen.MENU,
+                KeepAnalyticsScreen.LOCK_HISTORY,
+                KeepAnalyticsScreen.BLOCKED_APPS,
+                KeepAnalyticsScreen.ROUTINE,
+                KeepAnalyticsScreen.EMERGENCY_UNLOCK_SETTINGS,
+                KeepAnalyticsScreen.DEV_TOOL,
+                KeepAnalyticsScreen.GOAL_LOCK_CREATION,
+                KeepAnalyticsScreen.GOAL_LOCK_DETAIL,
+                KeepAnalyticsScreen.PARENT_MODE_SETUP,
+                KeepAnalyticsScreen.BLOCK,
+                KeepAnalyticsScreen.LOCK,
+            ),
+            KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES,
+        )
+        assertEquals(
+            KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES.size,
+            KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES.toList().distinct().size,
+        )
+        assertEquals("goal_lock_completed", KeepAnalyticsEvent.GOAL_LOCK_COMPLETED)
+        assertEquals("install_referrer_attribution_checked", KeepAnalyticsEvent.INSTALL_REFERRER_ATTRIBUTION_CHECKED)
+        assertEquals("duration_days_bucket", KeepAnalyticsParam.DURATION_DAYS_BUCKET)
+        assertEquals("referrer_status", KeepAnalyticsParam.REFERRER_STATUS)
+        assertEquals("campaign_bucket", KeepAnalyticsParam.CAMPAIGN_BUCKET)
+        assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
     }
 }
 

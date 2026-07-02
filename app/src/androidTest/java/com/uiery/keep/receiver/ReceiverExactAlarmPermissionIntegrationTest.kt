@@ -1,5 +1,6 @@
 package com.uiery.keep.receiver
 
+import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -16,10 +17,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -39,6 +43,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.DayOfWeek
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class ReceiverExactAlarmPermissionIntegrationTest {
@@ -80,7 +85,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
 
@@ -105,7 +110,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
         database.routineDao().insert(
@@ -140,7 +145,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced deny"))
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
 
@@ -165,7 +170,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
         }
         database.routineDao().insert(
@@ -192,7 +197,57 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     }
 
     @Test
-    fun routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent() = runBlocking {
+    fun exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEnabledRoutineFromRoom() = runBlocking {
+        setExactAlarmPermissionAllowed()
+        database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Permission restored"))
+        assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
+
+        waitUntil("Exact-alarm permission restore should reschedule the enabled routine from Room") {
+            findRoutinePendingIntent(TEST_ROUTINE_ID) != null
+        }
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
+        assertTrue(hasShownAlarmPermission())
+    }
+
+    @Test
+    fun exactAlarmPermissionStateChangedWithPermissionAllowedReschedulesEveryRepeatDayAlarm() = runBlocking {
+        setExactAlarmPermissionAllowed()
+        val repeatDays = multiDayRepeatDays()
+        database.routineDao().insert(
+            enabledRoutineEntity(
+                id = TEST_ROUTINE_ID,
+                name = "Permission restored multi-day",
+                repeatDays = repeatDays,
+            ),
+        )
+        assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
+        val receiver = BootReceiver().apply {
+            routineScheduler = RoutineScheduler(context)
+            routineRepository = RoomRoutineRepository(database.routineDao())
+            dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
+        }
+
+        receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
+
+        waitUntil("Exact-alarm permission restore should reschedule every repeat-day alarm") {
+            repeatDays.all { dayOfWeek -> findRoutinePendingIntent(TEST_ROUTINE_ID, dayOfWeek) != null }
+        }
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
+        assertRoutinePendingIntentsMatchRepeatDays(TEST_ROUTINE_ID, repeatDays)
+        assertTrue(hasShownAlarmPermission())
+    }
+
+    @Test
+    fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent() = runBlocking {
         assertTrue(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             !RoutineScheduler(context).canScheduleExactAlarms(),
@@ -202,7 +257,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
         }
@@ -214,22 +269,22 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         )
 
         waitUntil("RoutineAlarmReceiver should post the current routine-start notification even when exact alarm permission is missing") {
-            activeNotificationIds().contains(TEST_ROUTINE_ID.toInt())
+            activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID))
         }
-        waitUntil("RoutineAlarmReceiver should disable the routine in DataStore when exact alarm permission is missing") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should keep the triggered routine enabled in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
-        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNotNull(findPostedNotification(TEST_ROUTINE_ID))
         assertNull(findRoutinePendingIntent(TEST_ROUTINE_ID))
     }
 
     @Test
-    fun routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
+    fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm() = runBlocking {
         grantPostNotificationsPermission()
         val repeatDays = multiDayRepeatDays()
         assertTrue(
@@ -246,7 +301,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         val receiver = RoutineAlarmReceiver().apply {
             notificationHelper = NotificationHelper(context)
             routineScheduler = RoutineScheduler(context)
-            routineDao = database.routineDao()
+            routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
         }
@@ -260,13 +315,13 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineId = TEST_ROUTINE_ID,
         )
 
-        waitUntil("RoutineAlarmReceiver should disable the multi-day routine in DataStore when exact alarm permission is missing") {
-            storedRoutineEnabledStates() == listOf(false)
+        waitUntil("RoutineAlarmReceiver should keep the triggered multi-day routine enabled in DataStore when exact alarm permission is missing") {
+            storedRoutineEnabledStates() == listOf(true)
         }
 
-        assertTrue(activeNotificationIds().contains(TEST_ROUTINE_ID.toInt()))
-        assertEquals(false, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
-        assertEquals(listOf(false), storedRoutineEnabledStates())
+        assertTrue(activeNotificationIds().contains(RoutineIdentifierPolicy.routineStartNotificationId(TEST_ROUTINE_ID)))
+        assertEquals(true, database.routineDao().fetch(TEST_ROUTINE_ID).isEnabled)
+        assertEquals(listOf(true), storedRoutineEnabledStates())
         assertFalse(hasShownAlarmPermission())
         assertNotNull(findPostedNotification(TEST_ROUTINE_ID))
         assertNoPendingIntentsForAnyDay(TEST_ROUTINE_ID)
@@ -337,12 +392,12 @@ class ReceiverExactAlarmPermissionIntegrationTest {
         findRoutinePendingIntent(routineId, today)
 
     private fun findRoutinePendingIntent(routineId: Long, dayOfWeek: DayOfWeek): PendingIntent? {
-        val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
         return PendingIntent.getBroadcast(
             context,
-            requestCode,
+            RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
             Intent(context, RoutineAlarmReceiver::class.java).apply {
                 action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
             },
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -356,12 +411,12 @@ class ReceiverExactAlarmPermissionIntegrationTest {
 
     private fun seedRoutinePendingIntents(routineId: Long, routineName: String, repeatDays: Iterable<DayOfWeek>) {
         repeatDays.forEach { dayOfWeek ->
-            val requestCode = (routineId * 10 + dayOfWeek.ordinal).toInt()
             PendingIntent.getBroadcast(
                 context,
-                requestCode,
+                RoutineIdentifierPolicy.alarmRequestCode(routineId, dayOfWeek),
                 Intent(context, RoutineAlarmReceiver::class.java).apply {
                     action = RoutineAlarmReceiver.ACTION_ROUTINE_ALARM
+                    data = RoutineIdentifierPolicy.alarmIntentData(routineId, dayOfWeek)
                     putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_NAME, routineName)
                     putExtra(RoutineAlarmReceiver.EXTRA_ROUTINE_ID, routineId)
                 },
@@ -393,10 +448,11 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     private fun findPostedNotification(routineId: Long) =
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .activeNotifications
-            .firstOrNull { it.id == routineId.toInt() }
+            .firstOrNull { it.id == RoutineIdentifierPolicy.routineStartNotificationId(routineId) }
 
     private fun cancelNotification(routineId: Long) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(RoutineIdentifierPolicy.routineStartNotificationId(routineId))
         manager.cancel(routineId.toInt())
     }
 
@@ -434,7 +490,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             if (condition()) {
                 return
             }
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }

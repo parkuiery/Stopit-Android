@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Validate PR routing
         env:
@@ -28,13 +28,17 @@ jobs:
             expected_base="develop"
           elif [[ "$HEAD_REF" =~ ^ecc-tools/[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
             expected_base="develop"
+          elif [[ "$HEAD_REF" =~ ^dependabot/[A-Za-z0-9._/-]+$ ]]; then
+            echo "Dependabot dependency automation branch detected."
+            expected_base="develop"
           elif [[ "$HEAD_REF" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             expected_base="main"
           elif [[ "$HEAD_REF" =~ ^hotfix/[a-z0-9][a-z0-9-]*$ ]]; then
             expected_base="main"
           else
             echo "Invalid branch name: $HEAD_REF"
-            echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, ecc-tools/*, release/x.y.z, hotfix/*"
+            echo "Allowed: feature/*, fix/*, refactor/*, docs/*, test/*, ci/*, chore/*, dependabot/*, ecc-tools/*, release/x.y.z, hotfix/*"
+            echo "automation/* is reserved for local lane worktree branches; create a review branch with an allowed prefix such as docs/issue-123-topic or ci/issue-123-topic."
             exit 1
           fi
 
@@ -44,10 +48,4 @@ jobs:
           fi
 
       - name: Reject flavorless app Gradle tasks in workflows
-        run: |
-          set -euo pipefail
-          if find .github/workflows -name '*.yml' ! -name 'branch-hygiene.yml' -print0 \
-            | xargs -0 grep -nE '\b(testDebugUnitTest|assembleDebug|lintDebug)\b'; then
-            echo 'Flavorless app Gradle task found in workflow. Use variant-specific app tasks instead.'
-            exit 1
-          fi
+        run: python3 scripts/check_workflow_gradle_tasks.py

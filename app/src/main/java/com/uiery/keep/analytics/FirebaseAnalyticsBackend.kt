@@ -21,9 +21,7 @@ class FirebaseAnalyticsBackend
         override fun logScreenView(screenName: String) {
             firebaseAnalytics.logEvent(
                 FirebaseAnalytics.Event.SCREEN_VIEW,
-                Bundle().apply {
-                    putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
-                },
+                FirebaseScreenViewPayload.fromScreenName(screenName).toBundle(),
             )
         }
 

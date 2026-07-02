@@ -2,7 +2,6 @@ package com.uiery.keep.qa
 
 import android.app.UiAutomation
 import android.content.Intent
-import android.provider.Settings
 import androidx.test.core.app.ActivityScenario
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.Lifecycle
@@ -11,12 +10,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.UiScrollable
-import androidx.test.uiautomator.UiSelector
 import com.uiery.keep.MainActivity
 import com.uiery.keep.R
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
+import com.uiery.keep.testing.AccessibilitySettingsDetailNavigator
 import com.uiery.keep.util.hasAccessibilityPermission
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -26,6 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.fail
+import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 @RunWith(AndroidJUnit4::class)
 class HomeAccessibilityPermissionIntegrationTest {
@@ -62,25 +61,23 @@ class HomeAccessibilityPermissionIntegrationTest {
 
     @Test
     fun fakePackageSubstringStillShowsAccessibilityPermissionDialogOnHome() {
-        setAccessibilitySettings(
+        setInvalidAccessibilitySettings(
             accessibilityEnabled = "1",
             enabledServices = "com.uiery.keep.fake/com.fake.Service:com.other/.Helper",
         )
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForStopItForeground()
-            it.onActivity { activity ->
-                assertFalse(
-                    "hasAccessibilityPermission should reject fake package substring services",
-                    hasAccessibilityPermission(activity),
-                )
-            }
+            assertFalse(
+                "hasAccessibilityPermission should reject fake package substring services",
+                hasAccessibilityPermission(context),
+            )
             it.moveToState(Lifecycle.State.STARTED)
             it.moveToState(Lifecycle.State.RESUMED)
             waitForStopItForeground()
 
-            waitUntil("Expected home permission dialog when only a package substring matches") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            waitForPermissionDialog(
+                "Expected home permission dialog when only a package substring matches",
+            )
         }
     }
 
@@ -99,15 +96,13 @@ class HomeAccessibilityPermissionIntegrationTest {
 
             disableAccessibilityServiceFromSettings()
             waitForStopItForeground()
-            it.onActivity { activity ->
-                assertFalse(
-                    "hasAccessibilityPermission should be false after disabling the service from Settings",
-                    hasAccessibilityPermission(activity),
-                )
-            }
-            waitUntil("Expected home permission dialog after accessibility is disabled and the app resumes") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            assertFalse(
+                "hasAccessibilityPermission should be false after disabling the service from Settings",
+                hasAccessibilityPermission(context),
+            )
+            waitForPermissionDialog(
+                "Expected home permission dialog after accessibility is disabled and the app resumes",
+            )
         }
     }
 
@@ -119,18 +114,16 @@ class HomeAccessibilityPermissionIntegrationTest {
         )
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForStopItForeground()
-            waitUntil("Expected home permission dialog before enabling accessibility from Settings") {
-                device.hasObject(By.text(permissionDialogTitle))
-            }
+            waitForPermissionDialog(
+                "Expected home permission dialog before enabling accessibility from Settings",
+            )
 
             enableAccessibilityServiceFromSettings()
             waitForStopItForeground()
-            it.onActivity { activity ->
-                assertTrue(
-                    "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
-                    hasAccessibilityPermission(activity),
-                )
-            }
+            assertTrue(
+                "hasAccessibilityPermission should be true after enabling KeepAccessibilityService from Settings",
+                hasAccessibilityPermission(context),
+            )
             waitUntil("Expected home permission dialog to disappear after accessibility is re-enabled and the app resumes") {
                 !device.hasObject(By.text(permissionDialogTitle))
             }
@@ -140,14 +133,20 @@ class HomeAccessibilityPermissionIntegrationTest {
     private suspend fun configureReturningUserHomeState() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKey.IS_NEW] = false
+            preferences[PreferencesKey.IS_KEEP] = false
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
     private suspend fun clearHomeState() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKey.IS_NEW)
+            preferences.remove(PreferencesKey.IS_KEEP)
             preferences.remove(PreferencesKey.LOCK_TIME)
+            preferences.remove(PreferencesKey.START_TIME)
+            preferences.remove(PreferencesKey.SELECTED_APP_PACKAGES)
         }
     }
 
@@ -196,56 +195,23 @@ class HomeAccessibilityPermissionIntegrationTest {
     }
 
     private fun openAccessibilityServiceDetails() {
-        repeat(3) { attempt ->
-            if (openAccessibilityServiceDetailsViaIntent()) return
-            if (openAccessibilityServiceDetailsFromList()) return
-            if (attempt < 2) {
-                device.pressBack()
-                device.waitForIdle()
-                Thread.sleep(500)
-            }
-        }
-
-        fail("StopIt Accessibility detail screen should open")
-    }
-
-    private fun openAccessibilityServiceDetailsViaIntent(): Boolean {
-        shell("am force-stop $settingsPackage")
-        shell(
-            "am start -W -a android.settings.ACCESSIBILITY_DETAILS_SETTINGS " +
-                "--es android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME $keepServiceComponent",
-        )
-        device.waitForIdle()
-        return device.hasObject(By.res(settingsPackage, mainSwitchBarId))
-    }
-
-    private fun openAccessibilityServiceDetailsFromList(): Boolean {
-        shell("am force-stop $settingsPackage")
-        shell("am start -W -a android.settings.ACCESSIBILITY_SETTINGS")
-        device.waitForIdle()
-
-        val scrollable = UiScrollable(UiSelector().scrollable(true)).apply {
-            setAsVerticalList()
-        }
-        if (!device.hasObject(By.text(appName))) {
-            scrollable.scrollTextIntoView(appName)
-        }
-
-        val serviceEntry = device.findObject(UiSelector().text(appName))
-        if (!serviceEntry.exists()) {
-            return false
-        }
-
-        serviceEntry.click()
-        device.waitForIdle()
-        return device.hasObject(By.res(settingsPackage, mainSwitchBarId))
+        AccessibilitySettingsDetailNavigator(
+            device = AccessibilitySettingsDetailNavigator.UiAutomatorDevice(device, ::shell),
+            settingsPackage = settingsPackage,
+            serviceComponent = keepServiceComponent,
+            appName = appName,
+        ).requireDetailsOpen()
     }
 
     private fun launchStopIt() {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(targetPackage)
         assertTrue("Expected a launch intent for $targetPackage", launchIntent != null)
         context.startActivity(
-            launchIntent!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+            launchIntent!!.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            ),
         )
         device.waitForIdle()
     }
@@ -254,17 +220,86 @@ class HomeAccessibilityPermissionIntegrationTest {
         accessibilityEnabled: String,
         enabledServices: String,
     ) {
+        val expectedEnabledServices = normalizeSecureSetting(enabledServices)
+
         shell("settings put secure accessibility_enabled $accessibilityEnabled")
-        if (enabledServices.isBlank()) {
+        if (expectedEnabledServices.isBlank()) {
             shell("settings delete secure enabled_accessibility_services")
         } else {
-            shell("settings put secure enabled_accessibility_services $enabledServices")
+            shell("settings put secure enabled_accessibility_services $expectedEnabledServices")
+        }
+
+        waitUntil(
+            message = "Expected secure accessibility settings to settle to accessibility_enabled=$accessibilityEnabled " +
+                "and enabled_accessibility_services=$expectedEnabledServices; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                actualEnabledServices == expectedEnabledServices
         }
     }
+
+    private fun setInvalidAccessibilitySettings(
+        accessibilityEnabled: String,
+        enabledServices: String,
+    ) {
+        shell("settings put secure accessibility_enabled $accessibilityEnabled")
+        shell("settings put secure enabled_accessibility_services $enabledServices")
+
+        waitUntil(
+            message = "Expected invalid accessibility service setting to settle without granting " +
+                "KeepAccessibilityService; actual=${accessibilitySettingsSnapshot()}",
+        ) {
+            val actualAccessibilityEnabled = shell("settings get secure accessibility_enabled").trim()
+            val actualEnabledServices = normalizeSecureSetting(
+                shell("settings get secure enabled_accessibility_services"),
+            )
+            actualAccessibilityEnabled == accessibilityEnabled &&
+                !actualEnabledServices.split(':').contains(keepServiceComponent)
+        }
+    }
+
+    private fun accessibilitySettingsSnapshot(): String =
+        "accessibility_enabled=${shell("settings get secure accessibility_enabled").trim()}, " +
+            "enabled_accessibility_services=${normalizeSecureSetting(shell("settings get secure enabled_accessibility_services"))}"
+
+    private fun normalizeSecureSetting(value: String): String =
+        value.trim().takeUnless { it == "null" }.orEmpty()
 
     private fun waitForStopItForeground() {
         waitForPackageForeground(targetPackage)
     }
+
+    private fun waitForPermissionDialog(message: String) {
+        val deadline = System.currentTimeMillis() + HOME_PERMISSION_DIALOG_TIMEOUT_MS
+        var relaunchedAfterInitialMiss = false
+        while (System.currentTimeMillis() < deadline) {
+            if (device.hasObject(By.text(permissionDialogTitle))) {
+                return
+            }
+            if (!relaunchedAfterInitialMiss && System.currentTimeMillis() > deadline - HOME_PERMISSION_DIALOG_TIMEOUT_MS / 2) {
+                relaunchedAfterInitialMiss = true
+                device.pressHome()
+                launchStopIt()
+            }
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
+        }
+        assertTrue(
+            "$message; ${accessibilitySettingsSnapshot()}; foreground=${isTargetPackageForeground()}; " +
+                "visibleText=${visibleTargetPackageTextSnapshot()}",
+            device.hasObject(By.text(permissionDialogTitle)),
+        )
+    }
+
+    private fun visibleTargetPackageTextSnapshot(): String =
+        device.findObjects(By.pkg(targetPackage))
+            .mapNotNull { node -> node.text?.takeIf { it.isNotBlank() } }
+            .distinct()
+            .take(30)
+            .joinToString(" | ")
 
     private fun waitForPackageForeground(packageName: String) {
         waitUntil("Expected $packageName to be foreground") {
@@ -290,7 +325,7 @@ class HomeAccessibilityPermissionIntegrationTest {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (condition()) return
-            Thread.sleep(100)
+            AndroidTestConditionWaiter.pause(100, reason = "polling instrumentation condition")
         }
         assertTrue(message, condition())
     }
@@ -301,12 +336,17 @@ class HomeAccessibilityPermissionIntegrationTest {
     private val appName: String
         get() = context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 
+    private val targetPackage: String
+        get() = context.packageName
+
+    private val keepServiceComponent: String
+        get() = "$targetPackage/com.uiery.keep.service.KeepAccessibilityService"
+
     private companion object {
-        const val targetPackage = "com.uiery.keep"
         const val settingsPackage = "com.android.settings"
-        const val keepServiceComponent = "com.uiery.keep/com.uiery.keep.service.KeepAccessibilityService"
         const val mainSwitchBarId = "main_switch_bar"
         const val androidButtonId = "android:id/button1"
         const val disableButtonId = "android:id/accessibility_permission_disable_stop_button"
+        const val HOME_PERMISSION_DIALOG_TIMEOUT_MS = 15_000L
     }
 }

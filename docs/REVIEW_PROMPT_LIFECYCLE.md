@@ -20,13 +20,16 @@
 - `app/src/main/java/com/uiery/keep/feature/review/AppLifecycleTracker.kt`
 - `app/src/main/java/com/uiery/keep/feature/home/HomeViewModel.kt`
 - `app/src/main/java/com/uiery/keep/feature/lock/LockViewModel.kt`
-- `app/src/main/java/com/uiery/keep/datastore/DataStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/ReviewPromptStateStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/BlockingStateStore.kt`
+- `app/src/main/java/com/uiery/keep/datastore/DataStore.kt` (legacy key definition)
 
 테스트 기준 파일:
 
 - `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`
 - `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`
 - `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
+- `app/src/test/java/com/uiery/keep/datastore/ReviewPromptStateStoreTest.kt`
 - `app/src/test/java/com/uiery/keep/analytics/FirebaseKeepAnalyticsTest.kt`
 
 운영/조회성 기준 문서:
@@ -71,14 +74,16 @@
    - analytics: `review_prompt_skipped(reason=<SkipReason.name>)`
    - `REVIEW_PENDING = false`
 4. `activity == null`이면:
-   - analytics: `review_prompt_skipped(reason=NoActivity)`
+   - Home Compose `LocalContext.current`는 `ContextWrapper` 체인 안에 `Activity`가 들어올 수 있으므로, drain 전에 `Context.findActivity()`로 wrapper를 풀어 실제 Activity를 먼저 찾는다.
+   - wrapper chain에도 Activity가 없을 때만 analytics: `review_prompt_skipped(reason=NoActivity)`
    - `REVIEW_PENDING`을 유지한다.
    - 다음 홈 루트 진입에서 다시 시도한다.
 5. 위 조건을 모두 통과하면:
-   - 먼저 `REVIEW_PENDING = false`
-   - 그 다음 `InAppReviewManager.launchIfReady(activity)` 호출
+   - `InAppReviewManager.launchIfReady(activity)` 호출
+   - launch 성공(`review_prompt_shown`)일 때만 `REVIEW_PENDING = false`
+   - launch 실패(`review_prompt_failed`) 또는 in-flight short-circuit이면 `REVIEW_PENDING`을 유지해 다음 홈 루트 진입에서 다시 시도한다.
 
-`sheetVisible`과 `activity == null`에서 pending을 유지하는 이유는, eligibility는 확보됐지만 일시적 UI/Activity 문맥 때문에 지금 노출할 수 없는 순간의 재시도를 허용하기 위해서다. 반대로 `evaluateLive()`가 실패한 경우는 현재 노출 조건이 실제로 깨진 것이므로 pending을 삭제하고 명시적인 skip reason을 기록한다.
+`sheetVisible`, `activity == null`, launch 실패에서 pending을 유지하는 이유는, eligibility는 확보됐지만 일시적 UI/Activity/Play review 문맥 때문에 지금 노출할 수 없는 순간의 재시도를 허용하기 위해서다. 반대로 `evaluateLive()`가 실패한 경우는 현재 노출 조건이 실제로 깨진 것이므로 pending을 삭제하고 명시적인 skip reason을 기록한다.
 
 ### 3. 실제 launch 결과 기록
 
@@ -131,6 +136,14 @@
 
 ## DataStore 상태 계약
 
+리뷰 prompt lifecycle 키의 read/write 경계는 `ReviewPromptStateStore`다. `ReviewEligibilityEvaluator`, `AppLifecycleTracker`, `InAppReviewManager`, `HomeViewModel`, `LockViewModel`은 raw `PreferencesKey.REVIEW_PENDING`, `LAST_REVIEW_PROMPT_AT_MS`, `LAST_BACKGROUNDED_AT_MS`를 직접 만지지 않고 이 typed store를 통해 읽고 쓴다. `SUCCESSFUL_SESSION_COUNT`는 기존 lock/session 경계인 `BlockingStateStore`에 남겨 둔다.
+
+허용되는 raw key 접근은 다음으로 제한한다.
+
+- `ReviewPromptStateStore`: review pending/cooldown/background timestamp의 legacy key 호환 read/write.
+- `BlockingStateStore`: successful session count의 lock/session 누적 read/write.
+- `BackupRestoreDataStoreKeyPolicy`: DataStore 전체 exclude 정책의 reset-only 분류.
+
 | Key | 역할 |
 | --- | --- |
 | `REVIEW_PENDING` | 홈 루트에서 리뷰 노출 시도를 해야 하는지 나타내는 arm flag |
@@ -177,25 +190,26 @@
 
 ### 현재 #13 queryability 경계
 
-2026-05-29 live 확인 기준으로 review 해석에 필요한 `customEvent:*` 축은 아직 GA4 Admin에 materialize되지 않았다.
+리뷰 프롬프트 세부 축은 2026-05-29와 2026-06-02 live 확인 결과가 서로 다르다. 오래된 `customEvent:*` 전면 미등록 진단을 그대로 반복하지 말고, 축별 최신 상태를 분리해서 읽는다.
 
-- metadata 결과: `customUser:routines_count`만 확인, `customEvent:*`는 없음
-- review smoke (`review_prompt_skipped` by `customEvent:reason`):
-  - `400 INVALID_ARGUMENT`
-  - `Field customEvent:reason is not a valid dimension.`
+| 확인 시점 | 축 | 결과 | 운영 해석 |
+| --- | --- | --- | --- |
+| 2026-05-29 | `customEvent:reason` | `400 INVALID_ARGUMENT` / `Field customEvent:reason is not a valid dimension.` | 당시에는 skip reason breakdown을 제품 결론에 쓰지 않는다. |
+| 2026-06-02T18:06:45Z | `customEvent:reason` | metadata 등록 및 `review_prompt_skipped` breakdown 조회 가능 | #307 skip reason 분석에는 사용할 수 있다. |
+| 2026-06-02T18:06:45Z | `customEvent:error` | `Field customEvent:error is not a valid dimension.` | `review_prompt_failed` 원인 breakdown은 아직 GA4 Admin 등록/metadata 외부 경계다. |
 
-따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count 자체는 볼 수 있어도, skip/failure 사유 분포를 GA4에서 안정적으로 분해하는 작업은 아직 낮은 confidence 상태다.
+따라서 현재는 `review_prompt_eligible` / `shown` / `skipped` / `failed`의 상위 event count와 `review_prompt_skipped.reason` 분포를 함께 볼 수 있다. 단, `review_prompt_failed.error`는 별도 등록 전까지 원인별 분석 confidence를 낮게 둔다.
 
 추가 주의:
 
-- 이번 live smoke는 `customEvent:reason` 기준의 대표 실패 증거를 남긴 것이다.
-- `review_prompt_failed.error` 같은 failure 세부 축도 별도로 조회 가능하다고 가정하지 않는다. `reason`이 막혀 있으면 `error`도 동일하게 GA4 Admin 등록/metadata 확인 전에는 외부 경계로 둔다.
+- `customEvent:reason`이 조회 가능해졌다는 사실을 activation 세부 축이나 `customEvent:error`까지 등록됐다는 뜻으로 확장하지 않는다.
+- `customEvent:error`가 막혀 있으면 failure 원인 분석은 #13 GA4 Admin registration follow-through로 넘긴다.
 
 운영 원칙:
 
-- 리뷰 지표를 해석할 때 `reason` / `error` 축이 실제로 등록됐는지 먼저 확인한다.
-- 등록 전에는 "특정 reason이 많다"는 결론을 대시보드 전제로 단정하지 않는다.
-- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review 등록 순서와 metadata 확인 절차를 선행한 뒤 세부 reason 분석을 한다.
+- 리뷰 지표를 해석할 때 `reason` / `error` 축의 최신 metadata 상태를 각각 확인한다.
+- `reason`은 #307 skip reason breakdown에 사용할 수 있지만, PR #308/#312 포함 버전이 배포되기 전 pre-fix cohort noise를 현재 blocker로 되살리지 않는다.
+- `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`의 trust/review ledger와 `docs/REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md`의 버전별 재측정 표를 함께 본다.
 
 ## 무엇을 측정할 수 있고 없는가
 
@@ -206,10 +220,10 @@
 - `review_prompt_skipped` 발생량
 - `review_prompt_failed` 발생량
 
-### GA4 Admin 등록 후에만 안정적으로 분해 가능한 것
+### GA4 Admin 등록/metadata 확인 후에만 안정적으로 분해 가능한 것
 
-- `review_prompt_skipped`의 skip reason 분포
-- `review_prompt_failed`의 error / failure reason 분포
+- `review_prompt_skipped`의 skip reason 분포: 2026-06-02T18:06:45Z 기준 `customEvent:reason` 등록/조회 가능
+- `review_prompt_failed`의 error / failure reason 분포: 2026-06-02T18:06:45Z 기준 `customEvent:error` 미등록
 
 ### 앱/GA4에서 직접 측정 불가
 
@@ -253,6 +267,7 @@ Play Console에서 다음을 후행 지표로 본다.
 cd <repo-root>
 git diff -- docs/REVIEW_PROMPT_LIFECYCLE.md docs/ANALYTICS_EVENT_DICTIONARY.md docs/METRICS_ANALYSIS.md docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md
 ./gradlew :app:testDevDebugUnitTest \
+  --tests com.uiery.keep.datastore.ReviewPromptStateStoreTest \
   --tests com.uiery.keep.feature.review.ReviewEligibilityEvaluatorTest \
   --tests com.uiery.keep.feature.review.InAppReviewManagerTest \
   --tests com.uiery.keep.feature.home.HomeViewModelReviewTest \

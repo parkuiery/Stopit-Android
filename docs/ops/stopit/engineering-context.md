@@ -85,13 +85,23 @@ Tech Debt / Architecture Analyst가 우선 볼 신호:
 - 중복된 ViewModel/UI state pattern
 - feature boundary 위반
 - KDS로 내려갈 수 있는 반복 UI
+- 공유 UI 소유권 drift: feature A가 feature B의 `component` package를 직접 import하거나, app shared UI/KDS로 승격된 component가 feature-private duplicate로 남는 경우. #492 source of truth는 `docs/SHARED_UI_OWNERSHIP_BOUNDARY.md`이며, `PermissionSettingDialog`와 `TimerPicker`는 #492 closed 이후 app shared UI baseline이다. 후속 shared UI drift는 #492 재개가 아니라 새 실행 단위 issue로 다루고 `scripts/tests/test_shared_ui_component_boundaries.py` static guard를 함께 갱신한다. #876은 `BlockScreen.kt` 같은 app root blocking surface가 `feature.lock.component.*`를 직접 import하는 별도 drift이며, Lock/Block 공통 countdown / emergency unlock UI는 app shared UI 또는 명시 public entrypoint boundary로 정리해야 한다.
+- feature domain boundary drift: `database/`, `service/`, `receiver/`, `analytics/` production source가 `feature.*` domain/repository/read-model 타입을 직접 import하는 경우. #651 source of truth는 `docs/FEATURE_DOMAIN_BOUNDARY.md`이며, #520의 `docs/DAO_BOUNDARY_MAINTENANCE.md` DAO 직접 의존 정리 다음 단계로 shared domain/data boundary migration + static inventory guard를 따른다.
+  - #875는 #520 closure 뒤 새로 확인된 Home `routines_count` analytics sync DAO/Entity 결합 예외였고, PR #881 이후 `HomeViewModel` / `RoutineCountAnalyticsSync`는 `RoutineRepository` / `RoutineModel` 경계로 분리되어 있다. #479 coverage foothold와 GA4 release/readback 계약은 별도로 유지한다.
+  - 현재 장기 경계: analytics는 `RepeatBlockRoutineSuggestionAnalyticsPayload` DTO를 통해 runtime suggestion object를 받지 않고, 반복 차단 shared model/policy는 `domain.repeatblock`, dismiss store는 `data.repeatblock`, app-root Block runtime은 이 shared boundary만 사용한다. LockHistory runtime recording은 `LockHistorySessionWriter` data boundary가 소유하고, LockHistory read repository는 `data.lockhistory` boundary가 소유한다. ParentMode runtime session/state와 block decision policy는 `domain.parentmode` boundary가 소유한다. 이 경계들은 새 PR에서 다시 feature-private 모델/저장소로 되돌리지 않는다.
+  - #986의 code-lane candidate였던 `feature.review.ReviewEligibilityRepository`는 `data.review.ReviewEligibilityRepository` shared data boundary로 이동했다. `ReviewEligibilityEvaluator`는 policy ordering만 소유하고, `EmergencyUnlockDao` / `LockHistoryDao` 직접 read는 shared data boundary가 소유한다.
+  - 남은 migration 축은 `docs/FEATURE_DOMAIN_BOUNDARY.md`의 current inventory를 기준으로 판단한다. GoalLock shared repository/data boundary, ParentMode session store migration은 code-lane/merge-controller가 fresh-base로 줄여야 하며, docs-lane은 open code PR이 같은 source-of-truth 문서를 만지고 있으면 중복 docs PR을 만들지 않는다.
+  - #1050 기준으로 루틴 저장소 Hilt binding, restore aftercare, exact-alarm orchestration/policy는 `data.routine` shared boundary에 있으며, `SplashViewModel` 같은 startup/runtime 경로는 `feature.routine` internals를 import하지 않는다.
 - 오래된 dependency/lint baseline drift
+- test/androidTest source lint exclusion drift. #1091 source of truth is `docs/TEST_SOURCE_LINT_POLICY.md`: current `checkTestSources = false` is allowed only as an explicit exception with Android CI/Release QA substitute guards and static contract coverage; enabling it requires warning baseline + triage + workflow/docs sync.
 - DataStore/Room/analytics contract drift
 - 너무 큰 리팩터링은 작은 실행 단위로 쪼갠다.
 
 Build/Release Maintenance Analyst가 우선 볼 신호:
 - Gradle/AGP/Kotlin/Firebase/Room 업데이트 리스크
+- Dependabot patch/minor 자동화와 semver-major 보류 감사 drift. #905 기준으로 `.github/dependabot.yml`의 major ignore는 유지하되, `docs/DEPENDENCY_LINT_MAINTENANCE.md`의 월 1회 / release train 전 audit에서 `ready` / `backlog` / `hold` 분류를 남긴다. #1069의 2026-06-26 감사 결과는 같은 런북의 `2026-06-26 Dependabot semver-major audit (#1069)` 섹션을 최신 기준으로 본다.
 - flavorless command drift
+- dev/prod `applicationId` / package identity drift; #314 계열 작업은 `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`를 먼저 확인한다.
 - Play deploy secret/config 문서와 workflow 일치 여부
 - helper 범위(`scripts/setup-play-deploy-secrets.sh` vs `scripts/setup-discord-deploy-secrets.sh`)와 `GOOGLE_SERVICES_JSON` restore matrix가 `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`와 어긋나지 않는지
 - versionCode/versionName guardrail
@@ -105,6 +115,7 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 - 권한 요청/권한 거절 흐름
 - Room migration and schemas
 - DataStore에 저장되는 lock/emergency/runtime state
+- RoutineStore / `PreferencesKey.ROUTINES` legacy compatibility cache drift. Room is the authoritative routine source; #511 source of truth is `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`.
 - backup/restore policy (`allowBackup`, `backup_rules.xml`, `data_extraction_rules.xml`)
 - analytics event names/parameters used by dashboard
 - release signing and Play upload workflows
@@ -126,5 +137,8 @@ Build/Release Maintenance Analyst가 우선 볼 신호:
 - `docs/GIT_WORKFLOW.md`
 - `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`
 - `docs/PLAY_DEPLOYMENT.md`
+- `docs/QUERY_ALL_PACKAGES_POLICY.md`
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`
+- `docs/FCM_DEVICE_REGISTRATION_CONTRACT.md`
+- `docs/ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md`

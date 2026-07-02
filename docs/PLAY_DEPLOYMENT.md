@@ -7,9 +7,9 @@ Stopit separates CI, release artifact building, and deployment so failures are e
 | Layer | Workflow | Trigger | Does |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/android-ci.yml` | PR/push to `develop` or `main`, manual | Dev unit tests, dev lint, prod debug APK artifact, and focused runtime smoke on PR/manual runs. No signed release. No Play upload. |
-| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. |
-| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch | Signed `prodRelease` AAB artifact. No Play upload. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch are required. |
-| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build and Google Play upload. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Full release JVM/build gate plus focused UI smoke, exact alarm deny/allow instrumentation, and the remaining connected Android suite. Manual dispatch from feature/docs/automation branches fails before Firebase secret restore and emulator work; disallowed refs will not restore Firebase secrets or run release QA. |
+| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Signed `prodRelease` AAB artifact plus `release-provenance.json`. Before the signed AAB is built it runs `:app:lintProdRelease` and `scripts/verify_lint_registry.py` against the prodRelease lint report. The artifact is built with R8 minification and resource shrinking enabled, then the manifest records sha256, size, versionName/versionCode, git ref/SHA, and workflow run URL. Release Build self-verifies that manifest against the generated AAB before artifact upload, using `upload-mode none` and empty Play track/status fields because this layer creates signed evidence but does not upload to Play. Direct push to `main` does not trigger signed artifact generation; release/hotfix PR gates or explicit manual dispatch from an allowed release ref are required. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production tracks run `:app:lintProdRelease` + prodRelease lint registry verification before building/signing/uploading the R8/resource-shrunk AAB. They generate `release-provenance.json`, self-verify the manifest before `Upload signed AAB artifact`, then upload the verified AAB/manifest artifact and proceed to Google Play upload. Production promotes the already-internal release that matches the selected SemVer tag `versionCode` and does not run `:app:lintProdRelease`, build, or upload a new AAB. |
 
 ## What is automated
 
@@ -17,50 +17,97 @@ Stopit separates CI, release artifact building, and deployment so failures are e
   - `./gradlew :app:testDevDebugUnitTest`
   - `./gradlew :app:lintDevDebug`
   - `./gradlew :app:assembleProdDebug`
-  - upload prod debug APK artifact
+  - upload prod debug APK artifact with short 7-day retention
+- Android CI `stopit-prod-debug-apk` is a PR/smoke inspection artifact, not a release artifact. Keep its `retention-days: 7` shorter than signed release AAB artifacts (`30` days in Release Build / non-production Play Deploy) so repeated PR runs do not exhaust GitHub Actions artifact storage. The upload step is intentionally `non-blocking` (`continue-on-error: true`): if `Upload prod debug APK` fails with `Artifact storage quota has been hit`, classify it as an external GitHub Actions storage/quota boundary after the preceding build/test steps have passed; delete or let old artifacts expire, wait for GitHub's 6–12 hour quota recalculation window, then rerun the current-head Android CI check to restore the optional artifact.
 - Android CI path gating treats `gradlew` / `gradlew.bat`, Gradle config files, and `.github/workflows/android-ci.yml` as **build-critical** root inputs, so wrapper launcher-only PRs still materialize `Fast verification` instead of looking green through skipped checks.
+- Gradle wrapper supply-chain contract is two-layered: release/build workflows run `gradle/actions/wrapper-validation@v6` before Gradle setup or signing/Firebase/Play secret decode, and `gradle/wrapper/gradle-wrapper.properties` pins the downloaded distribution with `distributionSha256Sum`. For the current `distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-bin.zip`, the checksum source is `https://services.gradle.org/distributions/gradle-8.11.1-bin.zip.sha256`; wrapper upgrades must update `distributionUrl` and `distributionSha256Sum` together and keep `scripts.tests.test_gradle_wrapper_distribution_checksum` green.
 - Pull requests and manual Android CI runs also execute a focused emulator runtime smoke gate:
-  - source of truth for this class list is `.github/workflows/android-ci.yml`; `docs/ops/stopit/release-context.md` mirrors that contract for operators, and release-facing docs must stay in sync with both
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timeChangedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#timezoneChangedRestoresMultiDayRoutinesFromRoomAndSchedulesAlarms,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
-  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
+  - source of truth for this class list is `.github/workflows/android-ci.yml`; release-facing docs should cite the current Android CI run URL instead of copying this PR-gate list into the Release QA evidence section
+  - Android CI focused runtime smoke is not the same evidence layer as `Android Release QA / Release instrumentation QA`; release/hotfix readiness uses the exact Release QA list below
+  - Android CI dev runtime appops 대상은 `devDebug` 설치 identity인 `com.uiery.keep.dev`다.
   - 자동 검증 범위:
     - `StopitReleaseSmokeTest`: 앱 기동 + Compose navigation host smoke
     - `BackupRestoreRuntimeResetIntegrationTest`: 복원된 Room + 비어 있는 DataStore shape에서 reset-only state가 되살아나지 않는지
     - `HomeAccessibilityPermissionIntegrationTest`: 홈 접근성 권한 경고가 substring 오탐 없이 actual service state와 settings-resume 복귀를 따라 즉시 재동기화되는지
     - `ReceiverRuntimeIntegrationTest`: boot/package-replaced 재수화, 루틴 시작 알림·재예약, notification-denied fallback notice contract
+    - Android CI exact-alarm smoke: `android_ci_exact_alarm_default`, `android_ci_exact_alarm_denied`, `android_ci_exact_alarm_allowed`로 default/deny/allow 대표 루틴 권한 경로를 PR 단계에서 먼저 고정
     - `EmergencyUnlockExpiryIntegrationTest`: 긴급해제 만료 state cleanup + 재차단 대상 결정
     - `KeepMessagingServiceIntegrationTest`: stale FCM token overwrite wiring
     - `KeepAccessibilityServiceIntegrationTest`: 실제 AccessibilityService bind 이후 cross-app foreground 차단 진입, emergency unlock 우회, self-uninstall interception safety 계약
-  - release/hotfix 전용 exact alarm deny/allow 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
-- Release candidates targeting `main` also run Android Release QA before merge:
-  - `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
+  - release/hotfix 전용 full exact alarm deny/allow multi-day·receiver 시나리오와 remaining connected suite는 계속 `Android Release QA`가 담당
+- Release candidates targeting `main` also run Android Release QA before merge. Manual dispatch scope is release evidence only: release/* -> main, hotfix/* -> main, or manual dispatch from main/release/*/hotfix/*/SemVer tag refs. Feature/docs/automation ref manual runs fail before Firebase secret restore and emulator setup, and will not restore Firebase secrets or run release QA:
+  - Policy-sensitive permissions: if app-selection, manifest permission declarations, or Play review notes changed, attach `docs/QUERY_ALL_PACKAGES_POLICY.md` evidence and the command `python3 -m unittest scripts.tests.test_query_all_packages_policy_contract scripts.tests.test_android_manifest_contract -v`. `QUERY_ALL_PACKAGES` must remain limited to the app-selection picker through `InstalledAppRepository`/`SelectableAppPolicy`, and Play Console wording must say the installed-app list is not used for analytics, ads, profiling, server transfer, or third-party sharing.
+  - `Full release QA`: `./gradlew :app:testDevDebugUnitTest :app:testProdReleaseUnitTest :app:lintProdRelease :app:assembleProdDebug`
+  - `Release instrumentation QA`: single-day and multi-day exact-alarm/runtime gates below run on a GitHub-hosted Android emulator.
+  - Selector source of truth: `scripts/android_runtime_suites.py` owns selector fragments; workflow YAML owns install/host ADB appops sequencing. #1030 기준으로 exact-alarm/notification appops 전환은 target app 프로세스를 죽일 수 있으므로 receiver tests는 테스트 내부에서 전환하지 않는다. 해당 selectors는 named suite와 assertion 메시지로 host setup drift를 제품 회귀와 분리한다.
+  - Suite sequence: `release_focused_ui_smoke` → `release_prod_debug_smoke` → `release_exact_alarm_default` → `release_exact_alarm_denied` → `release_exact_alarm_allowed` → `release_remaining_runtime` → `notification_denied_receiver` → `notification_denied_emergency_unlock` → `notification_channel_disabled`.
   - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest`
-  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM deny` 후 아래 focused exact alarm deny 경로를 순서대로 실행
+  - `./gradlew :app:installProdDebug && ./gradlew :app:connectedProdDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest` (`release_prod_debug_smoke`, package `com.uiery.keep`)
+  - `adb shell cmd appops reset com.uiery.keep.dev` 후 기본 상태 경로를 실행
+    - `RoutineExactAlarmPermissionIntegrationTest#defaultExactAlarmAppOpsFollowsAlarmManagerAvailability`
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM deny` 후 아래 focused exact alarm deny 경로를 순서대로 실행
     - `RoutineExactAlarmPermissionIntegrationTest#addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
+    - `RoutineExactAlarmPermissionIntegrationTest#addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt`
     - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
     - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent`
-    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedDisablesRoutineAndLeavesNoNextPendingIntent`
-  - 위 deny gate는 exact alarm 재예약 실패 시 receiver 경로가 enabled 루틴을 `enabled=true`로 조용히 남기지 않고, `enabled=false` 강등 + `HAS_SHOWN_ALARM_PERMISSION=false` reset + no pending intent 계약을 지키는지 검증한다.
-  - `adb shell appops set com.uiery.keep SCHEDULE_EXACT_ALARM allow` 후 `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
-  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForMyPackageReplaced,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
-  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
-- Release candidates targeting `main` run Android Release Build. Scope: release/* -> main, hotfix/* -> main, or manual dispatch; direct push to `main` does not trigger a signed release artifact. A non-release main PR must not read signing/Firebase secrets or build a signed release artifact:
+    - `ReceiverExactAlarmPermissionIntegrationTest#packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm`
+    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent`
+    - `ReceiverExactAlarmPermissionIntegrationTest#routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm`
+  - 위 deny gate는 exact alarm 재예약 실패 시 boot/package/restore-aftercare 경로는 `enabled=false` downgrade + `HAS_SHOWN_ALARM_PERMISSION=false` reset + no pending intent 계약을 지키고, routine alarm이 이미 발화한 뒤 next-reschedule에서 `MissingExactAlarmPermission`이 발생하는 경로는 현재 triggered routine의 enabled/enforced 상태를 유지하면서 다음 alarm 정리와 권한 프롬프트 reset을 수행하는지 검증한다.
+  - #609 closure/release evidence에서는 boot/package/restore-aftercare downgrade gate와 현재 발화 루틴 enforcement 유지 예외를 섞지 않는다. 이 예외의 source of truth는 `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md`와 `RoutineReceiverPolicyTest#applyRoutineAlarmRescheduleResultKeepsTriggeredRoutineEnabledWhenExactAlarmPermissionMissing`다.
+  - `adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow` 후 아래 allow/cancel 경로를 실행
+    - `RoutineExactAlarmPermissionIntegrationTest#enablingRoutineWithExactAlarmPermissionSchedulesAlarm`
+    - `RoutineExactAlarmPermissionIntegrationTest#enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm`
+    - `RoutineExactAlarmPermissionIntegrationTest#cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent`
+  - `./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.qa.StopitReleaseSmokeTest,com.uiery.keep.qa.BackupRestoreRuntimeResetIntegrationTest,com.uiery.keep.qa.HomeAccessibilityPermissionIntegrationTest,com.uiery.keep.database.KeepDatabaseMigrationTest,com.uiery.keep.notification.RoutineStartNotificationTapIntegrationTest,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesMultiDayStoredRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestMarksBootReceiverNotExported,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresRoutinesFromRoomAndSchedulesAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedRestoresMultiDayRoutineAndSchedulesEveryRepeatDayAlarm,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine,com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEveryRepeatDayAlarmForMultiDayRoutine,com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage,com.uiery.keep.service.KeepMessagingServiceIntegrationTest,com.uiery.keep.manifest.ManifestContractIntegrationTest,com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest`
+  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine`
+  - `./gradlew :app:installDevDebug && adb shell appops set com.uiery.keep.dev POST_NOTIFICATION ignore && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification`
+  - `./gradlew :app:installDevDebug && ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.notification.NotificationChannelDisabledIntegrationTest`
+
+- Release candidates targeting `main` run Android Release Build. Scope: release/* -> main, hotfix/* -> main, or manual dispatch from main/release/*/hotfix/*/SemVer tag refs; direct push to `main` does not trigger a signed release artifact. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded, so arbitrary refs cannot produce a signed release artifact:
   - `./gradlew :app:testProdReleaseUnitTest`
+  - `./gradlew :app:lintProdRelease`
+  - `python3 scripts/verify_lint_registry.py --report app/build/reports/lint-results-prodRelease.html ...`
   - signed `prodRelease` AAB build
-  - upload signed AAB artifact to GitHub Actions
-- Pushing a semver tag like `v1.7.1` runs Play deployment only after the tag-push guard passes:
-  - tag must be reachable from `origin/main`
-  - previous SemVer tag must already have the production completion marker
-  - release unit tests
-  - signed `prodRelease` AAB build
-  - artifact upload to GitHub Actions
-  - upload to Google Play `internal` track by default
-- A successful `production` CD run writes two completion markers for the tag:
+  - `scripts/release_provenance_manifest.py generate` creates `release-provenance.json` next to the AAB with the AAB `sha256`, file size, `versionName`, `versionCode`, git ref/SHA, and GitHub Actions workflow run URL
+  - `scripts/release_provenance_manifest.py verify` self-verifies the Release Build manifest before artifact upload; checksum, size, package, version, `artifact_name`, git ref/SHA/ref type, and GitHub Actions `workflow`/`run_id`/`run_attempt`/run URL drift fail before `Upload signed AAB artifact`
+  - upload signed AAB artifact plus `release-provenance.json` to GitHub Actions; the manifest does not include secrets such as keystore contents, service account JSON, Firebase config, or secret names
+- Pushing a semver tag like `v1.7.1` or manually dispatching Play Deploy from that tag runs Play deployment only after the Play deploy release guard passes:
+  - selected ref must be a SemVer tag
+  - tag must be origin/main reachable
+  - previous SemVer production completion marker must already exist
+  - the guard step must pass `GH_TOKEN` to `scripts/validate-play-deploy-ref.sh`, because that script calls `gh` while checking release/production-marker state in GitHub Actions
+  - Play Deploy pins JS helper execution with `actions/setup-node@v6` / Node 22 before `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, or `scripts/promote-google-play-track.js` run, so the deployment runtime matches Ops CI's release-helper validation runtime instead of inheriting a mutable runner default Node version.
+  - for non-production tracks (`internal`, `alpha`, `beta`): release unit tests, `:app:lintProdRelease`, prodRelease lint registry verification, signed `prodRelease` AAB build, artifact upload, and Google Play upload run with the Android signing/Firebase build secret bundle
+  - non-production Play Deploy generates `release-provenance.json`, verifies it before `Upload signed AAB artifact`, and only then uploads the verified AAB/manifest artifact before `Upload to Google Play`; operators should use that manifest as the prior non-production signed-AAB evidence for any later production promotion because it ties the internal release to AAB `sha256`, `versionCode`, `artifact_name`, git SHA/ref, track/status, GitHub Actions `run_id`, and workflow run URL
+  - the release-critical Google Play upload action is SHA-pinned (`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`, the audited v1 commit) rather than a floating major tag. Update it only through a reviewed release-provenance PR that refreshes `scripts.tests.test_release_provenance_workflow_contract`; production promotion remains repo-owned helper promotion and does not use this upload action.
+  - non-production staged rollouts are validated before any signing/Firebase/Play secret decode: `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty
+  - for `production`: the production promotion path validates production staged rollout inputs before `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is checked or decoded. `release_status=inProgress` requires numeric `rollout_fraction` with `0 < rollout_fraction <= 1`, while `completed`/`draft`/`halted` must leave `rollout_fraction` empty. It then runs the prior internal provenance gate and must fail-fast before production secrets if the matching internal release artifact or `release-provenance.json` does not match the selected SemVer tag `versionCode`, git SHA/ref, and workflow run evidence. After Play API access is available, the repo-owned promotion helper must also verify the live source track release status: the selected `internal` source release for that `versionCode` must be `completed` before it can be promoted to production. It does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, does not run `:app:lintProdRelease`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode/provenance governance after input validation, then promotes the matching completed `internal` release
+  - tag-triggered runs upload to Google Play `internal` track by default
+- A successful `production` CD run writes two completion markers for the tag only when `track=production` and `release_status=completed`:
   - GitHub Deployment: environment `production`, status `success`
   - GitHub Release note marker: `<!-- stopit-production-deployed: vX.Y.Z -->`
-- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires a SemVer tag ref.
-- Manual CD `workflow_dispatch` still requires a SemVer tag ref; branch refs are rejected for `internal`, `alpha`, `beta`, and `production`.
+- `draft`, `inProgress`, or `halted` production runs must not write either production completion marker. They may represent a Play Console rollout state, but they are not the repo-side signal that the version fully reached production.
+- Manual CD `workflow_dispatch` can upload to `internal`, `alpha`, `beta`, or `production`, but it still requires the same SemVer tag ref release guard as tag-triggered CD.
+- Manual CD `workflow_dispatch` still requires the same SemVer tag ref release guard: branch refs are rejected for `internal`, `alpha`, `beta`, and `production`, and the selected tag must be origin/main reachable with the previous SemVer production completion marker present.
 - `production` promotion never auto-picks the newest `internal` release. The workflow must run on a SemVer tag ref, resolves that tag's checked-out `app/build.gradle.kts` `versionCode`, and promotes only the matching `internal` release.
+- Production promotion does not build or upload a new AAB, so its provenance boundary is the prior non-production `release-provenance.json` generated for the matching internal release. When auditing a production promotion, compare the tag `versionCode` and internal release with the manifest's `versionCode`, AAB `sha256`, git SHA/ref, and workflow run URL instead of expecting a new production AAB manifest.
+- Production promotion searches prior internal evidence from the same SemVer tag and git SHA across both the automatic tag push artifact and an allowed manual deploy artifact created by `workflow_dispatch`, but candidate runs are selected only after their `release-provenance.json` verifies `track=internal` and `release_status=completed`. Manual `alpha`, `beta`, or `production` runs for the same tag/SHA are skipped as `prior internal track mismatch`, not treated as valid prior internal evidence. The full Actions-artifact path is preferred before the durable fallback so a manual internal deploy on the tag is not downgraded to metadata-only recovery unnecessarily.
+- Prior provenance is necessary but not sufficient for promotion: before `Promote internal release to production`, the live Play source track release selected by `SOURCE_TRACK=internal` and the tag `VERSION_CODE` must report `sourceRelease.status == "completed"`. If the source release is `draft`, `inProgress`, `halted`, missing, or otherwise not completed, classify the run as a **source release status mismatch** / live Play source-track state blocker rather than artifact expiration, durable fallback absence, or provenance mismatch. The failure message should include `sourceTrack`, `versionCode`, actual `sourceRelease.status`, and the expected `completed` status without printing secrets.
+- Prior internal artifact verification is a **cross-run** contract, not the same contract as Release Build / non-production Play Deploy same-run self-verification. The prior manifest must keep a valid prior `github_actions.run_id`, `run_attempt`, and `run_url`, but those values are expected to belong to the earlier internal Play Deploy run and therefore must not be compared for equality with the current production-promotion run. The workflow uses `scripts/release_provenance_manifest.py verify --prior-run` for this full Actions-artifact path. Same-run self-verification for Release Build and non-production Play Deploy still rejects current-run metadata drift; only the production prior-artifact path allows a different prior run identity.
+
+## Production promotion provenance retention / recovery
+
+Issue #680/#743/#819/#830/#850 source-of-truth boundary: production promotion depends on prior internal release provenance, but the GitHub Actions artifact that stores `stopit-prod-release-signed-aab` is currently a 30-day evidence surface. Treat that 30-day retention as an operating SLA, not as durable release history. This same boundary also owns the manual-deploy prior-evidence lookup contract: prior evidence may come from tag push or allowed `workflow_dispatch`, but production promotion must select only `track=internal` + `release_status=completed` manifests; `alpha`/`beta`/`production` candidates are `prior internal track mismatch`, not valid internal evidence.
+
+- Default path: promote to production while the prior non-production Play Deploy artifact is still available. The workflow downloads `stopit-prod-release-signed-aab`, verifies `release-provenance.json` with prior-run identity semantics, then validates/decodes `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` for the promotion.
+- Durable evidence target: after a successful `internal` + `release_status=completed` Play upload, `play-deploy.yml` publishes the verified `release-provenance.json` as a same-tag GitHub Release asset. That fallback is secret-free: no keystore material, service-account JSON, Firebase config, or secret values. `alpha`/`beta` non-production uploads still create the short-retention Actions artifact for their own run, but they must not clobber the single production-promotion fallback asset because production promotion requires internal completed evidence.
+- Pre-clobber guard: if the same-tag GitHub Release already has `release-provenance.json`, the publish step must download that existing durable fallback and run `scripts/release_provenance_manifest.py compare` before `gh release upload --clobber`. The compare contract requires matching package/artifact name, AAB file name/sha256/size, versionName/versionCode, git SHA/ref/ref_name/ref_type, workflow name, `track=internal`, `release_status=completed`, and rollout/upload mode. Existing/current `run_id`, `run_attempt`, and `run_url` must be present, but may differ for a legitimate same-tag internal completed rerun. If identity differs, classify it as an existing durable fallback identity mismatch / evidence-publish failure and refuse to clobber.
+- Post-upload publish failure: if the GitHub Release `release-provenance.json` publish step fails after `Upload to Google Play` has already succeeded for `internal` + `completed`, classify the run as **post-upload durable internal provenance publish failure** / evidence-publish failure, not as proof that the Play upload failed. Do not blindly re-upload the same `versionCode`; first confirm Play Console/run state, then recover by rerunning the same-tag internal completed Play Deploy or attaching the verified internal `release-provenance.json` fallback before production promotion.
+- Expired artifact recovery: if `gh run download --name stopit-prod-release-signed-aab` cannot find the prior artifact after the retention window, do not rebuild or upload a new production AAB from the production promotion path. `play-deploy.yml` first attempts the GitHub Release asset fallback (`release-provenance.json`) for the same SemVer tag and runs metadata-only provenance verification before production secrets; if that fallback is missing, rerun an internal completed deploy for the same SemVer tag before production promotion.
+- Failure classification: distinguish `prior internal track mismatch`, `artifact expired/missing`, `durable fallback missing`, `post-upload durable internal provenance publish failure`, and `provenance mismatch`. Expired/missing evidence can recover through the durable fallback; durable fallback missing or post-upload evidence publish failure is an operator recovery boundary; track mismatch means the candidate run was `alpha`/`beta`/`production` or otherwise not `track=internal` + `release_status=completed`; provenance mismatch is a release safety blocker.
+- Workflow note: metadata-only fallback verification checks the manifest's selected tag `versionCode`, git SHA/ref/ref_name, `artifact_name`, AAB checksum/size metadata, internal track/status, and prior workflow run identity. It does not decode production secrets or build/upload a new AAB.
 
 ## Required GitHub secrets
 
@@ -70,25 +117,29 @@ Set Android / Play build-upload secrets in GitHub repository settings or run `sc
 
 | Secret | Used by | Description |
 | --- | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | Release Build, CD | Base64-encoded Play upload keystore (`.jks` or `.keystore`). |
-| `ANDROID_KEYSTORE_PASSWORD` | Release Build, CD | Keystore password. |
-| `ANDROID_KEY_ALIAS` | Release Build, CD | Upload key alias. |
-| `ANDROID_KEY_PASSWORD` | Release Build, CD | Upload key password. |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, CD | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. |
-| `GOOGLE_SERVICES_JSON` | CI, Release QA, Release Build, CD | Firebase `google-services.json` content restored per workflow: Android CI / Release QA write the same secret to `app/src/dev` and `app/src/prod`, while Release Build / Play Deploy write it only to `app/src/prod`. |
+| `ANDROID_KEYSTORE_BASE64` | Release Build, Play Deploy non-production build/upload | Base64-encoded Play upload keystore (`.jks` or `.keystore`). Production promotion does not decode or require it. |
+| `ANDROID_KEYSTORE_PASSWORD` | Release Build, Play Deploy non-production build/upload | Keystore password. Production promotion does not require it. |
+| `ANDROID_KEY_ALIAS` | Release Build, Play Deploy non-production build/upload | Upload key alias. Production promotion does not require it. |
+| `ANDROID_KEY_PASSWORD` | Release Build, Play Deploy non-production build/upload | Upload key password. Production promotion does not require it. |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Version Guard, Play Deploy | Google Play Android Publisher service account JSON. `main` 대상 release/hotfix PR의 `Version Guard`가 Google Play visible max `versionCode`를 조회할 때도 필요하다. Production promotion still requires this secret because it calls the Play API to promote the matching internal release. |
+| `GOOGLE_SERVICES_JSON` | CI, Release QA, Release Build, Play Deploy non-production build/upload | Prod Firebase `google-services.json` content restored per workflow: Android CI / Release QA write `GOOGLE_SERVICES_JSON_DEV` to `app/src/dev` and `GOOGLE_SERVICES_JSON` to `app/src/prod`, while Release Build / non-production Play Deploy write it only to `app/src/prod`. Production promotion does not restore it. |
+| `GOOGLE_SERVICES_JSON_DEV` | CI, Release QA | Dev Firebase `google-services.json` content for `com.uiery.keep.dev`; not used by Release Build / Play Deploy. |
 | `DISCORD_BOT_TOKEN` | CD | Discord bot token used by `scripts/notify-discord-deploy.py` to post deploy approval/status messages to the deploy channel. |
 | `DISCORD_DEPLOY_CHANNEL_ID` | CD, Firebase Functions | GitHub Actions uses this as the deploy notification channel, and Firebase Functions uses a separate secret of the same name to verify production-promotion interaction channel. Configure both stores when Discord production approval is enabled. |
 
 Operational failure boundary for `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`:
 - missing before `main`-target `release/*` or `hotfix/*` PR -> `Version Guard` cannot query Google Play visible max `versionCode`, so the release PR blocks before merge
-- missing during tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play, so CD blocks after release build
+- missing during non-production tag/manual deploy -> `play-deploy.yml` cannot upload to Google Play after the signed AAB build
+- missing during production promotion -> `play-deploy.yml` cannot list/promote the matching internal release; this is the only Play/build secret required by the production promote path
 
 Operational failure boundary for `GOOGLE_SERVICES_JSON`:
 - missing during Android CI / Release QA -> the workflow can fail while restoring either `app/src/dev/google-services.json` or `app/src/prod/google-services.json`
-- missing during Release Build / Play Deploy -> the workflow fails on prod-only Firebase config restoration before building/uploading the signed artifact
+- missing during Release Build / non-production Play Deploy -> the workflow fails on prod-only Firebase config restoration before building/uploading the signed artifact
+- missing during production promotion -> no effect; production promotion skips Firebase restoration and AAB build
 
 Operational failure boundary for Discord deploy secrets:
-- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload, but deploy notification / approval-card posting is skipped or fails depending on the workflow step
+- missing GitHub Actions `DISCORD_BOT_TOKEN` / `DISCORD_DEPLOY_CHANNEL_ID` -> Play Deploy can still build/upload/promote, and deploy notification / approval-card posting is skipped without changing the Play deploy result
+- Discord 알림 실패는 Play 업로드/승격 실패가 아니다. Discord HTTP 403/5xx, bot permission, or transient API failures should appear as workflow warnings from `scripts/notify-discord-deploy.py` / the non-blocking `Notify Discord deploy channel` step, while the Play upload/promotion result and any production completion marker remain governed by the preceding Play steps
 - missing Firebase Functions `DISCORD_PUBLIC_KEY`, `DISCORD_DEPLOY_CHANNEL_ID`, allowed role/user IDs, or `GITHUB_ACTIONS_DISPATCH_TOKEN` -> Discord production-promotion button cannot verify/dispatch correctly even if GitHub Actions secrets exist
 
 The service account must have access in Play Console:
@@ -147,7 +198,8 @@ gh pr create --base main --title "release: 1.7.2" --body-file docs/RELEASE_CHECK
 The release PR should pass:
 
 - Branch Hygiene
-- Version Guard (must appear on every `main`-target PR, even before `app/build.gradle.kts` changes, and must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
+- Version Guard (must appear on every `main`-target PR; normal `release/*` / `hotfix/*` version PRs and any app/runtime/build-critical release/hotfix PR must prove the candidate `versionCode` is above both `main` and the highest versionCode currently visible through Google Play tracks)
+- Workflow-only / governance-only / docs-only main-target hotfixes still keep the `Version Guard` job visible, but the workflow skips the Play service-account restore and versionCode API lookup only after `Classify Version Guard scope` confirms there are no app/runtime/build-critical changes. Changes under `app/**`, `core/**`, Gradle wrapper/root Gradle files, or `gradle/**` require version validation even if `app/build.gradle.kts` was not edited.
 - Android CI
 - Android Release QA
 - Android Release Build
@@ -174,6 +226,8 @@ scripts/release-tag.sh 1.7.2
 ```
 
 The tag push triggers CD and uploads the signed bundle to the Play `internal` track only when `.github/workflows/play-deploy.yml` validates the same safety contract again through `scripts/validate-play-deploy-ref.sh`: the SemVer tag must be reachable from `origin/main`, and `scripts/check-latest-production-deployed.sh` must pass while excluding the just-pushed tag from the "latest existing tag" lookup. This keeps a hand-created `v*.*.*` tag from bypassing the `scripts/release-tag.sh` main/production-marker guardrail.
+
+`scripts/release-tag.sh` also re-checks the README contract immediately before tag creation: `README.md`'s `현재 버전` line must match `app/build.gradle.kts` `versionName/versionCode`. `scripts/bump-version.sh` / `scripts/release-start.sh` handle the normal update path, but the tag-time guard is the final stop for #613-style main/tag drift. Closed #558 covered bump-version synchronization; #613 keeps this release-tag guard, operator docs, and Ops CI contract-test coverage aligned.
 After a successful internal upload, the CD workflow posts an approval card to the Discord deploy channel. A permitted operator can click **프로덕션 배포** to run the same `play-deploy.yml` workflow on the same SemVer tag with `track=production`.
 
 Manual dispatch tag-governance contract:
@@ -182,9 +236,15 @@ Manual dispatch tag-governance contract:
 
 Production promotion safety contract:
 - `track=production` runs must start from a SemVer tag ref such as `v1.7.4`; branch refs are rejected.
+- `track=production` workflow runs enter the GitHub Environment named `production`; configure that Environment with required reviewer approval in GitHub repository settings. Direct GitHub `workflow_dispatch` and Discord-button dispatches therefore share the same final production approval gate.
+- The workflow also runs `scripts/check-production-environment-approval.sh` for `track=production` before production Play secrets are validated or decoded. If the `production` Environment exists but has no `required_reviewers` protection rule, the production promotion stops with an operator-facing summary instead of silently relying on an unprotected Environment.
+- Non-production Play deploys and tag-triggered internal uploads use the non-protected `play-deploy-non-production` environment so internal/alpha/beta evidence can still run without production reviewer approval.
+- The production promotion path does not decode the Android keystore, does not restore `GOOGLE_SERVICES_JSON`, and does not run `:app:bundleProdRelease`; it requires only `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` plus tag/versionCode governance before calling the Play promotion helper.
 - The workflow reads the checked-out tag's `app/build.gradle.kts`, resolves its `versionCode`, exports `VERSION_CODE`, and passes that to `scripts/promote-google-play-track.js`.
 - `scripts/promote-google-play-track.js` fails fast if `DEPLOY_TRACK=production` but `VERSION_CODE` is missing, so the run cannot silently promote the newest `internal` release by accident.
 - The promotion log must therefore show the selected tag and the resolved `versionCode`, and Google Play promotion succeeds only when that `versionCode` already exists on the `internal` track.
+- Production completion markers are written only when the same run uses `release_status=completed`. If an operator intentionally dispatches production as `draft`, `inProgress`, or `halted`, the run must not create the GitHub Deployment success marker or GitHub Release `stopit-production-deployed` marker that unlocks the next release gate.
+- Discord production 알림도 이 경계를 그대로 보여준다. 알림에는 `release_status`가 포함되며, `completed`일 때만 production 완료 marker 작성과 다음 release gate unlock을 안내한다. `draft`, `inProgress`, `halted` 알림은 Google Play rollout/review 상태 확인 대상일 뿐, production 완료 marker나 다음 release gate unlock으로 해석하지 않는다.
 
 ## VersionCode guardrail before Play upload
 
@@ -227,10 +287,12 @@ firebase deploy --only functions:promoteProductionFromDiscord
 
 ## Local release build check
 
-Without signing environment variables, local release builds fall back to debug signing so normal build checks remain easy:
+`prodRelease` release artifact tasks must never use debug signing fallback. Without all release signing environment variables, Gradle fails `:app:bundleProdRelease`, `:app:assembleProdRelease`, and related `prodRelease` artifact signing/packaging tasks before an AAB/APK can be created:
 
 ```bash
+unset ANDROID_KEYSTORE_PATH ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD
 ./gradlew :app:bundleProdRelease
+# Fails: Debug signing fallback is not allowed for prodRelease artifacts.
 ```
 
 With real signing credentials:
@@ -243,7 +305,7 @@ export ANDROID_KEY_PASSWORD='***'
 ./gradlew :app:bundleProdRelease
 ```
 
-Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
+Debug/smoke paths still do not require release signing secrets. Stopit uses `dev` / `prod` flavors in the `app` module, so documentation and local runbooks should prefer explicit commands like `:app:testDevDebugUnitTest` and `:app:assembleProdDebug` over ambiguous shortcuts such as `testDebugUnitTest` or `assembleDebug`.
 
 ## Safety notes
 

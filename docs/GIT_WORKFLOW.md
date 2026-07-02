@@ -22,23 +22,29 @@ main                    # Play Store 릴리즈 기준선. 태그는 여기에서
 
 | Layer | Workflow | Trigger | Responsibility |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
-| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, release-helper guardrail scripts (`scripts/check-release-readiness.sh`, `scripts/check-latest-production-deployed.sh`, `scripts/release-start.sh`, `scripts/bump-version.sh`, `scripts/validate-play-deploy-ref.sh`, `scripts/play_version_code_guard.py`), `scripts/tests/**`, `.github/workflows/**`, or manual | `Workflow syntax lint` runs `actionlint` for all `.github/workflows/**` changes, plus Firebase Functions `npm ci`/`npm run lint`/`npm test`, Google Play promotion helper `node --test scripts/tests/test_promote_google_play_track.js`, release-helper guardrail Python tests `python3 -m unittest discover -s scripts/tests -p 'test_*.py'`, release-helper shell syntax `bash -n ...`, and Discord deploy notification script `python3 -m py_compile scripts/notify-discord-deploy.py`. |
-| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, manual | Full release JVM/build gate plus `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. |
-| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch | Signed prod release AAB artifact. No Play upload. Direct push to `main` does not trigger signed artifact generation; use release/hotfix PR gates or explicit manual dispatch. |
-| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Signed AAB build + Google Play upload. Tag/manual only. |
+| CI | `.github/workflows/android-ci.yml` | PR to `develop`/`main`, push to `develop`/`main`, manual | Fast verification (`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`) plus `scripts.tests.test_android_manifest_contract`로 manifest/backup static policy를, `scripts/verify_lint_registry.py`로 devDebug HTML lint report의 navigation common/compose/runtime registry와 핵심 issue id를 강제 확인하고, PR/manual focused runtime smoke를 수행한다. No signed release, no Play upload. |
+| Ops CI | `.github/workflows/ops-ci.yml` | PR/push touching `functions/`, `scripts/promote-google-play-track.js`, `scripts/notify-discord-deploy.py`, release-helper guardrail scripts (`scripts/check-release-readiness.sh`, `scripts/check-latest-production-deployed.sh`, `scripts/release-start.sh`, `scripts/bump-version.sh`, `scripts/validate-play-deploy-ref.sh`, `scripts/validate-play-rollout-inputs.js`, `scripts/release-tag.sh`, `scripts/check-play-deploy-secret-contract.sh`, `scripts/check-production-environment-approval.sh`, `scripts/setup-play-deploy-secrets.sh`, `scripts/setup-discord-deploy-secrets.sh`, `scripts/play_version_code_guard.py`, `scripts/release_provenance_manifest.py`, `scripts/verify_lint_registry.py`, `scripts/check_workflow_gradle_tasks.py`), `scripts/tests/**`, `tools/aso-screenshots/**`, `.github/dependabot.yml`, `.github/workflows/**`, `docs/**`, `**/*.md`, or manual | `Workflow syntax lint` runs `actionlint` for every `.github/workflows/**` change. Ops CI installs pinned `ACTIONLINT_VERSION=1.7.12` from the matching actionlint GitHub Release asset and verifies the downloaded archive against the release checksum file; do not use mutable upstream `main` installer scripts for this gate. When updating actionlint, update `.github/workflows/ops-ci.yml`, the docs mentioning the pinned version/provenance boundary, and `scripts.tests.test_actionlint_gate` in the same PR. `tools/aso-screenshots/**` changes materialize `ASO screenshots build`, which runs `bun install --frozen-lockfile` and `bun run build` in `tools/aso-screenshots`; this is Android 앱 빌드와 분리된 Next/Bun generator gate with no Gradle, Firebase signing, or Play deploy secret usage. For release/CI/CD workflow 변경 PR (`android-ci.yml`, `release-qa.yml`, `release-build.yml`, `play-deploy.yml`, `version-guard.yml`), Ops CI must also materialize `Docs/runbook contract tests`; actionlint-only green은 YAML 문법 확인일 뿐이고 contract-test green이 operator docs/runbook/source-of-truth drift까지 검증한다. `Docs/runbook contract tests` is a lightweight Python/static gate for runbook/source-of-truth drift and now runs `python3 -m unittest discover -s scripts/tests -p 'test_*.py'`, so docs-reading contract tests are not lost when the explicit module list changes. This includes existing docs-reading guards such as `scripts.tests.test_shared_ui_component_boundaries`, `scripts.tests.test_feature_domain_boundary_contract`, `scripts.tests.test_dao_boundary_maintenance_docs`, `scripts.tests.test_dependabot_policy_contract`, and `scripts.tests.test_kotlin_compiler_options_contract` without `npm ci`, Gradle, or emulator work. Functions and release-helper jobs remain path-classified: Firebase Functions runs Node 22 `npm ci` / `npm run lint` / `npm test`; release-helper scripts run Play promotion/staged rollout checks, release-helper Python discover (`python3 -m unittest discover -s scripts/tests -p 'test_*.py'`), shell syntax, and Python compile gates. No Android build, signed release artifact, or Play upload. |
+| Release QA | `.github/workflows/release-qa.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Full release JVM/build gate first runs static policy tests including `scripts.tests.test_android_manifest_contract` for sensitive permissions, exported components, AccessibilityService metadata, and backup/data-extraction XML scope, then `scripts/verify_lint_registry.py`로 prodRelease HTML lint report의 navigation common/compose/runtime registry 포함 여부를 재검증하고, focused UI smoke + exact alarm deny/allow gate(저장/enable + boot 복구 + receiver 재예약) + remaining connected Android suite를 수행한다. Manual dispatch from feature/docs/automation branches fails before Firebase secret restore and emulator work; disallowed refs will not restore Firebase secrets or run release QA. |
+| Release Build | `.github/workflows/release-build.yml` | `release/* -> main`, `hotfix/* -> main`, or manual dispatch from `main`/`release/*`/`hotfix/*`/SemVer tag refs | Signed prod release AAB artifact. Before the signed AAB is built it runs `:app:lintProdRelease` plus `scripts/verify_lint_registry.py` against the prodRelease lint report. No Play upload. Direct push to `main` does not trigger signed artifact generation; use release/hotfix PR gates or explicit manual dispatch from an allowed release ref. Manual dispatch from feature/docs/automation branches fails before signing secrets are decoded. |
+| CD | `.github/workflows/play-deploy.yml` | `v*.*.*` tag, manual | Non-production build/upload runs signed AAB build + Google Play upload, after `:app:lintProdRelease` and prodRelease lint registry verification. Production promotion uses an existing internal release and does not run `:app:lintProdRelease`, build, or upload a new AAB; prior evidence candidates from tag push or `workflow_dispatch` are selected only after `release-provenance.json` verifies `track=internal` + `release_status=completed`, so manual `alpha`/`beta` runs are skipped as `prior internal track mismatch`. Before actual promotion, the live Play source track release selected by `SOURCE_TRACK=internal` + tag `VERSION_CODE` must also have `sourceRelease.status == "completed"`; otherwise classify a `source release status mismatch`. |
 | Governance | `branch-hygiene.yml`, `version-guard.yml` | PR | Branch routing and Play-safe versionCode checks. |
 
 This separation keeps code quality failures, release artifact failures, and Play Console/API failures easy to distinguish.
 
 Android CI path gating contract:
-- `gradlew` / `gradlew.bat`, root Gradle config files, and `.github/workflows/android-ci.yml` are treated as **build-critical** root inputs.
-- wrapper-only or Gradle-launcher-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
+- `gradlew` / `gradlew.bat`, root Gradle config files, `scripts/verify_lint_registry.py`, `scripts/check_compose_icon_button_accessibility.py`, `scripts/check_locale_string_parity.py`, and `.github/workflows/android-ci.yml` are treated as **build-critical** root/script inputs.
+- wrapper-only, Gradle-launcher-only, lint-registry-verifier-only, or static-policy-helper-only PRs must still materialize `Fast verification`; they should not look green because Android CI was skipped.
+- Static policy helper changes must run the matching Python policy tests inside `Fast verification`: `check_compose_icon_button_accessibility.py` maps to `scripts.tests.test_compose_icon_button_accessibility`, and `check_locale_string_parity.py` maps to `scripts.tests.test_locale_string_parity`.
+- Dependabot PR은 repository Firebase secret을 사용할 수 없는 보안 경계가 있을 수 있다. `Fast verification`은 Firebase config availability를 먼저 확인하고, actor가 `dependabot[bot]`이며 `GOOGLE_SERVICES_JSON_DEV` / `GOOGLE_SERVICES_JSON`가 비어 있으면 dummy dev/prod `google-services.json`을 생성해 Gradle app tasks(`:app:testDevDebugUnitTest`, `:app:lintDevDebug`, `:app:assembleProdDebug`)를 계속 실행한다. `Runtime smoke gate`는 실제 Firebase secret과 emulator 신뢰 경계가 필요하므로 같은 Dependabot secret 누락을 `Dependabot Firebase secret boundary` summary와 함께 neutral-deferred 처리한다. 내부 브랜치 PR과 `workflow_dispatch`에서는 같은 secret 누락을 계속 hard fail로 유지하며, Dependabot dependency PR의 runtime smoke는 리뷰 후 trusted branch 또는 수동 `workflow_dispatch`에서 재실행한다.
+- `stopit-prod-debug-apk` is a short-lived PR/smoke artifact. Android CI keeps it at `retention-days: 7`, while signed release artifacts remain longer-lived (`30` days in Release Build / non-production Play Deploy). The upload step is `non-blocking` (`continue-on-error: true`) because the artifact is optional after build/test success. If a run reports `Upload prod debug APK` with `Artifact storage quota has been hit`, treat it as GitHub Actions storage/quota exhaustion rather than an app/test regression; clean or wait for artifact expiry and GitHub's 6–12 hour quota recalculation, then rerun the same current-head checks when artifact readback is needed.
+- Ops CI `Docs/runbook contract tests` now runs `python3 -m unittest discover -s scripts/tests -p 'test_*.py'` for docs/workflow/dependabot/script-test changes, so docs-reading static contracts such as `scripts.tests.test_shared_ui_component_boundaries`, `scripts.tests.test_feature_domain_boundary_contract`, `scripts.tests.test_dao_boundary_maintenance_docs`, `scripts.tests.test_dependabot_policy_contract`, and `scripts.tests.test_kotlin_compiler_options_contract` cannot be silently omitted from docs-only gates. Keep this gate Python/static only: no Gradle, npm, emulator, Firebase, signing, or Play deploy secret work belongs in docs-contract.
 
 Play deploy secret/setup contract:
 - `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md` is the source of truth for Play deploy secret ownership, helper scope, and the `GOOGLE_SERVICES_JSON` restore matrix.
+- Dev/prod `applicationId` or package identity changes follow `docs/FLAVOR_APPLICATION_ID_CONTRACT.md`: dev runtime identity may split, but release/Play deploy must keep production package `com.uiery.keep`.
 - `scripts/setup-play-deploy-secrets.sh` only configures Android/Play build-upload secrets; Discord deploy notification secrets use `scripts/setup-discord-deploy-secrets.sh` or direct `gh secret set`.
 - `DISCORD_DEPLOY_CHANNEL_ID` exists in two stores when Discord production approval is enabled: GitHub Actions repo secret for deploy notification, and Firebase Functions secret for interaction channel verification.
+- Production Play deploy approval is enforced in two layers: Discord verifies channel/user/role before dispatching, and `.github/workflows/play-deploy.yml` routes `track=production` runs into the GitHub Environment named `production`, which must have required reviewer approval configured in repository settings. Direct GitHub `workflow_dispatch` and Discord dispatches share that same final Environment gate. The production workflow also runs `scripts/check-production-environment-approval.sh` before production Play secrets so an unprotected `production` Environment fails fast instead of promoting silently.
 - Release/operator evidence should run or reference `scripts/check-play-deploy-secret-contract.sh` when Play deploy, Discord deploy, workflow secret restore, or Firebase Functions promotion wiring changed.
 
 ## Analytics / Release Handoff Boundary
@@ -61,18 +67,24 @@ Play deploy secret/setup contract:
 | CI/운영 | `ci/<short-kebab-case>` | `ci/play-deploy` |
 | 잡무 | `chore/<short-kebab-case>` | `chore/bump-deps` |
 | 테스트 | `test/<short-kebab-case>` | `test/routine-viewmodel` |
+| 자동 의존성 PR | `dependabot/<ecosystem>/<path>/<group>` | `dependabot/npm_and_yarn/functions/functions-npm-patch-minor-...` |
 | 릴리즈 | `release/<version>` | `release/1.7.1` |
 | 핫픽스 | `hotfix/<short-kebab-case>` | `hotfix/block-screen-crash` |
 
 자동 검증: `.github/workflows/branch-hygiene.yml`가 PR 브랜치 이름과 PR 대상 브랜치를 검사한다.
+
+Automation lane 브랜치인 `automation/*`는 PR head prefix가 아니라 **로컬 lane/worktree 안정 브랜치 전용(local lane stable branch)**이다. 예를 들어 docs lane은 `automation/stopit-docs-lane`에서 최신 `origin/develop`을 따라가다가, reviewable 작업을 만들 때는 `docs/issue-629-branch-hygiene-policy`처럼 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...` 브랜치를 새로 만든다. `automation/*`를 PR head로 열면 Branch Hygiene가 의도적으로 실패해야 한다.
 
 ## PR Routing Rules
 
 | Head branch | Base branch | 이유 |
 | --- | --- | --- |
 | `feature/*`, `fix/*`, `refactor/*`, `docs/*`, `test/*`, `ci/*`, `chore/*` | `develop` | 일반 개발 통합 |
+| `dependabot/*` | `develop` | `.github/dependabot.yml`에서 생성되는 자동 의존성 PR |
 | `release/*` | `main` | 릴리즈 후보를 프로덕션 기준선으로 승격 |
 | `hotfix/*` | `main` | 긴급 수정 우선 배포 |
+
+로컬 lane/worktree 안정 브랜치(`automation/stopit-docs-lane`, `automation/stopit-qa-lane`, `automation/stopit-code-lane`, `automation/stopit-merge-lane`, `automation/stopit-release-lane`)는 위 PR routing table에 포함하지 않는다. lane cron은 stable automation branch를 기준선으로만 사용하고, 실제 PR은 변경 성격에 맞는 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` head branch에서 만든다.
 
 릴리즈/핫픽스가 `main`에 들어간 뒤에는 반드시 `main -> develop` 역머지를 해서 두 브랜치를 동기화한다.
 
@@ -105,9 +117,9 @@ Android 버전은 `app/build.gradle.kts`의 두 값으로 관리한다.
 3. `main`으로 들어가는 `release/*`, `hotfix/*` PR은 `versionCode`가 기존 `main`보다 크고, Google Play tracks에서 보이는 최고 사용 `versionCode`보다도 커야 한다.
 4. 태그 형식은 `v{versionName}`이다. 예: `v1.7.1`
 
-자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다.
+자동 검증: `.github/workflows/version-guard.yml`는 `main` 대상 PR마다 항상 실행된다. 정상적인 `release/*` / `hotfix/*` PR에서는 `versionCode`가 `main`과 Google Play visible max보다 모두 큰지, `versionName`이 SemVer인지 검사하고, 다른 브랜치가 실수로 `main`을 향하면 governance gate로 즉시 실패시킨다. app/runtime/build-critical main-target PR(`app/**`, `core/**`, Gradle wrapper/root Gradle 설정 등)은 `app/build.gradle.kts`가 직접 바뀌지 않았더라도 `Version Guard`가 Play service account 복원과 versionCode API 검증을 실행하므로, versionCode bump 누락 상태로 통과할 수 없다. workflow-only / governance-only / docs-only main-target hotfix는 `Version Guard` job을 계속 표시하되 `Classify Version Guard scope` 결과로 Play service account 복원과 versionCode API 검증을 skip한다.
 
-워크플로 유지보수 기준: `version-guard.yml`의 `actions/checkout` major version은 저장소의 다른 governance/release workflow와 같은 현재 표준(v6)으로 맞춘다. 그래야 릴리즈 안전장치만 오래된 checkout runtime에 머무르는 drift를 막을 수 있다.
+워크플로 유지보수 기준: `Version Guard`, `Release QA`, `Release Build`, `Play Deploy`, `Ops CI`, `Android CI`, `Branch Hygiene`처럼 릴리즈/거버넌스 신호를 만드는 workflow의 `actions/checkout` major version은 저장소의 현재 표준(v6)으로 함께 맞춘다. 그래야 릴리즈 안전장치나 PR routing gate만 오래된 checkout runtime에 머무르는 drift를 막을 수 있다. Gradle을 실행하거나 release artifact/Play 배포 secret을 다루는 `Android CI`, `Release QA`, `Release Build`, `Play Deploy` workflow는 checkout 직후 `Gradle Wrapper`를 `gradle/actions/wrapper-validation@v6`로 검증해야 하며, 이 단계는 `Set up Gradle`, signing/Firebase/Play secret 검증·decode보다 앞에 있어야 한다. `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.jar`, `gradle/wrapper/gradle-wrapper.properties` 변경 PR은 이 wrapper-validation 증적과 contract-test green을 PR 본문에 남긴다. 또한 `gradle/wrapper/gradle-wrapper.properties`는 `distributionUrl`과 같은 공식 Gradle 배포본 checksum인 `distributionSha256Sum`을 함께 고정해야 한다. Gradle wrapper를 올릴 때는 `https://services.gradle.org/distributions/gradle-8.11.1-bin.zip.sha256` 같은 선택 버전의 `.sha256` 파일에서 값을 확인하고 `distributionUrl`/`distributionSha256Sum`을 같은 PR에서 갱신한다. 이 순서는 `scripts.tests.test_actionlint_gate`와 `scripts.tests.test_gradle_wrapper_distribution_checksum`가 회귀 방지한다. `play-deploy.yml`의 tag-push guard는 `scripts/validate-play-deploy-ref.sh`가 GitHub release/deployment state를 `gh`로 조회하므로 Actions 안에서 `GH_TOKEN: ${{ github.token }}`를 반드시 전달해야 한다. main에서 고친 이 계약은 다음 릴리즈 sync 전에 `develop`에도 유지되어야 한다.
 
 ## Harness Scripts
 
@@ -134,6 +146,7 @@ scripts/bump-version.sh 1.7.2 --code 24 --fallback-play-max-version-code 23
 동작:
 - `app/build.gradle.kts`의 `versionName` 변경
 - `versionCode` 자동 +1 또는 지정 값으로 변경
+- `README.md` 상단의 `현재 버전` 라인을 같은 `versionName/versionCode`로 동기화
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
 - Gradle release task dry-run으로 task 존재 확인
 
@@ -150,8 +163,9 @@ scripts/release-start.sh 1.7.2 --fallback-play-max-version-code 23
 동작:
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 먼저 확인
 - `develop`에서 `release/1.7.2` 생성
-- 버전 bump
+- 버전 bump (`app/build.gradle.kts`와 `README.md` 현재 버전 라인을 함께 갱신)
 - release dry-run 검증(상위 release-start에서는 `--no-dry-run`을 허용하지 않음)
+- release branch 생성 후 `scripts/check-release-readiness.sh` quick preflight로 `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `scripts/verify_lint_registry.py`, `:app:bundleProdRelease --dry-run`까지 확인
 - `chore: bump version to 1.7.2` 커밋 생성
 
 ### 릴리즈 production 완료 게이트
@@ -163,6 +177,7 @@ scripts/check-latest-production-deployed.sh
 동작:
 - 최신 기존 SemVer 태그(`vX.Y.Z`)를 찾는다.
 - 해당 태그에 GitHub Deployment `environment=production` + `success` 상태가 있거나, GitHub Release 본문에 `<!-- stopit-production-deployed: vX.Y.Z -->` marker가 있으면 통과한다.
+- 이 marker는 Play Deploy가 `track=production` + `release_status=completed`로 성공했을 때만 production 완료로 기록한다. `draft`, `inProgress`, `halted` 상태는 production 완료 marker를 쓰지 않는다.
 - marker가 없으면 새 릴리즈 시작/태그 생성을 중단한다.
 - 긴급 상황에서만 명시 승인 후 `STOPIT_RELEASE_GATE_BYPASS=1`로 우회한다.
 
@@ -176,6 +191,7 @@ scripts/release-tag.sh 1.7.2
 - 현재 브랜치가 `main`인지 확인
 - 최신 기존 SemVer 태그가 production 배포 완료 marker를 가지고 있는지 다시 확인
 - `versionName`과 태그 버전 일치 확인
+- tag 생성 전 `README.md 현재 버전 라인`이 `app/build.gradle.kts`의 `versionName/versionCode`와 일치하는지 최종 확인
 - `v1.7.2` 태그 생성 및 push
 - GitHub Actions CD가 `scripts/validate-play-deploy-ref.sh`로 태그가 `origin/main`에서 온 SemVer release tag인지, 직전 SemVer production marker가 있는지 다시 검증한 뒤 Google Play internal track 업로드 실행
 
@@ -192,8 +208,10 @@ STOPIT_PLAY_MAX_VERSION_CODE=23 scripts/check-release-readiness.sh
 - 현재 브랜치의 git working tree clean 여부 확인
 - 버전 형식 확인
 - Google Play visible max guard (`scripts/play_version_code_guard.py`) 검증
-- `actionlint`가 있으면 workflow 문법 확인
-- `:app:testProdReleaseUnitTest :app:bundleProdRelease --dry-run` 실행
+- `ACTIONLINT_VERSION=1.7.12`에 맞춘 `actionlint` workflow 문법 확인. `actionlint`가 없거나 설치된 `actionlint --version`이 pinned `1.7.12`와 다르면 release readiness는 skip하지 않고 중단하므로, 로컬 preflight 전에 같은 pinned version을 설치한 뒤 재시도한다.
+- quick preflight로 `:app:testProdReleaseUnitTest`, `:app:lintProdRelease`, `scripts/verify_lint_registry.py`, `:app:bundleProdRelease --dry-run` 실행
+- Signed AAB provenance 생성/검증은 로컬 quick preflight가 아니라 Android Release Build workflow가 실제 signed artifact 옆의 `release-provenance.json`으로 검증한다.
+- production promotion은 prior internal Play Deploy artifact의 `release-provenance.json`을 검증한다. 해당 `stopit-prod-release-signed-aab` artifact는 30-day evidence surface이므로, 그 이후 승격은 same-tag GitHub Release asset의 secret-free `release-provenance.json` durable fallback을 metadata-only로 검증하거나 같은 SemVer tag의 internal completed Play Deploy 재실행으로 prior provenance를 복구한 뒤 진행한다. Durable fallback asset은 `track=internal` + `release_status=completed`에서만 publish/overwrite하며, `alpha`/`beta` deploy가 internal evidence를 clobber하지 못한다. 같은 tag의 internal completed rerun이 existing durable fallback을 덮기 전에는 `scripts/release_provenance_manifest.py compare`로 기존 asset과 현재 manifest의 package/artifact/AAB checksum/size/version/git/workflow/track/status identity를 비교하고, `run_id`/`run_attempt`/`run_url`은 양쪽에 존재해야 하지만 정상 rerun에서는 달라질 수 있는 실행 instance로 본다. mismatch이면 `gh release upload --clobber`를 실행하지 않고 evidence-publish failure로 멈춘다. Prior artifact 검증도 같은 cross-run 원칙을 따르며, workflow full-artifact path는 `scripts/release_provenance_manifest.py verify --prior-run`을 사용한다: prior internal run의 `github_actions.run_id/run_attempt/run_url`은 current production-promotion run과 달라도 되지만, Release Build / non-production Play Deploy same-run self-verify는 current-run metadata drift를 계속 실패시킨다.
 
 ## Standard Development Flow
 
@@ -216,7 +234,7 @@ gh pr create --base develop --fill
 
 ## Flavor-aware Gradle Verification Matrix
 
-`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다.
+`app` 모듈은 `dev` / `prod` flavor를 사용하므로 flavor-less 명령(`testDebugUnitTest`, `lintDebug`, `assembleDebug`)은 모호합니다. 기본 검증은 아래처럼 variant를 명시합니다. GitHub Actions workflow 안에서는 variant만 명시한 root task inference(`testDevDebugUnitTest`, `lintDevDebug`, `assembleProdDebug`, `connectedDevDebugAndroidTest` 등)도 금지하고, 반드시 `:app:` module-qualified task를 사용합니다.
 
 | 상황 | 권장 명령 | 비고 |
 | --- | --- | --- |
@@ -230,6 +248,12 @@ gh pr create --base develop --fill
 루트 수준의 `./gradlew test`는 전체 JVM 테스트 집합을 돌릴 때 쓸 수 있지만, 문서/PR 템플릿/자동화의 대표 예시는 위 variant-specific `:app:` 태스크를 사용합니다.
 
 의존성 업그레이드나 lint 기준선 정리 같은 maintenance slice는 `docs/DEPENDENCY_LINT_MAINTENANCE.md`를 source of truth로 보고, `gradle/libs.versions.toml`과 `app/build.gradle.kts`, `core/kds/build.gradle.kts`의 dependency source-of-truth drift를 함께 확인합니다. 특히 #175 계열 작업은 app 모듈만 보지 말고 `:core:kds`의 direct version 문자열까지 확인합니다.
+
+Dependabot 자동 업데이트 정책(#693)은 `.github/dependabot.yml`이 source of truth입니다. Dependabot은 Gradle(`/`), GitHub Actions(`/`), Firebase Functions npm(`/functions`), ASO screenshot Bun(`/tools/aso-screenshots`) 생태계를 weekly로 감지하고, PR에는 `maintenance`, `automation`, `dependencies` labels를 붙입니다. Gradle patch/minor는 #1034 기준으로 broad `patterns: ["*"]` 한 그룹이 아니라 `android-gradle-firebase-google-patch-minor`, `android-gradle-androidx-ui-runtime-patch-minor`, `android-gradle-room-ksp-patch-minor`, `android-gradle-test-tooling-patch-minor`, `android-gradle-runtime-libraries-patch-minor`, `android-gradle-toolchain-held-patch-minor` risk-lane으로 나눠 실패 원인을 격리합니다. 기존 broad PR #1013 같은 묶음은 그대로 merge하지 말고 다음 Dependabot 주기의 분할 재생성 또는 안전 group 수동 cherry-pick 후 close/hold로 정리합니다. **major update**는 자동 batch에서 제외하고 수동 검토 대상으로 남깁니다. GitHub Actions 중 `r0adkll/upload-google-play`는 patch/minor라도 자동 Dependabot PR 대상에서 제외한다. 이 action의 SHA 변경은 Google Play 업로드 side effect와 release provenance를 동시에 바꾸므로, 별도 release-governance PR에서 workflow, `scripts.tests.test_release_provenance_workflow_contract`, release/operator docs를 함께 갱신해야 합니다. Dependabot PR head는 `dependabot/*`이며 Branch Hygiene는 이를 `develop` 대상으로 허용합니다. Dependabot PR은 Play deploy, release secret, signing secret 변경 경계가 아니다. Android CI에서 repository Firebase secret이 비어 있으면 Dependabot PR의 app Gradle verification / runtime smoke는 `Dependabot Firebase secret boundary`로 neutral-deferred 처리하고, trusted branch 또는 수동 `workflow_dispatch`에서 `GOOGLE_SERVICES_JSON_DEV` / `GOOGLE_SERVICES_JSON`가 있는 상태로 다시 실행해 runtime-sensitive dependency evidence를 채운다. runtime-sensitive dependency가 포함되면 `docs/QA_RUNTIME_CHECKLIST.md` evidence 요구사항을 별도로 확인합니다. semver-major 보류 항목은 #905 기준으로 매월 첫 번째 월요일 또는 release train 전 `docs/DEPENDENCY_LINT_MAINTENANCE.md#dependabot-semver-major-수동-감사-lane-905`의 감사 템플릿을 사용해 `ready` / `backlog` / `hold`로 분류하고, `ready` 후보만 별도 좁은 issue/PR로 승격합니다. 최신 #1069 감사 결과는 `docs/DEPENDENCY_LINT_MAINTENANCE.md#2026-06-26-dependabot-semver-major-audit-1069`를 함께 확인해 GitHub Actions `setup-node`/`paths-filter` 후보와 Android toolchain/Ads/Functions Admin 보류 경계를 구분합니다.
+
+Android Gradle stack compatibility guard(#925)는 patch/minor group에도 적용됩니다. `android-gradle-toolchain-held-patch-minor`에서 `Hilt 2.59+`와 `AGP 8.x`가 함께 들어와 #914처럼 Gradle configuration 단계에서 known-incompatible로 실패하면 단순 rerun하지 않고 close/hold 또는 별도 toolchain lane으로 전환합니다. Stopit이 AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 Hilt Gradle plugin/runtime/compiler `[2.59,)` 범위를 ignore하며, AGP 9 전환은 Gradle wrapper/AGP/Kotlin/KSP/Compose/Hilt compatibility matrix와 release/build verification을 갖춘 별도 PR로 다룹니다. 같은 guard는 #928/#939/#984처럼 `Kotlin 2.3.21` plugin bump가 기존 `kotlinOptions.jvmTarget`를 `Using 'jvmTarget: String' is an error`로 깨뜨리는 경우에도 적용됩니다. `app/build.gradle.kts`와 `core/kds/build.gradle.kts`가 `compilerOptions DSL`로 migration되기 전까지 `.github/dependabot.yml`은 Kotlin Android/Compose/serialization/JVM plugin(`org.jetbrains.kotlin.jvm`) `[2.3,)` 범위를 hold하고, 전환은 별도 Kotlin/toolchain lane에서 처리합니다.
+
+AndroidX compileSdk / AGP boundary guard(#1008/#1051)도 같은 patch/minor policy에 포함됩니다. Stopit은 현재 `compileSdk 35` / AGP 8.x이므로, PR #989처럼 `androidx.navigationevent:*:1.0.0`이 `compileSdk 36+`를 요구하거나 `androidx.core:core:1.19.0`이 `compileSdk 37+` 및 `AGP 9.1.0 or higher`를 요구하는 batch는 app-code regression으로 디버깅하지 않습니다. PR #1042/#1056에서 `androidx.core:core-ktx 1.17.0+`, `androidx.core:core 1.17.0+`, `androidx.activity:activity-compose 1.11.0+`, `androidx.activity:activity 1.11.0+`, `androidx.activity:activity-ktx 1.11.0+`, `androidx.lifecycle:* 2.10.x`, `androidx.compose:compose-bom 2025.11.x`도 같은 compileSdk/AGP-bound 실패로 확인됐으므로 `.github/dependabot.yml`은 `androidx.core:core-ktx [1.17,)`, `androidx.navigation:navigation-compose [2.9,)`, `androidx.lifecycle:* 2.10+`, `androidx.activity:activity-compose [1.11,)`, `androidx.compose:compose-bom [2025.11,)`를 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 hold하고, 이 축은 compileSdk/AGP/Gradle/Kotlin/KSP/Compose 호환성을 함께 검증하는 별도 Android toolchain lane으로 승격합니다. PR #1043/#1057의 `com.google.devtools.ksp 2.2.x+`, PR #1045/#1058/#1062의 `org.jetbrains.kotlinx:kotlinx-serialization-json 1.9.x+`, PR #1062의 `org.jetbrains.kotlinx:kotlinx-datetime 0.8.x+`도 Kotlin metadata/API 또는 `Clock.System`/`Instant` API drift를 요구하므로, Stopit이 Kotlin 2.1.x에 머무는 동안 각각 `com.google.devtools.ksp [2.2,)`, `org.jetbrains.kotlinx:kotlinx-serialization-json [1.9,)`, `org.jetbrains.kotlinx:kotlinx-datetime [0.8,)`로 hold하고 별도 Kotlin/toolchain lane에서 검증합니다.
 
 Navigation/Compose custom lint 복구(`issue #156` 유형)에서는 `:app:lintDevDebug` / `:app:lintProdRelease` green만으로 충분하다고 보지 않습니다. Android CI와 Release QA는 둘 다 `scripts/verify_lint_registry.py`로 HTML lint report를 다시 읽어 `androidx.navigation.common`, `androidx.navigation.compose`, `androidx.navigation.runtime` registry와 `MissingSerializableAnnotation`, `MissingKeepAnnotation`, `WrongNavigateRouteType` issue id가 실제 report에 포함되고, `Requires newer lint; these checks will be skipped!` / `ObsoleteLintCustomCheck`가 없는지까지 확인합니다.
 
@@ -257,6 +281,7 @@ scripts/release-tag.sh 1.7.2
 
 # 5-1. manual `workflow_dispatch`가 필요해도 같은 SemVer tag ref에서만 실행
 # branch ref로 internal/alpha/beta/production 업로드 우회 금지
+# 선택 tag도 origin/main reachable + 직전 production marker guard를 통과해야 함
 
 # 6. main -> develop 역머지
 git checkout develop
@@ -289,11 +314,12 @@ gh pr create --base main --fill
 ## Safety Defaults
 
 - 일반 CI는 Play 업로드도 signed release artifact 생성도 하지 않는다.
-- Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다.
-- CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다.
-- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다.
+- Release Build는 signed AAB artifact만 만들고 Play 업로드는 하지 않는다. artifact 생성 전 `:app:lintProdRelease`와 `scripts/verify_lint_registry.py`로 prodRelease lint registry를 재확인한다. Manual dispatch는 `main`, `release/*`, `hotfix/*`, 또는 SemVer tag ref에서만 signing secrets와 signed release artifact 경로에 도달한다.
+- CD는 태그 또는 수동 실행에서만 Google Play에 업로드한다. non-production build/upload 경로는 signed AAB 업로드 전 같은 prod lint/registry gate를 실행하고, production promotion은 기존 internal release 승격만 하므로 `:app:lintProdRelease`를 실행하지 않는다.
+- Google Play 업로드 side effect를 만드는 third-party action은 floating major tag가 아니라 검토된 SHA(`r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6`)로 고정한다. 이 SHA를 바꾸는 PR은 workflow, `scripts.tests.test_release_provenance_workflow_contract`, release/operator docs를 함께 갱신해야 한다.
+- manual `workflow_dispatch`도 SemVer tag ref에서만 허용되며, branch ref는 internal/alpha/beta/production 모두 거부한다. 선택한 tag 역시 `scripts/validate-play-deploy-ref.sh`로 `origin/main` ancestry와 직전 production marker gate를 통과해야 하므로 tag-push CD와 같은 release provenance/sequence guard를 공유한다.
 - 자동 태그 배포는 Google Play `internal` track으로만 간다.
-- 자동 태그 배포도 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
+- tag-push와 manual dispatch 모두 `scripts/validate-play-deploy-ref.sh`를 통과해야 하므로, `scripts/release-tag.sh`를 우회해 만든 SemVer tag는 `origin/main` ancestry 또는 직전 production marker gate에서 차단된다.
 - `production` 배포는 수동 workflow dispatch로만 실행한다.
 - secret 파일은 GitHub Secrets에서 복원하고 repo에 커밋하지 않는다.
 - `versionCode`는 절대 재사용하지 않는다.

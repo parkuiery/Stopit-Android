@@ -11,16 +11,43 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 |------|-------------|
 | `GIT_WORKFLOW.md` | Git branching, commit, and release workflow documentation. |
 | `ANALYTICS_EVENT_DICTIONARY.md` | #13용 이벤트/파라미터 계약, screen_view 규칙, GA4 조회 기준. |
+| `BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md` | #611용 차단 앱 analytics privacy 계약, PR #617 이후 `blocked_app_package` 퇴역, `blocked_app_category_bucket` 구현/readback 기준. |
 | `GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md` | #13용 GA4 Admin 등록 ledger, metadata 증적, 14일 재측정 운영 런북. |
 | `FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md` | #14용 첫 잠금 활성화 퍼널 canonical 계약, CTA, guardrail, 측정 템플릿. |
 | `METRICS_ANALYSIS.md` | 스탑잇 제품 지표 분석, GA4 조회, 개선 이슈화 절차 문서. |
 | `PRODUCT_METRICS_DASHBOARD.md` | 스탑잇 North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의. |
-| `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. #250류 AdMob application/ad unit id config handoff도 여기서 추적한다. |
+| `ROUTINE_RETENTION_COHORT_BASELINE.md` | #380용 루틴 보유/미보유 반복 사용 코호트 기준선, GA4 query template, 14일/30일 재측정 계약. |
+| `ROUTINES_COUNT_COVERAGE_CONTRACT.md` | #479용 `routines_count` user property coverage 보강 계약, code-lane 구현 handoff, release/readback 경계. |
+| `ROUTINESTORE_COMPATIBILITY_CACHE_CONTRACT.md` | #511용 `RoutineStore` / `PreferencesKey.ROUTINES` legacy compatibility cache 유지·퇴역 계약, Room 우선 conflict-winner, receiver/restore QA handoff. |
+| `ROUTINE_CREATION_CTA_EXPERIMENT.md` | #455용 첫 차단 성공 이후 루틴 0개 사용자 대상 루틴 생성 soft CTA 실험 계약, analytics/QA/14일·30일 readback 경계. |
+| `ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md` | #609용 활성 루틴 시간대 foreground 즉시 차단, 수정/삭제/OFF 우회 방지, 비징벌적 안내 copy, release-candidate QA evidence 계약. |
+| `REPEAT_BLOCK_ROUTINE_SUGGESTION.md` | #531용 반복 차단 기반 자동 루틴 제안 계약, privacy-safe bucket/prefill, 기존 루틴 coverage guard, analytics/QA evidence template. |
+| `ADMOB_MONETIZATION_RUNBOOK.md` | #16용 광고 단위 감사, `(not set)` 점검, guardrail, 안전한 수익화 실험 운영 런북. `monetization_interest_*` 관심도 CTA 계약, #250류 AdMob application/ad unit id config handoff, #563 이후 KDS/앱 수익화 runtime ownership 경계도 여기서 추적한다. |
 | `PLAY_DEPLOY_SECRETS_RUNBOOK.md` | Play 배포 secret ownership, helper 범위, workflow restore matrix, Firebase Functions 경계 런북. |
 | `REVIEW_PROMPT_LIFECYCLE.md` | #17용 리뷰 프롬프트 eligibility/drain 계약과 queryability guardrail 문서. |
-| `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 Usage Access 기반 리포트/추천 MVP 가설, guardrail, 측정 조건 문서. |
+| `REVIEW_PROMPT_POST_RELEASE_FOLLOWTHROUGH.md` | #307용 리뷰 프롬프트 shown 0 재측정, 버전별 lifecycle 표, Play Console 후행 지표 추적 런북. `scripts.tests.test_review_prompt_post_release_followthrough_docs`가 release/GA4/Play Console 경계를 고정한다. |
+| `VERSION_ADOPTION_METRICS_GATE.md` | #359용 버전 채택률/최신 버전 cohort 판독 게이트. #13/#14/#16/#307 live 지표를 최신 코드 성과로 해석하기 전 확인한다. |
+| `USAGE_STATS_PERSONALIZATION_MVP.md` | #119용 `docs/USAGE_STATS_PERSONALIZATION_MVP.md` Usage Access 선택형 개인화 discovery gate, guardrail, 측정 조건 문서. `scripts.tests.test_usage_stats_personalization_contract`가 stale title, privacy/activation guardrail, high-traffic docs 링크를 고정한다. |
 | `PLAY_STORE_ASO.md` | #65용 Play Console ASO 수동 반영 후 baseline/14일·30일 추적 런북. |
-| `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. |
+| `INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` | #581용 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` Play Install Referrer / UTM attribution 계약, privacy-safe bucket, campaign link 운영 템플릿, GA4 Admin/release/readback 경계. |
+| `FOCUS_SUMMARY_SHARE_MVP.md` | #211용 LockHistory 주간 집중 요약 공유 MVP 계약, privacy guardrail, analytics/QA 계획. #597 공유 payload locale resource/template debt와 `scripts.tests.test_focus_summary_share_contract` static guard도 여기서 추적한다. |
+| `ROUTINE_TEMPLATE_SHARE_MVP.md` | #407용 루틴 템플릿 공유 MVP 계약, Android share sheet 범위, privacy-safe payload, analytics/QA 계획. #778 payload body/label/duration resource-template debt와 `scripts.tests.test_routine_template_share_contract` static guard도 여기서 추적한다. |
+| `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
+| `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. PR #760 이후 생성/상세 summary TalkBack contentDescription 자동 baseline과 남은 실기기/release/readback 경계를 함께 추적한다. |
+| `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
+| `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, PR #500/PR #606/PR #948 이후 landed Home status baseline과 남은 visual/release/readback 경계. |
+| `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
+| `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
+| `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, PR #675 이후 step purpose copy baseline, 남은 device/release/readback 경계. |
+| `EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md` | #694용 긴급해제 설정 변경 privacy-safe analytics 계약. `emergency_unlock_settings_changed` / `emergency_unlock_manual_reset_requested`, enum/bucket 파라미터, 금지 payload, GA4 등록/readback 경계를 고정한다. |
+| `EMERGENCY_UNLOCK_STEP_ANALYTICS.md` | #779용 긴급해제 단계별 이탈·검증 실패 privacy-safe analytics 계약. `emergency_unlock_step_viewed` / `emergency_unlock_validation_blocked` / `emergency_unlock_cancelled`, enum-only 파라미터, reason-required ON/OFF 분모, GA4 등록/readback 경계를 고정한다. |
+| `SHARED_UI_OWNERSHIP_BOUNDARY.md` | #492용 공유 UI 소유권 / feature-private component import 경계. #492 closed 이후 PermissionSettingDialog/TimerPicker app shared UI baseline과 future drift static guard 기준. #876 app root `BlockScreen` → lock feature-private component drift는 repo-internal cleaned baseline으로 추적한다. |
+| `FEATURE_DOMAIN_BOUNDARY.md` | #651용 feature-private domain/repository import 경계, shared domain/data migration order, production drift inventory static guard 기준. #986 ReviewEligibility repository shared data-boundary 승격 baseline도 여기서 추적한다. |
+| `ACCESSIBILITY_PERMISSION_COPY_CONTRACT.md` | #642용 접근성 권한 onboarding copy 계약. `Screen Time permission` 금지, Android Accessibility permission wording, locale/Play disclosure/QA guard 기준. |
+| `QUERY_ALL_PACKAGES_POLICY.md` | #904용 `QUERY_ALL_PACKAGES` Play 정책 증적, 앱 선택 picker 한정 사용 목적, 대체 가능성 검토, Play Console 권한 선언 문안, static guard 기준. |
+| `FCM_DEVICE_REGISTRATION_CONTRACT.md` | #194/#1090용 FCM token 로컬 저장, legacy backend registration 제거, 초기 token fetch와 `onNewToken()` 공통 retry/observability 계약. |
+| `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
+| `TEST_SOURCE_LINT_POLICY.md` | #1091용 `app/src/test` / `app/src/androidTest` lint 제외 정책, 대체 guard, 재검토/활성화 조건, static contract 기준. |
 
 ## Subdirectories
 | Directory | Purpose |

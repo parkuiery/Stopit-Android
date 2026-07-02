@@ -7,6 +7,16 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 OPS_CI = REPO_ROOT / ".github" / "workflows" / "ops-ci.yml"
 GIT_WORKFLOW = REPO_ROOT / "docs" / "GIT_WORKFLOW.md"
 RELEASE_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "release-context.md"
+WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
+GOVERNANCE_RELEASE_WORKFLOWS = (
+    "android-ci.yml",
+    "branch-hygiene.yml",
+    "ops-ci.yml",
+    "play-deploy.yml",
+    "release-build.yml",
+    "release-qa.yml",
+    "version-guard.yml",
+)
 
 
 class ActionlintGateContractTest(unittest.TestCase):
@@ -30,6 +40,23 @@ class ActionlintGateContractTest(unittest.TestCase):
         self.assertIn("rhysd/actionlint", workflow)
         self.assertRegex(workflow, r"(?m)^\s+run:\s+actionlint\b")
 
+    def test_ops_ci_pins_actionlint_version_instead_of_floating_latest(self):
+        workflow = OPS_CI.read_text()
+
+        self.assertIn("ACTIONLINT_VERSION", workflow)
+        self.assertRegex(workflow, r"ACTIONLINT_VERSION:\s+\d+\.\d+\.\d+")
+        self.assertNotIn("bash -s -- latest", workflow)
+
+    def test_ops_ci_installs_actionlint_from_tagged_release_with_checksum(self):
+        workflow = OPS_CI.read_text()
+
+        self.assertNotIn("raw.githubusercontent.com/rhysd/actionlint/main", workflow)
+        self.assertNotIn("download-actionlint.bash", workflow)
+        self.assertIn("github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION", workflow)
+        self.assertIn("actionlint_${ACTIONLINT_VERSION}_checksums.txt", workflow)
+        self.assertIn("sha256sum --check", workflow)
+        self.assertIn("actionlint_${ACTIONLINT_VERSION}_${os}_${arch}.tar.gz", workflow)
+
     def test_operator_docs_describe_remote_actionlint_gate(self):
         git_workflow = GIT_WORKFLOW.read_text()
         release_context = RELEASE_CONTEXT.read_text()
@@ -41,7 +68,80 @@ class ActionlintGateContractTest(unittest.TestCase):
             with self.subTest(doc=doc_name):
                 self.assertIn("Workflow syntax lint", doc)
                 self.assertIn("actionlint", doc)
+                self.assertIn("1.7.12", doc)
                 self.assertIn(".github/workflows/**", doc)
+                self.assertIn("GitHub Release asset", doc)
+                self.assertIn("checksum", doc)
+
+    def test_governance_release_workflows_use_checkout_v6(self):
+        for workflow_name in GOVERNANCE_RELEASE_WORKFLOWS:
+            workflow = (WORKFLOW_DIR / workflow_name).read_text()
+            checkout_refs = re.findall(r"actions/checkout@v(\d+)", workflow)
+            with self.subTest(workflow=workflow_name):
+                self.assertTrue(checkout_refs, f"{workflow_name} should use actions/checkout")
+                self.assertEqual(
+                    {"6"},
+                    set(checkout_refs),
+                    f"{workflow_name} should stay on the repository checkout major standard v6",
+                )
+
+    def test_gradle_workflows_validate_wrapper_before_gradle_or_secret_steps(self):
+        workflows = ("android-ci.yml", "play-deploy.yml", "release-build.yml", "release-qa.yml")
+        secret_or_gradle_markers = (
+            "- name: Set up Gradle",
+            "- name: Restore Firebase",
+            "- name: Validate release build secrets",
+            "- name: Validate build/upload deployment secrets",
+            "- name: Validate production promotion secrets",
+            "- name: Decode signing",
+        )
+
+        for workflow_name in workflows:
+            workflow = (WORKFLOW_DIR / workflow_name).read_text()
+            with self.subTest(workflow=workflow_name):
+                self.assertIn("- name: Validate Gradle Wrapper", workflow)
+                self.assertIn("gradle/actions/wrapper-validation@v6", workflow)
+                wrapper_index = workflow.index("- name: Validate Gradle Wrapper")
+                first_sensitive_index = min(
+                    workflow.index(marker)
+                    for marker in secret_or_gradle_markers
+                    if marker in workflow
+                )
+                self.assertLess(
+                    wrapper_index,
+                    first_sensitive_index,
+                    f"{workflow_name} must validate the Gradle Wrapper before Gradle setup or secret restore/decode steps",
+                )
+
+    def test_operator_docs_describe_checkout_major_standard_for_all_release_governance_workflows(self):
+        git_workflow = GIT_WORKFLOW.read_text()
+        release_context = RELEASE_CONTEXT.read_text()
+
+        for doc_name, doc in (
+            ("docs/GIT_WORKFLOW.md", git_workflow),
+            ("docs/ops/stopit/release-context.md", release_context),
+        ):
+            with self.subTest(doc=doc_name):
+                self.assertIn("actions/checkout", doc)
+                self.assertIn("v6", doc)
+                self.assertIn("Branch Hygiene", doc)
+                self.assertIn("Release QA", doc)
+
+    def test_operator_docs_describe_gradle_wrapper_validation_secret_boundary(self):
+        git_workflow = GIT_WORKFLOW.read_text()
+        release_context = RELEASE_CONTEXT.read_text()
+
+        for doc_name, doc in (
+            ("docs/GIT_WORKFLOW.md", git_workflow),
+            ("docs/ops/stopit/release-context.md", release_context),
+        ):
+            with self.subTest(doc=doc_name):
+                self.assertIn("Gradle Wrapper", doc)
+                self.assertIn("wrapper-validation", doc)
+                self.assertIn("signing/Firebase/Play secret", doc)
+                self.assertIn("gradlew", doc)
+                self.assertIn("gradle-wrapper.jar", doc)
+                self.assertIn("scripts.tests.test_actionlint_gate", doc)
 
     def _trigger_block(self, workflow: str, trigger: str) -> str:
         pattern = rf"(?ms)^  {trigger}:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|^permissions:|^concurrency:|^jobs:|\Z)"

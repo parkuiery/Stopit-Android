@@ -2,33 +2,36 @@ package com.uiery.keep.feature.lock
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.analytics.AnalyticsEndReason
+import com.uiery.keep.analytics.AnalyticsEmergencyUnlockCancelSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.database.dao.RoutineDao
-import com.uiery.keep.database.entity.EmergencyUnlockEntity
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.datastore.ReviewPromptStateStore
+
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
+import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.model.RoutineModel
-import com.uiery.keep.model.toModel
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED
+import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS
+import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRequestResult
-import com.uiery.keep.service.recordLockHistorySession
+import com.uiery.keep.service.LockHistoryRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
+
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -42,9 +45,11 @@ class LockViewModel
     @Inject
     constructor(
         savedStateHandle: SavedStateHandle,
-        private val routineDao: RoutineDao,
-        private val lockHistoryDao: LockHistoryDao,
+        private val routineRepository: RoutineRepository,
+        private val lockHistoryRecorder: LockHistoryRecorder,
         @KeepDataSource private val dataStore: DataStore<Preferences>,
+        private val blockingStateStore: BlockingStateStore,
+        private val reviewPromptStateStore: ReviewPromptStateStore,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val notificationHelper: EmergencyUnlockNotificationHelper,
         private val analytics: KeepAnalytics,
@@ -56,11 +61,12 @@ class LockViewModel
             lockTime = savedStateHandle.get<String>("lockTime"),
             isRoutine = savedStateHandle.get<Boolean>("isRoutine") ?: false,
         )
+        private val lockScreenEntry = route.toLockScreenEntry()
         override val container: Container<LockUiState, LockSideEffect> =
             container(
                 LockUiState(
-                    lockTime = if (route.lockTime == null) LocalDateTime.now(clock) else LocalDateTime.parse(route.lockTime),
-                    isRoutine = route.isRoutine,
+                    lockTime = ManualLockTimePolicy.toLocalDateTime(lockScreenEntry.lockTime, clock.zone) ?: LocalDateTime.now(clock),
+                    isRoutine = lockScreenEntry.isRoutine,
                     timerStartTime = clock.millis(),
                 ),
             )
@@ -76,25 +82,36 @@ class LockViewModel
             intent {
                 getSelectedApp()
                 checkDailyLimit()
-                if (route.isRoutine) getRoutines() else navigateHome(state.lockTime)
+                if (lockScreenEntry.isRoutine) {
+                    getRoutines()
+                } else {
+                    val timerStartTime = resolveManualTimerStartTime(
+                        fallbackStartTime = state.timerStartTime.takeIf { it > 0L } ?: clock.millis(),
+                    )
+                    reduce { state.copy(timerStartTime = timerStartTime) }
+                    navigateHome(state.lockTime)
+                }
             }
+
+        private suspend fun resolveManualTimerStartTime(fallbackStartTime: Long): Long {
+            val persistedStartTime = blockingStateStore.readStartTime()
+            val resolvedStartTime = persistedStartTime ?: fallbackStartTime
+            if (persistedStartTime == null) {
+                blockingStateStore.saveStartTime(resolvedStartTime)
+            }
+            return resolvedStartTime
+        }
 
         private fun getSelectedApp() =
             intent {
-                val selectedAppPackage =
-                    dataStore.data
-                        .map { data ->
-                            data[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
-                        }.firstOrNull()
-                selectedAppPackage?.let {
-                    reduce { state.copy(selectedAppPackage = it) }
-                }
+                val selectedAppPackages = blockingStateStore.readSelectedAppPackages()
+                reduce { state.copy(selectedAppPackage = selectedAppPackages) }
             }
 
         private fun getRoutines() =
             intent {
                 val nowDateTime = LocalDateTime.now(clock)
-                val routines = routineDao.fetchAll().firstOrNull()?.map { it.toModel() }.orEmpty()
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
                 val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines, nowDateTime = nowDateTime)
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
@@ -143,10 +160,7 @@ class LockViewModel
             } else {
                 now - timerStartTime
             }
-            dataStore.edit { prefs ->
-                val current = prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] ?: 0
-                prefs[PreferencesKey.SUCCESSFUL_SESSION_COUNT] = current + 1
-            }
+            blockingStateStore.incrementSuccessfulSessionCount()
             val decision = reviewEligibility.evaluate(
                 nowMs = now,
                 durationMillis = durationMillis,
@@ -155,7 +169,7 @@ class LockViewModel
             )
             when (decision) {
                 is ReviewEligibilityDecision.Eligible -> {
-                    dataStore.edit { it[PreferencesKey.REVIEW_PENDING] = true }
+                    reviewPromptStateStore.markPending()
                     analytics.reviewPromptEligible()
                 }
                 is ReviewEligibilityDecision.Ineligible -> {
@@ -167,9 +181,7 @@ class LockViewModel
         private fun saveRoutineLockHistory() =
             intent {
                 val endTime = clock.millis()
-                recordLockHistorySession(
-                    dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                lockHistoryRecorder.recordSession(
                     startTimestamp = state.routineStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,
@@ -180,9 +192,7 @@ class LockViewModel
         private fun saveTimerLockHistory() =
             intent {
                 val endTime = System.currentTimeMillis()
-                recordLockHistorySession(
-                    dataStore = dataStore,
-                    lockHistoryDao = lockHistoryDao,
+                lockHistoryRecorder.recordSession(
                     startTimestamp = state.timerStartTime,
                     endTimestamp = endTime,
                     lockedApps = state.selectedAppPackage,
@@ -198,6 +208,9 @@ class LockViewModel
                     emergencyUnlockDailyLimit = availability.dailyLimit,
                     emergencyUnlockDurationOptions = availability.durationOptions,
                     emergencyUnlockReasonRequired = availability.reasonRequired,
+                    emergencyUnlockCountdownEnabled = availability.countdownEnabled,
+                    emergencyUnlockCountdownSeconds = availability.countdownSeconds,
+                    emergencyUnlockAvailabilityReason = availability.reason,
                     dailyLimitReached = availability.dailyLimitReached,
                     dailyUnlockRemaining = availability.dailyUnlockRemaining,
                 )
@@ -210,6 +223,35 @@ class LockViewModel
 
         internal fun hideEmergencyUnlockSheet() = intent {
             reduce { state.copy(isShowEmergencyUnlockSheet = false) }
+        }
+
+        internal fun trackEmergencyUnlockStepViewed(stepName: String) {
+            analytics.trackEmergencyUnlockStepViewed(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.LOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockValidationBlocked(
+            stepName: String,
+            validationReason: String,
+        ) {
+            analytics.trackEmergencyUnlockValidationBlocked(
+                stepName = stepName,
+                validationReason = validationReason,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.LOCK_SCREEN,
+            )
+        }
+
+        internal fun trackEmergencyUnlockCancelled(stepName: String) {
+            analytics.trackEmergencyUnlockCancelled(
+                stepName = stepName,
+                reasonRequiredEnabled = container.stateFlow.value.emergencyUnlockReasonRequired,
+                source = AnalyticsSource.LOCK_SCREEN,
+                cancelSource = AnalyticsEmergencyUnlockCancelSource.CANCEL_BUTTON,
+            )
         }
 
         internal fun emergencyUnlock(
@@ -284,6 +326,9 @@ data class LockUiState(
     val emergencyUnlockDailyLimit: Int = DEFAULT_EMERGENCY_UNLOCK_DAILY_LIMIT,
     val emergencyUnlockDurationOptions: List<Int> = DEFAULT_EMERGENCY_UNLOCK_DURATION_OPTIONS,
     val emergencyUnlockReasonRequired: Boolean = true,
+    val emergencyUnlockCountdownEnabled: Boolean = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_ENABLED,
+    val emergencyUnlockCountdownSeconds: Int = DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
+    val emergencyUnlockAvailabilityReason: EmergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
     val isEmergencyUnlockActive: Boolean = false,
     val emergencyUnlockRemainingSeconds: Int = 0,
     val emergencyUnlockedApps: Set<String> = emptySet(),

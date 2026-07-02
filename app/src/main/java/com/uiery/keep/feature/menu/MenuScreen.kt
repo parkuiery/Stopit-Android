@@ -1,8 +1,9 @@
 package com.uiery.keep.feature.menu
 
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -25,12 +26,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -42,10 +47,9 @@ import com.uiery.keep.feature.menu.component.MenuToggleItem
 import androidx.core.net.toUri
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.AdPlacementMetadata
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,12 +59,19 @@ fun MenuScreen(
     onNavigateDevTool: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
+    onNavigateGoalLockCreation: () -> Unit,
+    onNavigateParentModeSetup: () -> Unit,
     onNavigateLockHistory: () -> Unit,
     onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
+    val monetizationInterestTitle = stringResource(id = R.string.monetization_interest_menu_title)
+    val monetizationInterestMessage = stringResource(id = R.string.monetization_interest_menu_message)
+    LaunchedEffect(menuViewModel) {
+        menuViewModel.onMonetizationInterestCardShown()
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -69,8 +80,8 @@ fun MenuScreen(
                     IconButton(onClick = { onNavigateBack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
-                            tint = Color(0xFFFE9E0B),
+                            contentDescription = stringResource(R.string.cd_navigate_back),
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -126,6 +137,16 @@ fun MenuScreen(
                 onClick = onNavigateRoutine,
             )
             MenuItem(
+                icon = R.drawable.ic_goal_lock,
+                title = stringResource(id = R.string.goal_lock_menu_title),
+                onClick = onNavigateGoalLockCreation,
+            )
+            MenuItem(
+                icon = R.drawable.ic_parent_mode,
+                title = stringResource(id = R.string.parent_mode_menu_title),
+                onClick = onNavigateParentModeSetup,
+            )
+            MenuItem(
                 icon = R.drawable.ic_local_history,
                 title = stringResource(id = R.string.lock_history_menu_title),
                 onClick = onNavigateLockHistory,
@@ -138,8 +159,53 @@ fun MenuScreen(
             MenuItem(
                 icon = R.drawable.ic_letter,
                 title = stringResource(id = R.string.contact_us),
-                onClick = { sendCustomerEmail(context) }
+                onClick = {
+                    menuViewModel.onSupportContactStarted()
+                    sendCustomerEmail(
+                        context = context,
+                        onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                    )
+                }
             )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "$monetizationInterestTitle, $monetizationInterestMessage"
+                    }
+                    .clickable(onClick = {
+                        menuViewModel.onMonetizationInterestCardClicked()
+                        menuViewModel.onSupportContactStarted()
+                        sendCustomerEmail(
+                            context = context,
+                            onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                        )
+                    }),
+                colors = CardDefaults.cardColors(
+                    containerColor = KeepTheme.colors.onTertiary,
+                ),
+                border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 14.dp),
+                    text = monetizationInterestTitle,
+                    color = KeepTheme.colors.onSurface,
+                    textAlign = TextAlign.Start,
+                )
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
+                    text = monetizationInterestMessage,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    textAlign = TextAlign.Start,
+                )
+            }
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                 thickness = 1.dp,
@@ -165,37 +231,50 @@ fun MenuScreen(
             Spacer(modifier = Modifier.weight(1f))
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
-                metadata = AdPlacementMetadata(
+                metadata = AdPlacement.MenuBottom.toMetadata(
                     screenName = KeepAnalyticsScreen.MENU,
                     screenContext = "settings",
-                    placement = AdPlacement.MenuBottom.analyticsPlacement,
-                    adUnitId = AdPlacement.MenuBottom.adUnitId,
                 ),
             )
         }
     }
 }
 
-private fun sendCustomerEmail(context: Context) {
+private fun sendCustomerEmail(
+    context: Context,
+    onFallbackUsed: () -> Unit,
+) {
+    val diagnostics = buildSupportContactDiagnostics(
+        versionName = BuildConfig.VERSION_NAME,
+        androidRelease = Build.VERSION.RELEASE,
+        sdkInt = Build.VERSION.SDK_INT,
+        deviceModel = Build.MODEL,
+    )
     val emailSelectorIntent = Intent(Intent.ACTION_SENDTO).apply {
         data = "mailto:".toUri()
     }
     val intent = Intent(Intent.ACTION_SEND).apply {
-        putExtra(Intent.EXTRA_EMAIL, arrayOf("parkuiery@gmail.com"))
+        putExtra(Intent.EXTRA_EMAIL, arrayOf(STOPIT_SUPPORT_EMAIL))
         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.feedback_subject))
-        putExtra(
-            Intent.EXTRA_TEXT,
-            "\n\n\n\n-\nVersion ${BuildConfig.VERSION_NAME}\nAndroid OS ${Build.VERSION.RELEASE} (${Build.VERSION.SDK_INT}),${Build.MODEL}"
-        )
+        putExtra(Intent.EXTRA_TEXT, "\n\n\n\n-\n$diagnostics")
         selector = emailSelectorIntent
     }
 
     if (intent.resolveActivity(context.packageManager) != null) {
         context.startActivity(intent)
     } else {
+        val fallbackText = buildSupportContactFallbackText(
+            supportEmail = STOPIT_SUPPORT_EMAIL,
+            diagnostics = diagnostics,
+        )
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(context.getString(R.string.contact_us), fallbackText),
+        )
+        onFallbackUsed()
         Toast.makeText(
             context,
-            context.getString(R.string.email_app_not_installed),
+            context.getString(R.string.support_contact_fallback_copied),
             Toast.LENGTH_SHORT
         ).show()
     }

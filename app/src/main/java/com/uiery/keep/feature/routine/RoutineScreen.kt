@@ -1,10 +1,7 @@
 package com.uiery.keep.feature.routine
 
-import android.app.AlarmManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +16,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -29,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
+import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.routine.component.RoutineBottomSheetContent
@@ -54,6 +55,10 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun RoutineScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutineViewModel = hiltViewModel(),
+    routineSavedEntrySurface: String? = null,
+    routineSavedCreationSource: String? = null,
+    repeatBlockSuggestionSurface: String? = null,
+    repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -61,26 +66,25 @@ fun RoutineScreen(
     val routineBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
+    val snackBarHostState = remember { SnackbarHostState() }
     val alarmPermissionBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var showAlarmPermissionBottomSheet by remember { mutableStateOf(false) }
-
-    fun checkAndShowAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                showAlarmPermissionBottomSheet = true
-            }
-        }
-    }
+    val activeRoutineBlockedMessage = stringResource(R.string.routine_active_action_blocked_message)
 
     // Check alarm permission on entry if routines exist (show once ever, persisted)
     LaunchedEffect(state.routines) {
         if (state.routines.isNotEmpty()) {
             viewModel.checkAlarmPermissionNeeded()
+        }
+    }
+
+    LaunchedEffect(repeatBlockSuggestionSurface, repeatBlockSuggestion) {
+        if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.showRoutineBottomSheet()
         }
     }
 
@@ -91,11 +95,43 @@ fun RoutineScreen(
                 sideEffect.isRoutine
             )
             is RoutineSideEffect.ShowAlarmPermission -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val alarmManager = context.getSystemService(AlarmManager::class.java)
-                    if (!alarmManager.canScheduleExactAlarms()) {
-                        showAlarmPermissionBottomSheet = true
-                        viewModel.markAlarmPermissionShown()
+                showAlarmPermissionBottomSheet = true
+            }
+            is RoutineSideEffect.ShowActiveRoutineBlocked -> {
+                coroutineScope.launch {
+                    snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                }
+            }
+            is RoutineSideEffect.CloseEditRoutineBottomSheet -> {
+                coroutineScope.launch {
+                    routineBottomSheetState.hide()
+                }.invokeOnCompletion {
+                    if (!routineBottomSheetState.isVisible) {
+                        viewModel.hideEditRoutineBottomSheet()
+                    }
+                }
+            }
+            is RoutineSideEffect.ShareRoutineTemplate -> {
+                val shareText = sideEffect.payload.buildShareText(
+                    AndroidRoutineTemplateShareTextProvider(context),
+                )
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                }
+                val chooser = Intent.createChooser(
+                    shareIntent,
+                    context.getString(R.string.routine_template_share_chooser_title),
+                )
+                runCatching {
+                    context.startActivity(chooser)
+                }.onSuccess {
+                    viewModel.routineTemplateShareSheetOpened(sideEffect.payload)
+                }.onFailure { error ->
+                    if (error is ActivityNotFoundException) {
+                        viewModel.routineTemplateShareFailed(sideEffect.payload)
+                    } else {
+                        throw error
                     }
                 }
             }
@@ -138,12 +174,12 @@ fun RoutineScreen(
                         }.invokeOnCompletion {
                             if (!alarmPermissionBottomSheetState.isVisible) {
                                 showAlarmPermissionBottomSheet = false
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                        data = Uri.parse("package:${context.packageName}")
-                                    }
-                                    context.startActivity(intent)
-                                }
+                                viewModel.markAlarmPermissionShown()
+                                RoutineAlarmPermissionSettingsLauncher.open(
+                                    exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
+                                    appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
+                                    launch = context::startActivity,
+                                )
                             }
                         }
                     },
@@ -159,6 +195,10 @@ fun RoutineScreen(
         ) {
             RoutineBottomSheetContent(
                 isEdit = false,
+                routineSavedEntrySurface = routineSavedEntrySurface,
+                routineSavedCreationSource = routineSavedCreationSource,
+                repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
+                repeatBlockSuggestion = repeatBlockSuggestion,
                 onCloseBottomSheet = {
                     coroutineScope.launch {
                         routineBottomSheetState.hide()
@@ -169,8 +209,7 @@ fun RoutineScreen(
                     }
                 },
                 onRequireAlarmPermission = {
-                    checkAndShowAlarmPermission()
-                    viewModel.markAlarmPermissionShown()
+                    showAlarmPermissionBottomSheet = true
                 },
             )
         }
@@ -195,19 +234,12 @@ fun RoutineScreen(
                             .align(Alignment.CenterEnd),
                         onClick = {
                             viewModel.deleteRoutine(state.selectedRoutine!!.id)
-                            coroutineScope.launch {
-                                routineBottomSheetState.hide()
-                            }.invokeOnCompletion {
-                                if (!routineBottomSheetState.isVisible) {
-                                    viewModel.hideEditRoutineBottomSheet()
-                                }
-                            }
                         }
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.outline_delete_24),
-                            contentDescription = null,
-                            tint = KeepTheme.colors.primary,
+                            contentDescription = stringResource(R.string.cd_delete_routine),
+                            tint = KeepTheme.colors.error,
                         )
                     }
                 }
@@ -226,8 +258,12 @@ fun RoutineScreen(
                     }
                 },
                 onRequireAlarmPermission = {
-                    checkAndShowAlarmPermission()
-                    viewModel.markAlarmPermissionShown()
+                    showAlarmPermissionBottomSheet = true
+                },
+                onActiveRoutineBlocked = {
+                    coroutineScope.launch {
+                        snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                    }
                 },
             )
         }
@@ -236,6 +272,11 @@ fun RoutineScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = KeepTheme.colors.background,
+        snackbarHost = {
+            SnackbarHost(snackBarHostState) {
+                KeepSnackBar(snackbarData = it)
+            }
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -252,8 +293,8 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
-                            contentDescription = null,
-                            tint = KeepTheme.colors.primary,
+                            contentDescription = stringResource(R.string.cd_navigate_back),
+                            tint = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 },
@@ -263,7 +304,7 @@ fun RoutineScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_add),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cd_add_routine),
                             tint = KeepTheme.colors.primary,
                         )
                     }
@@ -289,6 +330,12 @@ fun RoutineScreen(
                     routines = state.routines,
                     onEnabledChange = viewModel::changeEnabled,
                     onDetailClick = viewModel::getRoutineDetail,
+                    onShareClick = viewModel::shareRoutineTemplate,
+                    onBlockedRoutineAction = {
+                        coroutineScope.launch {
+                            snackBarHostState.showSnackbar(activeRoutineBlockedMessage)
+                        }
+                    },
                 )
             }
         }

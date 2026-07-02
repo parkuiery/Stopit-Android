@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -10,6 +12,12 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+val requiredReleaseSigningEnvVars = listOf(
+    "ANDROID_KEYSTORE_PATH",
+    "ANDROID_KEYSTORE_PASSWORD",
+    "ANDROID_KEY_ALIAS",
+    "ANDROID_KEY_PASSWORD",
+)
 val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
@@ -20,6 +28,26 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword,
 ).all { !it.isNullOrBlank() }
+val prodReleaseArtifactTaskName = Regex("^(bundle|assemble|sign)ProdRelease.*|^packageProdReleaseBundle$")
+
+fun ensureReleaseSigningForProdReleaseArtifacts(requestedTaskNames: List<String>) {
+    val prodReleaseArtifactTasks = requestedTaskNames
+        .map { it.substringAfterLast(":") }
+        .filter { prodReleaseArtifactTaskName.matches(it) }
+        .sorted()
+
+    if (prodReleaseArtifactTasks.isNotEmpty() && !hasReleaseSigning) {
+        throw GradleException(
+            "Debug signing fallback is not allowed for prodRelease artifacts. " +
+                "Set ${requiredReleaseSigningEnvVars.joinToString(", ")} before running " +
+                prodReleaseArtifactTasks.joinToString(", ") + "."
+        )
+    }
+}
+
+gradle.taskGraph.whenReady {
+    ensureReleaseSigningForProdReleaseArtifacts(gradle.startParameter.taskNames)
+}
 
 fun com.android.build.api.dsl.ProductFlavor.setAdMobConfig(
     applicationId: String,
@@ -48,8 +76,8 @@ android {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
         targetSdk = 35
-        versionCode = 29
-        versionName = "1.7.7"
+        versionCode = 30
+        versionName = "1.7.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -60,7 +88,7 @@ android {
     productFlavors {
         create("dev") {
             dimension = "server"
-            //applicationIdSuffix = ".dev"
+            applicationIdSuffix = ".dev"
             setAdMobConfig(
                 applicationId = "ca-app-pub-3940256099942544~3347511713",
                 blockTop = "ca-app-pub-3940256099942544/6300978111",
@@ -98,12 +126,13 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName(if (hasReleaseSigning) "release" else "debug")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         debug {
@@ -113,9 +142,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -131,6 +157,12 @@ android {
     }
     lint {
         checkTestSources = false
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -159,8 +191,6 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
 
-    implementation(libs.accompanist.systemuicontroller)
-
     implementation(libs.orbit.core)
     implementation(libs.orbit.viewmodel)
     implementation(libs.orbit.compose)
@@ -180,8 +210,7 @@ dependencies {
     implementation(libs.firebase.config)
 
     implementation(libs.play.review.ktx)
-
-    implementation(libs.utilcodex)
+    implementation(libs.install.referrer)
 
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
@@ -190,6 +219,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.google.play.services.ads)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(project(":core:kds"))
 }

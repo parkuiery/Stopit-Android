@@ -9,6 +9,8 @@
 Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의존하지 않는다.
 현재는 아래처럼 역할이 분리된 cron topology를 기준으로 운영한다.
 
+Branch Hygiene 정책상 `automation/*`는 PR head prefix가 아니다. 아래 `automation/stopit-*-lane` stable branches는 local lane worktree 기준선일 뿐이며, reviewable PR은 `docs/*`, `test/*`, `fix/*`, `feature/*`, `ci/*`, `chore/*` 같은 허용 prefix에서 만든다.
+
 ### 1) 제품/지표 분석 계층
 
 - `stopit-daily-metrics-monitor`
@@ -26,13 +28,17 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
 
 - `stopit-executor-docs-lane`
   - docs/ops/analytics/ASO/runbook 성격 이슈 처리
+  - stable branch는 `automation/stopit-docs-lane` 같은 로컬 lane/worktree 전용 local lane 브랜치다. PR head로는 쓰지 않고, reviewable 작업은 `docs/issue-...` 또는 workflow/운영 변경이면 `ci/issue-...`처럼 Branch Hygiene 허용 prefix로 새 브랜치를 만든다.
 - `stopit-executor-qa-lane`
   - QA 기준, 테스트, 재현, 저위험 회귀 방지 작업
+  - stable branch는 `automation/stopit-qa-lane`이며 PR head는 `test/issue-...` 또는 `fix/issue-...`를 사용한다.
 - `stopit-executor-code-lane`
   - Android 코드 변경 이슈 처리
+  - stable branch는 `automation/stopit-code-lane`이며 PR head는 `fix/issue-...`, `feature/issue-...`, `refactor/issue-...`처럼 변경 성격에 맞춘다.
 - `stopit-merge-controller`
   - lane PR의 check/merge 가능 여부 확인
   - 저위험·green PR만 순차 merge
+  - `automation/stopit-merge-lane`는 merge controller 작업대 전용이며 PR head가 아니다.
 
 ### 3) 릴리즈 계층
 
@@ -40,6 +46,7 @@ Stopit 자동화는 더 이상 하나의 거대한 follow-through cron에만 의
   - release PR 판단
   - `main` merge 후 semver tag 생성
   - Google Play `internal` track deploy 흐름 확인
+  - `automation/stopit-release-lane`는 release 판단 작업대 전용이고, release PR은 `release/<version>` head를 사용한다.
 - `stopit-local-branch-cleanup`
   - lane/worktree 정리 보조
 
@@ -183,6 +190,16 @@ python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py
 gh issue list --state open --limit 50 --json number,title,labels,url
 gh pr list --state open --limit 30 --json number,title,headRefName,baseRefName,url,isDraft
 ```
+
+### Ops CI docs-contract 연결 확인
+
+workflow 변경 PR은 `actionlint-only green`만으로 운영 계약이 안전하다고 해석하지 않는다. YAML 문법 검증은 `Workflow syntax lint`가 담당하고, 릴리즈/CI/CD workflow와 운영 문서의 source-of-truth drift는 `Docs/runbook contract tests`가 담당한다. 특히 아래 기존 workflow contract 테스트는 docs/workflow-only 변경에서도 Ops CI `docs_contract` 경로로 materialize되어야 한다.
+
+```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+```
+
+이 묶음은 docs/workflow/dependabot/script-test 변경에서 모든 Python static contract test를 자동 발견해 실행한다. 따라서 `test_shared_ui_component_boundaries`, `test_feature_domain_boundary_contract`, `test_feature_domain_boundary_context_pack`, `test_dao_boundary_maintenance_docs`, `test_gradle_wrapper_distribution_checksum`처럼 source-of-truth 문서를 읽는 테스트가 새로 생기거나 이동해도, `Docs/runbook contract tests`가 특정 모듈을 하드코딩하다가 누락하는 상태로 돌아가면 안 된다. 이 gate는 Python/static 검증 전용으로 유지하고 Gradle, npm, emulator, Firebase/Play/signing secret 작업은 실행하지 않는다. 새 workflow 계약 테스트를 추가할 때는 `.github/workflows/ops-ci.yml`의 `docs_contract` filter가 `scripts/tests/**`를 포함하고, `scripts.tests.test_ops_ci_workflow`가 discovery 계약을 고정하는지 함께 확인한다.
 
 ## 이 문서가 다루지 않는 것
 

@@ -1,14 +1,21 @@
 package com.uiery.keep.service
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -29,7 +36,12 @@ class EmergencyUnlockCoordinatorTest {
             }
         val dao = RecordingEmergencyUnlockDao(todayCount = 2)
         val analytics = RecordingEmergencyUnlockAnalytics()
-        val coordinator = EmergencyUnlockCoordinator(dataStore = dataStore, emergencyUnlockDao = dao, analytics = analytics)
+        val coordinator = EmergencyUnlockCoordinator(
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
+            blockingStateStore = BlockingStateStore(dataStore),
+            repository = EmergencyUnlockRepository(dao),
+            analytics = analytics,
+        )
 
         val availability = coordinator.readAvailability()
 
@@ -39,6 +51,69 @@ class EmergencyUnlockCoordinatorTest {
         assertFalse(availability.reasonRequired)
         assertFalse(availability.dailyLimitReached)
         assertEquals(1, availability.dailyUnlockRemaining)
+        assertEquals(1, dao.countTodayCalls.size)
+        assertTrue(dao.countSinceCalls.isEmpty())
+    }
+
+    @Test
+    fun manualResetModeUsesCountSinceManualResetTimestampForAvailability() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = 10_000L
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, sinceCount = 2)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.Available, availability.reason)
+        assertEquals(1, availability.dailyUnlockRemaining)
+        assertTrue(dao.countTodayCalls.isEmpty())
+        assertEquals(listOf(10_000L), dao.countSinceCalls)
+    }
+
+    @Test
+    fun manualResetModeRejectsUnlockWhenCountSinceManualResetExhaustsLimit() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_AUTO_RESET_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT] = 20_000L
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("3")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, sinceCount = 3)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        val result = coordinator.completeUnlock(
+            source = AnalyticsSource.LOCK_SCREEN,
+            reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+            customReason = null,
+            apps = setOf("com.example.app"),
+            durationMinutes = 3,
+            nowMillis = 30_000L,
+        )
+
+        assertTrue(result is EmergencyUnlockRequestResult.Rejected)
+        val rejected = result as EmergencyUnlockRequestResult.Rejected
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, rejected.availability.reason)
+        assertTrue(dao.inserted.isEmpty())
+        assertTrue(dao.countTodayCalls.isEmpty())
+        assertEquals(listOf(20_000L), dao.countSinceCalls)
+    }
+
+    @Test
+    fun manualResetUpdatesTimestampWithoutDeletingUnlockHistory() = runBlocking {
+        val dataStore = FakeDataStore()
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0)
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao)
+
+        coordinator.markManualReset(nowMillis = 40_000L)
+
+        assertEquals(40_000L, dataStore.snapshot()[PreferencesKey.EMERGENCY_UNLOCK_MANUAL_RESET_AT])
+        assertTrue(dao.inserted.isEmpty())
     }
 
     @Test
@@ -62,11 +137,135 @@ class EmergencyUnlockCoordinatorTest {
     }
 
     @Test
+    fun completeUnlockDoesNotActivateRuntimeStateWhenHistoryInsertFails() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("5")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0, failInsert = true)
+        val analytics = RecordingEmergencyUnlockAnalytics()
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao, analytics = analytics)
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+
+        val failure = kotlin.runCatching {
+            coordinator.completeUnlock(
+                source = AnalyticsSource.LOCK_SCREEN,
+                reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                customReason = null,
+                apps = setOf("com.example.app"),
+                durationMinutes = 5,
+                nowMillis = 1_000L,
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(EmergencyUnlockData.EMPTY, EmergencyUnlockState.current)
+        val snapshot = dataStore.snapshot()
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS])
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
+        assertTrue(analytics.records.isEmpty())
+        assertTrue(dao.inserted.isEmpty())
+    }
+
+    @Test
+    fun completeUnlockDoesNotConsumeHistoryOrCountWhenRuntimeStateSaveFails() = runBlocking {
+        val dataStore =
+            FailingUpdateDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+                this[PreferencesKey.EMERGENCY_UNLOCK_DURATION_OPTIONS] = setOf("5")
+                this[PreferencesKey.EMERGENCY_UNLOCK_REASON_REQUIRED] = false
+            }
+        val dao = RecordingEmergencyUnlockDao(todayCount = 0)
+        val analytics = RecordingEmergencyUnlockAnalytics()
+        val coordinator = createCoordinator(dataStore = dataStore, dao = dao, analytics = analytics)
+        EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
+
+        val failure = kotlin.runCatching {
+            coordinator.completeUnlock(
+                source = AnalyticsSource.LOCK_SCREEN,
+                reason = EMERGENCY_UNLOCK_REASON_NOT_REQUIRED,
+                customReason = null,
+                apps = setOf("com.example.app"),
+                durationMinutes = 5,
+                nowMillis = 1_000L,
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(EmergencyUnlockData.EMPTY, EmergencyUnlockState.current)
+        val snapshot = dataStore.snapshot()
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS])
+        assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
+        assertTrue(analytics.records.isEmpty())
+        assertTrue(dao.inserted.isEmpty())
+        assertEquals(0, dao.countSince(0L))
+        assertEquals(0, dao.countToday(0L))
+    }
+
+    @Test
+    fun disabledSettingIsNotReportedAsDailyLimitReached() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = false
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 0)
+
+        val availability = coordinator.readAvailability()
+
+        assertFalse(availability.enabled)
+        assertEquals(EmergencyUnlockAvailabilityReason.Disabled, availability.reason)
+        assertFalse(availability.dailyLimitReached)
+        assertEquals(3, availability.dailyUnlockRemaining)
+    }
+
+    @Test
+    fun zeroDailyLimitIsSeparateFromExhaustedDailyLimit() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 0
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 0)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitZero, availability.reason)
+        assertFalse(availability.dailyLimitReached)
+        assertEquals(0, availability.dailyUnlockRemaining)
+    }
+
+    @Test
+    fun exhaustedDailyLimitKeepsDailyLimitReachedReason() = runBlocking {
+        val dataStore =
+            FakeDataStore.withPrefs {
+                this[PreferencesKey.EMERGENCY_UNLOCK_ENABLED] = true
+                this[PreferencesKey.EMERGENCY_UNLOCK_DAILY_LIMIT] = 3
+            }
+        val coordinator = createCoordinator(dataStore = dataStore, todayCount = 3)
+
+        val availability = coordinator.readAvailability()
+
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, availability.reason)
+        assertTrue(availability.dailyLimitReached)
+        assertEquals(0, availability.dailyUnlockRemaining)
+    }
+
+    @Test
     fun invalidRequestReturnsRefreshedAvailabilityWithoutPersistence() = runBlocking {
         val dataStore = FakeDataStore()
         val dao = RecordingEmergencyUnlockDao(todayCount = 3)
         val analytics = RecordingEmergencyUnlockAnalytics()
-        val coordinator = EmergencyUnlockCoordinator(dataStore = dataStore, emergencyUnlockDao = dao, analytics = analytics)
+        val coordinator = EmergencyUnlockCoordinator(
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
+            blockingStateStore = BlockingStateStore(dataStore),
+            repository = EmergencyUnlockRepository(dao),
+            analytics = analytics,
+        )
 
         val result =
             coordinator.completeUnlock(
@@ -80,6 +279,7 @@ class EmergencyUnlockCoordinatorTest {
 
         assertTrue(result is EmergencyUnlockRequestResult.Rejected)
         val rejected = result as EmergencyUnlockRequestResult.Rejected
+        assertEquals(EmergencyUnlockAvailabilityReason.DailyLimitExhausted, rejected.availability.reason)
         assertTrue(rejected.availability.dailyLimitReached)
         assertEquals(0, rejected.availability.dailyUnlockRemaining)
         assertTrue(dao.inserted.isEmpty())
@@ -88,6 +288,29 @@ class EmergencyUnlockCoordinatorTest {
         assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS])
         assertNull(snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME])
     }
+
+    private fun createCoordinator(
+        dataStore: DataStore<Preferences>,
+        todayCount: Int,
+        analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
+    ): EmergencyUnlockCoordinator =
+        createCoordinator(
+            dataStore = dataStore,
+            dao = RecordingEmergencyUnlockDao(todayCount = todayCount),
+            analytics = analytics,
+        )
+
+    private fun createCoordinator(
+        dataStore: DataStore<Preferences>,
+        dao: RecordingEmergencyUnlockDao,
+        analytics: RecordingEmergencyUnlockAnalytics = RecordingEmergencyUnlockAnalytics(),
+    ): EmergencyUnlockCoordinator =
+        EmergencyUnlockCoordinator(
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
+            blockingStateStore = BlockingStateStore(dataStore),
+            repository = EmergencyUnlockRepository(dao),
+            analytics = analytics,
+        )
 
     private suspend fun completeUnlock(source: String): CompletedUnlockFixture {
         val dataStore =
@@ -99,7 +322,12 @@ class EmergencyUnlockCoordinatorTest {
             }
         val dao = RecordingEmergencyUnlockDao(todayCount = 0)
         val analytics = RecordingEmergencyUnlockAnalytics()
-        val coordinator = EmergencyUnlockCoordinator(dataStore = dataStore, emergencyUnlockDao = dao, analytics = analytics)
+        val coordinator = EmergencyUnlockCoordinator(
+            settingsStore = EmergencyUnlockSettingsStore(dataStore),
+            blockingStateStore = BlockingStateStore(dataStore),
+            repository = EmergencyUnlockRepository(dao),
+            analytics = analytics,
+        )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
 
         val result =
@@ -132,20 +360,59 @@ private data class CompletedUnlockFixture(
     val persistedExpireTime: Long?,
 )
 
+private class FailingUpdateDataStore(initial: Preferences = emptyPreferences()) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+        throw IllegalStateException("runtime state save failed")
+    }
+
+    fun snapshot(): Preferences = state.value
+
+    companion object {
+        fun withPrefs(block: androidx.datastore.preferences.core.MutablePreferences.() -> Unit): FailingUpdateDataStore {
+            val mp = mutablePreferencesOf()
+            mp.block()
+            return FailingUpdateDataStore(mp)
+        }
+    }
+}
+
 private class RecordingEmergencyUnlockDao(
     private val todayCount: Int,
+    private val sinceCount: Int = 0,
+    private val failInsert: Boolean = false,
 ) : EmergencyUnlockDao {
     val inserted = mutableListOf<EmergencyUnlockEntity>()
+    val countTodayCalls = mutableListOf<Long>()
+    val countSinceCalls = mutableListOf<Long>()
+    var nextId = 1L
 
-    override suspend fun insert(entity: EmergencyUnlockEntity) {
-        inserted += entity
+    override suspend fun insert(entity: EmergencyUnlockEntity): Long {
+        if (failInsert) {
+            throw IllegalStateException("history insert failed")
+        }
+        val id = nextId++
+        inserted += entity.copy(id = id)
+        return id
+    }
+
+    override suspend fun deleteById(id: Long) {
+        inserted.removeAll { it.id == id }
     }
 
     override fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>> = emptyFlow()
 
-    override suspend fun countToday(todayStart: Long): Int = todayCount
+    override suspend fun countToday(todayStart: Long): Int {
+        countTodayCalls += todayStart
+        return todayCount
+    }
 
-    override suspend fun countSince(timestampMillis: Long): Int = 0
+    override suspend fun countSince(timestampMillis: Long): Int {
+        countSinceCalls += timestampMillis
+        return sinceCount
+    }
 }
 
 private class RecordingEmergencyUnlockAnalytics : KeepAnalytics {

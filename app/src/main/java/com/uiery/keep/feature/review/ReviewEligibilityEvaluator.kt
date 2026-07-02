@@ -1,16 +1,13 @@
 package com.uiery.keep.feature.review
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.uiery.keep.KeepDataSource
-import com.uiery.keep.database.dao.EmergencyUnlockDao
-import com.uiery.keep.database.dao.LockHistoryDao
-import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.data.review.ReviewEligibilityRepository
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.ReviewPromptStateStore
 import java.time.Clock
 import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.firstOrNull
+
 
 private const val SESSION_THRESHOLD = 3
 private const val COOLDOWN_MILLIS = 90L * 24 * 60 * 60 * 1000
@@ -23,11 +20,11 @@ private const val DEV_FLAVOR = "dev"
 
 @Singleton
 class ReviewEligibilityEvaluator @Inject constructor(
-    @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val blockingStateStore: BlockingStateStore,
+    private val reviewPromptStateStore: ReviewPromptStateStore,
     private val remoteConfig: ReviewRemoteConfig,
     private val accessibilityChecker: AccessibilityChecker,
-    private val emergencyUnlockDao: EmergencyUnlockDao,
-    private val lockHistoryDao: LockHistoryDao,
+    private val repository: ReviewEligibilityRepository,
     private val clock: Clock,
     private val buildConfig: ReviewBuildConfig,
 ) {
@@ -44,26 +41,26 @@ class ReviewEligibilityEvaluator @Inject constructor(
         if (!accessibilityChecker.isEnabled()) return ineligible(SkipReason.AccessibilityOff)
         if (isQuietHours()) return ineligible(SkipReason.QuietHours)
 
-        val prefs = dataStore.data.firstOrNull()
-        val sessionCount = prefs?.get(PreferencesKey.SUCCESSFUL_SESSION_COUNT) ?: 0
+        val reviewPromptState = reviewPromptStateStore.readState()
+        val sessionCount = blockingStateStore.readSuccessfulSessionCount()
         if (sessionCount < SESSION_THRESHOLD) return ineligible(SkipReason.BelowSessionThreshold)
 
-        val lastPromptAt = prefs?.get(PreferencesKey.LAST_REVIEW_PROMPT_AT_MS)
+        val lastPromptAt = reviewPromptState.lastPromptAtMs
         if (lastPromptAt != null && nowMs - lastPromptAt < COOLDOWN_MILLIS) {
             return ineligible(SkipReason.WithinCooldown)
         }
 
-        val lastBackgroundedAt = prefs?.get(PreferencesKey.LAST_BACKGROUNDED_AT_MS)
+        val lastBackgroundedAt = reviewPromptState.lastBackgroundedAtMs
         if (lastBackgroundedAt == null) return ineligible(SkipReason.NoBackgroundingObserved)
         if (nowMs - lastBackgroundedAt <= SAME_SESSION_THRESHOLD_MILLIS) {
             return ineligible(SkipReason.WithinSameSession)
         }
 
-        val emergencyCount = emergencyUnlockDao.countSince(nowMs - EMERGENCY_UNLOCK_WINDOW_MILLIS)
+        val emergencyCount = repository.countRecentEmergencyUnlocks(nowMs - EMERGENCY_UNLOCK_WINDOW_MILLIS)
         if (emergencyCount >= EMERGENCY_UNLOCK_MAX_COUNT) return ineligible(SkipReason.RecentEmergencyUnlock)
 
         val recentSuccess =
-            lockHistoryDao.countSuccessfulSessionsSince(nowMs - RECENT_SUCCESS_WINDOW_MILLIS) +
+            repository.countRecentSuccessfulSessions(nowMs - RECENT_SUCCESS_WINDOW_MILLIS) +
                 if (includeCurrentSuccessfulSession) 1 else 0
         if (recentSuccess < 1) return ineligible(SkipReason.NoRecentSuccess)
 

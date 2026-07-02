@@ -14,9 +14,14 @@
 - 이벤트/파라미터 계약: `docs/ANALYTICS_EVENT_DICTIONARY.md`
 - 분석/이슈화 절차: `docs/METRICS_ANALYSIS.md`
 - 제품 대시보드와 우선순위: `docs/PRODUCT_METRICS_DASHBOARD.md`
+- Install Referrer / UTM attribution 계약: `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md` (#581)
+- `routines_count` user property coverage 계약: `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` (#479)
+- LockHistory 성과 리포트 UX/analytics 계약: `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` (#465)
+- 버전 채택률/최신 cohort 판독: `docs/VERSION_ADOPTION_METRICS_GATE.md`
 - open issue: `#13`
 - 앱 코드 상수: `app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt`
-- Firebase 구현: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase facade: `app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt`
+- Firebase `screen_view` payload adapter: `app/src/main/java/com/uiery/keep/analytics/FirebaseAnalyticsBackend.kt`, `FirebaseScreenViewPayload.kt`
 - 광고 계측 구현: `app/src/main/java/com/uiery/keep/analytics/TrackedBannerAd.kt`
 
 ## 왜 별도 런북이 필요한가
@@ -34,8 +39,9 @@
 
 2026-05-29 live 점검 메모 기준:
 
-- `customUser:routines_count`만 metadata에서 확인됨
-- 활성화/리뷰/광고용 `customEvent:*` 차원/지표는 아직 보이지 않음
+- `customUser:routines_count`만 metadata에서 확인됨. 단 #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 기준으로 metadata 조회 가능성과 active user coverage는 분리한다.
+- 활성화용 `customEvent:*`와 review failure `customEvent:error`는 별도 metadata/runReport 확인 전까지 registration gap으로 둔다. review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능해졌으므로 #307 skip reason 분석에는 사용할 수 있다.
+- 광고용 `customEvent:*`는 아래 2026-06-01 #16 AdMob preflight에서 일부 등록 확인으로 보정됨
 - 최근 14일 `screen_view` 총량 `13,154`
 - `(not set)` `9,473` + 빈 `unifiedScreenName` `801` = `10,274 / 13,154 = 78.1%`
 
@@ -44,10 +50,42 @@
 - 광고 관련 `customEvent:ad_unit_id`, `customEvent:ad_placement`, `customEvent:screen_context`, `customEvent:ad_format`, `customEvent:ad_value_micros`, `customEvent:screen_name`은 metadata에 등록된 상태로 확인됨
 - 다만 최근 30일 광고 이벤트 breakdown은 `(not set)`/empty 비중이 커서, 광고 쪽 병목은 단순 GA4 Admin 미등록이 아니라 **SDK 자동 이벤트와 앱 custom event source split / query contract 문제**로 분리한다
 
+2026-06-02 develop 기준 추가 확인:
+
+- PR #296에서 `SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`의 명시적 `screen_view` 계측이 추가됐다.
+- PR #318에서 dev/debug 내부 진단 surface인 `DevToolScreen` 명시적 `screen_view` 계측도 추가됐다.
+- 따라서 2026-05-29 screen 품질 baseline은 위 네 화면 보강 전 기준선이다. 같은 화면에 대해 새 code-lane 작업을 다시 열기 전에, PR #296/#318 포함 버전 배포 후 14일 창에서 `(not set)` / blank `unifiedScreenName`가 실제로 남는지 먼저 재측정한다. 이때 최신 버전 active share는 `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준으로 함께 판정한다. `DevToolScreen`은 dev/debug 전용 route이므로 production 사용자 screen 품질 판정의 주요 분모로 과대해석하지 않는다.
+- PR #358 merge commit `6ceaecc4`는 이 판단을 고정한 docs-only release-boundary PR이다. 이후 high-traffic docs는 `PR #296/#318/#358` 묶음을 같은 #13 screen-quality package로 표기하고, 2026-06-03 live smoke `13,780 / 22,584 = 61.0%`는 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 본다. #13 closure는 PR #296/#318/#358 포함 release/tag/Play deploy 확인 뒤 **D+14 screen quality 재측정**으로 판단한다.
+
+2026-06-12 code-lane 기준 추가 확인(PR #755 / merge commit `08d31da3`):
+
+- `FirebaseScreenViewPayload`가 모든 Firebase `screen_view` backend payload에 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 넣도록 계약화했다.
+- 이 변경은 특정 화면 호출 누락을 다시 추가하는 작업이 아니라, Firebase backend adapter의 공통 payload shape를 고정해 GA4 `unifiedScreenName` 회복 가능성을 높이는 repo-internal 보강이다.
+- live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 같은 쿼리 창 재측정 전까지 보류한다.
+
+2026-06-12 code-lane 기준 추가 확인(PR #769 / merge commit `07c7bc0a`):
+
+- 목표 잠금 생성/상세 ViewModel 진입 시 `GoalLockCreationScreen` / `GoalLockDetailScreen` canonical `screen_view`를 기록하도록 `KeepAnalyticsScreen` 상수와 focused ViewModel regressions가 추가됐다.
+- 이 변경은 #417 목표 잠금 adoption funnel의 screen coverage를 보강하는 동시에 #13 screen 품질 package에 들어가는 repo-internal 화면 호출 coverage다.
+- live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다. 목표 잠금 event/screen 0건은 GA4 Admin 등록·배포·관측 창 전에는 수요 없음으로 해석하지 않는다.
+
+PR #913(`9d169449`) 기준 추가 확인:
+
+- Parent Mode setup ViewModel 진입 시 `ParentModeSetupScreen` canonical `screen_view`를 기록하도록 `KeepAnalyticsScreen` 상수와 focused ViewModel regression이 추가됐다.
+- 이 변경은 #471 same-device Parent Mode setup 전환 해석의 screen coverage를 보강하는 동시에 #13 screen 품질 package에 들어가는 repo-internal 화면 호출 coverage다.
+- live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다. Parent Mode setup screen/event 0건은 GA4 Admin 등록·배포·관측 창 전에는 수요 없음으로 해석하지 않는다.
+
+PR #1005(`b1aa97d`) 기준 추가 확인:
+
+- `KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES`가 앱 코드가 인정하는 canonical screen set을 한곳에 고정하고, `FirebaseKeepAnalyticsTest`가 목록/중복 부재를 검증한다.
+- 새 화면/route 추가 시 `KeepAnalyticsScreen.CANONICAL_SCREEN_NAMES`와 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 screen_view 표를 함께 갱신해야 하며, 누락은 #13 screen 품질 회귀로 본다.
+- 이 보강은 화면별 `logScreenView` 호출과 PR #755 backend payload shape 사이의 source-of-truth gap을 줄이는 repo-internal guardrail이다. live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다.
+
 해석:
 
 - 현재 #13은 단순 문서 부재 문제가 아니라 **GA4 Admin 등록, 이벤트 source split, 배포 후 계측 품질 회복이 아직 모두 끝나지 않은 상태**다.
 - 활성화/리뷰 세부 파라미터 결론은 계속 낮은 confidence로 둔다.
+- 루틴 보유/미보유 retention 결론도 `routines_count=(not set)` coverage가 큰 동안에는 낮은 confidence로 두고, #479 coverage 개선 포함 버전의 release/tag/Play deploy + D+14/D+30 readback을 기다린다.
 - 광고/수익화 결론은 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 AdMob event-source split 계약을 먼저 적용한 뒤 판단한다.
 
 ## 권장 등록 순서
@@ -61,7 +99,7 @@
 - `outcome`
 - `source`
 - `block_source`
-- `blocked_app_package`
+- `blocked_app_category_bucket`
 - `selected_app_count`
 - `is_onboarding`
 
@@ -69,6 +107,8 @@
 
 - `first_open -> onboarding -> permission -> app_selection_completed -> first_lock_configured -> first_core_action_completed -> app_block_intercepted` 해석 confidence를 올리는 최소 집합이다.
 - issue #14 `첫 잠금 활성화 퍼널 개선`의 다음 실행 판단이 이 묶음에 직접 의존한다.
+- `blocked_app_package` 원문은 #611 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 차단 앱별 해석이 필요하면 `blocked_app_category_bucket`과 local-only QA evidence를 조합한다.
+- `routine_id` / `goal_lock_id` row id는 #1079 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 루틴/목표잠금별 live 디버깅이 필요하면 repo-internal debug-state/instrumentation evidence를 사용하고, 제품 지표는 `block_source`, `blocking_mode`, `routines_count`, goal-lock bucket 이벤트로 해석한다.
 
 ### 2순위: 세션 종료/리뷰/신뢰 흐름
 
@@ -98,6 +138,162 @@
 - issue #16 `AdMob 성과 감사 및 안전한 수익화 실험 설계`에서 `(not set)` / placement / CTR / eCPM 해석을 하려면 광고 파라미터 조회성이 확보되어야 한다.
 - 활성화/신뢰보다 우선순위가 낮으므로 기본값은 1·2순위 완료 후다.
 
+### 4순위: 수익화 관심도 실험 조회성
+
+- `interest_context`
+- `interest_surface`
+- `interest_variant` (Recommended)
+- `purchase_available` (Recommended)
+
+이 묶음이 필요한 이유:
+
+- `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 1차 실험인 광고 제거 관심도 측정은 `monetization_interest_shown` / `monetization_interest_clicked`에 이 파라미터를 붙여야 문맥별 클릭률을 계산할 수 있다.
+- 단, 실제 결제 구현 전에는 구매 전환이 아니라 관심도 신호로만 해석한다. `purchase_available=false` 상태의 클릭을 매출 전환으로 표현하지 않는다.
+- 1·2순위 활성화/신뢰 축과 3순위 광고 source split이 해석 가능한 상태가 된 뒤에 구현/등록하는 것이 기본이다.
+- PR #402 merge commit `de142bd34a2729bcbb1e932db70b34d6459ce3b0`으로 메뉴/설정 CTA UI는 `origin/develop`에 연결됐지만, 2026-06-04 확인 기준 `origin/main`에는 없다. 따라서 `customEvent:interest_context` / `customEvent:interest_surface` 등록과 CTA 포함 release/tag/Play deploy 전에는 event 0을 수요 없음으로 해석하지 않는다.
+
+### 5순위: 루틴 템플릿 공유 루프 조회성
+
+- `template_category`
+- `repeat_days_bucket`
+- `time_window_bucket`
+- `routine_name_included`
+
+이 묶음이 필요한 이유:
+
+- `docs/ROUTINE_TEMPLATE_SHARE_MVP.md`(#407)의 Android share sheet MVP가 구현된 뒤, 공유 CTA 의도와 share sheet 전환을 privacy-safe enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- #778 payload body/label/duration resource-template 전환은 새 GA4 registration 항목을 만들지 않는다. 공유문 locale, raw rendered share text, raw duration string, locale-specific body는 GA4 payload/custom dimension 대상이 아니다.
+- `lockApplications`, package name, 앱 이름, raw session history, 루틴 이름 원문은 GA4 payload와 registration ledger 모두에서 금지한다.
+- #407 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 루틴 템플릿 공유의 획득/retention 효과를 낮은 confidence로 둔다.
+
+### 6순위: LockHistory 성과 리포트 조회성
+
+- `period_type`
+- `report_state`
+- `session_count_bucket`
+- `duration_minutes_bucket`
+- `top_apps_count_bucket`
+
+이 묶음이 필요한 이유:
+
+- `docs/LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md`(#465)의 성과 리포트 UX가 구현된 뒤, empty/low-data/has-history 상태별 summary card 노출과 top apps 성과 섹션 조회를 privacy-safe bucket 기준으로 비교하기 위한 최소 집합이다.
+- 앱 이름, package name, raw session history, raw timestamp, raw duration은 GA4 payload와 registration ledger 모두에서 금지한다.
+- #465 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·release/tag/Play deploy·14일 관측 전에는 `lock_history_*` event 0건을 UX 실패나 수요 없음으로 해석하지 않는다. PR #566의 TalkBack/contentDescription baseline, PR #579의 Top Apps 세부 contentDescription baseline, PR #805(`8f14158e`)의 `selected_date` summary/top apps bucket 분리는 repo-internal 회귀 방지 증거이며, 실제 스크린샷/TalkBack spot-check와 live GA4 readback을 대체하지 않는다.
+
+### 7순위: 목표 잠금 조회성
+
+- `duration_selection_type`
+- `lock_mode`
+- `selected_app_count_bucket`
+- `goal_name_type`
+- `duration_days_bucket`
+- `elapsed_days_bucket`
+
+이 묶음이 필요한 이유:
+
+- `docs/GOAL_LOCK_MVP.md`(#417)의 기간 기반 장기 잠금이 구현된 뒤, all-day vs scheduled 선택, 생성 완료율, 자동 완료율, 조기 종료율을 enum/bucket 기준으로 비교하기 위한 최소 집합이다.
+- 목표 이름 원문/app package/app label/raw 날짜는 GA4 payload와 registration ledger 모두에서 금지한다.
+- #417 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 목표 잠금 유지/완료율과 장기 retention 효과를 낮은 confidence로 둔다.
+
+### 8순위: 루틴 생성 CTA 조회성
+
+- `surface`
+- `activation_stage`
+- `has_routine`
+- `cta_variant`
+
+이 묶음이 필요한 이유:
+
+- `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`(#455)의 post-first-core-action soft CTA가 구현된 뒤, 루틴 0개 사용자에게만 안전하게 노출됐는지와 클릭/생성 전환을 비교하기 위한 최소 집합이다.
+- 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, `routine_id`는 CTA 이벤트 payload와 registration ledger 모두에서 금지한다.
+- #455 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·CTA 포함 release/tag/Play deploy·14일 관측 전에는 루틴 CTA의 retention 효과를 낮은 confidence로 둔다.
+
+### 9순위: 반복 차단 기반 루틴 제안 조회성
+
+- `surface`
+- `suggestion_reason`
+- `time_bucket`
+- `day_type`
+- `category_bucket`
+- `repeat_count_bucket`
+- `routine_coverage_state`
+- `suggestion_variant`
+
+이 묶음이 필요한 이유:
+
+- `docs/REPEAT_BLOCK_ROUTINE_SUGGESTION.md`(#531)의 반복 차단 기반 자동 루틴 제안이 구현된 뒤, 어떤 반복 패턴이 추천 노출·클릭·dismiss·적용으로 이어지는지 privacy-safe enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- 앱 이름, package name, `lockApplications`, raw session history, raw timestamp, raw retry count, raw routine name은 GA4 payload와 registration ledger 모두에서 금지한다.
+- #531은 PR #537로 local policy + analytics adapter, PR #552로 RoutineRoute/RoutineBottomSheet prefill 적용 경로, PR #555로 `RepeatBlockRoutineSuggestionStore` dismiss persistence, PR #561(`42b271f7`)로 Home/LockHistory CTA card exposure·dismiss/apply store UI wiring·locale copy parity, PR #835(`8bb6592`)로 Home active Goal Lock suppression, PR #843(`a37a1558`)로 Home active emergency unlock runtime-state suppression, PR #887(`7202aaea`)로 LockHistory 성과 리포트 직후 추천 CTA shown/clicked/dismissed 및 Routine prefill entry surface의 `performance_report` 분리, PR #899(`e083495d`)로 `rapid_retry` 후보 우선순위 회귀, PR #923 post_block_success 후보 산출·shown/dismiss analytics 및 bucket-only dismiss store가 `develop`에 반영된 상태다. PR #931(`2846e6b`) 이후 Block screen `post_block_success` card, clicked analytics, `BlockActivity → MainActivity → RoutineRoute` prefill launch까지 연결됐고, PR #944(`21bdf65e`) 이후 Goal Lock-origin 차단(`block_source=goal_lock`)은 post_block_success 추천과 shown analytics를 suppress한다. PR #983(`fd7c515d`)과 PR #994(`5a5138d`) 이후 기존 활성 루틴이 후보 앱 전체를 보호하면 추천을 숨기고, 부분 커버 상태에서는 이미 보호 중인 앱을 prefill에서 제외해 uncovered 앱만 제안한다. 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`이며, active protection context는 추천보다 우선한다. 아직 추천 포함 release/tag/Play deploy, GA4 Admin 등록·metadata 확인, 수동 device/locale/TalkBack QA, 14일/30일 관측 전에는 event 0건을 수요 없음이나 추천 UX 실패로 해석하지 않는다.
+
+### 10순위: 부모 모드 조회성
+
+- `duration_minutes_bucket`
+- `allowed_app_count_bucket`
+- `pin_result`
+- `end_reason`
+- `extension_minutes_bucket`
+- `block_context`
+
+이 묶음이 필요한 이유:
+
+- `docs/PARENT_MODE_MVP.md`(#471)의 same-device 부모 모드가 구현된 뒤, 사용 시간 선택→허용 앱 선택→시작→시간 만료/PIN 해제/우회 차단을 enum/bucket 기준으로 비교하기 위한 최소 집합이다.
+- 아이 이름, 앱 이름/package, raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값은 GA4 payload와 registration ledger 모두에서 금지한다.
+- #471 문서/구현 PR이 event dictionary를 갱신하더라도, GA4 Admin 등록·metadata 확인·배포 후 14일 관측 전에는 부모 모드 setup/완료율과 가족 사용 확장 효과를 낮은 confidence로 둔다.
+
+### 11순위: 긴급해제 설정 변경 조회성
+
+- `setting_name`
+- `value_bucket`
+- `refill_mode`
+- `duration_count_bucket`
+- `remaining_unlocks_bucket`
+- `reset_result` (Recommended)
+
+이 묶음이 필요한 이유:
+
+- `docs/EMERGENCY_UNLOCK_SETTINGS_ANALYTICS.md`(#694)의 긴급해제 설정 변경 계약이 구현된 뒤, 사용자가 긴급해제를 끄는지, daily/manual refill을 선택하는지, reason required를 끄는지, duration option을 줄이는지 enum/bucket 기준으로만 비교하기 위한 최소 집합이다.
+- custom reason 원문, 앱 이름/package/list, raw lock/session history, raw timestamp, `manualResetAtMillis` 원문, 설정 snapshot dump는 GA4 payload와 registration ledger 모두에서 금지한다.
+- #694 Android analytics API/ViewModel wiring은 repo-internal로 완료됐으며, GA4 Admin 등록·metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `emergency_unlock_settings_changed` 0건을 adoption 부재로 해석하지 않는다.
+
+### 12순위: 긴급해제 단계별 이탈·검증 실패 조회성
+
+- `step_name`
+- `validation_reason`
+- `reason_required_enabled`
+- `entry_surface`
+- `cancel_source`
+
+이 묶음이 필요한 이유:
+
+- `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`(#779)의 단계별 이탈·검증 실패 계약이 구현된 뒤, reason → app selection → duration → countdown 중 어느 단계에서 사용자가 멈추는지 enum 기준으로만 비교하기 위한 최소 집합이다.
+- custom reason 원문, 앱 이름/package/list, raw lock/session history, raw timestamp, raw duration option list, 설정 snapshot dump는 GA4 payload와 registration ledger 모두에서 금지한다.
+- #779 Android analytics API/UI wiring은 PR #783(`12c47108`)로 `develop`에 반영됐다. GA4 Admin 등록·metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 위 이벤트 0건을 UX 병목 부재로 해석하지 않는다.
+
+### Install Referrer / UTM attribution 조회성
+
+- `referrer_status`
+- `utm_source_type`
+- `utm_medium_type`
+- `campaign_bucket`
+- `link_surface` (Recommended)
+- `lookup_latency_bucket` (Recommended)
+
+이 묶음이 필요한 이유:
+
+- #581 `docs/INSTALL_REFERRER_ATTRIBUTION_CONTRACT.md`의 Play Install Referrer / UTM attribution 계약을 GA4에서 breakdown하기 위한 최소 집합이다.
+- #65/#242 acquisition readback에서 `Direct` 신규 비중이 과다할 때, 진짜 direct와 external/campaign/UTM 누락을 분리하는 confidence를 올린다.
+- raw referrer URL, 검색어/search term, email/phone/account id, Discord user/channel name, raw URL path, arbitrary query key-value는 GA4 payload와 registration ledger 모두에서 금지한다.
+- PR #586의 parser/helper/analytics foothold와 PR #590(`ae26293a`)의 SDK provider/첫 실행 one-shot lookup wiring은 repo 내부에 있지만, metadata 확인, release/tag/Play deploy, 14일/30일 readback 전에는 `Direct` 감소나 ASO 회복을 주장하지 않는다.
+
+GA4 Admin 증적 후보:
+
+- `customEvent:referrer_status`
+- `customEvent:utm_source_type`
+- `customEvent:utm_medium_type`
+- `customEvent:campaign_bucket`
+- `customEvent:link_surface`
+- `customEvent:lookup_latency_bucket`
+
 ## Required / Recommended 등록 워크리스트
 
 아래 표는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 등록 계약을 운영 실행용으로 재구성한 것이다.
@@ -106,44 +302,99 @@
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
 | --- | --- | --- | --- | --- |
-| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:step_name` |
+| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인. PR #783 이후 긴급해제 reason/app_selection/duration/countdown 단계도 같은 dimension을 쓴다. | `customEvent:step_name` |
 | `permission_name` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:permission_name` |
 | `outcome` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:outcome` |
 | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 미확인/등록 필요 | 동일 | `customEvent:source` |
 | `block_source` | `app_block_intercepted` | 미확인/등록 필요 | 동일 | `customEvent:block_source` |
-| `blocked_app_package` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 미확인/등록 필요 | 동일 | `customEvent:blocked_app_package` |
+| `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #611 문서 계약 + PR #617 Android payload 전환 완료 | PR #617 포함 버전의 release/tag/Play deploy 전후로 GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:blocked_app_category_bucket` |
+| `blocked_app_package` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | GA4 Admin 신규 등록 대상에서 제외. 기존 live 흔적은 legacy baseline으로만 해석 | 등록하지 않음 |
+| `routine_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
+| `goal_lock_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
 | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 미확인/등록 필요 | 동일 | `customEvent:selected_app_count` |
 | `is_onboarding` | `app_selection_completed` | 미확인/등록 필요 | 동일 | `customEvent:is_onboarding` |
 | `is_routine` | `lock_session_start`, `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:is_routine` |
 | `end_reason` | `lock_session_end` | 미확인/등록 필요 | 동일 | `customEvent:end_reason` |
-| `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 미확인/등록 필요 | 동일 | `customEvent:reason` |
+| `reason` | `emergency_unlock_completed`, `device_registration_skipped`, `review_prompt_skipped` | 2026-06-02T18:06:45Z metadata 등록/조회 확인 | #307 skip reason 분석에는 사용 가능. activation/다른 trust 이벤트는 event coverage를 별도 확인 | `customEvent:reason` |
 | `reason` legacy note | `device_registration_failed` | 현재 코드 API/event constant에서 제거됨 | backend registration 재도입 전에는 GA4 지표 축으로 해석 금지 | 해당 없음 |
-| `screen_context` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:screen_context` |
-| `ad_placement` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_placement` |
-| `ad_format` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_format` |
-| `ad_unit_id` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | source split/query contract 확인 후 14일 재조회 | `customEvent:ad_unit_id` |
+| `screen_context` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | PR #293 포함 release/tag/Play deploy 후 14일 재조회 | `customEvent:screen_context` |
+| `ad_placement` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | PR #293 포함 release/tag/Play deploy 후 14일 재조회 | `customEvent:ad_placement` |
+| `ad_format` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | PR #293 포함 release/tag/Play deploy 후 14일 재조회 | `customEvent:ad_format` |
+| `ad_unit_id` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | PR #293 포함 release/tag/Play deploy 후 14일 재조회 | `customEvent:ad_unit_id` |
+| `interest_context` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가, 2026-06-04 메뉴/설정 CTA 연결 / GA4 등록 필요 | CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:interest_context` |
+| `interest_surface` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가, 2026-06-04 메뉴/설정 CTA 연결 / GA4 등록 필요 | 동일 | `customEvent:interest_surface` |
+| `template_category` | `routine_template_share_tapped`, `routine_template_share_sheet_opened`, `routine_template_share_failed` | #407 코드 계약 추가 / GA4 등록 필요 | 루틴 템플릿 공유 CTA 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:template_category` |
+| `repeat_days_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:repeat_days_bucket` |
+| `time_window_bucket` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:time_window_bucket` |
+| `routine_name_included` | `routine_template_share_tapped`, `routine_template_share_sheet_opened` | #407 코드 계약 추가 / GA4 등록 필요 | 동일 | `customEvent:routine_name_included` |
+| `period_type` | `lock_history_performance_summary_viewed`, `lock_history_top_apps_viewed` | #465 UI/read model PR #485 develop 반영 / 2026-06-05 code-lane instrumentation 추가 / PR #805(`8f14158e`)로 선택 날짜 summary·top apps가 `selected_date` bucket으로 분리 / GA4 등록 필요 | instrumentation 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인. `week`/`month`/`selected_date`를 같은 custom dimension으로 비교하되 selected-date traffic은 전체 기간 summary와 분리 해석 | `customEvent:period_type` |
+| `report_state` | `lock_history_performance_summary_viewed` | #465 UI/read model PR #485 develop 반영 / 2026-06-05 code-lane instrumentation 추가 / GA4 등록 필요 | empty/low-data/has-history 상태별 summary 노출 비교. 실패/중독 상태값 금지 | `customEvent:report_state` |
+| `session_count_bucket` | `lock_history_performance_summary_viewed` | #465 UI/read model PR #485 develop 반영 / 2026-06-05 code-lane instrumentation 추가 / GA4 등록 필요 | raw session 목록/개별 timestamp 없이 count bucket만 사용 | `customEvent:session_count_bucket` |
+| `duration_minutes_bucket` | `lock_history_performance_summary_viewed` | #465 UI/read model PR #485 develop 반영 / 2026-06-05 code-lane instrumentation 추가 / GA4 등록 필요 | raw duration 값 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
+| `top_apps_count_bucket` | `lock_history_top_apps_viewed` | #465 UI/read model PR #485 develop 반영 / 2026-06-05 code-lane instrumentation 추가 / GA4 등록 필요 | top app 이름/package 원문 금지. 표시 개수 bucket만 사용 | `customEvent:top_apps_count_bucket` |
+| `duration_selection_type` | `goal_lock_created` | #417 creation ViewModel/analytics 계약이 `develop`에 반영됨. release/GA4 등록 전 | 목표 잠금 포함 release/tag/Play deploy 전후로 GA4 Admin 등록 후 metadata 확인 | `customEvent:duration_selection_type` |
+| `lock_mode` | `goal_lock_created`, `goal_lock_completed`, `goal_lock_ended_early`, `goal_lock_updated` | `goal_lock_created` / detail early-end / completion / detail duration·schedule·lock-mode update runtime call이 `develop`에 반영됨. release·GA4 등록 전 | 동일 | `customEvent:lock_mode` |
+| `selected_app_count_bucket` | `goal_lock_created` | #417 creation ViewModel/analytics 계약이 `develop`에 반영됨. release/GA4 등록 전 | 동일 | `customEvent:selected_app_count_bucket` |
+| `goal_name_type` | `goal_lock_created` | #417 creation ViewModel/analytics 계약과 #662 preset CTA locale-independent key 분류가 `develop`에 반영됨. release/GA4 등록 전 | 목표 이름 원문을 보내지 않고 preset/custom enum만 확인. 표시 문자열/번역 literal 비교가 아니라 CTA preset key 기준으로 분류 | `customEvent:goal_name_type` |
+| `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
+| `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
+| `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #455 PR #533 Home CTA UI/navigation/analytics 구현 완료(`home_secondary`) + #531 PR #537 policy/analytics, PR #552 prefill, PR #555 dismiss store, PR #561 Home/LockHistory CTA, PR #835 active Goal Lock suppression, PR #843 active emergency unlock suppression, PR #887 performance_report surface 구현, PR #923 post_block_success shown/dismiss foothold, PR #931 post_block_success card/clicked/prefill launch 구현, PR #983/#994 full-coverage suppression + partial-coverage uncovered-app prefill 완료 / 공통 release·GA4 등록 전 | 루틴 CTA/추천 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인. #531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`다. | `customEvent:surface` |
+| `entry_surface` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | 수동 루틴 생성, post-first-block CTA(`home_secondary`), 반복 차단 prefill 저장 완료 표면을 분리. raw route/path 금지 | `customEvent:entry_surface` |
+| `creation_source` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | `manual`, `post_first_block_cta`, `repeat_block_prefill` 저장 완료 전환 비교 | `customEvent:creation_source` |
+| `selected_app_count_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | 루틴 저장 시 선택 앱 수 bucket. 앱 package/name/list 금지 | `customEvent:selected_app_count_bucket` |
+| `repeat_days_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | raw weekday list 대신 반복 요일 수 bucket만 사용 | `customEvent:repeat_days_bucket` |
+| `time_window_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | raw start/end time 대신 morning/afternoon/evening/night/overnight/all_day/custom bucket만 사용 | `customEvent:time_window_bucket` |
+| `schedule_state` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | enabled 저장과 exact alarm 권한 부족으로 disabled 저장된 루틴을 분리. `lock_scheduled` 성공 예약 이벤트와 혼동하지 않음 | `customEvent:schedule_state` |
+| `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료(`post_first_core_action`) / GA4 등록 필요 | 동일 | `customEvent:activation_stage` |
+| `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료 / GA4 등록 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
+| `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 반복 차단 기반 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 | `customEvent:suggestion_reason` |
+| `time_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 추천 시간대별 반응 비교. raw timestamp 금지 | `customEvent:time_bucket` |
+| `day_type` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | weekday/weekend/daily/custom 패턴 비교 | `customEvent:day_type` |
+| `category_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 앱 category bucket별 반응 비교. 앱 이름/package 금지 | `customEvent:category_bucket` |
+| `repeat_count_bucket` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 반복 강도별 추천 반응 비교. raw retry count 금지 | `customEvent:repeat_count_bucket` |
+| `routine_coverage_state` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 기존 루틴 커버리지 충돌/오노출 감지. `covered`는 추천 미노출, `partially_covered`는 uncovered 앱만 prefill하는 상태로 해석 | `customEvent:routine_coverage_state` |
+| `allowed_app_count_bucket` | `parent_mode_allowed_apps_selected`, `parent_mode_started` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 부모 모드 허용 앱 개수별 setup/시작 전환 비교. 아이 이름/앱 이름/package/raw session history 금지 | `customEvent:allowed_app_count_bucket` |
+| `duration_minutes_bucket` | `parent_mode_duration_selected`, `parent_mode_started`, `parent_mode_completed` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 | `customEvent:duration_minutes_bucket` |
+| `pin_result` | `parent_mode_unlocked_by_pin` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 | `customEvent:pin_result` |
+| `end_reason` | `parent_mode_completed`, `parent_mode_unlocked_by_pin`, `parent_mode_cancelled` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 시간 만료/PIN 해제/취소/시스템 중단 종료 사유 분리. raw timestamp 금지 | `customEvent:end_reason` |
+| `block_context` | `parent_mode_block_intercepted` | #471 code-lane 정책/analytics 계약 추가 / release·GA4 등록 전 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 | `customEvent:block_context` |
+| `setting_name` | `emergency_unlock_settings_changed` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | 긴급해제 설정 변경 축별 adoption 비교. 설정 snapshot dump 금지 | `customEvent:setting_name` |
+| `value_bucket` | `emergency_unlock_settings_changed` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | ON/OFF, daily limit, reason required, duration option, refill mode 값을 enum/bucket으로만 비교 | `customEvent:value_bucket` |
+| `refill_mode` | `emergency_unlock_settings_changed`, `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | daily/manual refill adoption과 manual reset 요청 비교 | `customEvent:refill_mode` |
+| `duration_count_bucket` | `emergency_unlock_settings_changed` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | duration option 개수 변경. raw duration list 금지 | `customEvent:duration_count_bucket` |
+| `remaining_unlocks_bucket` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 | `customEvent:remaining_unlocks_bucket` |
+| `validation_reason` | `emergency_unlock_validation_blocked` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | missing_reason/custom_reason/app_selection/duration/options 실패 종류. custom reason/app 원문 금지 | `customEvent:validation_reason` |
+| `reason_required_enabled` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | reason-required ON/OFF 분모와 reason distribution confidence 분리 | `customEvent:reason_required_enabled` |
+| `entry_surface` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | Lock/Block 진입 표면별 friction 비교. raw route/path 금지 | `customEvent:entry_surface` |
+| `cancel_source` | `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | sheet dismiss/back/cancel/outside/system 중단을 bucket으로 비교 | `customEvent:cancel_source` |
 
 ### 2) Recommended 이벤트 차원
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 등록 시점 |
 | --- | --- | --- | --- |
-| `error` | `review_prompt_failed` | 미확인 | review 실패 원인 추적이 실제로 필요할 때 |
+| `error` | `review_prompt_failed` | 2026-06-02T18:06:45Z 미등록 확인 (`customEvent:error` invalid dimension) | review 실패 원인 추적이 실제로 필요할 때 GA4 Admin 등록 |
 | `blocking_mode` | `first_core_action_completed`, `core_action_completed` | 미확인 | 첫 가치 경험 비교를 appVersion별로 재분석할 때 |
-| `routine_id` | `first_core_action_completed`, `core_action_completed` | 미확인 | 루틴별 성과/문제 추적이 필요할 때 |
-| `screen_name` | `ad_impression`, `ad_click`, `ad_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
-| `ad_currency` | `ad_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
-| `ad_precision_type` | `ad_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
+| `screen_name` | `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | 광고 성과와 screen drift를 같이 볼 때 |
+| `ad_currency` | `ad_banner_revenue` | 미확인 | 다통화/정산 검증이 필요할 때 |
+| `ad_precision_type` | `ad_banner_revenue` | 미확인 | 추정 수익 vs 정밀 수익 구분이 필요할 때 |
+| `interest_variant` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | CTA copy/variant 비교가 필요할 때 |
+| `purchase_available` | `monetization_interest_shown`, `monetization_interest_clicked` | 2026-06-03 코드 계약 추가 / 필요 시 등록 | 결제 미구현 관심도 측정과 실제 구매 가능 상태를 분리할 때 |
+| `cta_variant` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료(`soft_default`) / 필요 시 등록 | 루틴 생성 CTA copy/placement 비교가 필요할 때 |
+| `suggestion_variant` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 문서 계약 추가 / 필요 시 등록 | 반복 차단 루틴 추천 copy/placement 비교가 필요할 때 |
+| `link_surface` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 | Play Store listing, Discord, website, QR, ad 등 링크 표면별 attribution coverage를 비교할 때. raw URL/path 금지 |
+| `lookup_latency_bucket` | `install_referrer_attribution_checked` | #581 PR #586/#590 구현 완료 / 필요 시 등록 | Install Referrer lookup 지연/timeout 원인 분리가 필요할 때. raw latency 대신 bucket만 사용 |
+| `reset_result` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 요청과 완료/불가 상태를 안전하게 구분할 때 |
 
 ### 3) Recommended 이벤트 지표
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 등록 시점 |
 | --- | --- | --- | --- |
 | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 미확인 | 앱 선택량 분포를 정량 비교할 때 |
-| `scheduled_duration_minutes` | `lock_scheduled` | 미확인 | 타이머/루틴 시간 길이 분석이 필요할 때 |
+| `scheduled_duration_minutes` | `lock_scheduled` | 미확인 | 타이머/루틴 시간 길이 분석이 필요할 때. 홈 countdown은 선택한 `day/hour/minute` duration 자체, timer는 예약 deadline까지 남은 시간이다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `duration_minutes` | `emergency_unlock_completed` | 미확인 | 긴급해제 사용 길이 분포를 볼 때 |
 | `remaining_unlocks` | `emergency_unlock_completed` | 미확인 | 잔여 긴급해제 수 패턴을 볼 때 |
 | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 미확인 | first value latency를 분석할 때 |
-| `ad_value_micros` | `ad_revenue` | 2026-06-01 metadata 등록 확인 | placement/context별 수익 분포를 재집계할 때 |
+| `ad_value_micros` | `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | placement/context별 수익 분포를 재집계할 때 |
 
 운영 원칙:
 
@@ -187,16 +438,59 @@
 | `outcome` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `block_source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `blocked_app_package` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
+| `blocked_app_category_bucket` | Required dimension | 등록 필요 | PR #617 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:blocked_app_category_bucket` 확인 필요 | #611 privacy-safe 대체 축 |
+| `blocked_app_package` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | raw package 원문. #611에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
+| `routine_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 routine row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
+| `goal_lock_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 goal-lock row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `selected_app_count` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `is_onboarding` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `is_routine` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
 | `end_reason` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `reason` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `screen_context` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `ad_placement` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `ad_format` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `ad_unit_id` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
+| `reason` | Required dimension | 등록 확인 | 2026-06-02T18:06:45Z | docs lane | `customEvent:reason` | #307 `review_prompt_skipped` breakdown에서 조회 가능 확인. 다른 이벤트 coverage는 별도 확인 |
+| `screen_context` | Required dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:screen_context` | AdMob queryability preflight에서 확인. 남은 경계는 PR #293 `ad_banner_*` 포함 release/tag/Play deploy 후 14일 coverage/source-split 재조회 |
+| `ad_placement` | Required dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_placement` | 동일 |
+| `ad_format` | Required dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_format` | 동일 |
+| `ad_unit_id` | Required dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_unit_id` | 동일 |
+| `screen_name` | Recommended dimension | 등록 확인 | 2026-06-01 | docs lane | `customEvent:screen_name` | 광고 성과와 screen drift를 같이 볼 때 사용 |
+| `ad_value_micros` | Recommended metric | 등록 확인 | 2026-06-01 | docs lane | `customEvent:ad_value_micros` | placement/context별 수익 분포 재집계용 |
+| `interest_context` | Required dimension | 등록 필요 | CTA 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:interest_context` 확인 필요 | PR #362 코드 계약 + 2026-06-04 메뉴/설정 CTA 연결 완료. 등록/metadata 확인 없이는 문맥별 클릭률 판단 금지 |
+| `interest_surface` | Required dimension | 등록 필요 | CTA 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:interest_surface` 확인 필요 | 안전한 surface별 관심 클릭률 판단의 필수 축 |
+| `interest_variant` | Recommended dimension | 필요 시 등록 | CTA copy/variant 비교 전 | GA4 Admin 수동 | `customEvent:interest_variant` 확인 필요 | A/B가 없으면 `default` payload만 남기고, 비교 실험 전 등록 |
+| `purchase_available` | Recommended dimension | 필요 시 등록 | 결제 가능 상태 분리 전 | GA4 Admin 수동 | `customEvent:purchase_available` 확인 필요 | 결제 미구현 관심도 측정(`false`)과 실제 구매 가능 상태를 분리할 때 등록 |
+| `template_category` | Required dimension | 등록 필요 | 루틴 템플릿 공유 CTA 구현·배포 전후 | GA4 Admin 수동 | `customEvent:template_category` 확인 필요 | #407 Android share sheet MVP의 카테고리별 공유 의도 비교. 앱 목록/package/raw history 금지 |
+| `repeat_days_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_days_bucket` 확인 필요 | 요일 패턴별 공유 의도 비교. enum/bucket만 허용 |
+| `time_window_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_window_bucket` 확인 필요 | 시간대 패턴별 공유 의도 비교. raw time/session history 금지 |
+| `routine_name_included` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_name_included` 확인 필요 | 이름 원문 대신 opt-in 여부 boolean만 기록 |
+| `surface` | Required dimension | 등록 필요 | 루틴 생성 CTA/반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:surface` 확인 필요 | #455 soft CTA의 Home 보조 CTA(`home_secondary`)와 #531 반복 차단 루틴 추천의 canonical surface(`home`/`lock_history`/`performance_report`/`post_block_success`)별 반응 비교 |
+| `activation_stage` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:activation_stage` 확인 필요 | post-first-core-action/returning blocked user 맥락 분리 |
+| `has_routine` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:has_routine` 확인 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 |
+| `referrer_status` | Required dimension | 등록 필요 | #581 PR #586/#590 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:referrer_status` 확인 필요 | Install Referrer lookup terminal status별 coverage 확인. raw referrer URL/exception message 금지 |
+| `utm_source_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:utm_source_type` 확인 필요 | Play Store/Discord/web/QR/paid/community 같은 source bucket만 허용. raw source string 금지 |
+| `utm_medium_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:utm_medium_type` 확인 필요 | organic/social/referral/paid/qr/owned 등 medium bucket. raw medium string 금지 |
+| `campaign_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:campaign_bucket` 확인 필요 | ASO baseline/launch/review/routine-share/manual-test 등 privacy-safe campaign bucket. 개인·소규모 raw campaign name 금지 |
+| `cta_variant` | Recommended dimension | 필요 시 등록 | CTA copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:cta_variant` 확인 필요 | #455 MVP는 `soft_default` 단일 variant로 시작 |
+| `suggestion_reason` | Required dimension | 등록 필요 | 반복 차단 루틴 추천 구현·배포 전후 | GA4 Admin 수동 | `customEvent:suggestion_reason` 확인 필요 | #531 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 |
+| `time_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:time_bucket` 확인 필요 | 추천 시간대별 반응 비교. raw timestamp 금지 |
+| `day_type` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:day_type` 확인 필요 | weekday/weekend/daily/custom 패턴 비교 |
+| `category_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:category_bucket` 확인 필요 | 앱 category bucket별 추천 반응 비교. 앱 이름/package 금지 |
+| `repeat_count_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:repeat_count_bucket` 확인 필요 | 반복 강도별 추천 반응 비교. raw retry count 금지 |
+| `routine_coverage_state` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:routine_coverage_state` 확인 필요 | 기존 루틴 커버리지 충돌/오노출 감지 |
+| `suggestion_variant` | Recommended dimension | 필요 시 등록 | 추천 copy/placement 비교 전 | GA4 Admin 수동 | `customEvent:suggestion_variant` 확인 필요 | MVP는 `default` 단일 variant로 시작 |
+| `allowed_app_count_bucket` | Required dimension | 등록 필요 | 부모 모드 코드 계약 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:allowed_app_count_bucket` 확인 필요 | #471 same-device 부모 모드의 허용 앱 개수별 setup/시작 전환 비교. 앱 이름/package 원문 금지 |
+| `duration_minutes_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_minutes_bucket` 확인 필요 | 부모 모드 시간 선택/완료 bucket. raw timestamp/duration 원문 대신 bucket만 사용 |
+| `pin_result` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:pin_result` 확인 필요 | 보호자 PIN 성공/실패 UX guardrail. PIN 원문/길이/세부값 금지 |
+| `block_context` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:block_context` 확인 필요 | 허용되지 않은 앱/설정/최근 앱/알림 surface 우회 리스크 분리 |
+| `extension_minutes_bucket` | Recommended dimension | 필요 시 등록 | 부모 모드 코드 계약 포함 버전의 연장 패턴 비교 전 | GA4 Admin 수동 | `customEvent:extension_minutes_bucket` 확인 필요 | 보호자 PIN 확인 후 연장 시간 bucket |
+| `setting_name` | Required dimension | 등록 필요 | #694 Android analytics wiring 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:setting_name` 확인 필요 | 긴급해제 설정 변경 축. 설정 snapshot dump 금지 |
+| `value_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:value_bucket` 확인 필요 | ON/OFF, daily limit, duration option, reason required, refill mode 값을 enum/bucket으로만 기록 |
+| `refill_mode` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:refill_mode` 확인 필요 | daily/manual refill adoption과 manual reset 요청 비교 |
+| `duration_count_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:duration_count_bucket` 확인 필요 | duration option 개수 bucket. raw duration list 금지 |
+| `remaining_unlocks_bucket` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:remaining_unlocks_bucket` 확인 필요 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 |
+| `reset_result` | Recommended dimension | 필요 시 등록 | manual reset 결과 구분 필요 시 | GA4 Admin 수동 | `customEvent:reset_result` 확인 필요 | requested/completed/unavailable enum만 허용 |
+| `validation_reason` | Required dimension | 등록 필요 | #779 Android analytics wiring 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:validation_reason` 확인 필요 | 긴급해제 validation 실패 종류. custom reason/app 원문 금지 |
+| `reason_required_enabled` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:reason_required_enabled` 확인 필요 | reason-required ON/OFF 분모와 reason distribution confidence 분리 |
+| `entry_surface` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:entry_surface` 확인 필요 | 긴급해제 Lock/Block 진입 표면 bucket. raw route/path 금지 |
+| `cancel_source` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:cancel_source` 확인 필요 | 긴급해제 sheet dismiss/back/cancel/outside/system 중단 bucket |
 
 ### metadata 확인 로그 템플릿
 
@@ -242,12 +536,31 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 1. **activation check**
    - `permission_outcome` by `permission_name`, `outcome`
    - `first_lock_configured` by `source`
-   - `app_block_intercepted` by `block_source`, `blocked_app_package`
+   - `app_block_intercepted` by `block_source`, `blocked_app_category_bucket`
 2. **trust/review check**
    - `lock_session_end` by `end_reason`, `is_routine`
    - `review_prompt_skipped` / `review_prompt_failed` by `reason` / `error`
 3. **monetization check**
-   - `ad_impression`, `ad_click`, `ad_revenue` by `ad_placement`, `screen_context`, `ad_unit_id`
+   - PR #293 포함 release/tag/Play deploy 이후: `ad_banner_impression`, `ad_banner_click`, `ad_banner_revenue` by `ad_placement`, `screen_context`, `ad_unit_id`
+   - PR #293 이전 legacy `ad_impression`, `ad_click`, `ad_revenue` breakdown은 SDK 자동 이벤트와 앱 custom event가 섞였던 baseline으로만 본다.
+   - `monetization_interest_clicked` / `monetization_interest_shown` by `interest_context`, `interest_surface`
+4. **routine template share check**
+   - #407 구현 포함 release/tag/Play deploy 이후: `routine_template_share_tapped` / `routine_template_share_sheet_opened` / `routine_template_share_failed` by `template_category`, `repeat_days_bucket`, `time_window_bucket`, `routine_name_included`
+   - 앱 이름/package/lockApplications/raw session history를 query 축으로 찾으려는 분석은 privacy contract 위반으로 중단한다.
+5. **goal lock check**
+   - #417 구현 포함 release/tag/Play deploy 이후: `goal_lock_created` / `goal_lock_completed` / `goal_lock_ended_early` by `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type`, `duration_days_bucket`, `elapsed_days_bucket`
+   - 목표 이름 원문/app package/app label/raw 날짜를 query 축으로 찾으려는 분석은 privacy/trust contract 위반으로 중단한다.
+6. **routine creation CTA check**
+   - #455 구현 포함 release/tag/Play deploy 이후: `routine_creation_cta_shown` / `routine_creation_cta_clicked` / `routine_creation_cta_dismissed` by `surface`, `activation_stage`, `has_routine`, `cta_variant`
+   - #810 Android wiring 포함 release/tag/Play deploy 이후 routine saved completion check: `routine_saved(creation_source=post_first_block_cta) users / routine_creation_cta_clicked users` by `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`
+   - onboarding / pre-first-lock 사용자는 분모에서 제외하고, 앱 이름/package/lockApplications/raw session history/raw time/routine id를 query 축으로 찾으려는 분석은 privacy contract 위반으로 중단한다.
+7. **repeat block routine suggestion check**
+   - #531 구현 포함 release/tag/Play deploy 이후: `repeat_block_routine_suggestion_shown` / `repeat_block_routine_suggestion_clicked` / `repeat_block_routine_suggestion_dismissed` / `repeat_block_routine_suggestion_applied` by `surface`, `suggestion_reason`, `time_bucket`, `day_type`, `category_bucket`, `repeat_count_bucket`, `routine_coverage_state`, `suggestion_variant`
+   - #810 Android wiring 포함 release/tag/Play deploy 이후 routine saved completion check: `routine_saved(creation_source=repeat_block_prefill) users / repeat_block_routine_suggestion_clicked users` by `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`
+   - onboarding / pre-first-lock 사용자는 분모에서 제외하고, 앱 이름/package/lockApplications/raw session history/raw timestamp/raw retry count를 query 축으로 찾으려는 분석은 privacy contract 위반으로 중단한다.
+8. **parent mode check**
+   - #471 구현 포함 release/tag/Play deploy 이후: `parent_mode_started` / `parent_mode_completed` / `parent_mode_unlocked_by_pin` / `parent_mode_block_intercepted` by `allowed_app_count_bucket`, `pin_result`, `end_reason`, `block_context`, `extension_minutes_bucket`
+   - 아이 이름/앱 이름/package/raw session history, 허용 앱 원문 목록, PIN 원문/길이/세부값을 query 축으로 찾으려는 분석은 privacy/trust contract 위반으로 중단한다.
 
 이 순서를 쓰면 docs lane / metrics lane / product lane이 모두 같은 우선순위로 follow-through를 해석할 수 있다.
 
@@ -272,9 +585,9 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 해석:
 
 - 당시 문제는 "이벤트가 최근 14일에 0건이라 안 보이는가"가 아니라, **GA4 Admin 등록이 없어 쿼리 축 자체가 materialize되지 않은 상태**였다.
-- 따라서 activation / review / monetization 세부 파라미터 분석은 계속 낮은 confidence로 두고, `customEvent:*` 등록 전에는 분해 지표를 근거로 backlog 우선순위를 과신하지 않는다.
+- 따라서 activation 세부 파라미터와 review `customEvent:error` 분석은 계속 낮은 confidence로 두고, `customEvent:*` 등록 전에는 분해 지표를 근거로 backlog 우선순위를 과신하지 않는다. review `customEvent:reason`은 2026-06-02T18:06:45Z #307 재조회에서 등록/조회 가능해졌으므로, skip reason breakdown에 사용할 수 있다. monetization/AdMob 축은 2026-06-01 보정 이후 단순 Admin 미등록이 아니라 PR #293 `ad_banner_*` 포함 release/tag/Play deploy 후 coverage/source-split 재측정 대기 상태로 분리한다.
 
-### 2026-06-01 AdMob queryability preflight 보정
+### 2026-06-01 AdMob queryability preflight 보정 / PR #293 이후 경계
 
 - 광고 관련 custom dimensions/metrics는 이후 metadata에 등록된 것으로 확인됐다.
   - `customEvent:ad_unit_id`
@@ -283,10 +596,50 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
   - `customEvent:ad_format`
   - `customEvent:ad_value_micros`
   - `customEvent:screen_name`
-- 하지만 `ad_impression` / `ad_click` / `ad_revenue` breakdown은 여전히 `(not set)`/empty가 크다.
-- 따라서 광고 쪽 다음 경계는 이 문서의 Admin registration ledger가 아니라 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: SDK 자동 이벤트와 앱 custom 이벤트 분리` 및 code-lane handoff다.
+- 당시 legacy `ad_impression` / `ad_click` / `ad_revenue` breakdown은 `(not set)`/empty가 컸다.
+- 이후 PR #293에서 Stopit 앱 소유 배너 이벤트가 `ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue`로 분리됐다.
+- 따라서 광고 쪽 다음 경계는 이 문서의 Admin registration ledger가 아니라 `docs/ADMOB_MONETIZATION_RUNBOOK.md`의 `GA4 query template: publisher surface와 Stopit 앱 custom 이벤트 분리` 및 `release boundary snapshot`에 따라 **PR #293 포함 commit이 release/tag/Play deploy에 실제 포함된 뒤 14일 재조회**를 실행하는 것이다. 2026-06-18 확인 기준 최신 production tag `v1.7.7`은 PR #293 split commit을 포함하지 않고, active release PR #975(`release/1.7.8`)는 #16 관련 commits를 포함하지만 `CONFLICTING/DIRTY` + no-checks 상태이므로 아직 post-split measurement window는 시작되지 않았다. 같은 날 GA4 readback에서도 `ad_banner_impression` 125건 / `ad_banner_revenue` 124건은 `appVersion=1.7.5` smoke row이고 publisher surface `(not set)`+empty `adUnitName`은 `13,646 / 27,257 = 50.1%`다.
 
-주의: 이 보정은 광고 파라미터에 한정한다. 활성화(`permission_name`, `source` 등)와 리뷰(`reason`, `error`) 축은 별도 metadata/runReport 확인 전까지 계속 registration gap으로 취급한다.
+주의: 이 보정은 광고 파라미터에 한정한다. 활성화(`permission_name`, `source` 등)와 리뷰 `error` 축은 별도 metadata/runReport 확인 전까지 계속 registration gap으로 취급한다. 리뷰 `reason` 축은 2026-06-02T18:06:45Z에 `customEvent:reason` metadata와 `review_prompt_skipped` breakdown이 확인됐으므로, #307 skip reason 판단에는 registration gap으로 반복 보고하지 않는다.
+
+### 2026-06-03 screen quality live smoke: release boundary 확인
+
+- 확인 시각: `2026-06-03 09:12 KST`
+- 확인 명령: `/tmp/stopit_screen14_probe.py`에서 `properties/502544175:runReport`를 `14daysAgo..yesterday` 창으로 조회
+- 확인된 최근 14일 screen quality:
+  - total `screen_view`: `22,584`
+  - `(not set)` `unifiedScreenName`: `11,793`
+  - blank `unifiedScreenName`: `1,987`
+  - combined gap: `13,780 / 22,584 = 61.0%`
+- top visible screens: `BlockScreen` `5,030`, `HomeScreen` `1,735`, `OnboardingIntroScreen` `601`, `SplashScreen` `376`, `RoutineScreen` `361`, `MenuScreen` `259`, `LockScreen` `134`
+- ancestry check:
+  - PR #296 merge commit `47e43784c4111cc0a16bbc3a8872e51a28dcda0f` is in `origin/develop`, but not in `origin/main` or production tag `v1.7.7`.
+  - PR #318 merge commit `8d2ee10beb0f235905008ca0fcdd314b2c599c24` is in `origin/develop`, but not in `origin/main` or production tag `v1.7.7`.
+
+해석:
+
+- 61.0% smoke는 2026-05-29 baseline 78.1%보다 좋아 보이지만, `PR #296/#318/#358` package가 아직 `origin/main`/`v1.7.7` production boundary를 넘지 않았으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 둔다.
+- 이 값은 현재 live 계정의 screen-name 상태를 과거 baseline과 같은 쿼리로 다시 찍은 **중간 smoke**다. #13 closure 판단은 PR #296/#318/#358 포함 release/tag/Play deploy 후 14일 창에서 같은 분자/분모의 **D+14 screen quality 재측정**으로 다시 채운다.
+- 같은 화면(`SplashScreen`, `BlockedAppsScreen`, `EmergencyUnlockSettingsScreen`, `DevToolScreen`)에 대한 추가 code-lane 후보를 만들기 전에, 먼저 release inclusion과 14일 재측정 여부를 확인한다.
+
+### 2026-06-26T02:07:51Z metrics snapshot readback: 30일 합산 guardrail
+
+- 확인 명령: `python3 /Users/uiel/.hermes/scripts/stopit_metrics_snapshot.py`
+- window: `30daysAgo..yesterday`
+- 확인된 30일 screen quality:
+  - total `screen_view`: `78,600`
+  - `(not set)+blank` `unifiedScreenName` gap: `41,100`
+  - `(not set)+blank` share: `41,100 / 78,600 = 52.3%`
+  - visible top screens: `BlockScreen` `24,345`, `HomeScreen` `5,635`, `MenuScreen` `1,515`, blank `2,106`, `OnboardingIntroScreen` `1,148`, `RoutineScreen` `1,123`, `LockScreen` `1,056`, `SplashScreen` `1,009`
+- latest observed production version adoption smoke:
+  - `appVersion=1.7.7` activeUsers: `559`
+  - total activeUsers: `938`
+  - latest-version active share: `559 / 938 = 59.6%` for 30일 activeUsers → `docs/VERSION_ADOPTION_METRICS_GATE.md` 기준 `충분`
+
+해석:
+
+- 이 30일 합산 readback은 위 14일 `13,780 / 22,584 = 61.0%` smoke를 대체하는 같은 쿼리 창이 아니다. 최신 production cohort active share는 `30%`를 넘었지만, #13 관련 screen-view 보강 PR package가 아직 `origin/main`/SemVer tag/Play deploy boundary를 넘지 않았고 최신 cron snapshot에서도 `(not set)` 비중이 여전히 높으므로, #13을 post-fix 성과로 닫을 근거가 아니다.
+- 다음 repo-internal 판단은 screen_view 보강 PR을 반복 생성하는 것이 아니라, PR #296/#318/#358 포함 release/tag/Play deploy 여부와 D+14 같은 쿼리 창 재측정 여부를 먼저 확인하는 것이다.
 
 ### 3. 14일 재측정
 
@@ -304,13 +657,15 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 | `screen_view` 총량 | `13,154` | `TODO` | |
 | `(not set)` `unifiedScreenName` | `9,473` | `TODO` | |
 | 빈 `unifiedScreenName` | `801` | `TODO` | |
-| `(not set)+빈 값` 비율 | `78.1%` | `TODO` | |
+| `(not set)+빈 값` 비율 | `78.1%` | `TODO` | 2026-05-29 baseline은 PR #296의 `SplashScreen` / `BlockedAppsScreen` / `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 기준선이고, PR #358 merge commit `6ceaecc4`가 이 release-boundary를 고정했다. 2026-06-03 14일 live smoke는 `13,780 / 22,584 = 61.0%`였고, 2026-06-26T02:07:51Z 30일 metrics snapshot은 `(not set)+blank` `41,100 / 78,600 = 52.3%`였다. 최신 `1.7.7` active share는 `559 / 938 = 59.6%`로 충분 상태에 들어왔지만 `PR #296/#318/#358` package와 PR #755 Firebase `screen_view` backend payload 보강이 `origin/main`/`v1.7.7`에 없으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. 화면 호출 coverage package와 backend payload package가 모두 포함된 버전 배포 후 14일 창에서 **D+14 screen quality 재측정**. `DevToolScreen`은 dev/debug 내부 진단 surface로 production 사용자 screen denominator와 분리. |
 | metadata에서 보이는 `customUser:*` | `routines_count` | `TODO` | |
-| activation/review metadata에서 보이는 `customEvent:*` | `없음` | `TODO` | |
+| activation metadata에서 보이는 `customEvent:*` | `없음` | `TODO` | `permission_name`, `outcome`, `source`, `selected_app_count`, `block_source`, `blocked_app_category_bucket` 등 activation/funnel breakdown은 아직 낮은 confidence. `blocked_app_package` 원문은 #611에 따라 신규 등록/조회 대상에서 제외 |
+| review skip metadata에서 보이는 `customEvent:*` | `reason` | `TODO` | 2026-06-02T18:06:45Z 기준 `review_prompt_skipped` reason breakdown 조회 가능. #307에서는 더 이상 `reason`을 미등록 경계로 반복 보고하지 않음 |
+| review failure metadata에서 보이는 `customEvent:*` | `없음` (`error` 미등록) | `TODO` | `review_prompt_failed` 원인 breakdown은 계속 #13 GA4 Admin/manual boundary |
 | 광고 metadata에서 보이는 `customEvent:*` | `ad_unit_id`, `ad_placement`, `screen_context`, `ad_format`, `ad_value_micros`, `screen_name` | `TODO` | source split/query contract 확인 필요 |
 | activation 분석 confidence | `낮음` | `TODO` | |
 | review 분석 confidence | `낮음` | `TODO` | |
-| monetization 분석 confidence | `낮음` | `TODO` | 광고 metadata는 일부 복구됐지만 event-source split 때문에 placement별 결론 보류 |
+| monetization 분석 confidence | `낮음` | `TODO` | 광고 metadata는 일부 복구됐고 PR #293에서 이벤트명 분리 완료. 단, 2026-06-02 기준 최신 production tag `v1.7.7`은 PR #293 split commit 미포함. PR #293 포함 release/tag/Play deploy 후 14일 재조회 전까지 placement별 결론 보류 |
 
 ## issue/PR handoff 템플릿
 
@@ -327,12 +682,28 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 - activation check 결과:
   - `permission_outcome` by `permission_name/outcome`:
   - `first_lock_configured` by `source`:
-  - `app_block_intercepted` by `block_source/blocked_app_package`:
+  - `app_block_intercepted` by `block_source/blocked_app_category_bucket`:
 - trust/review check 결과:
   - `lock_session_end` by `end_reason/is_routine`:
   - `review_prompt_skipped` / `review_prompt_failed`:
 - monetization check 결과:
-  - `ad_impression` / `ad_click` / `ad_revenue` by `ad_placement/screen_context/ad_unit_id`:
+  - publisher surface (`publisherAdImpressions` / `publisherAdClicks` / `totalAdRevenue` by `adUnitName/adFormat`):
+  - Stopit app custom coverage (`ad_banner_impression` / `ad_banner_click` / `ad_banner_revenue` by `ad_placement/screen_context/ad_unit_id`):
+  - legacy `ad_impression` / `ad_click` / `ad_revenue`를 사용했다면 PR #293 이전 baseline인지 여부:
+- routine template share check 결과:
+  - `routine_template_share_tapped` / `routine_template_share_sheet_opened` / `routine_template_share_failed` by `template_category/repeat_days_bucket/time_window_bucket/routine_name_included`:
+  - privacy guardrail 확인: 앱 이름/package/lockApplications/raw session history 축을 쓰지 않았는지:
+- goal lock check 결과:
+  - `goal_lock_created` / `goal_lock_completed` / `goal_lock_ended_early` by `duration_selection_type/lock_mode/selected_app_count_bucket/goal_name_type/duration_days_bucket/elapsed_days_bucket`:
+  - privacy/trust guardrail 확인: 목표 이름 원문/app package/app label/raw 날짜 축을 쓰지 않았는지:
+- routine creation CTA check 결과:
+  - #455 구현 포함 release/tag/Play deploy 이후: `routine_creation_cta_shown` / `routine_creation_cta_clicked` / `routine_creation_cta_dismissed` by `surface`, `activation_stage`, `has_routine`, `cta_variant`
+  - #810 Android wiring 포함 release/tag/Play deploy 이후 routine saved completion check: `routine_saved(creation_source=post_first_block_cta) users / routine_creation_cta_clicked users` by `entry_surface`, `creation_source`, `selected_app_count_bucket`, `repeat_days_bucket`, `time_window_bucket`, `schedule_state`
+  - privacy guardrail 확인: 앱 이름/package/lockApplications/raw session history/raw time/routine id 축을 쓰지 않았는지:
+- repeat block routine suggestion check 결과:
+  - `repeat_block_routine_suggestion_shown` / `repeat_block_routine_suggestion_clicked` / `repeat_block_routine_suggestion_dismissed` / `repeat_block_routine_suggestion_applied` by `surface/suggestion_reason/time_bucket/day_type/category_bucket/repeat_count_bucket/routine_coverage_state/suggestion_variant`:
+  - #810 Android wiring 포함 release/tag/Play deploy 이후 routine saved completion check: `routine_saved(creation_source=repeat_block_prefill) users / repeat_block_routine_suggestion_clicked users` by `entry_surface/creation_source/selected_app_count_bucket/repeat_days_bucket/time_window_bucket/schedule_state`:
+  - privacy guardrail 확인: 앱 이름/package/lockApplications/raw session history/raw timestamp/raw retry count 축을 쓰지 않았는지:
 - screen_view 품질:
   - total:
   - `(not set)`:

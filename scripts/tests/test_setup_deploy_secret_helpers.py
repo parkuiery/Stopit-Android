@@ -23,9 +23,11 @@ class SetupDeploySecretHelpersTest(unittest.TestCase):
             keystore = repo / "upload-key.jks"
             service_account = repo / "play-service-account.json"
             google_services = repo / "google-services.json"
+            google_services_dev = repo / "google-services-dev.json"
             keystore.write_bytes(b"fake-keystore")
             service_account.write_text('{"client_email":"robot@example.com"}')
-            google_services.write_text('{"project_info":{"project_id":"stopit"}}')
+            google_services.write_text('{"project_info":{"project_id":"stopit-prod"}}')
+            google_services_dev.write_text('{"project_info":{"project_id":"stopit-dev"}}')
 
             result = subprocess.run(
                 [
@@ -39,6 +41,8 @@ class SetupDeploySecretHelpersTest(unittest.TestCase):
                     "upload",
                     "--google-services",
                     str(google_services),
+                    "--google-services-dev",
+                    str(google_services_dev),
                 ],
                 cwd=repo,
                 env=self._env(
@@ -64,7 +68,8 @@ class SetupDeploySecretHelpersTest(unittest.TestCase):
             self.assertIn("secret:ANDROID_KEY_ALIAS:upload", log)
             self.assertIn("secret:ANDROID_KEY_PASSWORD:key-pass", log)
             self.assertIn('secret:GOOGLE_PLAY_SERVICE_ACCOUNT_JSON:{"client_email":"robot@example.com"}', log)
-            self.assertIn('secret:GOOGLE_SERVICES_JSON:{"project_info":{"project_id":"stopit"}}', log)
+            self.assertIn('secret:GOOGLE_SERVICES_JSON:{"project_info":{"project_id":"stopit-prod"}}', log)
+            self.assertIn('secret:GOOGLE_SERVICES_JSON_DEV:{"project_info":{"project_id":"stopit-dev"}}', log)
             self.assertNotIn("secret:DISCORD_BOT_TOKEN", log)
             self.assertNotIn("secret:DISCORD_DEPLOY_CHANNEL_ID", log)
 

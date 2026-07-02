@@ -4,7 +4,7 @@
 # prod source set
 
 ## Purpose
-Production flavor source set. Release Build/Play Deploy restore `google-services.json` here, while Android CI/Release QA may restore the same secret to both dev and prod; the workflow-specific restore matrix is owned by `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`.
+Production flavor source set. Release Build/Play Deploy restore `google-services.json` here. Android CI/Release QA restore `GOOGLE_SERVICES_JSON` to prod while `GOOGLE_SERVICES_JSON_DEV` owns dev; the workflow-specific restore matrix is owned by `docs/PLAY_DEPLOY_SECRETS_RUNBOOK.md`.
 
 ## Key Files
 | File | Description |

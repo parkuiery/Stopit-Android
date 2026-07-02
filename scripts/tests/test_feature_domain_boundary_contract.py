@@ -1,0 +1,176 @@
+import pathlib
+import re
+import unittest
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+APP_MAIN = REPO_ROOT / "app/src/main/java/com/uiery/keep"
+RUNBOOK = REPO_ROOT / "docs/FEATURE_DOMAIN_BOUNDARY.md"
+DOCS_AGENTS = REPO_ROOT / "docs/AGENTS.md"
+ENGINEERING_CONTEXT = REPO_ROOT / "docs/ops/stopit/engineering-context.md"
+
+FEATURE_IMPORT_PATTERN = re.compile(
+    r"^import\s+(com\.uiery\.keep\.feature\.[A-Za-z0-9_.]+)",
+    re.MULTILINE,
+)
+
+EXPECTED_FEATURE_IMPORTS = {}
+
+
+class FeatureDomainBoundaryContractTest(unittest.TestCase):
+    def production_boundary_sources(self):
+        for relative_root in ("database", "service", "receiver", "analytics"):
+            yield from sorted((APP_MAIN / relative_root).rglob("*.kt"))
+
+    def app_root_runtime_sources(self):
+        for file_name in ("BlockActivity.kt", "BlockScreen.kt", "BlockViewModel.kt"):
+            yield APP_MAIN / file_name
+
+    def startup_runtime_sources(self):
+        yield APP_MAIN / "feature/splash/SplashViewModel.kt"
+
+    def current_feature_import_inventory(self):
+        inventory: dict[str, list[str]] = {}
+        for source in self.production_boundary_sources():
+            imports = sorted(FEATURE_IMPORT_PATTERN.findall(source.read_text()))
+            if imports:
+                inventory[str(source.relative_to(REPO_ROOT))] = imports
+        return inventory
+
+    def test_production_boundary_feature_imports_match_issue_651_inventory(self):
+        self.assertEqual(
+            EXPECTED_FEATURE_IMPORTS,
+            self.current_feature_import_inventory(),
+            "database/service/receiver/analytics feature.* imports must not grow; "
+            "remove entries from the #651 inventory as code-lane migrates them to shared domain/data boundaries",
+        )
+
+    def test_app_root_runtime_surfaces_do_not_import_feature_private_domains(self):
+        forbidden_prefixes = (
+            "com.uiery.keep.feature.routine",
+            "com.uiery.keep.feature.lockhistory",
+        )
+        violations = {}
+        for source in self.app_root_runtime_sources():
+            imports = [
+                import_name
+                for import_name in FEATURE_IMPORT_PATTERN.findall(source.read_text())
+                if import_name.startswith(forbidden_prefixes)
+            ]
+            if imports:
+                violations[str(source.relative_to(REPO_ROOT))] = sorted(imports)
+
+        self.assertEqual(
+            {},
+            violations,
+            "app-root blocking surfaces must use shared repeat-block/lock-history boundaries, not feature-private domains",
+        )
+
+    def test_startup_runtime_surfaces_do_not_import_routine_feature_aftercare(self):
+        violations = {}
+        for source in self.startup_runtime_sources():
+            imports = [
+                import_name
+                for import_name in FEATURE_IMPORT_PATTERN.findall(source.read_text())
+                if import_name.startswith("com.uiery.keep.feature.routine")
+            ]
+            if imports:
+                violations[str(source.relative_to(REPO_ROOT))] = sorted(imports)
+
+        self.assertEqual(
+            {},
+            violations,
+            "startup/runtime restore-aftercare must use the shared data.routine boundary, not feature.routine internals",
+        )
+
+    def test_routine_repository_binding_and_aftercare_live_in_shared_data_boundary(self):
+        feature_module = APP_MAIN / "feature/routine/RoutineModule.kt"
+        shared_module = APP_MAIN / "data/routine/RoutineModule.kt"
+        feature_aftercare = APP_MAIN / "feature/routine/RoutineRestoreAftercare.kt"
+        shared_aftercare = APP_MAIN / "data/routine/RoutineRestoreAftercare.kt"
+
+        self.assertFalse(
+            feature_module.exists(),
+            "RoutineRepository Hilt binding is app-wide data infrastructure and must not live under feature.routine",
+        )
+        self.assertFalse(
+            feature_aftercare.exists(),
+            "Routine restore-aftercare is startup/runtime infrastructure and must not live under feature.routine",
+        )
+        self.assertTrue(shared_module.exists())
+        self.assertTrue(shared_aftercare.exists())
+        self.assertIn("package com.uiery.keep.data.routine", shared_module.read_text())
+        self.assertIn("package com.uiery.keep.data.routine", shared_aftercare.read_text())
+
+    def test_runbook_documents_every_current_import_and_migration_boundary(self):
+        runbook = RUNBOOK.read_text()
+        self.assertIn("Issue: #651", runbook)
+        self.assertIn("현재 production drift inventory", runbook)
+        self.assertIn("Migration order", runbook)
+        self.assertIn("Closes #651", runbook)
+        self.assertIn("#986 repository ownership follow-up", runbook)
+        self.assertIn("LockHistoryRepository`는 이미 `data.lockhistory`", runbook)
+        self.assertIn("ReviewEligibilityRepository`도 `data.review`", runbook)
+        self.assertIn("ReviewEligibilityEvaluator`는 새 shared repository", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/KeepAnalytics.kt", runbook)
+        self.assertNotIn("app/src/main/java/com/uiery/keep/analytics/FirebaseKeepAnalytics.kt", runbook)
+        self.assertIn("RepeatBlockRoutineSuggestionAnalyticsPayload", runbook)
+
+        for relative_path, imports in EXPECTED_FEATURE_IMPORTS.items():
+            self.assertIn(relative_path, runbook)
+            for import_name in imports:
+                self.assertIn(import_name.replace("com.uiery.keep.", ""), runbook)
+
+        for required_phrase in (
+            "GoalLock shared domain boundary",
+            "Routine runtime repository/use-case boundary",
+            "data.routine.RoutineRestoreAftercare",
+            "#1050",
+            "RepeatBlock analytics DTO boundary",
+            "LockHistory runtime recording boundary",
+            "#986 Review eligibility repository boundary",
+            "#987 app-root repeat-block runtime boundary",
+        ):
+            self.assertIn(required_phrase, runbook)
+
+    def test_issue_986_current_scope_matches_source_tree(self):
+        runbook = RUNBOOK.read_text()
+        lockhistory_repository = APP_MAIN / "data/lockhistory/LockHistoryRepository.kt"
+        feature_review_repository = APP_MAIN / "feature/review/ReviewEligibilityRepository.kt"
+        shared_review_repository = APP_MAIN / "data/review/ReviewEligibilityRepository.kt"
+
+        self.assertEqual(
+            "package com.uiery.keep.data.lockhistory",
+            lockhistory_repository.read_text().splitlines()[0],
+            "#986 docs assume LockHistoryRepository is already in the shared data boundary",
+        )
+
+        self.assertFalse(
+            feature_review_repository.exists(),
+            "#986 moved ReviewEligibilityRepository out of the feature.review ownership boundary",
+        )
+
+        review_source = shared_review_repository.read_text()
+        self.assertIn("package com.uiery.keep.data.review", review_source)
+        self.assertIn("import com.uiery.keep.database.dao.EmergencyUnlockDao", review_source)
+        self.assertIn("import com.uiery.keep.database.dao.LockHistoryDao", review_source)
+
+        self.assertIn("ReviewEligibilityRepository", runbook)
+        self.assertIn("data.review", runbook)
+        self.assertIn("EmergencyUnlockDao", runbook)
+        self.assertIn("LockHistoryDao", runbook)
+
+    def test_high_traffic_docs_link_feature_domain_boundary_contract(self):
+        docs_agents = DOCS_AGENTS.read_text()
+        engineering_context = ENGINEERING_CONTEXT.read_text()
+
+        self.assertIn("FEATURE_DOMAIN_BOUNDARY.md", docs_agents)
+        self.assertIn("#651", docs_agents)
+        self.assertIn("#986", docs_agents)
+        self.assertIn("FEATURE_DOMAIN_BOUNDARY.md", engineering_context)
+        self.assertIn("#651", engineering_context)
+        self.assertIn("#986", engineering_context)
+        self.assertIn("DAO_BOUNDARY_MAINTENANCE.md", engineering_context)
+
+
+if __name__ == "__main__":
+    unittest.main()

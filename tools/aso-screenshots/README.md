@@ -18,11 +18,24 @@
 
 ```bash
 cd tools/aso-screenshots
+bun install --frozen-lockfile
 bun dev    # http://localhost:3000
 ```
 
 각 카드 우측의 `PNG` 또는 상단의 `전체 PNG 내보내기` 로 export.
 파일명은 자동으로 `01-select-1080x1920.png` 형태로 prefix.
+
+## 빌드 검증 / CI 계약
+
+`tools/aso-screenshots/**` 아래 템플릿, 캡처 이미지, `package.json`, `bun.lock`, Next 설정을 바꾸는 PR은 Android 앱 빌드와 분리된 `ASO screenshots build` gate를 통과해야 한다. 이 gate는 Play Console 업로드나 Android Gradle 작업을 하지 않고, lockfile 기반 설치와 Next production build만 확인한다.
+
+```bash
+cd tools/aso-screenshots
+bun install --frozen-lockfile
+bun run build
+```
+
+로컬에서 export UI만 확인한 경우에도 PR 본문에는 위 build 검증 결과를 별도로 남긴다. `ASO screenshots build` 실패는 앱 APK/AAB 문제가 아니라 스크린샷 생성기 문제로 진단한다.
 
 ## 1. 앱 캡처 흐름
 

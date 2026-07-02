@@ -1,5 +1,7 @@
 package com.uiery.keep.feature.home.component
 
+import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlinx.datetime.LocalTime
 
 internal data class TimerDuration(
@@ -29,6 +31,25 @@ internal fun calculateTimerDuration(
 
 internal fun timerPickerHourLabels(): List<String> =
     listOf("12") + (1..11).map { it.toString() }
+
+internal fun calculateCountdownEndDateTimePreview(
+    today: LocalDate,
+    now: LocalTime,
+    countdownDays: Int,
+    countdownTime: LocalTime,
+): LocalDateTime {
+    val nowMinutes = now.hour * MINUTES_PER_HOUR + now.minute
+    val durationMinutes =
+        countdownDays * MINUTES_PER_DAY + countdownTime.hour * MINUTES_PER_HOUR + countdownTime.minute
+    val totalMinutes = nowMinutes + durationMinutes
+    val calendarDaysToAdd = totalMinutes / MINUTES_PER_DAY
+    val targetMinutesOfDay = totalMinutes % MINUTES_PER_DAY
+
+    return today.plusDays(calendarDaysToAdd.toLong()).atTime(
+        targetMinutesOfDay / MINUTES_PER_HOUR,
+        targetMinutesOfDay % MINUTES_PER_HOUR,
+    )
+}
 
 internal fun timerPickerStartIndex(time: LocalTime): Int = time.hour % HOURS_PER_PERIOD
 

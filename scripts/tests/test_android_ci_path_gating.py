@@ -18,8 +18,19 @@ EXPECTED_BUILD_CRITICAL_ROOT_INPUTS = {
     ".github/workflows/android-ci.yml",
 }
 
+EXPECTED_STATIC_POLICY_HELPERS = {
+    "scripts/check_compose_icon_button_accessibility.py": "scripts.tests.test_compose_icon_button_accessibility",
+    "scripts/check_locale_string_parity.py": "scripts.tests.test_locale_string_parity",
+}
+
 
 class AndroidCiPathGatingTest(unittest.TestCase):
+    def test_android_ci_uses_current_paths_filter_major(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("uses: dorny/paths-filter@v4", workflow)
+        self.assertNotIn("dorny/paths-filter@v3", workflow)
+
     def test_android_ci_filter_includes_wrapper_launchers(self):
         workflow = WORKFLOW_PATH.read_text()
 
@@ -38,6 +49,18 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         for expected_input in EXPECTED_BUILD_CRITICAL_ROOT_INPUTS:
             self.assertIn(f"- '{expected_input}'", android_ci_block)
 
+    def test_static_policy_helper_changes_materialize_fast_verification(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        filters_block = workflow.split("filters: |", 1)[1]
+        android_ci_block = filters_block.split("runtime_smoke:", 1)[0]
+        static_policy_step = workflow.split("- name: Run static policy unit tests", 1)[1].split("\n\n", 1)[0]
+
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            with self.subTest(helper_path=helper_path):
+                self.assertIn(f"- '{helper_path}'", android_ci_block)
+                self.assertIn(test_module, static_policy_step)
+
     def test_play_deployment_doc_mentions_wrapper_path_gating_contract(self):
         doc = DOC_PATH.read_text()
 
@@ -50,6 +73,10 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("build-critical", doc)
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("wrapper-only", doc)
+        self.assertIn("static-policy-helper-only", doc)
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            self.assertIn(helper_path, doc)
+            self.assertIn(test_module, doc)
 
     def test_release_context_mentions_build_critical_root_inputs(self):
         doc = RELEASE_CONTEXT_PATH.read_text()
@@ -57,6 +84,10 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         self.assertIn("build-critical", doc)
         self.assertIn("`gradlew` / `gradlew.bat`", doc)
         self.assertIn("Fast verification", doc)
+        self.assertIn("static-policy-helper-only", doc)
+        for helper_path, test_module in EXPECTED_STATIC_POLICY_HELPERS.items():
+            self.assertIn(helper_path, doc)
+            self.assertIn(test_module, doc)
 
     def test_release_context_explains_fast_verification_gate_contract(self):
         doc = RELEASE_CONTEXT_PATH.read_text()
@@ -68,6 +99,64 @@ class AndroidCiPathGatingTest(unittest.TestCase):
         workflow = WORKFLOW_PATH.read_text()
 
         self.assertIn("python3 -m unittest discover -s scripts/tests -p 'test_*.py'", workflow)
+
+    def test_android_ci_fast_verification_runs_kds_module_local_checks(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("Run KDS module-local verification", workflow)
+        self.assertIn(":core:kds:assembleDebug", workflow)
+        self.assertIn(":core:kds:lintDebug", workflow)
+        self.assertIn(":core:kds:testDebugUnitTest", workflow)
+
+    def test_android_ci_keeps_dependabot_firebase_secret_boundary_neutral(self):
+        workflow = WORKFLOW_PATH.read_text()
+
+        self.assertIn("Check Firebase config availability", workflow)
+        self.assertIn("id: firebase-config", workflow)
+        self.assertIn("id: runtime-firebase-config", workflow)
+        self.assertIn("${{ github.actor }}\" = 'dependabot[bot]'", workflow)
+        self.assertIn("Dependabot PR: Firebase secrets are unavailable, so runtime smoke is deferred", workflow)
+        self.assertIn("steps.runtime-firebase-config.outputs.available == 'true'", workflow)
+        self.assertIn("GOOGLE_SERVICES_JSON_DEV secret is missing", workflow)
+        self.assertIn("GOOGLE_SERVICES_JSON secret is missing", workflow)
+
+    def test_dependabot_app_gradle_verification_uses_dummy_firebase_config(self):
+        workflow = WORKFLOW_PATH.read_text()
+        dependabot_summary = "Dependabot PR: Firebase secrets are unavailable, so app Gradle verification uses dummy Firebase config."
+
+        self.assertIn(dependabot_summary, workflow)
+        self.assertNotIn(
+            "Dependabot PR: Firebase secrets are unavailable, so app Gradle verification is deferred",
+            workflow,
+        )
+        self.assertIn("dummy_firebase_config=true", workflow)
+        self.assertIn("Write dummy Firebase google-services.json for Dependabot app verification", workflow)
+        self.assertIn("steps.firebase-config.outputs.available == 'true' || steps.firebase-config.outputs.dummy_firebase_config == 'true'", workflow)
+        self.assertIn("app/src/dev/google-services.json", workflow)
+        self.assertIn("\"package_name\":\"com.uiery.keep.dev\"", workflow)
+        self.assertIn("\"package_name\":\"com.uiery.keep\"", workflow)
+
+    def test_docs_explain_dependabot_firebase_secret_boundary(self):
+        docs = [
+            WORKFLOW_DOC_PATH.read_text(),
+            (REPO_ROOT / "docs" / "PLAY_DEPLOY_SECRETS_RUNBOOK.md").read_text(),
+            RELEASE_CONTEXT_PATH.read_text(),
+        ]
+
+        for doc in docs:
+            with self.subTest():
+                self.assertIn("Dependabot", doc)
+                self.assertIn("Firebase secret", doc)
+                self.assertIn("runtime smoke", doc)
+                self.assertIn("workflow_dispatch", doc)
+
+    def test_release_context_documents_kds_module_local_ci_gate(self):
+        doc = RELEASE_CONTEXT_PATH.read_text()
+
+        self.assertIn("KDS module-local", doc)
+        self.assertIn(":core:kds:assembleDebug", doc)
+        self.assertIn(":core:kds:lintDebug", doc)
+        self.assertIn(":core:kds:testDebugUnitTest", doc)
 
 
 if __name__ == "__main__":

@@ -24,10 +24,7 @@ class GradleVersionCatalogContractTest(unittest.TestCase):
         self.assertNotRegex(root_build, r'id\("androidx\.room"\)\s+version\s+"[^"]+"')
         self.assertNotRegex(root_build, r'id\("com\.google\.firebase\.crashlytics"\)\s+version\s+"[^"]+"')
 
-        self.assertIsNotNone(
-            re.search(r'^firebaseCrashlytics\s*=\s*"3\.0\.6"$', catalog, re.MULTILINE),
-            msg="Crashlytics Gradle plugin version must live in the catalog.",
-        )
+        self.assertCrashlyticsCatalogContract(catalog)
         self.assertIsNotNone(
             re.search(
                 r'^androidx-room\s*=\s*\{\s*id\s*=\s*"androidx\.room",\s*version\.ref\s*=\s*"room"\s*\}$',
@@ -35,6 +32,31 @@ class GradleVersionCatalogContractTest(unittest.TestCase):
                 re.MULTILINE,
             ),
             msg="Room Gradle plugin must reuse the existing room version ref.",
+        )
+
+    def test_crashlytics_catalog_contract_allows_dependency_patch_bumps(self):
+        catalog = VERSION_CATALOG.read_text().replace(
+            'firebaseCrashlytics = "3.0.6"',
+            'firebaseCrashlytics = "3.0.7"',
+        )
+
+        self.assertCrashlyticsCatalogContract(catalog)
+
+    def assertCrashlyticsCatalogContract(self, catalog: str):
+        version_match = re.search(
+            r'^firebaseCrashlytics\s*=\s*"([^"]+)"$',
+            catalog,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(
+            version_match,
+            msg="Crashlytics Gradle plugin version must live in the catalog.",
+        )
+        assert version_match is not None
+        self.assertRegex(
+            version_match.group(1),
+            r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$",
+            msg="Crashlytics Gradle plugin catalog version should be a valid Gradle plugin version.",
         )
         self.assertIsNotNone(
             re.search(

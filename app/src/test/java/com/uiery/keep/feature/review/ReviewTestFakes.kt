@@ -10,6 +10,7 @@ import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
+import com.uiery.keep.data.review.ReviewEligibilityRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -95,7 +96,8 @@ sealed interface AnalyticsEventRecord {
 }
 
 class FakeEmergencyUnlockDao(var countSinceResult: Int = 0) : EmergencyUnlockDao {
-    override suspend fun insert(entity: EmergencyUnlockEntity) = Unit
+    override suspend fun insert(entity: EmergencyUnlockEntity): Long = 1L
+    override suspend fun deleteById(id: Long) = Unit
     override fun fetchByDateRange(start: Long, end: Long): Flow<List<EmergencyUnlockEntity>> = emptyFlow()
     override suspend fun countToday(todayStart: Long): Int = 0
     override suspend fun countSince(timestampMillis: Long): Int = countSinceResult
@@ -108,3 +110,11 @@ class FakeLockHistoryDao(var recentSuccessCount: Int = 1, var totalCount: Int = 
     override suspend fun countSuccessfulSessions(): Int = totalCount
     override suspend fun countSuccessfulSessionsSince(timestampMillis: Long): Int = recentSuccessCount
 }
+
+fun fakeReviewEligibilityRepository(
+    emergencyCount: Int = 0,
+    recentSuccessCount: Int = 1,
+): ReviewEligibilityRepository = ReviewEligibilityRepository(
+    emergencyUnlockDao = FakeEmergencyUnlockDao(emergencyCount),
+    lockHistoryDao = FakeLockHistoryDao(recentSuccessCount = recentSuccessCount),
+)

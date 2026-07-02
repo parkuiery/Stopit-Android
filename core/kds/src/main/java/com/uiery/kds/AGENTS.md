@@ -4,12 +4,11 @@
 # KDS design system
 
 ## Purpose
-Reusable KDS Compose components such as buttons, checkboxes, snackbars, modal sheets, ads, and decorative gradient animation.
+Reusable KDS Compose components such as buttons, checkboxes, snackbars, modal sheets, and decorative gradient animation. AdMob SDK/runtime ownership belongs to the app monetization boundary, not KDS.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `KeepBannerAd.kt` | Kotlin source for keep banner ad. |
 | `KeepButton.kt` | Kotlin source for keep button. |
 | `KeepCheckbox.kt` | Kotlin source for keep checkbox. |
 | `KeepModalBottomSheet.kt` | Kotlin source for keep modal bottom sheet. |
@@ -41,6 +40,6 @@ Reusable KDS Compose components such as buttons, checkboxes, snackbars, modal sh
 - Consumed by `:app` via `implementation(project(":core:kds"))`.
 
 ### External
-- Jetpack Compose Material 3, AndroidX UI tooling, Google Mobile Ads where banner components are used.
+- Jetpack Compose Material 3 and AndroidX UI tooling. AdMob SDK/runtime ownership belongs in the app monetization boundary.
 
 <!-- MANUAL: Any manually added notes below this line are preserved on regeneration -->

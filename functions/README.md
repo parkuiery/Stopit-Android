@@ -38,7 +38,7 @@ npm run build
 - Regression alert
 - Velocity alert
 
-These functions use Firebase Alerts triggers from Crashlytics and post a formatted message to Discord.
+These functions use Firebase Alerts triggers from Crashlytics and post a formatted message to Discord. Each alert must include the Crashlytics console link, the raw Crashlytics Issue ID, and a GitHub duplicate-search link so #101-style fatal/ANR follow-through can copy stack trace, affected versions, and affected-user evidence into one canonical GitHub issue or PR before starting code changes.
 
 ## Production promotion interaction
 
@@ -48,5 +48,7 @@ These functions use Firebase Alerts triggers from Crashlytics and post a formatt
 2. only accepts interactions from `DISCORD_DEPLOY_CHANNEL_ID`;
 3. allows only comma-separated `DISCORD_DEPLOY_ALLOWED_ROLE_IDS` or `DISCORD_DEPLOY_ALLOWED_USER_IDS`;
 4. dispatches `.github/workflows/play-deploy.yml` on the selected SemVer tag with `track=production`.
+
+The function is an interaction/authentication gate, not the final production execution approval. The dispatched `track=production` workflow enters the GitHub Environment named `production`; configure that Environment in GitHub repository settings with a required reviewer so Discord-button dispatches and direct GitHub `workflow_dispatch` runs share the same final approval boundary.
 
 Set the Discord application's Interactions Endpoint URL to the deployed HTTPS function URL.
