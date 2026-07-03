@@ -428,4 +428,13 @@
     <string name="parent_mode_status_active">Активен</string>
     <string name="parent_mode_status_ended">Завершён</string>
     <string name="parent_mode_status_expired">Время вышло</string>
+    <string name="usage_insight_permission_title">Посмотрите свои шаблоны использования</string>
+    <string name="usage_insight_permission_body">Разрешите доступ к данным об использовании, и StopIt предложит рутины на основе того, как вы на самом деле используете телефон. Данные никогда не покидают ваше устройство.</string>
+    <string name="usage_insight_permission_cta">Разрешить доступ</string>
+    <string name="usage_insight_night_owl_title">Обнаружено использование поздней ночью</string>
+    <string name="usage_insight_night_owl_body">Вы использовали %1$s после полуночи %2$d из последних 7 дней, в среднем %3$d мин за ночь.</string>
+    <string name="usage_insight_surge_title">Использование растёт</string>
+    <string name="usage_insight_surge_body">Ваше время в %1$s выросло на %2$d%% по сравнению с прошлой неделей.</string>
+    <string name="usage_insight_cta_create_routine">Создать рутину</string>
+    <string name="usage_insight_dismiss">Закрыть</string>
 </resources>
