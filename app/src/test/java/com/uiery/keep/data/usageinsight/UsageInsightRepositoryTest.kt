@@ -11,13 +11,26 @@ import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UsageInsightRepositoryTest {
 
     private val today: LocalDate = LocalDate.of(2026, 7, 3)
+
+    private fun usageDay(
+        daysAgo: Long,
+        packageName: String = "com.test",
+        totalMinutes: Long = 10,
+        nightMinutes: Long = 0,
+        launchCount: Int = 1,
+    ) = AppUsageDay(
+        date = today.minusDays(daysAgo),
+        packageName = packageName,
+        totalUsage = Duration.ofMinutes(totalMinutes),
+        launchCount = launchCount,
+        nightUsage = Duration.ofMinutes(nightMinutes),
+    )
 
     private fun usageDayEntity(
         daysAgo: Long,
@@ -126,6 +139,43 @@ class UsageInsightRepositoryTest {
         dao.seed(usageDayEntity(daysAgo = 1, packageName = "com.test", totalMinutes = 5))
         val result = repository(dao = dao).currentInsightCard(today)
         assertEquals(UsageInsightCardResult.Hidden, result)
+    }
+
+    @Test
+    fun `수집된 데이터가 엔티티 왕복을 거쳐 인사이트 평가에 반영된다`() = runBlocking {
+        val gateway = FakeUsageStatsGateway(
+            daysToReturn = listOf(
+                usageDay(daysAgo = 1, packageName = "com.youtube", totalMinutes = 90, nightMinutes = 40, launchCount = 3),
+                usageDay(daysAgo = 2, packageName = "com.youtube", totalMinutes = 90, nightMinutes = 40, launchCount = 3),
+                usageDay(daysAgo = 3, packageName = "com.youtube", totalMinutes = 90, nightMinutes = 40, launchCount = 3),
+            ),
+        )
+        val dao = FakeAppUsageDailyDao()
+        val result = repository(gateway = gateway, dao = dao).currentInsightCard(today)
+        val nightOwl = (result as UsageInsightCardResult.Ready).insight as UsageInsight.NightOwl
+        assertEquals("com.youtube", nightOwl.packageName)
+        assertEquals(3, nightOwl.nightsCount)
+        assertEquals(Duration.ofMinutes(40), nightOwl.avgNightUsage)
+        assertEquals(
+            AppUsageDailyEntity(
+                date = today.minusDays(1).toString(),
+                packageName = "com.youtube",
+                totalUsageMillis = Duration.ofMinutes(90).toMillis(),
+                launchCount = 3,
+                nightUsageMillis = Duration.ofMinutes(40).toMillis(),
+            ),
+            dao.store[today.minusDays(1).toString() to "com.youtube"],
+        )
+        assertEquals(3, dao.store.size)
+    }
+
+    @Test
+    fun `캐시 최신일이 14일 이전이면 수집 시작일을 14일 전으로 클램프한다`() = runBlocking {
+        val gateway = FakeUsageStatsGateway()
+        val dao = FakeAppUsageDailyDao()
+        dao.seed(usageDayEntity(daysAgo = 20))
+        repository(gateway = gateway, dao = dao).currentInsightCard(today)
+        assertEquals(listOf(today.minusDays(14) to today.minusDays(1)), gateway.queriedRanges)
     }
 
     @Test
