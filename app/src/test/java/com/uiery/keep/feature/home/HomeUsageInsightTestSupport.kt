@@ -23,6 +23,8 @@ internal class FakeUsageStatsGateway(
         dailyUsage.filter { !it.date.isBefore(from) && !it.date.isAfter(toInclusive) }
 
     override fun appLabel(packageName: String): String? = labels[packageName]
+
+    override fun insightExcludedPackages(): Set<String> = emptySet()
 }
 
 /** date(ISO) + package 기준 인메모리 캐시 DAO. ISO 문자열은 사전식 비교로 날짜 순서를 만족한다. */

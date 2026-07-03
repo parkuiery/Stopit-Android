@@ -4,7 +4,9 @@ import android.app.AppOpsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
 import android.os.Process
+import android.provider.Settings
 import com.uiery.keep.domain.usageinsight.AppUsageDay
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
@@ -17,6 +19,15 @@ private const val NIGHT_END_HOUR = 6
 class AndroidUsageStatsGateway @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : UsageStatsGateway {
+
+    private val excludedPackages: Set<String> by lazy {
+        val settingsPackage = Intent(Settings.ACTION_SETTINGS)
+            .resolveActivity(context.packageManager)
+            ?.packageName
+        setOfNotNull(settingsPackage)
+    }
+
+    override fun insightExcludedPackages(): Set<String> = excludedPackages
 
     override fun isPermissionGranted(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -101,7 +112,11 @@ class AndroidUsageStatsGateway @Inject constructor(
         foregroundSince.forEach { (packageName, start) -> closeSession(packageName, start, dayEnd) }
 
         return totalMillis.keys
-            .filter { it != context.packageName && isLaunchable(it, launchableCache) }
+            .filter {
+                it != context.packageName &&
+                    it !in excludedPackages &&
+                    isLaunchable(it, launchableCache)
+            }
             .map { packageName ->
                 AppUsageDay(
                     date = day,

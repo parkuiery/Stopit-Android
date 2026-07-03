@@ -67,6 +67,25 @@ class UsageInsightPolicyTest {
     }
 
     @Test
+    fun `지난주 사용량이 30분 미만이면 WeeklySurge 아님`() {
+        val days =
+            (1L..7L).map { usageDay(daysAgo = it, packageName = "com.insta", totalMinutes = 30) } +
+                listOf(usageDay(daysAgo = 8, packageName = "com.insta", totalMinutes = 1))
+        assertNull(UsageInsightPolicy.evaluate(days, today, emptySet()))
+    }
+
+    @Test
+    fun `지난주 사용량이 정확히 30분이면 베이스라인 충족`() {
+        val days =
+            (1L..7L).map { usageDay(daysAgo = it, packageName = "com.insta", totalMinutes = 30) } +
+                listOf(usageDay(daysAgo = 8, packageName = "com.insta", totalMinutes = 30))
+        val insight = UsageInsightPolicy.evaluate(days, today, emptySet())
+        val surge = insight as UsageInsight.WeeklySurge
+        assertEquals("com.insta", surge.packageName)
+        assertEquals(Duration.ofMinutes(30), surge.lastWeekUsage)
+    }
+
+    @Test
     fun `NightOwl과 WeeklySurge가 동시에 성립하면 NightOwl 우선`() {
         val days =
             (1L..7L).map { usageDay(daysAgo = it, packageName = "com.insta", totalMinutes = 30) } +

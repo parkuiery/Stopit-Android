@@ -34,7 +34,10 @@ class UsageInsightRepository @Inject constructor(
         }
         refreshCache(today)
         val windowStart = today.minusDays(LOOKBACK_DAYS)
-        val days = appUsageDailyDao.getSince(windowStart.toString()).map { it.toModel() }
+        val excludedPackages = gateway.insightExcludedPackages()
+        val days = appUsageDailyDao.getSince(windowStart.toString())
+            .map { it.toModel() }
+            .filterNot { it.packageName in excludedPackages }
         val insight = UsageInsightPolicy.evaluate(
             days = days,
             today = today,

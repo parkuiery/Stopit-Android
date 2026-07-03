@@ -8,4 +8,7 @@ interface UsageStatsGateway {
     fun isPermissionGranted(): Boolean
     fun queryDailyUsage(from: LocalDate, toInclusive: LocalDate): List<AppUsageDay>
     fun appLabel(packageName: String): String?
+
+    /** 인사이트 후보에서 제외할 패키지(예: 시스템 설정 앱). */
+    fun insightExcludedPackages(): Set<String>
 }

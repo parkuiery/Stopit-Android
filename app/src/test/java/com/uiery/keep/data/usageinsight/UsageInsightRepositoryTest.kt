@@ -191,12 +191,26 @@ class UsageInsightRepositoryTest {
         val result = repository(dao = dao, store = store).currentInsightCard(today)
         assertEquals(UsageInsightCardResult.Hidden, result)
     }
+
+    @Test
+    fun `제외 패키지의 캐시 데이터는 인사이트 평가에서 무시된다`() = runBlocking {
+        val dao = FakeAppUsageDailyDao()
+        dao.seed(
+            usageDayEntity(daysAgo = 1, packageName = "com.android.settings", nightMinutes = 40),
+            usageDayEntity(daysAgo = 2, packageName = "com.android.settings", nightMinutes = 35),
+            usageDayEntity(daysAgo = 4, packageName = "com.android.settings", nightMinutes = 45),
+        )
+        val gateway = FakeUsageStatsGateway(excludedPackages = setOf("com.android.settings"))
+        val result = repository(gateway = gateway, dao = dao).currentInsightCard(today)
+        assertEquals(UsageInsightCardResult.Hidden, result)
+    }
 }
 
 private class FakeUsageStatsGateway(
     var permissionGranted: Boolean = true,
     var daysToReturn: List<AppUsageDay> = emptyList(),
     var labels: Map<String, String> = emptyMap(),
+    var excludedPackages: Set<String> = emptySet(),
 ) : UsageStatsGateway {
     val queriedRanges = mutableListOf<Pair<LocalDate, LocalDate>>()
 
@@ -208,6 +222,8 @@ private class FakeUsageStatsGateway(
     }
 
     override fun appLabel(packageName: String): String? = labels[packageName]
+
+    override fun insightExcludedPackages(): Set<String> = excludedPackages
 }
 
 private class FakeAppUsageDailyDao : AppUsageDailyDao {

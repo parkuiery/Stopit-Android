@@ -7,6 +7,7 @@ object UsageInsightPolicy {
     private val NIGHT_USAGE_THRESHOLD: Duration = Duration.ofMinutes(30)
     private const val NIGHT_OWL_MIN_DAYS = 3
     private val SURGE_MIN_WEEKLY_USAGE: Duration = Duration.ofHours(2)
+    private val SURGE_MIN_BASELINE: Duration = Duration.ofMinutes(30)
     private const val SURGE_RATIO_PERCENT = 150L
 
     fun evaluate(
@@ -62,7 +63,7 @@ object UsageInsightPolicy {
             .filter { (packageName, thisWeekMillis) ->
                 val lastWeekMillis = lastWeek[packageName] ?: 0L
                 thisWeekMillis >= SURGE_MIN_WEEKLY_USAGE.toMillis() &&
-                    lastWeekMillis > 0L &&
+                    lastWeekMillis >= SURGE_MIN_BASELINE.toMillis() &&
                     thisWeekMillis * 100 >= lastWeekMillis * SURGE_RATIO_PERCENT
             }
             .maxByOrNull { (_, thisWeekMillis) -> thisWeekMillis }
