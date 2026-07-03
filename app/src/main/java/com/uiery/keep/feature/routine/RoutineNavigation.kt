@@ -10,8 +10,10 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockCountBucket
 import com.uiery.keep.domain.repeatblock.RepeatBlockDayType
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockSuggestionReason
+import com.uiery.keep.analytics.routine.RoutineSavedCreationSource
 import com.uiery.keep.domain.repeatblock.RepeatBlockTimeBucket
 import com.uiery.keep.domain.repeatblock.RoutineCoverageState
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
@@ -67,6 +69,21 @@ fun NavController.navigateToRoutineWithRepeatBlockPrefill(
     navOptions = navOptions,
 )
 
+fun NavController.navigateToRoutineWithUsageInsightPrefill(
+    prefill: UsageInsightRoutinePrefill,
+    navOptions: NavOptions? = null,
+) = navigate(
+    route = RoutineRoute(
+        routineSavedCreationSource = RoutineSavedCreationSource.USAGE_INSIGHT_PREFILL,
+        prefillPackages = prefill.packages,
+        prefillStartHour = prefill.startTime.hour,
+        prefillStartMinute = prefill.startTime.minute,
+        prefillEndHour = prefill.endTime.hour,
+        prefillEndMinute = prefill.endTime.minute,
+    ),
+    navOptions = navOptions,
+)
+
 fun NavGraphBuilder.routineScreen(
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
@@ -78,10 +95,30 @@ fun NavGraphBuilder.routineScreen(
             routineSavedCreationSource = route.routineSavedCreationSource,
             repeatBlockSuggestionSurface = route.repeatBlockSurface,
             repeatBlockSuggestion = route.toRepeatBlockRoutineSuggestionOrNull(),
+            usageInsightRoutinePrefill = route.toUsageInsightRoutinePrefillOrNull(),
             onNavigateBack = onNavigateBack,
             onNavigateLock = onNavigateLock,
         )
     }
+}
+
+/**
+ * usage-insight CTA로 진입한 경우의 prefill 복원. repeatBlock 제안 경로(버킷 존재)와 상호배타적이며,
+ * 버킷 없이 prefill 패키지/시간만 담긴 경우에만 값을 돌려준다.
+ */
+internal fun RoutineRoute.toUsageInsightRoutinePrefillOrNull(): UsageInsightRoutinePrefill? {
+    if (routineSavedCreationSource != RoutineSavedCreationSource.USAGE_INSIGHT_PREFILL) return null
+    val startHour = prefillStartHour ?: return null
+    val startMinute = prefillStartMinute ?: return null
+    val endHour = prefillEndHour ?: return null
+    val endMinute = prefillEndMinute ?: return null
+    if (prefillPackages.isEmpty()) return null
+
+    return UsageInsightRoutinePrefill(
+        packages = prefillPackages,
+        startTime = LocalTime(startHour, startMinute),
+        endTime = LocalTime(endHour, endMinute),
+    )
 }
 
 internal fun RoutineRoute.toRepeatBlockRoutineSuggestionOrNull(): RepeatBlockRoutineSuggestion? {

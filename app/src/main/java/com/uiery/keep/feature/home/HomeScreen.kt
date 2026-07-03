@@ -63,6 +63,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
 import androidx.annotation.DrawableRes
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -80,6 +82,8 @@ import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.feature.home.component.ContentDescription
 import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
+import com.uiery.keep.feature.home.component.UsageInsightCard
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
@@ -102,6 +106,7 @@ fun HomeScreen(
     onNavigateRoutine: (routineSavedEntrySurface: String?, routineSavedCreationSource: String?) -> Unit = { _, _ -> },
     onNavigateGoalLockDetail: (goalLockId: Long) -> Unit = {},
     onNavigateRoutineWithRepeatBlockPrefill: (RepeatBlockRoutineSuggestion) -> Unit = {},
+    onNavigateRoutineWithUsageInsightPrefill: (UsageInsightRoutinePrefill) -> Unit = {},
 ) {
     val uiState by viewModel.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -147,6 +152,12 @@ fun HomeScreen(
             )
             is HomeSideEffect.NavigateToRoutineWithRepeatBlockPrefill ->
                 onNavigateRoutineWithRepeatBlockPrefill(effect.suggestion)
+
+            is HomeSideEffect.NavigateToRoutineWithUsageInsightPrefill ->
+                onNavigateRoutineWithUsageInsightPrefill(effect.prefill)
+
+            is HomeSideEffect.OpenUsageAccessSettings ->
+                context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
     }
 
@@ -306,6 +317,14 @@ fun HomeScreen(
                     onClick = { viewModel.changeIsKeep() },
                 )
             }
+            UsageInsightCard(
+                state = uiState.usageInsightCard,
+                onCtaClick = viewModel::onUsageInsightCtaClick,
+                onDismiss = viewModel::onUsageInsightDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+            )
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,

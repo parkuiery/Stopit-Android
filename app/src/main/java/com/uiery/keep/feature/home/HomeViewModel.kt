@@ -35,6 +35,11 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.usageinsight.UsageInsightCardResult
+import com.uiery.keep.data.usageinsight.UsageInsightRepository
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
+import com.uiery.keep.domain.usageinsight.toRoutinePrefill
+import com.uiery.keep.feature.home.component.UsageInsightCardUiState
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -74,6 +79,7 @@ class HomeViewModel
         private val lockHistoryRepository: LockHistoryRepository,
         private val routineRepository: RoutineRepository,
         private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
+        private val usageInsightRepository: UsageInsightRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
@@ -88,6 +94,7 @@ class HomeViewModel
             syncRoutinesCount()
             getGoalLockCard()
             loadRepeatBlockRoutineSuggestion()
+            loadUsageInsightCard()
         }
 
         internal fun changeIsKeep(
@@ -354,6 +361,78 @@ class HomeViewModel
                         suggestion = suggestion.toAnalyticsPayload(),
                     )
                 }
+            }
+
+        private fun loadUsageInsightCard() =
+            intent {
+                val result = usageInsightRepository.currentInsightCard(LocalDate.now())
+                val cardState = when (result) {
+                    is UsageInsightCardResult.Hidden -> UsageInsightCardUiState.Hidden
+                    is UsageInsightCardResult.PermissionNeeded -> UsageInsightCardUiState.PermissionNeeded
+                    is UsageInsightCardResult.Ready ->
+                        UsageInsightCardUiState.Insight(result.insight, result.appLabel)
+                }
+                reduce { state.copy(usageInsightCard = cardState) }
+                when (cardState) {
+                    is UsageInsightCardUiState.PermissionNeeded ->
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_SHOWN,
+                            mapOf(INSIGHT_TYPE to USAGE_INSIGHT_PERMISSION_NEEDED),
+                        )
+                    is UsageInsightCardUiState.Insight ->
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_SHOWN,
+                            mapOf(INSIGHT_TYPE to cardState.insight.type.analyticsValue),
+                        )
+                    is UsageInsightCardUiState.Hidden -> Unit
+                }
+            }
+
+        internal fun onUsageInsightCtaClick() =
+            intent {
+                when (val card = state.usageInsightCard) {
+                    is UsageInsightCardUiState.PermissionNeeded -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_CTA,
+                            mapOf(INSIGHT_TYPE to USAGE_INSIGHT_PERMISSION_NEEDED),
+                        )
+                        postSideEffect(HomeSideEffect.OpenUsageAccessSettings)
+                    }
+                    is UsageInsightCardUiState.Insight -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_CTA,
+                            mapOf(INSIGHT_TYPE to card.insight.type.analyticsValue),
+                        )
+                        postSideEffect(
+                            HomeSideEffect.NavigateToRoutineWithUsageInsightPrefill(
+                                card.insight.toRoutinePrefill(),
+                            ),
+                        )
+                    }
+                    is UsageInsightCardUiState.Hidden -> Unit
+                }
+            }
+
+        internal fun onUsageInsightDismiss() =
+            intent {
+                when (val card = state.usageInsightCard) {
+                    is UsageInsightCardUiState.PermissionNeeded -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_DISMISSED,
+                            mapOf(INSIGHT_TYPE to USAGE_INSIGHT_PERMISSION_NEEDED),
+                        )
+                        usageInsightRepository.dismissPermissionCard(LocalDate.now())
+                    }
+                    is UsageInsightCardUiState.Insight -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_DISMISSED,
+                            mapOf(INSIGHT_TYPE to card.insight.type.analyticsValue),
+                        )
+                        usageInsightRepository.dismiss(card.insight.type, LocalDate.now())
+                    }
+                    is UsageInsightCardUiState.Hidden -> Unit
+                }
+                reduce { state.copy(usageInsightCard = UsageInsightCardUiState.Hidden) }
             }
 
         internal fun moveToLock() =
@@ -799,6 +878,7 @@ data class HomeUiState(
     val hasActiveTimedLock: Boolean = false,
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
+    val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
 ) {
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
@@ -898,4 +978,16 @@ sealed class HomeSideEffect {
     data class NavigateToRoutineWithRepeatBlockPrefill(
         val suggestion: RepeatBlockRoutineSuggestion,
     ) : HomeSideEffect()
+
+    data class NavigateToRoutineWithUsageInsightPrefill(
+        val prefill: UsageInsightRoutinePrefill,
+    ) : HomeSideEffect()
+
+    data object OpenUsageAccessSettings : HomeSideEffect()
 }
+
+private const val USAGE_INSIGHT_CARD_SHOWN = "usage_insight_card_shown"
+private const val USAGE_INSIGHT_CARD_CTA = "usage_insight_card_cta"
+private const val USAGE_INSIGHT_CARD_DISMISSED = "usage_insight_card_dismissed"
+private const val INSIGHT_TYPE = "insight_type"
+private const val USAGE_INSIGHT_PERMISSION_NEEDED = "permission_needed"

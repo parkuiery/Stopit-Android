@@ -36,6 +36,7 @@ import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
 import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
 import com.uiery.keep.feature.routine.navigateToRoutineWithRepeatBlockPrefill
+import com.uiery.keep.feature.routine.navigateToRoutineWithUsageInsightPrefill
 import com.uiery.keep.feature.routine.routineScreen
 import com.uiery.keep.feature.splash.SplashRoute
 import com.uiery.keep.feature.splash.splashScreen
@@ -96,6 +97,9 @@ internal fun KeepApp(
                     surface = RepeatBlockRoutineSuggestionSurface.HOME,
                     suggestion = suggestion,
                 )
+            },
+            onNavigateRoutineWithUsageInsightPrefill = { prefill ->
+                navController.navigateToRoutineWithUsageInsightPrefill(prefill)
             },
         )
         menuScreen(

@@ -49,6 +49,7 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.feature.routine.RoutineBottomSheetSideEffect
 import com.uiery.keep.feature.routine.RoutineBottomSheetViewModel
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
@@ -64,6 +65,7 @@ fun RoutineBottomSheetContent(
     routine: RoutineModel? = null,
     repeatBlockSuggestionSurface: String? = null,
     repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
+    usageInsightRoutinePrefill: UsageInsightRoutinePrefill? = null,
     routineSavedEntrySurface: String? = null,
     routineSavedCreationSource: String? = null,
     onRequireAlarmPermission: () -> Unit = { },
@@ -97,6 +99,7 @@ fun RoutineBottomSheetContent(
         routine,
         repeatBlockSuggestionSurface,
         repeatBlockSuggestion,
+        usageInsightRoutinePrefill,
         routineSavedEntrySurface,
         routineSavedCreationSource,
     ) {
@@ -108,6 +111,11 @@ fun RoutineBottomSheetContent(
             viewModel.applyRepeatBlockRoutineSuggestionPrefill(
                 surface = repeatBlockSuggestionSurface,
                 suggestion = repeatBlockSuggestion,
+            )
+        } else if (usageInsightRoutinePrefill != null) {
+            viewModel.applyUsageInsightRoutinePrefill(
+                prefill = usageInsightRoutinePrefill,
+                routineSavedCreationSource = routineSavedCreationSource,
             )
         } else {
             viewModel.resetState(
