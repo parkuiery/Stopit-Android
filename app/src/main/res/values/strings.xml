@@ -415,4 +415,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d hours %2$d minutes</string>
     <string name="routine_template_share_chooser_title">Share routine template</string>
     <string name="cd_share_routine_template">Share routine template</string>
+    <string name="usage_insight_permission_title">See your usage patterns</string>
+    <string name="usage_insight_permission_body">Allow usage access and StopIt will suggest routines based on how you actually use your phone. Data never leaves your device.</string>
+    <string name="usage_insight_permission_cta">Allow access</string>
+    <string name="usage_insight_night_owl_title">Late-night usage spotted</string>
+    <string name="usage_insight_night_owl_body">You used %1$s past midnight on %2$d of the last 7 days, about %3$d min each night.</string>
+    <string name="usage_insight_surge_title">Usage is climbing</string>
+    <string name="usage_insight_surge_body">Compared to last week, your time on %1$s grew %2$d%%.</string>
+    <string name="usage_insight_cta_create_routine">Create a routine</string>
+    <string name="usage_insight_dismiss">Dismiss</string>
 </resources>

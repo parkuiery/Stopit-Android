@@ -418,4 +418,13 @@
     <string name="parent_mode_status_active">Aktiv</string>
     <string name="parent_mode_status_ended">Beendet</string>
     <string name="parent_mode_status_expired">Zeit abgelaufen</string>
+    <string name="usage_insight_permission_title">Deine Nutzungsmuster ansehen</string>
+    <string name="usage_insight_permission_body">Erlaube den Zugriff auf deine Nutzungsdaten und StopIt schlägt dir Routinen vor, die zu deiner tatsächlichen Smartphone-Nutzung passen. Deine Daten verlassen dein Gerät nie.</string>
+    <string name="usage_insight_permission_cta">Zugriff erlauben</string>
+    <string name="usage_insight_night_owl_title">Späte Nutzung entdeckt</string>
+    <string name="usage_insight_night_owl_body">Du hast %1$s an %2$d der letzten 7 Tage nach Mitternacht genutzt, im Schnitt %3$d Min. pro Nacht.</string>
+    <string name="usage_insight_surge_title">Deine Nutzung steigt</string>
+    <string name="usage_insight_surge_body">Im Vergleich zur letzten Woche stieg deine Zeit in %1$s um %2$d%%.</string>
+    <string name="usage_insight_cta_create_routine">Routine erstellen</string>
+    <string name="usage_insight_dismiss">Schließen</string>
 </resources>

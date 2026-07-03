@@ -9,6 +9,7 @@ Room DAO interfaces for routines, lock-history sessions, and emergency-unlock re
 ## Key Files
 | File | Description |
 |------|-------------|
+| `AppUsageDailyDao.kt` | Room DAO for appusagedaily persistence operations. |
 | `EmergencyUnlockDao.kt` | Room DAO for emergencyunlock persistence operations. |
 | `LockHistoryDao.kt` | Room DAO for lockhistory persistence operations. |
 | `RoutineDao.kt` | Room DAO for routine persistence operations. |

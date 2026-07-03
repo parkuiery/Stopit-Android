@@ -37,6 +37,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_2_3,
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
+            KeepDatabase.MIGRATION_5_6,
         )
 
         db.query("SELECT * FROM routine WHERE id = 1").use { cursor ->
@@ -67,6 +68,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_2_3,
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
+            KeepDatabase.MIGRATION_5_6,
         )
 
         db.query("SELECT * FROM lock_history WHERE id = 10").use { cursor ->
@@ -94,6 +96,7 @@ class KeepDatabaseMigrationTest {
             true,
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
+            KeepDatabase.MIGRATION_5_6,
         )
 
         db.query("SELECT * FROM routine WHERE id = 3").use { cursor ->
@@ -118,6 +121,7 @@ class KeepDatabaseMigrationTest {
             LATEST_VERSION,
             true,
             KeepDatabase.MIGRATION_4_5,
+            KeepDatabase.MIGRATION_5_6,
         )
 
         db.query("SELECT * FROM emergency_unlock WHERE id = 20").use { cursor ->
@@ -129,6 +133,39 @@ class KeepDatabaseMigrationTest {
             assertEquals(10, cursor.intValue("duration_minutes"))
         }
         db.query("SELECT COUNT(*) AS count FROM goal_lock").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.intValue("count"))
+        }
+        db.close()
+    }
+
+    @Test
+    fun migratesFromVersion5ToLatestAddingAppUsageDailyTableAndPreservingGoalLockData() {
+        helper.createDatabase(TEST_DB, 5).apply {
+            insertRoutineV3(id = 5, changeLockHours = 4)
+            insertLockHistory(id = 13)
+            insertEmergencyUnlock(id = 21)
+            insertGoalLock(id = 30)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            LATEST_VERSION,
+            true,
+            KeepDatabase.MIGRATION_5_6,
+        )
+
+        db.query("SELECT * FROM goal_lock WHERE id = 30").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Focus sprint", cursor.stringValue("goal_name"))
+            assertEquals("2026-01-01", cursor.stringValue("start_date"))
+            assertEquals("2026-01-31", cursor.stringValue("end_date"))
+            assertEquals("ALWAYS", cursor.stringValue("lock_mode"))
+            assertEquals("com.chat,com.video", cursor.stringValue("selected_packages"))
+            assertEquals("ACTIVE", cursor.stringValue("status"))
+        }
+        db.query("SELECT COUNT(*) AS count FROM app_usage_daily").use { cursor ->
             cursor.moveToFirst()
             assertEquals(0, cursor.intValue("count"))
         }
@@ -179,6 +216,17 @@ class KeepDatabaseMigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.insertGoalLock(id: Long) {
+        execSQL(
+            """
+            INSERT INTO goal_lock (
+                id, goal_name, start_date, end_date, lock_mode, repeat_days, start_time, end_time, selected_packages, status
+            )
+            VALUES ($id, 'Focus sprint', '2026-01-01', '2026-01-31', 'ALWAYS', NULL, NULL, NULL, 'com.chat,com.video', 'ACTIVE')
+            """.trimIndent(),
+        )
+    }
+
     private fun Cursor.stringValue(columnName: String): String = getString(getColumnIndexOrThrow(columnName))
 
     private fun Cursor.intValue(columnName: String): Int = getInt(getColumnIndexOrThrow(columnName))
@@ -187,6 +235,6 @@ class KeepDatabaseMigrationTest {
 
     companion object {
         private const val TEST_DB = "keep-migration-test"
-        private const val LATEST_VERSION = 5
+        private const val LATEST_VERSION = 6
     }
 }

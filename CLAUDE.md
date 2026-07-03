@@ -61,8 +61,8 @@ Each feature typically contains:
 ### Data Layer
 
 **Room Database** (`database/`):
-- `KeepDatabase.kt` - Main database class (version 4)
-- `entity/` - Room entities (RoutineEntity, LockHistoryEntity, EmergencyUnlockEntity)
+- `KeepDatabase.kt` - Main database class (version 6)
+- `entity/` - Room entities (RoutineEntity, LockHistoryEntity, EmergencyUnlockEntity, GoalLockEntity, AppUsageDailyEntity)
 - `dao/` - Data access objects
 - `converter/` - Type converters for LocalTime, DayOfWeek, List<String>
 
@@ -74,6 +74,8 @@ Each feature typically contains:
 - First-party Retrofit/OkHttp API layer has been removed.
 - Firebase/FCM/Analytics/Crashlytics remain in use.
 - No `BASE_URL` is required for current app builds.
+
+**Usage Insight data flow**: `UsageStatsManager` gateway → daily collection/cache orchestration → `AppUsageDailyEntity` (Room) → insight card decision repository → Home `UsageInsightCard` UI, with dismiss suppression tracked separately in DataStore.
 
 ### Key Services
 

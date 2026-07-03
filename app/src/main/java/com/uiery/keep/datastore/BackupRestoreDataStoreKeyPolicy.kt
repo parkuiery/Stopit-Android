@@ -47,6 +47,7 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.PARENT_MODE_ALLOWED_APPS,
         PreferencesKey.PARENT_MODE_STATE,
         PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
+        PreferencesKey.USAGE_INSIGHT_DISMISSED,
     )
 
     val rehydratedCompatibilityCacheKeys: Set<Preferences.Key<*>> = setOf(

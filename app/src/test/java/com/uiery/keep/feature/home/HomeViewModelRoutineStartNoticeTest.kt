@@ -196,6 +196,7 @@ class HomeViewModelRoutineStartNoticeTest {
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
             routineRepository = EmptyRoutineNoticeRoutineRepository(),
             repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
+            usageInsightRepository = homeUsageInsightRepository(dataStore),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,

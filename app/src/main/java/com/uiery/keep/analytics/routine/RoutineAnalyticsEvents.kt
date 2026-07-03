@@ -173,6 +173,7 @@ object RoutineSavedCreationSource {
     const val MANUAL = "manual"
     const val POST_FIRST_BLOCK_CTA = "post_first_block_cta"
     const val REPEAT_BLOCK_PREFILL = "repeat_block_prefill"
+    const val USAGE_INSIGHT_PREFILL = "usage_insight_prefill"
 }
 
 object RoutineSavedScheduleState {

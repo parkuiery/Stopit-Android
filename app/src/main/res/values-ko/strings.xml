@@ -410,4 +410,13 @@
     <string name="routine_template_share_duration_hours_minutes">%1$d시간 %2$d분</string>
     <string name="routine_template_share_chooser_title">루틴 템플릿 공유</string>
     <string name="cd_share_routine_template">루틴 템플릿 공유</string>
+    <string name="usage_insight_permission_title">내 사용 패턴 확인하기</string>
+    <string name="usage_insight_permission_body">사용 정보 접근을 허용하면 실제 사용 패턴에 맞는 루틴을 제안해 드려요. 데이터는 기기 밖으로 나가지 않아요.</string>
+    <string name="usage_insight_permission_cta">권한 허용하기</string>
+    <string name="usage_insight_night_owl_title">심야 사용이 감지됐어요</string>
+    <string name="usage_insight_night_owl_body">%1$s을(를) 최근 7일 중 %2$d일, 자정 이후에 하루 평균 %3$d분 사용했어요.</string>
+    <string name="usage_insight_surge_title">사용 시간이 늘고 있어요</string>
+    <string name="usage_insight_surge_body">%1$s 사용 시간이 지난주보다 %2$d%% 늘었어요.</string>
+    <string name="usage_insight_cta_create_routine">루틴 만들기</string>
+    <string name="usage_insight_dismiss">닫기</string>
 </resources>

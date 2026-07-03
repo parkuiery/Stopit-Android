@@ -418,4 +418,13 @@
     <string name="parent_mode_status_active">Em curso</string>
     <string name="parent_mode_status_ended">Terminado</string>
     <string name="parent_mode_status_expired">Tempo esgotado</string>
+    <string name="usage_insight_permission_title">Veja os seus padrões de utilização</string>
+    <string name="usage_insight_permission_body">Permita o acesso aos dados de utilização e o StopIt vai sugerir rotinas com base na forma como utiliza realmente o seu telemóvel. Os seus dados nunca saem do seu dispositivo.</string>
+    <string name="usage_insight_permission_cta">Permitir acesso</string>
+    <string name="usage_insight_night_owl_title">Utilização noturna detetada</string>
+    <string name="usage_insight_night_owl_body">Utilizou %1$s depois da meia-noite em %2$d dos últimos 7 dias, cerca de %3$d min por noite.</string>
+    <string name="usage_insight_surge_title">A sua utilização está a aumentar</string>
+    <string name="usage_insight_surge_body">Em comparação com a semana passada, o seu tempo em %1$s aumentou %2$d%%.</string>
+    <string name="usage_insight_cta_create_routine">Criar uma rotina</string>
+    <string name="usage_insight_dismiss">Dispensar</string>
 </resources>

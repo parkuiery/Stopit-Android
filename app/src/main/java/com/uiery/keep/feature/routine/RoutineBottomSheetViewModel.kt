@@ -16,6 +16,7 @@ import com.uiery.keep.analytics.routine.RoutineSavedScheduleState
 import com.uiery.keep.analytics.routine.RoutineSavedTimeWindowBucketName
 import com.uiery.keep.domain.repeatblock.RepeatBlockDayType
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
@@ -95,6 +96,21 @@ class RoutineBottomSheetViewModel
                     selectApps = suggestion.prefillPackages.toSet(),
                     repeatBlockSuggestionPrefill = suggestion,
                     repeatBlockSuggestionSurface = surface,
+                )
+                prefilledState.copy(isButtonEnable = prefilledState.isValidForSave())
+            }
+        }
+
+        internal fun applyUsageInsightRoutinePrefill(
+            prefill: UsageInsightRoutinePrefill,
+            routineSavedCreationSource: String? = null,
+        ) = intent {
+            reduce {
+                val prefilledState = RoutineBottomSheetUiState(
+                    startTime = prefill.startTime,
+                    endTime = prefill.endTime,
+                    selectApps = prefill.packages.toSet(),
+                    routineSavedCreationSource = routineSavedCreationSource,
                 )
                 prefilledState.copy(isButtonEnable = prefilledState.isValidForSave())
             }

@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -59,6 +60,7 @@ fun RoutineScreen(
     routineSavedCreationSource: String? = null,
     repeatBlockSuggestionSurface: String? = null,
     repeatBlockSuggestion: RepeatBlockRoutineSuggestion? = null,
+    usageInsightRoutinePrefill: UsageInsightRoutinePrefill? = null,
     onNavigateBack: () -> Unit,
     onNavigateLock: (lockTime: String?, Boolean) -> Unit,
 ) {
@@ -84,6 +86,12 @@ fun RoutineScreen(
 
     LaunchedEffect(repeatBlockSuggestionSurface, repeatBlockSuggestion) {
         if (repeatBlockSuggestionSurface != null && repeatBlockSuggestion != null) {
+            viewModel.showRoutineBottomSheet()
+        }
+    }
+
+    LaunchedEffect(usageInsightRoutinePrefill) {
+        if (usageInsightRoutinePrefill != null) {
             viewModel.showRoutineBottomSheet()
         }
     }
@@ -199,6 +207,7 @@ fun RoutineScreen(
                 routineSavedCreationSource = routineSavedCreationSource,
                 repeatBlockSuggestionSurface = repeatBlockSuggestionSurface,
                 repeatBlockSuggestion = repeatBlockSuggestion,
+                usageInsightRoutinePrefill = usageInsightRoutinePrefill,
                 onCloseBottomSheet = {
                     coroutineScope.launch {
                         routineBottomSheetState.hide()
