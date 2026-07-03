@@ -12,7 +12,8 @@ import java.time.LocalDate
 
 /** JVM 테스트용 UsageStatsManager 게이트웨이 fake. 권한/일별 사용량/앱 라벨을 주입한다. */
 internal class FakeUsageStatsGateway(
-    private val permissionGranted: Boolean = true,
+    // 홈 복귀 재평가 테스트에서 권한 상태를 런타임에 뒤집을 수 있도록 var 로 노출한다.
+    var permissionGranted: Boolean = true,
     private val dailyUsage: List<AppUsageDay> = emptyList(),
     private val labels: Map<String, String> = emptyMap(),
 ) : UsageStatsGateway {
@@ -63,6 +64,7 @@ internal fun nightOwlUsageStatsGateway(
     packageName: String = "com.instagram.android",
     appLabel: String = "Instagram",
     today: LocalDate = LocalDate.now(),
+    permissionGranted: Boolean = true,
 ): FakeUsageStatsGateway {
     val nights = (1..3).map { offset ->
         AppUsageDay(
@@ -74,7 +76,7 @@ internal fun nightOwlUsageStatsGateway(
         )
     }
     return FakeUsageStatsGateway(
-        permissionGranted = true,
+        permissionGranted = permissionGranted,
         dailyUsage = nights,
         labels = mapOf(packageName to appLabel),
     )

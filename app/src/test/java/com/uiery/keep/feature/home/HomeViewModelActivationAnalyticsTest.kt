@@ -1140,6 +1140,68 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 
+    @Test
+    fun loadUsageInsightCardOnResumeAfterPermissionGrantEmitsGrantedAndShownEvents() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        // 권한 미허용 상태로 시작하되, 허용 시 NightOwl 인사이트를 낼 데이터는 미리 심어둔다.
+        val gateway = nightOwlUsageStatsGateway(permissionGranted = false)
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, gateway),
+        )
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.PermissionNeeded
+        }
+
+        // 설정 화면에서 권한을 허용하고 홈으로 복귀한 상황을 재현한다.
+        gateway.permissionGranted = true
+        viewModel.loadUsageInsightCard()
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        assertEquals(
+            1,
+            analytics.loggedEvents.count { it.first == "usage_insight_permission_granted" },
+        )
+        assertEquals(
+            true,
+            analytics.loggedEvents.contains(
+                "usage_insight_card_shown" to mapOf<String, Any?>("insight_type" to "night_owl"),
+            ),
+        )
+    }
+
+    @Test
+    fun loadUsageInsightCardDedupesShownEventForUnchangedCard() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, nightOwlUsageStatsGateway()),
+        )
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        // 동일 카드에 대한 두 번째 재평가는 상태만 갱신하고 shown 이벤트는 재발화하지 않는다.
+        viewModel.loadUsageInsightCard()
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        assertEquals(
+            1,
+            analytics.loggedEvents.count { it.first == "usage_insight_card_shown" },
+        )
+    }
+
     private suspend fun waitFor(predicate: suspend () -> Boolean) {
         repeat(50) {
             if (predicate()) return

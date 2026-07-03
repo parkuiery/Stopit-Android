@@ -157,7 +157,10 @@ fun HomeScreen(
                 onNavigateRoutineWithUsageInsightPrefill(effect.prefill)
 
             is HomeSideEffect.OpenUsageAccessSettings ->
-                context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                // 일부 OEM/Go 빌드는 이 설정 화면을 resolve 하지 못해 ActivityNotFoundException 을 던진다.
+                runCatching {
+                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                }
         }
     }
 
@@ -175,6 +178,8 @@ fun HomeScreen(
                 syncAccessibilityPermissionDialogState()
                 viewModel.maybeDrainRoutineStartNotice()
                 viewModel.maybeDrainReviewFlag(activity)
+                // Usage Access 설정 딥링크에서 복귀했을 때 인사이트 카드를 재평가한다(권한 전환 감지).
+                viewModel.loadUsageInsightCard()
             }
         }
         observedLifecycle.addObserver(observer)
