@@ -422,7 +422,7 @@
     <string name="usage_insight_permission_body">Autorise l\'accès à l\'utilisation et StopIt te proposera des routines basées sur la façon dont tu utilises vraiment ton téléphone. Tes données ne quittent jamais ton appareil.</string>
     <string name="usage_insight_permission_cta">Autoriser l\'accès</string>
     <string name="usage_insight_night_owl_title">Utilisation tardive détectée</string>
-    <string name="usage_insight_night_owl_body">Tu as utilisé %1$s après minuit %2$d des 7 derniers jours, environ %3$d min chaque nuit.</string>
+    <string name="usage_insight_night_owl_body">Tu as utilisé %1$s après minuit pendant %2$d des 7 derniers jours, environ %3$d min chaque nuit.</string>
     <string name="usage_insight_surge_title">Ton utilisation augmente</string>
     <string name="usage_insight_surge_body">Par rapport à la semaine dernière, ton temps sur %1$s a augmenté de %2$d%%.</string>
     <string name="usage_insight_cta_create_routine">Créer une routine</string>

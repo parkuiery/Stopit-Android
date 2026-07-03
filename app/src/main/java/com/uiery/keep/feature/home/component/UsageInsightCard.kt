@@ -101,6 +101,7 @@ fun UsageInsightCard(
     }
 }
 
+// Division relies on lastWeekUsage > 0, guaranteed by UsageInsightPolicy (WeeklySurge is only emitted when last week > 0).
 private fun surgePercent(insight: UsageInsight.WeeklySurge): Int =
     ((insight.thisWeekUsage.toMillis() - insight.lastWeekUsage.toMillis()) * 100 /
         insight.lastWeekUsage.toMillis()).toInt()
