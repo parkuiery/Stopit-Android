@@ -4,7 +4,6 @@ import android.app.AppOpsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Process
 import com.uiery.keep.domain.usageinsight.AppUsageDay
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -61,6 +60,7 @@ class AndroidUsageStatsGateway @Inject constructor(
         val nightMillis = mutableMapOf<String, Long>()
         val launchCounts = mutableMapOf<String, Int>()
         val foregroundSince = mutableMapOf<String, Long>()
+        val closedFromDayStart = mutableSetOf<String>()
 
         fun closeSession(packageName: String, start: Long, end: Long) {
             if (end <= start) return
@@ -82,8 +82,13 @@ class AndroidUsageStatsGateway @Inject constructor(
                 UsageEvents.Event.ACTIVITY_PAUSED,
                 UsageEvents.Event.ACTIVITY_STOPPED,
                 -> {
-                    foregroundSince.remove(event.packageName)?.let { start ->
+                    val start = foregroundSince.remove(event.packageName)
+                    if (start != null) {
                         closeSession(event.packageName, start, event.timeStamp)
+                    } else if (closedFromDayStart.add(event.packageName)) {
+                        // 자정 이전에 시작된 세션: RESUMED가 조회 구간 밖이므로
+                        // dayStart부터 이어진 것으로 간주해 집계한다. (launchCount 미증가)
+                        closeSession(event.packageName, dayStart, event.timeStamp)
                     }
                 }
             }
