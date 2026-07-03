@@ -60,6 +60,7 @@ class AndroidUsageStatsGateway @Inject constructor(
         val nightMillis = mutableMapOf<String, Long>()
         val launchCounts = mutableMapOf<String, Int>()
         val foregroundSince = mutableMapOf<String, Long>()
+        val resumedPackages = mutableSetOf<String>()
         val closedFromDayStart = mutableSetOf<String>()
 
         fun closeSession(packageName: String, start: Long, end: Long) {
@@ -75,6 +76,7 @@ class AndroidUsageStatsGateway @Inject constructor(
             events.getNextEvent(event)
             when (event.eventType) {
                 UsageEvents.Event.ACTIVITY_RESUMED -> {
+                    resumedPackages.add(event.packageName)
                     if (foregroundSince.putIfAbsent(event.packageName, event.timeStamp) == null) {
                         launchCounts.merge(event.packageName, 1, Int::plus)
                     }
@@ -83,12 +85,15 @@ class AndroidUsageStatsGateway @Inject constructor(
                 UsageEvents.Event.ACTIVITY_STOPPED,
                 -> {
                     val start = foregroundSince.remove(event.packageName)
-                    if (start != null) {
-                        closeSession(event.packageName, start, event.timeStamp)
-                    } else if (closedFromDayStart.add(event.packageName)) {
-                        // 자정 이전에 시작된 세션: RESUMED가 조회 구간 밖이므로
-                        // dayStart부터 이어진 것으로 간주해 집계한다. (launchCount 미증가)
-                        closeSession(event.packageName, dayStart, event.timeStamp)
+                    when {
+                        start != null -> closeSession(event.packageName, start, event.timeStamp)
+                        // orphan close인데 구간 내 RESUMED가 전혀 없었으면 자정 걸친 세션의
+                        // 연속으로 보고 dayStart부터 1회만 집계한다. (launchCount 미증가)
+                        // 구간 내 RESUMED가 한 번이라도 있었던 패키지의 orphan close는
+                        // 같은 세션의 중복 PAUSED/STOPPED 쌍이므로 무시한다.
+                        event.packageName !in resumedPackages &&
+                            closedFromDayStart.add(event.packageName) ->
+                            closeSession(event.packageName, dayStart, event.timeStamp)
                     }
                 }
             }
