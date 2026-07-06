@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -18,6 +19,17 @@ val requiredReleaseSigningEnvVars = listOf(
     "ANDROID_KEY_ALIAS",
     "ANDROID_KEY_PASSWORD",
 )
+// local.properties (git-ignored) holds local-dev secrets; a missing file is fine.
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+
+// Amplitude client key (write-only ingestion). Resolution: env var (CI) -> local.properties
+// (local dev) -> "" (keyless build -> Amplitude backend becomes a no-op).
+val amplitudeApiKey: String =
+    System.getenv("AMPLITUDE_API_KEY")
+        ?: localProperties.getProperty("AMPLITUDE_API_KEY").orEmpty()
+
 val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
@@ -80,6 +92,17 @@ android {
         versionName = "1.7.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Hard per-device monthly cap on events sent to Amplitude, so ingestion never
+        // exceeds the free tier (2M events/mo) and never triggers billing.
+        // Guarantee: cap x maxMTU must stay < 2,000,000. Default 180 x 10,000 = 1.8M.
+        // Raise it when the active user base is well below the 10,000 MTU free ceiling.
+        buildConfigField("int", "AMPLITUDE_MONTHLY_EVENT_CAP", "180")
+
+        // Amplitude client key (single project). Empty -> Amplitude backend is a no-op.
+        // Only the prod flavor actually sends (see AMPLITUDE_ENABLED per flavor).
+        buildConfigField("String", "AMPLITUDE_API_KEY", "\"$amplitudeApiKey\"")
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -89,6 +112,9 @@ android {
         create("dev") {
             dimension = "server"
             applicationIdSuffix = ".dev"
+            // dev never sends to Amplitude (no dedicated dev project needed). This is a hard
+            // guard independent of any key: even if a key is present, dev stays a no-op.
+            buildConfigField("boolean", "AMPLITUDE_ENABLED", "false")
             setAdMobConfig(
                 applicationId = "ca-app-pub-3940256099942544~3347511713",
                 blockTop = "ca-app-pub-3940256099942544/6300978111",
@@ -101,6 +127,8 @@ android {
         }
         create("prod") {
             dimension = "server"
+            // prod is the only flavor that sends to Amplitude (when a key is present).
+            buildConfigField("boolean", "AMPLITUDE_ENABLED", "true")
             setAdMobConfig(
                 applicationId = "ca-app-pub-1537867411423705~6734784292",
                 blockTop = "ca-app-pub-1537867411423705/5467753282",
@@ -208,6 +236,7 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.firebase.config)
+    implementation(libs.amplitude.analytics.android)
 
     implementation(libs.play.review.ktx)
     implementation(libs.install.referrer)

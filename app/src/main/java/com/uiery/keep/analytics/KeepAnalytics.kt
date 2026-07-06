@@ -309,6 +309,9 @@ interface KeepAnalytics {
 }
 
 object KeepAnalyticsEvent {
+    // Firebase auto-emits the reserved `first_open`; this custom, non-reserved event
+    // carries the first-open signal to non-Firebase backends (Amplitude).
+    const val APP_FIRST_OPEN = "app_first_open"
     const val ONBOARDING_STEP_VIEW = "onboarding_step_view"
     const val ONBOARDING_STEP_COMPLETE = "onboarding_step_complete"
     const val PERMISSION_OUTCOME = "permission_outcome"

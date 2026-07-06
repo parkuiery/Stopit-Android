@@ -39,8 +39,14 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents[1],
         )
+        // trackFirstOpen() emits a custom, non-reserved event so non-Firebase backends
+        // (Amplitude) receive a first-open signal; Firebase's reserved first_open stays automatic.
         assertEquals(
-            2,
+            LoggedEvent(name = KeepAnalyticsEvent.APP_FIRST_OPEN, params = emptyMap()),
+            backend.loggedEvents[2],
+        )
+        assertEquals(
+            3,
             backend.loggedEvents.size,
         )
     }

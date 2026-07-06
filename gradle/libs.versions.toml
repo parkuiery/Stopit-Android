@@ -31,6 +31,7 @@ firebaseCrashlytics = "3.0.7"
 mockitoCore = "5.14.2"
 playReview = "2.0.2"
 installReferrer = "2.2"
+amplitude = "1.29.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +45,7 @@ firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
 install-referrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
+amplitude-analytics-android = { module = "com.amplitude:analytics-android", version.ref = "amplitude" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
