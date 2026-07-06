@@ -32,7 +32,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = scheduledGoalLockEntity())
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = DetailRecordingKeepAnalytics())
 
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         val state = viewModel.container.stateFlow.value
@@ -66,7 +66,7 @@ class GoalLockDetailViewModelTest {
     fun requestAndCancelEndOnlyTogglesConfirmation() = runBlocking {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = DetailRecordingKeepAnalytics())
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestEndGoalLock()
@@ -82,7 +82,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
         viewModel.requestEndGoalLock()
         awaitUntil { viewModel.container.stateFlow.value.showEndConfirmation }
@@ -134,7 +134,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestUpdateSelectedApps(setOf(" com.new.video ", "com.new.video", "com.new.game"))
@@ -167,7 +167,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestUpdateSelectedApps(setOf(" ", "\t"))
@@ -184,7 +184,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestUpdateGoalName("  30일 SNS 디톡스  ")
@@ -215,7 +215,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestUpdateGoalName("  ")
@@ -234,12 +234,12 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
 
         viewModel.requestUpdateDurationDays(14)
         awaitUntil { viewModel.container.stateFlow.value.showUpdateDurationConfirmation }
-        viewModel.confirmUpdateDuration()
+        viewModel.confirmUpdateDuration(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock?.endDate == LocalDate.of(2026, 6, 17) }
 
         val updated = requireNotNull(dao.updatedEntity).toDomain()
@@ -303,7 +303,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
         val scheduled = GoalLockMode.Scheduled(
             repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
@@ -338,7 +338,7 @@ class GoalLockDetailViewModelTest {
         val dao = DetailRecordingGoalLockDao(existing = allDayGoalLockEntity())
         val analytics = DetailRecordingKeepAnalytics()
         val viewModel = goalLockDetailViewModel(goalLockDao = dao, analytics = analytics)
-        viewModel.loadGoalLock()
+        viewModel.loadGoalLock(today = LocalDate.of(2026, 6, 10))
         awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
         val invalidScheduled = GoalLockMode.Scheduled(
             repeatDays = setOf(DayOfWeek.MONDAY),
