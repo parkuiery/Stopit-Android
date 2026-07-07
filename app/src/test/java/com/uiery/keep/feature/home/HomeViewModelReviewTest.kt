@@ -149,6 +149,7 @@ class HomeViewModelReviewTest {
             lockHistoryRepository = LockHistoryRepository(FakeLockHistoryDao()),
             routineRepository = EmptyHomeRoutineRepository(),
             repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
+            usageInsightRepository = homeUsageInsightRepository(dataStore),
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,

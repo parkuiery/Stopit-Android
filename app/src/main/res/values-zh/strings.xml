@@ -416,4 +416,13 @@
     <string name="parent_mode_status_active">进行中</string>
     <string name="parent_mode_status_ended">已结束</string>
     <string name="parent_mode_status_expired">时间到</string>
+    <string name="usage_insight_permission_title">查看你的使用习惯</string>
+    <string name="usage_insight_permission_body">允许使用情况访问权限，StopIt 会根据你的实际手机使用情况推荐例程。数据永远不会离开你的设备。</string>
+    <string name="usage_insight_permission_cta">允许访问</string>
+    <string name="usage_insight_night_owl_title">检测到深夜使用</string>
+    <string name="usage_insight_night_owl_body">你在午夜之后使用了%1$s，最近7天中有%2$d天如此，平均每晚约%3$d分钟。</string>
+    <string name="usage_insight_surge_title">使用时长在上升</string>
+    <string name="usage_insight_surge_body">你在%1$s上的使用时长比上周增长了%2$d%%。</string>
+    <string name="usage_insight_cta_create_routine">创建例程</string>
+    <string name="usage_insight_dismiss">关闭</string>
 </resources>

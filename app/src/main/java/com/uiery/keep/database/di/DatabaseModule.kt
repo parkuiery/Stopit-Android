@@ -3,6 +3,7 @@ package com.uiery.keep.database.di
 import android.content.Context
 import androidx.room.Room
 import com.uiery.keep.database.KeepDatabase
+import com.uiery.keep.database.dao.AppUsageDailyDao
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
@@ -32,6 +33,7 @@ internal object DatabaseModule {
             KeepDatabase.MIGRATION_2_3,
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
+            KeepDatabase.MIGRATION_5_6,
         )
         .build()
 
@@ -50,5 +52,9 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideGoalLockDao(db: KeepDatabase): GoalLockDao = db.goalLockDao()
+
+    @Provides
+    @Singleton
+    fun provideAppUsageDailyDao(db: KeepDatabase): AppUsageDailyDao = db.appUsageDailyDao()
 
 }

@@ -35,6 +35,11 @@ import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.usageinsight.UsageInsightCardResult
+import com.uiery.keep.data.usageinsight.UsageInsightRepository
+import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
+import com.uiery.keep.domain.usageinsight.toRoutinePrefill
+import com.uiery.keep.feature.home.component.UsageInsightCardUiState
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -74,11 +79,16 @@ class HomeViewModel
         private val lockHistoryRepository: LockHistoryRepository,
         private val routineRepository: RoutineRepository,
         private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
+        private val usageInsightRepository: UsageInsightRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
         override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
+
+        // 마지막으로 usage_insight_card_shown 을 기록한 카드 식별자. 홈 복귀 재평가 시 동일 카드 중복 로깅을 막는다.
+        // key = "permission_needed" 또는 인사이트 type.analyticsValue. dismiss 시 null 로 초기화한다.
+        private var lastShownCardKey: String? = null
 
         init {
             getIsKeep()
@@ -88,6 +98,7 @@ class HomeViewModel
             syncRoutinesCount()
             getGoalLockCard()
             loadRepeatBlockRoutineSuggestion()
+            loadUsageInsightCard()
         }
 
         internal fun changeIsKeep(
@@ -354,6 +365,91 @@ class HomeViewModel
                         suggestion = suggestion.toAnalyticsPayload(),
                     )
                 }
+            }
+
+        // init 및 홈 ON_RESUME(권한 딥링크 복귀 등)에서 호출된다. 상태 재평가는 매번 수행하되
+        // shown 이벤트는 카드 식별자가 바뀔 때만 로깅해 중복 발화를 막는다.
+        internal fun loadUsageInsightCard() =
+            intent {
+                val previousCard = state.usageInsightCard
+                val result = usageInsightRepository.currentInsightCard(LocalDate.now())
+                val cardState = when (result) {
+                    is UsageInsightCardResult.Hidden -> UsageInsightCardUiState.Hidden
+                    is UsageInsightCardResult.PermissionNeeded -> UsageInsightCardUiState.PermissionNeeded
+                    is UsageInsightCardResult.Ready ->
+                        UsageInsightCardUiState.Insight(result.insight, result.appLabel)
+                }
+                reduce { state.copy(usageInsightCard = cardState) }
+
+                // 권한 전환 전환(conversion) 이벤트: 직전 카드가 PermissionNeeded 였는데 이번 결과가
+                // PermissionNeeded 가 아니면(=권한 허용됨) 전환당 1회만 로깅한다.
+                if (previousCard is UsageInsightCardUiState.PermissionNeeded &&
+                    result !is UsageInsightCardResult.PermissionNeeded
+                ) {
+                    analytics.logEvent(USAGE_INSIGHT_PERMISSION_GRANTED, emptyMap())
+                }
+
+                val cardKey = when (cardState) {
+                    is UsageInsightCardUiState.PermissionNeeded -> USAGE_INSIGHT_PERMISSION_NEEDED
+                    is UsageInsightCardUiState.Insight -> cardState.insight.type.analyticsValue
+                    is UsageInsightCardUiState.Hidden -> null
+                }
+                if (cardKey != null && cardKey != lastShownCardKey) {
+                    analytics.logEvent(
+                        USAGE_INSIGHT_CARD_SHOWN,
+                        mapOf(INSIGHT_TYPE to cardKey),
+                    )
+                }
+                lastShownCardKey = cardKey
+            }
+
+        internal fun onUsageInsightCtaClick() =
+            intent {
+                when (val card = state.usageInsightCard) {
+                    is UsageInsightCardUiState.PermissionNeeded -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_CTA,
+                            mapOf(INSIGHT_TYPE to USAGE_INSIGHT_PERMISSION_NEEDED),
+                        )
+                        postSideEffect(HomeSideEffect.OpenUsageAccessSettings)
+                    }
+                    is UsageInsightCardUiState.Insight -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_CTA,
+                            mapOf(INSIGHT_TYPE to card.insight.type.analyticsValue),
+                        )
+                        postSideEffect(
+                            HomeSideEffect.NavigateToRoutineWithUsageInsightPrefill(
+                                card.insight.toRoutinePrefill(),
+                            ),
+                        )
+                    }
+                    is UsageInsightCardUiState.Hidden -> Unit
+                }
+            }
+
+        internal fun onUsageInsightDismiss() =
+            intent {
+                when (val card = state.usageInsightCard) {
+                    is UsageInsightCardUiState.PermissionNeeded -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_DISMISSED,
+                            mapOf(INSIGHT_TYPE to USAGE_INSIGHT_PERMISSION_NEEDED),
+                        )
+                        usageInsightRepository.dismissPermissionCard(LocalDate.now())
+                    }
+                    is UsageInsightCardUiState.Insight -> {
+                        analytics.logEvent(
+                            USAGE_INSIGHT_CARD_DISMISSED,
+                            mapOf(INSIGHT_TYPE to card.insight.type.analyticsValue),
+                        )
+                        usageInsightRepository.dismiss(card.insight.type, LocalDate.now())
+                    }
+                    is UsageInsightCardUiState.Hidden -> Unit
+                }
+                // dismiss 후 동일 카드가 재노출되면 shown 을 다시 로깅하도록 식별자를 초기화한다.
+                lastShownCardKey = null
+                reduce { state.copy(usageInsightCard = UsageInsightCardUiState.Hidden) }
             }
 
         internal fun moveToLock() =
@@ -799,6 +895,7 @@ data class HomeUiState(
     val hasActiveTimedLock: Boolean = false,
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
+    val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
 ) {
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
@@ -898,4 +995,17 @@ sealed class HomeSideEffect {
     data class NavigateToRoutineWithRepeatBlockPrefill(
         val suggestion: RepeatBlockRoutineSuggestion,
     ) : HomeSideEffect()
+
+    data class NavigateToRoutineWithUsageInsightPrefill(
+        val prefill: UsageInsightRoutinePrefill,
+    ) : HomeSideEffect()
+
+    data object OpenUsageAccessSettings : HomeSideEffect()
 }
+
+private const val USAGE_INSIGHT_CARD_SHOWN = "usage_insight_card_shown"
+private const val USAGE_INSIGHT_CARD_CTA = "usage_insight_card_cta"
+private const val USAGE_INSIGHT_CARD_DISMISSED = "usage_insight_card_dismissed"
+private const val USAGE_INSIGHT_PERMISSION_GRANTED = "usage_insight_permission_granted"
+private const val INSIGHT_TYPE = "insight_type"
+private const val USAGE_INSIGHT_PERMISSION_NEEDED = "permission_needed"

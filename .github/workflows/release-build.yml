@@ -124,6 +124,9 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Optional: populates BuildConfig.AMPLITUDE_API_KEY for the shipped prod app.
+          # Absent -> Amplitude backend is a no-op (build still succeeds).
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
         run: ./gradlew :app:bundleProdRelease
 
       - name: Generate release provenance manifest

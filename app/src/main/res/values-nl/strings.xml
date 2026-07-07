@@ -418,4 +418,13 @@
     <string name="parent_mode_status_active">Actief</string>
     <string name="parent_mode_status_ended">Beëindigd</string>
     <string name="parent_mode_status_expired">Tijd voorbij</string>
+    <string name="usage_insight_permission_title">Bekijk je gebruikspatronen</string>
+    <string name="usage_insight_permission_body">Geef toegang tot je gebruiksgegevens en StopIt stelt routines voor op basis van hoe je je telefoon écht gebruikt. Je gegevens verlaten je toestel nooit.</string>
+    <string name="usage_insight_permission_cta">Toegang geven</string>
+    <string name="usage_insight_night_owl_title">Gebruik laat op de avond opgemerkt</string>
+    <string name="usage_insight_night_owl_body">Je gebruikte %1$s na middernacht op %2$d van de afgelopen 7 dagen, gemiddeld %3$d min per nacht.</string>
+    <string name="usage_insight_surge_title">Je gebruik neemt toe</string>
+    <string name="usage_insight_surge_body">Ten opzichte van vorige week steeg je tijd op %1$s met %2$d%%.</string>
+    <string name="usage_insight_cta_create_routine">Routine maken</string>
+    <string name="usage_insight_dismiss">Sluiten</string>
 </resources>

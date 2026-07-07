@@ -90,6 +90,7 @@ class AndroidManifestContractTest(unittest.TestCase):
             "android.permission.POST_NOTIFICATIONS",
             "android.permission.SCHEDULE_EXACT_ALARM",
             "android.permission.RECEIVE_BOOT_COMPLETED",
+            "android.permission.PACKAGE_USAGE_STATS",
         ):
             with self.subTest(permission=permission):
                 self.uses_permission_named(permission)

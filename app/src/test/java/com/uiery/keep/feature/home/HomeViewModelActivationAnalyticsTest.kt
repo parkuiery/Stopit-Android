@@ -31,6 +31,9 @@ import com.uiery.keep.data.lockhistory.LockHistoryRepository
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.usageinsight.UsageInsightCardStateStore
+import com.uiery.keep.domain.usageinsight.UsageInsightType
+import com.uiery.keep.feature.home.component.UsageInsightCardUiState
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
@@ -1055,6 +1058,150 @@ class HomeViewModelActivationAnalyticsTest {
         )
     }
 
+    @Test
+    fun loadUsageInsightCardExposesInsightStateAndLogsShownEvent() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, nightOwlUsageStatsGateway()),
+        )
+
+        delay(100)
+
+        val card = viewModel.container.stateFlow.value.usageInsightCard
+        assertEquals(true, card is UsageInsightCardUiState.Insight)
+        card as UsageInsightCardUiState.Insight
+        assertEquals("Instagram", card.appLabel)
+        assertEquals(UsageInsightType.NightOwl, card.insight.type)
+        assertEquals(
+            listOf<Pair<String, Map<String, Any?>>>(
+                "usage_insight_card_shown" to mapOf("insight_type" to "night_owl"),
+            ),
+            analytics.loggedEvents,
+        )
+    }
+
+    @Test
+    fun usageInsightCtaClickPostsRoutinePrefillNavigationAndLogsCta() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, nightOwlUsageStatsGateway()),
+        )
+        val sideEffects = mutableListOf<HomeSideEffect>()
+        val sideEffectJob = launchSideEffects(viewModel, sideEffects)
+
+        delay(100)
+        viewModel.onUsageInsightCtaClick()
+        delay(50)
+
+        val navigation = sideEffects
+            .filterIsInstance<HomeSideEffect.NavigateToRoutineWithUsageInsightPrefill>()
+            .single()
+        assertEquals(listOf("com.instagram.android"), navigation.prefill.packages)
+        assertEquals(LocalTime(23, 30), navigation.prefill.startTime)
+        assertEquals(LocalTime(7, 0), navigation.prefill.endTime)
+        assertEquals(
+            "usage_insight_card_cta" to mapOf<String, Any?>("insight_type" to "night_owl"),
+            analytics.loggedEvents.last(),
+        )
+        sideEffectJob.cancel()
+    }
+
+    @Test
+    fun usageInsightDismissHidesCardPersistsSuppressionAndLogsDismissed() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, nightOwlUsageStatsGateway()),
+        )
+
+        delay(100)
+        viewModel.onUsageInsightDismiss()
+        delay(100)
+
+        assertEquals(
+            UsageInsightCardUiState.Hidden,
+            viewModel.container.stateFlow.value.usageInsightCard,
+        )
+        assertEquals(
+            setOf(UsageInsightType.NightOwl),
+            UsageInsightCardStateStore(dataStore).suppressedTypes(LocalDate.now()),
+        )
+        assertEquals(
+            "usage_insight_card_dismissed" to mapOf<String, Any?>("insight_type" to "night_owl"),
+            analytics.loggedEvents.last(),
+        )
+    }
+
+    @Test
+    fun loadUsageInsightCardOnResumeAfterPermissionGrantEmitsGrantedAndShownEvents() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        // 권한 미허용 상태로 시작하되, 허용 시 NightOwl 인사이트를 낼 데이터는 미리 심어둔다.
+        val gateway = nightOwlUsageStatsGateway(permissionGranted = false)
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, gateway),
+        )
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.PermissionNeeded
+        }
+
+        // 설정 화면에서 권한을 허용하고 홈으로 복귀한 상황을 재현한다.
+        gateway.permissionGranted = true
+        viewModel.loadUsageInsightCard()
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        assertEquals(
+            1,
+            analytics.loggedEvents.count { it.first == "usage_insight_permission_granted" },
+        )
+        assertEquals(
+            true,
+            analytics.loggedEvents.contains(
+                "usage_insight_card_shown" to mapOf<String, Any?>("insight_type" to "night_owl"),
+            ),
+        )
+    }
+
+    @Test
+    fun loadUsageInsightCardDedupesShownEventForUnchangedCard() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = analytics,
+            usageInsightRepository = homeUsageInsightRepository(dataStore, nightOwlUsageStatsGateway()),
+        )
+
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        // 동일 카드에 대한 두 번째 재평가는 상태만 갱신하고 shown 이벤트는 재발화하지 않는다.
+        viewModel.loadUsageInsightCard()
+        waitFor {
+            viewModel.container.stateFlow.value.usageInsightCard is UsageInsightCardUiState.Insight
+        }
+
+        assertEquals(
+            1,
+            analytics.loggedEvents.count { it.first == "usage_insight_card_shown" },
+        )
+    }
+
     private suspend fun waitFor(predicate: suspend () -> Boolean) {
         repeat(50) {
             if (predicate()) return
@@ -1078,6 +1225,8 @@ class HomeViewModelActivationAnalyticsTest {
         goalLockDao: GoalLockDao = FakeHomeGoalLockDao(),
         routines: List<RoutineEntity> = emptyList(),
         routineRepository: RoutineRepository = FakeHomeRoutineRepository(routines.map { it.toModel() }),
+        usageInsightRepository: com.uiery.keep.data.usageinsight.UsageInsightRepository =
+            homeUsageInsightRepository(dataStore),
     ): HomeViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         return HomeViewModel(
@@ -1092,6 +1241,7 @@ class HomeViewModelActivationAnalyticsTest {
             lockHistoryRepository = LockHistoryRepository(lockHistoryDao),
             routineRepository = routineRepository,
             repeatBlockSuggestionStore = RepeatBlockRoutineSuggestionStore(dataStore),
+            usageInsightRepository = usageInsightRepository,
             reviewEligibility = ReviewEligibilityEvaluator(
                 blockingStateStore = BlockingStateStore(dataStore),
                 reviewPromptStateStore = reviewPromptStateStore,
@@ -1261,8 +1411,11 @@ private class HomeRecordingKeepAnalytics : KeepAnalytics {
     val calls = mutableListOf<HomeAnalyticsCall>()
     val userProperties = mutableListOf<Pair<String, String>>()
     val scheduledLockCalls = mutableListOf<HomeScheduledLockCall>()
+    val loggedEvents = mutableListOf<Pair<String, Map<String, Any?>>>()
 
-    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    override fun logEvent(name: String, params: Map<String, Any?>) {
+        loggedEvents += name to params
+    }
 
     override fun logScreenView(screenName: String) = Unit
 

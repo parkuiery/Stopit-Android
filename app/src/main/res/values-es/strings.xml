@@ -417,4 +417,13 @@
     <string name="parent_mode_status_active">En curso</string>
     <string name="parent_mode_status_ended">Finalizado</string>
     <string name="parent_mode_status_expired">Tiempo agotado</string>
+    <string name="usage_insight_permission_title">Ver tus patrones de uso</string>
+    <string name="usage_insight_permission_body">Permite el acceso al uso y StopIt te sugerirá rutinas según cómo usas realmente tu teléfono. Tus datos nunca salen de tu dispositivo.</string>
+    <string name="usage_insight_permission_cta">Permitir acceso</string>
+    <string name="usage_insight_night_owl_title">Uso nocturno detectado</string>
+    <string name="usage_insight_night_owl_body">Usaste %1$s después de medianoche en %2$d de los últimos 7 días, unos %3$d min cada noche.</string>
+    <string name="usage_insight_surge_title">Tu uso está aumentando</string>
+    <string name="usage_insight_surge_body">Respecto a la semana pasada, tu tiempo en %1$s aumentó un %2$d%%.</string>
+    <string name="usage_insight_cta_create_routine">Crear una rutina</string>
+    <string name="usage_insight_dismiss">Descartar</string>
 </resources>

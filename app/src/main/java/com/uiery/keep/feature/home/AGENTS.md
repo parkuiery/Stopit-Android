@@ -34,6 +34,7 @@ Main home feature for selecting blocked apps/categories, configuring timers, and
 - Feature package pattern: `{Feature}Navigation.kt`, `{Feature}Screen.kt`, `{Feature}ViewModel.kt`, optional `component/` package.
 - Compose + Orbit MVI are the default interaction model.
 - Navigation routes are type-safe Kotlin objects/classes rather than raw string constants.
+- `component/UsageInsightCard.kt` renders the optional usage-insight card on Home; `HomeViewModel` maps the data-layer `UsageInsightCardResult` into a UI-layer `UsageInsightCardUiState` and its CTA prefills the routine screen from `UsageInsightRoutinePrefill`.
 
 ## Dependencies
 

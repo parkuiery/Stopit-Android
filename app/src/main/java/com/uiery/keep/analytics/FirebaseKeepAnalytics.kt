@@ -32,7 +32,11 @@ class FirebaseKeepAnalytics
         }
 
         override fun trackFirstOpen() {
-            // Firebase Analytics emits first_open automatically; do not log the reserved name.
+            // Firebase Analytics emits the reserved `first_open` automatically, so we must
+            // not log that name. Emit a custom, non-reserved event instead so non-Firebase
+            // backends (Amplitude) still receive a first-open signal. The Firebase backend
+            // accepts it as an ordinary custom event.
+            backend.logEvent(KeepAnalyticsEvent.APP_FIRST_OPEN)
         }
 
         override fun trackOnboardingStepView(stepName: String) {

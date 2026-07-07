@@ -416,4 +416,13 @@
     <string name="parent_mode_status_active">実行中</string>
     <string name="parent_mode_status_ended">終了</string>
     <string name="parent_mode_status_expired">時間切れ</string>
+    <string name="usage_insight_permission_title">使用パターンを確認</string>
+    <string name="usage_insight_permission_body">使用状況へのアクセスを許可すると、実際の使い方に基づいてStopItがルーティンを提案します。データは端末の外に出ることはありません。</string>
+    <string name="usage_insight_permission_cta">アクセスを許可</string>
+    <string name="usage_insight_night_owl_title">深夜の利用を検出しました</string>
+    <string name="usage_insight_night_owl_body">%1$sを直近7日間のうち%2$d日、深夜0時以降に利用しており、1晩あたり平均%3$d分でした。</string>
+    <string name="usage_insight_surge_title">利用時間が増えています</string>
+    <string name="usage_insight_surge_body">%1$sの利用時間が先週より%2$d%%増えました。</string>
+    <string name="usage_insight_cta_create_routine">ルーティンを作成</string>
+    <string name="usage_insight_dismiss">閉じる</string>
 </resources>
