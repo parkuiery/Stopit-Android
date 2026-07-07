@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -132,7 +133,7 @@ class BlockViewModelTest {
             routineId = null,
             goalLockId = "77",
         )
-        delay(50)
+        awaitUntil { analytics.calls.size == 2 }
 
         assertEquals(
             listOf(
@@ -320,7 +321,7 @@ class BlockViewModelTest {
             blockSource = AnalyticsBlockSource.MANUAL_KEEP,
             routineId = null,
         )
-        delay(100)
+        awaitUntil { analytics.repeatBlockEvents.isNotEmpty() }
 
         assertNotNull(viewModel.container.stateFlow.value.repeatBlockRoutineSuggestion)
         assertEquals(
@@ -466,6 +467,19 @@ class BlockViewModelTest {
             listOf(BlockSideEffect.NavigateRoutineWithRepeatBlockPrefill(suggestion!!)),
             sideEffects,
         )
+    }
+
+    // Polls until [predicate] holds instead of relying on a fixed delay, so async analytics
+    // dispatches settle deterministically even under CI load (fixes flaky delay(50) races).
+    private suspend fun awaitUntil(
+        timeoutMillis: Long = 2_000,
+        predicate: () -> Boolean,
+    ) {
+        withTimeout(timeoutMillis) {
+            while (!predicate()) {
+                delay(10)
+            }
+        }
     }
 
     private fun createViewModel(
