@@ -23,6 +23,7 @@ import com.uiery.keep.feature.goallock.goalLockCreationScreen
 import com.uiery.keep.feature.goallock.goalLockDetailScreen
 import com.uiery.keep.feature.goallock.goalLockEditScreen
 import com.uiery.keep.feature.goallock.markGoalLockEditSaved
+import com.uiery.keep.feature.goallock.navigateToGoalLockEdit
 import com.uiery.keep.feature.goallock.navigateToGoalLockCreation
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetailAfterCreation
@@ -144,7 +145,10 @@ internal fun KeepApp(
             onNavigateBack = navController::navigateUp,
             onNavigateGoalLockDetail = navController::navigateToGoalLockDetailAfterCreation,
         )
-        goalLockDetailScreen(onNavigateBack = navController::navigateUp)
+        goalLockDetailScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateEdit = navController::navigateToGoalLockEdit,
+        )
         goalLockEditScreen(
             onNavigateBack = navController::navigateUp,
             onSaved = {

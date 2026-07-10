@@ -5,6 +5,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
+import kotlinx.coroutines.flow.StateFlow
 
 @Serializable
 internal data class GoalLockEditRoute(
@@ -33,5 +34,8 @@ internal fun SavedStateHandle.markGoalLockEditSaved() {
 
 internal fun SavedStateHandle.consumeGoalLockEditSaved(): Boolean =
     remove<Boolean>(GOAL_LOCK_EDIT_SAVED_RESULT) == true
+
+internal fun SavedStateHandle.goalLockEditSavedFlow(): StateFlow<Boolean> =
+    getStateFlow(GOAL_LOCK_EDIT_SAVED_RESULT, false)
 
 private const val GOAL_LOCK_EDIT_SAVED_RESULT = "goalLockEditSaved"

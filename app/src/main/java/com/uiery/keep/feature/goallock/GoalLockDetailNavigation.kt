@@ -4,6 +4,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.navOptions
 import kotlinx.serialization.Serializable
 
@@ -29,8 +33,22 @@ internal fun goalLockDetailAfterCreationNavOptions(): NavOptions = navOptions {
 
 internal fun NavGraphBuilder.goalLockDetailScreen(
     onNavigateBack: () -> Unit,
+    onNavigateEdit: (Long) -> Unit,
 ) {
-    composable<GoalLockDetailRoute> {
-        GoalLockDetailScreen(onNavigateBack = onNavigateBack)
+    composable<GoalLockDetailRoute> { backStackEntry ->
+        val viewModel = hiltViewModel<GoalLockDetailViewModel>()
+        val editSaved by backStackEntry.savedStateHandle
+            .goalLockEditSavedFlow()
+            .collectAsStateWithLifecycle()
+        LaunchedEffect(editSaved) {
+            if (editSaved && backStackEntry.savedStateHandle.consumeGoalLockEditSaved()) {
+                viewModel.refreshAfterEdit()
+            }
+        }
+        GoalLockDetailScreen(
+            viewModel = viewModel,
+            onNavigateBack = onNavigateBack,
+            onNavigateEdit = onNavigateEdit,
+        )
     }
 }
