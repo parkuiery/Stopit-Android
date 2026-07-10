@@ -57,6 +57,8 @@ import com.uiery.keep.ui.component.SetupTextField
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -350,10 +352,11 @@ internal fun GoalLockEditContent(
 private fun goalLockEditModeLabel(lockMode: GoalLockMode): String = when (lockMode) {
     GoalLockMode.AllDay -> stringResource(id = R.string.goal_lock_detail_lock_mode_all_day)
     is GoalLockMode.Scheduled -> stringResource(
-        id = R.string.goal_lock_creation_current_mode_scheduled,
-        lockMode.repeatDays.size,
+        id = R.string.goal_lock_edit_schedule_summary,
+        lockMode.repeatDays
+            .sortedBy { it.value }
+            .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) },
         lockMode.startTime,
         lockMode.endTime,
     )
 }
-

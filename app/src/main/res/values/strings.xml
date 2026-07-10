@@ -127,6 +127,7 @@
     <string name="goal_lock_edit_duration_days">%1$d days</string>
     <string name="goal_lock_edit_apps_summary">%1$d selected apps</string>
     <string name="goal_lock_edit_select_apps">Choose blocked apps</string>
+    <string name="goal_lock_edit_schedule_summary">%1$s · %2$s–%3$s</string>
     <string name="goal_lock_detail_loading">Loading goal lock.</string>
     <string name="goal_lock_detail_summary">%1$s · %2$d apps</string>
     <string name="goal_lock_detail_status_completed">This goal lock is completed.</string>
