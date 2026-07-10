@@ -51,7 +51,13 @@ internal class GoalLockDetailViewModel
             try {
                 val goalLock = goalLockRepository.fetch(goalLockId)
                 if (goalLock == null) {
-                    reduce { state.copy(isLoading = false) }
+                    reduce {
+                        state.copy(
+                            isLoading = false,
+                            goalLock = null,
+                            presentation = null,
+                        )
+                    }
                     postSideEffect(GoalLockDetailSideEffect.NotFound)
                     return@intent
                 }
@@ -166,6 +172,10 @@ internal data class GoalLockDetailUiState(
 ) {
     val goalName: String get() = goalLock?.goalName.orEmpty()
     val selectedAppCount: Int get() = goalLock?.selectedPackages?.size ?: 0
+    val canEdit: Boolean
+        get() = !isLoading && error != GoalLockDetailError.Load && presentation?.canEdit == true
+    val canEnd: Boolean
+        get() = !isLoading && error != GoalLockDetailError.Load && presentation?.canEnd == true
 }
 
 internal enum class GoalLockDetailError {

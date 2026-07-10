@@ -101,6 +101,23 @@ class GoalLockDetailViewModelTest {
     }
 
     @Test
+    fun failedRefreshKeepsDataButSuppressesActions() = runBlocking {
+        val dao = DetailDao(goalLock())
+        val viewModel = detailViewModel(dao, DetailAnalytics())
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.goalLock != null }
+        dao.fetchFailuresRemaining = 1
+
+        viewModel.refreshAfterEdit(today)
+        awaitUntil { viewModel.container.stateFlow.value.error == GoalLockDetailError.Load }
+
+        assertEquals("시험 준비", viewModel.container.stateFlow.value.goalName)
+        assertEquals(GoalLockDetailError.Load, viewModel.container.stateFlow.value.error)
+        assertFalse(viewModel.container.stateFlow.value.canEdit)
+        assertFalse(viewModel.container.stateFlow.value.canEnd)
+    }
+
+    @Test
     fun endFailureKeepsGoalActiveWithoutAnalytics() = runBlocking {
         val dao = DetailDao(goalLock()).apply { failConditionalUpdate = true }
         val analytics = DetailAnalytics()
@@ -169,10 +186,17 @@ class GoalLockDetailViewModelTest {
 private class DetailDao(existing: GoalLock?) : GoalLockDao {
     var existing: GoalLockEntity? = existing?.let(GoalLockEntity::fromDomain)
     var failConditionalUpdate = false
+    var fetchFailuresRemaining = 0
     val updates = mutableListOf<GoalLock>()
 
     override fun fetchAll(): Flow<List<GoalLockEntity>> = emptyFlow()
-    override fun fetch(id: Long): GoalLockEntity? = existing?.takeIf { it.id == id }
+    override fun fetch(id: Long): GoalLockEntity? {
+        if (fetchFailuresRemaining > 0) {
+            fetchFailuresRemaining--
+            error("fetch failed")
+        }
+        return existing?.takeIf { it.id == id }
+    }
     override fun insert(goalLock: GoalLockEntity): Long = error("not used")
     override fun update(goalLock: GoalLockEntity) {
         existing = goalLock

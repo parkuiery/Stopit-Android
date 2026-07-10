@@ -113,7 +113,10 @@ internal fun GoalLockDetailScreen(
                 },
                 actions = {
                     val goalLock = state.goalLock
-                    if (goalLock != null && state.presentation?.canEdit == true) {
+                    if (
+                        goalLock != null &&
+                        state.canEdit
+                    ) {
                         TextButton(onClick = { onNavigateEdit(goalLock.id) }) {
                             Text(
                                 text = stringResource(id = R.string.goal_lock_detail_edit),
@@ -266,7 +269,7 @@ internal fun GoalLockDetailContent(
             }
         }
 
-        if (presentation.canEnd) {
+        if (state.canEnd) {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onRequestEnd,
