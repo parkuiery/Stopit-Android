@@ -43,6 +43,7 @@ internal class GoalLockEditViewModel
 
         fun loadGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
+                if (state.originalGoal != null) return@intent
                 lastLoadDate = today
                 reduce { state.copy(isLoading = true, error = null) }
                 try {

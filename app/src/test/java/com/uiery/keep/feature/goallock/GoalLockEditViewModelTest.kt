@@ -58,6 +58,21 @@ class GoalLockEditViewModelTest {
     }
 
     @Test
+    fun repeatedInitialLoadDoesNotOverwriteUnsavedDraft() = runBlocking {
+        val viewModel = viewModel(EditGoalLockDao(goalLock()), EditAnalytics())
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.originalGoal != null }
+        viewModel.setGoalName("저장 전 변경")
+        awaitUntil { viewModel.container.stateFlow.value.goalName == "저장 전 변경" }
+
+        viewModel.loadGoalLock(today.plusDays(1))
+        delay(50)
+
+        assertEquals("저장 전 변경", viewModel.container.stateFlow.value.goalName)
+        assertTrue(viewModel.container.stateFlow.value.isDirty)
+    }
+
+    @Test
     fun missingAndTerminalGoalsLeaveEdit() = runBlocking {
         val missingViewModel = viewModel(EditGoalLockDao(null), EditAnalytics())
         val missingEffect = async { missingViewModel.container.sideEffectFlow.first() }
