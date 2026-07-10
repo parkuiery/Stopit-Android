@@ -3,7 +3,9 @@ package com.uiery.keep.feature.goallock
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.navigation.navOptions
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.flow.StateFlow
 
@@ -13,7 +15,14 @@ internal data class GoalLockEditRoute(
 )
 
 internal fun NavController.navigateToGoalLockEdit(goalLockId: Long) {
-    navigate(route = GoalLockEditRoute(goalLockId = goalLockId))
+    navigate(
+        route = GoalLockEditRoute(goalLockId = goalLockId),
+        navOptions = goalLockEditNavOptions(),
+    )
+}
+
+internal fun goalLockEditNavOptions(): NavOptions = navOptions {
+    launchSingleTop = true
 }
 
 internal fun NavGraphBuilder.goalLockEditScreen(

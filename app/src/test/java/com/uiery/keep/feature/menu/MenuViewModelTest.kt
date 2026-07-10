@@ -169,6 +169,58 @@ class MenuViewModelTest {
     }
 
     @Test
+    fun goalLockEntryPrefersActiveGoalOverLaterPendingGoal() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 51L,
+                        startDate = now.toLocalDate().plusDays(10),
+                        endDate = now.toLocalDate().plusDays(20),
+                    ),
+                    goalLock(
+                        id = 52L,
+                        startDate = now.toLocalDate().minusDays(1),
+                        endDate = now.toLocalDate().plusDays(1),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(52L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
+    fun goalLockEntryChoosesNearestPendingGoalRegardlessOfRepositoryOrder() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 53L,
+                        startDate = now.toLocalDate().plusDays(10),
+                        endDate = now.toLocalDate().plusDays(20),
+                    ),
+                    goalLock(
+                        id = 54L,
+                        startDate = now.toLocalDate().plusDays(2),
+                        endDate = now.toLocalDate().plusDays(12),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(54L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
     fun goalLockEntryReturnsNullWhenOnlyTerminalGoalsExist() = runBlocking {
         val now = LocalDateTime.of(2026, 7, 10, 12, 0)
         val viewModel = MenuViewModel(

@@ -5,6 +5,7 @@ import com.uiery.keep.feature.goallock.GoalLockCreationRoute
 import com.uiery.keep.feature.goallock.GoalLockEditRoute
 import com.uiery.keep.feature.goallock.consumeGoalLockEditSaved
 import com.uiery.keep.feature.goallock.goalLockDetailAfterCreationNavOptions
+import com.uiery.keep.feature.goallock.goalLockEditNavOptions
 import com.uiery.keep.feature.goallock.markGoalLockEditSaved
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import org.junit.Assert.assertEquals
@@ -36,6 +37,11 @@ class KeepAppNavigationPolicyTest {
     @Test
     fun goalLockEditRouteCarriesGoalIdWithoutReplacingDetail() {
         assertEquals(42L, GoalLockEditRoute(goalLockId = 42L).goalLockId)
+    }
+
+    @Test
+    fun goalLockEditPreventsDuplicateDestinationOnRapidTaps() {
+        assertTrue(goalLockEditNavOptions().shouldLaunchSingleTop())
     }
 
     @Test
