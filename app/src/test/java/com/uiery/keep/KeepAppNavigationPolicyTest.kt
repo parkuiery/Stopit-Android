@@ -1,6 +1,7 @@
 package com.uiery.keep
 
 import com.uiery.keep.feature.goallock.GoalLockCreationRoute
+import com.uiery.keep.feature.goallock.goalLockDetailAfterCreationNavOptions
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -18,6 +19,14 @@ class KeepAppNavigationPolicyTest {
     fun goalLockCreationUsesDedicatedTopLevelEntryRoute() {
         assertEquals(GoalLockCreationRoute, canonicalGoalLockCreationRoute())
         assertTrue(shouldRegisterGoalLockCreationEntryRoute())
+    }
+
+    @Test
+    fun goalLockDetailAfterCreationRemovesCreationRouteFromBackStack() {
+        val navOptions = goalLockDetailAfterCreationNavOptions()
+
+        assertEquals(GoalLockCreationRoute::class, navOptions.popUpToRouteClass)
+        assertTrue(navOptions.isPopUpToInclusive())
     }
 
     @Test

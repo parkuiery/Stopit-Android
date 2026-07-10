@@ -12,6 +12,7 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockPolicy
+import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.util.RoutineRuntimePolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,9 +21,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 import javax.inject.Inject
 
@@ -30,7 +33,7 @@ import javax.inject.Inject
 class MenuViewModel private constructor(
     private val blockingStateStore: BlockingStateStore,
     private val routineRepository: RoutineRepository,
-    goalLocks: Flow<List<GoalLock>>,
+    private val goalLocks: Flow<List<GoalLock>>,
     private val analytics: KeepAnalytics,
     @Suppress("UNUSED_PARAMETER") private val constructorMarker: Unit,
 ) : ViewModel() {
@@ -83,6 +86,19 @@ class MenuViewModel private constructor(
             blockingStateStore.setPreventUninstall(enabled)
         }
     }
+
+    internal suspend fun getCurrentGoalLockId(
+        now: LocalDateTime = LocalDateTime.now(),
+    ): Long? = goalLocks.first()
+        .firstOrNull { goalLock ->
+            when (GoalLockPolicy.runtimeStatus(goalLock = goalLock, now = now)) {
+                GoalLockRuntimeStatus.Pending,
+                GoalLockRuntimeStatus.Active -> true
+                GoalLockRuntimeStatus.Completed,
+                GoalLockRuntimeStatus.EndedEarly -> false
+            }
+        }
+        ?.id
 
     fun onMonetizationInterestCardShown() {
         analytics.trackMonetizationInterestShown(

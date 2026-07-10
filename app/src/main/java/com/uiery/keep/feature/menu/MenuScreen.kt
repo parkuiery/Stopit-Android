@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +51,7 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.TrackedBannerAd
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +62,13 @@ fun MenuScreen(
     onNavigateBack: () -> Unit,
     onNavigateRoutine: () -> Unit,
     onNavigateGoalLockCreation: () -> Unit,
+    onNavigateGoalLockDetail: (goalLockId: Long) -> Unit,
     onNavigateParentModeSetup: () -> Unit,
     onNavigateLockHistory: () -> Unit,
     onNavigateEmergencyUnlockSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
     val monetizationInterestTitle = stringResource(id = R.string.monetization_interest_menu_title)
@@ -139,7 +143,16 @@ fun MenuScreen(
             MenuItem(
                 icon = R.drawable.ic_goal_lock,
                 title = stringResource(id = R.string.goal_lock_menu_title),
-                onClick = onNavigateGoalLockCreation,
+                onClick = {
+                    coroutineScope.launch {
+                        val currentGoalLockId = menuViewModel.getCurrentGoalLockId()
+                        if (currentGoalLockId == null) {
+                            onNavigateGoalLockCreation()
+                        } else {
+                            onNavigateGoalLockDetail(currentGoalLockId)
+                        }
+                    }
+                },
             )
             MenuItem(
                 icon = R.drawable.ic_parent_mode,
