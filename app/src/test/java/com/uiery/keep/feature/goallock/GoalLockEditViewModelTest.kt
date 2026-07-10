@@ -214,10 +214,10 @@ class GoalLockEditViewModelTest {
         viewModel.setGoalName("한 번만 저장")
         awaitUntil { viewModel.container.stateFlow.value.canSave }
 
-        viewModel.save(today)
-        viewModel.save(today)
-        awaitUntil { dao.updates.isNotEmpty() }
-        delay(100)
+        val firstSave = viewModel.save(today)
+        val secondSave = viewModel.save(today)
+        firstSave.join()
+        secondSave.join()
 
         assertEquals(1, dao.updates.size)
     }

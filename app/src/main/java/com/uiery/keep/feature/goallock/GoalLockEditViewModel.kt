@@ -221,7 +221,7 @@ internal class GoalLockEditViewModel
         private fun completeExpiredGoal(goalLock: GoalLock): Boolean {
             val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
             if (!goalLockRepository.updateIfActive(completed)) return false
-            runCatching {
+            ignoreAnalyticsFailure {
                 analytics.trackGoalLockCompleted(
                     lockMode = goalLock.lockMode.analyticsLockMode,
                     durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
@@ -251,7 +251,7 @@ internal class GoalLockEditViewModel
                 }
             }
             changedFields.forEach { changedField ->
-                runCatching {
+                ignoreAnalyticsFailure {
                     analytics.trackGoalLockUpdated(
                         lockMode = updated.lockMode.analyticsLockMode,
                         changedField = changedField,
@@ -289,15 +289,7 @@ internal data class GoalLockEditUiState(
             val start = startDate ?: return false
             val end = endDate ?: return false
             val mode = lockMode ?: return false
-            val minimumEndDate = when (
-                GoalLockPolicy.runtimeStatus(original, today.atStartOfDay())
-            ) {
-                GoalLockRuntimeStatus.Pending -> start
-                GoalLockRuntimeStatus.Active -> today
-                GoalLockRuntimeStatus.Completed,
-                GoalLockRuntimeStatus.EndedEarly,
-                -> return false
-            }
+            val minimumEndDate = minimumEditableEndDate(original, today) ?: return false
             return isValidGoalLockEdit(
                 goalName = goalName,
                 startDate = start,
@@ -368,13 +360,7 @@ private fun GoalLockMode.isValidEditMode(): Boolean = when (this) {
 }
 
 private fun GoalLock.isValidEdit(today: LocalDate): Boolean {
-    val minimumEndDate = when (GoalLockPolicy.runtimeStatus(this, today.atStartOfDay())) {
-        GoalLockRuntimeStatus.Pending -> startDate
-        GoalLockRuntimeStatus.Active -> today
-        GoalLockRuntimeStatus.Completed,
-        GoalLockRuntimeStatus.EndedEarly,
-        -> return false
-    }
+    val minimumEndDate = minimumEditableEndDate(this, today) ?: return false
     return isValidGoalLockEdit(
         goalName = goalName,
         startDate = startDate,
@@ -397,6 +383,27 @@ private fun isValidGoalLockEdit(
     !endDate.isBefore(startDate) &&
     !endDate.isBefore(minimumEndDate) &&
     lockMode.isValidEditMode()
+
+private fun minimumEditableEndDate(
+    goalLock: GoalLock,
+    today: LocalDate,
+): LocalDate? = when (GoalLockPolicy.runtimeStatus(goalLock, today.atStartOfDay())) {
+    GoalLockRuntimeStatus.Pending -> goalLock.startDate
+    GoalLockRuntimeStatus.Active -> today
+    GoalLockRuntimeStatus.Completed,
+    GoalLockRuntimeStatus.EndedEarly,
+    -> null
+}
+
+private inline fun ignoreAnalyticsFailure(block: () -> Unit) {
+    try {
+        block()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        // Persistence already succeeded. Analytics must not change the user-visible result.
+    }
+}
 
 private fun Set<String>.normalizedPackages(): Set<String> =
     map(String::trim)
