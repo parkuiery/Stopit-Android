@@ -132,6 +132,45 @@ class GoalLockDetailViewModelTest {
 
         assertEquals(GoalLockStoredStatus.Active, viewModel.container.stateFlow.value.goalLock?.status)
         assertEquals(0, analytics.endedCalls)
+        assertFalse(viewModel.container.stateFlow.value.canEdit)
+        assertFalse(viewModel.container.stateFlow.value.canEnd)
+    }
+
+    @Test
+    fun goalThatExpiresBeforeEndConfirmationCompletesInstead() = runBlocking {
+        val dao = DetailDao(goalLock(endDate = today))
+        val analytics = DetailAnalytics()
+        val viewModel = detailViewModel(dao, analytics)
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.canEnd }
+        viewModel.requestEndGoalLock()
+
+        viewModel.confirmEndGoalLock(today.plusDays(1))
+        awaitUntil {
+            viewModel.container.stateFlow.value.goalLock?.status == GoalLockStoredStatus.Completed
+        }
+
+        assertEquals(GoalLockStoredStatus.Completed, dao.updates.single().status)
+        assertEquals(1, analytics.completedCalls)
+        assertEquals(0, analytics.endedCalls)
+    }
+
+    @Test
+    fun resumeOnNextDateRefreshesRuntimeStatus() = runBlocking {
+        val viewModel = detailViewModel(
+            DetailDao(goalLock(endDate = today)),
+            DetailAnalytics(),
+        )
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.canEnd }
+
+        viewModel.refreshForToday(today.plusDays(1))
+        awaitUntil {
+            viewModel.container.stateFlow.value.presentation?.runtimeStatus ==
+                GoalLockRuntimeStatus.Completed
+        }
+
+        assertFalse(viewModel.container.stateFlow.value.canEnd)
     }
 
     @Test

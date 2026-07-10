@@ -108,6 +108,13 @@ internal class GoalLockDetailViewModel
         fun refreshAfterEdit(today: LocalDate = LocalDate.now()) =
             loadGoalLock(today = today, force = true)
 
+        fun refreshForToday(today: LocalDate = LocalDate.now()) {
+            val current = container.stateFlow.value
+            if (current.goalLock == null || today != lastLoadDate) {
+                loadGoalLock(today = today, force = true)
+            }
+        }
+
         fun requestEndGoalLock() =
             intent {
                 if (state.presentation?.canEnd != true) return@intent
@@ -121,13 +128,60 @@ internal class GoalLockDetailViewModel
 
         fun confirmEndGoalLock(today: LocalDate = LocalDate.now()) =
             intent {
-                val current = state.goalLock ?: return@intent
                 if (state.presentation?.canEnd != true) return@intent
-                val ended = current.copy(status = GoalLockStoredStatus.EndedEarly)
                 try {
-                    if (!goalLockRepository.updateIfActive(ended)) {
+                    val latest = goalLockRepository.fetch(goalLockId)
+                    if (latest == null) {
+                        postSideEffect(GoalLockDetailSideEffect.NotFound)
+                        return@intent
+                    }
+                    if (latest.status != GoalLockStoredStatus.Active) {
                         reduce {
                             state.copy(
+                                goalLock = latest,
+                                presentation = goalLockDetailPresentation(latest, today),
+                                showEndConfirmation = false,
+                                error = null,
+                            )
+                        }
+                        return@intent
+                    }
+                    if (GoalLockPolicy.runtimeStatus(latest, today.atStartOfDay()) ==
+                        GoalLockRuntimeStatus.Completed
+                    ) {
+                        val completed = latest.copy(status = GoalLockStoredStatus.Completed)
+                        val persisted = goalLockRepository.updateIfActive(completed)
+                        if (persisted) {
+                            ignoreDetailAnalyticsFailure {
+                                analytics.trackGoalLockCompleted(
+                                    lockMode = latest.lockMode.analyticsLockMode,
+                                    durationDaysBucket = goalLockDurationDaysBucket(
+                                        latest.startDate,
+                                        latest.endDate,
+                                    ),
+                                )
+                            }
+                        }
+                        reduce {
+                            state.copy(
+                                goalLock = completed,
+                                presentation = goalLockDetailPresentation(completed, today),
+                                showEndConfirmation = false,
+                                error = if (persisted) null else GoalLockDetailError.End,
+                            )
+                        }
+                        return@intent
+                    }
+
+                    val ended = latest.copy(status = GoalLockStoredStatus.EndedEarly)
+                    if (!goalLockRepository.updateIfActive(ended)) {
+                        val refreshed = goalLockRepository.fetch(goalLockId)
+                        reduce {
+                            state.copy(
+                                goalLock = refreshed ?: state.goalLock,
+                                presentation = refreshed?.let {
+                                    goalLockDetailPresentation(it, today)
+                                } ?: state.presentation,
                                 showEndConfirmation = false,
                                 error = GoalLockDetailError.End,
                             )
@@ -136,8 +190,8 @@ internal class GoalLockDetailViewModel
                     }
                     ignoreDetailAnalyticsFailure {
                         analytics.trackGoalLockEndedEarly(
-                            lockMode = current.lockMode.analyticsLockMode,
-                            elapsedDaysBucket = elapsedDaysBucket(current.startDate, today),
+                            lockMode = latest.lockMode.analyticsLockMode,
+                            elapsedDaysBucket = elapsedDaysBucket(latest.startDate, today),
                             reason = AnalyticsGoalLockEndedEarlyReason.USER_CONFIRMED,
                         )
                     }
@@ -173,9 +227,9 @@ internal data class GoalLockDetailUiState(
     val goalName: String get() = goalLock?.goalName.orEmpty()
     val selectedAppCount: Int get() = goalLock?.selectedPackages?.size ?: 0
     val canEdit: Boolean
-        get() = !isLoading && error != GoalLockDetailError.Load && presentation?.canEdit == true
+        get() = !isLoading && error == null && presentation?.canEdit == true
     val canEnd: Boolean
-        get() = !isLoading && error != GoalLockDetailError.Load && presentation?.canEnd == true
+        get() = !isLoading && error == null && presentation?.canEnd == true
 }
 
 internal enum class GoalLockDetailError {
