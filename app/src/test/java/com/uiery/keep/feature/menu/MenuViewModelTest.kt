@@ -24,6 +24,14 @@ import org.junit.Test
 
 class MenuViewModelTest {
     @Test
+    fun goalLockNavigationAllowsOnlyOneInFlightRequest() {
+        val gate = GoalLockNavigationGate()
+
+        assertTrue(gate.tryEnter())
+        assertFalse(gate.tryEnter())
+    }
+
+    @Test
     fun initLogsMenuScreenView() {
         val analytics = MenuRecordingKeepAnalytics()
 

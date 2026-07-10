@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -69,6 +70,7 @@ fun MenuScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val goalLockNavigationGate = remember { GoalLockNavigationGate() }
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
     val monetizationInterestTitle = stringResource(id = R.string.monetization_interest_menu_title)
@@ -144,12 +146,14 @@ fun MenuScreen(
                 icon = R.drawable.ic_goal_lock,
                 title = stringResource(id = R.string.goal_lock_menu_title),
                 onClick = {
-                    coroutineScope.launch {
-                        val currentGoalLockId = menuViewModel.getCurrentGoalLockId()
-                        if (currentGoalLockId == null) {
-                            onNavigateGoalLockCreation()
-                        } else {
-                            onNavigateGoalLockDetail(currentGoalLockId)
+                    if (goalLockNavigationGate.tryEnter()) {
+                        coroutineScope.launch {
+                            val currentGoalLockId = menuViewModel.getCurrentGoalLockId()
+                            if (currentGoalLockId == null) {
+                                onNavigateGoalLockCreation()
+                            } else {
+                                onNavigateGoalLockDetail(currentGoalLockId)
+                            }
                         }
                     }
                 },
@@ -250,6 +254,16 @@ fun MenuScreen(
                 ),
             )
         }
+    }
+}
+
+internal class GoalLockNavigationGate {
+    private var isInProgress = false
+
+    fun tryEnter(): Boolean {
+        if (isInProgress) return false
+        isInProgress = true
+        return true
     }
 }
 
