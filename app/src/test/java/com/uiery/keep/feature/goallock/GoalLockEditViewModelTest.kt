@@ -217,8 +217,43 @@ class GoalLockEditViewModelTest {
         viewModel.save(today)
         viewModel.save(today)
         awaitUntil { dao.updates.isNotEmpty() }
+        delay(100)
 
         assertEquals(1, dao.updates.size)
+    }
+
+    @Test
+    fun conditionalUpdateFailureCannotResurrectTerminalGoal() = runBlocking {
+        val dao = EditGoalLockDao(goalLock()).apply { failConditionalUpdate = true }
+        val analytics = EditAnalytics()
+        val viewModel = viewModel(dao, analytics)
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.originalGoal != null }
+        viewModel.setGoalName("변경")
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.save(today)
+
+        assertEquals(GoalLockEditSideEffect.Unavailable, effect.await())
+        assertTrue(dao.updates.isEmpty())
+        assertTrue(analytics.updatedCalls.isEmpty())
+    }
+
+    @Test
+    fun analyticsFailureDoesNotTurnCommittedSaveIntoFailure() = runBlocking {
+        val dao = EditGoalLockDao(goalLock())
+        val analytics = EditAnalytics().apply { throwOnUpdated = true }
+        val viewModel = viewModel(dao, analytics)
+        viewModel.loadGoalLock(today)
+        awaitUntil { viewModel.container.stateFlow.value.originalGoal != null }
+        viewModel.setGoalName("저장 성공")
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.save(today)
+
+        assertEquals(GoalLockEditSideEffect.Saved, effect.await())
+        assertEquals("저장 성공", dao.updates.single().goalName)
+        assertNull(viewModel.container.stateFlow.value.error)
     }
 
     @Test
@@ -339,6 +374,7 @@ private class EditGoalLockDao(existing: GoalLock?) : GoalLockDao {
     var existing: GoalLockEntity? = existing?.let(GoalLockEntity::fromDomain)
     var fetchFailuresRemaining = 0
     var updateFailuresRemaining = 0
+    var failConditionalUpdate = false
     val updates = mutableListOf<GoalLock>()
 
     override fun fetchAll(): Flow<List<GoalLockEntity>> = emptyFlow()
@@ -361,6 +397,17 @@ private class EditGoalLockDao(existing: GoalLock?) : GoalLockDao {
         existing = goalLock
         updates += goalLock.toDomain()
     }
+
+    override fun updateIfActive(goalLock: GoalLockEntity): Boolean {
+        if (failConditionalUpdate) {
+            existing = existing?.copy(status = GoalLockEntity.STATUS_ENDED_EARLY)
+            return false
+        }
+        val current = fetch(goalLock.id) ?: return false
+        if (current.status != GoalLockEntity.STATUS_ACTIVE) return false
+        update(goalLock)
+        return true
+    }
 }
 
 private data class EditUpdatedCall(val lockMode: String, val changedField: String)
@@ -369,6 +416,7 @@ private class EditAnalytics : KeepAnalytics {
     val screenViews = mutableListOf<String>()
     val updatedCalls = mutableListOf<EditUpdatedCall>()
     var completedCalls = 0
+    var throwOnUpdated = false
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) { screenViews += screenName }
@@ -387,6 +435,7 @@ private class EditAnalytics : KeepAnalytics {
     }
 
     override fun trackGoalLockUpdated(lockMode: String, changedField: String) {
+        if (throwOnUpdated) error("analytics failed")
         updatedCalls += EditUpdatedCall(lockMode, changedField)
     }
 }

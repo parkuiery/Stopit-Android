@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.uiery.keep.database.entity.GoalLockEntity
 import kotlinx.coroutines.flow.Flow
@@ -21,4 +22,12 @@ interface GoalLockDao {
 
     @Update
     fun update(goalLock: GoalLockEntity)
+
+    @Transaction
+    fun updateIfActive(goalLock: GoalLockEntity): Boolean {
+        val current = fetch(goalLock.id) ?: return false
+        if (current.status != GoalLockEntity.STATUS_ACTIVE) return false
+        update(goalLock)
+        return true
+    }
 }

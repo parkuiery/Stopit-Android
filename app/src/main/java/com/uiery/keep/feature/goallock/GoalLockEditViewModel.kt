@@ -12,6 +12,7 @@ import com.uiery.keep.domain.goallock.GoalLockPolicy
 import com.uiery.keep.domain.goallock.GoalLockRuntimeStatus
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -65,6 +66,8 @@ internal class GoalLockEditViewModel
                             GoalLockEditUiState.from(goalLock = goalLock, today = today)
                         }
                     }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (_: Exception) {
                     reduce {
                         state.copy(
@@ -193,12 +196,18 @@ internal class GoalLockEditViewModel
                         return@intent
                     }
 
-                    goalLockRepository.update(updated)
+                    if (!goalLockRepository.updateIfActive(updated)) {
+                        reduce { state.copy(isSaving = false) }
+                        postSideEffect(GoalLockEditSideEffect.Unavailable)
+                        return@intent
+                    }
                     trackChanges(previous = latest, updated = updated)
                     reduce {
                         GoalLockEditUiState.from(goalLock = updated, today = today)
                     }
                     postSideEffect(GoalLockEditSideEffect.Saved)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (_: Exception) {
                     reduce {
                         state.copy(
@@ -209,13 +218,16 @@ internal class GoalLockEditViewModel
                 }
             }
 
-        private fun completeExpiredGoal(goalLock: GoalLock) {
+        private fun completeExpiredGoal(goalLock: GoalLock): Boolean {
             val completed = goalLock.copy(status = GoalLockStoredStatus.Completed)
-            goalLockRepository.update(completed)
-            analytics.trackGoalLockCompleted(
-                lockMode = goalLock.lockMode.analyticsLockMode,
-                durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
-            )
+            if (!goalLockRepository.updateIfActive(completed)) return false
+            runCatching {
+                analytics.trackGoalLockCompleted(
+                    lockMode = goalLock.lockMode.analyticsLockMode,
+                    durationDaysBucket = goalLockDurationDaysBucket(goalLock.startDate, goalLock.endDate),
+                )
+            }
+            return true
         }
 
         private fun trackChanges(
@@ -239,10 +251,12 @@ internal class GoalLockEditViewModel
                 }
             }
             changedFields.forEach { changedField ->
-                analytics.trackGoalLockUpdated(
-                    lockMode = updated.lockMode.analyticsLockMode,
-                    changedField = changedField,
-                )
+                runCatching {
+                    analytics.trackGoalLockUpdated(
+                        lockMode = updated.lockMode.analyticsLockMode,
+                        changedField = changedField,
+                    )
+                }
             }
         }
     }
@@ -284,11 +298,14 @@ internal data class GoalLockEditUiState(
                 GoalLockRuntimeStatus.EndedEarly,
                 -> return false
             }
-            return goalName.isNotBlank() &&
-                selectedPackages.normalizedPackages().isNotEmpty() &&
-                !end.isBefore(start) &&
-                !end.isBefore(minimumEndDate) &&
-                mode.isValidEditMode()
+            return isValidGoalLockEdit(
+                goalName = goalName,
+                startDate = start,
+                endDate = end,
+                lockMode = mode,
+                selectedPackages = selectedPackages,
+                minimumEndDate = minimumEndDate,
+            )
         }
 
     val canSave: Boolean
@@ -358,15 +375,30 @@ private fun GoalLock.isValidEdit(today: LocalDate): Boolean {
         GoalLockRuntimeStatus.EndedEarly,
         -> return false
     }
-    return goalName.isNotBlank() &&
-        selectedPackages.normalizedPackages().isNotEmpty() &&
-        !endDate.isBefore(startDate) &&
-        !endDate.isBefore(minimumEndDate) &&
-        lockMode.isValidEditMode()
+    return isValidGoalLockEdit(
+        goalName = goalName,
+        startDate = startDate,
+        endDate = endDate,
+        lockMode = lockMode,
+        selectedPackages = selectedPackages,
+        minimumEndDate = minimumEndDate,
+    )
 }
+
+private fun isValidGoalLockEdit(
+    goalName: String,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    lockMode: GoalLockMode,
+    selectedPackages: Set<String>,
+    minimumEndDate: LocalDate,
+): Boolean = goalName.isNotBlank() &&
+    selectedPackages.normalizedPackages().isNotEmpty() &&
+    !endDate.isBefore(startDate) &&
+    !endDate.isBefore(minimumEndDate) &&
+    lockMode.isValidEditMode()
 
 private fun Set<String>.normalizedPackages(): Set<String> =
     map(String::trim)
         .filter(String::isNotBlank)
         .toSet()
-

@@ -24,4 +24,7 @@ class GoalLockRepository
         internal fun update(goalLock: GoalLock) {
             goalLockDao.update(GoalLockEntity.fromDomain(goalLock))
         }
+
+        internal fun updateIfActive(goalLock: GoalLock): Boolean =
+            goalLockDao.updateIfActive(GoalLockEntity.fromDomain(goalLock))
     }
