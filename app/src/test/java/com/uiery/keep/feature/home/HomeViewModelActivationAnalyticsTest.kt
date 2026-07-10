@@ -1285,6 +1285,9 @@ private class FakeHomeGoalLockDao(
     override fun update(goalLock: GoalLockEntity) {
         updated += goalLock
     }
+
+    override fun markEndedEarlyIfActive(id: Long): Int = 0
+    override fun markCompletedIfActiveAndEndDate(id: Long, expectedEndDate: String): Int = 0
 }
 
 private fun goalLockEntity(

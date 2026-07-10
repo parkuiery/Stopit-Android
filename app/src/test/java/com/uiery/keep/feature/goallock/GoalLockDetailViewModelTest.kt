@@ -249,6 +249,22 @@ private class DetailDao(existing: GoalLock?) : GoalLockDao {
         update(goalLock)
         return true
     }
+
+    override fun markEndedEarlyIfActive(id: Long): Int {
+        if (failConditionalUpdate) return 0
+        val current = fetch(id) ?: return 0
+        if (current.status != GoalLockEntity.STATUS_ACTIVE) return 0
+        update(current.copy(status = GoalLockEntity.STATUS_ENDED_EARLY))
+        return 1
+    }
+
+    override fun markCompletedIfActiveAndEndDate(id: Long, expectedEndDate: String): Int {
+        if (failConditionalUpdate) return 0
+        val current = fetch(id) ?: return 0
+        if (current.status != GoalLockEntity.STATUS_ACTIVE || current.endDate != expectedEndDate) return 0
+        update(current.copy(status = GoalLockEntity.STATUS_COMPLETED))
+        return 1
+    }
 }
 
 private class DetailAnalytics : KeepAnalytics {

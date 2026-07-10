@@ -30,4 +30,16 @@ interface GoalLockDao {
         update(goalLock)
         return true
     }
+
+    @Query(
+        "UPDATE goal_lock SET status = 'ended_early' " +
+            "WHERE id = :id AND status = 'active'",
+    )
+    fun markEndedEarlyIfActive(id: Long): Int
+
+    @Query(
+        "UPDATE goal_lock SET status = 'completed' " +
+            "WHERE id = :id AND status = 'active' AND end_date = :expectedEndDate",
+    )
+    fun markCompletedIfActiveAndEndDate(id: Long, expectedEndDate: String): Int
 }

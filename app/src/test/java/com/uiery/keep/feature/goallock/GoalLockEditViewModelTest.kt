@@ -423,6 +423,9 @@ private class EditGoalLockDao(existing: GoalLock?) : GoalLockDao {
         update(goalLock)
         return true
     }
+
+    override fun markEndedEarlyIfActive(id: Long): Int = 0
+    override fun markCompletedIfActiveAndEndDate(id: Long, expectedEndDate: String): Int = 0
 }
 
 private data class EditUpdatedCall(val lockMode: String, val changedField: String)

@@ -27,4 +27,18 @@ class GoalLockRepository
 
         internal fun updateIfActive(goalLock: GoalLock): Boolean =
             goalLockDao.updateIfActive(GoalLockEntity.fromDomain(goalLock))
+
+        internal fun markEndedEarlyIfActive(id: Long): GoalLock? =
+            if (goalLockDao.markEndedEarlyIfActive(id) == 1) fetch(id) else null
+
+        internal fun markCompletedIfActiveAndEndDate(
+            id: Long,
+            expectedEndDate: java.time.LocalDate,
+        ): GoalLock? = if (
+            goalLockDao.markCompletedIfActiveAndEndDate(id, expectedEndDate.toString()) == 1
+        ) {
+            fetch(id)
+        } else {
+            null
+        }
     }
