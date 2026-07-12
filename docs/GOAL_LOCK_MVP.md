@@ -150,7 +150,7 @@ Goal Lock analytics는 이미 `develop`의 `KeepAnalytics.kt` / Firebase 구현 
 | `goal_lock_created` | 유효한 목표 잠금 저장 완료 | `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` | enum/bucket만 허용 |
 | `goal_lock_completed` | 종료일 경과 후 자동 완료 상태 처리 | `lock_mode`, `duration_days_bucket` | raw 날짜/앱 목록 금지 |
 | `goal_lock_ended_early` | 사용자가 기간 전 종료 | `lock_mode`, `elapsed_days_bucket`, `reason?` | reason은 enum만 허용 |
-| `goal_lock_updated` | 기간/앱/시간대/이름/잠금 방식 수정 저장 | `lock_mode`, `changed_field` | changed_field는 enum만 허용 |
+| `goal_lock_updated` | 수정 저장에서 변경된 필드 종류 1개 기록 | `lock_mode`, `changed_field` | changed_field는 enum만 허용. 한 저장에서 여러 필드가 바뀌면 필드별로 여러 건 발생 |
 
 권장 enum/bucket:
 
@@ -163,6 +163,7 @@ Goal Lock analytics는 이미 `develop`의 `KeepAnalytics.kt` / Firebase 구현 
 - `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
 - `goal_lock_updated.changed_field`: `duration`, `apps`, `schedule`, `name`, `lock_mode`
+- `goal_lock_updated` event count는 저장 횟수가 아니라 변경된 필드 종류의 합이다. 수정 완료 전환은 `GoalLockEditScreen` 진입 사용자 대비 `goal_lock_updated` 발생 사용자처럼 사용자 기준으로 해석한다.
 
 GA4 custom dimension 등록은 구현/배포와 별개인 manual boundary다. event dictionary가 갱신돼도 Admin 등록과 metadata readback 전에는 `lock_mode`/기간별 전환율을 high-confidence로 해석하지 않는다.
 
@@ -357,6 +358,12 @@ Code lane에서 `GoalLockDetailScreen` 본문을 스크롤 가능하게 만들�
 ### 2026-06-11 creation/detail TalkBack summary foothold
 
 Code lane에서 `GoalLockAccessibilityDescriptionTest`와 생성/상세 Compose instrumentation assertion을 추가해, 생성 화면 summary card가 목표 이름·기간·잠금 방식·선택 앱 수를 하나의 content description으로 노출하고 상세 화면 summary card가 목표 이름·요약·진행 상태를 하나의 content description으로 노출하도록 고정했다. 이 baseline은 TalkBack 수동 spot-check 전에 repo 내부에서 누락되던 핵심 summary label을 자동 검증 가능한 계약으로 당겼다.
+
+### 2026-07-12 separate edit surface / analytics taxonomy foothold
+
+목표 잠금 상세 화면은 상태와 진행 정보를 보여주는 읽기 전용 surface로 정리하고, 이름·종료일·잠금 방식·시간대·앱 목록 수정은 별도 `GoalLockEditScreen`에서 한 번에 저장하도록 분리했다. `GoalLockEditViewModel` 진입은 canonical `screen_view(screen_name=GoalLockEditScreen)`를 기록하고, 저장 성공 후 실제로 달라진 각 필드 종류마다 기존 `goal_lock_updated(lock_mode, changed_field)`를 한 건씩 기록한다. 따라서 한 번의 저장에서 이름과 앱을 함께 변경하면 `changed_field=name`, `changed_field=apps` 두 이벤트가 발생하며, event count를 저장 횟수로 해석하지 않는다.
+
+이 foothold 이후 수정 퍼널은 `GoalLockDetailScreen` → `GoalLockEditScreen` → `goal_lock_updated` 사용자 흐름으로 해석한다. 별도 `goal_lock_edit_started` / `goal_lock_edit_saved` 이벤트는 추가하지 않으며, raw 목표명/package/날짜를 payload로 보내지 않는 기존 privacy 계약을 유지한다.
 
 이 foothold 이후 #417을 “생성/상세 화면 summary TalkBack label 미구현” 상태로 되돌리지 않는다. 다만 실제 release-candidate 기기 screenshot/TalkBack spot-check, release/tag/Play deploy, GA4 Admin 등록/readback, 14/30일 측정은 여전히 외부/manual 경계다.
 
