@@ -21,8 +21,12 @@ import com.uiery.keep.feature.home.homeScreen
 import com.uiery.keep.feature.home.navigateToHome
 import com.uiery.keep.feature.goallock.goalLockCreationScreen
 import com.uiery.keep.feature.goallock.goalLockDetailScreen
+import com.uiery.keep.feature.goallock.goalLockEditScreen
+import com.uiery.keep.feature.goallock.markGoalLockEditSaved
+import com.uiery.keep.feature.goallock.navigateToGoalLockEdit
 import com.uiery.keep.feature.goallock.navigateToGoalLockCreation
 import com.uiery.keep.feature.goallock.navigateToGoalLockDetail
+import com.uiery.keep.feature.goallock.navigateToGoalLockDetailAfterCreation
 import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
@@ -111,6 +115,7 @@ internal fun KeepApp(
             onNavigateBack = navController::navigateUp,
             onNavigateRoutine = navController::navigateToRoutine,
             onNavigateGoalLockCreation = navController::navigateToGoalLockCreation,
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
             onNavigateParentModeSetup = navController::navigateToParentModeSetup,
             onNavigateLockHistory = navController::navigateToLockHistory,
             onNavigateEmergencyUnlockSettings = navController::navigateToEmergencyUnlockSettings,
@@ -138,9 +143,19 @@ internal fun KeepApp(
         parentModeSetupScreen(onNavigateBack = navController::navigateUp)
         goalLockCreationScreen(
             onNavigateBack = navController::navigateUp,
-            onNavigateGoalLockDetail = navController::navigateToGoalLockDetail,
+            onNavigateGoalLockDetail = navController::navigateToGoalLockDetailAfterCreation,
         )
-        goalLockDetailScreen(onNavigateBack = navController::navigateUp)
+        goalLockDetailScreen(
+            onNavigateBack = navController::navigateUp,
+            onNavigateEdit = navController::navigateToGoalLockEdit,
+        )
+        goalLockEditScreen(
+            onNavigateBack = navController::navigateUp,
+            onSaved = {
+                navController.previousBackStackEntry?.savedStateHandle?.markGoalLockEditSaved()
+                navController.navigateUp()
+            },
+        )
     }
 }
 

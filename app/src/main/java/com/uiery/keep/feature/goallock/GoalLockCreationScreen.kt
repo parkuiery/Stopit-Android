@@ -226,7 +226,7 @@ internal fun GoalLockCreationContent(
     var showEndDatePicker by remember { mutableStateOf(false) }
 
     if (showEndDatePicker) {
-        EndDatePickerDialog(
+        GoalLockEndDatePickerDialog(
             initialDate = state.endDate,
             onDismiss = { showEndDatePicker = false },
             onConfirm = { picked ->
@@ -392,7 +392,7 @@ internal fun GoalLockCreationContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EndDatePickerDialog(
+internal fun GoalLockEndDatePickerDialog(
     initialDate: LocalDate,
     onDismiss: () -> Unit,
     onConfirm: (LocalDate) -> Unit,

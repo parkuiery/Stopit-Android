@@ -26,48 +26,25 @@ class GoalLockDetailContentIntegrationTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun activeGoalLockShowsAppUpdateActionAndConfirmation() {
-        val updateRequests = mutableListOf<Set<String>>()
-        var confirmCount = 0
-        var cancelCount = 0
+    fun activeGoalLockShowsEndActionAndInvokesRequest() {
+        var requestCount = 0
 
         composeRule.setContent {
             KeepTheme {
                 GoalLockDetailContent(
-                    state = GoalLockDetailUiState(
-                        goalLock = activeGoalLock(),
-                        pendingSelectedApps = setOf("com.video.app", "com.social.app"),
-                        showUpdateAppsConfirmation = true,
-                    ),
-                    onRequestEnd = {},
-                    onCancelEnd = {},
-                    onConfirmEnd = {},
-                    onGoalNameChange = {},
-                    onCancelUpdateGoalName = {},
-                    onConfirmUpdateGoalName = {},
-                    onRequestUpdateApps = { selectedApps -> updateRequests += selectedApps },
-                    onCancelUpdateApps = { cancelCount += 1 },
-                    onConfirmUpdateApps = { confirmCount += 1 },
-                    onDurationDaysChange = {},
-                    onCancelUpdateDuration = {},
-                    onConfirmUpdateDuration = {},
-                    onLockModeChange = {},
-                    onCancelUpdateLockMode = {},
-                    onConfirmUpdateLockMode = {},
+                    state = activeGoalLockState(),
+                    onRequestEnd = { requestCount += 1 },
+                    onRetry = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_goal_name_label)).assertIsDisplayed()
-        composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_update_apps_cta)).assertIsDisplayed()
-        composeRule.onNodeWithText(
-            composeRule.activity.getString(R.string.goal_lock_detail_update_apps_confirmation, 2),
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_update_apps_save)).performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.goal_lock_detail_end_cta))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
 
-        assertEquals(1, confirmCount)
-        assertEquals(0, cancelCount)
-        assertEquals(emptyList<Set<String>>(), updateRequests)
+        assertEquals(1, requestCount)
     }
 
     @Test
@@ -79,22 +56,9 @@ class GoalLockDetailContentIntegrationTest {
             KeepTheme {
                 Box(modifier = Modifier.height(320.dp)) {
                     GoalLockDetailContent(
-                        state = GoalLockDetailUiState(goalLock = activeGoalLock()),
+                        state = activeGoalLockState(),
                         onRequestEnd = {},
-                        onCancelEnd = {},
-                        onConfirmEnd = {},
-                        onGoalNameChange = {},
-                        onCancelUpdateGoalName = {},
-                        onConfirmUpdateGoalName = {},
-                        onRequestUpdateApps = {},
-                        onCancelUpdateApps = {},
-                        onConfirmUpdateApps = {},
-                        onDurationDaysChange = {},
-                        onCancelUpdateDuration = {},
-                        onConfirmUpdateDuration = {},
-                        onLockModeChange = {},
-                        onCancelUpdateLockMode = {},
-                        onConfirmUpdateLockMode = {},
+                        onRetry = {},
                     )
                 }
             }
@@ -108,38 +72,44 @@ class GoalLockDetailContentIntegrationTest {
         val expectedDescription = listOf(
             "시험 준비",
             composeRule.activity.getString(
-                R.string.goal_lock_detail_summary,
-                composeRule.activity.getString(R.string.goal_lock_detail_lock_mode_all_day),
-                2,
+                R.string.goal_lock_detail_progress_active,
+                24,
             ),
+            composeRule.activity.getString(
+                R.string.goal_lock_detail_period_value,
+                LocalDate.of(2026, 6, 4),
+                LocalDate.of(2026, 7, 3),
+                30,
+            ),
+            composeRule.activity.getString(R.string.goal_lock_detail_lock_mode_all_day),
+            composeRule.activity.getString(R.string.goal_lock_edit_apps_summary, 2),
             composeRule.activity.getString(R.string.goal_lock_detail_status_active),
         ).joinToString(", ")
 
         composeRule.setContent {
             KeepTheme {
                 GoalLockDetailContent(
-                    state = GoalLockDetailUiState(goalLock = activeGoalLock()),
+                    state = activeGoalLockState(),
                     onRequestEnd = {},
-                    onCancelEnd = {},
-                    onConfirmEnd = {},
-                    onGoalNameChange = {},
-                    onCancelUpdateGoalName = {},
-                    onConfirmUpdateGoalName = {},
-                    onRequestUpdateApps = {},
-                    onCancelUpdateApps = {},
-                    onConfirmUpdateApps = {},
-                    onDurationDaysChange = {},
-                    onCancelUpdateDuration = {},
-                    onConfirmUpdateDuration = {},
-                    onLockModeChange = {},
-                    onCancelUpdateLockMode = {},
-                    onConfirmUpdateLockMode = {},
+                    onRetry = {},
                 )
             }
         }
 
         composeRule.onNodeWithContentDescription(expectedDescription).assertIsDisplayed()
     }
+}
+
+private fun activeGoalLockState(): GoalLockDetailUiState {
+    val goalLock = activeGoalLock()
+    return GoalLockDetailUiState(
+        isLoading = false,
+        goalLock = goalLock,
+        presentation = goalLockDetailPresentation(
+            goalLock = goalLock,
+            today = LocalDate.of(2026, 6, 10),
+        ),
+    )
 }
 
 private fun activeGoalLock() =

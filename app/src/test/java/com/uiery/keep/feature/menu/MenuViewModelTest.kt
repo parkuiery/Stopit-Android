@@ -16,12 +16,21 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MenuViewModelTest {
+    @Test
+    fun goalLockNavigationAllowsOnlyOneInFlightRequest() {
+        val gate = GoalLockNavigationGate()
+
+        assertTrue(gate.tryEnter())
+        assertFalse(gate.tryEnter())
+    }
+
     @Test
     fun initLogsMenuScreenView() {
         val analytics = MenuRecordingKeepAnalytics()
@@ -115,6 +124,133 @@ class MenuViewModelTest {
         )
 
         assertFalse(isBlocking)
+    }
+
+    @Test
+    fun goalLockEntryReturnsCurrentGoalLockId() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 42L,
+                        startDate = now.toLocalDate().minusDays(1),
+                        endDate = now.toLocalDate().plusDays(1),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(42L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
+    fun goalLockEntryTreatsPendingGoalAsCurrent() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 43L,
+                        startDate = now.toLocalDate().plusDays(1),
+                        endDate = now.toLocalDate().plusDays(7),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(43L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
+    fun goalLockEntryPrefersActiveGoalOverLaterPendingGoal() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 51L,
+                        startDate = now.toLocalDate().plusDays(10),
+                        endDate = now.toLocalDate().plusDays(20),
+                    ),
+                    goalLock(
+                        id = 52L,
+                        startDate = now.toLocalDate().minusDays(1),
+                        endDate = now.toLocalDate().plusDays(1),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(52L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
+    fun goalLockEntryChoosesNearestPendingGoalRegardlessOfRepositoryOrder() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 53L,
+                        startDate = now.toLocalDate().plusDays(10),
+                        endDate = now.toLocalDate().plusDays(20),
+                    ),
+                    goalLock(
+                        id = 54L,
+                        startDate = now.toLocalDate().plusDays(2),
+                        endDate = now.toLocalDate().plusDays(12),
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(54L, viewModel.getCurrentGoalLockId(now))
+    }
+
+    @Test
+    fun goalLockEntryReturnsNullWhenOnlyTerminalGoalsExist() = runBlocking {
+        val now = LocalDateTime.of(2026, 7, 10, 12, 0)
+        val viewModel = MenuViewModel(
+            blockingStateStore = BlockingStateStore(FakeDataStore()),
+            routineRepository = FakeMenuRoutineRepository(),
+            goalLocks = MutableStateFlow(
+                listOf(
+                    goalLock(
+                        id = 44L,
+                        startDate = now.toLocalDate().minusDays(7),
+                        endDate = now.toLocalDate().minusDays(1),
+                    ),
+                    goalLock(
+                        id = 45L,
+                        startDate = now.toLocalDate().minusDays(1),
+                        endDate = now.toLocalDate().plusDays(1),
+                        status = GoalLockStoredStatus.Completed,
+                    ),
+                    goalLock(
+                        id = 46L,
+                        startDate = now.toLocalDate().minusDays(1),
+                        endDate = now.toLocalDate().plusDays(1),
+                        status = GoalLockStoredStatus.EndedEarly,
+                    ),
+                ),
+            ),
+            analytics = MenuRecordingKeepAnalytics(),
+        )
+
+        assertEquals(null, viewModel.getCurrentGoalLockId(now))
     }
 
     @Test

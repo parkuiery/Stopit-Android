@@ -63,6 +63,35 @@ internal object GoalLockPolicy {
         }
     }
 
+    fun currentGoalLock(
+        goalLocks: List<GoalLock>,
+        now: LocalDateTime = LocalDateTime.now(),
+    ): GoalLock? = goalLocks
+        .map { goalLock -> goalLock to runtimeStatus(goalLock, now) }
+        .filter { (_, status) ->
+            status == GoalLockRuntimeStatus.Active || status == GoalLockRuntimeStatus.Pending
+        }
+        .minWithOrNull(
+            compareBy<Pair<GoalLock, GoalLockRuntimeStatus>> { (_, status) ->
+                when (status) {
+                    GoalLockRuntimeStatus.Active -> 0
+                    GoalLockRuntimeStatus.Pending -> 1
+                    GoalLockRuntimeStatus.Completed,
+                    GoalLockRuntimeStatus.EndedEarly,
+                    -> 2
+                }
+            }.thenBy { (goalLock, status) ->
+                when (status) {
+                    GoalLockRuntimeStatus.Active -> goalLock.endDate
+                    GoalLockRuntimeStatus.Pending -> goalLock.startDate
+                    GoalLockRuntimeStatus.Completed,
+                    GoalLockRuntimeStatus.EndedEarly,
+                    -> LocalDate.MAX
+                }
+            }.thenBy { (goalLock) -> goalLock.id },
+        )
+        ?.first
+
     fun isCurrentlyProtecting(
         goalLock: GoalLock,
         now: LocalDateTime = LocalDateTime.now(),
