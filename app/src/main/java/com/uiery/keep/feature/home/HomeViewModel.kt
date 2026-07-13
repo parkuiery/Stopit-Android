@@ -561,8 +561,8 @@ class HomeViewModel
         private fun selectGoalLockForHomeCard(
             goalLocks: List<GoalLock>,
             now: LocalDateTime,
-        ): HomeGoalLockCardCandidate? = goalLocks
-            .map { goalLock ->
+        ): HomeGoalLockCardCandidate? {
+            val candidates = goalLocks.map { goalLock ->
                 val today = now.toLocalDate()
                 val normalizedGoalLock = completeExpiredGoalLockIfNeeded(goalLock, today)
                 HomeGoalLockCardCandidate(
@@ -570,11 +570,21 @@ class HomeViewModel
                     runtimeStatus = GoalLockPolicy.runtimeStatus(normalizedGoalLock, today.atStartOfDay()),
                 )
             }
-            .minWithOrNull(
+
+            val currentGoalLock = GoalLockPolicy.currentGoalLock(
+                goalLocks = candidates.map(HomeGoalLockCardCandidate::goalLock),
+                now = now,
+            )
+            if (currentGoalLock != null) {
+                return candidates.first { it.goalLock.id == currentGoalLock.id }
+            }
+
+            return candidates.minWithOrNull(
                 compareBy<HomeGoalLockCardCandidate> { it.runtimeStatus.homeCardPriority }
                     .thenBy { it.homeCardSecondarySortKey }
                     .thenBy { it.goalLock.id },
             )
+        }
 
         private fun HomeGoalLockCardCandidate.toHomeGoalLockCardState(
             today: LocalDate,

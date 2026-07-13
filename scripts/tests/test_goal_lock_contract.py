@@ -14,6 +14,7 @@ GA4_RUNBOOK = REPO_ROOT / "docs" / "GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md
 QA_RUNTIME_CHECKLIST = REPO_ROOT / "docs" / "QA_RUNTIME_CHECKLIST.md"
 GOAL_LOCK_CREATION_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockCreationScreen.kt"
 GOAL_LOCK_DETAIL_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockDetailScreen.kt"
+GOAL_LOCK_EDIT_SCREEN = REPO_ROOT / "app" / "src" / "main" / "java" / "com" / "uiery" / "keep" / "feature" / "goallock" / "GoalLockEditScreen.kt"
 METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 DOCS_AGENTS = REPO_ROOT / "docs" / "AGENTS.md"
@@ -312,28 +313,23 @@ class GoalLockContractTest(unittest.TestCase):
         ]:
             self.assertNotIn(hardcoded_copy, screen)
 
-    def test_goal_lock_detail_screen_uses_string_resources_for_app_update_copy(self):
-        screen = GOAL_LOCK_DETAIL_SCREEN.read_text()
+    def test_goal_lock_edit_screen_uses_string_resources_for_update_copy(self):
+        screen = GOAL_LOCK_EDIT_SCREEN.read_text()
 
         self.assertIn("stringResource(id = R.string.goal_lock_detail_goal_name_label)", screen)
-        self.assertIn("R.string.goal_lock_detail_update_name_confirmation", screen)
-        self.assertIn("stringResource(id = R.string.goal_lock_detail_update_name_save)", screen)
-        self.assertIn("stringResource(id = R.string.goal_lock_detail_update_apps_cta)", screen)
-        self.assertIn("R.string.goal_lock_detail_update_apps_confirmation", screen)
-        self.assertIn("stringResource(id = R.string.goal_lock_detail_update_apps_save)", screen)
+        self.assertIn("stringResource(id = R.string.goal_lock_edit_title)", screen)
+        self.assertIn("R.string.goal_lock_edit_duration_range", screen)
+        self.assertIn("stringResource(id = R.string.goal_lock_edit_select_apps)", screen)
+        self.assertIn("R.string.goal_lock_edit_save", screen)
+        self.assertIn("R.string.goal_lock_edit_saving", screen)
         self.assertIn("R.string.goal_lock_detail_duration_label", screen)
-        self.assertIn("R.string.goal_lock_detail_duration_option_7_days", screen)
-        self.assertIn("R.string.goal_lock_detail_update_duration_confirmation", screen)
+        self.assertIn("R.string.goal_lock_edit_duration_days", screen)
         self.assertIn("R.string.goal_lock_detail_lock_mode_label", screen)
-        self.assertIn("R.string.goal_lock_detail_lock_mode_all_day", screen)
-        self.assertIn("R.string.goal_lock_detail_lock_mode_weekday_evening", screen)
-        self.assertIn("R.string.goal_lock_detail_update_lock_mode_confirmation", screen)
+        self.assertIn("R.string.goal_lock_creation_lock_mode_all_day", screen)
+        self.assertIn("R.string.goal_lock_creation_lock_mode_weekday_evening", screen)
         for hardcoded_copy in [
             "목표 이름",
-            "목표 잠금 이름을 ${state.pendingGoalName.trim()}(으)로 바꿀까요?",
-            "이름 저장",
             "차단 앱 변경",
-            "선택한 앱 ${state.pendingSelectedApps.size}개로 목표 잠금 대상을 바꿀까요?",
             "변경 저장",
             "기간",
             "7일",
@@ -352,7 +348,9 @@ class GoalLockContractTest(unittest.TestCase):
             "R.string.goal_lock_detail_title",
             "R.string.cd_navigate_back",
             "R.string.goal_lock_detail_loading",
-            "R.string.goal_lock_detail_summary",
+            "R.string.goal_lock_detail_information",
+            "R.string.goal_lock_detail_period_value",
+            "R.string.goal_lock_detail_progress_active",
             "R.string.goal_lock_detail_status_completed",
             "R.string.goal_lock_detail_status_ended",
             "R.string.goal_lock_detail_status_active",

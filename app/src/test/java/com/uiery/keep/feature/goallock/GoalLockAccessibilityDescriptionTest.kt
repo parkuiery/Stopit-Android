@@ -32,4 +32,19 @@ class GoalLockAccessibilityDescriptionTest {
             description,
         )
     }
+
+    @Test
+    fun editDescriptionSummarizesDraftWithoutDuplicatingControls() {
+        val description = buildGoalLockEditAccessibilityDescription(
+            goalName = "시험 준비",
+            durationRangeText = "2026-07-04 - 2026-07-17",
+            lockModeText = "평일 저녁 잠금",
+            selectedAppsText = "선택한 앱 2개",
+        )
+
+        assertEquals(
+            "시험 준비, 2026-07-04 - 2026-07-17, 평일 저녁 잠금, 선택한 앱 2개",
+            description,
+        )
+    }
 }

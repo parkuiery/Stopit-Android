@@ -20,9 +20,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 import javax.inject.Inject
 
@@ -30,7 +32,7 @@ import javax.inject.Inject
 class MenuViewModel private constructor(
     private val blockingStateStore: BlockingStateStore,
     private val routineRepository: RoutineRepository,
-    goalLocks: Flow<List<GoalLock>>,
+    private val goalLocks: Flow<List<GoalLock>>,
     private val analytics: KeepAnalytics,
     @Suppress("UNUSED_PARAMETER") private val constructorMarker: Unit,
 ) : ViewModel() {
@@ -83,6 +85,11 @@ class MenuViewModel private constructor(
             blockingStateStore.setPreventUninstall(enabled)
         }
     }
+
+    internal suspend fun getCurrentGoalLockId(
+        now: LocalDateTime = LocalDateTime.now(),
+    ): Long? = GoalLockPolicy.currentGoalLock(goalLocks = goalLocks.first(), now = now)
+        ?.id
 
     fun onMonetizationInterestCardShown() {
         analytics.trackMonetizationInterestShown(

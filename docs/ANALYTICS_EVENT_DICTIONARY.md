@@ -46,7 +46,7 @@
 - Firebase `screen_view` payload 테스트: `app/src/test/java/com/uiery/keep/analytics/FirebaseScreenViewPayloadTest.kt`
 - 집중 요약 공유 테스트: `app/src/test/java/com/uiery/keep/feature/lockhistory/FocusSummarySharePayloadTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`
 - 광고 계측 테스트: `app/src/test/java/com/uiery/keep/analytics/TrackedBannerAdTest.kt`
-- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockCreationViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockDetailViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/parentmode/ParentModeSetupViewModelTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
+- 화면 screen_view 및 차단 화면 첫 가치 피드백 테스트: `app/src/test/java/com/uiery/keep/feature/splash/SplashViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/menu/MenuViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/LockHistoryViewModelShareTest.kt`, `app/src/test/java/com/uiery/keep/feature/lockhistory/blockedapps/BlockedAppsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/emergencyunlocksettings/EmergencyUnlockSettingsViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/devtool/DevToolViewModelAnalyticsTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockCreationViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockDetailViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/goallock/GoalLockEditViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/parentmode/ParentModeSetupViewModelTest.kt`, `app/src/test/java/com/uiery/keep/KeepAppNavigationPolicyTest.kt`, `app/src/test/java/com/uiery/keep/BlockViewModelTest.kt`, `app/src/test/java/com/uiery/keep/feature/lock/LockViewModelTest.kt`
 - 리뷰 관련 테스트: `app/src/test/java/com/uiery/keep/feature/review/ReviewEligibilityEvaluatorTest.kt`, `app/src/test/java/com/uiery/keep/feature/review/InAppReviewManagerTest.kt`, `app/src/test/java/com/uiery/keep/feature/home/HomeViewModelReviewTest.kt`
 
 ## screen_view 계약
@@ -63,6 +63,7 @@
 | 개발자 도구(dev 전용) | `DevToolScreen` | `DevToolViewModel` |
 | 목표 잠금 생성 | `GoalLockCreationScreen` | `GoalLockCreationViewModel` |
 | 목표 잠금 상세 | `GoalLockDetailScreen` | `GoalLockDetailViewModel` |
+| 목표 잠금 수정 | `GoalLockEditScreen` | `GoalLockEditViewModel` |
 | Parent Mode setup | `ParentModeSetupScreen` | `ParentModeSetupViewModel` |
 | 차단 화면 | `BlockScreen` | `BlockViewModel` |
 | 잠금 화면 | `LockScreen` | `LockViewModel`, `TrackedBannerAd` |
@@ -79,6 +80,7 @@
 - Firebase `screen_view` backend payload는 PR #755(`08d31da3`) 이후 `screen_name`과 `screen_class`를 같은 canonical 화면명으로 함께 기록한다. GA4 `unifiedScreenName`이 `(not set)`/blank로 남는지 볼 때는 화면별 호출 누락뿐 아니라 backend payload 계약(`FirebaseScreenViewPayloadTest`)도 같이 확인한다.
 - PR #755는 특정 화면 호출 coverage가 아니라 Firebase `screen_view` backend payload shape 보강이므로, `PR #296/#318/#358` 화면 호출 coverage package와 별도 축으로 보고 release/tag/Play deploy 후 같은 D+14 창에서 함께 재측정한다.
 - PR #769(`07c7bc0a`) 이후 목표 잠금 생성/상세 진입은 각각 `GoalLockCreationScreen` / `GoalLockDetailScreen` canonical `screen_view`를 기록한다. 이 package는 #417 기능 adoption 계측의 선행 screen coverage이면서 #13 screen 품질 보강이므로, release/tag/Play deploy 포함과 D+14 screen quality 재측정 전에는 live 0건이나 `(not set)` 잔여분을 목표 잠금 수요 없음/개선 완료로 해석하지 않는다.
+- 2026-07-12 별도 수정 route 도입 이후 `GoalLockEditScreen`도 canonical `screen_view`를 기록한다. 수정 전환은 `GoalLockDetailScreen` → `GoalLockEditScreen` → `goal_lock_updated` 순서로 해석하며, 해당 코드가 release/tag/Play deploy에 포함되고 D+14 관측 창이 지나기 전에는 수정 화면 또는 업데이트 이벤트 0건을 사용성 실패로 해석하지 않는다.
 - PR #913(`9d169449`) 이후 Parent Mode setup 진입은 `ParentModeSetupScreen` canonical `screen_view`를 기록한다. 이 package는 #471 same-device Parent Mode setup 전환 해석의 선행 screen coverage이면서 #13 screen 품질 보강이므로, release/tag/Play deploy 포함과 D+14 screen quality 재측정 전에는 live 0건이나 `(not set)` 잔여분을 부모 모드 수요 없음/개선 완료로 해석하지 않는다.
 - GA4에서 `(not set)` 비율이 높아지면 새 화면/분기에서 `logScreenView` 누락을 먼저 의심한다.
 
@@ -250,7 +252,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `goal_lock_created` | `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` | 유효한 목표 잠금 저장 완료 |
 | `goal_lock_completed` | `lock_mode`, `duration_days_bucket` | 종료일 경과 후 자동 완료 처리 |
 | `goal_lock_ended_early` | `lock_mode`, `elapsed_days_bucket`, `reason` | 사용자가 기간 전 종료 |
-| `goal_lock_updated` | `lock_mode`, `changed_field` | 기간/앱/시간대/이름/잠금 방식 수정 저장 |
+| `goal_lock_updated` | `lock_mode`, `changed_field` | 수정 저장에서 변경된 필드 종류 1개 기록. 한 번의 저장이 여러 필드를 바꾸면 필드별로 여러 건 발생 |
 
 현재 bucket 계약:
 
@@ -263,6 +265,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 - `elapsed_days_bucket`: `0`, `1_2`, `3_6`, `7_14`, `15_plus`
 - `goal_lock_ended_early.reason`: `user_confirmed`, `validation_reset`, `unknown`
 - `goal_lock_updated.changed_field`: `duration`, `apps`, `schedule`, `name`, `lock_mode`
+- `goal_lock_updated` 이벤트 수는 저장 횟수가 아니라 변경된 필드 종류의 합이다. 저장 횟수나 수정 완료율을 계산할 때 이벤트 건수를 그대로 사용하지 말고, `GoalLockEditScreen` 진입 사용자 대비 `goal_lock_updated` 발생 사용자처럼 사용자 기준으로 해석한다.
 
 ### 루틴 생성 CTA
 

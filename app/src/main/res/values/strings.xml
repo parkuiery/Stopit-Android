@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">StopIt</string>
     <string name="accessibility_service_description">StopIt Accessibility Service</string>
     <string name="select_apps_prompt">Please select the apps that tempt you</string>
@@ -112,6 +112,34 @@
     <string name="goal_lock_detail_update_apps_cancel">Cancel</string>
     <string name="goal_lock_detail_update_apps_save">Save changes</string>
     <string name="goal_lock_detail_title">Goal lock</string>
+    <string name="goal_lock_detail_edit" tools:ignore="MissingTranslation">Edit</string>
+    <string name="goal_lock_detail_retry" tools:ignore="MissingTranslation">Try again</string>
+    <string name="goal_lock_detail_load_error" tools:ignore="MissingTranslation">Couldn’t refresh this goal lock.</string>
+    <string name="goal_lock_detail_end_error" tools:ignore="MissingTranslation">Couldn’t end this goal lock. Try again.</string>
+    <string name="goal_lock_detail_status_pending" tools:ignore="MissingTranslation">Upcoming</string>
+    <string name="goal_lock_detail_progress_pending" tools:ignore="MissingTranslation">Starts in %1$d days</string>
+    <string name="goal_lock_detail_progress_active" tools:ignore="MissingTranslation">%1$d days remaining</string>
+    <string name="goal_lock_detail_progress_completed" tools:ignore="MissingTranslation">Completed · %1$s – %2$s</string>
+    <string name="goal_lock_detail_progress_ended" tools:ignore="MissingTranslation">Ended early</string>
+    <string name="goal_lock_detail_information" tools:ignore="MissingTranslation">Goal information</string>
+    <string name="goal_lock_detail_period_value" tools:ignore="MissingTranslation">%1$s – %2$s · %3$d days</string>
+    <string name="goal_lock_detail_apps_label" tools:ignore="MissingTranslation">Blocked apps</string>
+    <string name="goal_lock_edit_title" tools:ignore="MissingTranslation">Edit goal lock</string>
+    <string name="goal_lock_edit_hero_subtitle" tools:ignore="MissingTranslation">Review all changes before saving.</string>
+    <string name="goal_lock_edit_save" tools:ignore="MissingTranslation">Save changes</string>
+    <string name="goal_lock_edit_saving" tools:ignore="MissingTranslation">Saving…</string>
+    <string name="goal_lock_edit_retry" tools:ignore="MissingTranslation">Try again</string>
+    <string name="goal_lock_edit_load_error" tools:ignore="MissingTranslation">Couldn’t load this goal lock.</string>
+    <string name="goal_lock_edit_save_error" tools:ignore="MissingTranslation">Couldn’t save changes. Your draft is still here.</string>
+    <string name="goal_lock_edit_discard_title" tools:ignore="MissingTranslation">Discard changes?</string>
+    <string name="goal_lock_edit_discard_body" tools:ignore="MissingTranslation">Your unsaved changes will be lost.</string>
+    <string name="goal_lock_edit_keep_editing" tools:ignore="MissingTranslation">Continue editing</string>
+    <string name="goal_lock_edit_discard" tools:ignore="MissingTranslation">Discard changes</string>
+    <string name="goal_lock_edit_duration_range" tools:ignore="MissingTranslation">%1$s – %2$s</string>
+    <string name="goal_lock_edit_duration_days" tools:ignore="MissingTranslation">%1$d days</string>
+    <string name="goal_lock_edit_apps_summary" tools:ignore="MissingTranslation">%1$d selected apps</string>
+    <string name="goal_lock_edit_select_apps" tools:ignore="MissingTranslation">Choose blocked apps</string>
+    <string name="goal_lock_edit_schedule_summary" tools:ignore="MissingTranslation">%1$s · %2$s–%3$s</string>
     <string name="goal_lock_detail_loading">Loading goal lock.</string>
     <string name="goal_lock_detail_summary">%1$s · %2$d apps</string>
     <string name="goal_lock_detail_status_completed">This goal lock is completed.</string>

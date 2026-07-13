@@ -69,6 +69,12 @@
 - 이 변경은 #417 목표 잠금 adoption funnel의 screen coverage를 보강하는 동시에 #13 screen 품질 package에 들어가는 repo-internal 화면 호출 coverage다.
 - live 성과 판정은 기존과 동일하게 release/tag/Play deploy 포함 여부와 D+14 screen quality 재측정 전까지 보류한다. 목표 잠금 event/screen 0건은 GA4 Admin 등록·배포·관측 창 전에는 수요 없음으로 해석하지 않는다.
 
+2026-07-12 별도 목표 잠금 수정 surface 기준 추가 확인:
+
+- `GoalLockEditViewModel` 진입은 `GoalLockEditScreen` canonical `screen_view`를 기록한다.
+- 저장 성공은 기존 `goal_lock_updated(lock_mode, changed_field)`를 재사용한다. 한 저장에서 여러 필드가 달라지면 필드별 이벤트가 여러 건 발생하므로 event count를 저장 횟수로 집계하지 않고, `GoalLockEditScreen` 진입 사용자 대비 `goal_lock_updated` 발생 사용자로 수정 완료 흐름을 판독한다.
+- 별도 `goal_lock_edit_started` / `goal_lock_edit_saved` 이벤트나 신규 custom dimension은 추가하지 않는다. release/tag/Play deploy와 D+14 readback 전에는 수정 화면 또는 업데이트 이벤트 0건을 사용성 실패로 해석하지 않는다.
+
 PR #913(`9d169449`) 기준 추가 확인:
 
 - Parent Mode setup ViewModel 진입 시 `ParentModeSetupScreen` canonical `screen_view`를 기록하도록 `KeepAnalyticsScreen` 상수와 focused ViewModel regression이 추가됐다.

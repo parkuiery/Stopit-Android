@@ -877,6 +877,7 @@ class FirebaseKeepAnalyticsTest {
                 KeepAnalyticsScreen.DEV_TOOL,
                 KeepAnalyticsScreen.GOAL_LOCK_CREATION,
                 KeepAnalyticsScreen.GOAL_LOCK_DETAIL,
+                KeepAnalyticsScreen.GOAL_LOCK_EDIT,
                 KeepAnalyticsScreen.PARENT_MODE_SETUP,
                 KeepAnalyticsScreen.BLOCK,
                 KeepAnalyticsScreen.LOCK,

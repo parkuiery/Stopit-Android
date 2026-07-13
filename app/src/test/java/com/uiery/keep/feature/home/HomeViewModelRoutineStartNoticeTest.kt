@@ -229,4 +229,6 @@ private class EmptyRoutineNoticeGoalLockDao : GoalLockDao {
     override fun insert(goalLock: GoalLockEntity): Long = goalLock.id
 
     override fun update(goalLock: GoalLockEntity) = Unit
+    override fun markEndedEarlyIfActive(id: Long): Int = 0
+    override fun markCompletedIfActiveAndEndDate(id: Long, expectedEndDate: String): Int = 0
 }
