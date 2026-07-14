@@ -14,6 +14,7 @@ ANDROID_ALLOW_BACKUP = f"{{{ANDROID_NS}}}allowBackup"
 ANDROID_DATA_EXTRACTION_RULES = f"{{{ANDROID_NS}}}dataExtractionRules"
 ANDROID_FULL_BACKUP_CONTENT = f"{{{ANDROID_NS}}}fullBackupContent"
 TOOLS_IGNORE = f"{{{TOOLS_NS}}}ignore"
+TOOLS_NODE = f"{{{TOOLS_NS}}}node"
 
 
 class AndroidManifestContractTest(unittest.TestCase):
@@ -155,6 +156,25 @@ class AndroidManifestContractTest(unittest.TestCase):
         self.assertEqual("true", self.application.attrib.get(ANDROID_ALLOW_BACKUP))
         self.assertEqual("@xml/backup_rules", self.application.attrib.get(ANDROID_FULL_BACKUP_CONTENT))
         self.assertEqual("@xml/data_extraction_rules", self.application.attrib.get(ANDROID_DATA_EXTRACTION_RULES))
+
+    def test_profile_installer_startup_initializer_is_removed(self):
+        application = cast(ET.Element, self.application)
+        startup_providers = [
+            provider
+            for provider in application.findall("provider")
+            if provider.attrib.get(ANDROID_NAME) == "androidx.startup.InitializationProvider"
+        ]
+        self.assertEqual(1, len(startup_providers))
+        self.assertEqual("merge", startup_providers[0].attrib.get(TOOLS_NODE))
+
+        profile_installer_metadata = [
+            metadata
+            for metadata in startup_providers[0].findall("meta-data")
+            if metadata.attrib.get(ANDROID_NAME)
+            == "androidx.profileinstaller.ProfileInstallerInitializer"
+        ]
+        self.assertEqual(1, len(profile_installer_metadata))
+        self.assertEqual("remove", profile_installer_metadata[0].attrib.get(TOOLS_NODE))
 
     def test_legacy_backup_rules_include_only_room_database(self):
         backup_rules = self.xml_root("app/src/main/res/xml/backup_rules.xml")

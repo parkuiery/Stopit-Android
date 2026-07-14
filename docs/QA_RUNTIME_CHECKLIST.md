@@ -1238,7 +1238,7 @@ Issue #101 계열 Crashlytics ANR 샘플(`e14bf5e28f9983aebd0e3ef2601c691d`, `77
 
 Issue #101의 최근 fatal topIssues에는 앱 코드 직접 line이 아니라 Google/Firebase/AndroidX SDK background thread에서 플랫폼 API mismatch가 process fatal로 승격되는 샘플도 있다. 대표 케이스:
 - `d1369c1905b65f09a031309198552d10`: `ScionFrontendApi` background thread, `play-services-base@@18.9.0` / `Firebase measurement`, `getAttributionSource()` `NoSuchMethodError`, lastSeen `1.7.7`.
-- `8a2cfe07f945b5bcc4e7cbd4928d42a6`: `androidx.profileinstaller.ProfileVerifier$Api33Impl.getPackageInfo`, `PackageInfoFlags.of` `NoSuchMethodError`, lastSeen `1.7.7`.
+- `8a2cfe07f945b5bcc4e7cbd4928d42a6`: `androidx.profileinstaller.ProfileVerifier$Api33Impl.getPackageInfo`, `PackageInfoFlags.of` `NoSuchMethodError`. `1.7.8+`에서도 재발이 보고되어 default uncaught-exception handler containment만으로는 충분하지 않다. 앱 manifest는 `ProfileInstallerInitializer`만 AndroidX Startup에서 제거해 문제의 background verifier 경로를 시작하지 않아야 하며, WorkManager/EmojiCompat/ProcessLifecycle initializer는 유지한다.
 - `5c3f76729005f60fffa2beae30e770c7`: Compose font resolver `fontWeightAdjustment`, `NoSuchFieldError`, lastSeen `1.7.7`.
 - `25c2cd9145a68386d7ad14742a511544`: 2026-06-25 `postNewFatalIssueToDiscord` raw alert로 새로 확인된 fatal issue. Firebase Functions alert payload에는 stack/title/version 정보가 없어, release recurrence 판단 전에 Crashlytics Console/MCP에서 title, sample stack, affected version/events/users를 먼저 보강한다.
 
@@ -1246,6 +1246,7 @@ Issue #101의 최근 fatal topIssues에는 앱 코드 직접 line이 아니라 G
 cd <repo-root>
 ./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.MobileAdsStartupPolicyTest'
 ./gradlew :app:testDevDebugUnitTest --tests 'com.uiery.keep.BackgroundSdkCrashPolicyTest'
+python3 -m unittest scripts.tests.test_android_manifest_contract.AndroidManifestContractTest.test_profile_installer_startup_initializer_is_removed -v
 ```
 
 검증 기준:
@@ -1253,6 +1254,7 @@ cd <repo-root>
 - 광고 SDK 초기화는 첫 frame/post 이후 최소 1초 이상 지연된 lifecycle coroutine에서 실행한다.
 - Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
 - known SDK/platform mismatch는 main thread crash가 아닐 때만 containment 대상이다. 앱 코드 crash 또는 main thread crash는 기존 platform/Crashlytics handler로 위임한다.
+- Profile Installer API mismatch는 handler containment에만 의존하지 않고 merged manifest에서 `ProfileInstallerInitializer`가 제거되어 자동 실행 경로 자체가 없어야 한다.
 - Crashlytics MCP/Console에서 같은 ANR/fatal issue가 새 버전에 재발하는지는 release 후 별도 모니터링 경계로 남긴다.
 
 #### #101 release 후 Crashlytics recurrence evidence template
