@@ -1,7 +1,10 @@
 package com.uiery.keep.feature.onboarding
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.datastore.FirstPromiseStateReadResult
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
@@ -19,6 +22,8 @@ import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
@@ -30,6 +35,51 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingEntryViewModelTest {
+    @Test
+    fun malformedPersistedStateFailsClosedWithoutAssignmentWriteOrNavigation() = runBlocking {
+        val malformed = "{not-valid-json"
+        val dataStore = CountingDataStore(
+            mutablePreferencesOf(PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to malformed),
+        )
+        val viewModel = viewModel(
+            dataStore = dataStore,
+            snapshot = OnboardingExperimentSnapshot(
+                treatmentPercent = 100,
+                newAssignmentEnabled = true,
+                remoteReadable = true,
+            ),
+        )
+
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+        viewModel.resolve()
+        val emittedEffect = withTimeout(1_000L) { effect.await() }
+
+        assertEquals(OnboardingEntrySideEffect.StateCorrupted, emittedEffect)
+        assertFalse(emittedEffect is OnboardingEntrySideEffect.Navigate)
+        assertEquals(0, dataStore.updateCount)
+        assertEquals(malformed, dataStore.snapshot()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+        assertEquals(
+            FirstPromiseStateReadResult.Corrupted,
+            FirstPromiseDraftStore(dataStore).observeStateResult().first(),
+        )
+    }
+
+    @Test
+    fun absentPersistedStateIsAValidFreshInstallAndStillAssigns() = runBlocking {
+        val dataStore = FakeDataStore()
+
+        val effect = viewModel(
+            dataStore = dataStore,
+            snapshot = OnboardingExperimentSnapshot(
+                treatmentPercent = 100,
+                newAssignmentEnabled = true,
+                remoteReadable = true,
+            ),
+        ).resolveEntry()
+
+        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect), effect)
+        assertEquals(OnboardingVariant.PromiseCoachV1, FirstPromiseDraftStore(dataStore).readState().assignment)
+    }
     @Test
     fun entryPublishesOnlyOneRoutingDecision() = runBlocking {
         val viewModel = viewModel(state = assigned(OnboardingVariant.Control))
@@ -275,7 +325,7 @@ class OnboardingEntryViewModelTest {
     private fun viewModel(
         state: FirstPromiseOnboardingState = FirstPromiseOnboardingState(),
         snapshot: OnboardingExperimentSnapshot = OnboardingExperimentSnapshot(),
-        dataStore: FakeDataStore = stateDataStore(state),
+        dataStore: DataStore<Preferences> = stateDataStore(state),
     ) = OnboardingEntryViewModel(
         draftStore = FirstPromiseDraftStore(dataStore),
         experimentConfig = object : OnboardingExperimentConfig {
@@ -316,4 +366,21 @@ class OnboardingEntryViewModelTest {
         -> FirstPromiseScheduleState.Enabled
         else -> FirstPromiseScheduleState.DisabledExactAlarmMissing
     }
+}
+
+private class CountingDataStore(initial: Preferences) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
+    var updateCount: Int = 0
+        private set
+
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(
+        transform: suspend (Preferences) -> Preferences,
+    ): Preferences {
+        updateCount += 1
+        return transform(state.value).also { state.value = it }
+    }
+
+    fun snapshot(): Preferences = state.value
 }

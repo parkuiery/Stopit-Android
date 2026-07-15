@@ -8,16 +8,19 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navOptions
-import com.uiery.keep.feature.home.HomeRoute
+import com.uiery.keep.feature.home.navigateToHome
 import com.uiery.keep.feature.onboarding.Onboarding
 import org.orbitmvi.orbit.compose.collectSideEffect
 
 internal fun NavController.handleOnboardingEntrySideEffect(effect: OnboardingEntrySideEffect) {
     if (effect !is OnboardingEntrySideEffect.Navigate) return
-    navigate(
-        route = effect.destination.route(),
-        navOptions = onboardingEntryNavOptions(),
-    )
+    when (effect.destination.backStackPolicy()) {
+        OnboardingEntryBackStackPolicy.ClearRootForHome -> navigateToHome()
+        OnboardingEntryBackStackPolicy.RemoveEntry -> navigate(
+            route = effect.destination.route(),
+            navOptions = onboardingEntryNavOptions(),
+        )
+    }
 }
 
 internal fun onboardingEntryNavOptions(): NavOptions = navOptions {
@@ -53,5 +56,17 @@ private fun OnboardingEntryDestination.route(): Any = when (this) {
     OnboardingEntryDestination.PromiseAccessibility -> Onboarding.Route.PromiseAccessibility
     OnboardingEntryDestination.PromiseNotification -> Onboarding.Route.PromiseNotification
     OnboardingEntryDestination.PromiseResult -> Onboarding.Route.PromiseResult
-    OnboardingEntryDestination.Home -> HomeRoute
+    OnboardingEntryDestination.Home -> error("Home uses canonical root-clearing navigation")
 }
+
+internal enum class OnboardingEntryBackStackPolicy {
+    RemoveEntry,
+    ClearRootForHome,
+}
+
+internal fun OnboardingEntryDestination.backStackPolicy(): OnboardingEntryBackStackPolicy =
+    if (this == OnboardingEntryDestination.Home) {
+        OnboardingEntryBackStackPolicy.ClearRootForHome
+    } else {
+        OnboardingEntryBackStackPolicy.RemoveEntry
+    }

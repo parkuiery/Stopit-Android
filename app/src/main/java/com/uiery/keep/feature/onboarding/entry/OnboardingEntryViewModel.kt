@@ -2,6 +2,8 @@ package com.uiery.keep.feature.onboarding.entry
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.datastore.FirstPromiseStateCorruptedException
+import com.uiery.keep.datastore.FirstPromiseStateReadResult
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
@@ -55,12 +57,12 @@ class OnboardingEntryViewModel private constructor(
         intent {
             val snapshot = experimentSnapshot()
             val initialEffect = resolveEntry(snapshot)
-            val navigationEffect = if (initialEffect == OnboardingEntrySideEffect.WaitForPersistence) {
+            val finalEffect = if (initialEffect == OnboardingEntrySideEffect.WaitForPersistence) {
                 awaitPersistenceNavigation(snapshot)
             } else {
                 initialEffect
             }
-            postSideEffect(navigationEffect)
+            postSideEffect(finalEffect)
         }
     }
 
@@ -70,47 +72,65 @@ class OnboardingEntryViewModel private constructor(
     private suspend fun resolveEntry(
         snapshot: OnboardingExperimentSnapshot,
     ): OnboardingEntrySideEffect {
-        var state = draftStore.readState()
-        if (state.assignment == null) {
-            val assignment = OnboardingExperimentPolicy.assign(
-                snapshot = snapshot,
-                bucket = bucketProvider(),
-            )
-            state = draftStore.assignIfAbsent(
-                variant = assignment,
-                version = OnboardingAssignmentVersion.V1,
-            )
-        }
+        return try {
+            val initialRead = draftStore.readStateResult()
+            if (initialRead == FirstPromiseStateReadResult.Corrupted) {
+                return OnboardingEntrySideEffect.StateCorrupted
+            }
+            var state = (initialRead as FirstPromiseStateReadResult.Available).state
+            if (state.assignment == null) {
+                val assignment = OnboardingExperimentPolicy.assign(
+                    snapshot = snapshot,
+                    bucket = bucketProvider(),
+                )
+                state = draftStore.assignIfAbsent(
+                    variant = assignment,
+                    version = OnboardingAssignmentVersion.V1,
+                )
+            }
 
-        if (state.assignment != OnboardingVariant.PromiseCoachV1) {
-            return OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro)
-        }
+            if (state.assignment != OnboardingVariant.PromiseCoachV1) {
+                return OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro)
+            }
 
-        draftStore.recoverAfterRecreation()
-        state = draftStore.readState()
-        if (snapshot.emergencyDisabled) {
-            val emergency = draftStore.applyEmergency()
-            if (!emergency.navigationAllowed) {
+            draftStore.recoverAfterRecreation()
+            state = draftStore.readState()
+            if (snapshot.emergencyDisabled) {
+                val emergency = draftStore.applyEmergency()
+                if (!emergency.navigationAllowed) {
+                    return OnboardingEntrySideEffect.WaitForPersistence
+                }
+                state = emergency.state
+            }
+
+            if (state.phase == FirstPromisePhase.Persisting) {
                 return OnboardingEntrySideEffect.WaitForPersistence
             }
-            state = emergency.state
-        }
 
-        if (state.phase == FirstPromisePhase.Persisting) {
-            return OnboardingEntrySideEffect.WaitForPersistence
+            OnboardingEntrySideEffect.Navigate(
+                destination = OnboardingEntryRoutePolicy.destinationFor(state.phase),
+            )
+        } catch (_: FirstPromiseStateCorruptedException) {
+            OnboardingEntrySideEffect.StateCorrupted
         }
-
-        return OnboardingEntrySideEffect.Navigate(
-            destination = OnboardingEntryRoutePolicy.destinationFor(state.phase),
-        )
     }
 
     private suspend fun awaitPersistenceNavigation(
         snapshot: OnboardingExperimentSnapshot,
-    ): OnboardingEntrySideEffect.Navigate =
-        draftStore.observeState()
-            .filter { state -> state.phase != FirstPromisePhase.Persisting }
-            .mapNotNull { resolveEntry(snapshot) as? OnboardingEntrySideEffect.Navigate }
+    ): OnboardingEntrySideEffect =
+        draftStore.observeStateResult()
+            .mapNotNull { readResult ->
+                when (readResult) {
+                    FirstPromiseStateReadResult.Corrupted -> OnboardingEntrySideEffect.StateCorrupted
+                    is FirstPromiseStateReadResult.Available ->
+                        if (readResult.state.phase == FirstPromisePhase.Persisting) {
+                            null
+                        } else {
+                            resolveEntry(snapshot)
+                        }
+                }
+            }
+            .filter { effect -> effect != OnboardingEntrySideEffect.WaitForPersistence }
             .first()
 }
 
@@ -130,6 +150,7 @@ enum class OnboardingEntryDestination {
 sealed interface OnboardingEntrySideEffect {
     data class Navigate(val destination: OnboardingEntryDestination) : OnboardingEntrySideEffect
     data object WaitForPersistence : OnboardingEntrySideEffect
+    data object StateCorrupted : OnboardingEntrySideEffect
 }
 
 internal object OnboardingEntryRoutePolicy {

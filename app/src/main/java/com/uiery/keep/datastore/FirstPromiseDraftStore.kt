@@ -38,13 +38,16 @@ class FirstPromiseDraftStore @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private val commandMutex = Mutex()
 
-    suspend fun readState(): FirstPromiseOnboardingState =
-        decode(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+    suspend fun readStateResult(): FirstPromiseStateReadResult =
+        decodeResult(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
 
-    fun observeState(): Flow<FirstPromiseOnboardingState> =
+    suspend fun readState(): FirstPromiseOnboardingState =
+        readStateResult().requireAvailable()
+
+    fun observeStateResult(): Flow<FirstPromiseStateReadResult> =
         dataStore.data
             .map { preferences ->
-                decode(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+                decodeResult(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
             }
             .distinctUntilChanged()
 
@@ -257,6 +260,28 @@ class FirstPromiseDraftStore @Inject constructor(
     }
 
     private fun decode(value: String?): FirstPromiseOnboardingState =
-        value?.let { runCatching { json.decodeFromString<FirstPromiseOnboardingState>(it) }.getOrNull() }
-            ?: FirstPromiseOnboardingState()
+        decodeResult(value).requireAvailable()
+
+    private fun decodeResult(value: String?): FirstPromiseStateReadResult = when (value) {
+        null -> FirstPromiseStateReadResult.Available(FirstPromiseOnboardingState())
+        else -> runCatching { json.decodeFromString<FirstPromiseOnboardingState>(value) }
+            .fold(
+                onSuccess = FirstPromiseStateReadResult::Available,
+                onFailure = { FirstPromiseStateReadResult.Corrupted },
+            )
+    }
+}
+
+sealed interface FirstPromiseStateReadResult {
+    data class Available(val state: FirstPromiseOnboardingState) : FirstPromiseStateReadResult
+    data object Corrupted : FirstPromiseStateReadResult
+}
+
+class FirstPromiseStateCorruptedException : IllegalStateException(
+    "First-promise onboarding state could not be decoded",
+)
+
+private fun FirstPromiseStateReadResult.requireAvailable(): FirstPromiseOnboardingState = when (this) {
+    is FirstPromiseStateReadResult.Available -> state
+    FirstPromiseStateReadResult.Corrupted -> throw FirstPromiseStateCorruptedException()
 }
