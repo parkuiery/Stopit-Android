@@ -11,9 +11,9 @@ import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.data.usageinsight.UsageStatsGateway
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
-import com.uiery.keep.domain.firstpromise.PendingSystemAction
 import com.uiery.keep.domain.firstpromise.UsagePermissionLaunchState
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
+import com.uiery.keep.feature.onboarding.usageanalysis.FirstPromiseAnalysisTransientHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -49,8 +49,7 @@ class UsageAccessViewModel internal constructor(
     override val container: Container<UsageAccessUiState, UsageAccessSideEffect> = container(UsageAccessUiState())
     private val viewed = AtomicBoolean(false)
     private val completed = AtomicBoolean(false)
-    private val manualChosen = AtomicBoolean(false)
-    private val openingSettings = AtomicBoolean(false)
+    private val actionInFlight = AtomicBoolean(false)
     private val navigationPosted = AtomicBoolean(false)
     private var openedAttemptInProcess: Long? = null
 
@@ -61,14 +60,13 @@ class UsageAccessViewModel internal constructor(
     }
 
     fun openSettings(launcher: () -> UsageSettingsLaunchResult) {
-        if (!openingSettings.compareAndSet(false, true)) return
+        if (!actionInFlight.compareAndSet(false, true)) return
         viewModelScope.launch(workDispatcher) {
             val attemptId = (draftStore.readState().usagePermissionAttempt?.id ?: 0L) + 1L
-            if (!draftStore.beginUsagePermissionAttempt(attemptId)) {
-                openingSettings.set(false)
+            if (!draftStore.beginUsagePermissionSettingsAttempt(attemptId)) {
+                actionInFlight.set(false)
                 return@launch
             }
-            draftStore.setPendingSystemAction(PendingSystemAction.UsageAccess)
             val launchResult = try {
                 launcher()
             } catch (_: ActivityNotFoundException) {
@@ -81,12 +79,11 @@ class UsageAccessViewModel internal constructor(
                 intent { reduce { state.copy(settingsUnavailable = false) } }
                 trackPermission(AnalyticsOutcome.SETTINGS_OPENED)
             } else if (draftStore.recordUsagePermissionLaunchFailed(attemptId)) {
-                draftStore.clearPendingSystemAction()
                 intent { reduce { state.copy(settingsUnavailable = true) } }
                 trackPermission(AnalyticsOutcome.UNKNOWN)
-                openingSettings.set(false)
+                actionInFlight.set(false)
             } else {
-                openingSettings.set(false)
+                actionInFlight.set(false)
             }
         }
     }
@@ -95,18 +92,15 @@ class UsageAccessViewModel internal constructor(
         viewModelScope.launch(workDispatcher) {
             val attemptId = openedAttemptInProcess ?: return@launch
             openedAttemptInProcess = null
-            openingSettings.set(false)
             val outcome = draftStore.recordUsagePermissionResume(attemptId, permissionGranted(), sameProcess = true)
-            draftStore.clearPendingSystemAction()
             handleTerminalOutcome(outcome, trackNewOutcome = true)
+            actionInFlight.set(false)
         }
     }
 
     fun reconcileAfterRecreation() {
         viewModelScope.launch(workDispatcher) {
-            openingSettings.set(false)
             val outcome = draftStore.reconcileUsagePermissionAfterRecreation(permissionGranted())
-            draftStore.clearPendingSystemAction()
             val launchState = draftStore.readState().usagePermissionAttempt?.launchState
             if (
                 launchState == UsagePermissionLaunchState.LaunchFailed ||
@@ -120,16 +114,17 @@ class UsageAccessViewModel internal constructor(
     }
 
     fun chooseManual() {
-        if (!manualChosen.compareAndSet(false, true)) return
+        if (!actionInFlight.compareAndSet(false, true)) return
         viewModelScope.launch(workDispatcher) {
             val attemptId = (draftStore.readState().usagePermissionAttempt?.id ?: 0L) + 1L
-            if (draftStore.beginManualUsagePermissionAttempt(attemptId)) {
-                trackPermission(AnalyticsOutcome.SKIPPED)
-            }
-            val mutation = draftStore.chooseManualSetup()
+            val mutation = draftStore.chooseManualUsageAccess(attemptId)
             if (mutation is FirstPromiseStateMutation.Changed) {
+                trackPermission(AnalyticsOutcome.SKIPPED)
+                FirstPromiseAnalysisTransientHolder.clear()
                 completeOnce()
                 intent { postSideEffect(UsageAccessSideEffect.NavigateManualAppSelect) }
+            } else {
+                actionInFlight.set(false)
             }
         }
     }

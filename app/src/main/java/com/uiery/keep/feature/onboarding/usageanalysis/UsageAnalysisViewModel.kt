@@ -23,12 +23,16 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -46,6 +50,7 @@ class UsageAnalysisViewModel internal constructor(
     private val draftStore: FirstPromiseDraftStore,
     private val analyzeGoal: suspend (FirstPromiseGoal) -> OnboardingUsageProfileResult,
     private val dispatcher: CoroutineDispatcher,
+    private val analyzerScope: CoroutineScope,
     private val timeout: Duration,
     private val elapsedRealtimeMillis: () -> Long,
     private val draftId: () -> String,
@@ -65,6 +70,7 @@ class UsageAnalysisViewModel internal constructor(
             )
         },
         dispatcher = Dispatchers.IO,
+        analyzerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         timeout = 5.seconds,
         elapsedRealtimeMillis = { android.os.SystemClock.elapsedRealtime() },
         draftId = { UUID.randomUUID().toString() },
@@ -78,6 +84,7 @@ class UsageAnalysisViewModel internal constructor(
     }
 
     fun startAnalysis() {
+        FirstPromiseAnalysisTransientHolder.clear()
         viewModelScope.launch(dispatcher) {
             val attempt = attemptMutex.withLock {
                 val next = (draftStore.readState().analysisAttemptId ?: 0L) + 1L
@@ -91,19 +98,30 @@ class UsageAnalysisViewModel internal constructor(
         }
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private suspend fun runAttempt(attemptId: Long, goal: FirstPromiseGoal) {
         val startedAt = elapsedRealtimeMillis()
+        val deferred = analyzerScope.async { analyzeGoal(goal) }
         try {
-            when (val result = withTimeout(timeout) { analyzeGoal(goal) }) {
-                is OnboardingUsageProfileResult.Ready -> handleReady(attemptId, goal, result, startedAt)
-                is OnboardingUsageProfileResult.Insufficient -> fallback(
-                    attemptId = attemptId,
-                    coverage = OnboardingUsageProfilePolicy.coverageBucket(result.usageCoverageDays),
-                    latency = elapsedBucket(startedAt),
-                )
+            when (
+                val race = select<AnalysisRace> {
+                    deferred.onAwait { AnalysisRace.Completed(it) }
+                    onTimeout(timeout.inWholeMilliseconds) { AnalysisRace.TimedOut }
+                }
+            ) {
+                is AnalysisRace.Completed -> when (val result = race.result) {
+                    is OnboardingUsageProfileResult.Ready -> handleReady(attemptId, goal, result, startedAt)
+                    is OnboardingUsageProfileResult.Insufficient -> fallback(
+                        attemptId = attemptId,
+                        coverage = OnboardingUsageProfilePolicy.coverageBucket(result.usageCoverageDays),
+                        latency = elapsedBucket(startedAt),
+                    )
+                }
+                AnalysisRace.TimedOut -> {
+                    deferred.cancel()
+                    fallback(attemptId, UsageCoverageBucket.Zero, AnalysisLatencyBucket.Timeout)
+                }
             }
-        } catch (_: TimeoutCancellationException) {
-            fallback(attemptId, UsageCoverageBucket.Zero, AnalysisLatencyBucket.Timeout)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Exception) {
@@ -146,6 +164,7 @@ class UsageAnalysisViewModel internal constructor(
         latency: AnalysisLatencyBucket,
     ) {
         if (!draftStore.failAnalysis(attemptId)) return
+        FirstPromiseAnalysisTransientHolder.clear()
         analytics.trackUsageAnalysisCompleted(
             dataQuality = UsageDataQuality.Insufficient,
             patternType = UsagePatternType.Manual,
@@ -161,5 +180,15 @@ class UsageAnalysisViewModel internal constructor(
         in 0..999 -> AnalysisLatencyBucket.UnderOneSecond
         in 1_000..2_999 -> AnalysisLatencyBucket.OneToThreeSeconds
         else -> AnalysisLatencyBucket.ThreeToFiveSeconds
+    }
+
+    override fun onCleared() {
+        analyzerScope.cancel()
+        super.onCleared()
+    }
+
+    private sealed interface AnalysisRace {
+        data class Completed(val result: OnboardingUsageProfileResult) : AnalysisRace
+        data object TimedOut : AnalysisRace
     }
 }

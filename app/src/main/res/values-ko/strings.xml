@@ -464,4 +464,5 @@
     <string name="first_promise_usage_local_body">기기 내 로컬</string>
     <string name="first_promise_usage_unavailable">사용 정보 설정을 열지 못했어요. 다시 시도하거나 직접 설정할 수 있어요.</string>
     <string name="first_promise_analysis_title">최근 사용 패턴을 확인하고 있어요</string>
+    <string name="first_promise_analysis_status">사용 패턴 분석 중</string>
 </resources>

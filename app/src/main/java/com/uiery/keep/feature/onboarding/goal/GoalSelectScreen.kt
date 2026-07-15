@@ -15,7 +15,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,9 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
@@ -61,12 +64,10 @@ fun GoalSelectScreen(
                 modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    modifier = Modifier.padding(top = 36.dp),
+                    modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                     text = stringResource(R.string.first_promise_goal_title),
                     color = KeepTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 26.sp,
-                    lineHeight = 34.sp,
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(Modifier.height(24.dp))
                 Column(
@@ -118,13 +119,20 @@ private fun GoalOption(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RadioButton(selected = selected, onClick = null)
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = KeepTheme.colors.primary,
+                    unselectedColor = KeepTheme.colors.onSurfaceVariant,
+                ),
+            )
             Text(
                 modifier = Modifier.padding(start = 12.dp),
                 text = stringResource(label),
                 color = KeepTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp,
+                style = MaterialTheme.typography.titleMedium,
             )
         }
     }

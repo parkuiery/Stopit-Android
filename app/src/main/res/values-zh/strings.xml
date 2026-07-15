@@ -442,4 +442,5 @@
     <string name="first_promise_usage_local_body">仅在此设备本地处理</string>
     <string name="first_promise_usage_unavailable">无法打开使用情况设置。请重试，或自行设置你的首次约定。</string>
     <string name="first_promise_analysis_title">正在查看你近期的使用规律</string>
+    <string name="first_promise_analysis_status">正在分析使用情况</string>
 </resources>

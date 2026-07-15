@@ -74,6 +74,12 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun advanceToUsageAccess(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::advanceToUsageAccess)
 
+    suspend fun choosePersonalizedGoal(goal: FirstPromiseGoal): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.choosePersonalizedGoal(it, goal) }
+
+    suspend fun chooseManualGoal(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::chooseManualGoal)
+
     suspend fun completeUsageAccess(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::completeUsageAccess)
 
@@ -176,9 +182,16 @@ class FirstPromiseDraftStore @Inject constructor(
         applyMutation { FirstPromiseStatePolicy.beginUsagePermissionAttempt(it, attemptId) } is
             FirstPromiseStateMutation.Changed
 
+    suspend fun beginUsagePermissionSettingsAttempt(attemptId: Long): Boolean =
+        applyMutation { FirstPromiseStatePolicy.beginUsagePermissionSettingsAttempt(it, attemptId) } is
+            FirstPromiseStateMutation.Changed
+
     suspend fun beginManualUsagePermissionAttempt(attemptId: Long): Boolean =
         applyMutation { FirstPromiseStatePolicy.beginUsagePermissionAttempt(it, attemptId, manual = true) } is
             FirstPromiseStateMutation.Changed
+
+    suspend fun chooseManualUsageAccess(attemptId: Long): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.chooseManualUsageAccess(it, attemptId) }
 
     suspend fun recordUsagePermissionOpened(attemptId: Long): Boolean =
         applyMutation { FirstPromiseStatePolicy.markUsagePermissionOpened(it, attemptId) } is

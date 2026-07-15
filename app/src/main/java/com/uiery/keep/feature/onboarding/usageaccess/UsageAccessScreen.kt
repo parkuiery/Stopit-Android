@@ -3,6 +3,7 @@ package com.uiery.keep.feature.onboarding.usageaccess
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,17 +11,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +58,7 @@ fun UsageAccessScreen(
     val state by viewModel.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val unavailableRequester = remember { BringIntoViewRequester() }
     viewModel.collectSideEffect { effect ->
         when (effect) {
             UsageAccessSideEffect.NavigateUsageAnalysis -> onNavigateUsageAnalysis()
@@ -55,6 +68,9 @@ fun UsageAccessScreen(
     LaunchedEffect(viewModel) {
         viewModel.onStepViewed()
         viewModel.reconcileAfterRecreation()
+    }
+    LaunchedEffect(state.settingsUnavailable) {
+        if (state.settingsUnavailable) unavailableRequester.bringIntoView()
     }
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -68,17 +84,15 @@ fun UsageAccessScreen(
         Column(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp)) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 Text(
-                    modifier = Modifier.padding(top = 36.dp),
+                    modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                     text = stringResource(R.string.first_promise_usage_title),
                     color = KeepTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 26.sp,
-                    lineHeight = 34.sp,
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
                     modifier = Modifier.padding(top = 16.dp),
                     text = stringResource(R.string.first_promise_usage_value),
-                    color = KeepTheme.colors.onTertiaryContainer,
+                    color = KeepTheme.colors.onSurfaceVariant,
                     fontSize = 15.sp,
                     lineHeight = 22.sp,
                 )
@@ -91,13 +105,27 @@ fun UsageAccessScreen(
                     PrivacyLine(R.string.first_promise_usage_local_label, R.string.first_promise_usage_local_body)
                 }
                 if (state.settingsUnavailable) {
-                    Text(
-                        modifier = Modifier.padding(top = 16.dp),
-                        text = stringResource(R.string.first_promise_usage_unavailable),
-                        color = KeepTheme.colors.error,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                    )
+                    val message = stringResource(R.string.first_promise_usage_unavailable)
+                    Surface(
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .fillMaxWidth()
+                            .bringIntoViewRequester(unavailableRequester)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                error(message)
+                            },
+                        color = KeepTheme.colors.onSecondary,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, KeepTheme.colors.error),
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            text = message,
+                            color = KeepTheme.colors.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(24.dp))
             }
@@ -121,7 +149,7 @@ private fun PrivacyLine(label: Int, body: Int) {
     Text(
         modifier = Modifier.padding(top = 4.dp),
         text = stringResource(body),
-        color = KeepTheme.colors.onTertiaryContainer,
+        color = KeepTheme.colors.onSurfaceVariant,
         fontSize = 14.sp,
         lineHeight = 20.sp,
     )

@@ -444,4 +444,5 @@
     <string name="first_promise_usage_local_body">Lokaal op dit apparaat</string>
     <string name="first_promise_usage_unavailable">De gebruiksinstellingen konden niet worden geopend. Probeer opnieuw of stel je eerste afspraak zelf in.</string>
     <string name="first_promise_analysis_title">Je recente gebruikspatronen worden bekeken</string>
+    <string name="first_promise_analysis_status">Gebruik wordt geanalyseerd</string>
 </resources>

@@ -70,4 +70,36 @@ class GoalSelectViewModelTest {
                 analytics.calls.indexOfFirst { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) },
         )
     }
+
+    @Test
+    fun personalizedAndManualCrossTapsCommitOnlyTheFirstChoice() = runBlocking {
+        listOf(true, false).forEach { personalizedFirst ->
+            val analytics = FirstPromiseRecordingAnalytics()
+            val store = firstPromiseStore(FirstPromisePhase.GoalPending)
+            val viewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
+            val navigation = async { viewModel.container.sideEffectFlow.first() }
+            viewModel.onStepViewed()
+            viewModel.selectGoal(FirstPromiseGoal.Focus)
+            delay(10)
+
+            if (personalizedFirst) {
+                viewModel.continuePersonalized()
+                viewModel.chooseManual()
+            } else {
+                viewModel.chooseManual()
+                viewModel.continuePersonalized()
+            }
+
+            assertEquals(
+                if (personalizedFirst) GoalSelectSideEffect.NavigateUsageAccess else GoalSelectSideEffect.NavigateManualAppSelect,
+                navigation.await(),
+            )
+            val state = store.readState()
+            assertEquals(
+                if (personalizedFirst) FirstPromisePhase.UsageAccessPending else FirstPromisePhase.ManualSelectPending,
+                state.phase,
+            )
+            assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) })
+        }
+    }
 }

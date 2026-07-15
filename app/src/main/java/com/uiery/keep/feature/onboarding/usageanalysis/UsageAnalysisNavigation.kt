@@ -25,9 +25,9 @@ internal object FirstPromiseAnalysisTransientHolder {
 
     @Synchronized
     fun consume(draftId: String): Long? {
-        val value = proposal?.takeIf { it.draftId == draftId } ?: return null
+        val value = proposal ?: return null
         proposal = null
-        return value.averageDailyMinutes
+        return value.takeIf { it.draftId == draftId }?.averageDailyMinutes
     }
 
     @Synchronized

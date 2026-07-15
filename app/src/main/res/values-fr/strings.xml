@@ -444,4 +444,5 @@
     <string name="first_promise_usage_local_body">Localement sur cet appareil</string>
     <string name="first_promise_usage_unavailable">Impossible d’ouvrir les paramètres d’usage. Réessayez ou configurez vous-même votre premier engagement.</string>
     <string name="first_promise_analysis_title">Analyse de vos habitudes d’usage récentes</string>
+    <string name="first_promise_analysis_status">Analyse de l’usage en cours</string>
 </resources>

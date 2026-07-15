@@ -454,4 +454,5 @@
     <string name="first_promise_usage_local_body">Локально на этом устройстве</string>
     <string name="first_promise_usage_unavailable">Не удалось открыть настройки использования. Повторите попытку или настройте первое обещание вручную.</string>
     <string name="first_promise_analysis_title">Анализируем ваши недавние привычки использования</string>
+    <string name="first_promise_analysis_status">Анализируем использование</string>
 </resources>

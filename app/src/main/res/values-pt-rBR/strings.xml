@@ -444,4 +444,5 @@
     <string name="first_promise_usage_local_body">Localmente neste aparelho</string>
     <string name="first_promise_usage_unavailable">Não foi possível abrir as configurações de uso. Tente novamente ou configure seu primeiro compromisso.</string>
     <string name="first_promise_analysis_title">Analisando seus padrões de uso recentes</string>
+    <string name="first_promise_analysis_status">Analisando o uso</string>
 </resources>

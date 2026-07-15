@@ -438,9 +438,10 @@
     <string name="first_promise_usage_seen_label">Qué consultamos</string>
     <string name="first_promise_usage_seen_body">Tiempo por app, momentos de apertura y franjas recurrentes</string>
     <string name="first_promise_usage_not_seen_label">Qué nunca consultamos</string>
-    <string name="first_promise_usage_not_seen_body">Contenido de mensajes, texto escrito ni contenido de navegación</string>
+    <string name="first_promise_usage_not_seen_body">Contenido de mensajes, texto que escribes ni sitios web que visitas</string>
     <string name="first_promise_usage_local_label">Dónde se procesa</string>
     <string name="first_promise_usage_local_body">Localmente en este dispositivo</string>
     <string name="first_promise_usage_unavailable">No pudimos abrir los ajustes de uso. Inténtalo de nuevo o configura tu primer compromiso.</string>
     <string name="first_promise_analysis_title">Estamos revisando tus patrones de uso recientes</string>
+    <string name="first_promise_analysis_status">Analizando el uso</string>
 </resources>

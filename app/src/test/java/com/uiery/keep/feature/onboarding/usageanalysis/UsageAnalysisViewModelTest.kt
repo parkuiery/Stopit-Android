@@ -13,15 +13,20 @@ import com.uiery.keep.feature.onboarding.FirstPromiseAnalyticsCall
 import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.feature.onboarding.firstPromiseStore
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -103,6 +108,43 @@ class UsageAnalysisViewModelTest {
         assertEquals(null, FirstPromiseAnalysisTransientHolder.peek("draft-1"))
     }
 
+    @Test
+    fun timeoutDoesNotWaitForANonCooperativeAnalyzerAndIgnoresItsLateResult() = runBlocking {
+        val started = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(FirstPromisePhase.UsageAccessPending, FirstPromiseGoal.Focus)
+        val viewModel = viewModel(analytics, store, timeout = 30.milliseconds) {
+            started.countDown()
+            release.await()
+            ready(UsageDataQuality.Full, UsagePatternType.Night)
+        }
+        val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+        try {
+            viewModel.startAnalysis()
+            assertEquals(true, started.await(1, TimeUnit.SECONDS))
+            assertEquals(
+                UsageAnalysisSideEffect.NavigateManualAppSelect,
+                withTimeout(1_000) { navigation.await() },
+            )
+            assertEquals(FirstPromisePhase.ManualSelectPending, store.readState().phase)
+        } finally {
+            release.countDown()
+        }
+        delay(100)
+        assertEquals(1, analytics.calls.filterIsInstance<FirstPromiseAnalyticsCall.Analysis>().size)
+        assertNull(store.readState().draft)
+    }
+
+    @Test
+    fun draftMismatchDiscardsStaleTransientProposal() {
+        FirstPromiseAnalysisTransientHolder.store(TransientAnalysisProposal("old", 42))
+
+        assertNull(FirstPromiseAnalysisTransientHolder.consume("new"))
+        assertNull(FirstPromiseAnalysisTransientHolder.peek("old"))
+    }
+
     private fun viewModel(
         analytics: FirstPromiseRecordingAnalytics,
         store: com.uiery.keep.datastore.FirstPromiseDraftStore,
@@ -113,6 +155,7 @@ class UsageAnalysisViewModelTest {
         draftStore = store,
         analyzeGoal = { analyzer() },
         dispatcher = Dispatchers.Unconfined,
+        analyzerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         timeout = timeout,
         elapsedRealtimeMillis = AtomicLong(0)::getAndIncrement,
         draftId = { "draft-1" },

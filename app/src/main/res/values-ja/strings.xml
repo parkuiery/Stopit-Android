@@ -442,4 +442,5 @@
     <string name="first_promise_usage_local_body">この端末内のみ</string>
     <string name="first_promise_usage_unavailable">使用状況の設定を開けませんでした。もう一度試すか、自分で最初の約束を設定してください。</string>
     <string name="first_promise_analysis_title">最近の使用パターンを確認しています</string>
+    <string name="first_promise_analysis_status">使用状況を分析中</string>
 </resources>

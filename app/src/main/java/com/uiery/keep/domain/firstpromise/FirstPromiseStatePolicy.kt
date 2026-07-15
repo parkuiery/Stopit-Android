@@ -148,6 +148,31 @@ object FirstPromiseStatePolicy {
     fun advanceToUsageAccess(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         transition(state, FirstPromisePhase.UsageAccessPending)
 
+    fun choosePersonalizedGoal(
+        state: FirstPromiseOnboardingState,
+        goal: FirstPromiseGoal,
+    ): FirstPromiseStateMutation {
+        if (state.phase != FirstPromisePhase.GoalPending || goal == FirstPromiseGoal.Unspecified) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        return FirstPromiseStateMutation.Changed(
+            state.copy(
+                phase = FirstPromisePhase.UsageAccessPending,
+                goal = goal,
+                path = FirstPromisePath.Personalized,
+            ),
+        )
+    }
+
+    fun chooseManualGoal(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        if (state.phase == FirstPromisePhase.GoalPending) {
+            FirstPromiseStateMutation.Changed(
+                state.normalAnalysisFallback().copy(goal = FirstPromiseGoal.Unspecified),
+            )
+        } else {
+            FirstPromiseStateMutation.Rejected
+        }
+
     fun chooseManualSetup(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         when (state.phase) {
             FirstPromisePhase.ManualSelectPending -> FirstPromiseStateMutation.NoOp
@@ -481,6 +506,43 @@ object FirstPromiseStatePolicy {
         )
     }
 
+    fun beginUsagePermissionSettingsAttempt(
+        state: FirstPromiseOnboardingState,
+        attemptId: Long,
+    ): FirstPromiseStateMutation {
+        if (state.phase != FirstPromisePhase.UsageAccessPending) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val mutation = beginUsagePermissionAttempt(state, attemptId)
+        val next = (mutation as? FirstPromiseStateMutation.Changed)?.state
+            ?: return mutation
+        return FirstPromiseStateMutation.Changed(
+            next.copy(pendingSystemAction = PendingSystemAction.UsageAccess),
+        )
+    }
+
+    fun chooseManualUsageAccess(
+        state: FirstPromiseOnboardingState,
+        attemptId: Long,
+    ): FirstPromiseStateMutation {
+        val currentId = state.usagePermissionAttempt?.id
+        if (
+            state.phase != FirstPromisePhase.UsageAccessPending ||
+            (currentId != null && attemptId <= currentId)
+        ) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        return FirstPromiseStateMutation.Changed(
+            state.normalAnalysisFallback().copy(
+                usagePermissionAttempt = UsagePermissionAttempt(
+                    id = attemptId,
+                    launchState = UsagePermissionLaunchState.NotLaunched,
+                    terminalOutcome = UsagePermissionOutcome.Skipped,
+                ),
+            ),
+        )
+    }
+
     fun markUsagePermissionOpened(
         state: FirstPromiseOnboardingState,
         attemptId: Long,
@@ -516,6 +578,7 @@ object FirstPromiseStatePolicy {
                     launchState = UsagePermissionLaunchState.LaunchFailed,
                     terminalOutcome = UsagePermissionOutcome.Unknown,
                 ),
+                pendingSystemAction = null,
             ),
         )
     }
@@ -536,7 +599,10 @@ object FirstPromiseStatePolicy {
             else -> return FirstPromiseStateMutation.Rejected
         }
         return FirstPromiseStateMutation.Changed(
-            state.copy(usagePermissionAttempt = attempt.copy(terminalOutcome = outcome)),
+            state.copy(
+                usagePermissionAttempt = attempt.copy(terminalOutcome = outcome),
+                pendingSystemAction = null,
+            ),
         )
     }
 
@@ -545,7 +611,12 @@ object FirstPromiseStatePolicy {
         permissionGranted: Boolean,
     ): FirstPromiseStateMutation {
         val attempt = state.usagePermissionAttempt
-        if (attempt?.launchState != UsagePermissionLaunchState.Opened || attempt.terminalOutcome != null) {
+        val mayHaveOpened = attempt?.launchState == UsagePermissionLaunchState.Opened ||
+            (
+                state.pendingSystemAction == PendingSystemAction.UsageAccess &&
+                    attempt?.launchState == UsagePermissionLaunchState.NotLaunched
+            )
+        if (!mayHaveOpened || attempt.terminalOutcome != null) {
             return FirstPromiseStateMutation.NoOp
         }
         return FirstPromiseStateMutation.Changed(
@@ -555,6 +626,7 @@ object FirstPromiseStatePolicy {
                 } else {
                     attempt.copy(launchState = UsagePermissionLaunchState.UnresolvedAfterRecreation)
                 },
+                pendingSystemAction = null,
             ),
         )
     }

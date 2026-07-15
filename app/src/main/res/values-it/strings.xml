@@ -434,7 +434,7 @@
     <string name="first_promise_goal_free_time">Tempo libero</string>
     <string name="first_promise_check_pattern">Controlla le mie abitudini</string>
     <string name="first_promise_manual_setup">Preferisco configurare</string>
-    <string name="first_promise_usage_title">Troveremo le app e gli orari che richiami più spesso</string>
+    <string name="first_promise_usage_title">Troveremo le app e gli orari in cui tendi a prendere più spesso il telefono</string>
     <string name="first_promise_usage_value">Analizziamo sul dispositivo i dati di utilizzo recenti per proporti un primo impegno sostenibile.</string>
     <string name="first_promise_usage_seen_label">Cosa osserviamo</string>
     <string name="first_promise_usage_seen_body">Tempo per app, momenti di apertura e fasce ricorrenti</string>
@@ -444,4 +444,5 @@
     <string name="first_promise_usage_local_body">In locale su questo dispositivo</string>
     <string name="first_promise_usage_unavailable">Impossibile aprire le impostazioni di utilizzo. Riprova o configura personalmente il primo impegno.</string>
     <string name="first_promise_analysis_title">Stiamo controllando le tue abitudini di utilizzo recenti</string>
+    <string name="first_promise_analysis_status">Analisi dell’utilizzo in corso</string>
 </resources>

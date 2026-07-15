@@ -464,9 +464,10 @@
     <string name="first_promise_usage_seen_label">What we look at</string>
     <string name="first_promise_usage_seen_body">Time spent by app, when apps were opened, and recurring time periods</string>
     <string name="first_promise_usage_not_seen_label">What we never look at</string>
-    <string name="first_promise_usage_not_seen_body">Message contents, anything you type, or browsing contents</string>
+    <string name="first_promise_usage_not_seen_body">Message contents, anything you type, or websites you visit</string>
     <string name="first_promise_usage_local_label">Where it’s processed</string>
     <string name="first_promise_usage_local_body">Locally on this device</string>
     <string name="first_promise_usage_unavailable">We couldn’t open usage settings. Try again or set up your first promise yourself.</string>
     <string name="first_promise_analysis_title">Checking your recent usage patterns</string>
+    <string name="first_promise_analysis_status">Analyzing usage</string>
 </resources>

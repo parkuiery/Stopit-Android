@@ -126,6 +126,81 @@ class UsageAccessViewModelTest {
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.USAGE_ACCESS) })
         assertTrue(analytics.permissions(AnalyticsOutcome.GRANTED).isEmpty())
     }
+
+    @Test
+    fun settingsAndManualCrossTapsCommitOnlyTheFirstChoice() = runBlocking {
+        listOf(true, false).forEach { settingsFirst ->
+            val analytics = FirstPromiseRecordingAnalytics()
+            val store = firstPromiseStore(FirstPromisePhase.UsageAccessPending, FirstPromiseGoal.Focus)
+            val viewModel = UsageAccessViewModel(analytics, store, { true }, Dispatchers.Unconfined)
+            val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+            if (settingsFirst) {
+                viewModel.openSettings { UsageSettingsLaunchResult.Opened }
+                viewModel.chooseManual()
+                viewModel.onResume()
+            } else {
+                viewModel.chooseManual()
+                viewModel.openSettings { UsageSettingsLaunchResult.Opened }
+            }
+
+            assertEquals(
+                if (settingsFirst) UsageAccessSideEffect.NavigateUsageAnalysis else UsageAccessSideEffect.NavigateManualAppSelect,
+                withTimeout(1_000) { navigation.await() },
+            )
+            assertEquals(
+                if (settingsFirst) FirstPromisePhase.Analyzing else FirstPromisePhase.ManualSelectPending,
+                store.readState().phase,
+            )
+            assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.USAGE_ACCESS) })
+        }
+    }
+
+    @Test
+    fun unavailableSettingsCanBeRetried() = runBlocking {
+        val store = firstPromiseStore(FirstPromisePhase.UsageAccessPending, FirstPromiseGoal.Focus)
+        val viewModel = UsageAccessViewModel(FirstPromiseRecordingAnalytics(), store, { false }, Dispatchers.Unconfined)
+
+        viewModel.openSettings { UsageSettingsLaunchResult.Unavailable }
+        delay(10)
+        viewModel.openSettings { UsageSettingsLaunchResult.Opened }
+        delay(10)
+
+        assertEquals(2L, store.readState().usagePermissionAttempt?.id)
+        assertEquals(UsagePermissionLaunchState.Opened, store.readState().usagePermissionAttempt?.launchState)
+        assertEquals(PendingSystemAction.UsageAccess, store.readState().pendingSystemAction)
+    }
+
+    @Test
+    fun pendingNotLaunchedCrashWindowReconcilesPermissionWithoutClearingEvidenceEarly() = runBlocking {
+        listOf(true, false).forEach { granted ->
+            val state = FirstPromiseOnboardingState(
+                assignment = com.uiery.keep.domain.firstpromise.OnboardingVariant.PromiseCoachV1,
+                assignmentVersion = com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion.V1,
+                phase = FirstPromisePhase.UsageAccessPending,
+                goal = FirstPromiseGoal.Focus,
+                pendingSystemAction = PendingSystemAction.UsageAccess,
+                usagePermissionAttempt = UsagePermissionAttempt(7L, UsagePermissionLaunchState.NotLaunched),
+            )
+            val store = firstPromiseStore(state)
+            val viewModel = UsageAccessViewModel(FirstPromiseRecordingAnalytics(), store, { granted }, Dispatchers.Unconfined)
+
+            viewModel.reconcileAfterRecreation()
+            delay(10)
+
+            val reconciled = store.readState()
+            assertNull(reconciled.pendingSystemAction)
+            if (granted) {
+                assertEquals(UsagePermissionOutcome.Granted, reconciled.usagePermissionAttempt?.terminalOutcome)
+                assertEquals(FirstPromisePhase.Analyzing, reconciled.phase)
+            } else {
+                assertEquals(UsagePermissionLaunchState.UnresolvedAfterRecreation, reconciled.usagePermissionAttempt?.launchState)
+                assertNull(reconciled.usagePermissionAttempt?.terminalOutcome)
+                assertEquals(FirstPromisePhase.UsageAccessPending, reconciled.phase)
+                assertTrue(viewModel.container.stateFlow.value.settingsUnavailable)
+            }
+        }
+    }
 }
 
 private fun FirstPromiseRecordingAnalytics.permissions(outcome: String) = calls.filterIsInstance<FirstPromiseAnalyticsCall.Permission>().filter {

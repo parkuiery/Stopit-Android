@@ -7,10 +7,10 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
-import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.feature.onboarding.usageanalysis.FirstPromiseAnalysisTransientHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -45,6 +45,7 @@ class GoalSelectViewModel internal constructor(
     override val container: Container<GoalSelectUiState, GoalSelectSideEffect> = container(GoalSelectUiState())
     private val viewed = AtomicBoolean(false)
     private val completed = AtomicBoolean(false)
+    private val actionClaimed = AtomicBoolean(false)
     private val exposureResolved = CompletableDeferred<Boolean>()
 
     fun onStepViewed() {
@@ -69,23 +70,35 @@ class GoalSelectViewModel internal constructor(
     }
 
     fun continuePersonalized() = intent {
-        if (!exposureResolved.await()) return@intent
-        val goal = state.selectedGoal ?: return@intent
-        val selected = draftStore.selectGoal(goal, FirstPromisePath.Personalized)
-        val advanced = draftStore.advanceToUsageAccess()
-        if (selected !is FirstPromiseStateMutation.Rejected && advanced is FirstPromiseStateMutation.Changed) {
+        if (!actionClaimed.compareAndSet(false, true)) return@intent
+        if (!exposureResolved.await()) {
+            actionClaimed.set(false)
+            return@intent
+        }
+        val goal = state.selectedGoal ?: run {
+            actionClaimed.set(false)
+            return@intent
+        }
+        if (draftStore.choosePersonalizedGoal(goal) is FirstPromiseStateMutation.Changed) {
             completeOnce()
             postSideEffect(GoalSelectSideEffect.NavigateUsageAccess)
+        } else {
+            actionClaimed.set(false)
         }
     }
 
     fun chooseManual() = intent {
-        if (!exposureResolved.await()) return@intent
-        val selected = draftStore.selectGoal(FirstPromiseGoal.Unspecified, FirstPromisePath.Manual)
-        val advanced = draftStore.chooseManualSetup()
-        if (selected !is FirstPromiseStateMutation.Rejected && advanced is FirstPromiseStateMutation.Changed) {
+        if (!actionClaimed.compareAndSet(false, true)) return@intent
+        if (!exposureResolved.await()) {
+            actionClaimed.set(false)
+            return@intent
+        }
+        if (draftStore.chooseManualGoal() is FirstPromiseStateMutation.Changed) {
+            FirstPromiseAnalysisTransientHolder.clear()
             completeOnce()
             postSideEffect(GoalSelectSideEffect.NavigateManualAppSelect)
+        } else {
+            actionClaimed.set(false)
         }
     }
 

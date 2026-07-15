@@ -444,4 +444,5 @@
     <string name="first_promise_usage_local_body">Lokal auf diesem Gerät</string>
     <string name="first_promise_usage_unavailable">Die Nutzungseinstellungen konnten nicht geöffnet werden. Versuche es erneut oder richte dein erstes Versprechen selbst ein.</string>
     <string name="first_promise_analysis_title">Deine aktuellen Nutzungsmuster werden geprüft</string>
+    <string name="first_promise_analysis_status">Nutzungsmuster werden analysiert</string>
 </resources>
