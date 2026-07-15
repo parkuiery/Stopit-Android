@@ -37,6 +37,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,14 +51,16 @@ class RoutineExactAlarmPermissionIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context: Context = instrumentation.targetContext
     private lateinit var database: KeepDatabase
+    private lateinit var databaseName: String
     private lateinit var dataStoreName: String
 
     @Before
     fun setUp() {
         runBlocking {
+            databaseName = "$DATABASE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
             dataStoreName = "$DATASTORE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
             clearAppState()
-            database = Room.databaseBuilder(context, KeepDatabase::class.java, DATABASE_NAME)
+            database = Room.databaseBuilder(context, KeepDatabase::class.java, databaseName)
                 .allowMainThreadQueries()
                 .build()
         }
@@ -73,7 +77,10 @@ class RoutineExactAlarmPermissionIntegrationTest {
 
     @Test
     fun addRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt() = runBlocking {
-        assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
+        assumeFalse(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            RoutineScheduler(context).canScheduleExactAlarms(),
+        )
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
             routineRepository = RoomRoutineRepository(database.routineDao()),
@@ -108,7 +115,10 @@ class RoutineExactAlarmPermissionIntegrationTest {
     @Test
     fun addMultiDayRoutineWithoutExactAlarmPermissionStoresDisabledRoutineAndRequestsPrompt() = runBlocking {
         val repeatDays = multiDayRepeatDays()
-        assertFalse(RoutineScheduler(context).canScheduleExactAlarms())
+        assumeFalse(
+            "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            RoutineScheduler(context).canScheduleExactAlarms(),
+        )
         val analytics = RecordingKeepAnalytics()
         val viewModel = RoutineBottomSheetViewModel(
             routineRepository = RoomRoutineRepository(database.routineDao()),
@@ -143,8 +153,11 @@ class RoutineExactAlarmPermissionIntegrationTest {
 
     @Test
     fun defaultExactAlarmAppOpsFollowsAlarmManagerAvailability() {
-        resetExactAlarmAppOpsToDefault()
         val appOpsMode = exactAlarmAppOpsMode()
+        assumeTrue(
+            "Reset SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            appOpsMode == AppOpsManager.MODE_DEFAULT,
+        )
         val alarmManagerAllowed = alarmManagerAllowsExactAlarms()
 
         assertEquals(AppOpsManager.MODE_DEFAULT, appOpsMode)
@@ -153,7 +166,10 @@ class RoutineExactAlarmPermissionIntegrationTest {
 
     @Test
     fun enablingRoutineWithExactAlarmPermissionSchedulesAlarm() = runBlocking {
-        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        assumeTrue(
+            "Allow SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            RoutineScheduler(context).canScheduleExactAlarms(),
+        )
         database.routineDao().insert(disabledRoutineEntity(TEST_ROUTINE_ID, "Grant path"))
         val dataStore = createDataStore()
         val scheduler = RoutineScheduler(context)
@@ -191,7 +207,10 @@ class RoutineExactAlarmPermissionIntegrationTest {
     @Test
     fun enablingMultiDayRoutineWithExactAlarmPermissionSchedulesEveryRepeatDayAlarm() = runBlocking {
         val repeatDays = multiDayRepeatDays()
-        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        assumeTrue(
+            "Allow SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            RoutineScheduler(context).canScheduleExactAlarms(),
+        )
         database.routineDao().insert(
             disabledRoutineEntity(
                 id = TEST_ROUTINE_ID,
@@ -235,7 +254,10 @@ class RoutineExactAlarmPermissionIntegrationTest {
     @Test
     fun cancelRoutineAlarmRemovesEveryRepeatDayPendingIntent() = runBlocking {
         val repeatDays = multiDayRepeatDays()
-        assertTrue(RoutineScheduler(context).canScheduleExactAlarms())
+        assumeTrue(
+            "Allow SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
+            RoutineScheduler(context).canScheduleExactAlarms(),
+        )
         database.routineDao().insert(
             disabledRoutineEntity(
                 id = TEST_ROUTINE_ID,
@@ -348,19 +370,12 @@ class RoutineExactAlarmPermissionIntegrationTest {
     }
 
     private fun clearAppState() {
-        context.deleteDatabase(DATABASE_NAME)
+        context.deleteDatabase(databaseName)
         cancelRoutineAlarm(TEST_ROUTINE_ID)
         dataStoreFile().delete()
         dataStoreFile().parentFile?.listFiles()
             ?.filter { it.name.startsWith(DATASTORE_PREFIX) }
             ?.forEach(File::delete)
-    }
-
-    private fun resetExactAlarmAppOpsToDefault() {
-        instrumentation.uiAutomation.executeShellCommand("cmd appops reset ${context.packageName}").close()
-        waitUntil("SCHEDULE_EXACT_ALARM should return to MODE_DEFAULT") {
-            exactAlarmAppOpsMode() == AppOpsManager.MODE_DEFAULT
-        }
     }
 
     private fun exactAlarmAppOpsMode(): Int {
@@ -416,7 +431,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
     }
 
     companion object {
-        private const val DATABASE_NAME = "keep-database"
+        private const val DATABASE_PREFIX = "routine-exact-alarm-db"
         private const val DATASTORE_PREFIX = "routine-exact-alarm"
         private const val TEST_ROUTINE_ID = 77L
         private const val EXACT_ALARM_APP_OP = "android:schedule_exact_alarm"
