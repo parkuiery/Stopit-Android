@@ -94,11 +94,17 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun markMilestone(milestone: FirstPromiseMilestone): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.markMilestone(it, milestone) }
 
-    suspend fun storeDraft(
+    suspend fun createManualDraft(
         draft: FirstPromiseDraft,
         reason: RecommendationReasonRef,
     ): FirstPromiseStateMutation =
-        applyMutation { FirstPromiseStatePolicy.storeDraft(it, draft, reason) }
+        applyMutation { FirstPromiseStatePolicy.createManualDraft(it, draft, reason) }
+
+    suspend fun editDraft(
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.editDraft(it, draft, reason) }
 
     suspend fun setPendingSystemAction(action: PendingSystemAction): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.setPendingSystemAction(it, action) }

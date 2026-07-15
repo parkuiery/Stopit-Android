@@ -77,6 +77,7 @@ class FirstPromiseDraftStoreTest {
         val publicMethodNames = FirstPromiseDraftStore::class.java.methods.mapTo(mutableSetOf()) { it.name }
         assertFalse("transitionTo" in publicMethodNames)
         assertFalse("startAnalysis" in publicMethodNames)
+        assertFalse("storeDraft" in publicMethodNames)
 
         val dataStore = FirstPromiseFakeDataStore()
         val store = FirstPromiseDraftStore(dataStore)
@@ -113,7 +114,7 @@ class FirstPromiseDraftStoreTest {
         assertTrue(store.clearPendingSystemAction() is FirstPromiseStateMutation.Changed)
         assertTrue(store.beginUsageAnalysis(8L) is FirstPromiseStateMutation.Changed)
         assertTrue(store.completeAnalysis(8L, firstDraft, firstReason))
-        assertTrue(store.storeDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.editDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
         assertTrue(store.setPendingSystemAction(PendingSystemAction.Accessibility) is FirstPromiseStateMutation.Changed)
 
         val recreatedStore = FirstPromiseDraftStore(dataStore)
@@ -190,6 +191,77 @@ class FirstPromiseDraftStoreTest {
         assertTrue(store.completeAnalysis(8L, draft("current", 21 * 60), reason(21 * 60)))
         assertEquals(1, dataStore.editCount)
         assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+    }
+
+    @Test
+    fun draftCommandsRejectAnalyzingAndInvalidatedPersonalizedResultsWithoutWriting() = runBlocking {
+        val analyzing = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            path = FirstPromisePath.Personalized,
+            analysisAttemptId = 9L,
+            draft = null,
+            recommendationReasonRef = null,
+        )
+        val lateDraft = draft("late", 21 * 60)
+        val lateReason = reason(21 * 60)
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(analyzing))
+        val store = FirstPromiseDraftStore(dataStore)
+
+        assertEquals(FirstPromiseStateMutation.Rejected, store.createManualDraft(lateDraft, lateReason))
+        assertEquals(FirstPromiseStateMutation.Rejected, store.editDraft(lateDraft, lateReason))
+        assertEquals(0, dataStore.editCount)
+
+        val emergency = store.applyEmergency()
+        assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, emergency.action)
+        assertEquals(1, dataStore.editCount)
+
+        assertEquals(FirstPromiseStateMutation.Rejected, store.createManualDraft(lateDraft, lateReason))
+        assertEquals(FirstPromiseStateMutation.Rejected, store.editDraft(lateDraft, lateReason))
+        assertEquals(1, dataStore.editCount)
+    }
+
+    @Test
+    fun manualCreationAndExistingDraftEditEnforcePathSourceAndDraftIdentity() = runBlocking {
+        val manual = completeDraftState().copy(
+            phase = FirstPromisePhase.ManualSelectPending,
+            path = FirstPromisePath.Manual,
+            draft = null,
+            recommendationReasonRef = null,
+            pendingSystemAction = null,
+            analysisAttemptId = null,
+        )
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(manual))
+        val store = FirstPromiseDraftStore(dataStore)
+        val createdDraft = draft(
+            draftId = "manual-draft",
+            startMinutes = 21 * 60,
+            source = FirstPromiseSource.GoalTemplate,
+        )
+        val createdReason = reason(
+            startMinutes = 21 * 60,
+            patternType = UsagePatternType.TopApp,
+            isGoalDefault = true,
+        )
+
+        assertTrue(store.createManualDraft(createdDraft, createdReason) is FirstPromiseStateMutation.Changed)
+        assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+        assertEquals(1, dataStore.editCount)
+
+        val editedDraft = createdDraft.copy(startMinutes = 20 * 60)
+        val editedReason = createdReason.copy(selectedStartMinutes = 20 * 60)
+        assertTrue(store.editDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
+        assertEquals(editedDraft, store.readState().draft)
+        assertEquals(2, dataStore.editCount)
+
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            store.editDraft(editedDraft.copy(draftId = "different-draft"), editedReason),
+        )
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            store.editDraft(editedDraft.copy(source = FirstPromiseSource.Personalized), editedReason),
+        )
+        assertEquals(2, dataStore.editCount)
     }
 
     @Test
@@ -562,21 +634,29 @@ class FirstPromiseDraftStoreTest {
         analysisAttemptId = 8L,
     )
 
-    private fun draft(draftId: String, startMinutes: Int) = FirstPromiseDraft(
+    private fun draft(
+        draftId: String,
+        startMinutes: Int,
+        source: FirstPromiseSource = FirstPromiseSource.Personalized,
+    ) = FirstPromiseDraft(
         draftId = draftId,
         goal = FirstPromiseGoal.Sleep,
         packageName = "com.example.video",
         appLabel = "Video",
         startMinutes = startMinutes,
         repeatDays = setOf(1, 3, 5),
-        source = FirstPromiseSource.Personalized,
+        source = source,
     )
 
-    private fun reason(startMinutes: Int) = RecommendationReasonRef(
-        patternType = UsagePatternType.Night,
+    private fun reason(
+        startMinutes: Int,
+        patternType: UsagePatternType = UsagePatternType.Night,
+        isGoalDefault: Boolean = false,
+    ) = RecommendationReasonRef(
+        patternType = patternType,
         usageCoverageDays = 7,
         eventCoverageDays = 6,
-        isGoalDefault = false,
+        isGoalDefault = isGoalDefault,
         selectedStartMinutes = startMinutes,
     )
 

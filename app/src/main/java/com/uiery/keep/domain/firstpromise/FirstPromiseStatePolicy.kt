@@ -259,20 +259,48 @@ object FirstPromiseStatePolicy {
             )
         }
 
-    fun storeDraft(
+    fun createManualDraft(
         state: FirstPromiseOnboardingState,
         draft: FirstPromiseDraft,
         reason: RecommendationReasonRef,
     ): FirstPromiseStateMutation {
-        if (!draftMatchesState(state, draft, reason)) {
+        if (
+            state.phase != FirstPromisePhase.ManualSelectPending ||
+            state.path != FirstPromisePath.Manual ||
+            !sourceMatchesPath(state, draft.source) ||
+            !reasonMatchesManualSource(reason, draft.source) ||
+            !draftMatchesState(state, draft, reason)
+        ) {
             return FirstPromiseStateMutation.Rejected
         }
         val phaseMutation = transition(state, FirstPromisePhase.DraftReady)
-        if (phaseMutation is FirstPromiseStateMutation.Rejected) {
-            return phaseMutation
+        val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state
+            ?: return FirstPromiseStateMutation.Rejected
+        return FirstPromiseStateMutation.Changed(
+            phaseState.copy(draft = draft, recommendationReasonRef = reason),
+        )
+    }
+
+    fun editDraft(
+        state: FirstPromiseOnboardingState,
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): FirstPromiseStateMutation {
+        val currentDraft = state.draft
+        val currentReason = state.recommendationReasonRef
+        if (
+            state.phase != FirstPromisePhase.DraftReady ||
+            currentDraft == null ||
+            currentReason == null ||
+            draft.draftId != currentDraft.draftId ||
+            draft.source != currentDraft.source ||
+            !sourceMatchesPath(state, draft.source) ||
+            reason != currentReason.copy(selectedStartMinutes = draft.startMinutes) ||
+            !draftMatchesState(state, draft, reason)
+        ) {
+            return FirstPromiseStateMutation.Rejected
         }
-        val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state ?: state
-        val nextState = phaseState.copy(draft = draft, recommendationReasonRef = reason)
+        val nextState = state.copy(draft = draft, recommendationReasonRef = reason)
         return if (nextState == state) {
             FirstPromiseStateMutation.NoOp
         } else {
@@ -320,7 +348,12 @@ object FirstPromiseStatePolicy {
         draft: FirstPromiseDraft,
         reason: RecommendationReasonRef,
     ): FirstPromiseStateMutation {
-        if (!acceptsAnalysisAttempt(state, attemptId) || !draftMatchesState(state, draft, reason)) {
+        if (
+            !acceptsAnalysisAttempt(state, attemptId) ||
+            state.path != FirstPromisePath.Personalized ||
+            draft.source != FirstPromiseSource.Personalized ||
+            !draftMatchesState(state, draft, reason)
+        ) {
             return FirstPromiseStateMutation.Rejected
         }
         val phaseMutation = transition(state, FirstPromisePhase.DraftReady)
@@ -688,6 +721,29 @@ object FirstPromiseStatePolicy {
         reason: RecommendationReasonRef,
     ): Boolean =
         draft.goal == state.goal && reason.selectedStartMinutes == draft.startMinutes
+
+    private fun sourceMatchesPath(
+        state: FirstPromiseOnboardingState,
+        source: FirstPromiseSource,
+    ): Boolean = when (state.path) {
+        FirstPromisePath.Personalized -> source == FirstPromiseSource.Personalized
+        FirstPromisePath.Manual -> source == if (state.goal == FirstPromiseGoal.Unspecified) {
+            FirstPromiseSource.Manual
+        } else {
+            FirstPromiseSource.GoalTemplate
+        }
+    }
+
+    private fun reasonMatchesManualSource(
+        reason: RecommendationReasonRef,
+        source: FirstPromiseSource,
+    ): Boolean = when (source) {
+        FirstPromiseSource.GoalTemplate ->
+            reason.isGoalDefault && reason.patternType == UsagePatternType.TopApp
+        FirstPromiseSource.Manual ->
+            !reason.isGoalDefault && reason.patternType == UsagePatternType.Manual
+        FirstPromiseSource.Personalized -> false
+    }
 
     private fun transitionWithDraft(
         state: FirstPromiseOnboardingState,
