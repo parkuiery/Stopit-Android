@@ -11,6 +11,9 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -102,6 +105,7 @@ class BlockAnalyticsCoordinatorTest {
                 override suspend fun drainDraft(draftId: String) { order += "drain" }
                 override suspend fun cleanupSentRows() = Unit
                 override suspend fun creationEventsSent(draftId: String) = true
+                override suspend fun analyticsBarrierComplete(draftId: String) = true
             },
             directDelivery = RecordingDirectDelivery(order),
             nowMillis = { 86_400_000L },
@@ -113,9 +117,102 @@ class BlockAnalyticsCoordinatorTest {
     }
 
     @Test
+    fun outsideWindowSuppressesDirectEventsUntilCreationBarrierIsReady() = runBlocking {
+        val order = mutableListOf<String>()
+        val dispatcher = ToggleBarrierDispatcher(ready = false, order = order)
+        val store = RecordingAttributionStore(
+            routine = FirstPromiseAttribution("draft", FirstPromiseOrigin.FirstPromiseRoutine, 0L),
+            reservation = FirstPromiseValueReservation.OutsideWindow,
+        )
+        val coordinator = BlockAnalyticsCoordinator(
+            store,
+            { null },
+            FirstCoreActionDeliveryCoordinator({ false }, FakeMarker()),
+            dispatcher,
+            RecordingDirectDelivery(order),
+            { 86_400_000L },
+        )
+
+        val blocked = coordinator.track(
+            BlockAnalyticsRequest("com.example", AnalyticsBlockSource.ROUTINE, "1", null),
+        )
+        assertEquals(false, blocked.showFirstCoreActionFeedback)
+        assertEquals(listOf("drain"), order)
+
+        dispatcher.ready = true
+        val delivered = coordinator.track(
+            BlockAnalyticsRequest("com.example", AnalyticsBlockSource.ROUTINE, "1", null),
+        )
+        assertEquals(true, delivered.showFirstCoreActionFeedback)
+        assertEquals(
+            listOf("drain", "drain", "app_block_intercepted", "first_core_action_completed"),
+            order,
+        )
+    }
+
+    @Test
+    fun existingPendingValuePairSuppressesDirectRepeatUntilThirtyAndFortyAreSent() = runBlocking {
+        val order = mutableListOf<String>()
+        val dispatcher = ToggleBarrierDispatcher(ready = false, order = order)
+        val store = RecordingAttributionStore(
+            routine = FirstPromiseAttribution("draft", FirstPromiseOrigin.FirstPromiseRoutine, 0L),
+            reservation = FirstPromiseValueReservation.Existing(pending = true),
+            firstReserved = true,
+        )
+        val coordinator = BlockAnalyticsCoordinator(
+            store,
+            { null },
+            FirstCoreActionDeliveryCoordinator(store::hasFirstCoreActionReservation, FakeMarker()),
+            dispatcher,
+            RecordingDirectDelivery(order),
+            { 1_000L },
+        )
+
+        val blocked = coordinator.track(
+            BlockAnalyticsRequest("com.example", AnalyticsBlockSource.ROUTINE, "1", null),
+        )
+        assertEquals(false, blocked.showFirstCoreActionFeedback)
+        assertEquals(listOf("drain"), order)
+
+        dispatcher.ready = true
+        coordinator.track(BlockAnalyticsRequest("com.example", AnalyticsBlockSource.ROUTINE, "1", null))
+        assertEquals(listOf("drain", "drain", "app_block_intercepted", "core_action_completed"), order)
+    }
+
+    @Test
+    fun reconstructedCoordinatorUsesSharedDurableReservationAndSuppressesFirstFeedback() = runBlocking {
+        val sharedStore = RecordingAttributionStore(
+            routine = FirstPromiseAttribution("draft", FirstPromiseOrigin.FirstPromiseRoutine, 0L),
+        )
+        val firstProcess = coordinator(sharedStore, { null }, mutableListOf())
+        val first = firstProcess.track(
+            BlockAnalyticsRequest("com.example", AnalyticsBlockSource.ROUTINE, "1", null),
+        )
+        assertEquals(true, first.showFirstCoreActionFeedback)
+
+        val callsAfterRestart = mutableListOf<String>()
+        val reconstructed = BlockAnalyticsCoordinator(
+            sharedStore,
+            { null },
+            FirstCoreActionDeliveryCoordinator(sharedStore::hasFirstCoreActionReservation, FakeMarker()),
+            NoOpOutboxDispatcher,
+            RecordingDirectDelivery(callsAfterRestart),
+            { 2_000L },
+        )
+        val ordinary = reconstructed.track(
+            BlockAnalyticsRequest("com.other", AnalyticsBlockSource.MANUAL_KEEP, null, null),
+        )
+
+        assertEquals(false, ordinary.showFirstCoreActionFeedback)
+        assertEquals(listOf("app_block_intercepted", "core_action_completed"), callsAfterRestart)
+    }
+
+    @Test
     fun concurrentAttributableAndOrdinaryCallsExposeExactlyOneFirstFeedback() = runBlocking {
         val kinds = mutableListOf<FirstPromiseCoreActionKind>()
         var reserved = false
+        val firstReservationEntered = CountDownLatch(1)
+        val releaseFirstReservation = CountDownLatch(1)
         val store = object : FirstPromiseAttributionStore {
             override suspend fun findRoutineAttribution(routineId: Long) = FirstPromiseAttribution(
                 "draft-$routineId",
@@ -130,7 +227,11 @@ class BlockAnalyticsCoordinatorTest {
                 allowFirst: Boolean,
             ): FirstPromiseValueReservation {
                 val kind = if (allowFirst && !reserved) FirstPromiseCoreActionKind.First else FirstPromiseCoreActionKind.Repeat
-                if (kind == FirstPromiseCoreActionKind.First) reserved = true
+                if (kind == FirstPromiseCoreActionKind.First) {
+                    reserved = true
+                    firstReservationEntered.countDown()
+                    check(releaseFirstReservation.await(5, TimeUnit.SECONDS))
+                }
                 kinds += kind
                 return FirstPromiseValueReservation.Created(kind)
             }
@@ -145,11 +246,28 @@ class BlockAnalyticsCoordinatorTest {
             { 1_000L },
         )
 
-        val results = listOf(
-            async { coordinator.track(BlockAnalyticsRequest("a", AnalyticsBlockSource.ROUTINE, "1", null)) },
-            async { coordinator.track(BlockAnalyticsRequest("b", AnalyticsBlockSource.ROUTINE, "2", null)) },
-            async { coordinator.track(BlockAnalyticsRequest("c", AnalyticsBlockSource.MANUAL_KEEP, null, null)) },
-        ).awaitAll()
+        val first = async(Dispatchers.Default) {
+            coordinator.track(BlockAnalyticsRequest("a", AnalyticsBlockSource.ROUTINE, "1", null))
+        }
+        check(firstReservationEntered.await(5, TimeUnit.SECONDS))
+
+        val ready = CountDownLatch(2)
+        val start = CountDownLatch(1)
+        val requests = listOf(
+            BlockAnalyticsRequest("b", AnalyticsBlockSource.ROUTINE, "2", null),
+            BlockAnalyticsRequest("c", AnalyticsBlockSource.MANUAL_KEEP, null, null),
+        )
+        val jobs = requests.map { request ->
+            async(Dispatchers.Default) {
+                ready.countDown()
+                check(start.await(5, TimeUnit.SECONDS))
+                coordinator.track(request)
+            }
+        }
+        check(ready.await(5, TimeUnit.SECONDS))
+        start.countDown()
+        releaseFirstReservation.countDown()
+        val results = listOf(first.await()) + jobs.awaitAll()
 
         assertEquals(1, results.count { it.showFirstCoreActionFeedback })
         assertEquals(1, kinds.count { it == FirstPromiseCoreActionKind.First })
@@ -171,6 +289,7 @@ class BlockAnalyticsCoordinatorTest {
             override suspend fun drainDraft(draftId: String) { drains += draftId }
             override suspend fun cleanupSentRows() = Unit
             override suspend fun creationEventsSent(draftId: String) = true
+            override suspend fun analyticsBarrierComplete(draftId: String) = true
         },
         directDelivery = RecordingDirectDelivery(mutableListOf()),
         nowMillis = { 1_000L },
@@ -206,19 +325,36 @@ private class RecordingAttributionStore(
     private val routine: FirstPromiseAttribution? = null,
     private val draft: FirstPromiseAttribution? = null,
     private val reservation: FirstPromiseValueReservation? = null,
+    private var firstReserved: Boolean = false,
 ) : FirstPromiseAttributionStore {
     var reservedAttribution: FirstPromiseAttribution? = null
     override suspend fun findRoutineAttribution(routineId: Long) = routine
     override suspend fun findDraftAttribution(draftId: String, origin: FirstPromiseOrigin) = draft
-    override suspend fun hasFirstCoreActionReservation() = false
+    override suspend fun hasFirstCoreActionReservation() = firstReserved
     override suspend fun reserveValueEvents(
         attribution: FirstPromiseAttribution,
         input: FirstPromiseValueEventInput,
         allowFirst: Boolean,
     ): FirstPromiseValueReservation {
         reservedAttribution = attribution
-        return reservation ?: FirstPromiseValueReservation.Created(
-            if (allowFirst) FirstPromiseCoreActionKind.First else FirstPromiseCoreActionKind.Repeat,
-        )
+        if (reservation != null) return reservation
+        val kind = if (allowFirst && !firstReserved) {
+            firstReserved = true
+            FirstPromiseCoreActionKind.First
+        } else {
+            FirstPromiseCoreActionKind.Repeat
+        }
+        return FirstPromiseValueReservation.Created(kind)
     }
+}
+
+private class ToggleBarrierDispatcher(
+    var ready: Boolean,
+    private val order: MutableList<String>,
+) : FirstPromiseOutboxDispatcher {
+    override suspend fun drainAll() = Unit
+    override suspend fun drainDraft(draftId: String) { order += "drain" }
+    override suspend fun cleanupSentRows() = Unit
+    override suspend fun creationEventsSent(draftId: String) = ready
+    override suspend fun analyticsBarrierComplete(draftId: String) = ready
 }

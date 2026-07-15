@@ -249,6 +249,8 @@ class FirstPromiseRepository : FirstPromiseCreator, FirstPromiseAttributionStore
         allowFirst: Boolean,
     ): FirstPromiseValueReservation = storage.inTransaction {
         val mapping = findMapping(attribution.draftId) ?: return@inTransaction FirstPromiseValueReservation.OutsideWindow
+        // Sent rows are retained for 30 days, while reservation eligibility lasts less than one day.
+        // Therefore normal cleanup cannot remove this deduplication evidence while recreation is eligible.
         val existing = findOutbox(mapping.draftId).filter { it.sequence in setOf(30, 40) }
         if (existing.isNotEmpty()) {
             return@inTransaction FirstPromiseValueReservation.Existing(

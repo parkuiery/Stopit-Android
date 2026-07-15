@@ -117,14 +117,36 @@ class BlockAnalyticsCoordinator {
             }
             is FirstPromiseValueReservation.Existing -> {
                 if (reservation.pending) outboxDispatcher.drainDraft(attribution.draftId)
-                deliverDirect(request, attribution.origin, now, afterAppBlockTracked)
+                deliverDirectWhenBarrierReady(
+                    request,
+                    attribution,
+                    now,
+                    afterAppBlockTracked,
+                )
             }
             FirstPromiseValueReservation.OutsideWindow -> {
                 // This also enforces the pending 10/20 barrier before direct canonical delivery.
                 outboxDispatcher.drainDraft(attribution.draftId)
-                deliverDirect(request, attribution.origin, now, afterAppBlockTracked)
+                deliverDirectWhenBarrierReady(
+                    request,
+                    attribution,
+                    now,
+                    afterAppBlockTracked,
+                )
             }
         }
+    }
+
+    private suspend fun deliverDirectWhenBarrierReady(
+        request: BlockAnalyticsRequest,
+        attribution: FirstPromiseAttribution,
+        now: Long,
+        afterAppBlockTracked: () -> Unit,
+    ): BlockAnalyticsResult {
+        if (!outboxDispatcher.analyticsBarrierComplete(attribution.draftId)) {
+            return BlockAnalyticsResult(showFirstCoreActionFeedback = false)
+        }
+        return deliverDirect(request, attribution.origin, now, afterAppBlockTracked)
     }
 
     private suspend fun resolveAttribution(
@@ -233,6 +255,7 @@ internal object NoOpOutboxDispatcher : FirstPromiseOutboxDispatcher {
     override suspend fun drainDraft(draftId: String) = Unit
     override suspend fun cleanupSentRows() = Unit
     override suspend fun creationEventsSent(draftId: String) = true
+    override suspend fun analyticsBarrierComplete(draftId: String) = true
 }
 
 private fun BlockAnalyticsRequest.toDurableSource(): Pair<FirstPromiseBlockSource, FirstPromiseBlockingMode>? =

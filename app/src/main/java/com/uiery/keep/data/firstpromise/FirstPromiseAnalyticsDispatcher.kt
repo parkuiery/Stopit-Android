@@ -105,6 +105,9 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
         return true
     }
 
+    override suspend fun analyticsBarrierComplete(draftId: String): Boolean =
+        creationEventsSent(draftId) && store.valueEventsComplete(draftId)
+
     private suspend fun drainDraftUnlocked(draftId: String) {
         while (true) {
             val entity = store.nextDeliverable(draftId) ?: return
@@ -175,6 +178,7 @@ interface FirstPromiseOutboxDispatcher {
     suspend fun drainDraft(draftId: String)
     suspend fun cleanupSentRows()
     suspend fun creationEventsSent(draftId: String): Boolean
+    suspend fun analyticsBarrierComplete(draftId: String): Boolean = creationEventsSent(draftId)
 }
 
 internal interface FirstPromiseOutboxStore {
@@ -186,6 +190,7 @@ internal interface FirstPromiseOutboxStore {
     suspend fun creationEventsSent(draftId: String): Boolean
     suspend fun creationBarrierReadyDraftIds(): List<String>
     suspend fun hasSentFirstCoreAction(): Boolean = false
+    suspend fun valueEventsComplete(draftId: String): Boolean
 }
 
 private class RoomFirstPromiseOutboxStore(
@@ -203,4 +208,6 @@ private class RoomFirstPromiseOutboxStore(
     override suspend fun creationEventsSent(draftId: String): Boolean = dao.countSentCreationEvents(draftId) == 2
     override suspend fun creationBarrierReadyDraftIds(): List<String> = dao.findCreationBarrierReadyDraftIds()
     override suspend fun hasSentFirstCoreAction(): Boolean = dao.countSentFirstCoreActions() > 0
+    override suspend fun valueEventsComplete(draftId: String): Boolean =
+        dao.countIncompleteValueEvents(draftId) == 0
 }

@@ -181,6 +181,100 @@ class FirstPromiseAnalyticsDispatcherTest {
     }
 
     @Test
+    fun analyticsBarrierStaysIncompleteForPendingOrQuarantinedRequiredRows() = runBlocking {
+        val creation = creationRows("draft")
+        val pendingStore = FakeOutboxStore(
+            listOf(
+                creation[0].copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT),
+                creation[1],
+            ),
+        )
+        val pendingDispatcher = FirstPromiseAnalyticsDispatcher(
+            pendingStore,
+            codec,
+            DispatcherRecordingAnalytics(),
+            clock,
+        )
+        assertEquals(false, pendingDispatcher.analyticsBarrierComplete("draft"))
+
+        pendingStore.quarantine("draft", creation[1].eventName)
+        assertEquals(false, pendingDispatcher.analyticsBarrierComplete("draft"))
+    }
+
+    @Test
+    fun durableCreationBarrierRemainsReadyAfterCreationRowsAreCleaned() = runBlocking {
+        val barrier = FakeCreationBarrier().apply { completedDraftIds += "draft" }
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            FakeOutboxStore(emptyList()),
+            codec,
+            DispatcherRecordingAnalytics(),
+            clock,
+            creationBarrier = barrier,
+        )
+
+        assertEquals(true, dispatcher.analyticsBarrierComplete("draft"))
+    }
+
+    @Test
+    fun durableCreationBarrierDoesNotIgnoreQuarantinedValueRow() = runBlocking {
+        val barrier = FakeCreationBarrier().apply { completedDraftIds += "draft" }
+        val quarantined = valueRows("draft").first().copy(
+            deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_QUARANTINED,
+        )
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            FakeOutboxStore(listOf(quarantined)),
+            codec,
+            DispatcherRecordingAnalytics(),
+            clock,
+            creationBarrier = barrier,
+        )
+
+        assertEquals(false, dispatcher.analyticsBarrierComplete("draft"))
+    }
+
+    @Test
+    fun markSentFalseLeavesBarrierIncompleteAndPreventsValueOvertake() = runBlocking {
+        val rows = creationRows("draft").map {
+            it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT)
+        } + valueRows("draft")
+        val store = FakeOutboxStore(rows, returnFalseFromNextMark = true)
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            store,
+            codec,
+            DispatcherRecordingAnalytics(),
+            clock,
+        )
+
+        dispatcher.drainDraft("draft")
+
+        assertEquals(false, dispatcher.analyticsBarrierComplete("draft"))
+        assertEquals(FirstPromiseOutboxEventCodec.DELIVERY_PENDING, store.rows.first { it.sequence == 30 }.deliveryState)
+        assertEquals(FirstPromiseOutboxEventCodec.DELIVERY_PENDING, store.rows.first { it.sequence == 40 }.deliveryState)
+    }
+
+    @Test
+    fun sequenceThirtyFailureRetryAlwaysSendsThirtyBeforeForty() = runBlocking {
+        val rows = creationRows("draft").map {
+            it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT)
+        } + valueRows("draft")
+        val analytics = DispatcherRecordingAnalytics(failFirstLoggedEvent = true)
+        val dispatcher = FirstPromiseAnalyticsDispatcher(FakeOutboxStore(rows), codec, analytics, clock)
+
+        assertTrue(runCatching { dispatcher.drainDraft("draft") }.isFailure)
+        dispatcher.drainDraft("draft")
+
+        assertEquals(
+            listOf(
+                KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+                KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED,
+            ),
+            analytics.loggedEvents.map { it.first },
+        )
+        assertTrue(dispatcher.analyticsBarrierComplete("draft"))
+    }
+
+    @Test
     fun analyticsFailureLeavesPendingAndRetryMaySendAtLeastOnce() = runBlocking {
         val store = FakeOutboxStore(creationRows("draft"))
         val analytics = DispatcherRecordingAnalytics(failFirstCall = true)
@@ -352,6 +446,30 @@ class FirstPromiseAnalyticsDispatcherTest {
             2L,
         ),
     )
+
+    private fun valueRows(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> = listOf(
+        codec.encode(
+            draftId,
+            FirstPromiseOutboxEvent.AppBlockIntercepted(
+                FirstPromiseBlockSource.Routine,
+                FirstPromiseBlockingMode.Routine,
+                FirstPromiseAppCategoryBucket.Unknown,
+                FirstPromiseOrigin.FirstPromiseRoutine,
+            ),
+            3L,
+        ),
+        codec.encode(
+            draftId,
+            FirstPromiseOutboxEvent.CoreAction(
+                FirstPromiseCoreActionKind.First,
+                FirstPromiseBlockingMode.Routine,
+                FirstPromiseAppCategoryBucket.Unknown,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseOrigin.FirstPromiseRoutine,
+            ),
+            4L,
+        ),
+    )
 }
 
 internal class FakeOutboxStore(
@@ -450,6 +568,14 @@ internal class FakeOutboxStore(
             it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT
     }
 
+    override suspend fun valueEventsComplete(draftId: String): Boolean {
+        val draftRows = rows.filter { it.draftId == draftId }
+        return draftRows.none {
+            it.sequence in setOf(30, 40) &&
+                it.deliveryState != FirstPromiseOutboxEventCodec.DELIVERY_SENT
+        }
+    }
+
     private fun replace(
         draftId: String,
         eventName: String,
@@ -478,11 +604,16 @@ internal class FakeCreationBarrier : FirstPromiseCreationBarrier {
 private class DispatcherRecordingAnalytics(
     private var failFirstCall: Boolean = false,
     private var firstFailure: Throwable? = null,
+    private var failFirstLoggedEvent: Boolean = false,
 ) : KeepAnalytics {
     val calls = mutableListOf<String>()
     val loggedEvents = mutableListOf<Pair<String, Map<String, Any?>>>()
     override fun logEvent(name: String, params: Map<String, Any?>) {
         loggedEvents += name to params
+        if (failFirstLoggedEvent) {
+            failFirstLoggedEvent = false
+            error("analytics unavailable")
+        }
     }
     override fun logScreenView(screenName: String) = Unit
     override fun setUserProperty(name: String, value: String) = Unit

@@ -31,6 +31,12 @@ interface FirstPromiseAnalyticsOutboxDao {
     suspend fun countSentFirstCoreActions(): Int
 
     @Query(
+        "SELECT COUNT(*) FROM first_promise_analytics_outbox " +
+            "WHERE draft_id = :draftId AND sequence IN (30, 40) AND delivery_state != 'sent'",
+    )
+    suspend fun countIncompleteValueEvents(draftId: String): Int
+
+    @Query(
         "SELECT draft_id FROM first_promise_analytics_outbox " +
             "WHERE delivery_state = 'pending' GROUP BY draft_id " +
             "ORDER BY MIN(sequence), draft_id",
