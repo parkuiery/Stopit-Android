@@ -7,6 +7,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
@@ -194,6 +195,87 @@ class FirstPromiseRepositoryTest {
         assertTrue(store.routines.isEmpty())
     }
 
+    @Test
+    fun valueReservationUsesExclusiveDayBoundaryAndTypedBucketPayload() = runBlocking {
+        val store = FakeAtomicStore()
+        val repository = repository(store, scheduler(true, RoutineScheduleResult.Scheduled))
+        repository.createFirstPromise(draft, routine)
+        val attribution = repository.findRoutineAttribution(1L)!!
+
+        val inside = repository.reserveValueEvents(
+            attribution,
+            FirstPromiseValueEventInput(
+                FirstPromiseBlockSource.Routine,
+                FirstPromiseBlockingMode.Routine,
+                FirstPromiseAppCategoryBucket.Productivity,
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                attribution.createdAtMillis + 86_399_999L,
+            ),
+            allowFirst = true,
+        )
+
+        assertEquals(FirstPromiseValueReservation.Created(FirstPromiseCoreActionKind.First), inside)
+        assertEquals(listOf(10, 20, 30, 40), store.outbox.map { it.sequence })
+        val core = FirstPromiseOutboxEventCodec().decode(store.outbox.last()) as FirstPromiseOutboxEvent.CoreAction
+        assertEquals(FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes, core.elapsedBucket)
+        assertTrue(store.outbox.last().payloadJson.contains("elapsed_since_first_open_bucket"))
+        assertFalse(store.outbox.last().payloadJson.contains("elapsed_since_first_open_seconds"))
+    }
+
+    @Test
+    fun exactDayBoundaryCreatesNoValueRows() = runBlocking {
+        val store = FakeAtomicStore()
+        val repository = repository(store, scheduler(true, RoutineScheduleResult.Scheduled))
+        repository.createFirstPromise(draft, routine)
+        val attribution = repository.findRoutineAttribution(1L)!!
+
+        val result = repository.reserveValueEvents(
+            attribution,
+            FirstPromiseValueEventInput(
+                FirstPromiseBlockSource.Routine,
+                FirstPromiseBlockingMode.Routine,
+                FirstPromiseAppCategoryBucket.Unknown,
+                FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes,
+                attribution.createdAtMillis + 86_400_000L,
+            ),
+            allowFirst = true,
+        )
+
+        assertEquals(FirstPromiseValueReservation.OutsideWindow, result)
+        assertEquals(listOf(10, 20), store.outbox.map { it.sequence })
+    }
+
+    @Test
+    fun concurrentDraftReservationsSelectExactlyOneGlobalFirstCoreEvent() = runBlocking {
+        val store = FakeAtomicStore()
+        store.mappings += FirstPromiseEntity("a", 1L, "focus", "personalized", clock.millis())
+        store.mappings += FirstPromiseEntity("b", 2L, "focus", "personalized", clock.millis())
+        val repository = repository(store, scheduler(true, RoutineScheduleResult.Scheduled))
+        val input = FirstPromiseValueEventInput(
+            FirstPromiseBlockSource.Routine,
+            FirstPromiseBlockingMode.Routine,
+            FirstPromiseAppCategoryBucket.Unknown,
+            FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+            clock.millis(),
+        )
+
+        listOf("a", "b").map { id ->
+            async(Dispatchers.Default) {
+                repository.reserveValueEvents(
+                    FirstPromiseAttribution(id, FirstPromiseOrigin.FirstPromiseRoutine, clock.millis()),
+                    input,
+                    allowFirst = true,
+                )
+            }
+        }.awaitAll()
+
+        val coreKinds = store.outbox.filter { it.sequence == 40 }
+            .map { FirstPromiseOutboxEventCodec().decode(it) as FirstPromiseOutboxEvent.CoreAction }
+            .map { it.kind }
+        assertEquals(1, coreKinds.count { it == FirstPromiseCoreActionKind.First })
+        assertEquals(1, coreKinds.count { it == FirstPromiseCoreActionKind.Repeat })
+    }
+
     private fun repository(store: FirstPromiseRepositoryStorage, scheduler: RoutineScheduler) =
         FirstPromiseRepository(
             storage = store,
@@ -248,6 +330,12 @@ private class FakeAtomicStore(
 
     override suspend fun findOutbox(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> =
         outbox.filter { it.draftId == draftId }
+
+    override suspend fun hasFirstCoreActionReservation(): Boolean = outbox.any {
+        it.sequence == 40 &&
+            it.canonicalEventName == com.uiery.keep.analytics.KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED &&
+            it.deliveryState != FirstPromiseOutboxEventCodec.DELIVERY_QUARANTINED
+    }
 
     override suspend fun <T> inTransaction(block: suspend FirstPromiseRepositoryStorage.() -> T): T = mutex.withLock {
         val routineSnapshot = routines.toList()

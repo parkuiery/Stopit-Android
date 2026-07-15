@@ -8,6 +8,7 @@ import com.uiery.keep.database.mapper.toEntity
 import com.uiery.keep.database.mapper.toModel
 import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.model.RoutineModel
 import java.time.Clock
@@ -33,7 +34,38 @@ interface FirstPromiseCreator {
     suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult?
 }
 
-class FirstPromiseRepository : FirstPromiseCreator {
+data class FirstPromiseAttribution(
+    val draftId: String,
+    val origin: FirstPromiseOrigin,
+    val createdAtMillis: Long,
+)
+
+data class FirstPromiseValueEventInput(
+    val blockSource: FirstPromiseBlockSource,
+    val blockingMode: FirstPromiseBlockingMode,
+    val categoryBucket: FirstPromiseAppCategoryBucket,
+    val elapsedBucket: FirstPromiseElapsedSinceOpenBucket,
+    val occurredAtMillis: Long,
+)
+
+sealed interface FirstPromiseValueReservation {
+    data class Created(val kind: FirstPromiseCoreActionKind) : FirstPromiseValueReservation
+    data class Existing(val pending: Boolean) : FirstPromiseValueReservation
+    data object OutsideWindow : FirstPromiseValueReservation
+}
+
+interface FirstPromiseAttributionStore {
+    suspend fun findRoutineAttribution(routineId: Long): FirstPromiseAttribution?
+    suspend fun findDraftAttribution(draftId: String, origin: FirstPromiseOrigin): FirstPromiseAttribution?
+    suspend fun hasFirstCoreActionReservation(): Boolean
+    suspend fun reserveValueEvents(
+        attribution: FirstPromiseAttribution,
+        input: FirstPromiseValueEventInput,
+        allowFirst: Boolean,
+    ): FirstPromiseValueReservation
+}
+
+class FirstPromiseRepository : FirstPromiseCreator, FirstPromiseAttributionStore {
     private val storage: FirstPromiseRepositoryStorage
     private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator
     private val codec: FirstPromiseOutboxEventCodec
@@ -200,6 +232,65 @@ class FirstPromiseRepository : FirstPromiseCreator {
         }
     }
 
+    override suspend fun findRoutineAttribution(routineId: Long): FirstPromiseAttribution? =
+        storage.findMappingByRoutineId(routineId)?.toAttribution(FirstPromiseOrigin.FirstPromiseRoutine)
+
+    override suspend fun findDraftAttribution(
+        draftId: String,
+        origin: FirstPromiseOrigin,
+    ): FirstPromiseAttribution? = storage.findMapping(draftId)?.toAttribution(origin)
+
+    override suspend fun hasFirstCoreActionReservation(): Boolean =
+        storage.hasFirstCoreActionReservation()
+
+    override suspend fun reserveValueEvents(
+        attribution: FirstPromiseAttribution,
+        input: FirstPromiseValueEventInput,
+        allowFirst: Boolean,
+    ): FirstPromiseValueReservation = storage.inTransaction {
+        val mapping = findMapping(attribution.draftId) ?: return@inTransaction FirstPromiseValueReservation.OutsideWindow
+        val existing = findOutbox(mapping.draftId).filter { it.sequence in setOf(30, 40) }
+        if (existing.isNotEmpty()) {
+            return@inTransaction FirstPromiseValueReservation.Existing(
+                pending = existing.any { it.deliveryState != FirstPromiseOutboxEventCodec.DELIVERY_SENT },
+            )
+        }
+        if (!isWithinExclusiveValueWindow(mapping.createdAtMillis, input.occurredAtMillis)) {
+            return@inTransaction FirstPromiseValueReservation.OutsideWindow
+        }
+        val kind = if (allowFirst && !hasFirstCoreActionReservation()) {
+            FirstPromiseCoreActionKind.First
+        } else {
+            FirstPromiseCoreActionKind.Repeat
+        }
+        insertOutbox(
+            listOf(
+                codec.encode(
+                    mapping.draftId,
+                    FirstPromiseOutboxEvent.AppBlockIntercepted(
+                        blockSource = input.blockSource,
+                        blockingMode = input.blockingMode,
+                        categoryBucket = input.categoryBucket,
+                        promiseOrigin = attribution.origin,
+                    ),
+                    input.occurredAtMillis,
+                ),
+                codec.encode(
+                    mapping.draftId,
+                    FirstPromiseOutboxEvent.CoreAction(
+                        kind = kind,
+                        blockingMode = input.blockingMode,
+                        categoryBucket = input.categoryBucket,
+                        elapsedBucket = input.elapsedBucket,
+                        promiseOrigin = attribution.origin,
+                    ),
+                    input.occurredAtMillis,
+                ),
+            ),
+        )
+        FirstPromiseValueReservation.Created(kind)
+    }
+
     private suspend fun existingResult(mapping: FirstPromiseEntity): FirstPromiseCreationResult {
         val routine = storage.findRoutine(mapping.routineId)
         val creationEvent = storage.findOutbox(mapping.draftId)
@@ -221,11 +312,25 @@ class FirstPromiseRepository : FirstPromiseCreator {
     }
 }
 
+private fun FirstPromiseEntity.toAttribution(origin: FirstPromiseOrigin) = FirstPromiseAttribution(
+    draftId = draftId,
+    origin = origin,
+    createdAtMillis = createdAtMillis,
+)
+
+private const val FIRST_PROMISE_VALUE_WINDOW_MILLIS = 86_400_000L
+
+internal fun isWithinExclusiveValueWindow(createdAtMillis: Long, occurredAtMillis: Long): Boolean =
+    occurredAtMillis >= createdAtMillis &&
+        (createdAtMillis > Long.MAX_VALUE - FIRST_PROMISE_VALUE_WINDOW_MILLIS ||
+            occurredAtMillis < createdAtMillis + FIRST_PROMISE_VALUE_WINDOW_MILLIS)
+
 internal interface FirstPromiseRepositoryStorage {
     suspend fun findMapping(draftId: String): FirstPromiseEntity?
     suspend fun findMappingByRoutineId(routineId: Long): FirstPromiseEntity?
     suspend fun findRoutine(id: Long): RoutineModel
     suspend fun findOutbox(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> = emptyList()
+    suspend fun hasFirstCoreActionReservation(): Boolean = false
     suspend fun <T> inTransaction(block: suspend FirstPromiseRepositoryStorage.() -> T): T
     suspend fun insertRoutine(routine: RoutineModel): Long
     suspend fun updateRoutine(routine: RoutineModel)
@@ -246,6 +351,9 @@ private class RoomFirstPromiseRepositoryStorage(
 
     override suspend fun findOutbox(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> =
         database.firstPromiseAnalyticsOutboxDao().findByDraftId(draftId)
+
+    override suspend fun hasFirstCoreActionReservation(): Boolean =
+        database.firstPromiseAnalyticsOutboxDao().countFirstCoreActionReservations() > 0
 
     override suspend fun <T> inTransaction(block: suspend FirstPromiseRepositoryStorage.() -> T): T =
         database.withTransaction { block(this@RoomFirstPromiseRepositoryStorage) }

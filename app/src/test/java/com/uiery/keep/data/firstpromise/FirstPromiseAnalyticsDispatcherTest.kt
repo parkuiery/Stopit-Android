@@ -3,6 +3,10 @@ package com.uiery.keep.data.firstpromise
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsEvent
 import com.uiery.keep.analytics.KeepAnalyticsParam
+import com.uiery.keep.analytics.FirstCoreActionDeliveryCoordinator
+import com.uiery.keep.analytics.FirstCoreActionMarker
+import com.uiery.keep.analytics.FirstCoreActionMarkerState
+import com.uiery.keep.analytics.FirstCoreActionReservationStore
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.database.entity.FirstPromiseAnalyticsOutboxEntity
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
@@ -85,6 +89,95 @@ class FirstPromiseAnalyticsDispatcherTest {
         )
         assertEquals("1_5m", analytics.loggedEvents.last().second[KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET])
         assertTrue(analytics.loggedEvents.none { KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS in it.second })
+    }
+
+    @Test
+    fun sentFirstCoreRowReconcilesLegacyMarkerBeforeDrainAdvances() = runBlocking {
+        val rows = listOf(
+            codec.encode(
+                "draft",
+                FirstPromiseOutboxEvent.AppBlockIntercepted(
+                    FirstPromiseBlockSource.Routine,
+                    FirstPromiseBlockingMode.Routine,
+                    FirstPromiseAppCategoryBucket.Unknown,
+                    FirstPromiseOrigin.FirstPromiseRoutine,
+                ),
+                1L,
+            ),
+            codec.encode(
+                "draft",
+                FirstPromiseOutboxEvent.CoreAction(
+                    FirstPromiseCoreActionKind.First,
+                    FirstPromiseBlockingMode.Routine,
+                    FirstPromiseAppCategoryBucket.Unknown,
+                    FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                    FirstPromiseOrigin.FirstPromiseRoutine,
+                ),
+                2L,
+            ),
+        )
+        var marked = false
+        val marker = object : FirstCoreActionMarker {
+            override suspend fun read(nowMillis: Long) = FirstCoreActionMarkerState(7L, marked)
+            override suspend fun mark(firstOpenTimestampMillis: Long) { marked = true }
+        }
+        val coordinator = FirstCoreActionDeliveryCoordinator(
+            FirstCoreActionReservationStore { true },
+            marker,
+        )
+
+        FirstPromiseAnalyticsDispatcher(
+            FakeOutboxStore(rows),
+            codec,
+            DispatcherRecordingAnalytics(),
+            clock,
+            firstCoreActionCoordinator = coordinator,
+        ).drainDraft("draft")
+
+        assertTrue(marked)
+    }
+
+    @Test
+    fun markerFailureAfterSentFirstCoreIsReconciledOnRetryWithoutResending() = runBlocking {
+        val core = codec.encode(
+            "draft",
+            FirstPromiseOutboxEvent.CoreAction(
+                FirstPromiseCoreActionKind.First,
+                FirstPromiseBlockingMode.Routine,
+                FirstPromiseAppCategoryBucket.Unknown,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseOrigin.FirstPromiseRoutine,
+            ),
+            2L,
+        )
+        val store = FakeOutboxStore(listOf(core))
+        var attempts = 0
+        var marked = false
+        val marker = object : FirstCoreActionMarker {
+            override suspend fun read(nowMillis: Long) = FirstCoreActionMarkerState(7L, marked)
+            override suspend fun mark(firstOpenTimestampMillis: Long) {
+                attempts++
+                if (attempts == 1) error("datastore unavailable")
+                marked = true
+            }
+        }
+        val analytics = DispatcherRecordingAnalytics()
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            store,
+            codec,
+            analytics,
+            clock,
+            firstCoreActionCoordinator = FirstCoreActionDeliveryCoordinator(
+                FirstCoreActionReservationStore { true },
+                marker,
+            ),
+        )
+
+        assertTrue(runCatching { dispatcher.drainDraft("draft") }.isFailure)
+        dispatcher.drainDraft("draft")
+
+        assertTrue(marked)
+        assertEquals(1, analytics.loggedEvents.size)
     }
 
     @Test
@@ -350,6 +443,12 @@ internal class FakeOutboxStore(
         .filterValues { it == 2 }
         .keys
         .toList()
+
+    override suspend fun hasSentFirstCoreAction(): Boolean = rows.any {
+        it.sequence == 40 &&
+            it.canonicalEventName == KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED &&
+            it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT
+    }
 
     private fun replace(
         draftId: String,

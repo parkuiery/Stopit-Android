@@ -2,6 +2,7 @@ package com.uiery.keep.data.firstpromise
 
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsParam
+import com.uiery.keep.analytics.FirstCoreActionDeliveryCoordinator
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.database.dao.FirstPromiseAnalyticsOutboxDao
 import com.uiery.keep.database.entity.FirstPromiseAnalyticsOutboxEntity
@@ -24,6 +25,7 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
     private val clock: Clock
     private val creationBarrier: FirstPromiseCreationBarrier
     private val invalidPayloadReporter: (String) -> Unit
+    private val firstCoreActionCoordinator: FirstCoreActionDeliveryCoordinator?
     private val drainMutex = Mutex()
 
     @Inject
@@ -33,12 +35,14 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
         analytics: KeepAnalytics,
         clock: Clock,
         creationBarrier: FirstPromiseCreationBarrierStore,
+        firstCoreActionCoordinator: FirstCoreActionDeliveryCoordinator,
     ) {
         store = RoomFirstPromiseOutboxStore(dao)
         this.codec = codec
         this.analytics = analytics
         this.clock = clock
         this.creationBarrier = creationBarrier
+        this.firstCoreActionCoordinator = firstCoreActionCoordinator
         invalidPayloadReporter = { eventName ->
             AppLogger.debug(
                 tag = "FirstPromiseOutbox",
@@ -54,16 +58,19 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
         clock: Clock,
         invalidPayloadReporter: (String) -> Unit = {},
         creationBarrier: FirstPromiseCreationBarrier = InMemoryFirstPromiseCreationBarrier(),
+        firstCoreActionCoordinator: FirstCoreActionDeliveryCoordinator? = null,
     ) {
         this.store = store
         this.codec = codec
         this.analytics = analytics
         this.clock = clock
         this.creationBarrier = creationBarrier
+        this.firstCoreActionCoordinator = firstCoreActionCoordinator
         this.invalidPayloadReporter = invalidPayloadReporter
     }
 
     override suspend fun drainAll() = drainMutex.withLock {
+        reconcileSentFirstCoreAction()
         store.pendingDraftIds().forEach { draftId ->
             try {
                 drainDraftUnlocked(draftId)
@@ -76,6 +83,7 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
     }
 
     override suspend fun drainDraft(draftId: String) = drainMutex.withLock {
+        reconcileSentFirstCoreAction()
         drainDraftUnlocked(draftId)
     }
 
@@ -109,6 +117,17 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
 
             dispatch(event)
             if (!store.markSent(entity.draftId, entity.eventName, clock.millis())) return
+            if (event is FirstPromiseOutboxEvent.CoreAction &&
+                event.kind == FirstPromiseCoreActionKind.First
+            ) {
+                firstCoreActionCoordinator?.reconcileFirstDelivered(clock.millis())
+            }
+        }
+    }
+
+    private suspend fun reconcileSentFirstCoreAction() {
+        if (firstCoreActionCoordinator != null && store.hasSentFirstCoreAction()) {
+            firstCoreActionCoordinator.reconcileFirstDelivered(clock.millis())
         }
     }
 
@@ -166,6 +185,7 @@ internal interface FirstPromiseOutboxStore {
     suspend fun deleteSentBefore(cutoffMillis: Long, creationBarrierReadyDraftIds: List<String>)
     suspend fun creationEventsSent(draftId: String): Boolean
     suspend fun creationBarrierReadyDraftIds(): List<String>
+    suspend fun hasSentFirstCoreAction(): Boolean = false
 }
 
 private class RoomFirstPromiseOutboxStore(
@@ -182,4 +202,5 @@ private class RoomFirstPromiseOutboxStore(
         dao.deleteSentBefore(cutoffMillis, creationBarrierReadyDraftIds)
     override suspend fun creationEventsSent(draftId: String): Boolean = dao.countSentCreationEvents(draftId) == 2
     override suspend fun creationBarrierReadyDraftIds(): List<String> = dao.findCreationBarrierReadyDraftIds()
+    override suspend fun hasSentFirstCoreAction(): Boolean = dao.countSentFirstCoreActions() > 0
 }

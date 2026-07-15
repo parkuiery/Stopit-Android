@@ -17,6 +17,20 @@ interface FirstPromiseAnalyticsOutboxDao {
     suspend fun findByDraftId(draftId: String): List<FirstPromiseAnalyticsOutboxEntity>
 
     @Query(
+        "SELECT COUNT(*) FROM first_promise_analytics_outbox " +
+            "WHERE sequence = 40 AND canonical_event_name = 'first_core_action_completed' " +
+            "AND delivery_state != 'quarantined'",
+    )
+    suspend fun countFirstCoreActionReservations(): Int
+
+    @Query(
+        "SELECT COUNT(*) FROM first_promise_analytics_outbox " +
+            "WHERE sequence = 40 AND canonical_event_name = 'first_core_action_completed' " +
+            "AND delivery_state = 'sent'",
+    )
+    suspend fun countSentFirstCoreActions(): Int
+
+    @Query(
         "SELECT draft_id FROM first_promise_analytics_outbox " +
             "WHERE delivery_state = 'pending' GROUP BY draft_id " +
             "ORDER BY MIN(sequence), draft_id",
