@@ -31,6 +31,7 @@ import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
 import com.uiery.keep.feature.menu.navigateToMenu
+import com.uiery.keep.feature.onboarding.Onboarding
 import com.uiery.keep.feature.onboarding.navigateToOnboarding
 import com.uiery.keep.feature.onboarding.entry.handleOnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSetting
@@ -91,7 +92,8 @@ internal fun KeepApp(
             onNavigateHome = navController::navigateToHome,
             onNavigateUsageAccess = navController::navigateToUsageAccess,
             onNavigateUsageAnalysis = navController::navigateToUsageAnalysis,
-            onNavigateManualAppSelect = { navController.navigate(com.uiery.keep.feature.onboarding.Onboarding.Route.ManualAppSelect) },
+            onNavigateManualAppSelect = { navController.navigate(Onboarding.Route.ManualAppSelect) },
+            onNavigateManualPromiseProposal = { navController.navigate(Onboarding.Route.PromiseProposal) },
             onNavigatePromiseProposal = navController::navigateToPromiseProposal,
         )
         homeScreen(

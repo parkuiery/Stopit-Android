@@ -328,7 +328,11 @@ object FirstPromiseStatePolicy {
         val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state
             ?: return FirstPromiseStateMutation.Rejected
         return FirstPromiseStateMutation.Changed(
-            phaseState.copy(draft = draft, recommendationReasonRef = reason),
+            phaseState.copy(
+                draft = draft,
+                recommendationReasonRef = reason,
+                trackedMilestones = phaseState.trackedMilestones + FirstPromiseMilestone.AppSelection,
+            ),
         )
     }
 

@@ -81,6 +81,7 @@ fun NavGraphBuilder.onboarding(
     onNavigateUsageAccess: () -> Unit,
     onNavigateUsageAnalysis: () -> Unit,
     onNavigateManualAppSelect: () -> Unit,
+    onNavigateManualPromiseProposal: () -> Unit,
     onNavigatePromiseProposal: (TransientAnalysisProposal) -> Unit,
 ) {
     navigation<Onboarding.Route>(
@@ -90,7 +91,10 @@ fun NavGraphBuilder.onboarding(
         introScreen(onNavigatePermissionSetting = onNavigatePermissionSetting)
         permissionSettingScreen(onNavigateNotificationSetting = onNavigateNotificationSetting)
         notificationSettingScreen(onNavigateSelectApp = onNavigateSelectApp)
-        selectApp(onNavigateHome = onNavigateHome)
+        selectApp(
+            onNavigateHome = onNavigateHome,
+            onNavigateProposal = onNavigateManualPromiseProposal,
+        )
         goalSelectScreen(onNavigateUsageAccess, onNavigateManualAppSelect)
         usageAccessScreen(onNavigateUsageAnalysis, onNavigateManualAppSelect)
         usageAnalysisScreen(onNavigatePromiseProposal, onNavigateManualAppSelect)
