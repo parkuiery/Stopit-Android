@@ -100,7 +100,6 @@ object FirstPromiseStatePolicy {
         ),
         FirstPromisePhase.ResultDisabled to setOf(
             FirstPromisePhase.ResultDisabled,
-            FirstPromisePhase.ResultEnabled,
             FirstPromisePhase.CompletedDisabled,
         ),
         FirstPromisePhase.CompletedEnabled to setOf(FirstPromisePhase.CompletedEnabled),
@@ -651,18 +650,6 @@ object FirstPromiseStatePolicy {
             return FirstPromiseStateMutation.Changed(
                 state.copy(
                     phase = FirstPromisePhase.CompletedEnabled,
-                    scheduleState = FirstPromiseScheduleState.Enabled,
-                    pendingSystemAction = null,
-                ),
-            )
-        }
-        if (
-            state.phase == FirstPromisePhase.ResultDisabled &&
-            scheduleState == FirstPromiseScheduleState.Enabled
-        ) {
-            return FirstPromiseStateMutation.Changed(
-                state.copy(
-                    phase = FirstPromisePhase.ResultEnabled,
                     scheduleState = FirstPromiseScheduleState.Enabled,
                     pendingSystemAction = null,
                 ),

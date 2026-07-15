@@ -25,6 +25,8 @@ import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalTime
@@ -59,6 +61,36 @@ class PromiseResultViewModelTest {
         blocked.viewModel.awaitKind(PromiseResultKind.Enabled)
         assertFalse(blocked.viewModel.container.stateFlow.value.showPractice)
         assertTrue(blocked.viewModel.container.stateFlow.value.showScheduledGuidance)
+
+        val activeLock = fixture(
+            FirstPromisePhase.ResultEnabled,
+            FirstPromiseScheduleState.Enabled,
+            activeTimedLock = true,
+        )
+        activeLock.viewModel.load()
+        activeLock.viewModel.awaitKind(PromiseResultKind.Enabled)
+        assertFalse(activeLock.viewModel.container.stateFlow.value.showPractice)
+        assertTrue(activeLock.viewModel.container.stateFlow.value.showScheduledGuidance)
+    }
+
+    @Test
+    fun permissionRequiredLaterCompletesDisabledAndNavigatesHomeInOneAction() = runBlocking {
+        val fixture = fixture(
+            FirstPromisePhase.SchedulePermissionRequired,
+            FirstPromiseScheduleState.DisabledExactAlarmMissing,
+        )
+        fixture.viewModel.load()
+        fixture.viewModel.awaitKind(PromiseResultKind.PermissionRequired)
+        val navigation = async(start = CoroutineStart.UNDISPATCHED) {
+            fixture.viewModel.container.sideEffectFlow.first()
+        }
+
+        fixture.viewModel.continueLater()
+
+        assertEquals(PromiseResultSideEffect.NavigateHome, withTimeout(1_000) { navigation.await() })
+        assertEquals(FirstPromisePhase.CompletedDisabled, fixture.store.readState().phase)
+        assertEquals(FirstPromiseScheduleState.DisabledExactAlarmMissing, fixture.store.readState().scheduleState)
+        assertFalse(fixture.blockingStateStore.readIsNew())
     }
 
     @Test

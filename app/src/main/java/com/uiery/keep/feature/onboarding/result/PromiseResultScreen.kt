@@ -205,15 +205,10 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
         PromiseResultKind.Disabled -> {
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_enable),
-                enabled = !state.isBusy,
-                onClick = viewModel::requestExactAlarm,
-            )
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.first_promise_result_home),
                 enabled = !state.isBusy,
                 onClick = viewModel::continueHome,
-            ) { Text(stringResource(R.string.first_promise_result_later)) }
+            )
         }
         PromiseResultKind.PersistFailed -> {
             KeepButton(

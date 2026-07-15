@@ -168,7 +168,7 @@ class PromiseResultViewModel internal constructor(
         viewModelScope.launch(dispatcher) {
             actionMutex.withLock {
                 val state = draftStore.readState()
-                if (state.phase !in EXACT_ALARM_RESULT_PHASES) return@withLock
+                if (state.phase != FirstPromisePhase.SchedulePermissionRequired) return@withLock
                 if (canScheduleExactAlarms()) {
                     finalizeExisting(checkNotNull(state.routineId))
                 } else {
@@ -185,7 +185,7 @@ class PromiseResultViewModel internal constructor(
             actionMutex.withLock {
                 val state = draftStore.readState()
                 if (
-                    state.phase !in EXACT_ALARM_RESULT_PHASES ||
+                    state.phase != FirstPromisePhase.SchedulePermissionRequired ||
                     state.pendingSystemAction != PendingSystemAction.ExactAlarm
                 ) return@withLock
                 if (canScheduleExactAlarms()) {
@@ -207,7 +207,7 @@ class PromiseResultViewModel internal constructor(
                 if (state.phase == FirstPromisePhase.SchedulePermissionRequired) {
                     draftStore.resolveScheduleState(routineId, scheduleState)
                 }
-                refresh()
+                completeAndNavigate()
             }
         }
     }
@@ -326,12 +326,6 @@ class PromiseResultViewModel internal constructor(
         withContext(mainDispatcher) { intent { postSideEffect(effect) } }
     }
 
-    private companion object {
-        val EXACT_ALARM_RESULT_PHASES = setOf(
-            FirstPromisePhase.SchedulePermissionRequired,
-            FirstPromisePhase.ResultDisabled,
-        )
-    }
 }
 
 private fun String.toDaySet(): Set<Int> = mapIndexedNotNull { index, value ->
