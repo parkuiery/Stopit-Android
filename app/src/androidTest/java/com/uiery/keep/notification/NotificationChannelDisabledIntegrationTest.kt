@@ -24,6 +24,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.junit.After
+import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -34,6 +35,11 @@ import java.io.File
 import java.time.DayOfWeek
 import com.uiery.keep.testing.AndroidTestConditionWaiter
 
+/**
+ * Android restores a deleted channel when the same id is recreated, including IMPORTANCE_NONE.
+ * Keep this contract out of the shared instrumentation process and run it on an isolated install with
+ * `-Pandroid.testInstrumentationRunnerArguments.runDestructiveNotificationChannelContract=true`.
+ */
 @RunWith(AndroidJUnit4::class)
 class NotificationChannelDisabledIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -43,9 +49,17 @@ class NotificationChannelDisabledIntegrationTest {
     private lateinit var database: KeepDatabase
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var dataStoreName: String
+    private var destructiveContractEnabled = false
 
     @Before
     fun setUp() {
+        destructiveContractEnabled = InstrumentationRegistry.getArguments()
+            .getString(DESTRUCTIVE_CONTRACT_ARGUMENT)
+            ?.toBooleanStrictOrNull() == true
+        assumeTrue(
+            "notification channel importance cannot be restored inside the active instrumentation process",
+            destructiveContractEnabled,
+        )
         dataStoreName = "$DATASTORE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
         grantPostNotificationsPermission()
         grantExactAlarmPermission()
@@ -60,13 +74,10 @@ class NotificationChannelDisabledIntegrationTest {
 
     @After
     fun tearDown() {
+        if (!destructiveContractEnabled) return
         notificationManager.cancelAll()
-        notificationManager.deleteNotificationChannel(NotificationHelper.ROUTINE_CHANNEL_ID)
-        notificationManager.deleteNotificationChannel(EmergencyUnlockNotificationHelper.CHANNEL_ID)
         database.close()
         deleteDataStoreFiles()
-        NotificationHelper(context)
-        EmergencyUnlockNotificationHelper(context)
     }
 
     @Test
@@ -196,6 +207,8 @@ class NotificationChannelDisabledIntegrationTest {
     }
 
     private companion object {
+        private const val DESTRUCTIVE_CONTRACT_ARGUMENT =
+            "runDestructiveNotificationChannelContract"
         private const val ROUTINE_NOTIFICATION_ID = 556
         private const val DATASTORE_PREFIX = "notification-channel-disabled"
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek
