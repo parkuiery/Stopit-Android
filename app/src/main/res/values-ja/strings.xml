@@ -425,4 +425,21 @@
     <string name="usage_insight_surge_body">%1$sの利用時間が先週より%2$d%%増えました。</string>
     <string name="usage_insight_cta_create_routine">ルーティンを作成</string>
     <string name="usage_insight_dismiss">閉じる</string>
+    <string name="first_promise_goal_title">スマートフォンを置いて、どんな時間を取り戻したいですか？</string>
+    <string name="first_promise_goal_sleep">ぐっすり眠る</string>
+    <string name="first_promise_goal_focus">集中</string>
+    <string name="first_promise_goal_study">勉強</string>
+    <string name="first_promise_goal_free_time">ゆとりの時間</string>
+    <string name="first_promise_check_pattern">自分のパターンを確認</string>
+    <string name="first_promise_manual_setup">自分で設定する</string>
+    <string name="first_promise_usage_title">よく手に取るアプリと時間帯を見つけます</string>
+    <string name="first_promise_usage_value">最近の使用記録を端末内で分析し、守りやすい最初の約束を提案します。</string>
+    <string name="first_promise_usage_seen_label">確認する情報</string>
+    <string name="first_promise_usage_seen_body">アプリごとの使用時間、起動時刻、繰り返す時間帯</string>
+    <string name="first_promise_usage_not_seen_label">確認しない情報</string>
+    <string name="first_promise_usage_not_seen_body">メッセージ、入力内容、閲覧内容</string>
+    <string name="first_promise_usage_local_label">処理する場所</string>
+    <string name="first_promise_usage_local_body">この端末内のみ</string>
+    <string name="first_promise_usage_unavailable">使用状況の設定を開けませんでした。もう一度試すか、自分で最初の約束を設定してください。</string>
+    <string name="first_promise_analysis_title">最近の使用パターンを確認しています</string>
 </resources>

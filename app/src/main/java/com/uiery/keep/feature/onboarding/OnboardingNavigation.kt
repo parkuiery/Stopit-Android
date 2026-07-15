@@ -7,10 +7,13 @@ import androidx.navigation.navOptions
 import androidx.navigation.navigation
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.entry.onboardingEntry
+import com.uiery.keep.feature.onboarding.goal.goalSelectScreen
 import com.uiery.keep.feature.onboarding.intro.introScreen
 import com.uiery.keep.feature.onboarding.notification.notificationSettingScreen
 import com.uiery.keep.feature.onboarding.permission.permissionSettingScreen
 import com.uiery.keep.feature.onboarding.select.selectApp
+import com.uiery.keep.feature.onboarding.usageaccess.usageAccessScreen
+import com.uiery.keep.feature.onboarding.usageanalysis.usageAnalysisScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -74,6 +77,10 @@ fun NavGraphBuilder.onboarding(
     onNavigateNotificationSetting: () -> Unit,
     onNavigateSelectApp: () -> Unit,
     onNavigateHome: () -> Unit,
+    onNavigateUsageAccess: () -> Unit,
+    onNavigateUsageAnalysis: () -> Unit,
+    onNavigateManualAppSelect: () -> Unit,
+    onNavigatePromiseProposal: (Long) -> Unit,
 ) {
     navigation<Onboarding.Route>(
         startDestination = canonicalOnboardingStartDestination()
@@ -83,6 +90,9 @@ fun NavGraphBuilder.onboarding(
         permissionSettingScreen(onNavigateNotificationSetting = onNavigateNotificationSetting)
         notificationSettingScreen(onNavigateSelectApp = onNavigateSelectApp)
         selectApp(onNavigateHome = onNavigateHome)
+        goalSelectScreen(onNavigateUsageAccess, onNavigateManualAppSelect)
+        usageAccessScreen(onNavigateUsageAnalysis, onNavigateManualAppSelect)
+        usageAnalysisScreen(onNavigatePromiseProposal, onNavigateManualAppSelect)
     }
 }
 

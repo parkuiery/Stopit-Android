@@ -500,6 +500,8 @@ object OnboardingStepName {
     const val PERMISSION = "permission"
     const val NOTIFICATION = "notification"
     const val SELECT_APP = "select_app"
+    const val GOAL_SELECT = "goal_select"
+    const val USAGE_ACCESS = "usage_access"
 }
 
 object KeepAnalyticsScreen {
@@ -508,6 +510,9 @@ object KeepAnalyticsScreen {
     const val ONBOARDING_PERMISSION = "OnboardingPermissionScreen"
     const val ONBOARDING_NOTIFICATION = "OnboardingNotificationScreen"
     const val ONBOARDING_SELECT_APP = "OnboardingSelectAppScreen"
+    const val ONBOARDING_GOAL_SELECT = "OnboardingGoalSelectScreen"
+    const val ONBOARDING_USAGE_ACCESS = "OnboardingUsageAccessScreen"
+    const val ONBOARDING_USAGE_ANALYSIS = "OnboardingUsageAnalysisScreen"
     const val HOME = "HomeScreen"
     const val MENU = "MenuScreen"
     const val LOCK_HISTORY = "LockHistoryScreen"
@@ -528,6 +533,9 @@ object KeepAnalyticsScreen {
         ONBOARDING_PERMISSION,
         ONBOARDING_NOTIFICATION,
         ONBOARDING_SELECT_APP,
+        ONBOARDING_GOAL_SELECT,
+        ONBOARDING_USAGE_ACCESS,
+        ONBOARDING_USAGE_ANALYSIS,
         HOME,
         MENU,
         LOCK_HISTORY,
@@ -637,12 +645,15 @@ object AnalyticsEmergencyUnlockCancelSource {
 object AnalyticsPermissionName {
     const val ACCESSIBILITY = "accessibility"
     const val NOTIFICATIONS = "notifications"
+    const val USAGE_ACCESS = "usage_access"
 }
 
 object AnalyticsOutcome {
     const val GRANTED = "granted"
     const val DENIED = "denied"
     const val SETTINGS_OPENED = "settings_opened"
+    const val SKIPPED = "skipped"
+    const val UNKNOWN = "unknown"
 }
 
 object AnalyticsEndReason {

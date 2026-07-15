@@ -427,4 +427,21 @@
     <string name="usage_insight_surge_body">Em comparação com a semana passada, o seu tempo em %1$s aumentou %2$d%%.</string>
     <string name="usage_insight_cta_create_routine">Criar uma rotina</string>
     <string name="usage_insight_dismiss">Dispensar</string>
+    <string name="first_promise_goal_title">Que tempo quer recuperar ao pousar o telemóvel?</string>
+    <string name="first_promise_goal_sleep">Sono reparador</string>
+    <string name="first_promise_goal_focus">Concentração</string>
+    <string name="first_promise_goal_study">Estudo</string>
+    <string name="first_promise_goal_free_time">Tempo livre</string>
+    <string name="first_promise_check_pattern">Ver os meus padrões</string>
+    <string name="first_promise_manual_setup">Prefiro configurar</string>
+    <string name="first_promise_usage_title">Vamos encontrar as apps e os horários a que mais recorre</string>
+    <string name="first_promise_usage_value">Analisamos no dispositivo os registos de uso recentes para sugerir um primeiro compromisso realista.</string>
+    <string name="first_promise_usage_seen_label">O que analisamos</string>
+    <string name="first_promise_usage_seen_body">Tempo por app, momentos de abertura e períodos recorrentes</string>
+    <string name="first_promise_usage_not_seen_label">O que nunca analisamos</string>
+    <string name="first_promise_usage_not_seen_body">Conteúdo de mensagens, texto introduzido ou conteúdo de navegação</string>
+    <string name="first_promise_usage_local_label">Onde é processado</string>
+    <string name="first_promise_usage_local_body">Localmente neste dispositivo</string>
+    <string name="first_promise_usage_unavailable">Não foi possível abrir as definições de uso. Tente novamente ou configure o primeiro compromisso.</string>
+    <string name="first_promise_analysis_title">A analisar os seus padrões de uso recentes</string>
 </resources>

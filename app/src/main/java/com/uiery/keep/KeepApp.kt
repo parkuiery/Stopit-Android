@@ -37,6 +37,9 @@ import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSett
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
+import com.uiery.keep.feature.onboarding.usageaccess.navigateToUsageAccess
+import com.uiery.keep.feature.onboarding.usageanalysis.navigateToPromiseProposal
+import com.uiery.keep.feature.onboarding.usageanalysis.navigateToUsageAnalysis
 import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
 import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
@@ -86,6 +89,10 @@ internal fun KeepApp(
             onNavigateNotificationSetting = navController::navigateToNotificationSetting,
             onNavigateSelectApp = navController::navigateToSelectApp,
             onNavigateHome = navController::navigateToHome,
+            onNavigateUsageAccess = navController::navigateToUsageAccess,
+            onNavigateUsageAnalysis = navController::navigateToUsageAnalysis,
+            onNavigateManualAppSelect = { navController.navigate(com.uiery.keep.feature.onboarding.Onboarding.Route.ManualAppSelect) },
+            onNavigatePromiseProposal = { navController.navigateToPromiseProposal() },
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,

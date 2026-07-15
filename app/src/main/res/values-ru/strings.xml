@@ -437,4 +437,21 @@
     <string name="usage_insight_surge_body">Ваше время в %1$s выросло на %2$d%% по сравнению с прошлой неделей.</string>
     <string name="usage_insight_cta_create_routine">Создать рутину</string>
     <string name="usage_insight_dismiss">Закрыть</string>
+    <string name="first_promise_goal_title">Какое время вы хотите вернуть, отложив телефон?</string>
+    <string name="first_promise_goal_sleep">Крепкий сон</string>
+    <string name="first_promise_goal_focus">Сосредоточенность</string>
+    <string name="first_promise_goal_study">Учёба</string>
+    <string name="first_promise_goal_free_time">Свободное время</string>
+    <string name="first_promise_check_pattern">Посмотреть мои привычки</string>
+    <string name="first_promise_manual_setup">Настрою самостоятельно</string>
+    <string name="first_promise_usage_title">Мы найдём приложения и время, к которым вы чаще всего возвращаетесь</string>
+    <string name="first_promise_usage_value">Мы анализируем недавние данные об использовании на устройстве и предлагаем выполнимое первое обещание.</string>
+    <string name="first_promise_usage_seen_label">Что мы анализируем</string>
+    <string name="first_promise_usage_seen_body">Время в приложениях, моменты запуска и повторяющиеся периоды</string>
+    <string name="first_promise_usage_not_seen_label">Что мы никогда не анализируем</string>
+    <string name="first_promise_usage_not_seen_body">Содержание сообщений, введённый текст и содержимое страниц</string>
+    <string name="first_promise_usage_local_label">Где идёт обработка</string>
+    <string name="first_promise_usage_local_body">Локально на этом устройстве</string>
+    <string name="first_promise_usage_unavailable">Не удалось открыть настройки использования. Повторите попытку или настройте первое обещание вручную.</string>
+    <string name="first_promise_analysis_title">Анализируем ваши недавние привычки использования</string>
 </resources>

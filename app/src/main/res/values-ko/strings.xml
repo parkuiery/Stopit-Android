@@ -447,4 +447,21 @@
     <string name="usage_insight_surge_body">%1$s 사용 시간이 지난주보다 %2$d%% 늘었어요.</string>
     <string name="usage_insight_cta_create_routine">루틴 만들기</string>
     <string name="usage_insight_dismiss">닫기</string>
+    <string name="first_promise_goal_title">휴대폰을 내려놓고 어떤 시간을 되찾고 싶나요?</string>
+    <string name="first_promise_goal_sleep">숙면</string>
+    <string name="first_promise_goal_focus">집중</string>
+    <string name="first_promise_goal_study">공부</string>
+    <string name="first_promise_goal_free_time">여유</string>
+    <string name="first_promise_check_pattern">내 패턴 확인하기</string>
+    <string name="first_promise_manual_setup">직접 설정할게요</string>
+    <string name="first_promise_usage_title">자주 손이 가는 앱과 시간대를 찾아드릴게요</string>
+    <string name="first_promise_usage_value">최근 사용 기록을 기기 안에서 분석해 지킬 수 있는 첫 약속을 제안해요.</string>
+    <string name="first_promise_usage_seen_label">보는 정보</string>
+    <string name="first_promise_usage_seen_body">앱별 사용시간, 실행 시점, 반복 시간대</string>
+    <string name="first_promise_usage_not_seen_label">보지 않는 정보</string>
+    <string name="first_promise_usage_not_seen_body">메시지 내용, 입력 내용, 브라우징 내용</string>
+    <string name="first_promise_usage_local_label">처리 위치</string>
+    <string name="first_promise_usage_local_body">기기 내 로컬</string>
+    <string name="first_promise_usage_unavailable">사용 정보 설정을 열지 못했어요. 다시 시도하거나 직접 설정할 수 있어요.</string>
+    <string name="first_promise_analysis_title">최근 사용 패턴을 확인하고 있어요</string>
 </resources>

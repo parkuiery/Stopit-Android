@@ -163,6 +163,9 @@ object FirstPromiseStatePolicy {
         state: FirstPromiseOnboardingState,
         attemptId: Long,
     ): FirstPromiseStateMutation {
+        if (state.phase == FirstPromisePhase.Analyzing) {
+            return beginAnalysisAttempt(state, attemptId)
+        }
         if (
             state.phase != FirstPromisePhase.UsageAccessPending ||
             state.goal == FirstPromiseGoal.Unspecified ||

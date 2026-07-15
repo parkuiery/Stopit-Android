@@ -427,4 +427,21 @@
     <string name="usage_insight_surge_body">Par rapport à la semaine dernière, ton temps sur %1$s a augmenté de %2$d%%.</string>
     <string name="usage_insight_cta_create_routine">Créer une routine</string>
     <string name="usage_insight_dismiss">Ignorer</string>
+    <string name="first_promise_goal_title">Quel temps souhaitez-vous retrouver en posant votre téléphone ?</string>
+    <string name="first_promise_goal_sleep">Sommeil réparateur</string>
+    <string name="first_promise_goal_focus">Concentration</string>
+    <string name="first_promise_goal_study">Étude</string>
+    <string name="first_promise_goal_free_time">Temps libre</string>
+    <string name="first_promise_check_pattern">Voir mes habitudes</string>
+    <string name="first_promise_manual_setup">Je préfère configurer</string>
+    <string name="first_promise_usage_title">Nous trouverons les apps et les horaires qui vous attirent le plus</string>
+    <string name="first_promise_usage_value">Nous analysons localement les données d’usage récentes pour proposer un premier engagement réaliste.</string>
+    <string name="first_promise_usage_seen_label">Ce que nous regardons</string>
+    <string name="first_promise_usage_seen_body">Temps par app, heures d’ouverture et créneaux récurrents</string>
+    <string name="first_promise_usage_not_seen_label">Ce que nous ne regardons jamais</string>
+    <string name="first_promise_usage_not_seen_body">Contenu des messages, saisies ou contenu de navigation</string>
+    <string name="first_promise_usage_local_label">Lieu du traitement</string>
+    <string name="first_promise_usage_local_body">Localement sur cet appareil</string>
+    <string name="first_promise_usage_unavailable">Impossible d’ouvrir les paramètres d’usage. Réessayez ou configurez vous-même votre premier engagement.</string>
+    <string name="first_promise_analysis_title">Analyse de vos habitudes d’usage récentes</string>
 </resources>

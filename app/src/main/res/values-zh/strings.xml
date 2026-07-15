@@ -425,4 +425,21 @@
     <string name="usage_insight_surge_body">你在%1$s上的使用时长比上周增长了%2$d%%。</string>
     <string name="usage_insight_cta_create_routine">创建例程</string>
     <string name="usage_insight_dismiss">关闭</string>
+    <string name="first_promise_goal_title">放下手机后，你想找回怎样的时间？</string>
+    <string name="first_promise_goal_sleep">安稳睡眠</string>
+    <string name="first_promise_goal_focus">专注</string>
+    <string name="first_promise_goal_study">学习</string>
+    <string name="first_promise_goal_free_time">闲暇</string>
+    <string name="first_promise_check_pattern">查看我的使用规律</string>
+    <string name="first_promise_manual_setup">我自己设置</string>
+    <string name="first_promise_usage_title">帮你找出最常打开的应用和时段</string>
+    <string name="first_promise_usage_value">我们会在设备上分析近期使用记录，为你提出一个能够坚持的首次约定。</string>
+    <string name="first_promise_usage_seen_label">我们会查看</string>
+    <string name="first_promise_usage_seen_body">各应用使用时长、打开时间和重复出现的时段</string>
+    <string name="first_promise_usage_not_seen_label">我们绝不会查看</string>
+    <string name="first_promise_usage_not_seen_body">消息内容、输入内容或浏览内容</string>
+    <string name="first_promise_usage_local_label">处理位置</string>
+    <string name="first_promise_usage_local_body">仅在此设备本地处理</string>
+    <string name="first_promise_usage_unavailable">无法打开使用情况设置。请重试，或自行设置你的首次约定。</string>
+    <string name="first_promise_analysis_title">正在查看你近期的使用规律</string>
 </resources>

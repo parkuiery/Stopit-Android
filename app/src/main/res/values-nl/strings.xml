@@ -427,4 +427,21 @@
     <string name="usage_insight_surge_body">Ten opzichte van vorige week steeg je tijd op %1$s met %2$d%%.</string>
     <string name="usage_insight_cta_create_routine">Routine maken</string>
     <string name="usage_insight_dismiss">Sluiten</string>
+    <string name="first_promise_goal_title">Welke tijd wil je terugwinnen door je telefoon weg te leggen?</string>
+    <string name="first_promise_goal_sleep">Goede nachtrust</string>
+    <string name="first_promise_goal_focus">Focus</string>
+    <string name="first_promise_goal_study">Studeren</string>
+    <string name="first_promise_goal_free_time">Vrije tijd</string>
+    <string name="first_promise_check_pattern">Mijn patronen bekijken</string>
+    <string name="first_promise_manual_setup">Ik stel het zelf in</string>
+    <string name="first_promise_usage_title">We vinden de apps en momenten waar je vaak naar grijpt</string>
+    <string name="first_promise_usage_value">We analyseren recente gebruiksgegevens op je apparaat om een haalbare eerste afspraak voor te stellen.</string>
+    <string name="first_promise_usage_seen_label">Wat we bekijken</string>
+    <string name="first_promise_usage_seen_body">Tijd per app, openingsmomenten en terugkerende tijdvakken</string>
+    <string name="first_promise_usage_not_seen_label">Wat we nooit bekijken</string>
+    <string name="first_promise_usage_not_seen_body">Inhoud van berichten, getypte tekst of browse-inhoud</string>
+    <string name="first_promise_usage_local_label">Waar de verwerking gebeurt</string>
+    <string name="first_promise_usage_local_body">Lokaal op dit apparaat</string>
+    <string name="first_promise_usage_unavailable">De gebruiksinstellingen konden niet worden geopend. Probeer opnieuw of stel je eerste afspraak zelf in.</string>
+    <string name="first_promise_analysis_title">Je recente gebruikspatronen worden bekeken</string>
 </resources>

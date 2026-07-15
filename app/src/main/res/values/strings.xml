@@ -452,4 +452,21 @@
     <string name="usage_insight_surge_body">Compared to last week, your time on %1$s grew %2$d%%.</string>
     <string name="usage_insight_cta_create_routine">Create a routine</string>
     <string name="usage_insight_dismiss">Dismiss</string>
+    <string name="first_promise_goal_title">What time would you like to get back by putting down your phone?</string>
+    <string name="first_promise_goal_sleep">Restful sleep</string>
+    <string name="first_promise_goal_focus">Focus</string>
+    <string name="first_promise_goal_study">Study</string>
+    <string name="first_promise_goal_free_time">Free time</string>
+    <string name="first_promise_check_pattern">Check my patterns</string>
+    <string name="first_promise_manual_setup">I’ll set it up myself</string>
+    <string name="first_promise_usage_title">We’ll find the apps and times you reach for most</string>
+    <string name="first_promise_usage_value">We analyze recent usage records on your device to suggest a first promise you can keep.</string>
+    <string name="first_promise_usage_seen_label">What we look at</string>
+    <string name="first_promise_usage_seen_body">Time spent by app, when apps were opened, and recurring time periods</string>
+    <string name="first_promise_usage_not_seen_label">What we never look at</string>
+    <string name="first_promise_usage_not_seen_body">Message contents, anything you type, or browsing contents</string>
+    <string name="first_promise_usage_local_label">Where it’s processed</string>
+    <string name="first_promise_usage_local_body">Locally on this device</string>
+    <string name="first_promise_usage_unavailable">We couldn’t open usage settings. Try again or set up your first promise yourself.</string>
+    <string name="first_promise_analysis_title">Checking your recent usage patterns</string>
 </resources>

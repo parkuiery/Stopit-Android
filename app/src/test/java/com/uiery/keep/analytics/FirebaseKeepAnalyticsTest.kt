@@ -975,6 +975,9 @@ class FirebaseKeepAnalyticsTest {
                 KeepAnalyticsScreen.ONBOARDING_PERMISSION,
                 KeepAnalyticsScreen.ONBOARDING_NOTIFICATION,
                 KeepAnalyticsScreen.ONBOARDING_SELECT_APP,
+                KeepAnalyticsScreen.ONBOARDING_GOAL_SELECT,
+                KeepAnalyticsScreen.ONBOARDING_USAGE_ACCESS,
+                KeepAnalyticsScreen.ONBOARDING_USAGE_ANALYSIS,
                 KeepAnalyticsScreen.HOME,
                 KeepAnalyticsScreen.MENU,
                 KeepAnalyticsScreen.LOCK_HISTORY,
@@ -1001,6 +1004,9 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("referrer_status", KeepAnalyticsParam.REFERRER_STATUS)
         assertEquals("campaign_bucket", KeepAnalyticsParam.CAMPAIGN_BUCKET)
         assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
+        assertEquals("usage_access", AnalyticsPermissionName.USAGE_ACCESS)
+        assertEquals("skipped", AnalyticsOutcome.SKIPPED)
+        assertEquals("unknown", AnalyticsOutcome.UNKNOWN)
     }
 }
 
