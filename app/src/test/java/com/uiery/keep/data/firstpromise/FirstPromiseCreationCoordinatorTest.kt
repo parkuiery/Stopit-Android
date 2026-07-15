@@ -16,12 +16,17 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -152,6 +157,56 @@ class FirstPromiseCreationCoordinatorTest {
         assertEquals(FirstPromiseScheduleState.Enabled, state.scheduleState)
     }
 
+    @Test
+    fun completedDisabledFinalizeUsesDurableMappingDraftIdAfterTemporaryDraftIsCleared() = runBlocking {
+        val dataStore = resultDisabledDataStore(draft)
+        val store = FirstPromiseDraftStore(dataStore)
+        store.completeOnboarding()
+        assertNull(store.readState().draft)
+        val finalized = successResult().copy(draftId = draft.draftId)
+        val dispatcher = FakeDispatcher(sent = true)
+        val analytics = CoordinatorRecordingAnalytics()
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(result = finalized.copy(scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing), finalizedResult = finalized),
+            dispatcher,
+            store,
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        val result = coordinator.finalizeExistingRoutine(41L)
+
+        assertTrue(result is FirstPromisePersistenceResult.Succeeded)
+        assertEquals(listOf(draft.draftId), dispatcher.drainedDrafts)
+        assertEquals(1, analytics.firstLockCalls)
+        assertEquals(FirstPromisePhase.CompletedEnabled, store.readState().phase)
+        assertEquals(FirstPromiseScheduleState.Enabled, store.readState().scheduleState)
+        assertNull(store.readState().draft)
+    }
+
+    @Test
+    fun concurrentReconciliationCannotClaimFirstLockWhileFailureOwnerHoldsMarker() = runBlocking {
+        val dataStore = persistingDataStore(draft)
+        val analytics = BlockingFailingFirstLockAnalytics()
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(successResult()),
+            FakeDispatcher(sent = true),
+            FirstPromiseDraftStore(dataStore),
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        val owner = async(Dispatchers.Default) { coordinator.persistCurrentDraft() }
+        assertTrue(analytics.entered.await(5, TimeUnit.SECONDS))
+        val concurrent = async(Dispatchers.Default) { coordinator.persistCurrentDraft() }
+        assertTrue(concurrent.await() is FirstPromisePersistenceResult.Succeeded)
+        assertEquals(1, analytics.attempts)
+
+        analytics.release.countDown()
+        assertTrue(owner.await() is FirstPromisePersistenceResult.Succeeded)
+        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+    }
+
     private fun persistingDataStore(draft: FirstPromiseDraft) = FakeDataStore(
         mutablePreferencesOf(
             PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
@@ -160,6 +215,28 @@ class FirstPromiseCreationCoordinatorTest {
                     path = FirstPromisePath.Manual,
                     goal = draft.goal,
                     draft = draft,
+                    recommendationReasonRef = RecommendationReasonRef(
+                        patternType = UsagePatternType.Manual,
+                        usageCoverageDays = 0,
+                        eventCoverageDays = 0,
+                        isGoalDefault = true,
+                        selectedStartMinutes = draft.startMinutes,
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    private fun resultDisabledDataStore(draft: FirstPromiseDraft) = FakeDataStore(
+        mutablePreferencesOf(
+            PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
+                FirstPromiseOnboardingState(
+                    phase = FirstPromisePhase.ResultDisabled,
+                    path = FirstPromisePath.Manual,
+                    goal = draft.goal,
+                    draft = draft,
+                    routineId = 41L,
+                    scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
                     recommendationReasonRef = RecommendationReasonRef(
                         patternType = UsagePatternType.Manual,
                         usageCoverageDays = 0,
@@ -242,6 +319,29 @@ private class CoordinatorRecordingAnalytics(
             error("analytics unavailable")
         }
         firstLockCalls++
+    }
+    override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
+    override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
+    override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
+}
+
+private class BlockingFailingFirstLockAnalytics : KeepAnalytics {
+    val entered = CountDownLatch(1)
+    val release = CountDownLatch(1)
+    var attempts = 0
+
+    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    override fun logScreenView(screenName: String) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun trackFirstOpen() = Unit
+    override fun trackOnboardingStepView(stepName: String) = Unit
+    override fun trackOnboardingStepComplete(stepName: String) = Unit
+    override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
+    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) {
+        attempts++
+        entered.countDown()
+        check(release.await(5, TimeUnit.SECONDS))
+        error("analytics unavailable")
     }
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit

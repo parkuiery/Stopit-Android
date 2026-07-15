@@ -617,6 +617,18 @@ object FirstPromiseStatePolicy {
         if (state.routineId != routineId) {
             return FirstPromiseStateMutation.Rejected
         }
+        if (
+            state.phase == FirstPromisePhase.CompletedDisabled &&
+            scheduleState == FirstPromiseScheduleState.Enabled
+        ) {
+            return FirstPromiseStateMutation.Changed(
+                state.copy(
+                    phase = FirstPromisePhase.CompletedEnabled,
+                    scheduleState = FirstPromiseScheduleState.Enabled,
+                    pendingSystemAction = null,
+                ),
+            )
+        }
         val target = if (scheduleState == FirstPromiseScheduleState.Enabled) {
             FirstPromisePhase.ResultEnabled
         } else {

@@ -68,6 +68,37 @@ class FirstPromiseAnalyticsDispatcherTest {
     }
 
     @Test
+    fun falseSentMarkerStopsCurrentDrainAndNextDrainRetriesAtLeastOnce() = runBlocking {
+        val store = FakeOutboxStore(creationRows("draft"), returnFalseFromNextMark = true)
+        val analytics = DispatcherRecordingAnalytics()
+        val dispatcher = FirstPromiseAnalyticsDispatcher(store, codec, analytics, clock)
+
+        val firstDrain = runCatching { dispatcher.drainDraft("draft") }
+
+        assertTrue(firstDrain.isSuccess)
+        assertEquals(listOf("saved"), analytics.calls)
+        assertEquals(FirstPromiseOutboxEventCodec.DELIVERY_PENDING, store.rows.first().deliveryState)
+
+        store.allowNextDrain()
+        dispatcher.drainDraft("draft")
+        assertEquals(listOf("saved", "saved", "created"), analytics.calls)
+    }
+
+    @Test
+    fun thrownSentMarkerStopsCurrentDrainAndNextDrainRetriesAtLeastOnce() = runBlocking {
+        val store = FakeOutboxStore(creationRows("draft"), throwFromNextMark = true)
+        val analytics = DispatcherRecordingAnalytics()
+        val dispatcher = FirstPromiseAnalyticsDispatcher(store, codec, analytics, clock)
+
+        assertTrue(runCatching { dispatcher.drainDraft("draft") }.isFailure)
+        assertEquals(listOf("saved"), analytics.calls)
+        assertEquals(FirstPromiseOutboxEventCodec.DELIVERY_PENDING, store.rows.first().deliveryState)
+
+        dispatcher.drainDraft("draft")
+        assertEquals(listOf("saved", "saved", "created"), analytics.calls)
+    }
+
+    @Test
     fun invalidPayloadIsQuarantinedReportedAndNeverAllowsLaterSequence() = runBlocking {
         val invalid = creationRows("draft").first().copy(payloadJson = "{broken")
         val store = FakeOutboxStore(listOf(invalid, creationRows("draft").last()))
@@ -123,8 +154,17 @@ class FirstPromiseAnalyticsDispatcherTest {
     )
 }
 
-private class FakeOutboxStore(initial: List<FirstPromiseAnalyticsOutboxEntity>) : FirstPromiseOutboxStore {
+private class FakeOutboxStore(
+    initial: List<FirstPromiseAnalyticsOutboxEntity>,
+    private var returnFalseFromNextMark: Boolean = false,
+    private var throwFromNextMark: Boolean = false,
+) : FirstPromiseOutboxStore {
     val rows = initial.toMutableList()
+    private var rejectImmediateRedelivery = false
+
+    fun allowNextDrain() {
+        rejectImmediateRedelivery = false
+    }
 
     override suspend fun pendingDraftIds(): List<String> = rows
         .filter { it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_PENDING }
@@ -134,6 +174,10 @@ private class FakeOutboxStore(initial: List<FirstPromiseAnalyticsOutboxEntity>) 
         .map { it.first }
 
     override suspend fun nextDeliverable(draftId: String): FirstPromiseAnalyticsOutboxEntity? {
+        if (rejectImmediateRedelivery) {
+            rejectImmediateRedelivery = false
+            error("same drain attempted immediate redelivery")
+        }
         val draftRows = rows.filter { it.draftId == draftId }
         return draftRows
             .filter { it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_PENDING }
@@ -145,8 +189,20 @@ private class FakeOutboxStore(initial: List<FirstPromiseAnalyticsOutboxEntity>) 
             }
     }
 
-    override suspend fun markSent(draftId: String, eventName: String, sentAtMillis: Long): Boolean =
-        replace(draftId, eventName) { it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT, sentAtMillis = sentAtMillis) }
+    override suspend fun markSent(draftId: String, eventName: String, sentAtMillis: Long): Boolean {
+        if (throwFromNextMark) {
+            throwFromNextMark = false
+            throw IllegalStateException("marker unavailable")
+        }
+        if (returnFalseFromNextMark) {
+            returnFalseFromNextMark = false
+            rejectImmediateRedelivery = true
+            return false
+        }
+        return replace(draftId, eventName) {
+            it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT, sentAtMillis = sentAtMillis)
+        }
+    }
 
     override suspend fun quarantine(draftId: String, eventName: String): Boolean =
         replace(draftId, eventName) { it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_QUARANTINED) }

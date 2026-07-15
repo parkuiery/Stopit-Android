@@ -51,9 +51,8 @@ class FirstPromiseCreationCoordinator @Inject constructor(
         } catch (failure: Throwable) {
             return FirstPromisePersistenceResult.Failed(failure)
         }
-        state.draft?.let { draft ->
-            deliverAndTrackFirstLock(draft, creation)
-        }
+        val draftId = creation.draftId ?: state.draft?.draftId
+        if (draftId != null) deliverAndTrackFirstLock(draftId, creation)
         return FirstPromisePersistenceResult.Succeeded(creation)
     }
 
@@ -73,19 +72,19 @@ class FirstPromiseCreationCoordinator @Inject constructor(
             return FirstPromisePersistenceResult.Failed(failure)
         }
 
-        deliverAndTrackFirstLock(draft, creation)
+        deliverAndTrackFirstLock(draft.draftId, creation)
         return FirstPromisePersistenceResult.Succeeded(creation)
     }
 
     private suspend fun deliverAndTrackFirstLock(
-        draft: FirstPromiseDraft,
+        draftId: String,
         creation: FirstPromiseCreationResult,
     ) {
         // Analytics delivery is at-least-once and must not roll back a committed routine. Startup
         // recovery drains the same rows if this attempt fails or the process dies.
-        runCatching { dispatcher.drainDraft(draft.draftId) }
+        runCatching { dispatcher.drainDraft(draftId) }
         val creationEventsSent = runCatching {
-            dispatcher.creationEventsSent(draft.draftId)
+            dispatcher.creationEventsSent(draftId)
         }.getOrDefault(false)
         if (
             creation.scheduleState == FirstPromiseScheduleState.Enabled &&

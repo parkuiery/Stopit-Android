@@ -74,6 +74,9 @@ fun NotificationSettingScreen(
     )
     LaunchedEffect(Unit) {
         viewModel.onStepViewed()
+        if (context == OnboardingPermissionContext.FirstPromise) {
+            viewModel.onFirstPromiseRouteResumed(onNavigatePersistence)
+        }
     }
 
     Scaffold(

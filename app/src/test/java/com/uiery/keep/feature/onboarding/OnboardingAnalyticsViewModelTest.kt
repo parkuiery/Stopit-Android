@@ -287,6 +287,101 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun restoredNotificationRouteResumesPersistingThenNavigatesAlreadyResolvedState() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        store.beginPersistence()
+        val coordinator = NotificationPersistenceCoordinator(store, shouldFail = false)
+        val restored = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var firstNavigationCount = 0
+
+        restored.onFirstPromiseRouteResumed { firstNavigationCount++ }
+
+        assertEquals(1, coordinator.persistCalls)
+        assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+        assertEquals(1, firstNavigationCount)
+
+        val recreated = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var restoredNavigationCount = 0
+        recreated.onFirstPromiseRouteResumed { restoredNavigationCount++ }
+
+        assertEquals(1, coordinator.persistCalls)
+        assertEquals(1, restoredNavigationCount)
+    }
+
+    @Test
+    fun restoredResolvedOrFailedNotificationTapCannotRemainStuckOnRejectedBeginPersistence() = runBlocking {
+        listOf(false, true).forEach { shouldFail ->
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail)
+            val initial = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            initial.onFirstPromisePermissionResult(granted = true) {}
+            val restored = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigationCount = 0
+
+            restored.onFirstPromisePermissionResult(granted = true) { navigationCount++ }
+
+            assertEquals(1, navigationCount)
+            assertEquals(
+                if (shouldFail) FirstPromisePhase.PersistFailed else FirstPromisePhase.ResultEnabled,
+                store.readState().phase,
+            )
+        }
+    }
+
+    @Test
+    fun restoredNotificationRouteNavigatesResultDisabledAndPersistFailedWithoutRepersisting() = runBlocking {
+        listOf(FirstPromisePhase.ResultDisabled, FirstPromisePhase.PersistFailed).forEach { terminalPhase ->
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            store.beginPersistence()
+            if (terminalPhase == FirstPromisePhase.PersistFailed) {
+                store.markPersistenceFailed()
+            } else {
+                store.recordPersistenceMapping(41L, FirstPromiseScheduleState.DisabledExactAlarmMissing)
+                store.resolveScheduleState(41L, FirstPromiseScheduleState.DisabledExactAlarmMissing)
+            }
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail = false)
+            val restored = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigationCount = 0
+
+            restored.onFirstPromiseRouteResumed { navigationCount++ }
+
+            assertEquals(terminalPhase, store.readState().phase)
+            assertEquals(0, coordinator.persistCalls)
+            assertEquals(1, navigationCount)
+        }
+    }
+
+    @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),

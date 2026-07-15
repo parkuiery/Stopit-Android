@@ -84,7 +84,7 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
             }
 
             dispatch(event)
-            store.markSent(entity.draftId, entity.eventName, clock.millis())
+            if (!store.markSent(entity.draftId, entity.eventName, clock.millis())) return
         }
     }
 

@@ -7,15 +7,16 @@ import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
-import com.uiery.keep.datastore.FirstPromiseDraftStore
-import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.data.firstpromise.FirstPromisePersistenceCoordinator
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class NotificationSettingViewModel internal constructor(
@@ -95,8 +96,36 @@ class NotificationSettingViewModel internal constructor(
                         if (granted) onPermissionGranted() else onPermissionDeniedAndContinue()
                         onNavigatePersistence()
                     }
+                } else if (resumePersistenceOrResolvedState(store)) {
+                    withContext(mainDispatcher) { onNavigatePersistence() }
                 }
             }
         }
+    }
+
+    fun onFirstPromiseRouteResumed(onNavigatePersistence: () -> Unit) {
+        viewModelScope.launch(dispatcher) {
+            transitionMutex.withLock {
+                val store = draftStore ?: return@withLock
+                if (resumePersistenceOrResolvedState(store)) {
+                    withContext(mainDispatcher) { onNavigatePersistence() }
+                }
+            }
+        }
+    }
+
+    private suspend fun resumePersistenceOrResolvedState(store: FirstPromiseDraftStore): Boolean {
+        if (store.readState().phase == FirstPromisePhase.Persisting) {
+            creationCoordinator?.persistCurrentDraft()
+        }
+        return store.readState().phase in RESOLVED_PERSISTENCE_PHASES
+    }
+
+    private companion object {
+        val RESOLVED_PERSISTENCE_PHASES = setOf(
+            FirstPromisePhase.ResultEnabled,
+            FirstPromisePhase.ResultDisabled,
+            FirstPromisePhase.PersistFailed,
+        )
     }
 }

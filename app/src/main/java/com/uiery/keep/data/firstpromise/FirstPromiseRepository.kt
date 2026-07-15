@@ -19,6 +19,7 @@ data class FirstPromiseCreationResult(
     val scheduleState: FirstPromiseScheduleState,
     val schedulingSucceeded: Boolean,
     val created: Boolean,
+    val draftId: String? = null,
 )
 
 interface FirstPromiseCreator {
@@ -138,6 +139,7 @@ class FirstPromiseRepository : FirstPromiseCreator {
                     scheduleState = scheduleState,
                     schedulingSucceeded = schedulingSucceeded,
                     created = true,
+                    draftId = draft.draftId,
                 )
             }
         } catch (failure: Throwable) {
@@ -189,6 +191,7 @@ class FirstPromiseRepository : FirstPromiseCreator {
                     scheduleState = scheduleState,
                     schedulingSucceeded = schedulingSucceeded,
                     created = false,
+                    draftId = latestMapping.draftId,
                 )
             }
         } catch (failure: Throwable) {
@@ -213,6 +216,7 @@ class FirstPromiseRepository : FirstPromiseCreator {
             scheduleState = state,
             schedulingSucceeded = state == FirstPromiseScheduleState.Enabled,
             created = false,
+            draftId = mapping.draftId,
         )
     }
 }
