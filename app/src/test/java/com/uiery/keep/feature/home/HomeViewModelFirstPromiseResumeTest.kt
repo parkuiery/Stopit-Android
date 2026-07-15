@@ -39,9 +39,12 @@ import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
@@ -128,10 +131,72 @@ class HomeViewModelFirstPromiseResumeTest {
         assertTrue(model.shouldToggleKeep)
         assertTrue(model.showGoalLockStatus)
     }
+
+    @Test
+    fun rapidDoubleTapOpensSettingsOnceAndKeepsCardBusyUntilResume() = runBlocking {
+        val fixture = fixture(canSchedule = false)
+        fixture.viewModel.awaitCard()
+        val effects = mutableListOf<HomeSideEffect>()
+        val collector = launch {
+            fixture.viewModel.container.sideEffectFlow.collect(effects::add)
+        }
+
+        fixture.viewModel.activateFirstPromiseResumeCard()
+        fixture.viewModel.activateFirstPromiseResumeCard()
+
+        withTimeout(1_000) {
+            while (effects.count { it == HomeSideEffect.OpenExactAlarmSettings } < 1) yield()
+        }
+        delay(100)
+        assertEquals(1, effects.count { it == HomeSideEffect.OpenExactAlarmSettings })
+        assertTrue(fixture.viewModel.container.stateFlow.value.firstPromiseResumeCard!!.isBusy)
+
+        fixture.viewModel.onFirstPromiseExactAlarmResume()
+        withTimeout(1_000) {
+            fixture.viewModel.container.stateFlow.first {
+                it.firstPromiseResumeCard?.isBusy == false
+            }
+        }
+        collector.cancel()
+    }
+
+    @Test
+    fun coordinatorSuppressesRepeatedSettingsLaunchWhileOneIsPending() = runBlocking {
+        val fixture = fixture(canSchedule = false)
+        fixture.viewModel.awaitCard()
+
+        assertEquals(FirstPromiseResumeDecision.OpenSettings, fixture.recovery.activate())
+        assertTrue(fixture.recovery.settingsLaunchPending)
+        assertTrue(fixture.recovery.activate() is FirstPromiseResumeDecision.Show)
+        assertTrue(fixture.recovery.settingsLaunchPending)
+    }
+
+    @Test
+    fun unavailableSettingsLaunchClearsBusyStateForAnotherAttempt() = runBlocking {
+        val fixture = fixture(canSchedule = false)
+        fixture.viewModel.awaitCard()
+        val sideEffect = async(start = CoroutineStart.UNDISPATCHED) {
+            fixture.viewModel.container.sideEffectFlow.first()
+        }
+        fixture.viewModel.activateFirstPromiseResumeCard()
+        withTimeout(1_000) { sideEffect.await() }
+        assertTrue(fixture.viewModel.container.stateFlow.value.firstPromiseResumeCard!!.isBusy)
+
+        fixture.viewModel.onFirstPromiseExactAlarmSettingsUnavailable()
+
+        val card = withTimeout(1_000) {
+            fixture.viewModel.container.stateFlow.first {
+                it.firstPromiseResumeCard?.isBusy == false
+            }.firstPromiseResumeCard!!
+        }
+        assertEquals(42L, card.routineId)
+        assertTrue(!fixture.recovery.settingsLaunchPending)
+    }
 }
 
 private data class HomeResumeFixture(
     val viewModel: HomeViewModel,
+    val recovery: FirstPromiseHomeRecoveryCoordinator,
     val coordinator: FakeHomeRecoveryPersistence,
     val store: FirstPromiseDraftStore,
     val canSchedule: AtomicBoolean,
@@ -198,7 +263,7 @@ private fun fixture(
         timedLockStarter = TimedLockSessionController(blockingStateStore, analytics, clock),
         firstPromiseRecovery = recovery,
     )
-    return HomeResumeFixture(viewModel, persistence, store, availability)
+    return HomeResumeFixture(viewModel, recovery, persistence, store, availability)
 }
 
 private suspend fun HomeViewModel.awaitCard(): FirstPromiseResumeCardState =

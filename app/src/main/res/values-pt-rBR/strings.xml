@@ -491,4 +491,5 @@
     <string name="first_promise_resume_title">Conclua a ativação da primeira promessa</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30 min · %3$s</string>
     <string name="first_promise_resume_retry_message">Ela está salva, mas desativada. Tente ativá-la novamente.</string>
+    <string name="first_promise_resume_waiting">Aguardando permissão…</string>
 </resources>

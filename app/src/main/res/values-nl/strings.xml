@@ -491,4 +491,5 @@
     <string name="first_promise_resume_title">Voltooi het inschakelen van je eerste belofte</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30 min. · %3$s</string>
     <string name="first_promise_resume_retry_message">De belofte is opgeslagen maar uitgeschakeld. Probeer opnieuw.</string>
+    <string name="first_promise_resume_waiting">Wachten op toestemming…</string>
 </resources>

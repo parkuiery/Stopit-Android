@@ -17,6 +17,7 @@ data class FirstPromiseResumeCardState(
     val startMinutes: Int,
     val repeatDays: Set<Int>,
     val isRetry: Boolean = false,
+    val isBusy: Boolean = false,
 )
 
 sealed interface FirstPromiseResumeDecision {
@@ -29,12 +30,14 @@ interface FirstPromiseHomeRecovery {
     suspend fun load(): FirstPromiseResumeDecision
     suspend fun activate(): FirstPromiseResumeDecision
     suspend fun onResume(): FirstPromiseResumeDecision
+    suspend fun onSettingsLaunchFailed(): FirstPromiseResumeDecision
 }
 
 object NoOpFirstPromiseHomeRecovery : FirstPromiseHomeRecovery {
     override suspend fun load() = FirstPromiseResumeDecision.Hidden
     override suspend fun activate() = FirstPromiseResumeDecision.Hidden
     override suspend fun onResume() = FirstPromiseResumeDecision.Hidden
+    override suspend fun onSettingsLaunchFailed() = FirstPromiseResumeDecision.Hidden
 }
 
 @Singleton
@@ -58,11 +61,17 @@ class FirstPromiseHomeRecoveryCoordinator internal constructor(
     }
 
     override suspend fun activate(): FirstPromiseResumeDecision = mutex.withLock {
+        if (settingsLaunchPending) return@withLock resolve(mayOpenSettings = false)
         resolve(mayOpenSettings = true)
     }
 
     override suspend fun onResume(): FirstPromiseResumeDecision = mutex.withLock {
         if (!settingsLaunchPending) return@withLock resolve(mayOpenSettings = false)
+        settingsLaunchPending = false
+        resolve(mayOpenSettings = false)
+    }
+
+    override suspend fun onSettingsLaunchFailed(): FirstPromiseResumeDecision = mutex.withLock {
         settingsLaunchPending = false
         resolve(mayOpenSettings = false)
     }

@@ -121,6 +121,11 @@ class HomeViewModel
 
         internal fun activateFirstPromiseResumeCard() =
             intent {
+                val card = state.firstPromiseResumeCard ?: return@intent
+                if (card.isBusy) return@intent
+                reduce {
+                    state.copy(firstPromiseResumeCard = card.copy(isBusy = true))
+                }
                 when (val decision = firstPromiseRecovery.activate()) {
                     is FirstPromiseResumeDecision.Show ->
                         reduce { state.copy(firstPromiseResumeCard = decision.card) }
@@ -128,6 +133,17 @@ class HomeViewModel
                         reduce { state.copy(firstPromiseResumeCard = null) }
                     FirstPromiseResumeDecision.OpenSettings ->
                         postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
+
+        internal fun onFirstPromiseExactAlarmSettingsUnavailable() =
+            intent {
+                when (val decision = firstPromiseRecovery.onSettingsLaunchFailed()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings -> Unit
                 }
             }
 

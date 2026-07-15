@@ -489,4 +489,5 @@
     <string name="first_promise_resume_title">完成开启你的第一个约定</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30 分钟 · %3$s</string>
     <string name="first_promise_resume_retry_message">约定已保存但处于关闭状态。请再次尝试开启。</string>
+    <string name="first_promise_resume_waiting">正在等待权限…</string>
 </resources>

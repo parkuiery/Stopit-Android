@@ -11,7 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.uiery.kds.KeepButton
@@ -32,7 +34,7 @@ fun FirstPromiseResumeCard(
     if (state == null) return
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.surface),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -58,13 +60,18 @@ fun FirstPromiseResumeCard(
             )
             if (state.isRetry) {
                 Text(
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     text = stringResource(R.string.first_promise_resume_retry_message),
                     color = KeepTheme.colors.surfaceVariant,
                 )
             }
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_enable),
+                text = stringResource(
+                    if (state.isBusy) R.string.first_promise_resume_waiting
+                    else R.string.first_promise_result_enable,
+                ),
+                enabled = !state.isBusy,
                 onClick = onActivate,
             )
         }

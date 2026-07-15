@@ -139,7 +139,7 @@ fun PromiseResultScreen(
 private fun PromiseSummaryCard(state: PromiseResultUiState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.surface),
+        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
