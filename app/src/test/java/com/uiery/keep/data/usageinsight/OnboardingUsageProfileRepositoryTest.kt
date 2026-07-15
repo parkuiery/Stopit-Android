@@ -9,12 +9,18 @@ import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class OnboardingUsageProfileRepositoryTest {
@@ -113,6 +119,37 @@ class OnboardingUsageProfileRepositoryTest {
             routineRepository = routineFailure,
         ).profile(today, zoneId, 21 * 60).insufficient()
         assertEquals(InsufficientReason.QueryFailed, second.reason)
+    }
+
+    @Test
+    fun `cooperative cancellation and coroutine timeout escape instead of becoming query failure`() = runBlocking {
+        val cancellation = CancellationException("cancel profile")
+        val cancellingGateway = FakeOnboardingGateway(queryFailure = cancellation)
+
+        try {
+            repository(cancellingGateway).profile(today, zoneId, 21 * 60)
+            fail("CancellationException must escape")
+        } catch (actual: CancellationException) {
+            assertSame(cancellation, actual)
+        }
+
+        val suspendingRoutines = object : FakeRoutineRepository() {
+            override suspend fun fetchAllOnce(): List<RoutineModel> {
+                delay(Long.MAX_VALUE)
+                return emptyList()
+            }
+        }
+        try {
+            withTimeout(10) {
+                OnboardingUsageProfileRepository(
+                    gateway = FakeOnboardingGateway(),
+                    routineRepository = suspendingRoutines,
+                ).profile(today, zoneId, 21 * 60)
+            }
+            fail("TimeoutCancellationException must escape")
+        } catch (_: TimeoutCancellationException) {
+            // Expected: structured coroutine cancellation is never converted into product fallback.
+        }
     }
 
     @Test

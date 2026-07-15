@@ -185,6 +185,38 @@ class OnboardingUsageProfilePolicyTest {
     }
 
     @Test
+    fun `spring-forward gap uses real calendar buckets and skips nonexistent local time`() {
+        val newYork = ZoneId.of("America/New_York")
+        val transitionDay = LocalDate.of(2026, 3, 8)
+
+        val result = evaluateTransition(
+            zone = newYork,
+            transitionDay = transitionDay,
+            transitionStart = transitionDay.atTime(1, 30).atZone(newYork).toInstant().toEpochMilli(),
+            transitionEnd = transitionDay.atTime(3, 30).atZone(newYork).toInstant().toEpochMilli(),
+        )
+
+        assertEquals(3 * 60, result.suggestedStartMinutes)
+        assertEquals(UsagePatternType.Night, result.patternType)
+    }
+
+    @Test
+    fun `fall-back repeated hour accumulates both occurrences before choosing peak`() {
+        val newYork = ZoneId.of("America/New_York")
+        val transitionDay = LocalDate.of(2026, 11, 1)
+
+        val result = evaluateTransition(
+            zone = newYork,
+            transitionDay = transitionDay,
+            transitionStart = transitionDay.atTime(1, 0).atZone(newYork).toInstant().toEpochMilli(),
+            transitionEnd = transitionDay.atTime(2, 0).atZone(newYork).toInstant().toEpochMilli(),
+        )
+
+        assertEquals(1 * 60 + 30, result.suggestedStartMinutes)
+        assertEquals(UsagePatternType.Night, result.patternType)
+    }
+
+    @Test
     fun `exact quality rules return typed insufficient usage-only and full`() {
         assertEquals(
             InsufficientReason.InsufficientUsageCoverage,
@@ -245,6 +277,39 @@ class OnboardingUsageProfilePolicyTest {
         proposedRepeatDays = allDays,
         zoneId = zoneId,
     )
+
+    private fun evaluateTransition(
+        zone: ZoneId,
+        transitionDay: LocalDate,
+        transitionStart: Long,
+        transitionEnd: Long,
+    ): OnboardingUsageProfile {
+        val evidenceDays = listOf(transitionDay, transitionDay.plusDays(1), transitionDay.plusDays(2))
+        val aggregates = evidenceDays.map { date ->
+            OnboardingUsageAggregate(
+                packageName = "com.video",
+                totalForegroundMillis = Duration.ofHours(1).toMillis(),
+                lastUsedEpochMillis = date.atTime(20, 0).atZone(zone).toInstant().toEpochMilli(),
+                localDate = date,
+            )
+        }
+        val intervals = buildList {
+            add(OnboardingUsageInterval("com.video", transitionStart, transitionEnd, transitionDay))
+            evidenceDays.drop(1).forEach { date ->
+                val start = date.atTime(4, 0).atZone(zone).toInstant().toEpochMilli()
+                add(OnboardingUsageInterval("com.video", start, start + 1, date))
+            }
+        }
+        return OnboardingUsageProfilePolicy.evaluate(
+            aggregates = aggregates,
+            intervals = intervals,
+            appLabels = mapOf("com.video" to "Video"),
+            enabledRoutines = emptyList(),
+            goalDefaultStartMinutes = 21 * 60,
+            proposedRepeatDays = allDays,
+            zoneId = zone,
+        ).ready()
+    }
 
     private fun aggregates(packageName: String, days: Int, dailyMinutes: Long) =
         (0 until days).map { offset -> aggregate(packageName, firstDay.plusDays(offset.toLong()), dailyMinutes, offset.toLong()) }

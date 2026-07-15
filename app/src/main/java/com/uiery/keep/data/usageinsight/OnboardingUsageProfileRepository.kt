@@ -10,6 +10,7 @@ import com.uiery.keep.domain.usageinsight.OnboardingUsageProfileResult
 import com.uiery.keep.util.toDayOfWeekList
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.CancellationException
 import javax.inject.Inject
 
 class OnboardingUsageProfileRepository @Inject constructor(
@@ -20,7 +21,19 @@ class OnboardingUsageProfileRepository @Inject constructor(
         today: LocalDate,
         zoneId: ZoneId,
         goalDefaultStartMinutes: Int,
-    ): OnboardingUsageProfileResult = runCatching {
+    ): OnboardingUsageProfileResult = try {
+        queryProfile(today, zoneId, goalDefaultStartMinutes)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Throwable) {
+        queryFailed()
+    }
+
+    private suspend fun queryProfile(
+        today: LocalDate,
+        zoneId: ZoneId,
+        goalDefaultStartMinutes: Int,
+    ): OnboardingUsageProfileResult {
         val days = today.minusDays(7)..today.minusDays(1)
         val aggregates = gateway.queryOnboardingDailyAggregates(days, zoneId)
         val intervals = gateway.queryOnboardingUsageIntervals(days, zoneId)
@@ -40,7 +53,7 @@ class OnboardingUsageProfileRepository @Inject constructor(
                 )
             }
             .toList()
-        OnboardingUsageProfilePolicy.evaluate(
+        return OnboardingUsageProfilePolicy.evaluate(
             aggregates = aggregates.map { aggregate ->
                 OnboardingUsageAggregate(
                     packageName = aggregate.packageName,
@@ -63,13 +76,13 @@ class OnboardingUsageProfileRepository @Inject constructor(
             proposedRepeatDays = ALL_REPEAT_DAYS,
             zoneId = zoneId,
         )
-    }.getOrElse {
-        OnboardingUsageProfileResult.Insufficient(
-            usageCoverageDays = 0,
-            eventCoverageDays = 0,
-            reason = InsufficientReason.QueryFailed,
-        )
     }
+
+    private fun queryFailed() = OnboardingUsageProfileResult.Insufficient(
+        usageCoverageDays = 0,
+        eventCoverageDays = 0,
+        reason = InsufficientReason.QueryFailed,
+    )
 
     private companion object {
         val ALL_REPEAT_DAYS = (1..7).toSet()
