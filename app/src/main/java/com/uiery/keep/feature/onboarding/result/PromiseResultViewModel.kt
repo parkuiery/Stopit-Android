@@ -169,13 +169,32 @@ class PromiseResultViewModel internal constructor(
             actionMutex.withLock {
                 val state = draftStore.readState()
                 if (state.phase != FirstPromisePhase.SchedulePermissionRequired) return@withLock
+                if (state.pendingSystemAction == PendingSystemAction.ExactAlarm) return@withLock
                 if (canScheduleExactAlarms()) {
                     finalizeExisting(checkNotNull(state.routineId))
                 } else {
+                    setBusy(true)
                     val mutation = draftStore.setPendingSystemAction(PendingSystemAction.ExactAlarm)
-                    if (mutation is FirstPromiseStateMutation.Rejected) return@withLock
-                    post(PromiseResultSideEffect.OpenExactAlarmSettings)
+                    if (mutation is FirstPromiseStateMutation.Changed) {
+                        post(PromiseResultSideEffect.OpenExactAlarmSettings)
+                    } else {
+                        refresh(activationFailed = true)
+                    }
                 }
+            }
+        }
+    }
+
+    fun onExactAlarmSettingsUnavailable() {
+        viewModelScope.launch(dispatcher) {
+            actionMutex.withLock {
+                val state = draftStore.readState()
+                if (
+                    state.phase != FirstPromisePhase.SchedulePermissionRequired ||
+                    state.pendingSystemAction != PendingSystemAction.ExactAlarm
+                ) return@withLock
+                draftStore.clearPendingSystemAction()
+                refresh(activationFailed = true)
             }
         }
     }
@@ -256,12 +275,10 @@ class PromiseResultViewModel internal constructor(
     private suspend fun completeAndNavigate() {
         when (draftStore.completeOnboarding()) {
             is FirstPromiseStateMutation.Changed -> {
-                blockingStateStore.setIsNew(false)
                 analyticsDispatcher.drain()
                 postHomeOnce()
             }
             FirstPromiseStateMutation.NoOp -> {
-                blockingStateStore.setIsNew(false)
                 analyticsDispatcher.drain()
                 postHomeOnce()
             }

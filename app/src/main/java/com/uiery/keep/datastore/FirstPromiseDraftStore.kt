@@ -105,8 +105,34 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun markPersistenceFailed(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::markPersistenceFailed)
 
-    suspend fun completeOnboarding(): FirstPromiseStateMutation =
-        applyMutation(FirstPromiseStatePolicy::completeOnboarding)
+    suspend fun completeOnboarding(): FirstPromiseStateMutation = commandMutex.withLock {
+        val snapshot = dataStore.data.first()
+        val initialMutation = FirstPromiseStatePolicy.completeOnboarding(
+            decode(snapshot[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE]),
+        )
+        if (initialMutation == FirstPromiseStateMutation.Rejected) {
+            return@withLock initialMutation
+        }
+        if (initialMutation == FirstPromiseStateMutation.NoOp && snapshot[PreferencesKey.IS_NEW] == false) {
+            return@withLock initialMutation
+        }
+
+        var result: FirstPromiseStateMutation = initialMutation
+        dataStore.edit { preferences ->
+            val latest = decode(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+            result = FirstPromiseStatePolicy.completeOnboarding(latest)
+            when (val mutation = result) {
+                is FirstPromiseStateMutation.Changed -> {
+                    preferences.write(mutation.state)
+                    preferences[PreferencesKey.IS_NEW] = false
+                }
+                FirstPromiseStateMutation.NoOp ->
+                    preferences[PreferencesKey.IS_NEW] = false
+                FirstPromiseStateMutation.Rejected -> Unit
+            }
+        }
+        result
+    }
 
     suspend fun selectGoal(
         goal: FirstPromiseGoal,

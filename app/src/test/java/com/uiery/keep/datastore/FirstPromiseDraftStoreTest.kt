@@ -181,7 +181,12 @@ class FirstPromiseDraftStoreTest {
             draft = null,
             recommendationReasonRef = null,
         )
-        val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
+        val dataStore = FirstPromiseFakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(initial),
+                PreferencesKey.IS_NEW to true,
+            ),
+        )
         val store = FirstPromiseDraftStore(dataStore)
 
         val staleAccepted = store.completeAnalysis(7L, draft("late", 20 * 60), reason(20 * 60))
@@ -692,6 +697,7 @@ class FirstPromiseDraftStoreTest {
         assertNull(completed.pendingSystemAction)
         assertNull(completed.usagePermissionAttempt)
         assertNull(completed.analysisAttemptId)
+        assertEquals(false, dataStore.snapshot()[PreferencesKey.IS_NEW])
 
         val repeated = store.completeOnboarding()
         assertEquals(FirstPromiseStateMutation.NoOp, repeated)

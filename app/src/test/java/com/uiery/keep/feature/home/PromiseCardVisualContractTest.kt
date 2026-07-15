@@ -58,6 +58,14 @@ class PromiseCardVisualContractTest {
         assertTrue(contrast(0xFFFFFF, 0x191F28) >= 4.5)
         assertTrue(contrast(0x17171C, 0xFFFFFF) >= 4.5)
     }
+
+    @Test
+    fun resultScreenReturnsUnavailableExactAlarmLaunchToViewModel() {
+        val result = source("feature/onboarding/result/PromiseResultScreen.kt")
+
+        assertTrue(result.contains("RoutineAlarmPermissionSettingsLaunchResult.Unavailable"))
+        assertTrue(result.contains("viewModel.onExactAlarmSettingsUnavailable()"))
+    }
 }
 
 private fun source(relativePath: String): String =

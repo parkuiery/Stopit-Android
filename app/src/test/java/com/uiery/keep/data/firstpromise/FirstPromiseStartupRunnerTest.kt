@@ -1,6 +1,9 @@
 package com.uiery.keep.data.firstpromise
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
@@ -10,6 +13,9 @@ import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.PendingOnboardingAnalyticsEvent
+import com.uiery.keep.feature.onboarding.FirstPromiseAnalyticsCall
+import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.feature.review.FakeDataStore
@@ -21,9 +27,90 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirstPromiseStartupRunnerTest {
+    @Test
+    fun committedCompletionEventIsDrainedOnNextProcessStartup() = runBlocking {
+        val initial = FirstPromiseOnboardingState(
+            phase = FirstPromisePhase.ResultDisabled,
+            routineId = 77L,
+            scheduleState = FirstPromiseScheduleState.DisabledUserChoice,
+        )
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(initial),
+                PreferencesKey.IS_NEW to true,
+            ),
+        )
+        val store = FirstPromiseDraftStore(dataStore)
+        assertTrue(
+            store.completeOnboarding() is
+                com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation.Changed,
+        )
+        assertEquals(false, dataStore.snapshot()[PreferencesKey.IS_NEW])
+        assertEquals(
+            listOf(PendingOnboardingAnalyticsEvent.PromiseResultStepComplete),
+            store.readState().pendingOnboardingAnalyticsEvents,
+        )
+        val analytics = FirstPromiseRecordingAnalytics()
+        val calls = mutableListOf<String>()
+
+        FirstPromiseStartupRunner(
+            dispatcher = StartupDispatcher(calls),
+            draftStore = store,
+            creationCoordinator = StartupPersistenceCoordinator(store, calls),
+            onboardingAnalyticsDispatcher = FirstPromiseOnboardingAnalyticsDispatcher(store, analytics),
+        ).run()
+
+        assertEquals(
+            1,
+            analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.PROMISE_RESULT) },
+        )
+        assertTrue(store.readState().pendingOnboardingAnalyticsEvents.isEmpty())
+    }
+
+    @Test
+    fun cancellationFromOnboardingDrainPropagatesAndStopsGlobalOutboxWork() {
+        val state = FirstPromiseOnboardingState(
+            phase = FirstPromisePhase.CompletedDisabled,
+            routineId = 77L,
+            scheduleState = FirstPromiseScheduleState.DisabledUserChoice,
+            pendingOnboardingAnalyticsEvents = listOf(
+                PendingOnboardingAnalyticsEvent.PromiseResultStepComplete,
+            ),
+        )
+        val store = FirstPromiseDraftStore(
+            FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+                    PreferencesKey.IS_NEW to false,
+                ),
+            ),
+        )
+        val calls = mutableListOf<String>()
+        val analytics = object : KeepAnalytics by FirstPromiseRecordingAnalytics() {
+            override fun trackOnboardingStepComplete(stepName: String) {
+                throw CancellationException("cancel onboarding drain")
+            }
+        }
+        val runner = FirstPromiseStartupRunner(
+            dispatcher = StartupDispatcher(calls),
+            draftStore = store,
+            creationCoordinator = StartupPersistenceCoordinator(store, calls),
+            onboardingAnalyticsDispatcher = FirstPromiseOnboardingAnalyticsDispatcher(store, analytics),
+        )
+
+        assertThrows(CancellationException::class.java) { runBlocking { runner.run() } }
+
+        assertEquals(emptyList<String>(), calls)
+        assertEquals(
+            listOf(PendingOnboardingAnalyticsEvent.PromiseResultStepComplete),
+            runBlocking { store.readState().pendingOnboardingAnalyticsEvents },
+        )
+    }
+
     @Test
     fun persistingStateReconcilesThroughCoordinatorBeforeGlobalDrainAndCleanup() = runBlocking {
         val draft = FirstPromiseDraft(

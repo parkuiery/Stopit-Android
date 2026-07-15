@@ -24,11 +24,15 @@ import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -141,6 +145,61 @@ class PromiseResultViewModelTest {
         assertEquals(FirstPromisePhase.ResultEnabled, fixture.store.readState().phase)
         assertEquals(77L, fixture.store.readState().routineId)
         assertNull(fixture.store.readState().pendingSystemAction)
+    }
+
+    @Test
+    fun rapidExactAlarmRequestsOpenSettingsOnceAndRemainBusyUntilDecision() = runBlocking {
+        val fixture = fixture(
+            FirstPromisePhase.SchedulePermissionRequired,
+            FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            canScheduleExactAlarms = false,
+        )
+        fixture.viewModel.load()
+        fixture.viewModel.awaitKind(PromiseResultKind.PermissionRequired)
+        val effects = mutableListOf<PromiseResultSideEffect>()
+        val collector = launch {
+            fixture.viewModel.container.sideEffectFlow.collect(effects::add)
+        }
+
+        fixture.viewModel.requestExactAlarm()
+        fixture.viewModel.requestExactAlarm()
+
+        withTimeout(1_000) {
+            while (effects.count { it == PromiseResultSideEffect.OpenExactAlarmSettings } < 1) yield()
+        }
+        delay(100)
+        assertEquals(1, effects.count { it == PromiseResultSideEffect.OpenExactAlarmSettings })
+        assertTrue(fixture.viewModel.container.stateFlow.value.isBusy)
+        assertEquals(PendingSystemAction.ExactAlarm, fixture.store.readState().pendingSystemAction)
+        collector.cancel()
+    }
+
+    @Test
+    fun unavailableExactAlarmSettingsClearsBusyAndAllowsRetry() = runBlocking {
+        val fixture = fixture(
+            FirstPromisePhase.SchedulePermissionRequired,
+            FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            canScheduleExactAlarms = false,
+        )
+        fixture.viewModel.load()
+        fixture.viewModel.awaitKind(PromiseResultKind.PermissionRequired)
+        val firstEffect = async(start = CoroutineStart.UNDISPATCHED) {
+            fixture.viewModel.container.sideEffectFlow.first()
+        }
+        fixture.viewModel.requestExactAlarm()
+        assertEquals(PromiseResultSideEffect.OpenExactAlarmSettings, withTimeout(1_000) { firstEffect.await() })
+
+        fixture.viewModel.onExactAlarmSettingsUnavailable()
+
+        withTimeout(1_000) {
+            fixture.viewModel.container.stateFlow.first { it.activationFailed && !it.isBusy }
+        }
+        assertNull(fixture.store.readState().pendingSystemAction)
+        val retryEffect = async(start = CoroutineStart.UNDISPATCHED) {
+            fixture.viewModel.container.sideEffectFlow.first()
+        }
+        fixture.viewModel.requestExactAlarm()
+        assertEquals(PromiseResultSideEffect.OpenExactAlarmSettings, withTimeout(1_000) { retryEffect.await() })
     }
 
     @Test

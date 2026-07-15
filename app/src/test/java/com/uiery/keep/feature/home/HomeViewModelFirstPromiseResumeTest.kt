@@ -100,6 +100,21 @@ class HomeViewModelFirstPromiseResumeTest {
     }
 
     @Test
+    fun succeededButDisabledFinalizeKeepsRetryCardAndDisabledDurableState() = runBlocking {
+        val fixture = fixture(canSchedule = true, finalizeReturnsDisabled = true)
+
+        val card = fixture.viewModel.awaitCard()
+
+        assertTrue(card.isRetry)
+        assertEquals(listOf(42L), fixture.coordinator.finalizedIds)
+        assertEquals(FirstPromisePhase.CompletedDisabled, fixture.store.readState().phase)
+        assertEquals(
+            FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            fixture.store.readState().scheduleState,
+        )
+    }
+
+    @Test
     fun deletedMappingHidesCardAndSuccessfulRetryAlsoHidesIt() = runBlocking {
         val deleted = fixture(canSchedule = false, mappingExists = false)
         withTimeout(1_000) { while (deleted.coordinator.readMappingCalls == 0) yield() }
@@ -205,6 +220,7 @@ private data class HomeResumeFixture(
 private fun fixture(
     canSchedule: Boolean,
     finalizeFails: Boolean = false,
+    finalizeReturnsDisabled: Boolean = false,
     mappingExists: Boolean = true,
 ): HomeResumeFixture {
     val dataStore = FakeDataStore(
@@ -219,7 +235,12 @@ private fun fixture(
         ),
     )
     val store = FirstPromiseDraftStore(dataStore)
-    val persistence = FakeHomeRecoveryPersistence(store, finalizeFails, mappingExists)
+    val persistence = FakeHomeRecoveryPersistence(
+        store,
+        finalizeFails,
+        finalizeReturnsDisabled,
+        mappingExists,
+    )
     val availability = AtomicBoolean(canSchedule)
     val recovery = FirstPromiseHomeRecoveryCoordinator(
         draftStore = store,
@@ -277,6 +298,7 @@ private suspend fun HomeViewModel.awaitCardHidden() {
 private class FakeHomeRecoveryPersistence(
     private val store: FirstPromiseDraftStore,
     var finalizeFails: Boolean,
+    private val finalizeReturnsDisabled: Boolean,
     private val mappingExists: Boolean,
 ) : FirstPromisePersistenceCoordinator {
     val finalizedIds = mutableListOf<Long>()
@@ -296,6 +318,9 @@ private class FakeHomeRecoveryPersistence(
     override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
         finalizedIds += routineId
         if (finalizeFails) return FirstPromisePersistenceResult.Failed(IllegalStateException("schedule"))
+        if (finalizeReturnsDisabled) {
+            return FirstPromisePersistenceResult.Succeeded(creation(enabled = false))
+        }
         store.resolveScheduleState(routineId, FirstPromiseScheduleState.Enabled)
         return FirstPromisePersistenceResult.Succeeded(creation(true))
     }

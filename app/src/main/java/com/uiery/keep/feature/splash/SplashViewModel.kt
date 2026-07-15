@@ -5,8 +5,12 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.setRoutinesCount
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.datastore.FirstPromiseStateReadResult
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.data.routine.RoutineRestoreAftercare
+import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 
@@ -22,6 +26,7 @@ class SplashViewModel
     @Inject
     constructor(
         private val blockingStateStore: BlockingStateStore,
+        private val firstPromiseDraftStore: FirstPromiseDraftStore,
         private val analytics: KeepAnalytics,
         private val routineRestoreAftercare: RoutineRestoreAftercare,
     ) : ViewModel(),
@@ -42,7 +47,12 @@ class SplashViewModel
             }
 
         private suspend fun handleNavigate(hasRestoredRoomData: Boolean): SplashSideEffect {
-            if (!hasRestoredRoomData && getIsNew()) {
+            val isNew = getIsNew()
+            if (isNew && hasIncompletePromiseCoachAssignment()) {
+                trackFirstOpenIfNeeded()
+                return SplashSideEffect.MoveToOnboarding
+            }
+            if (!hasRestoredRoomData && isNew) {
                 trackFirstOpenIfNeeded()
                 return SplashSideEffect.MoveToOnboarding
             }
@@ -62,6 +72,16 @@ class SplashViewModel
         }
 
         private suspend fun getIsNew(): Boolean = blockingStateStore.readIsNew(default = true)
+
+        private suspend fun hasIncompletePromiseCoachAssignment(): Boolean {
+            val state = (firstPromiseDraftStore.readStateResult() as? FirstPromiseStateReadResult.Available)
+                ?.state ?: return false
+            return state.assignment == OnboardingVariant.PromiseCoachV1 &&
+                state.phase !in setOf(
+                    FirstPromisePhase.CompletedEnabled,
+                    FirstPromisePhase.CompletedDisabled,
+                )
+        }
 
         private suspend fun getLockTime(): String? = blockingStateStore.readLockTime()
     }

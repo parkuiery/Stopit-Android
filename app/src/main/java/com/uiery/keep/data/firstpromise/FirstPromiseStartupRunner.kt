@@ -1,5 +1,6 @@
 package com.uiery.keep.data.firstpromise
 
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.FirstPromiseStateReadResult
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
@@ -13,9 +14,29 @@ class FirstPromiseStartupRunner {
     private val dispatcher: FirstPromiseOutboxDispatcher
     private val draftStore: FirstPromiseDraftStore?
     private val creationCoordinator: FirstPromisePersistenceCoordinator?
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher?
 
     @Inject
     constructor(
+        dispatcher: FirstPromiseOutboxDispatcher,
+        draftStore: FirstPromiseDraftStore,
+        creationCoordinator: FirstPromisePersistenceCoordinator,
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
+    ) {
+        this.dispatcher = dispatcher
+        this.draftStore = draftStore
+        this.creationCoordinator = creationCoordinator
+        this.onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher
+    }
+
+    internal constructor(dispatcher: FirstPromiseOutboxDispatcher) {
+        this.dispatcher = dispatcher
+        draftStore = null
+        creationCoordinator = null
+        onboardingAnalyticsDispatcher = null
+    }
+
+    internal constructor(
         dispatcher: FirstPromiseOutboxDispatcher,
         draftStore: FirstPromiseDraftStore,
         creationCoordinator: FirstPromisePersistenceCoordinator,
@@ -23,12 +44,7 @@ class FirstPromiseStartupRunner {
         this.dispatcher = dispatcher
         this.draftStore = draftStore
         this.creationCoordinator = creationCoordinator
-    }
-
-    internal constructor(dispatcher: FirstPromiseOutboxDispatcher) {
-        this.dispatcher = dispatcher
-        draftStore = null
-        creationCoordinator = null
+        onboardingAnalyticsDispatcher = null
     }
 
     suspend fun run() {
@@ -45,6 +61,7 @@ class FirstPromiseStartupRunner {
             state?.routineId != null && state.scheduleState == FirstPromiseScheduleState.Enabled ->
                 recoverSafely { creationCoordinator?.reconcileExistingRoutine(state.routineId) }
         }
+        recoverSafely { onboardingAnalyticsDispatcher?.drain() }
         recoverSafely { dispatcher.drainAll() }
         recoverSafely { dispatcher.cleanupSentRows() }
     }

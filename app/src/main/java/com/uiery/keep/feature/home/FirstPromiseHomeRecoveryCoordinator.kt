@@ -94,8 +94,17 @@ class FirstPromiseHomeRecoveryCoordinator internal constructor(
             }
             return FirstPromiseResumeDecision.Show(mapping.toCard())
         }
-        return when (coordinator.finalizeExistingRoutine(routineId)) {
-            is FirstPromisePersistenceResult.Succeeded -> FirstPromiseResumeDecision.Hidden
+        return when (val result = coordinator.finalizeExistingRoutine(routineId)) {
+            is FirstPromisePersistenceResult.Succeeded ->
+                if (
+                    result.creation.scheduleState == FirstPromiseScheduleState.Enabled &&
+                    result.creation.routine.isEnabled &&
+                    result.creation.schedulingSucceeded
+                ) {
+                    FirstPromiseResumeDecision.Hidden
+                } else {
+                    FirstPromiseResumeDecision.Show(result.creation.toCard(isRetry = true))
+                }
             else -> FirstPromiseResumeDecision.Show(mapping.toCard(isRetry = true))
         }
     }

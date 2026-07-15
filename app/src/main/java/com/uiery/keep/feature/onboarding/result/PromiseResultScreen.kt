@@ -41,6 +41,7 @@ import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.onboarding.proposal.formatTime
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
+import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLaunchResult
 import com.uiery.keep.feature.routine.createAppDetailsSettingsIntent
 import com.uiery.keep.feature.routine.createExactAlarmSettingsIntent
 import com.uiery.keep.util.formatWeekdayShort
@@ -63,11 +64,13 @@ fun PromiseResultScreen(
             PromiseResultSideEffect.NavigateProposal -> onNavigateProposal()
             PromiseResultSideEffect.NavigateHome -> onNavigateHome()
             PromiseResultSideEffect.OpenExactAlarmSettings -> {
-                RoutineAlarmPermissionSettingsLauncher.open(
+                if (RoutineAlarmPermissionSettingsLauncher.open(
                     exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
                     appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
                     launch = context::startActivity,
-                )
+                ) == RoutineAlarmPermissionSettingsLaunchResult.Unavailable) {
+                    viewModel.onExactAlarmSettingsUnavailable()
+                }
             }
         }
     }
