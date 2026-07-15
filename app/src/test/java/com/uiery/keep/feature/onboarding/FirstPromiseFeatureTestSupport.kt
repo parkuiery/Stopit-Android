@@ -79,3 +79,12 @@ internal fun firstPromiseStore(
         ),
     )
 }
+
+internal fun firstPromiseStore(state: FirstPromiseOnboardingState): FirstPromiseDraftStore =
+    FirstPromiseDraftStore(
+        FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+            ),
+        ),
+    )

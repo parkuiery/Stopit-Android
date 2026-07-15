@@ -36,7 +36,7 @@ import org.orbitmvi.orbit.viewmodel.container
 data class UsageAnalysisUiState(val averageDailyMinutes: Long? = null)
 
 sealed interface UsageAnalysisSideEffect {
-    data class NavigateProposal(val averageDailyMinutes: Long) : UsageAnalysisSideEffect
+    data class NavigateProposal(val proposal: TransientAnalysisProposal) : UsageAnalysisSideEffect
     data object NavigateManualAppSelect : UsageAnalysisSideEffect
 }
 
@@ -129,7 +129,14 @@ class UsageAnalysisViewModel internal constructor(
         )
         intent {
             reduce { state.copy(averageDailyMinutes = profile.averageDailyMinutes) }
-            postSideEffect(UsageAnalysisSideEffect.NavigateProposal(profile.averageDailyMinutes))
+            postSideEffect(
+                UsageAnalysisSideEffect.NavigateProposal(
+                    TransientAnalysisProposal(
+                        draftId = proposal.draft.draftId,
+                        averageDailyMinutes = profile.averageDailyMinutes,
+                    ),
+                ),
+            )
         }
     }
 

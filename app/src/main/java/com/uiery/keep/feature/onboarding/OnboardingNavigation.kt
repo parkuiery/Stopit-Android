@@ -14,6 +14,7 @@ import com.uiery.keep.feature.onboarding.permission.permissionSettingScreen
 import com.uiery.keep.feature.onboarding.select.selectApp
 import com.uiery.keep.feature.onboarding.usageaccess.usageAccessScreen
 import com.uiery.keep.feature.onboarding.usageanalysis.usageAnalysisScreen
+import com.uiery.keep.feature.onboarding.usageanalysis.TransientAnalysisProposal
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -80,7 +81,7 @@ fun NavGraphBuilder.onboarding(
     onNavigateUsageAccess: () -> Unit,
     onNavigateUsageAnalysis: () -> Unit,
     onNavigateManualAppSelect: () -> Unit,
-    onNavigatePromiseProposal: (Long) -> Unit,
+    onNavigatePromiseProposal: (TransientAnalysisProposal) -> Unit,
 ) {
     navigation<Onboarding.Route>(
         startDestination = canonicalOnboardingStartDestination()

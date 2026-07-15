@@ -18,8 +18,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -79,6 +81,26 @@ class UsageAnalysisViewModelTest {
         first.complete(ready(UsageDataQuality.Full, UsagePatternType.Night)); delay(50)
         assertEquals(UsagePatternType.TopApp, store.readState().recommendationReasonRef?.patternType)
         assertEquals(1, analytics.calls.filterIsInstance<FirstPromiseAnalyticsCall.Analysis>().size)
+    }
+
+    @Test
+    fun successfulNavigationStoresExactAverageOnlyInProcessMemory() = runBlocking {
+        FirstPromiseAnalysisTransientHolder.clear()
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(FirstPromisePhase.UsageAccessPending, FirstPromiseGoal.Sleep)
+        val viewModel = viewModel(analytics, store) { ready(UsageDataQuality.Full, UsagePatternType.Night) }
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.startAnalysis()
+        val navigation = effect.await() as UsageAnalysisSideEffect.NavigateProposal
+        var navigated = false
+        storeTransientAverageThenNavigate(navigation.proposal) { navigated = true }
+
+        assertEquals(42L, FirstPromiseAnalysisTransientHolder.peek("draft-1"))
+        assertEquals(true, navigated)
+        assertEquals(null, FirstPromiseAnalysisTransientHolder.peek("another-draft"))
+        FirstPromiseAnalysisTransientHolder.clear()
+        assertEquals(null, FirstPromiseAnalysisTransientHolder.peek("draft-1"))
     }
 
     private fun viewModel(

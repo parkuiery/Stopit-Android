@@ -74,6 +74,9 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun advanceToUsageAccess(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::advanceToUsageAccess)
 
+    suspend fun completeUsageAccess(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::completeUsageAccess)
+
     suspend fun chooseManualSetup(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::chooseManualSetup)
 

@@ -179,6 +179,31 @@ object FirstPromiseStatePolicy {
         return beginAnalysisAttempt(analyzingState, attemptId)
     }
 
+    fun completeUsageAccess(state: FirstPromiseOnboardingState): FirstPromiseStateMutation {
+        if (state.usagePermissionAttempt?.terminalOutcome != UsagePermissionOutcome.Granted) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        if (
+            state.phase == FirstPromisePhase.Analyzing &&
+            FirstPromiseMilestone.UsageAccessCompletion in state.trackedMilestones
+        ) {
+            return FirstPromiseStateMutation.NoOp
+        }
+        val analyzingState = when (state.phase) {
+            FirstPromisePhase.UsageAccessPending ->
+                (transition(state, FirstPromisePhase.Analyzing) as? FirstPromiseStateMutation.Changed)?.state
+                    ?: return FirstPromiseStateMutation.Rejected
+            FirstPromisePhase.Analyzing -> state
+            else -> return FirstPromiseStateMutation.Rejected
+        }
+        return FirstPromiseStateMutation.Changed(
+            analyzingState.copy(
+                trackedMilestones = analyzingState.trackedMilestones + FirstPromiseMilestone.UsageAccessCompletion,
+                pendingSystemAction = null,
+            ),
+        )
+    }
+
     fun requestAccessibility(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         transitionWithDraft(state, FirstPromisePhase.AccessibilityPending)
 

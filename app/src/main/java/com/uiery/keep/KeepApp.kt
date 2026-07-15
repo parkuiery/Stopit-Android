@@ -92,7 +92,7 @@ internal fun KeepApp(
             onNavigateUsageAccess = navController::navigateToUsageAccess,
             onNavigateUsageAnalysis = navController::navigateToUsageAnalysis,
             onNavigateManualAppSelect = { navController.navigate(com.uiery.keep.feature.onboarding.Onboarding.Route.ManualAppSelect) },
-            onNavigatePromiseProposal = { navController.navigateToPromiseProposal() },
+            onNavigatePromiseProposal = navController::navigateToPromiseProposal,
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,

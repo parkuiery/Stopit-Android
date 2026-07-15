@@ -51,6 +51,7 @@ class UsageAccessViewModel internal constructor(
     private val completed = AtomicBoolean(false)
     private val manualChosen = AtomicBoolean(false)
     private val openingSettings = AtomicBoolean(false)
+    private val navigationPosted = AtomicBoolean(false)
     private var openedAttemptInProcess: Long? = null
 
     fun onStepViewed() {
@@ -97,7 +98,7 @@ class UsageAccessViewModel internal constructor(
             openingSettings.set(false)
             val outcome = draftStore.recordUsagePermissionResume(attemptId, permissionGranted(), sameProcess = true)
             draftStore.clearPendingSystemAction()
-            handleTerminalOutcome(outcome)
+            handleTerminalOutcome(outcome, trackNewOutcome = true)
         }
     }
 
@@ -113,7 +114,8 @@ class UsageAccessViewModel internal constructor(
             ) {
                 intent { reduce { state.copy(settingsUnavailable = true) } }
             }
-            handleTerminalOutcome(outcome)
+            val terminalOutcome = outcome ?: draftStore.readState().usagePermissionAttempt?.terminalOutcome
+            handleTerminalOutcome(terminalOutcome, trackNewOutcome = outcome != null)
         }
     }
 
@@ -134,14 +136,22 @@ class UsageAccessViewModel internal constructor(
 
     private suspend fun handleTerminalOutcome(
         outcome: UsagePermissionOutcome?,
+        trackNewOutcome: Boolean,
     ) {
         when (outcome) {
             UsagePermissionOutcome.Granted -> {
-                trackPermission(AnalyticsOutcome.GRANTED)
-                completeOnce()
-                intent { postSideEffect(UsageAccessSideEffect.NavigateUsageAnalysis) }
+                if (trackNewOutcome) trackPermission(AnalyticsOutcome.GRANTED)
+                if (draftStore.completeUsageAccess() is FirstPromiseStateMutation.Changed) {
+                    completeOnce()
+                }
+                if (
+                    draftStore.readState().phase == com.uiery.keep.domain.firstpromise.FirstPromisePhase.Analyzing &&
+                    navigationPosted.compareAndSet(false, true)
+                ) {
+                    intent { postSideEffect(UsageAccessSideEffect.NavigateUsageAnalysis) }
+                }
             }
-            UsagePermissionOutcome.Denied -> trackPermission(AnalyticsOutcome.DENIED)
+            UsagePermissionOutcome.Denied -> if (trackNewOutcome) trackPermission(AnalyticsOutcome.DENIED)
             else -> Unit
         }
     }

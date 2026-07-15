@@ -6,14 +6,51 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import com.uiery.keep.feature.onboarding.Onboarding
 
-fun NavController.navigateToUsageAnalysis(navOptions: NavOptions? = null) = navigate(Onboarding.Route.UsageAnalysis, navOptions)
+data class TransientAnalysisProposal(
+    val draftId: String,
+    val averageDailyMinutes: Long,
+)
 
-fun NavController.navigateToPromiseProposal() {
-    navigate(Onboarding.Route.PromiseProposal)
+internal object FirstPromiseAnalysisTransientHolder {
+    private var proposal: TransientAnalysisProposal? = null
+
+    @Synchronized
+    fun store(value: TransientAnalysisProposal) {
+        proposal = value
+    }
+
+    @Synchronized
+    fun peek(draftId: String): Long? =
+        proposal?.takeIf { it.draftId == draftId }?.averageDailyMinutes
+
+    @Synchronized
+    fun consume(draftId: String): Long? {
+        val value = proposal?.takeIf { it.draftId == draftId } ?: return null
+        proposal = null
+        return value.averageDailyMinutes
+    }
+
+    @Synchronized
+    fun clear() {
+        proposal = null
+    }
 }
 
+internal fun storeTransientAverageThenNavigate(
+    proposal: TransientAnalysisProposal,
+    navigate: () -> Unit,
+) {
+    FirstPromiseAnalysisTransientHolder.store(proposal)
+    navigate()
+}
+
+fun NavController.navigateToUsageAnalysis(navOptions: NavOptions? = null) = navigate(Onboarding.Route.UsageAnalysis, navOptions)
+
+fun NavController.navigateToPromiseProposal(proposal: TransientAnalysisProposal) =
+    storeTransientAverageThenNavigate(proposal) { navigate(Onboarding.Route.PromiseProposal) }
+
 fun NavGraphBuilder.usageAnalysisScreen(
-    onNavigateProposal: (Long) -> Unit,
+    onNavigateProposal: (TransientAnalysisProposal) -> Unit,
     onNavigateManualAppSelect: () -> Unit,
 ) {
     composable<Onboarding.Route.UsageAnalysis> {

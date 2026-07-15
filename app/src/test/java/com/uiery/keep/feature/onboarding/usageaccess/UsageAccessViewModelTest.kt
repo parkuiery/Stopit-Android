@@ -5,16 +5,21 @@ import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.PendingSystemAction
 import com.uiery.keep.domain.firstpromise.UsagePermissionLaunchState
+import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import com.uiery.keep.feature.onboarding.FirstPromiseAnalyticsCall
 import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.feature.onboarding.firstPromiseStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -89,6 +94,37 @@ class UsageAccessViewModelTest {
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepView(OnboardingStepName.USAGE_ACCESS) })
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.USAGE_ACCESS) })
         assertTrue(analytics.calls.none { it.toString().contains("attempt", ignoreCase = true) })
+    }
+
+    @Test
+    fun recreatedGrantedAttemptDurablyCompletesAndResumesNavigationExactlyOnce() = runBlocking {
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(
+            FirstPromiseOnboardingState(
+                assignment = com.uiery.keep.domain.firstpromise.OnboardingVariant.PromiseCoachV1,
+                assignmentVersion = com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion.V1,
+                phase = FirstPromisePhase.UsageAccessPending,
+                goal = FirstPromiseGoal.Focus,
+                usagePermissionAttempt = UsagePermissionAttempt(
+                    id = 8L,
+                    launchState = UsagePermissionLaunchState.Opened,
+                    terminalOutcome = UsagePermissionOutcome.Granted,
+                ),
+            ),
+        )
+        val viewModel = UsageAccessViewModel(analytics, store, { true }, Dispatchers.Unconfined)
+        val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.reconcileAfterRecreation()
+        viewModel.reconcileAfterRecreation()
+
+        assertEquals(
+            UsageAccessSideEffect.NavigateUsageAnalysis,
+            withTimeout(1_000L) { navigation.await() },
+        )
+        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
+        assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.USAGE_ACCESS) })
+        assertTrue(analytics.permissions(AnalyticsOutcome.GRANTED).isEmpty())
     }
 }
 

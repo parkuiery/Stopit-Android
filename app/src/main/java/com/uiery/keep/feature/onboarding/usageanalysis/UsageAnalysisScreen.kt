@@ -22,14 +22,14 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 
 @Composable
 fun UsageAnalysisScreen(
-    onNavigateProposal: (Long) -> Unit,
+    onNavigateProposal: (TransientAnalysisProposal) -> Unit,
     onNavigateManualAppSelect: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: UsageAnalysisViewModel = hiltViewModel(),
 ) {
     viewModel.collectSideEffect { effect ->
         when (effect) {
-            is UsageAnalysisSideEffect.NavigateProposal -> onNavigateProposal(effect.averageDailyMinutes)
+            is UsageAnalysisSideEffect.NavigateProposal -> onNavigateProposal(effect.proposal)
             UsageAnalysisSideEffect.NavigateManualAppSelect -> onNavigateManualAppSelect()
         }
     }

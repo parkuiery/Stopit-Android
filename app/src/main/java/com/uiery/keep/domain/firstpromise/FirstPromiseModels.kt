@@ -123,6 +123,7 @@ enum class PendingSystemAction {
 enum class FirstPromiseMilestone {
     Exposure,
     AppSelection,
+    UsageAccessCompletion,
 }
 
 @Serializable

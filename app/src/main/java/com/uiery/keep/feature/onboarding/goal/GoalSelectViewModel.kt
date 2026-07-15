@@ -15,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.Container
@@ -44,18 +45,22 @@ class GoalSelectViewModel internal constructor(
     override val container: Container<GoalSelectUiState, GoalSelectSideEffect> = container(GoalSelectUiState())
     private val viewed = AtomicBoolean(false)
     private val completed = AtomicBoolean(false)
+    private val exposureResolved = CompletableDeferred<Boolean>()
 
     fun onStepViewed() {
         if (!viewed.compareAndSet(false, true)) return
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_GOAL_SELECT)
         analytics.trackOnboardingStepView(OnboardingStepName.GOAL_SELECT)
         viewModelScope.launch(persistenceDispatcher) {
-            if (draftStore.markExposedIfNeeded(OnboardingVariant.PromiseCoachV1)) {
-                analytics.trackOnboardingExperimentExposed(
-                    OnboardingVariant.PromiseCoachV1,
-                    OnboardingAssignmentVersion.V1,
-                )
-            }
+            val resolved = runCatching {
+                if (draftStore.markExposedIfNeeded(OnboardingVariant.PromiseCoachV1)) {
+                    analytics.trackOnboardingExperimentExposed(
+                        OnboardingVariant.PromiseCoachV1,
+                        OnboardingAssignmentVersion.V1,
+                    )
+                }
+            }.isSuccess
+            exposureResolved.complete(resolved)
         }
     }
 
@@ -64,6 +69,7 @@ class GoalSelectViewModel internal constructor(
     }
 
     fun continuePersonalized() = intent {
+        if (!exposureResolved.await()) return@intent
         val goal = state.selectedGoal ?: return@intent
         val selected = draftStore.selectGoal(goal, FirstPromisePath.Personalized)
         val advanced = draftStore.advanceToUsageAccess()
@@ -74,6 +80,7 @@ class GoalSelectViewModel internal constructor(
     }
 
     fun chooseManual() = intent {
+        if (!exposureResolved.await()) return@intent
         val selected = draftStore.selectGoal(FirstPromiseGoal.Unspecified, FirstPromisePath.Manual)
         val advanced = draftStore.chooseManualSetup()
         if (selected !is FirstPromiseStateMutation.Rejected && advanced is FirstPromiseStateMutation.Changed) {
