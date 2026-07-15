@@ -1,16 +1,29 @@
 package com.uiery.keep.feature.onboarding
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.analytics.AnalyticsOutcome
+import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.BlockAnalyticsCoordinator
 import com.uiery.keep.analytics.BlockAnalyticsRequest
 import com.uiery.keep.analytics.BlockDirectAnalyticsDelivery
 import com.uiery.keep.analytics.FirstCoreActionDeliveryCoordinator
 import com.uiery.keep.analytics.FirstCoreActionMarker
 import com.uiery.keep.analytics.FirstCoreActionMarkerState
+import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.data.firstpromise.FirstPromiseCreationResult
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceCoordinator
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceResult
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
 import com.uiery.keep.data.firstpromise.FirstPromiseAppCategoryBucket
 import com.uiery.keep.data.firstpromise.FirstPromiseAttribution
 import com.uiery.keep.data.firstpromise.FirstPromiseAttributionStore
@@ -19,10 +32,16 @@ import com.uiery.keep.data.firstpromise.FirstPromiseCoreActionKind
 import com.uiery.keep.data.firstpromise.FirstPromiseOutboxDispatcher
 import com.uiery.keep.data.firstpromise.FirstPromiseValueEventInput
 import com.uiery.keep.data.firstpromise.FirstPromiseValueReservation
+import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
+import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.FirstPromisePracticeStore
 import com.uiery.keep.datastore.FirstPromisePracticeToken
+import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromisePath
@@ -38,7 +57,6 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.UsagePermissionLaunchState
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
-import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
 import com.uiery.keep.domain.usageinsight.InsufficientReason
 import com.uiery.keep.domain.usageinsight.OnboardingUsageAggregate
 import com.uiery.keep.domain.usageinsight.OnboardingUsageInterval
@@ -46,20 +64,36 @@ import com.uiery.keep.domain.usageinsight.OnboardingUsageProfilePolicy
 import com.uiery.keep.domain.usageinsight.OnboardingUsageProfileResult
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryDestination
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryRoutePolicy
+import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
+import com.uiery.keep.feature.onboarding.entry.OnboardingEntryViewModel
+import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentConfig
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentPolicy
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentSnapshot
-import com.uiery.keep.feature.onboarding.notification.PostNotificationPermissionResultAction
-import com.uiery.keep.feature.onboarding.notification.resolvePostNotificationPermissionResultAction
+import com.uiery.keep.feature.onboarding.intro.IntroViewModel
+import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
+import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
+import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
+import com.uiery.keep.feature.splash.SplashSideEffect
+import com.uiery.keep.feature.splash.SplashViewModel
+import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.notification.RoutineScheduler
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,7 +102,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class PromiseCoachOnboardingIntegrationTest {
     @Test
-    fun controlDefaultsRemainLegacyWhileOnlyReadableEnabledBucketsEnterTreatment() {
+    fun controlKeepsProductionIntroPermissionNotificationSelectionAndHomeCompletion() = runBlocking {
         assertEquals(
             OnboardingVariant.Control,
             OnboardingExperimentPolicy.assign(OnboardingExperimentSnapshot(), bucket = 0),
@@ -88,10 +122,79 @@ class PromiseCoachOnboardingIntegrationTest {
             OnboardingVariant.PromiseCoachV1,
             OnboardingExperimentPolicy.assign(treatmentSnapshot(), bucket = 99),
         )
+
+        val dataStore = InMemoryPreferencesDataStore(
+            mutablePreferencesOf(PreferencesKey.IS_NEW to true),
+        )
+        val draftStore = FirstPromiseDraftStore(dataStore)
+        val analytics = RecordingOnboardingAnalytics()
+        val entryEffect = onboardingEntryViewModel(dataStore).resolveEntry()
+
+        assertEquals(
+            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
+            entryEffect,
+        )
+        assertEquals(OnboardingVariant.Control, draftStore.readState().assignment)
+
+        IntroViewModel(analytics, draftStore).apply {
+            onStepViewed()
+            onContinue()
+        }
+        PermissionSettingViewModel(analytics).apply {
+            onStepViewed()
+            onPermissionSettingsOpened()
+            onPermissionGranted()
+        }
+        NotificationSettingViewModel(analytics).apply {
+            onStepViewed()
+            onPermissionDeniedAndContinue()
+        }
+        SelectAppViewModel(BlockingStateStore(dataStore), analytics).apply {
+            onStepViewed()
+            selectCategoryComplete(setOf("com.example.legacy"))
+        }
+        awaitCondition { BlockingStateStore(dataStore).readIsNew(default = true).not() }
+
+        assertEquals(setOf("com.example.legacy"), BlockingStateStore(dataStore).readSelectedAppPackages())
+        assertFalse(BlockingStateStore(dataStore).readIsNew())
+        assertEquals(OnboardingVariant.Control, draftStore.readState().assignment)
+        assertEquals(FirstPromisePhase.GoalPending, draftStore.readState().phase)
+        assertNull(draftStore.readState().draft)
+        assertNull(draftStore.readState().pendingSystemAction)
+
+        val splash = SplashViewModel(
+            blockingStateStore = BlockingStateStore(dataStore),
+            firstPromiseDraftStore = draftStore,
+            analytics = analytics,
+            routineRestoreAftercare = emptyRoutineRestoreAftercare(dataStore),
+        )
+        assertEquals(
+            SplashSideEffect.MoveToHome,
+            withTimeout(2_000L) { splash.container.sideEffectFlow.first() },
+        )
+        assertEquals(
+            listOf(
+                OnboardingStepName.INTRO,
+                OnboardingStepName.PERMISSION,
+                OnboardingStepName.NOTIFICATION,
+                OnboardingStepName.SELECT_APP,
+            ),
+            analytics.completedSteps,
+        )
+        assertTrue(
+            analytics.completedSteps.none {
+                it in setOf(
+                    OnboardingStepName.GOAL_SELECT,
+                    OnboardingStepName.USAGE_ACCESS,
+                    OnboardingStepName.PROMISE_PROPOSAL,
+                    OnboardingStepName.PROMISE_RESULT,
+                )
+            },
+        )
     }
 
     @Test
-    fun treatmentGrantAccessibilityPreGrantAndNotificationDenialStillCompleteEnabled() {
+    fun treatmentGrantAccessibilityPreGrantAndNotificationDenialStillCompleteEnabled() = runBlocking {
         var state = treatmentGoalState()
         state = changed(FirstPromiseStatePolicy.beginUsagePermissionSettingsAttempt(state, 1L))
         state = changed(FirstPromiseStatePolicy.markUsagePermissionOpened(state, 1L))
@@ -110,26 +213,63 @@ class PromiseCoachOnboardingIntegrationTest {
         state = changed(FirstPromiseStatePolicy.startFirstPromise(state))
 
         assertEquals(PendingSystemAction.Accessibility, state.pendingSystemAction)
-        state = changed(FirstPromiseStatePolicy.requestNotification(state))
-        assertEquals(FirstPromisePhase.NotificationPending, state.phase)
-        assertNull(state.pendingSystemAction)
-        assertEquals(
-            PostNotificationPermissionResultAction.RecordDenialAndContinue,
-            resolvePostNotificationPermissionResultAction(isGranted = false),
-        )
-
-        state = changed(FirstPromiseStatePolicy.beginPersistence(state))
-        state = changed(
-            FirstPromiseStatePolicy.recordPersistenceMapping(
-                state,
-                routineId = 10L,
-                scheduleState = FirstPromiseScheduleState.Enabled,
+        val dataStore = InMemoryPreferencesDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
             ),
         )
-        state = changed(FirstPromiseStatePolicy.completeOnboarding(state))
+        val store = FirstPromiseDraftStore(dataStore)
+        val analytics = RecordingOnboardingAnalytics()
+        var loadedStartMinutes: Int? = null
+        var accessibilityNavigationCount = 0
+        PermissionSettingViewModel(
+            analytics,
+            store,
+            Dispatchers.Unconfined,
+            Dispatchers.Unconfined,
+        ).loadFirstPromise(
+            accessibilityGranted = true,
+            onLoaded = { loadedStartMinutes = it },
+            onNavigateNotification = { accessibilityNavigationCount++ },
+        )
+        awaitCondition { store.readState().phase == FirstPromisePhase.NotificationPending }
 
-        assertEquals(FirstPromisePhase.CompletedEnabled, state.phase)
-        assertEquals(OnboardingEntryDestination.Home, OnboardingEntryRoutePolicy.destinationFor(state.phase))
+        assertEquals(draft.startMinutes, loadedStartMinutes)
+        assertEquals(1, accessibilityNavigationCount)
+        assertNull(store.readState().pendingSystemAction)
+
+        var persistenceNavigationCount = 0
+        val persistence = RecordingPersistenceCoordinator(store)
+        NotificationSettingViewModel(
+            analytics,
+            store,
+            Dispatchers.Unconfined,
+            Dispatchers.Unconfined,
+            persistence,
+        ).onFirstPromisePermissionResult(
+            granted = false,
+            onNavigatePersistence = { persistenceNavigationCount++ },
+        )
+        awaitCondition { store.readState().phase == FirstPromisePhase.ResultEnabled }
+
+        assertEquals(1, persistenceNavigationCount)
+        assertEquals(1, persistence.persistCalls)
+        assertEquals(
+            listOf(AnalyticsOutcome.DENIED),
+            analytics.permissionOutcomes
+                .filter { it.first == AnalyticsPermissionName.NOTIFICATIONS }
+                .map { it.second },
+        )
+        assertTrue(OnboardingStepName.NOTIFICATION in analytics.completedSteps)
+        assertEquals(
+            OnboardingEntryDestination.PromiseResult,
+            OnboardingEntryRoutePolicy.destinationFor(store.readState().phase),
+        )
+
+        assertTrue(store.completeOnboarding() is FirstPromiseStateMutation.Changed)
+
+        assertEquals(FirstPromisePhase.CompletedEnabled, store.readState().phase)
+        assertEquals(OnboardingEntryDestination.Home, OnboardingEntryRoutePolicy.destinationFor(store.readState().phase))
     }
 
     @Test
@@ -317,9 +457,37 @@ class PromiseCoachOnboardingIntegrationTest {
     }
 
     @Test
-    fun cleanResetStateContainsNoAssignmentDraftPendingActionOrCompletionProof() {
-        val reset = FirstPromiseOnboardingState()
+    fun resetOnlyPolicyClearsSeededPromiseStateBeforeCleanControlReassignment() = runBlocking {
+        val seededState = draftReadyState().copy(
+            phase = FirstPromisePhase.SchedulePermissionRequired,
+            routineId = 91L,
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            pendingSystemAction = PendingSystemAction.ExactAlarm,
+            trackedMilestones = setOf(FirstPromiseMilestone.PromiseResultView),
+        )
+        val dataStore = InMemoryPreferencesDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(seededState),
+                PreferencesKey.IS_NEW to false,
+                PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+            ),
+        )
+        val seededStore = FirstPromiseDraftStore(dataStore)
 
+        assertEquals(OnboardingVariant.PromiseCoachV1, seededStore.readState().assignment)
+        assertEquals(draft, seededStore.readState().draft)
+        assertEquals(PendingSystemAction.ExactAlarm, seededStore.readState().pendingSystemAction)
+        assertEquals(91L, seededStore.readState().routineId)
+        assertFalse(BlockingStateStore(dataStore).readIsNew())
+
+        dataStore.updateData { preferences ->
+            (preferences as MutablePreferences).apply {
+                BackupRestoreDataStoreKeyPolicy.resetOnlyKeys.forEach { key -> remove(key) }
+            }
+        }
+
+        val recreatedStore = FirstPromiseDraftStore(dataStore)
+        val reset = recreatedStore.readState()
         assertNull(reset.assignment)
         assertEquals(FirstPromisePhase.GoalPending, reset.phase)
         assertNull(reset.draft)
@@ -327,6 +495,18 @@ class PromiseCoachOnboardingIntegrationTest {
         assertNull(reset.routineId)
         assertTrue(reset.trackedMilestones.isEmpty())
         assertTrue(reset.pendingOnboardingAnalyticsEvents.isEmpty())
+        assertTrue(BlockingStateStore(dataStore).readIsNew(default = true))
+        assertNull(dataStore.current()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+        assertNull(dataStore.current()[PreferencesKey.IS_NEW])
+        assertNull(dataStore.current()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+
+        assertEquals(
+            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
+            onboardingEntryViewModel(dataStore).resolveEntry(),
+        )
+        assertEquals(OnboardingVariant.Control, recreatedStore.readState().assignment)
+        assertNull(recreatedStore.readState().draft)
+        assertNull(recreatedStore.readState().pendingSystemAction)
     }
 
     @Test
@@ -370,6 +550,33 @@ class PromiseCoachOnboardingIntegrationTest {
         assertEquals(FirstPromiseOrigin.FirstPromisePractice, attributionStore.reservedAttribution?.origin)
         assertEquals(FirstPromiseBlockSource.TimedLock, attributionStore.reservedInput?.blockSource)
         assertEquals(FirstPromiseAppCategoryBucket.Video, attributionStore.reservedInput?.categoryBucket)
+    }
+
+    private fun onboardingEntryViewModel(
+        dataStore: DataStore<Preferences>,
+    ) = OnboardingEntryViewModel(
+        draftStore = FirstPromiseDraftStore(dataStore),
+        experimentConfig = object : OnboardingExperimentConfig {
+            override fun snapshot() = OnboardingExperimentSnapshot()
+        },
+        bucketProvider = { 0 },
+    )
+
+    private fun emptyRoutineRestoreAftercare(
+        dataStore: DataStore<Preferences>,
+    ) = RoutineRestoreAftercare(
+        routineRepository = EmptyRoutineRepository,
+        dataStore = dataStore,
+        exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(
+            RoutineScheduler(InstrumentationRegistry.getInstrumentation().targetContext),
+        ),
+        routineNoticeStore = RoutineNoticeStore(dataStore),
+    )
+
+    private suspend fun awaitCondition(condition: suspend () -> Boolean) {
+        withTimeout(2_000L) {
+            while (!condition()) delay(10L)
+        }
     }
 
     private fun treatmentGoalState(): FirstPromiseOnboardingState = changed(
@@ -453,11 +660,78 @@ class PromiseCoachOnboardingIntegrationTest {
     }
 }
 
-private class InMemoryPreferencesDataStore : DataStore<Preferences> {
-    private val state = MutableStateFlow(emptyPreferences())
+private class InMemoryPreferencesDataStore(
+    initial: Preferences = emptyPreferences(),
+) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
     override val data: Flow<Preferences> = state
     override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
         transform(state.value).also { state.value = it }
+
+    fun current(): Preferences = state.value
+}
+
+private class RecordingOnboardingAnalytics : KeepAnalytics {
+    val completedSteps = mutableListOf<String>()
+    val permissionOutcomes = mutableListOf<Pair<String, String>>()
+
+    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    override fun logScreenView(screenName: String) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun trackFirstOpen() = Unit
+    override fun trackOnboardingStepView(stepName: String) = Unit
+    override fun trackOnboardingStepComplete(stepName: String) {
+        completedSteps += stepName
+    }
+
+    override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) {
+        permissionOutcomes += permissionName to outcome
+    }
+
+    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) = Unit
+    override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
+    override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
+    override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
+}
+
+private class RecordingPersistenceCoordinator(
+    private val store: FirstPromiseDraftStore,
+) : FirstPromisePersistenceCoordinator {
+    var persistCalls = 0
+
+    override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
+        persistCalls++
+        val creation = FirstPromiseCreationResult(
+            routineId = 73L,
+            routine = RoutineModel(
+                id = 73L,
+                name = "Promise",
+                startTime = LocalTime(21, 0),
+                endTime = LocalTime(21, 30),
+                repeatDays = "1111111",
+                lockApplications = listOf("com.example.video"),
+                isEnabled = true,
+            ),
+            scheduleState = FirstPromiseScheduleState.Enabled,
+            schedulingSucceeded = true,
+            created = true,
+        )
+        store.recordPersistenceMapping(creation.routineId, creation.scheduleState)
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
+    override suspend fun readCurrentMapping(): FirstPromiseCreationResult? = null
+
+    override suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
+}
+
+private object EmptyRoutineRepository : RoutineRepository {
+    override fun fetchAll(): Flow<List<RoutineModel>> = flowOf(emptyList())
+    override suspend fun fetchAllOnce(): List<RoutineModel> = emptyList()
 }
 
 private class RecordingAttributionStore : FirstPromiseAttributionStore {

@@ -321,7 +321,7 @@ cd <repo-root>
 | Control | 기존 `SelectedApp` 완료 후 Home 진입 | 기존 온보딩 완료 의미를 유지한다. Treatment 전용 Usage/약속 단계가 끼어들지 않는다. |
 | Treatment | `CompletedEnabled` 또는 `CompletedDisabled` | routine persistence와 mapping이 끝난 뒤에만 terminal이다. exact alarm 부족 등으로 disabled 저장된 결과는 완료로 기록하되 “차단 준비 완료”로 해석하지 않는다. |
 
-프로세스 재생성 시 `UsageAccess`, `Accessibility`, `ExactAlarm` pending action은 저장된 phase/action으로 복구하며 권한 결과를 추측하지 않는다. clean reinstall/reset 상태에는 assignment, draft, pending action, completion proof가 없어야 한다.
+프로세스 재생성 시 `UsageAccess`, `Accessibility`, `ExactAlarm` pending action은 저장된 phase/action으로 복구하며 권한 결과를 추측하지 않는다. DataStore가 제외되는 reinstall/restore의 reset-only 정책을 적용한 상태에는 assignment, draft, pending action, completion proof가 없어야 한다. 실제 `pm clear`/재설치 실행은 아래 외부 기기 경계로 남는다.
 
 ### ordered 24시간 funnel과 guardrail
 
@@ -348,7 +348,7 @@ BlockScreen 긴급해제 guardrail은 exposure 전체가 아니라 **같은 vari
 
 ### Task 16 검증 경계
 
-저장소 내부 자동 검증은 Control/Treatment 분기, Usage 허용·거절/manual·데이터 부족, 접근성 기허용, 알림 거절 후 계속, exact-alarm enabled/disabled 결과, 모든 pending system action 직렬화 복구, OEM Usage settings intent 실패 fallback, 자정 경계, timezone 재평가와 timezone-action 뒤 enabled routine alarm 재계산, Usage Access 철회 fallback, clean reset, 10분 연습 token의 실제 timed-lock 차단 attribution을 deterministic contract로 고정한다.
+저장소 내부 자동 검증은 production entry/legacy ViewModel/Splash를 연결한 Control `Intro → Permission → Notification → SelectedApp → Home`, Treatment Usage 허용·거절/manual·데이터 부족, production permission ViewModel을 통과한 접근성 기허용·알림 거절 후 persistence/result 계속, exact-alarm enabled/disabled 결과, 모든 pending system action 직렬화 복구, OEM Usage settings intent 실패 fallback, 자정 경계, timezone 재평가와 timezone-action 뒤 enabled routine alarm 재계산, Usage Access 철회 fallback, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 reset-only 상태, 10분 연습 token의 실제 timed-lock 차단 attribution을 deterministic contract로 고정한다.
 
 아래 항목은 이 문서/테스트 변경으로 완료 처리하지 않는다.
 

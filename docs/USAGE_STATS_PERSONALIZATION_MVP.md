@@ -443,8 +443,8 @@ Discovery/contract package가 닫힌 뒤에만 아래 구현 issue를 `ready` �
 
 | 범위 | 현재 증거 | 완료 해석 |
 | --- | --- | --- |
-| Control 불변, Treatment 허용·거절/manual·insufficient, 접근성 기허용, 알림 거절, exact-alarm 결과 | `PromiseCoachOnboardingIntegrationTest`의 state/policy 통합 계약 | repo-internal deterministic contract |
-| 모든 pending action 재생성, OEM settings intent 실패, 자정 경계, timezone 재평가와 timezone-action scheduler 재계산, 권한 철회, clean reset | 직렬화/순수 정책 및 receiver 통합 계약 | 실제 OS process kill/AppOps/OEM 설정 변경을 대체하지 않음 |
+| Control 불변, Treatment 허용·거절/manual·insufficient, 접근성 기허용, 알림 거절, exact-alarm 결과 | `PromiseCoachOnboardingIntegrationTest`의 production entry/legacy·permission ViewModel/typed store/Splash 통합 계약 | repo-internal deterministic contract |
+| 모든 pending action 재생성, OEM settings intent 실패, 자정 경계, timezone 재평가와 timezone-action scheduler 재계산, 권한 철회, reset-only | 직렬화/순수 정책, receiver, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 통합 계약 | 실제 OS process kill/AppOps/OEM 설정 변경/`pm clear`·재설치를 대체하지 않음 |
 | 연습 시작 후 실제 timed-lock 차단 attribution | durable practice token 재생성과 `BlockAnalyticsCoordinator` 연결 계약 | 실제 AccessibilityService foreground 차단의 device evidence는 별도 |
 
 다음은 명시적 외부 경계이며 미완료다: 개인정보/Play 최종 승인, GA4 Admin 등록·metadata/readback, Remote Config rollout %, production 전환 영향과 최소 표본, OEM별 Usage settings/권한 matrix, 실제 process death, 기기 timezone을 실제 변경해 OS broadcast가 전달되는 end-to-end 경로, `pm clear`/재설치, light/dark·font scale·TalkBack·locale screenshot QA. unavailable 조합은 PASS가 아니라 gap으로 기록한다.
