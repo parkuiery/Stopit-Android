@@ -236,7 +236,7 @@ object FirstPromiseStatePolicy {
         attemptId: Long,
     ): FirstPromiseStateMutation =
         if (acceptsAnalysisAttempt(state, attemptId)) {
-            FirstPromiseStateMutation.Changed(state.manualFallback())
+            FirstPromiseStateMutation.Changed(state.normalAnalysisFallback())
         } else {
             FirstPromiseStateMutation.Rejected
         }
@@ -507,6 +507,16 @@ object FirstPromiseStatePolicy {
         pendingSystemAction = null,
         analysisAttemptId = null,
         futureAnalysisDisabled = true,
+    )
+
+    private fun FirstPromiseOnboardingState.normalAnalysisFallback(): FirstPromiseOnboardingState = copy(
+        phase = FirstPromisePhase.ManualSelectPending,
+        path = FirstPromisePath.Manual,
+        draft = null,
+        recommendationReasonRef = null,
+        pendingSystemAction = null,
+        analysisAttemptId = null,
+        futureAnalysisDisabled = false,
     )
 
     private fun draftMatchesState(

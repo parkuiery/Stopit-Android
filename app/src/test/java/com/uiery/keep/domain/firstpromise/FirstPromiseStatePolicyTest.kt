@@ -146,6 +146,7 @@ class FirstPromiseStatePolicyTest {
                         assertNull(result.state.recommendationReasonRef)
                         assertNull(result.state.pendingSystemAction)
                         assertNull(result.state.analysisAttemptId)
+                        assertTrue(result.state.futureAnalysisDisabled)
                     }
 
                     FirstPromisePhase.ManualSelectPending -> {

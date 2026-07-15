@@ -161,7 +161,7 @@ class FirstPromiseDraftStoreTest {
         assertNull(failed.recommendationReasonRef)
         assertNull(failed.pendingSystemAction)
         assertNull(failed.analysisAttemptId)
-        assertTrue(failed.futureAnalysisDisabled)
+        assertFalse(failed.futureAnalysisDisabled)
         assertFalse(store.failAnalysis(9L))
         assertEquals(2, dataStore.editCount)
     }
