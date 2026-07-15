@@ -7,6 +7,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +39,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
 
         db.query("SELECT * FROM routine WHERE id = 1").use { cursor ->
@@ -69,6 +71,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
 
         db.query("SELECT * FROM lock_history WHERE id = 10").use { cursor ->
@@ -97,6 +100,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
 
         db.query("SELECT * FROM routine WHERE id = 3").use { cursor ->
@@ -122,6 +126,7 @@ class KeepDatabaseMigrationTest {
             true,
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
 
         db.query("SELECT * FROM emergency_unlock WHERE id = 20").use { cursor ->
@@ -154,6 +159,7 @@ class KeepDatabaseMigrationTest {
             LATEST_VERSION,
             true,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
 
         db.query("SELECT * FROM goal_lock WHERE id = 30").use { cursor ->
@@ -168,6 +174,90 @@ class KeepDatabaseMigrationTest {
         db.query("SELECT COUNT(*) AS count FROM app_usage_daily").use { cursor ->
             cursor.moveToFirst()
             assertEquals(0, cursor.intValue("count"))
+        }
+        db.close()
+    }
+
+    @Test
+    fun migratesFromVersion6ToLatestPreservingDataAndAddingFirstPromiseTables() {
+        helper.createDatabase(TEST_DB, 6).apply {
+            insertRoutineV3(id = 6, changeLockHours = 5)
+            insertGoalLock(id = 31)
+            insertAppUsageDaily()
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            LATEST_VERSION,
+            true,
+            KeepDatabase.MIGRATION_6_7,
+        )
+
+        db.query("SELECT * FROM routine WHERE id = 6").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Morning focus", cursor.stringValue("name"))
+            assertEquals(5, cursor.intValue("change_lock_hours"))
+        }
+        db.query("SELECT * FROM goal_lock WHERE id = 31").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Focus sprint", cursor.stringValue("goal_name"))
+            assertEquals("ACTIVE", cursor.stringValue("status"))
+        }
+        db.query("SELECT * FROM app_usage_daily WHERE date = '2026-07-14'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("com.chat", cursor.stringValue("package_name"))
+            assertEquals(3_600_000L, cursor.longValue("total_usage_millis"))
+            assertEquals(12, cursor.intValue("launch_count"))
+            assertEquals(600_000L, cursor.longValue("night_usage_millis"))
+        }
+
+        assertTableExists(db, "first_promise")
+        assertTableExists(db, "first_promise_analytics_outbox")
+        assertIndexExists(db, "first_promise", "index_first_promise_routine_id", unique = true)
+        assertIndexExists(
+            db,
+            "first_promise_analytics_outbox",
+            "index_first_promise_analytics_outbox_draft_id_sequence",
+            unique = false,
+        )
+
+        // MigrationTestHelper returns a raw connection; Room enables this on normal database opens.
+        db.execSQL("PRAGMA foreign_keys = ON")
+        db.execSQL(
+            """
+            INSERT INTO first_promise (
+                draft_id, routine_id, goal_type, source, created_at_millis
+            ) VALUES ('draft-1', 6, 'focus', 'personalized', 1000)
+            """.trimIndent(),
+        )
+        listOf(30, 10, 40, 20).forEach { sequence ->
+            db.insertFirstPromiseOutbox(sequence)
+        }
+
+        db.query(
+            """
+            SELECT sequence FROM first_promise_analytics_outbox
+            WHERE draft_id = 'draft-1'
+            ORDER BY sequence
+            """.trimIndent(),
+        ).use { cursor ->
+            val sequences = buildList {
+                while (cursor.moveToNext()) add(cursor.intValue("sequence"))
+            }
+            assertEquals(listOf(10, 20, 30, 40), sequences)
+        }
+
+        db.execSQL("DELETE FROM routine WHERE id = 6")
+        db.query("SELECT COUNT(*) AS count FROM first_promise WHERE draft_id = 'draft-1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.intValue("count"))
+        }
+        db.query(
+            "SELECT COUNT(*) AS count FROM first_promise_analytics_outbox WHERE draft_id = 'draft-1'",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(4, cursor.intValue("count"))
         }
         db.close()
     }
@@ -227,6 +317,58 @@ class KeepDatabaseMigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.insertAppUsageDaily() {
+        execSQL(
+            """
+            INSERT INTO app_usage_daily (
+                date, package_name, total_usage_millis, launch_count, night_usage_millis
+            ) VALUES ('2026-07-14', 'com.chat', 3600000, 12, 600000)
+            """.trimIndent(),
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertFirstPromiseOutbox(sequence: Int) {
+        execSQL(
+            """
+            INSERT INTO first_promise_analytics_outbox (
+                draft_id, event_name, sequence, canonical_event_name, payload_json,
+                occurred_at_millis, delivery_state, sent_at_millis
+            ) VALUES (
+                'draft-1', 'event-$sequence', $sequence, 'canonical-$sequence', '{}',
+                $sequence, 'pending', NULL
+            )
+            """.trimIndent(),
+        )
+    }
+
+    private fun assertTableExists(db: SupportSQLiteDatabase, tableName: String) {
+        db.query(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = ?",
+            arrayOf(tableName),
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.intValue("count"))
+        }
+    }
+
+    private fun assertIndexExists(
+        db: SupportSQLiteDatabase,
+        tableName: String,
+        indexName: String,
+        unique: Boolean,
+    ) {
+        db.query("PRAGMA index_list(`$tableName`)").use { cursor ->
+            var found = false
+            while (cursor.moveToNext()) {
+                if (cursor.stringValue("name") == indexName) {
+                    assertEquals(if (unique) 1 else 0, cursor.intValue("unique"))
+                    found = true
+                }
+            }
+            assertTrue("Expected index $indexName on $tableName", found)
+        }
+    }
+
     private fun Cursor.stringValue(columnName: String): String = getString(getColumnIndexOrThrow(columnName))
 
     private fun Cursor.intValue(columnName: String): Int = getInt(getColumnIndexOrThrow(columnName))
@@ -235,6 +377,6 @@ class KeepDatabaseMigrationTest {
 
     companion object {
         private const val TEST_DB = "keep-migration-test"
-        private const val LATEST_VERSION = 6
+        private const val LATEST_VERSION = 7
     }
 }
