@@ -386,6 +386,8 @@ fun HomeScreen(
                                 .sizeIn(minHeight = 100.dp, minWidth = 100.dp)
                                 .onGloballyPositioned(calculateLottieOffset)
                                 .clip(RoundedCornerShape(12.dp))
+                                .testTag(HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG)
+                                .clearAndSetSemantics { }
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
@@ -394,8 +396,7 @@ fun HomeScreen(
                                         viewModel.showSnackBar(message)
                                         viewModel.changeIsKeep()
                                     }
-                                }
-                                .clearAndSetSemantics { },
+                                },
                             painter = painterResource(id = image),
                             contentDescription = null,
                         )
@@ -491,6 +492,7 @@ fun HomeScreen(
 }
 
 private const val HOME_MAIN_CONTROLS_TEST_TAG = "home_main_controls"
+private const val HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG = "home_keep_toggle_touch_shortcut"
 
 @Composable
 private fun FirstLockActivationCta(

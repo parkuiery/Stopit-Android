@@ -36,9 +36,11 @@ class HomeScreenLayoutContractTest {
         val imageEnd = source.indexOf("painter = painterResource(id = image)", imageStart)
         val imageModifier = source.substring(imageStart, imageEnd)
 
-        val clickable = imageModifier.indexOf(".clickable")
+        val tagged = imageModifier.indexOf(".testTag(HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG)")
         val cleared = imageModifier.indexOf(".clearAndSetSemantics { }")
-        assertTrue(clickable >= 0)
-        assertTrue(cleared > clickable)
+        val clickable = imageModifier.indexOf(".clickable")
+        assertTrue(tagged >= 0)
+        assertTrue(cleared > tagged)
+        assertTrue(clickable > cleared)
     }
 }
