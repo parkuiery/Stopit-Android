@@ -92,11 +92,21 @@ class FirstPromiseDraftStore @Inject constructor(
         applyMutation { FirstPromiseStatePolicy.completeAnalysis(it, attemptId, draft, reason) } is
             FirstPromiseStateMutation.Changed
 
+    suspend fun failAnalysis(attemptId: Long): Boolean =
+        applyMutation { FirstPromiseStatePolicy.failAnalysis(it, attemptId) } is
+            FirstPromiseStateMutation.Changed
+
     suspend fun recordPersistenceMapping(
         routineId: Long,
         scheduleState: FirstPromiseScheduleState,
     ): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.recordPersistenceMapping(it, routineId, scheduleState) }
+
+    suspend fun resolveScheduleState(
+        routineId: Long,
+        scheduleState: FirstPromiseScheduleState,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.resolveScheduleState(it, routineId, scheduleState) }
 
     suspend fun applyEmergency(): FirstPromiseEmergencyResult =
         applyEmergencyMutation(FirstPromiseStatePolicy::applyEmergency)

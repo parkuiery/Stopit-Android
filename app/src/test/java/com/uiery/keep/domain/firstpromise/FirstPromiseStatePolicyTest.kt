@@ -115,7 +115,6 @@ class FirstPromiseStatePolicyTest {
             FirstPromisePhase.DraftReady,
             FirstPromisePhase.AccessibilityPending,
             FirstPromisePhase.NotificationPending,
-            FirstPromisePhase.PersistFailed,
         )
         val disableFutureAnalysisPhases = setOf(
             FirstPromisePhase.SchedulePermissionRequired,
@@ -158,6 +157,19 @@ class FirstPromiseStatePolicyTest {
                         assertEquals(FirstPromiseEmergencyAction.WaitForPersistence, result.action)
                         assertFalse(result.navigationAllowed)
                         assertEquals(state, result.state)
+                    }
+
+                    FirstPromisePhase.PersistFailed -> {
+                        if (routineId == null) {
+                            assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, result.action)
+                            assertEquals(FirstPromisePhase.ManualSelectPending, result.state.phase)
+                            assertNull(result.state.draft)
+                            assertNull(result.state.recommendationReasonRef)
+                            assertNull(result.state.pendingSystemAction)
+                        } else {
+                            assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, result.action)
+                            assertEquals(state.copy(futureAnalysisDisabled = true), result.state)
+                        }
                     }
 
                     in disableFutureAnalysisPhases -> {
@@ -219,10 +231,11 @@ class FirstPromiseStatePolicyTest {
             persisting.copy(routineId = 99L, scheduleState = FirstPromiseScheduleState.Enabled),
             FirstPromisePersistenceResolution.Failed,
         )
-        assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, mappedFailure.action)
-        assertEquals(FirstPromisePhase.ManualSelectPending, mappedFailure.state.phase)
+        assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, mappedFailure.action)
+        assertEquals(FirstPromisePhase.Persisting, mappedFailure.state.phase)
         assertEquals(99L, mappedFailure.state.routineId)
         assertEquals(FirstPromiseScheduleState.Enabled, mappedFailure.state.scheduleState)
+        assertTrue(mappedFailure.state.futureAnalysisDisabled)
     }
 
     @Test

@@ -136,6 +136,37 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
+    fun olderAnalysisTimeoutCannotTerminateNewerAttemptAndCurrentFailureIsAtomic() = runBlocking {
+        val initial = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            pendingSystemAction = PendingSystemAction.UsageAccess,
+            analysisAttemptId = 8L,
+        )
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
+        val store = FirstPromiseDraftStore(dataStore)
+
+        assertTrue(store.beginAnalysisAttempt(9L) is FirstPromiseStateMutation.Changed)
+        assertFalse(store.failAnalysis(8L))
+        assertEquals(1, dataStore.editCount)
+        assertEquals(9L, store.readState().analysisAttemptId)
+        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
+
+        assertTrue(store.failAnalysis(9L))
+
+        val failed = store.readState()
+        assertEquals(2, dataStore.editCount)
+        assertEquals(FirstPromisePhase.ManualSelectPending, failed.phase)
+        assertEquals(FirstPromisePath.Manual, failed.path)
+        assertNull(failed.draft)
+        assertNull(failed.recommendationReasonRef)
+        assertNull(failed.pendingSystemAction)
+        assertNull(failed.analysisAttemptId)
+        assertTrue(failed.futureAnalysisDisabled)
+        assertFalse(store.failAnalysis(9L))
+        assertEquals(2, dataStore.editCount)
+    }
+
+    @Test
     fun normalPersistenceMappingIsAtomicIdempotentAndRejectsConflicts() = runBlocking {
         val enabledDataStore = FirstPromiseFakeDataStore(
             statePreferences(completeDraftState().copy(phase = FirstPromisePhase.Persisting)),
@@ -167,6 +198,61 @@ class FirstPromiseDraftStoreTest {
         assertEquals(FirstPromisePhase.SchedulePermissionRequired, disabledStore.readState().phase)
         assertEquals(43L, disabledStore.readState().routineId)
         assertEquals(1, disabledDataStore.editCount)
+    }
+
+    @Test
+    fun sameRoutineScheduleResolutionUpdatesFinalStateAtomicallyAndRejectsOtherMappings() = runBlocking {
+        val disabledStates = listOf(
+            FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            FirstPromiseScheduleState.DisabledUserChoice,
+            FirstPromiseScheduleState.DisabledUnknown,
+        )
+
+        disabledStates.forEachIndexed { index, initialSchedule ->
+            val dataStore = FirstPromiseFakeDataStore(
+                statePreferences(
+                    completeDraftState().copy(
+                        phase = FirstPromisePhase.SchedulePermissionRequired,
+                        routineId = 100L + index,
+                        scheduleState = initialSchedule,
+                    ),
+                ),
+            )
+            val store = FirstPromiseDraftStore(dataStore)
+            val routineId = 100L + index
+
+            val enabled = store.resolveScheduleState(routineId, FirstPromiseScheduleState.Enabled)
+            val repeated = store.resolveScheduleState(routineId, FirstPromiseScheduleState.Enabled)
+            val conflicting = store.resolveScheduleState(routineId + 100L, FirstPromiseScheduleState.Enabled)
+
+            assertTrue(enabled is FirstPromiseStateMutation.Changed)
+            assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+            assertEquals(FirstPromiseScheduleState.Enabled, store.readState().scheduleState)
+            assertEquals(FirstPromiseStateMutation.NoOp, repeated)
+            assertEquals(FirstPromiseStateMutation.Rejected, conflicting)
+            assertEquals(1, dataStore.editCount)
+        }
+
+        disabledStates.forEachIndexed { index, finalSchedule ->
+            val routineId = 200L + index
+            val dataStore = FirstPromiseFakeDataStore(
+                statePreferences(
+                    completeDraftState().copy(
+                        phase = FirstPromisePhase.SchedulePermissionRequired,
+                        routineId = routineId,
+                        scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+                    ),
+                ),
+            )
+            val store = FirstPromiseDraftStore(dataStore)
+
+            val disabled = store.resolveScheduleState(routineId, finalSchedule)
+
+            assertTrue(disabled is FirstPromiseStateMutation.Changed)
+            assertEquals(FirstPromisePhase.ResultDisabled, store.readState().phase)
+            assertEquals(finalSchedule, store.readState().scheduleState)
+            assertEquals(1, dataStore.editCount)
+        }
     }
 
     @Test

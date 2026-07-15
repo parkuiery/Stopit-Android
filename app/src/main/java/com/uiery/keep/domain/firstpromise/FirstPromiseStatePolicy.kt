@@ -231,6 +231,16 @@ object FirstPromiseStatePolicy {
         )
     }
 
+    fun failAnalysis(
+        state: FirstPromiseOnboardingState,
+        attemptId: Long,
+    ): FirstPromiseStateMutation =
+        if (acceptsAnalysisAttempt(state, attemptId)) {
+            FirstPromiseStateMutation.Changed(state.manualFallback())
+        } else {
+            FirstPromiseStateMutation.Rejected
+        }
+
     fun recordPersistenceMapping(
         state: FirstPromiseOnboardingState,
         routineId: Long,
@@ -259,6 +269,32 @@ object FirstPromiseStatePolicy {
                 scheduleState = scheduleState,
                 pendingSystemAction = null,
             ),
+        )
+    }
+
+    fun resolveScheduleState(
+        state: FirstPromiseOnboardingState,
+        routineId: Long,
+        scheduleState: FirstPromiseScheduleState,
+    ): FirstPromiseStateMutation {
+        if (state.routineId != routineId) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val target = if (scheduleState == FirstPromiseScheduleState.Enabled) {
+            FirstPromisePhase.ResultEnabled
+        } else {
+            FirstPromisePhase.ResultDisabled
+        }
+        if (state.phase == target && state.scheduleState == scheduleState) {
+            return FirstPromiseStateMutation.NoOp
+        }
+        if (state.phase != FirstPromisePhase.SchedulePermissionRequired) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val phaseState = (transition(state, target) as? FirstPromiseStateMutation.Changed)?.state
+            ?: return FirstPromiseStateMutation.Rejected
+        return FirstPromiseStateMutation.Changed(
+            phaseState.copy(scheduleState = scheduleState),
         )
     }
 
@@ -368,7 +404,6 @@ object FirstPromiseStatePolicy {
             FirstPromisePhase.DraftReady,
             FirstPromisePhase.AccessibilityPending,
             FirstPromisePhase.NotificationPending,
-            FirstPromisePhase.PersistFailed,
             -> FirstPromiseEmergencyResult(
                 state = state.manualFallback(),
                 action = FirstPromiseEmergencyAction.NavigateManualSelect,
@@ -383,6 +418,19 @@ object FirstPromiseStatePolicy {
                 state = state,
                 action = FirstPromiseEmergencyAction.WaitForPersistence,
             )
+
+            FirstPromisePhase.PersistFailed ->
+                if (state.routineId == null) {
+                    FirstPromiseEmergencyResult(
+                        state = state.manualFallback(),
+                        action = FirstPromiseEmergencyAction.NavigateManualSelect,
+                    )
+                } else {
+                    FirstPromiseEmergencyResult(
+                        state = state.copy(futureAnalysisDisabled = true),
+                        action = FirstPromiseEmergencyAction.DisableFutureAnalysis,
+                    )
+                }
 
             FirstPromisePhase.SchedulePermissionRequired,
             FirstPromisePhase.ResultEnabled,
@@ -428,10 +476,18 @@ object FirstPromiseStatePolicy {
                 )
             }
 
-            FirstPromisePersistenceResolution.Failed -> FirstPromiseEmergencyResult(
-                state = state.manualFallback(),
-                action = FirstPromiseEmergencyAction.NavigateManualSelect,
-            )
+            FirstPromisePersistenceResolution.Failed ->
+                if (state.routineId == null) {
+                    FirstPromiseEmergencyResult(
+                        state = state.manualFallback(),
+                        action = FirstPromiseEmergencyAction.NavigateManualSelect,
+                    )
+                } else {
+                    FirstPromiseEmergencyResult(
+                        state = state.copy(futureAnalysisDisabled = true),
+                        action = FirstPromiseEmergencyAction.DisableFutureAnalysis,
+                    )
+                }
         }
     }
 
