@@ -30,6 +30,21 @@ import org.junit.Test
 
 class PromiseProposalViewModelTest {
     @Test
+    fun `average fact distinguishes seven complete days from partial recorded coverage`() {
+        assertEquals(
+            ProposalFactCopyVariant.AverageSevenDays,
+            proposalFactCopyVariant(ProposalFactType.Average, usageCoverageDays = 7),
+        )
+        assertEquals(
+            ProposalFactCopyVariant.AveragePartialCoverage,
+            proposalFactCopyVariant(ProposalFactType.Average, usageCoverageDays = 4),
+        )
+        assertTrue(shouldShowUsageEstimateNote(ProposalFactType.Average))
+        assertTrue(shouldShowUsageEstimateNote(ProposalFactType.Coverage))
+        assertFalse(shouldShowUsageEstimateNote(ProposalFactType.Neutral))
+    }
+
+    @Test
     fun `proposal shows one stored fact and one editable action from the same evidence`() = runBlocking {
         FirstPromiseAnalysisTransientHolder.store(TransientAnalysisProposal("draft-1", 102))
         val store = firstPromiseStore(personalizedState())

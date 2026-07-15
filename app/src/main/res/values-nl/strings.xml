@@ -447,6 +447,7 @@
     <string name="first_promise_analysis_status">Gebruik wordt geanalyseerd</string>
     <string name="first_promise_proposal_title">Je eerste belofte</string>
     <string name="first_promise_usage_fact">De afgelopen 7 dagen gebruikte je %1$s ongeveer %2$d minuten per dag.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s is op basis van %2$d geregistreerde dagen ongeveer %3$d minuten per dag gebruikt.</string>
     <string name="first_promise_usage_fact_categorical">Recente gegevens bevatten gebruik van %1$s op %2$d dagen.</string>
     <string name="first_promise_usage_fact_all_days">Recente gegevens tonen gebruik van %1$s op alle 7 dagen.</string>
     <string name="first_promise_usage_fact_covered_days">Recente gegevens tonen gebruik van %1$s op %2$d van 7 dagen.</string>
@@ -465,7 +466,7 @@
     <string name="first_promise_start">Mijn eerste belofte starten</string>
     <string name="first_promise_time_picker_title">Kies een starttijd</string>
     <string name="first_promise_repeat_picker_title">Kies herhaaldagen</string>
-    <string name="first_promise_accessibility_title">Sta toegankelijkheid toe voor je belofte van %1$s</string>
+    <string name="first_promise_accessibility_title">Sta de toegankelijkheidsservice toe voor je belofte van %1$s</string>
     <string name="first_promise_accessibility_description">StopIt gebruikt de Android-toegankelijkheidsservice om de gekozen app te herkennen en tijdens je belofte het blokkeerscherm te tonen.</string>
     <string name="first_promise_notification_title">Ontvang een herinnering voor je belofte</string>
     <string name="first_promise_notification_description">Meldingen zijn optioneel. Je kunt doorgaan zonder ze toe te staan.</string>

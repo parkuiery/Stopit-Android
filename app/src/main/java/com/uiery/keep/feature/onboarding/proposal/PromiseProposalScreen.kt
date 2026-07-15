@@ -39,8 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -107,35 +111,50 @@ fun PromiseProposalScreen(
                 )
                 Spacer(Modifier.height(20.dp))
                 if (state.isLoading) {
+                    val loadingDescription = stringResource(R.string.first_promise_accessibility_loading)
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 72.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(color = KeepTheme.colors.primary)
+                        CircularProgressIndicator(
+                            modifier = Modifier.semantics {
+                                contentDescription = loadingDescription
+                                stateDescription = loadingDescription
+                                liveRegion = LiveRegionMode.Polite
+                            },
+                            color = KeepTheme.colors.primary,
+                        )
                     }
                 } else {
                 ProposalCard {
-                    Text(
-                        text = when (state.factType) {
-                            ProposalFactType.Average -> stringResource(
+                    val factCopy = when (proposalFactCopyVariant(state.factType, state.usageCoverageDays)) {
+                        ProposalFactCopyVariant.AverageSevenDays -> stringResource(
                                 R.string.first_promise_usage_fact,
                                 state.appLabel,
                                 state.averageDailyMinutes ?: 0,
                             )
-                            ProposalFactType.Coverage -> if (state.usageCoverageDays == 7) {
-                                stringResource(R.string.first_promise_usage_fact_all_days, state.appLabel)
-                            } else {
-                                stringResource(
+                        ProposalFactCopyVariant.AveragePartialCoverage -> stringResource(
+                            R.string.first_promise_usage_fact_partial_average,
+                            state.appLabel,
+                            state.usageCoverageDays,
+                            state.averageDailyMinutes ?: 0,
+                        )
+                        ProposalFactCopyVariant.CoverageSevenDays -> stringResource(
+                            R.string.first_promise_usage_fact_all_days,
+                            state.appLabel,
+                        )
+                        ProposalFactCopyVariant.CoveragePartial -> stringResource(
                                 R.string.first_promise_usage_fact_covered_days,
                                 state.appLabel,
                                 state.usageCoverageDays,
                             )
-                            }
-                            ProposalFactType.Neutral -> stringResource(
-                                R.string.first_promise_usage_fact_neutral,
-                                state.appLabel,
-                            )
-                        },
+                        ProposalFactCopyVariant.Neutral -> stringResource(
+                            R.string.first_promise_usage_fact_neutral,
+                            state.appLabel,
+                        )
+                    }
+                    Text(
+                        text = factCopy,
                         color = KeepTheme.colors.onSurfaceVariant,
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -147,12 +166,14 @@ fun PromiseProposalScreen(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.first_promise_recent_usage_note),
-                        color = KeepTheme.colors.surfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    if (shouldShowUsageEstimateNote(state.factType)) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.first_promise_recent_usage_note),
+                            color = KeepTheme.colors.surfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 ProposalCard {
@@ -206,6 +227,34 @@ fun PromiseProposalScreen(
         }
     }
 }
+
+internal enum class ProposalFactCopyVariant {
+    AverageSevenDays,
+    AveragePartialCoverage,
+    CoverageSevenDays,
+    CoveragePartial,
+    Neutral,
+}
+
+internal fun proposalFactCopyVariant(
+    factType: ProposalFactType,
+    usageCoverageDays: Int,
+): ProposalFactCopyVariant = when (factType) {
+    ProposalFactType.Average -> if (usageCoverageDays == 7) {
+        ProposalFactCopyVariant.AverageSevenDays
+    } else {
+        ProposalFactCopyVariant.AveragePartialCoverage
+    }
+    ProposalFactType.Coverage -> if (usageCoverageDays == 7) {
+        ProposalFactCopyVariant.CoverageSevenDays
+    } else {
+        ProposalFactCopyVariant.CoveragePartial
+    }
+    ProposalFactType.Neutral -> ProposalFactCopyVariant.Neutral
+}
+
+internal fun shouldShowUsageEstimateNote(factType: ProposalFactType): Boolean =
+    factType == ProposalFactType.Average || factType == ProposalFactType.Coverage
 
 @Composable
 private fun ProposalCard(content: @Composable ColumnScope.() -> Unit) {

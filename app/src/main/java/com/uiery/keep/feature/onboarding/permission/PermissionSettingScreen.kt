@@ -27,8 +27,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,7 +114,15 @@ fun PermissionSettingScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             if (!isReady) {
-                CircularProgressIndicator(color = KeepTheme.colors.primary)
+                val loadingDescription = stringResource(R.string.first_promise_accessibility_loading)
+                CircularProgressIndicator(
+                    modifier = Modifier.semantics {
+                        contentDescription = loadingDescription
+                        stateDescription = loadingDescription
+                        liveRegion = LiveRegionMode.Polite
+                    },
+                    color = KeepTheme.colors.primary,
+                )
             } else {
             Text(
                 text = if (flowContext == OnboardingPermissionContext.Control) {
