@@ -1,9 +1,12 @@
 package com.uiery.keep.data.firstpromise
 
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.KeepAnalyticsEvent
+import com.uiery.keep.analytics.KeepAnalyticsParam
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.database.entity.FirstPromiseAnalyticsOutboxEntity
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
 import java.time.Clock
@@ -35,6 +38,53 @@ class FirstPromiseAnalyticsDispatcherTest {
             analytics.calls,
         )
         assertTrue(store.rows.all { it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT })
+    }
+
+    @Test
+    fun durableValueDispatchUsesBucketOnlyAndNeverExportsExactElapsedSeconds() = runBlocking {
+        val rows = listOf(
+            codec.encode(
+                "draft",
+                FirstPromiseOutboxEvent.AppBlockIntercepted(
+                    FirstPromiseBlockSource.Routine,
+                    FirstPromiseBlockingMode.Routine,
+                    FirstPromiseAppCategoryBucket.Productivity,
+                    FirstPromiseOrigin.FirstPromiseRoutine,
+                ),
+                1L,
+            ),
+            codec.encode(
+                "draft",
+                FirstPromiseOutboxEvent.CoreAction(
+                    FirstPromiseCoreActionKind.First,
+                    FirstPromiseBlockingMode.Routine,
+                    FirstPromiseAppCategoryBucket.Productivity,
+                    FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                    FirstPromiseOrigin.FirstPromiseRoutine,
+                ),
+                2L,
+            ),
+        )
+        val analytics = DispatcherRecordingAnalytics()
+
+        FirstPromiseAnalyticsDispatcher(FakeOutboxStore(rows), codec, analytics, clock)
+            .drainDraft("draft")
+
+        assertEquals(
+            listOf(KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED, KeepAnalyticsEvent.FIRST_CORE_ACTION_COMPLETED),
+            analytics.loggedEvents.map { it.first },
+        )
+        assertEquals(
+            setOf(
+                KeepAnalyticsParam.BLOCKING_MODE,
+                KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+                KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET,
+                KeepAnalyticsParam.PROMISE_ORIGIN,
+            ),
+            analytics.loggedEvents.last().second.keys,
+        )
+        assertEquals("1_5m", analytics.loggedEvents.last().second[KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET])
+        assertTrue(analytics.loggedEvents.none { KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_SECONDS in it.second })
     }
 
     @Test
@@ -331,7 +381,10 @@ private class DispatcherRecordingAnalytics(
     private var firstFailure: Throwable? = null,
 ) : KeepAnalytics {
     val calls = mutableListOf<String>()
-    override fun logEvent(name: String, params: Map<String, Any?>) = Unit
+    val loggedEvents = mutableListOf<Pair<String, Map<String, Any?>>>()
+    override fun logEvent(name: String, params: Map<String, Any?>) {
+        loggedEvents += name to params
+    }
     override fun logScreenView(screenName: String) = Unit
     override fun setUserProperty(name: String, value: String) = Unit
     override fun trackFirstOpen() = Unit

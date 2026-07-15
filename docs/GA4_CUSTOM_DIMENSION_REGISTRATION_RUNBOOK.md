@@ -124,6 +124,7 @@ PR #1005(`b1aa97d`) 기준 추가 확인:
 - 기존 축의 신규 사용/값: `step_name`(`goal_select`, `usage_access`, `promise_proposal`, `promise_result`), `permission_name`(`usage_access`), `outcome`(`skipped`, `unknown`, `started`, `start_failed`), `source`, `schedule_state`, `blocking_mode`, `blocked_app_category_bucket`
 - 신규 이벤트: `onboarding_experiment_exposed`, `usage_analysis_completed`, `promise_recommendation_shown`, `promise_recommendation_edited`, `first_promise_created`, `first_promise_practice_outcome`
 - backend 경계: 위 여섯 이벤트와 `app_block_intercepted`는 Firebase/GA4 전용이며 Amplitude allowlist에 넣지 않는다.
+- elapsed 경계: first-promise attributable sequence 40은 `elapsed_since_first_open_bucket`만 사용한다(`under_1m=0..59초`, `1_5m=60..300초`, `over_5m=301초 이상`; 음수 거부). ordinary direct core path의 legacy `elapsed_since_first_open_seconds`는 별도 Recommended metric이며 durable outbox에 저장하지 않는다.
 
 50% rollout 판정에 사용하는 guardrail dimension(`variant`, `assignment_version`, `step_name`, `end_reason`, `source`, `block_source` 및 해당 funnel의 `promise_origin`) 중 하나라도 metadata/runReport queryability가 없으면 수치가 좋아 보여도 rollout을 자동 보류한다. 즉 **50% rollout guardrail dimension의 missing queryability는 자동 hold**이며, 등록 계획만으로 승격하지 않는다.
 
@@ -334,7 +335,7 @@ GA4 Admin 증적 후보:
 | `latency_bucket` | `usage_analysis_completed` | planned — 미등록 | timeout/지연 guardrail 판정 전 등록/조회성 확인 | `customEvent:latency_bucket` |
 | `field_name` | `promise_recommendation_edited` | planned — 미등록 | app/start_time/repeat_days 편집 friction 분석 전 등록/조회성 확인 | `customEvent:field_name` |
 | `promise_origin` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | planned — 미등록 | first_promise_routine/practice 24시간 ordered funnel 분석 전 등록/조회성 확인 | `customEvent:promise_origin` |
-| `elapsed_since_first_open_bucket` | `first_core_action_completed`, `core_action_completed` | planned — 미등록 | first-promise durable core action latency 분석 전 등록/조회성 확인 | `customEvent:elapsed_since_first_open_bucket` |
+| `elapsed_since_first_open_bucket` | first-promise durable `first_core_action_completed`, `core_action_completed` | planned — 미등록 | 0..59/60..300/301+초 bucket 분석 전 등록/조회성 확인. exact seconds는 outbox/payload에 없어야 함 | `customEvent:elapsed_since_first_open_bucket` |
 | `blocked_app_package` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | GA4 Admin 신규 등록 대상에서 제외. 기존 live 흔적은 legacy baseline으로만 해석 | 등록하지 않음 |
 | `routine_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
 | `goal_lock_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
@@ -420,7 +421,7 @@ GA4 Admin 증적 후보:
 | `scheduled_duration_minutes` | `lock_scheduled` | 미확인 | 타이머/루틴 시간 길이 분석이 필요할 때. 홈 countdown은 선택한 `day/hour/minute` duration 자체, timer는 예약 deadline까지 남은 시간이다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `duration_minutes` | `emergency_unlock_completed` | 미확인 | 긴급해제 사용 길이 분포를 볼 때 |
 | `remaining_unlocks` | `emergency_unlock_completed` | 미확인 | 잔여 긴급해제 수 패턴을 볼 때 |
-| `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 미확인 | first value latency를 분석할 때 |
+| `elapsed_since_first_open_seconds` | ordinary direct `first_core_action_completed`, `core_action_completed` | 미확인 | 기존 direct path의 exact first-value latency를 분석할 때. first-promise durable sequence 40에는 사용하지 않음 |
 | `ad_value_micros` | `ad_banner_revenue` | 2026-06-01 metadata 등록 확인 | placement/context별 수익 분포를 재집계할 때 |
 
 운영 원칙:
@@ -476,7 +477,7 @@ GA4 Admin 증적 후보:
 | `field_name` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 추천 편집 friction |
 | `schedule_state` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | first_promise_created enabled/disabled |
 | `promise_origin` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | routine/practice ordered value funnel |
-| `elapsed_since_first_open_bucket` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | durable core-action latency bucket |
+| `elapsed_since_first_open_bucket` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | first-promise durable core-action 전용 `0..59`/`60..300`/`301+`; exact seconds 저장 금지 |
 | `blocked_app_package` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | raw package 원문. #611에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `routine_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 routine row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `goal_lock_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 goal-lock row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |

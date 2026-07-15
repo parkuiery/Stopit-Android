@@ -92,7 +92,21 @@ enum class FirstPromiseAppCategoryBucket(val analyticsValue: String) {
 enum class FirstPromiseCoreActionKind { First, Repeat }
 
 enum class FirstPromiseElapsedSinceOpenBucket(val analyticsValue: String) {
-    UnderMinute("under_1m"), OneToFiveMinutes("1_5m"), OverFiveMinutes("over_5m"),
+    UnderMinute("under_1m"),
+    OneToFiveMinutes("1_5m"),
+    OverFiveMinutes("over_5m"),
+    ;
+
+    companion object {
+        fun fromElapsedSeconds(elapsedSeconds: Long): FirstPromiseElapsedSinceOpenBucket {
+            require(elapsedSeconds >= 0L) { "elapsedSeconds must be non-negative" }
+            return when {
+                elapsedSeconds <= 59L -> UnderMinute
+                elapsedSeconds <= 300L -> OneToFiveMinutes
+                else -> OverFiveMinutes
+            }
+        }
+    }
 }
 
 class FirstPromiseOutboxEventCodec @Inject constructor() {

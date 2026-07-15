@@ -11,11 +11,41 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirstPromiseOutboxEventTest {
     private val codec = FirstPromiseOutboxEventCodec()
+
+    @Test
+    fun elapsedSinceOpenBucketUsesApprovedWireValuesAndExactSecondBoundaries() {
+        assertEquals(
+            mapOf(
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute to "under_1m",
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes to "1_5m",
+                FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes to "over_5m",
+            ),
+            FirstPromiseElapsedSinceOpenBucket.entries.associateWith(
+                FirstPromiseElapsedSinceOpenBucket::analyticsValue,
+            ),
+        )
+        assertEquals(
+            listOf(
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes,
+            ),
+            listOf(0L, 59L, 60L, 300L, 301L).map(
+                FirstPromiseElapsedSinceOpenBucket::fromElapsedSeconds,
+            ),
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FirstPromiseElapsedSinceOpenBucket.fromElapsedSeconds(-1L)
+        }
+    }
 
     @Test
     fun fixedCreationEventsRoundTripWithCanonicalNamesAndSequences() {

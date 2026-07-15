@@ -129,7 +129,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 
 Treatment의 `step_name`은 `goal_select`, `usage_access`, `promise_proposal`, `promise_result`를 추가한다. `promise_result`의 view는 결과 화면이 실제 노출될 때, complete는 enabled/disabled와 무관하게 사용자가 결과를 확인하고 Home으로 진행할 때 각각 최초 한 번 기록한다. Control terminal은 기존 `select_app` complete를 유지한다. `permission_outcome`은 `permission_name=usage_access`, terminal `outcome=granted|denied|skipped|unknown`, 비terminal `settings_opened`를 지원한다.
 
-첫 약속 mapping 또는 활성 10분 연습으로 판정된 차단은 local outbox의 sequence 30 `first_promise_value_intercepted`를 canonical `app_block_intercepted`로, sequence 40 `first_promise_core_action`을 예약된 canonical `first_core_action_completed|core_action_completed`로 매핑한다. 30의 외부 key는 `block_source`, `blocking_mode`, `blocked_app_category_bucket`, `promise_origin`; 40의 외부 key는 `blocking_mode`, `blocked_app_category_bucket`, `elapsed_since_first_open_bucket`, `promise_origin`만 허용한다. `core_action_kind`는 canonical event 선택을 위한 local-only codec field이며 외부 payload가 아니다. `promise_origin`은 typed `first_promise_routine|first_promise_practice`만 허용하고 일반 차단에서는 생략한다.
+첫 약속 mapping 또는 활성 10분 연습으로 판정된 차단은 local outbox의 sequence 30 `first_promise_value_intercepted`를 canonical `app_block_intercepted`로, sequence 40 `first_promise_core_action`을 예약된 canonical `first_core_action_completed|core_action_completed`로 매핑한다. 30의 외부 key는 `block_source`, `blocking_mode`, `blocked_app_category_bucket`, `promise_origin`; 40의 외부 key는 `blocking_mode`, `blocked_app_category_bucket`, `elapsed_since_first_open_bucket`, `promise_origin`만 허용한다. `core_action_kind`는 canonical event 선택을 위한 local-only codec field이며 외부 payload가 아니다. `promise_origin`은 typed `first_promise_routine|first_promise_practice`만 허용하고 일반 차단에서는 생략한다. first-promise durable path는 exact `elapsed_since_first_open_seconds`를 outbox/payload에 저장하지 않는다. ordinary direct core path만 기존 canonical 호환성을 위해 seconds key를 유지할 수 있으며 두 elapsed key를 한 payload에 함께 넣지 않는다.
 
 금지 payload/query 축: package name, app label/name, 관측된 정확한 사용 분 수/시각, raw start/end time, draft id, routine id, routine name, arbitrary origin string, raw usage event/history. Phase 1 약속 30분과 연습 10분도 별도 duration 파라미터로 전송하지 않는다.
 
@@ -143,8 +143,8 @@ Treatment의 `step_name`은 `goal_select`, `usage_access`, `promise_proposal`, `
 | --- | --- | --- |
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
-| `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` | 첫 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
-| `core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` | 반복 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
+| `first_core_action_completed` | ordinary direct: `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`; first-promise durable: `elapsed_since_first_open_bucket`, `blocking_mode`, `blocked_app_category_bucket`, `promise_origin` | 첫 핵심 행동 완료. first-promise outbox는 seconds를 저장하지 않고 bucket만 보낸다. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
+| `core_action_completed` | ordinary direct: `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket`; first-promise durable: `elapsed_since_first_open_bucket`, `blocking_mode`, `blocked_app_category_bucket`, `promise_origin` | 반복 핵심 행동 완료. first-promise outbox는 seconds를 저장하지 않고 bucket만 보낸다. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
 
 첫 가치 경험 해석:
 - `first_lock_configured`는 차단 준비 완료 신호이며 실제 차단 완료가 아니다. 홈 CTA/타이머 안내 문구가 이 이벤트 직후에 “차단 완료”라고 과장하면 안 된다.
@@ -436,7 +436,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `field_name` | 추천 편집 필드 (`app`, `start_time`, `repeat_days`) |
 | `schedule_state` | 저장된 첫 약속 상태 (`enabled`, `disabled_exact_alarm_missing`, `disabled_user_choice`, `disabled_unknown`) |
 | `promise_origin` | 첫 약속 가치 attribution (`first_promise_routine`, `first_promise_practice`); 그 외 차단은 생략 |
-| `elapsed_since_first_open_bucket` | durable first-promise core action의 첫 실행 후 경과 bucket (`under_1m`, `1_5m`, `over_5m`) |
+| `elapsed_since_first_open_bucket` | durable first-promise core action의 첫 실행 후 경과 bucket: `under_1m=0..59초`, `1_5m=60..300초`, `over_5m=301초 이상`. 음수 입력은 거부하며 exact seconds는 outbox에 저장하지 않는다. |
 | `source` | 이벤트 발생 출처 (`onboarding`, `home`, `home_timer`, `routine` 등) |
 | `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`) |
 | `blocked_app_package` | legacy/deprecated. 차단된 앱 패키지명 원문이며 #611에 따라 GA4 payload/custom dimension 신규 등록 대상에서 제외한다. PR #617 이후 신규 payload가 아니라 historical/legacy baseline으로만 취급한다. |
@@ -477,7 +477,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | `remaining_unlocks_bucket` | 긴급해제 manual reset 전 남은 횟수 bucket (`0`, `1`, `2`, `3_plus`, `unknown`) |
 | `refill_mode` | 긴급해제 refill 방식 enum (`daily`, `manual`, `not_applicable`) |
 | `reset_result` | 긴급해제 manual reset 결과 enum 후보 (`requested`, `completed`, `unavailable`) |
-| `elapsed_since_first_open_seconds` | 첫 실행 후 경과 초 |
+| `elapsed_since_first_open_seconds` | ordinary direct core path의 첫 실행 후 경과 초. first-promise attributable durable path/outbox에서는 금지하고 bucket만 사용한다. |
 | `routine_id` | Deprecated / 외부 GA4 전송 금지. Activity extra / debug-state 내부 attribution에는 남을 수 있지만 GA4 custom dimension 신규 등록 대상이 아니다. |
 | `goal_lock_id` | Deprecated / 외부 GA4 전송 금지. BlockActivity extra / debug-state 내부 attribution에는 남을 수 있지만 GA4 custom dimension 신규 등록 대상이 아니다. |
 | `screen_name` | 광고가 발생한 canonical 화면명 |
@@ -544,7 +544,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `latency_bucket` | `latency_bucket` | `usage_analysis_completed` | raw latency 없이 timeout/지연 guardrail 확인 |
 | Required | `field_name` | `field_name` | `promise_recommendation_edited` | 추천 수정 friction 분리 |
 | Required | `promise_origin` | `promise_origin` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 첫 약속 routine/practice 24시간 value attribution |
-| Required | `elapsed_since_first_open_bucket` | `elapsed_since_first_open_bucket` | `first_core_action_completed`, `core_action_completed` | first-promise durable core path의 privacy-safe latency bucket |
+| Required | `elapsed_since_first_open_bucket` | `elapsed_since_first_open_bucket` | first-promise durable `first_core_action_completed`, `core_action_completed` | `0..59`/`60..300`/`301+`초 경계를 쓰는 privacy-safe latency bucket. exact seconds는 durable outbox에 없음 |
 | Required | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 앱 선택량과 활성화 상관관계 확인 |
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
@@ -599,7 +599,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Recommended | `scheduled_duration_minutes` | `scheduled_duration_minutes` | `lock_scheduled` | 루틴/타이머 예약 길이 분석 |
 | Recommended | `duration_minutes` | `duration_minutes` | `emergency_unlock_completed` | 긴급해제 사용 길이 분포 분석 |
 | Recommended | `remaining_unlocks` | `remaining_unlocks` | `emergency_unlock_completed` | 잔여 긴급해제 수와 재사용 패턴 분석 |
-| Recommended | `elapsed_since_first_open_seconds` | `elapsed_since_first_open_seconds` | `first_core_action_completed`, `core_action_completed` | 첫 가치 도달 시간 분석 |
+| Recommended | `elapsed_since_first_open_seconds` | `elapsed_since_first_open_seconds` | ordinary direct `first_core_action_completed`, `core_action_completed` | 기존 direct path의 첫 가치 도달 시간 분석. first-promise durable path에는 등록/전송하지 않음 |
 | Recommended | `ad_value_micros` | `ad_value_micros` | `ad_banner_revenue` | placement/context별 수익 분포 재집계 |
 
 운영 원칙:

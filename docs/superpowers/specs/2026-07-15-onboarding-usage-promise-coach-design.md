@@ -393,7 +393,9 @@ dispatcher는 draft별 최소 pending sequence 하나만 골라 직렬 전송하
 - sequence 30, `event_name=first_promise_value_intercepted`: canonical `app_block_intercepted`
 - sequence 40, `event_name=first_promise_core_action`: 기존 전역 상태에 따라 canonical `first_core_action_completed` 또는 `core_action_completed`
 
-dispatcher는 sequence 30을 sent로 만든 뒤에만 40을 전송해 현재 `app_block_intercepted → first_core_action_completed|core_action_completed` 계약을 유지한다. payload는 기존 privacy-safe `block_source`, `blocking_mode`, category bucket, `elapsed_since_first_open_seconds`와 계산된 `promise_origin`만 사용한다.
+dispatcher는 sequence 30을 sent로 만든 뒤에만 40을 전송해 현재 `app_block_intercepted → first_core_action_completed|core_action_completed` 계약을 유지한다. sequence 30 payload는 privacy-safe `block_source`, `blocking_mode`, category bucket, 계산된 `promise_origin`만 사용하고, sequence 40 payload는 `blocking_mode`, category bucket, `elapsed_since_first_open_bucket`, 계산된 `promise_origin`만 사용한다. 첫 약속 durable outbox에는 정확한 `elapsed_since_first_open_seconds`를 저장하거나 재생하지 않는다.
+
+`elapsed_since_first_open_bucket`은 enqueue 직전 단일 typed mapper로 계산한다. 경계는 `under_1m=0..59초`, `1_5m=60..300초`(300 포함), `over_5m=301초 이상`이며 음수 입력은 계약 위반으로 거부한다. ordinary direct core path는 기존 canonical 호환성을 위해 `elapsed_since_first_open_seconds`를 계속 사용할 수 있지만, 첫 약속 attributable sequence 40은 반드시 bucket key만 사용한다. 따라서 같은 canonical event name이라도 direct path의 seconds와 durable first-promise path의 bucket을 동시에 한 payload에 넣지 않는다.
 
 sequence 40이 `first_core_action_completed`를 예약한 경우 Room outbox reservation을 전역 최초 이벤트의 durable source로 취급한다. 모든 block 경로의 `FirstCoreActionDeliveryCoordinator`는 기존 `BlockingStateStore`뿐 아니라 이 reservation도 확인해 다른 진입이 두 번째 `first_core_action_completed`를 기록하지 못하게 한다. enqueue 직후 process death가 나더라도 재실행은 저장된 canonical event 선택을 재사용하고, sequence 40이 sent가 되면 기존 `HAS_TRACKED_FIRST_CORE_ACTION` marker를 reconcile한다. UI의 최초 성공 피드백도 같은 coordinator 결과를 사용한다.
 
@@ -507,7 +509,7 @@ Treatment step name은 다음으로 확정한다.
 | `promise_origin` | `first_promise_routine`, `first_promise_practice` |
 | `schedule_state` | 기존 `routine_saved`의 `enabled`, `disabled_exact_alarm_missing`, `disabled_user_choice`, `disabled_unknown` |
 
-패키지명, 앱 라벨, 관측된 정확한 사용 분 수, 관측된 정확한 사용 시각, 루틴 이름은 금지한다. 사용자가 설정한 약속 길이는 Phase 1에서 항상 30분이고 연습은 항상 10분이므로 별도 Analytics 파라미터로 보내지 않는다. 새 파라미터는 `ANALYTICS_EVENT_DICTIONARY.md`와 GA4 custom dimension 등록 경계를 함께 갱신해야 한다.
+패키지명, 앱 라벨, 관측된 정확한 사용 분 수, 관측된 정확한 사용 시각, 루틴 이름은 금지한다. 첫 약속 durable outbox에는 정확한 `elapsed_since_first_open_seconds`도 금지하고 위의 `elapsed_since_first_open_bucket`만 저장한다. 사용자가 설정한 약속 길이는 Phase 1에서 항상 30분이고 연습은 항상 10분이므로 별도 Analytics 파라미터로 보내지 않는다. 새 파라미터는 `ANALYTICS_EVENT_DICTIONARY.md`와 GA4 custom dimension 등록 경계를 함께 갱신해야 한다.
 
 ## 실험과 출시 기준
 
@@ -640,6 +642,7 @@ Phase 1 가드레일 계산은 기존 이벤트만 사용한다.
 - outbox 전송 전 crash는 누락 없이 재전송되고, 전송 직후 crash는 허용된 at-least-once 중복 가능성을 따름
 - draft별 sequence 10 → 20 → 30 → 40 직렬 전송과 앱/AccessibilityService 재시작 시 startup barrier
 - sequence 30 pending/replay 중에도 `app_block_intercepted → first_core_action_completed|core_action_completed` 순서가 유지됨
+- first-promise sequence 40의 elapsed mapper 경계 `0/59/60/300/301`, 음수 거부, outbox/backend key에 exact seconds 부재
 - pending first-core reservation이 다른 block 경로의 중복 최초 이벤트와 성공 피드백을 막고 sent 후 DataStore marker를 복구함
 - sent row 30일 정리 후 기존 mapping 저장 재시도가 outbox를 다시 만들지 않음
 - practice token이 process recreation과 10분 만료를 정확히 처리함
