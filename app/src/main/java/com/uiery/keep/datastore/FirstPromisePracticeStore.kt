@@ -47,6 +47,8 @@ class FirstPromisePracticeStore @Inject constructor(
         return active
     }
 
+    suspend fun activeAt(nowMillis: Long): FirstPromisePracticeToken? = readActiveToken(nowMillis)
+
     suspend fun clearToken() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN)

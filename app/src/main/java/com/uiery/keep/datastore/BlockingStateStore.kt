@@ -139,6 +139,18 @@ class BlockingStateStore @Inject constructor(
     suspend fun readLockTime(): String? =
         dataStore.data.first()[PreferencesKey.LOCK_TIME]
 
+    suspend fun startTimedLockSession(
+        packages: Set<String>,
+        startTimeMillis: Long,
+        encodedDeadline: String,
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
+            preferences[PreferencesKey.START_TIME] = startTimeMillis
+            preferences[PreferencesKey.LOCK_TIME] = encodedDeadline
+        }
+    }
+
     suspend fun setPreventUninstall(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.PREVENT_UNINSTALL] = enabled

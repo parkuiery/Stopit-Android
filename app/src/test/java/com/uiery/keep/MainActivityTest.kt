@@ -4,11 +4,23 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.feature.routine.RoutineRoute
 import com.uiery.keep.feature.splash.SplashRoute
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.data.firstpromise.FirstPromiseOutboxDispatcher
+import com.uiery.keep.data.firstpromise.FirstPromiseStartupRunner
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class MainActivityTest {
+    @Test
+    fun firstPromiseStartupDrainsPendingRowsThenRunsRetentionCleanup() = runBlocking {
+        val dispatcher = StartupRecordingDispatcher()
+
+        FirstPromiseStartupRunner(dispatcher).run()
+
+        assertEquals(listOf("drain", "cleanup"), dispatcher.calls)
+    }
+
     @Test
     fun mainStartDestinationRoutesRoutineStartNotificationTapToRoutineScreen() {
         assertEquals(
@@ -155,4 +167,12 @@ class MainActivityTest {
             route,
         )
     }
+}
+
+private class StartupRecordingDispatcher : FirstPromiseOutboxDispatcher {
+    val calls = mutableListOf<String>()
+    override suspend fun drainAll() { calls += "drain" }
+    override suspend fun drainDraft(draftId: String) = Unit
+    override suspend fun cleanupSentRows() { calls += "cleanup" }
+    override suspend fun creationEventsSent(draftId: String): Boolean = false
 }

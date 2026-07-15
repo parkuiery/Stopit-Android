@@ -28,6 +28,7 @@ import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.data.lock.TimedLockSessionController
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
@@ -1256,6 +1257,11 @@ class HomeViewModelActivationAnalyticsTest {
                 analytics = analytics,
                 reviewPromptStateStore = reviewPromptStateStore,
                 clock = clock,
+            ),
+            timedLockStarter = TimedLockSessionController(
+                BlockingStateStore(dataStore),
+                analytics,
+                Clock.systemDefaultZone(),
             ),
         )
     }

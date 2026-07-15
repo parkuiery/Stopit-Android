@@ -14,6 +14,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.FirstPromisePracticeStore
 
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
 import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
@@ -55,6 +56,7 @@ class LockViewModel
         private val analytics: KeepAnalytics,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val clock: Clock,
+        private val firstPromisePracticeStore: FirstPromisePracticeStore,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = LockRoute(
@@ -139,6 +141,7 @@ class LockViewModel
                     saveRoutineLockHistory()
                 } else {
                     saveTimerLockHistory()
+                    firstPromisePracticeStore.clearToken()
                 }
                 maybeArmReviewPrompt(
                     isRoutine = state.isRoutine,

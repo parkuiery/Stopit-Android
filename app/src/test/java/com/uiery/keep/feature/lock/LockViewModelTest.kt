@@ -11,6 +11,8 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.ReviewPromptStateStore
+import com.uiery.keep.datastore.FirstPromisePracticeStore
+import com.uiery.keep.datastore.FirstPromisePracticeToken
 import com.uiery.keep.feature.review.FakeAccessibilityChecker
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
@@ -105,6 +107,7 @@ class LockViewModelTest {
         analytics: LockRecordingKeepAnalytics = LockRecordingKeepAnalytics(),
         dataStore: FakeDataStore = FakeDataStore(),
         emergencyUnlockDao: FakeEmergencyUnlockDao = FakeEmergencyUnlockDao(),
+        lockTime: String = "2099-01-01T00:00:00",
     ): LockViewModel {
         val reviewPromptStateStore = ReviewPromptStateStore(dataStore)
         val reviewEligibility = ReviewEligibilityEvaluator(
@@ -118,7 +121,7 @@ class LockViewModelTest {
         )
 
         return LockViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("lockTime" to "2099-01-01T00:00:00", "isRoutine" to false)),
+            savedStateHandle = SavedStateHandle(mapOf("lockTime" to lockTime, "isRoutine" to false)),
             routineRepository = FakeRoutineRepository(),
             lockHistoryRecorder = LockHistoryRecorder(dataStore, LockHistorySessionWriter(FakeLockHistoryDao())),
             dataStore = dataStore,
@@ -134,7 +137,28 @@ class LockViewModelTest {
             analytics = analytics,
             reviewEligibility = reviewEligibility,
             clock = clock,
+            firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
+    }
+
+    @Test
+    fun completedTimedLockClearsFirstPromisePracticeAttributionToken() = runBlocking {
+        val dataStore = FakeDataStore()
+        val practiceStore = FirstPromisePracticeStore(dataStore)
+        practiceStore.saveToken(
+            FirstPromisePracticeToken(
+                draftId = "draft",
+                startedAtMillis = clock.millis() - 60_000L,
+                expiresAtMillis = clock.millis() + 60_000L,
+            ),
+        )
+
+        createViewModel(dataStore = dataStore, lockTime = "2000-01-01T00:00:00Z")
+
+        withTimeout(2_000) {
+            while (practiceStore.readActiveToken(clock.millis()) != null) delay(10)
+        }
+        assertEquals(null, practiceStore.readActiveToken(clock.millis()))
     }
 
     @Test
@@ -177,6 +201,7 @@ class LockViewModelTest {
             analytics = analytics,
             reviewEligibility = reviewEligibility,
             clock = clock,
+            firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
         withTimeout(2_000) {
             while (lockHistoryDao.inserted.isEmpty()) {
@@ -234,6 +259,7 @@ class LockViewModelTest {
             analytics = analytics,
             reviewEligibility = reviewEligibility,
             clock = clock,
+            firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
         )
         withTimeout(2_000) {
             while (lockHistoryDao.inserted.isEmpty()) {
@@ -290,6 +316,7 @@ class LockViewModelTest {
                 analytics = analytics,
                 reviewEligibility = reviewEligibility,
                 clock = clock,
+                firstPromisePracticeStore = FirstPromisePracticeStore(dataStore),
             )
 
         val expectedStartTime = LocalDateTime.of(2026, 5, 25, 9, 0).atZone(clock.zone).toInstant().toEpochMilli()

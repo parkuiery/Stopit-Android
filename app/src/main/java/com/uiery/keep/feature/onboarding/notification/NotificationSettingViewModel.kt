@@ -9,6 +9,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
+import com.uiery.keep.data.firstpromise.FirstPromiseCreationCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -22,23 +23,32 @@ class NotificationSettingViewModel internal constructor(
     private val draftStore: FirstPromiseDraftStore?,
     private val dispatcher: kotlinx.coroutines.CoroutineDispatcher,
     private val mainDispatcher: kotlinx.coroutines.CoroutineDispatcher,
+    private val creationCoordinator: FirstPromiseCreationCoordinator? = null,
 ) : ViewModel() {
     @Inject constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
-    ) : this(analytics, draftStore, kotlinx.coroutines.Dispatchers.IO, kotlinx.coroutines.Dispatchers.Main.immediate)
+        creationCoordinator: FirstPromiseCreationCoordinator,
+    ) : this(
+        analytics,
+        draftStore,
+        kotlinx.coroutines.Dispatchers.IO,
+        kotlinx.coroutines.Dispatchers.Main.immediate,
+        creationCoordinator,
+    )
 
     internal constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore?,
         dispatcher: kotlinx.coroutines.CoroutineDispatcher,
-    ) : this(analytics, draftStore, dispatcher, dispatcher)
+    ) : this(analytics, draftStore, dispatcher, dispatcher, null)
 
     internal constructor(analytics: KeepAnalytics) : this(
         analytics,
         null,
         kotlinx.coroutines.Dispatchers.Unconfined,
         kotlinx.coroutines.Dispatchers.Unconfined,
+        null,
     )
     private val transitionMutex = Mutex()
     fun onStepViewed() {
@@ -80,6 +90,7 @@ class NotificationSettingViewModel internal constructor(
             transitionMutex.withLock {
                 val store = draftStore ?: return@withLock
                 if (store.beginPersistence() is FirstPromiseStateMutation.Changed) {
+                    creationCoordinator?.persistCurrentDraft()
                     withContext(mainDispatcher) {
                         if (granted) onPermissionGranted() else onPermissionDeniedAndContinue()
                         onNavigatePersistence()

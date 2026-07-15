@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.uiery.keep.analytics.acquisition.InstallReferrerAttributionReporter
 import com.uiery.keep.feature.review.AppLifecycleTracker
+import com.uiery.keep.data.firstpromise.FirstPromiseStartupRunner
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,9 @@ class KeepApplication : Application() {
     @Inject
     lateinit var installReferrerAttributionReporter: InstallReferrerAttributionReporter
 
+    @Inject
+    lateinit var firstPromiseStartupRunner: FirstPromiseStartupRunner
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -28,6 +32,9 @@ class KeepApplication : Application() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleTracker)
         applicationScope.launch {
             installReferrerAttributionReporter.checkOnceAfterFirstLaunch()
+        }
+        applicationScope.launch {
+            firstPromiseStartupRunner.run()
         }
     }
 }
