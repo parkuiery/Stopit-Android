@@ -133,4 +133,21 @@ class HomeStatusCtaReadModelTest {
 
         assertFalse(model.showRoutineCreationSecondary)
     }
+
+    @Test
+    fun firstPromiseResumeCardDoesNotStealTheExistingPrimaryCta() {
+        val model = buildHomeStatusCtaModel(
+            isKeep = false,
+            selectedAppCount = 1,
+            showFirstLockActivationCta = true,
+            showRoutineCreationCta = false,
+            hasGoalLockCard = true,
+            hasFirstPromiseResumeCard = true,
+        )
+
+        assertEquals(HomeStatusKind.FIRST_LOCK_READY, model.statusKind)
+        assertEquals(R.string.home_primary_cta_start_now, model.primaryCtaResId)
+        assertTrue(model.shouldToggleKeep)
+        assertTrue(model.showGoalLockStatus)
+    }
 }

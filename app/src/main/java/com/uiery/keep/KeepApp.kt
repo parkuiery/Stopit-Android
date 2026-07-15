@@ -39,6 +39,7 @@ import com.uiery.keep.feature.onboarding.notification.navigateToPromiseNotificat
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
 import com.uiery.keep.feature.onboarding.permission.navigateToPromiseAccessibility
+import com.uiery.keep.feature.onboarding.result.navigateToPromiseResult
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
 import com.uiery.keep.feature.onboarding.usageaccess.navigateToUsageAccess
 import com.uiery.keep.feature.onboarding.usageanalysis.navigateToPromiseProposal
@@ -100,11 +101,15 @@ internal fun KeepApp(
             onNavigatePromiseAccessibility = navController::navigateToPromiseAccessibility,
             onNavigatePromiseNotification = navController::navigateToPromiseNotification,
             onNavigatePromisePersistence = {
-                // Staged release gate: Task 11 installs the persistence writer/reconciliation;
-                // Task 12/13 then replace this Entry wait with creation and PromiseResult.
-                navController.navigate(Onboarding.Route.Entry) { launchSingleTop = true }
+                navController.navigateToPromiseResult()
             },
             onNavigateBackFromPromiseAccessibility = navController::navigateUp,
+            onNavigatePromiseEdit = {
+                navController.navigate(Onboarding.Route.PromiseProposal) {
+                    popUpTo(Onboarding.Route.PromiseProposal) { inclusive = false }
+                    launchSingleTop = true
+                }
+            },
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,

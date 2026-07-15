@@ -85,6 +85,12 @@ class FirstPromiseOnboardingAnalyticsDispatcher @Inject constructor(
 
             PendingOnboardingAnalyticsEvent.PromiseProposalStepComplete ->
                 analytics.trackOnboardingStepComplete(OnboardingStepName.PROMISE_PROPOSAL)
+
+            PendingOnboardingAnalyticsEvent.PromiseResultStepView ->
+                analytics.trackOnboardingStepView(OnboardingStepName.PROMISE_RESULT)
+
+            PendingOnboardingAnalyticsEvent.PromiseResultStepComplete ->
+                analytics.trackOnboardingStepComplete(OnboardingStepName.PROMISE_RESULT)
         }
     }
 }

@@ -84,6 +84,10 @@ import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.feature.home.component.UsageInsightCard
+import com.uiery.keep.feature.home.component.FirstPromiseResumeCard
+import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
+import com.uiery.keep.feature.routine.createAppDetailsSettingsIntent
+import com.uiery.keep.feature.routine.createExactAlarmSettingsIntent
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
@@ -161,6 +165,12 @@ fun HomeScreen(
                 runCatching {
                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 }
+            is HomeSideEffect.OpenExactAlarmSettings ->
+                RoutineAlarmPermissionSettingsLauncher.open(
+                    exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
+                    appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
+                    launch = context::startActivity,
+                )
         }
     }
 
@@ -180,6 +190,7 @@ fun HomeScreen(
                 viewModel.maybeDrainReviewFlag(activity)
                 // Usage Access 설정 딥링크에서 복귀했을 때 인사이트 카드를 재평가한다(권한 전환 감지).
                 viewModel.loadUsageInsightCard()
+                viewModel.onFirstPromiseExactAlarmResume()
             }
         }
         observedLifecycle.addObserver(observer)
@@ -322,6 +333,13 @@ fun HomeScreen(
                     onClick = { viewModel.changeIsKeep() },
                 )
             }
+            FirstPromiseResumeCard(
+                state = uiState.firstPromiseResumeCard,
+                onActivate = viewModel::activateFirstPromiseResumeCard,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+            )
             UsageInsightCard(
                 state = uiState.usageInsightCard,
                 onCtaClick = viewModel::onUsageInsightCtaClick,

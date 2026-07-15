@@ -201,7 +201,7 @@ class OnboardingEntryViewModelTest {
             FirstPromisePhase.DraftReady to OnboardingEntryDestination.PromiseProposal,
             FirstPromisePhase.AccessibilityPending to OnboardingEntryDestination.PromiseAccessibility,
             FirstPromisePhase.NotificationPending to OnboardingEntryDestination.PromiseNotification,
-            FirstPromisePhase.PersistFailed to OnboardingEntryDestination.PromiseProposal,
+            FirstPromisePhase.PersistFailed to OnboardingEntryDestination.PromiseResult,
             FirstPromisePhase.SchedulePermissionRequired to OnboardingEntryDestination.PromiseResult,
             FirstPromisePhase.ResultEnabled to OnboardingEntryDestination.PromiseResult,
             FirstPromisePhase.ResultDisabled to OnboardingEntryDestination.PromiseResult,

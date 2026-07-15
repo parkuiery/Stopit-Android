@@ -470,4 +470,25 @@
     <string name="first_promise_accessibility_description">StopIt usa il servizio di accessibilità Android per rilevare l’app scelta e mostrare la schermata di blocco durante la promessa.</string>
     <string name="first_promise_notification_title">Ricevi un promemoria per la tua promessa</string>
     <string name="first_promise_notification_description">Le notifiche sono facoltative. Puoi continuare anche senza consentirle.</string>
+    <string name="first_promise_result_ready_title">La tua prima promessa è pronta</string>
+    <string name="first_promise_result_saved_title">La tua prima promessa è stata salvata</string>
+    <string name="first_promise_result_save_failed_title">Non è stato possibile salvare la promessa</string>
+    <string name="first_promise_result_app">App: %1$s</string>
+    <string name="first_promise_result_start">Inizio: %1$s</string>
+    <string name="first_promise_result_duration">Durata: 30 minuti</string>
+    <string name="first_promise_result_repeat">Ripetizione: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">La promessa inizierà all’ora programmata. La prova di 10 minuti è disponibile solo con Accessibilità attiva e senza altri blocchi temporizzati.</string>
+    <string name="first_promise_result_practice_failed">Non è stato possibile avviare la prova. Controlla il blocco attuale e riprova.</string>
+    <string name="first_promise_result_activation_failed">Non è ancora stato possibile attivare la promessa. Riprova.</string>
+    <string name="first_promise_result_retry_practice">Riprova la prova di 10 minuti</string>
+    <string name="first_promise_result_practice">Prova ora per 10 minuti</string>
+    <string name="first_promise_result_scheduled">Inizia all’ora programmata</string>
+    <string name="first_promise_result_enable">Attiva promessa</string>
+    <string name="first_promise_result_later">Continua più tardi dalla Home</string>
+    <string name="first_promise_result_home">Continua alla Home</string>
+    <string name="first_promise_result_retry_save">Riprova a salvare</string>
+    <string name="first_promise_result_edit">Modifica promessa</string>
+    <string name="first_promise_resume_title">Completa l’attivazione della prima promessa</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 min · %3$s</string>
+    <string name="first_promise_resume_retry_message">È ancora salvata ma disattivata. Prova ad attivarla di nuovo.</string>
 </resources>

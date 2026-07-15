@@ -62,6 +62,7 @@ class FirstPromiseStatePolicyTest {
             ),
             FirstPromisePhase.ResultDisabled to setOf(
                 FirstPromisePhase.ResultDisabled,
+                FirstPromisePhase.ResultEnabled,
                 FirstPromisePhase.CompletedDisabled,
             ),
             FirstPromisePhase.CompletedEnabled to setOf(FirstPromisePhase.CompletedEnabled),

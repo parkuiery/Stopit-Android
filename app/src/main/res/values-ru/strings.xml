@@ -480,4 +480,25 @@
     <string name="first_promise_accessibility_description">StopIt использует службу специальных возможностей Android, чтобы определять выбранное приложение и показывать экран блокировки во время обещания.</string>
     <string name="first_promise_notification_title">Получайте напоминание об обещании</string>
     <string name="first_promise_notification_description">Уведомления необязательны. Можно продолжить, не разрешая их.</string>
+    <string name="first_promise_result_ready_title">Первое обещание готово</string>
+    <string name="first_promise_result_saved_title">Первое обещание сохранено</string>
+    <string name="first_promise_result_save_failed_title">Не удалось сохранить обещание</string>
+    <string name="first_promise_result_app">Приложение: %1$s</string>
+    <string name="first_promise_result_start">Начало: %1$s</string>
+    <string name="first_promise_result_duration">Длительность: 30 минут</string>
+    <string name="first_promise_result_repeat">Повтор: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">Обещание начнётся в назначенное время. 10-минутная тренировка доступна только при включённых специальных возможностях и отсутствии другой временной блокировки.</string>
+    <string name="first_promise_result_practice_failed">Не удалось начать тренировку. Проверьте текущую блокировку и повторите попытку.</string>
+    <string name="first_promise_result_activation_failed">Пока не удалось включить обещание. Повторите попытку.</string>
+    <string name="first_promise_result_retry_practice">Повторить 10-минутную тренировку</string>
+    <string name="first_promise_result_practice">Начать тренировку на 10 минут</string>
+    <string name="first_promise_result_scheduled">Начать в назначенное время</string>
+    <string name="first_promise_result_enable">Включить обещание</string>
+    <string name="first_promise_result_later">Продолжить позже на главной</string>
+    <string name="first_promise_result_home">Перейти на главную</string>
+    <string name="first_promise_result_retry_save">Сохранить ещё раз</string>
+    <string name="first_promise_result_edit">Изменить обещание</string>
+    <string name="first_promise_resume_title">Завершите включение первого обещания</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 мин · %3$s</string>
+    <string name="first_promise_resume_retry_message">Обещание сохранено, но выключено. Попробуйте включить его снова.</string>
 </resources>

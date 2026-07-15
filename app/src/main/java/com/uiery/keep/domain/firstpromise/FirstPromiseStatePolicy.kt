@@ -100,6 +100,7 @@ object FirstPromiseStatePolicy {
         ),
         FirstPromisePhase.ResultDisabled to setOf(
             FirstPromisePhase.ResultDisabled,
+            FirstPromisePhase.ResultEnabled,
             FirstPromisePhase.CompletedDisabled,
         ),
         FirstPromisePhase.CompletedEnabled to setOf(FirstPromisePhase.CompletedEnabled),
@@ -291,7 +292,14 @@ object FirstPromiseStatePolicy {
 
             else -> return FirstPromiseStateMutation.Rejected
         }
-        return transition(state, target)
+        val transitioned = (transition(state, target) as? FirstPromiseStateMutation.Changed)?.state
+            ?: return FirstPromiseStateMutation.Rejected
+        return FirstPromiseStateMutation.Changed(
+            transitioned.withMilestoneEvent(
+                FirstPromiseMilestone.PromiseResultCompletion,
+                PendingOnboardingAnalyticsEvent.PromiseResultStepComplete,
+            ),
+        )
     }
 
     fun selectGoal(
@@ -429,6 +437,25 @@ object FirstPromiseStatePolicy {
             ),
         )
     }
+
+    fun markPromiseResultViewed(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        if (
+            state.assignment == OnboardingVariant.PromiseCoachV1 &&
+            state.phase in setOf(
+                FirstPromisePhase.PersistFailed,
+                FirstPromisePhase.SchedulePermissionRequired,
+                FirstPromisePhase.ResultEnabled,
+                FirstPromisePhase.ResultDisabled,
+            )
+        ) {
+            markMilestoneWithEvent(
+                state,
+                FirstPromiseMilestone.PromiseResultView,
+                PendingOnboardingAnalyticsEvent.PromiseResultStepView,
+            )
+        } else {
+            FirstPromiseStateMutation.Rejected
+        }
 
     fun acknowledgePendingAnalyticsEvent(
         state: FirstPromiseOnboardingState,
@@ -624,6 +651,18 @@ object FirstPromiseStatePolicy {
             return FirstPromiseStateMutation.Changed(
                 state.copy(
                     phase = FirstPromisePhase.CompletedEnabled,
+                    scheduleState = FirstPromiseScheduleState.Enabled,
+                    pendingSystemAction = null,
+                ),
+            )
+        }
+        if (
+            state.phase == FirstPromisePhase.ResultDisabled &&
+            scheduleState == FirstPromiseScheduleState.Enabled
+        ) {
+            return FirstPromiseStateMutation.Changed(
+                state.copy(
+                    phase = FirstPromisePhase.ResultEnabled,
                     scheduleState = FirstPromiseScheduleState.Enabled,
                     pendingSystemAction = null,
                 ),

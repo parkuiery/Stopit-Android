@@ -470,4 +470,25 @@
     <string name="first_promise_accessibility_description">StopIt gebruikt de Android-toegankelijkheidsservice om de gekozen app te herkennen en tijdens je belofte het blokkeerscherm te tonen.</string>
     <string name="first_promise_notification_title">Ontvang een herinnering voor je belofte</string>
     <string name="first_promise_notification_description">Meldingen zijn optioneel. Je kunt doorgaan zonder ze toe te staan.</string>
+    <string name="first_promise_result_ready_title">Je eerste belofte is klaar</string>
+    <string name="first_promise_result_saved_title">Je eerste belofte is opgeslagen</string>
+    <string name="first_promise_result_save_failed_title">We konden je belofte niet opslaan</string>
+    <string name="first_promise_result_app">App: %1$s</string>
+    <string name="first_promise_result_start">Start: %1$s</string>
+    <string name="first_promise_result_duration">Duur: 30 minuten</string>
+    <string name="first_promise_result_repeat">Herhaling: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">Je belofte begint op de geplande tijd. De oefening van 10 minuten is alleen beschikbaar met Toegankelijkheid aan en zonder andere tijdsvergrendeling.</string>
+    <string name="first_promise_result_practice_failed">De oefening kon niet starten. Controleer de huidige vergrendeling en probeer opnieuw.</string>
+    <string name="first_promise_result_activation_failed">De belofte kon nog niet worden ingeschakeld. Probeer opnieuw.</string>
+    <string name="first_promise_result_retry_practice">Oefening van 10 minuten opnieuw proberen</string>
+    <string name="first_promise_result_practice">Nu 10 minuten oefenen</string>
+    <string name="first_promise_result_scheduled">Start op de geplande tijd</string>
+    <string name="first_promise_result_enable">Belofte inschakelen</string>
+    <string name="first_promise_result_later">Later doorgaan vanaf Home</string>
+    <string name="first_promise_result_home">Doorgaan naar Home</string>
+    <string name="first_promise_result_retry_save">Opnieuw opslaan</string>
+    <string name="first_promise_result_edit">Belofte bewerken</string>
+    <string name="first_promise_resume_title">Voltooi het inschakelen van je eerste belofte</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 min. · %3$s</string>
+    <string name="first_promise_resume_retry_message">De belofte is opgeslagen maar uitgeschakeld. Probeer opnieuw.</string>
 </resources>

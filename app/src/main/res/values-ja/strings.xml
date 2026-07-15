@@ -468,4 +468,25 @@
     <string name="first_promise_accessibility_description">StopItはAndroidユーザー補助サービスを使用して選択したアプリを検知し、約束の時間中にブロック画面を表示します。</string>
     <string name="first_promise_notification_title">約束のリマインダーを受け取る</string>
     <string name="first_promise_notification_description">通知は任意です。許可しなくても続行できます。</string>
+    <string name="first_promise_result_ready_title">最初の約束の準備ができました</string>
+    <string name="first_promise_result_saved_title">最初の約束を保存しました</string>
+    <string name="first_promise_result_save_failed_title">約束を保存できませんでした</string>
+    <string name="first_promise_result_app">アプリ: %1$s</string>
+    <string name="first_promise_result_start">開始: %1$s</string>
+    <string name="first_promise_result_duration">時間: 30分</string>
+    <string name="first_promise_result_repeat">繰り返し: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">予定時刻に約束が始まります。10分間の練習は、ユーザー補助が有効で他の時間ロックがない場合のみ利用できます。</string>
+    <string name="first_promise_result_practice_failed">練習を開始できませんでした。現在のロックを確認して、もう一度お試しください。</string>
+    <string name="first_promise_result_activation_failed">まだ約束を有効にできませんでした。もう一度お試しください。</string>
+    <string name="first_promise_result_retry_practice">10分間の練習を再試行</string>
+    <string name="first_promise_result_practice">今すぐ10分間練習</string>
+    <string name="first_promise_result_scheduled">予定時刻に開始</string>
+    <string name="first_promise_result_enable">約束を有効にする</string>
+    <string name="first_promise_result_later">後でホームから続ける</string>
+    <string name="first_promise_result_home">ホームへ進む</string>
+    <string name="first_promise_result_retry_save">もう一度保存</string>
+    <string name="first_promise_result_edit">約束を編集</string>
+    <string name="first_promise_resume_title">最初の約束を有効にしましょう</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30分 · %3$s</string>
+    <string name="first_promise_resume_retry_message">保存されていますが無効です。もう一度有効にしてください。</string>
 </resources>

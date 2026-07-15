@@ -19,6 +19,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.domain.firstpromise.PendingSystemAction
+import com.uiery.keep.domain.firstpromise.PendingOnboardingAnalyticsEvent
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
@@ -672,7 +673,18 @@ class FirstPromiseDraftStoreTest {
         assertTrue(mutation is FirstPromiseStateMutation.Changed)
         assertEquals(OnboardingVariant.PromiseCoachV1, completed.assignment)
         assertEquals(OnboardingAssignmentVersion.V1, completed.assignmentVersion)
-        assertEquals(setOf(FirstPromiseMilestone.Exposure, FirstPromiseMilestone.AppSelection), completed.trackedMilestones)
+        assertEquals(
+            setOf(
+                FirstPromiseMilestone.Exposure,
+                FirstPromiseMilestone.AppSelection,
+                FirstPromiseMilestone.PromiseResultCompletion,
+            ),
+            completed.trackedMilestones,
+        )
+        assertEquals(
+            listOf(PendingOnboardingAnalyticsEvent.PromiseResultStepComplete),
+            completed.pendingOnboardingAnalyticsEvents,
+        )
         assertEquals(42L, completed.routineId)
         assertEquals(FirstPromiseScheduleState.Enabled, completed.scheduleState)
         assertNull(completed.draft)

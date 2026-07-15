@@ -468,4 +468,25 @@
     <string name="first_promise_accessibility_description">StopIt使用Android无障碍服务来检测所选应用，并在约定期间显示拦截界面。</string>
     <string name="first_promise_notification_title">接收约定提醒</string>
     <string name="first_promise_notification_description">通知是可选的。即使不允许通知，你也可以继续。</string>
+    <string name="first_promise_result_ready_title">你的第一个约定已准备好</string>
+    <string name="first_promise_result_saved_title">你的第一个约定已保存</string>
+    <string name="first_promise_result_save_failed_title">无法保存你的约定</string>
+    <string name="first_promise_result_app">应用：%1$s</string>
+    <string name="first_promise_result_start">开始：%1$s</string>
+    <string name="first_promise_result_duration">时长：30 分钟</string>
+    <string name="first_promise_result_repeat">重复：%1$s</string>
+    <string name="first_promise_result_scheduled_guidance">约定会在预定时间开始。只有开启无障碍服务且没有其他定时锁定时，才能进行 10 分钟练习。</string>
+    <string name="first_promise_result_practice_failed">无法开始练习。请检查当前锁定状态并重试。</string>
+    <string name="first_promise_result_activation_failed">暂时无法开启约定。你可以重试。</string>
+    <string name="first_promise_result_retry_practice">重试 10 分钟练习</string>
+    <string name="first_promise_result_practice">立即练习 10 分钟</string>
+    <string name="first_promise_result_scheduled">在预定时间开始</string>
+    <string name="first_promise_result_enable">开启约定</string>
+    <string name="first_promise_result_later">稍后从主页继续</string>
+    <string name="first_promise_result_home">继续前往主页</string>
+    <string name="first_promise_result_retry_save">重新保存</string>
+    <string name="first_promise_result_edit">编辑约定</string>
+    <string name="first_promise_resume_title">完成开启你的第一个约定</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 分钟 · %3$s</string>
+    <string name="first_promise_resume_retry_message">约定已保存但处于关闭状态。请再次尝试开启。</string>
 </resources>

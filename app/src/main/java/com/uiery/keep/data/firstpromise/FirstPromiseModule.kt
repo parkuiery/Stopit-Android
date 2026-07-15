@@ -4,6 +4,8 @@ import com.uiery.keep.data.lock.TimedLockSessionController
 import com.uiery.keep.data.lock.TimedLockStarter
 import com.uiery.keep.datastore.FirstPromisePracticeStateStore
 import com.uiery.keep.datastore.FirstPromisePracticeStore
+import com.uiery.keep.feature.home.FirstPromiseHomeRecovery
+import com.uiery.keep.feature.home.FirstPromiseHomeRecoveryCoordinator
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -38,4 +40,9 @@ abstract class FirstPromiseModule {
     abstract fun bindFirstPromisePracticeStateStore(
         store: FirstPromisePracticeStore,
     ): FirstPromisePracticeStateStore
+
+    @Binds
+    abstract fun bindFirstPromiseHomeRecovery(
+        coordinator: FirstPromiseHomeRecoveryCoordinator,
+    ): FirstPromiseHomeRecovery
 }

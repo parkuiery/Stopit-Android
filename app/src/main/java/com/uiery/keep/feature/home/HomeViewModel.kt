@@ -86,6 +86,7 @@ class HomeViewModel
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
         private val timedLockStarter: TimedLockStarter,
+        private val firstPromiseRecovery: FirstPromiseHomeRecovery = NoOpFirstPromiseHomeRecovery,
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
         override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
@@ -103,7 +104,44 @@ class HomeViewModel
             getGoalLockCard()
             loadRepeatBlockRoutineSuggestion()
             loadUsageInsightCard()
+            loadFirstPromiseResumeCard()
         }
+
+        internal fun loadFirstPromiseResumeCard() =
+            intent {
+                when (val decision = firstPromiseRecovery.load()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
+
+        internal fun activateFirstPromiseResumeCard() =
+            intent {
+                when (val decision = firstPromiseRecovery.activate()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
+
+        internal fun onFirstPromiseExactAlarmResume() =
+            intent {
+                when (val decision = firstPromiseRecovery.onResume()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
 
         internal fun changeIsKeep(
             noSelectedAppsMessage: String? = null,
@@ -912,6 +950,7 @@ data class HomeUiState(
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
     val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
+    val firstPromiseResumeCard: FirstPromiseResumeCardState? = null,
 ) {
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
@@ -1017,6 +1056,7 @@ sealed class HomeSideEffect {
     ) : HomeSideEffect()
 
     data object OpenUsageAccessSettings : HomeSideEffect()
+    data object OpenExactAlarmSettings : HomeSideEffect()
 }
 
 private const val USAGE_INSIGHT_CARD_SHOWN = "usage_insight_card_shown"

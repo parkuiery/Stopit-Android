@@ -490,4 +490,25 @@
     <string name="first_promise_accessibility_description">스탑잇은 약속 시간에 선택한 앱을 감지하고 차단 화면을 보여주기 위해 Android 접근성 서비스를 사용해요.</string>
     <string name="first_promise_notification_title">약속 알림을 받아보세요</string>
     <string name="first_promise_notification_description">알림은 선택 사항이에요. 허용하지 않아도 계속 진행할 수 있어요.</string>
+    <string name="first_promise_result_ready_title">첫 약속이 준비됐어요</string>
+    <string name="first_promise_result_saved_title">첫 약속을 저장했어요</string>
+    <string name="first_promise_result_save_failed_title">약속을 저장하지 못했어요</string>
+    <string name="first_promise_result_app">앱: %1$s</string>
+    <string name="first_promise_result_start">시작: %1$s</string>
+    <string name="first_promise_result_duration">기간: 30분</string>
+    <string name="first_promise_result_repeat">반복: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">예약한 시간에 약속이 시작돼요. 접근성 권한이 켜져 있고 다른 시간 잠금이 없을 때만 10분 연습을 할 수 있어요.</string>
+    <string name="first_promise_result_practice_failed">연습을 시작하지 못했어요. 진행 중인 잠금을 확인하고 다시 시도해 주세요.</string>
+    <string name="first_promise_result_activation_failed">아직 약속을 켜지 못했어요. 다시 시도할 수 있어요.</string>
+    <string name="first_promise_result_retry_practice">10분 연습 다시 시도하기</string>
+    <string name="first_promise_result_practice">지금 10분 연습하기</string>
+    <string name="first_promise_result_scheduled">예약한 시간에 시작하기</string>
+    <string name="first_promise_result_enable">약속 켜기</string>
+    <string name="first_promise_result_later">나중에 홈에서 계속하기</string>
+    <string name="first_promise_result_home">홈으로 계속하기</string>
+    <string name="first_promise_result_retry_save">다시 저장하기</string>
+    <string name="first_promise_result_edit">약속 수정하기</string>
+    <string name="first_promise_resume_title">첫 약속을 마저 켜주세요</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30분 · %3$s</string>
+    <string name="first_promise_resume_retry_message">약속은 저장되어 있지만 꺼져 있어요. 다시 켜보세요.</string>
 </resources>

@@ -495,4 +495,25 @@
     <string name="first_promise_accessibility_description">StopIt uses the Android Accessibility Service to detect the selected app and show the block screen during your promise.</string>
     <string name="first_promise_notification_title">Get a reminder for your promise</string>
     <string name="first_promise_notification_description">Notifications are optional. You can continue even if you do not allow them.</string>
+    <string name="first_promise_result_ready_title">Your first promise is ready</string>
+    <string name="first_promise_result_saved_title">Your first promise is saved</string>
+    <string name="first_promise_result_save_failed_title">We couldn’t save your promise</string>
+    <string name="first_promise_result_app">App: %1$s</string>
+    <string name="first_promise_result_start">Starts: %1$s</string>
+    <string name="first_promise_result_duration">Duration: 30 minutes</string>
+    <string name="first_promise_result_repeat">Repeats: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">Your promise will begin at the scheduled time. A 10-minute practice is available only when Accessibility access is on and no other timed lock is active.</string>
+    <string name="first_promise_result_practice_failed">We couldn’t start the practice. Check the current lock and try again.</string>
+    <string name="first_promise_result_activation_failed">We couldn’t turn on the promise yet. You can try again.</string>
+    <string name="first_promise_result_retry_practice">Try the 10-minute practice again</string>
+    <string name="first_promise_result_practice">Practice for 10 minutes now</string>
+    <string name="first_promise_result_scheduled">Start at the scheduled time</string>
+    <string name="first_promise_result_enable">Turn on promise</string>
+    <string name="first_promise_result_later">Continue later from Home</string>
+    <string name="first_promise_result_home">Continue to Home</string>
+    <string name="first_promise_result_retry_save">Try saving again</string>
+    <string name="first_promise_result_edit">Edit promise</string>
+    <string name="first_promise_resume_title">Finish turning on your first promise</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 min · %3$s</string>
+    <string name="first_promise_resume_retry_message">It is still saved but off. Try turning it on again.</string>
 </resources>

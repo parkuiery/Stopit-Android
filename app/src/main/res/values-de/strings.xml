@@ -470,4 +470,25 @@
     <string name="first_promise_accessibility_description">StopIt verwendet den Android-Bedienungshilfedienst, um die gewählte App zu erkennen und während deines Versprechens den Sperrbildschirm anzuzeigen.</string>
     <string name="first_promise_notification_title">Erhalte eine Erinnerung an dein Versprechen</string>
     <string name="first_promise_notification_description">Benachrichtigungen sind optional. Du kannst auch ohne Erlaubnis fortfahren.</string>
+    <string name="first_promise_result_ready_title">Dein erstes Versprechen ist bereit</string>
+    <string name="first_promise_result_saved_title">Dein erstes Versprechen wurde gespeichert</string>
+    <string name="first_promise_result_save_failed_title">Dein Versprechen konnte nicht gespeichert werden</string>
+    <string name="first_promise_result_app">App: %1$s</string>
+    <string name="first_promise_result_start">Start: %1$s</string>
+    <string name="first_promise_result_duration">Dauer: 30 Minuten</string>
+    <string name="first_promise_result_repeat">Wiederholung: %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">Dein Versprechen beginnt zur geplanten Zeit. Eine 10-minütige Übung ist nur mit aktivierter Bedienungshilfe und ohne andere Zeitsperre verfügbar.</string>
+    <string name="first_promise_result_practice_failed">Die Übung konnte nicht gestartet werden. Prüfe die aktuelle Sperre und versuche es erneut.</string>
+    <string name="first_promise_result_activation_failed">Das Versprechen konnte noch nicht aktiviert werden. Versuche es erneut.</string>
+    <string name="first_promise_result_retry_practice">10-minütige Übung erneut versuchen</string>
+    <string name="first_promise_result_practice">Jetzt 10 Minuten üben</string>
+    <string name="first_promise_result_scheduled">Zur geplanten Zeit starten</string>
+    <string name="first_promise_result_enable">Versprechen aktivieren</string>
+    <string name="first_promise_result_later">Später auf Home fortfahren</string>
+    <string name="first_promise_result_home">Weiter zu Home</string>
+    <string name="first_promise_result_retry_save">Erneut speichern</string>
+    <string name="first_promise_result_edit">Versprechen bearbeiten</string>
+    <string name="first_promise_resume_title">Aktiviere dein erstes Versprechen vollständig</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 Min. · %3$s</string>
+    <string name="first_promise_resume_retry_message">Es ist gespeichert, aber deaktiviert. Versuche die Aktivierung erneut.</string>
 </resources>

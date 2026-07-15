@@ -12,6 +12,7 @@ import com.uiery.keep.feature.onboarding.intro.introScreen
 import com.uiery.keep.feature.onboarding.notification.notificationSettingScreen
 import com.uiery.keep.feature.onboarding.permission.permissionSettingScreen
 import com.uiery.keep.feature.onboarding.proposal.promiseProposalScreen
+import com.uiery.keep.feature.onboarding.result.promiseResultScreen
 import com.uiery.keep.feature.onboarding.select.selectApp
 import com.uiery.keep.feature.onboarding.usageaccess.usageAccessScreen
 import com.uiery.keep.feature.onboarding.usageanalysis.usageAnalysisScreen
@@ -88,6 +89,7 @@ fun NavGraphBuilder.onboarding(
     onNavigatePromiseNotification: () -> Unit,
     onNavigatePromisePersistence: () -> Unit,
     onNavigateBackFromPromiseAccessibility: () -> Unit,
+    onNavigatePromiseEdit: () -> Unit,
 ) {
     navigation<Onboarding.Route>(
         startDestination = canonicalOnboardingStartDestination()
@@ -111,6 +113,10 @@ fun NavGraphBuilder.onboarding(
         usageAccessScreen(onNavigateUsageAnalysis, onNavigateManualAppSelect)
         usageAnalysisScreen(onNavigatePromiseProposal, onNavigateManualAppSelect)
         promiseProposalScreen(onNavigateAccessibility = onNavigatePromiseAccessibility)
+        promiseResultScreen(
+            onNavigateProposal = onNavigatePromiseEdit,
+            onNavigateHome = onNavigateHome,
+        )
     }
 }
 

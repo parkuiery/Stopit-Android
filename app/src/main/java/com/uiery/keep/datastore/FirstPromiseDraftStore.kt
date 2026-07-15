@@ -130,6 +130,9 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun markPromiseProposalViewed(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::markPromiseProposalViewed)
 
+    suspend fun markPromiseResultViewed(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::markPromiseResultViewed)
+
     suspend fun startFirstPromise(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::startFirstPromise)
 

@@ -470,4 +470,25 @@
     <string name="first_promise_accessibility_description">StopIt utilise le service d’accessibilité Android pour détecter l’application choisie et afficher l’écran de blocage pendant votre promesse.</string>
     <string name="first_promise_notification_title">Recevez un rappel pour votre promesse</string>
     <string name="first_promise_notification_description">Les notifications sont facultatives. Vous pouvez continuer sans les autoriser.</string>
+    <string name="first_promise_result_ready_title">Votre première promesse est prête</string>
+    <string name="first_promise_result_saved_title">Votre première promesse est enregistrée</string>
+    <string name="first_promise_result_save_failed_title">Impossible d’enregistrer votre promesse</string>
+    <string name="first_promise_result_app">Application : %1$s</string>
+    <string name="first_promise_result_start">Début : %1$s</string>
+    <string name="first_promise_result_duration">Durée : 30 minutes</string>
+    <string name="first_promise_result_repeat">Répétition : %1$s</string>
+    <string name="first_promise_result_scheduled_guidance">Votre promesse commencera à l’heure prévue. L’exercice de 10 minutes est disponible uniquement si l’accessibilité est activée et qu’aucun autre verrouillage temporisé n’est actif.</string>
+    <string name="first_promise_result_practice_failed">Impossible de démarrer l’exercice. Vérifiez le verrouillage actuel et réessayez.</string>
+    <string name="first_promise_result_activation_failed">Impossible d’activer la promesse pour le moment. Réessayez.</string>
+    <string name="first_promise_result_retry_practice">Réessayer l’exercice de 10 minutes</string>
+    <string name="first_promise_result_practice">S’exercer 10 minutes maintenant</string>
+    <string name="first_promise_result_scheduled">Commencer à l’heure prévue</string>
+    <string name="first_promise_result_enable">Activer la promesse</string>
+    <string name="first_promise_result_later">Continuer plus tard depuis l’accueil</string>
+    <string name="first_promise_result_home">Continuer vers l’accueil</string>
+    <string name="first_promise_result_retry_save">Réessayer d’enregistrer</string>
+    <string name="first_promise_result_edit">Modifier la promesse</string>
+    <string name="first_promise_resume_title">Terminez l’activation de votre première promesse</string>
+    <string name="first_promise_resume_summary">%1$s · %2$s · 30 min · %3$s</string>
+    <string name="first_promise_resume_retry_message">Elle est enregistrée mais désactivée. Réessayez de l’activer.</string>
 </resources>

@@ -166,13 +166,12 @@ internal object OnboardingEntryRoutePolicy {
         FirstPromisePhase.UsageAccessPending -> OnboardingEntryDestination.UsageAccess
         FirstPromisePhase.Analyzing -> OnboardingEntryDestination.UsageAnalysis
         FirstPromisePhase.ManualSelectPending -> OnboardingEntryDestination.ManualAppSelect
-        FirstPromisePhase.DraftReady,
-        FirstPromisePhase.PersistFailed,
-        -> OnboardingEntryDestination.PromiseProposal
+        FirstPromisePhase.DraftReady -> OnboardingEntryDestination.PromiseProposal
         FirstPromisePhase.AccessibilityPending -> OnboardingEntryDestination.PromiseAccessibility
         FirstPromisePhase.NotificationPending -> OnboardingEntryDestination.PromiseNotification
         FirstPromisePhase.Persisting -> error("Persisting must wait for the in-flight transaction")
         FirstPromisePhase.SchedulePermissionRequired,
+        FirstPromisePhase.PersistFailed,
         FirstPromisePhase.ResultEnabled,
         FirstPromisePhase.ResultDisabled,
         -> OnboardingEntryDestination.PromiseResult

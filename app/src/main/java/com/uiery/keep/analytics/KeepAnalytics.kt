@@ -503,6 +503,7 @@ object OnboardingStepName {
     const val GOAL_SELECT = "goal_select"
     const val USAGE_ACCESS = "usage_access"
     const val PROMISE_PROPOSAL = "promise_proposal"
+    const val PROMISE_RESULT = "promise_result"
 }
 
 object KeepAnalyticsScreen {
@@ -515,6 +516,7 @@ object KeepAnalyticsScreen {
     const val ONBOARDING_USAGE_ACCESS = "OnboardingUsageAccessScreen"
     const val ONBOARDING_USAGE_ANALYSIS = "OnboardingUsageAnalysisScreen"
     const val ONBOARDING_PROMISE_PROPOSAL = "OnboardingPromiseProposalScreen"
+    const val ONBOARDING_PROMISE_RESULT = "OnboardingPromiseResultScreen"
     const val HOME = "HomeScreen"
     const val MENU = "MenuScreen"
     const val LOCK_HISTORY = "LockHistoryScreen"
