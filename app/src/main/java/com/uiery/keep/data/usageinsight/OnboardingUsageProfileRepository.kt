@@ -25,7 +25,7 @@ class OnboardingUsageProfileRepository @Inject constructor(
         queryProfile(today, zoneId, goalDefaultStartMinutes)
     } catch (cancellation: CancellationException) {
         throw cancellation
-    } catch (_: Throwable) {
+    } catch (_: Exception) {
         queryFailed()
     }
 

@@ -153,6 +153,22 @@ class OnboardingUsageProfileRepositoryTest {
     }
 
     @Test
+    fun `fatal errors escape while ordinary exceptions remain typed query failures`() = runBlocking {
+        val ordinary = repository(
+            FakeOnboardingGateway(queryFailure = IllegalStateException("framework")),
+        ).profile(today, zoneId, 21 * 60).insufficient()
+        assertEquals(InsufficientReason.QueryFailed, ordinary.reason)
+
+        val fatal = AssertionError("fatal invariant")
+        try {
+            repository(FakeOnboardingGateway(queryFailure = fatal)).profile(today, zoneId, 21 * 60)
+            fail("Error must escape")
+        } catch (actual: AssertionError) {
+            assertSame(fatal, actual)
+        }
+    }
+
+    @Test
     fun `repository passes midnight enabled routine coverage with parsed weekdays`() = runBlocking {
         val gateway = FakeOnboardingGateway(
             aggregates = aggregates("com.video", 3, 60),
@@ -232,7 +248,7 @@ private class FakeOnboardingGateway(
     private val aggregates: List<AppUsageAggregateDay> = emptyList(),
     private val intervals: List<AppUsageInterval> = emptyList(),
     private val labels: Map<String, String> = emptyMap(),
-    private val queryFailure: RuntimeException? = null,
+    private val queryFailure: Throwable? = null,
 ) : UsageStatsGateway {
     val aggregateCalls = mutableListOf<Pair<ClosedRange<LocalDate>, ZoneId>>()
     val intervalCalls = mutableListOf<Pair<ClosedRange<LocalDate>, ZoneId>>()
