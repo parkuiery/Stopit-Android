@@ -8,29 +8,28 @@ private const val TREATMENT_PERCENT_KEY = "onboarding_promise_coach_percent"
 private const val NEW_ASSIGNMENT_ENABLED_KEY = "onboarding_promise_coach_new_assignment_enabled"
 private const val EMERGENCY_DISABLED_KEY = "onboarding_promise_coach_emergency_disabled"
 
-private val CONTROL_SAFE_DEFAULTS = mapOf<String, Any>(
-    TREATMENT_PERCENT_KEY to 0L,
-    NEW_ASSIGNMENT_ENABLED_KEY to false,
-    EMERGENCY_DISABLED_KEY to false,
-)
-
 @Singleton
 class FirebaseOnboardingExperimentConfig @Inject constructor(
     private val remoteConfig: FirebaseRemoteConfig,
 ) : OnboardingExperimentConfig {
-    init {
-        remoteConfig.setDefaultsAsync(CONTROL_SAFE_DEFAULTS)
-        remoteConfig.fetchAndActivate()
-    }
-
-    override fun snapshot(): OnboardingExperimentSnapshot = try {
-        OnboardingExperimentSnapshot(
-            treatmentPercent = remoteConfig.getLong(TREATMENT_PERCENT_KEY).toInt(),
-            newAssignmentEnabled = remoteConfig.getBoolean(NEW_ASSIGNMENT_ENABLED_KEY),
-            emergencyDisabled = remoteConfig.getBoolean(EMERGENCY_DISABLED_KEY),
-            remoteReadable = true,
-        )
-    } catch (_: Exception) {
-        OnboardingExperimentSnapshot()
+    override fun snapshot(): OnboardingExperimentSnapshot {
+        return try {
+            val treatmentPercent = remoteConfig.getValue(TREATMENT_PERCENT_KEY)
+            val newAssignmentEnabled = remoteConfig.getValue(NEW_ASSIGNMENT_ENABLED_KEY)
+            val emergencyDisabled = remoteConfig.getValue(EMERGENCY_DISABLED_KEY)
+            val values = listOf(treatmentPercent, newAssignmentEnabled, emergencyDisabled)
+            if (values.any { it.source != FirebaseRemoteConfig.VALUE_SOURCE_REMOTE }) {
+                OnboardingExperimentSnapshot()
+            } else {
+                OnboardingExperimentSnapshot(
+                    treatmentPercent = Math.toIntExact(treatmentPercent.asLong()),
+                    newAssignmentEnabled = newAssignmentEnabled.asBoolean(),
+                    emergencyDisabled = emergencyDisabled.asBoolean(),
+                    remoteReadable = true,
+                )
+            }
+        } catch (_: Exception) {
+            OnboardingExperimentSnapshot()
+        }
     }
 }

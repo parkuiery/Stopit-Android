@@ -2,6 +2,7 @@ package com.uiery.keep.feature.review
 
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.google.firebase.remoteconfig.remoteConfig
 import com.uiery.keep.BuildConfig
 import dagger.Binds
@@ -35,7 +36,8 @@ abstract class ReviewModule {
 
         @Provides
         @Singleton
-        fun provideFirebaseRemoteConfig(): FirebaseRemoteConfig = Firebase.remoteConfig
+        fun provideFirebaseRemoteConfig(): FirebaseRemoteConfig =
+            FirebaseRemoteConfigInitializer.initialize(Firebase.remoteConfig)
 
         @Provides
         @Singleton
@@ -43,5 +45,27 @@ abstract class ReviewModule {
             isDebug = BuildConfig.DEBUG,
             flavor = BuildConfig.FLAVOR,
         )
+    }
+}
+
+private const val FETCH_TIMEOUT_SECONDS = 5L
+
+private val SHARED_REMOTE_CONFIG_DEFAULTS = mapOf<String, Any>(
+    "in_app_review_enabled" to true,
+    "onboarding_promise_coach_percent" to 0L,
+    "onboarding_promise_coach_new_assignment_enabled" to false,
+    "onboarding_promise_coach_emergency_disabled" to false,
+)
+
+internal object FirebaseRemoteConfigInitializer {
+    fun initialize(remoteConfig: FirebaseRemoteConfig): FirebaseRemoteConfig {
+        remoteConfig.setConfigSettingsAsync(
+            FirebaseRemoteConfigSettings.Builder()
+                .setFetchTimeoutInSeconds(FETCH_TIMEOUT_SECONDS)
+                .build(),
+        )
+        remoteConfig.setDefaultsAsync(SHARED_REMOTE_CONFIG_DEFAULTS)
+        remoteConfig.fetchAndActivate()
+        return remoteConfig
     }
 }
