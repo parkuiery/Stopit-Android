@@ -58,7 +58,9 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
     }
 
     override suspend fun drainAll() = drainMutex.withLock {
-        store.pendingDraftIds().forEach { drainDraftUnlocked(it) }
+        store.pendingDraftIds().forEach { draftId ->
+            runCatching { drainDraftUnlocked(draftId) }
+        }
     }
 
     override suspend fun drainDraft(draftId: String) = drainMutex.withLock {

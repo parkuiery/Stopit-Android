@@ -5,6 +5,8 @@ import com.uiery.keep.data.lock.TimedLockStartOrigin
 import com.uiery.keep.data.lock.TimedLockStartResult
 import com.uiery.keep.data.lock.TimedLockStarter
 import com.uiery.keep.datastore.FirstPromisePracticeStore
+import com.uiery.keep.datastore.FirstPromisePracticeStateStore
+import com.uiery.keep.datastore.FirstPromisePracticeToken
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
@@ -58,6 +60,41 @@ class FirstPromisePracticeControllerTest {
     }
 
     @Test
+    fun startedAnalyticsFailureDoesNotTurnPersistedPracticeIntoFailure() = runBlocking {
+        val dataStore = FakeDataStore()
+        val controller = FirstPromisePracticeController(
+            accessibilityChecker = accessibility(true),
+            timedLockStarter = FakeTimedStarter(TimedLockStartResult.Started("deadline", false)),
+            practiceStore = FirstPromisePracticeStore(dataStore),
+            analytics = PracticeRecordingAnalytics(failStarted = true),
+            clock = clock,
+        )
+
+        val result = controller.start(draft, routineEnabled = true)
+
+        assertEquals(FirstPromisePracticeStartResult.Started, result)
+        assertEquals(draft.draftId, FirstPromisePracticeStore(dataStore).readActiveToken(clock.millis())?.draftId)
+    }
+
+    @Test
+    fun tokenWriteFailureRollsBackOwnedSessionAndRetryCanStart() = runBlocking {
+        val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline", false))
+        val store = FailOncePracticeStateStore(FirstPromisePracticeStore(FakeDataStore()))
+        val controller = FirstPromisePracticeController(
+            accessibilityChecker = accessibility(true),
+            timedLockStarter = timed,
+            practiceStore = store,
+            analytics = PracticeRecordingAnalytics(),
+            clock = clock,
+        )
+
+        assertEquals(FirstPromisePracticeStartResult.Failed, controller.start(draft, routineEnabled = true))
+        assertEquals(1, timed.rollbackCalls)
+        assertEquals(FirstPromisePracticeStartResult.Started, controller.start(draft, routineEnabled = true))
+        assertEquals(2, timed.startCalls)
+    }
+
+    @Test
     fun disabledRoutineOffersNoPracticeOutcome() = runBlocking {
         val dataStore = FakeDataStore()
         val analytics = PracticeRecordingAnalytics()
@@ -102,20 +139,47 @@ class FirstPromisePracticeControllerTest {
     }
 
     @Test
-    fun skipTracksOnlyOncePerController() = runBlocking {
+    fun skipTracksOnlyOnceAcrossControllerRecreation() = runBlocking {
         val analytics = PracticeRecordingAnalytics()
-        val controller = FirstPromisePracticeController(
+        val dataStore = FakeDataStore()
+        val first = FirstPromisePracticeController(
             accessibility(true),
             FakeTimedStarter(TimedLockStartResult.AlreadyActive),
-            FirstPromisePracticeStore(FakeDataStore()),
+            FirstPromisePracticeStore(dataStore),
+            analytics,
+            clock,
+        )
+        val recreated = FirstPromisePracticeController(
+            accessibility(true),
+            FakeTimedStarter(TimedLockStartResult.AlreadyActive),
+            FirstPromisePracticeStore(dataStore),
             analytics,
             clock,
         )
 
-        controller.skip()
-        controller.skip()
+        first.skip(draft.draftId, routineEnabled = true)
+        recreated.skip(draft.draftId, routineEnabled = true)
 
         assertEquals(listOf(FirstPromisePracticeOutcome.Skipped), analytics.outcomes)
+    }
+
+    @Test
+    fun skipDoesNotTrackAfterStartedOrForDisabledRoutine() = runBlocking {
+        val dataStore = FakeDataStore()
+        val analytics = PracticeRecordingAnalytics()
+        val controller = FirstPromisePracticeController(
+            accessibility(true),
+            FakeTimedStarter(TimedLockStartResult.Started("deadline", false)),
+            FirstPromisePracticeStore(dataStore),
+            analytics,
+            clock,
+        )
+
+        controller.start(draft, routineEnabled = true)
+        controller.skip(draft.draftId, routineEnabled = true)
+        controller.skip("disabled-draft", routineEnabled = false)
+
+        assertEquals(listOf(FirstPromisePracticeOutcome.Started), analytics.outcomes)
     }
 
     private fun accessibility(enabled: Boolean): AccessibilityChecker = object : AccessibilityChecker {
@@ -127,20 +191,44 @@ private class FakeTimedStarter(private val result: TimedLockStartResult) : Timed
     var packages: Set<String>? = null
     var durationMinutes: Long? = null
     var origin: TimedLockStartOrigin? = null
+    var startCalls = 0
+    var rollbackCalls = 0
     override suspend fun start(
         packages: Set<String>,
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant?,
     ): TimedLockStartResult {
+        startCalls++
         this.packages = packages
         this.durationMinutes = durationMinutes
         this.origin = origin
         return result
     }
+
+    override suspend fun rollback(started: TimedLockStartResult.Started): Boolean {
+        rollbackCalls++
+        return true
+    }
 }
 
-private class PracticeRecordingAnalytics : KeepAnalytics {
+private class FailOncePracticeStateStore(
+    private val delegate: FirstPromisePracticeStateStore,
+) : FirstPromisePracticeStateStore by delegate {
+    private var shouldFail = true
+
+    override suspend fun saveStarted(token: FirstPromisePracticeToken) {
+        if (shouldFail) {
+            shouldFail = false
+            error("datastore unavailable")
+        }
+        delegate.saveStarted(token)
+    }
+}
+
+private class PracticeRecordingAnalytics(
+    private val failStarted: Boolean = false,
+) : KeepAnalytics {
     val outcomes = mutableListOf<FirstPromisePracticeOutcome>()
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
@@ -153,5 +241,8 @@ private class PracticeRecordingAnalytics : KeepAnalytics {
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
-    override fun trackFirstPromisePracticeOutcome(outcome: FirstPromisePracticeOutcome) { outcomes += outcome }
+    override fun trackFirstPromisePracticeOutcome(outcome: FirstPromisePracticeOutcome) {
+        outcomes += outcome
+        if (failStarted && outcome == FirstPromisePracticeOutcome.Started) error("analytics unavailable")
+    }
 }

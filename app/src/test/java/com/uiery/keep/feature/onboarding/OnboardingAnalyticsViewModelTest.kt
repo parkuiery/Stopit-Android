@@ -9,6 +9,9 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.data.firstpromise.FirstPromiseCreationResult
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceCoordinator
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceResult
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.FirstPromiseDraftStore
@@ -18,6 +21,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
 import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
@@ -28,6 +32,7 @@ import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
 import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
 import com.uiery.keep.feature.onboarding.select.canCompleteOnboardingAppSelection
 import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.model.RoutineModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
@@ -256,6 +261,32 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun productionNotificationPathInvokesCoordinatorBeforeNavigatingToResultOrPersistFailed() = runBlocking {
+        listOf(false, true).forEach { shouldFail ->
+            val localAnalytics = RecordingKeepAnalytics()
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail)
+            val viewModel = NotificationSettingViewModel(
+                localAnalytics,
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigated = false
+
+            viewModel.onFirstPromisePermissionResult(granted = true) { navigated = true }
+
+            assertTrue(navigated)
+            assertEquals(1, coordinator.persistCalls)
+            assertEquals(
+                if (shouldFail) FirstPromisePhase.PersistFailed else FirstPromisePhase.ResultEnabled,
+                store.readState().phase,
+            )
+        }
+    }
+
+    @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
@@ -359,6 +390,43 @@ class OnboardingAnalyticsViewModelTest {
             ),
         )
     }
+}
+
+private class NotificationPersistenceCoordinator(
+    private val store: FirstPromiseDraftStore,
+    private val shouldFail: Boolean,
+) : FirstPromisePersistenceCoordinator {
+    var persistCalls = 0
+
+    override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
+        persistCalls++
+        if (shouldFail) {
+            store.markPersistenceFailed()
+            return FirstPromisePersistenceResult.Failed(IllegalStateException("db"))
+        }
+        val creation = FirstPromiseCreationResult(
+            routineId = 41L,
+            routine = RoutineModel(
+                id = 41L,
+                name = "Promise",
+                startTime = kotlinx.datetime.LocalTime(23, 0),
+                endTime = kotlinx.datetime.LocalTime(23, 30),
+                repeatDays = "1111111",
+                lockApplications = listOf("com.example.video"),
+                isEnabled = true,
+            ),
+            scheduleState = FirstPromiseScheduleState.Enabled,
+            schedulingSucceeded = true,
+            created = true,
+        )
+        store.recordPersistenceMapping(creation.routineId, creation.scheduleState)
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
+    override suspend fun readCurrentMapping(): FirstPromiseCreationResult? = null
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
 }
 
 private sealed interface AnalyticsCall {

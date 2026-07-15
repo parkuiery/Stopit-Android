@@ -5,6 +5,8 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
 import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,6 +74,62 @@ class FirstPromiseOutboxEventTest {
         assertNull(codec.decodeOrNull(valid.copy(sequence = 10)))
         assertNull(codec.decodeOrNull(valid.copy(eventName = "future_event")))
         assertTrue(codec.decodeOrNull(valid) is FirstPromiseOutboxEvent.FirstPromiseCreated)
+    }
+
+    @Test
+    fun decodeRejectsMissingExtraAndChangedFixedRoutineSavedFields() {
+        val valid = codec.encode(
+            draftId = "draft",
+            event = FirstPromiseOutboxEvent.RoutineSaved(
+                FirstPromiseRepeatDaysBucket.Seven,
+                FirstPromiseTimeWindowBucket.Night,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            occurredAtMillis = 1L,
+        )
+        val payload = Json.parseToJsonElement(valid.payloadJson).jsonObject
+
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload - "entry_surface").toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("unexpected" to JsonPrimitive("value"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("entry_surface" to JsonPrimitive("home"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("creation_source" to JsonPrimitive("manual"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("selected_app_count_bucket" to JsonPrimitive("2_3"))).toString())))
+    }
+
+    @Test
+    fun decodeRejectsExtraFieldsForEveryTypedVariant() {
+        val events = listOf<FirstPromiseOutboxEvent>(
+            FirstPromiseOutboxEvent.RoutineSaved(
+                FirstPromiseRepeatDaysBucket.Seven,
+                FirstPromiseTimeWindowBucket.Night,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            FirstPromiseOutboxEvent.FirstPromiseCreated(
+                FirstPromiseGoal.Focus,
+                FirstPromiseSource.Personalized,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            FirstPromiseOutboxEvent.AppBlockIntercepted(
+                FirstPromiseBlockSource.TimedLock,
+                FirstPromiseBlockingMode.TimedLock,
+                FirstPromiseAppCategoryBucket.Productivity,
+                FirstPromiseOrigin.FirstPromisePractice,
+            ),
+            FirstPromiseOutboxEvent.CoreAction(
+                FirstPromiseCoreActionKind.First,
+                FirstPromiseBlockingMode.TimedLock,
+                FirstPromiseAppCategoryBucket.Productivity,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseOrigin.FirstPromisePractice,
+            ),
+        )
+
+        events.forEach { event ->
+            val entity = codec.encode("draft", event, 1L)
+            val payload = Json.parseToJsonElement(entity.payloadJson).jsonObject
+            val extra = JsonObject(payload + ("routine_id" to JsonPrimitive("secret")))
+            assertNull(event.localEventName, codec.decodeOrNull(entity.copy(payloadJson = extra.toString())))
+        }
     }
 
     @Test

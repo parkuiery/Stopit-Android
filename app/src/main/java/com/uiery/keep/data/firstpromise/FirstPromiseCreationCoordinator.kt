@@ -15,6 +15,13 @@ sealed interface FirstPromisePersistenceResult {
     data class Succeeded(val creation: FirstPromiseCreationResult) : FirstPromisePersistenceResult
     data class Failed(val cause: Throwable) : FirstPromisePersistenceResult
     data object MissingDraft : FirstPromisePersistenceResult
+    data object MissingRoutine : FirstPromisePersistenceResult
+}
+
+interface FirstPromisePersistenceCoordinator {
+    suspend fun persistCurrentDraft(): FirstPromisePersistenceResult
+    suspend fun readCurrentMapping(): FirstPromiseCreationResult?
+    suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult
 }
 
 @Singleton
@@ -24,8 +31,33 @@ class FirstPromiseCreationCoordinator @Inject constructor(
     private val draftStore: FirstPromiseDraftStore,
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
-) {
-    suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
+) : FirstPromisePersistenceCoordinator {
+    override suspend fun readCurrentMapping(): FirstPromiseCreationResult? {
+        val routineId = draftStore.readState().routineId ?: return null
+        return creator.findExistingByRoutineId(routineId)
+    }
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
+        val state = draftStore.readState()
+        if (state.routineId != routineId) return FirstPromisePersistenceResult.MissingRoutine
+        val creation = try {
+            creator.finalizeExistingRoutine(routineId)
+                ?: return FirstPromisePersistenceResult.MissingRoutine
+        } catch (failure: Throwable) {
+            return FirstPromisePersistenceResult.Failed(failure)
+        }
+        try {
+            draftStore.resolveScheduleState(routineId, creation.scheduleState)
+        } catch (failure: Throwable) {
+            return FirstPromisePersistenceResult.Failed(failure)
+        }
+        state.draft?.let { draft ->
+            deliverAndTrackFirstLock(draft, creation)
+        }
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
+    override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
         val draft = draftStore.readState().draft ?: return FirstPromisePersistenceResult.MissingDraft
         val creation = try {
             creator.createFirstPromise(draft, draft.toRoutine())
@@ -41,6 +73,14 @@ class FirstPromiseCreationCoordinator @Inject constructor(
             return FirstPromisePersistenceResult.Failed(failure)
         }
 
+        deliverAndTrackFirstLock(draft, creation)
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
+    private suspend fun deliverAndTrackFirstLock(
+        draft: FirstPromiseDraft,
+        creation: FirstPromiseCreationResult,
+    ) {
         // Analytics delivery is at-least-once and must not roll back a committed routine. Startup
         // recovery drains the same rows if this attempt fails or the process dies.
         runCatching { dispatcher.drainDraft(draft.draftId) }
@@ -53,12 +93,16 @@ class FirstPromiseCreationCoordinator @Inject constructor(
             creationEventsSent &&
             blockingStateStore.markFirstLockConfiguredIfNeeded()
         ) {
-            analytics.trackFirstLockConfigured(
-                source = AnalyticsSource.ONBOARDING,
-                selectedAppCount = 1,
-            )
+            val analyticsResult = runCatching {
+                analytics.trackFirstLockConfigured(
+                    source = AnalyticsSource.ONBOARDING,
+                    selectedAppCount = 1,
+                )
+            }
+            if (analyticsResult.isFailure) {
+                blockingStateStore.resetFirstLockConfiguredForRetry()
+            }
         }
-        return FirstPromisePersistenceResult.Succeeded(creation)
     }
 }
 

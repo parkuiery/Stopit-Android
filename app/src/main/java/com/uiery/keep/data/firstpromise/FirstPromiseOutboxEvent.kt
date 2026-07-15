@@ -115,29 +115,44 @@ class FirstPromiseOutboxEventCodec @Inject constructor() {
     fun decodeOrNull(entity: FirstPromiseAnalyticsOutboxEntity): FirstPromiseOutboxEvent? = runCatching {
         val payload = Json.parseToJsonElement(entity.payloadJson).jsonObject
         val event = when (entity.eventName) {
-            "routine_saved" -> FirstPromiseOutboxEvent.RoutineSaved(
-                repeatDaysBucket = enumValue(payload, "repeat_days_bucket", FirstPromiseRepeatDaysBucket.entries, FirstPromiseRepeatDaysBucket::analyticsValue),
-                timeWindowBucket = enumValue(payload, "time_window_bucket", FirstPromiseTimeWindowBucket.entries, FirstPromiseTimeWindowBucket::analyticsValue),
-                scheduleState = enumValue(payload, "schedule_state", FirstPromiseScheduleState.entries, FirstPromiseScheduleState::analyticsValue),
-            )
-            "first_promise_created" -> FirstPromiseOutboxEvent.FirstPromiseCreated(
-                goal = enumValue(payload, "goal_type", FirstPromiseGoal.entries, FirstPromiseGoal::analyticsValue),
-                source = enumValue(payload, "source", FirstPromiseSource.entries, FirstPromiseSource::analyticsValue),
-                scheduleState = enumValue(payload, "schedule_state", FirstPromiseScheduleState.entries, FirstPromiseScheduleState::analyticsValue),
-            )
-            "first_promise_value_intercepted" -> FirstPromiseOutboxEvent.AppBlockIntercepted(
-                blockSource = enumValue(payload, "block_source", FirstPromiseBlockSource.entries, FirstPromiseBlockSource::analyticsValue),
-                blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
-                categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
-                promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
-            )
-            "first_promise_core_action" -> FirstPromiseOutboxEvent.CoreAction(
-                kind = enumValueByName(payload, "core_action_kind", FirstPromiseCoreActionKind.entries),
-                blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
-                categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
-                elapsedBucket = enumValue(payload, "elapsed_since_first_open_bucket", FirstPromiseElapsedSinceOpenBucket.entries, FirstPromiseElapsedSinceOpenBucket::analyticsValue),
-                promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
-            )
+            "routine_saved" -> {
+                requireExactKeys(payload, ROUTINE_SAVED_KEYS)
+                check(payload.stringValue("entry_surface") == "onboarding")
+                check(payload.stringValue("creation_source") == "onboarding_promise")
+                check(payload.stringValue("selected_app_count_bucket") == "1")
+                FirstPromiseOutboxEvent.RoutineSaved(
+                    repeatDaysBucket = enumValue(payload, "repeat_days_bucket", FirstPromiseRepeatDaysBucket.entries, FirstPromiseRepeatDaysBucket::analyticsValue),
+                    timeWindowBucket = enumValue(payload, "time_window_bucket", FirstPromiseTimeWindowBucket.entries, FirstPromiseTimeWindowBucket::analyticsValue),
+                    scheduleState = enumValue(payload, "schedule_state", FirstPromiseScheduleState.entries, FirstPromiseScheduleState::analyticsValue),
+                )
+            }
+            "first_promise_created" -> {
+                requireExactKeys(payload, FIRST_PROMISE_CREATED_KEYS)
+                FirstPromiseOutboxEvent.FirstPromiseCreated(
+                    goal = enumValue(payload, "goal_type", FirstPromiseGoal.entries, FirstPromiseGoal::analyticsValue),
+                    source = enumValue(payload, "source", FirstPromiseSource.entries, FirstPromiseSource::analyticsValue),
+                    scheduleState = enumValue(payload, "schedule_state", FirstPromiseScheduleState.entries, FirstPromiseScheduleState::analyticsValue),
+                )
+            }
+            "first_promise_value_intercepted" -> {
+                requireExactKeys(payload, APP_BLOCK_INTERCEPTED_KEYS)
+                FirstPromiseOutboxEvent.AppBlockIntercepted(
+                    blockSource = enumValue(payload, "block_source", FirstPromiseBlockSource.entries, FirstPromiseBlockSource::analyticsValue),
+                    blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
+                    categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
+                    promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
+                )
+            }
+            "first_promise_core_action" -> {
+                requireExactKeys(payload, CORE_ACTION_KEYS)
+                FirstPromiseOutboxEvent.CoreAction(
+                    kind = enumValueByName(payload, "core_action_kind", FirstPromiseCoreActionKind.entries),
+                    blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
+                    categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
+                    elapsedBucket = enumValue(payload, "elapsed_since_first_open_bucket", FirstPromiseElapsedSinceOpenBucket.entries, FirstPromiseElapsedSinceOpenBucket::analyticsValue),
+                    promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
+                )
+            }
             else -> return null
         }
         check(entity.sequence == event.sequence)
@@ -189,9 +204,38 @@ class FirstPromiseOutboxEventCodec @Inject constructor() {
         return entries.firstOrNull { it.name == raw } ?: error("Unknown $key")
     }
 
+    private fun requireExactKeys(payload: JsonObject, approvedKeys: Set<String>) {
+        check(payload.keys == approvedKeys)
+    }
+
+    private fun JsonObject.stringValue(key: String): String = getValue(key).jsonPrimitive.content
+
     companion object {
         const val DELIVERY_PENDING = "pending"
         const val DELIVERY_SENT = "sent"
         const val DELIVERY_QUARANTINED = "quarantined"
+
+        private val ROUTINE_SAVED_KEYS = setOf(
+            "entry_surface",
+            "creation_source",
+            "selected_app_count_bucket",
+            "repeat_days_bucket",
+            "time_window_bucket",
+            "schedule_state",
+        )
+        private val FIRST_PROMISE_CREATED_KEYS = setOf("goal_type", "source", "schedule_state")
+        private val APP_BLOCK_INTERCEPTED_KEYS = setOf(
+            "block_source",
+            "blocking_mode",
+            "blocked_app_category_bucket",
+            "promise_origin",
+        )
+        private val CORE_ACTION_KEYS = setOf(
+            "core_action_kind",
+            "blocking_mode",
+            "blocked_app_category_bucket",
+            "elapsed_since_first_open_bucket",
+            "promise_origin",
+        )
     }
 }

@@ -18,15 +18,61 @@ data class FirstPromisePracticeToken(
     val expiresAtMillis: Long,
 )
 
+@Serializable
+enum class FirstPromisePracticeDecision {
+    Started,
+    Skipped,
+}
+
+@Serializable
+private data class FirstPromisePracticeDecisionRecord(
+    val draftId: String,
+    val decision: FirstPromisePracticeDecision,
+)
+
+interface FirstPromisePracticeStateStore {
+    suspend fun saveStarted(token: FirstPromisePracticeToken)
+    suspend fun recordSkippedIfAbsent(draftId: String): Boolean
+    suspend fun readDecision(draftId: String): FirstPromisePracticeDecision?
+}
+
 @Singleton
 class FirstPromisePracticeStore @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
-) {
+) : FirstPromisePracticeStateStore {
     suspend fun saveToken(token: FirstPromisePracticeToken) {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN] = Json.encodeToString(token)
         }
     }
+
+    override suspend fun saveStarted(token: FirstPromisePracticeToken) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN] = Json.encodeToString(token)
+            preferences[PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION] = Json.encodeToString(
+                FirstPromisePracticeDecisionRecord(token.draftId, FirstPromisePracticeDecision.Started),
+            )
+        }
+    }
+
+    override suspend fun recordSkippedIfAbsent(draftId: String): Boolean {
+        var recorded = false
+        dataStore.edit { preferences ->
+            val current = decodeDecision(preferences[PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION])
+            if (current?.draftId != draftId) {
+                preferences[PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION] = Json.encodeToString(
+                    FirstPromisePracticeDecisionRecord(draftId, FirstPromisePracticeDecision.Skipped),
+                )
+                recorded = true
+            }
+        }
+        return recorded
+    }
+
+    override suspend fun readDecision(draftId: String): FirstPromisePracticeDecision? =
+        decodeDecision(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION])
+            ?.takeIf { it.draftId == draftId }
+            ?.decision
 
     suspend fun readActiveToken(nowMillis: Long): FirstPromisePracticeToken? {
         val current = decode(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN])
@@ -57,4 +103,9 @@ class FirstPromisePracticeStore @Inject constructor(
 
     private fun decode(value: String?): FirstPromisePracticeToken? =
         value?.let { runCatching { Json.decodeFromString<FirstPromisePracticeToken>(it) }.getOrNull() }
+
+    private fun decodeDecision(value: String?): FirstPromisePracticeDecisionRecord? =
+        value?.let {
+            runCatching { Json.decodeFromString<FirstPromisePracticeDecisionRecord>(it) }.getOrNull()
+        }
 }

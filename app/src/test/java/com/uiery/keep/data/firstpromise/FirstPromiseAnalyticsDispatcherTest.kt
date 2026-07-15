@@ -49,6 +49,25 @@ class FirstPromiseAnalyticsDispatcherTest {
     }
 
     @Test
+    fun drainAllIsolatesOneDraftFailureAndContinuesLaterDrafts() = runBlocking {
+        val store = FakeOutboxStore(creationRows("first") + creationRows("second"))
+        val analytics = DispatcherRecordingAnalytics(failFirstCall = true)
+        val dispatcher = FirstPromiseAnalyticsDispatcher(store, codec, analytics, clock)
+
+        dispatcher.drainAll()
+
+        assertEquals(
+            FirstPromiseOutboxEventCodec.DELIVERY_PENDING,
+            store.rows.first { it.draftId == "first" && it.sequence == 10 }.deliveryState,
+        )
+        assertTrue(
+            store.rows.filter { it.draftId == "second" }
+                .all { it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT },
+        )
+        assertEquals(listOf("saved", "saved", "created"), analytics.calls)
+    }
+
+    @Test
     fun invalidPayloadIsQuarantinedReportedAndNeverAllowsLaterSequence() = runBlocking {
         val invalid = creationRows("draft").first().copy(payloadJson = "{broken")
         val store = FakeOutboxStore(listOf(invalid, creationRows("draft").last()))

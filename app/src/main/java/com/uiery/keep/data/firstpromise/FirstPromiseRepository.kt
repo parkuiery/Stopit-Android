@@ -26,6 +26,10 @@ interface FirstPromiseCreator {
         draft: FirstPromiseDraft,
         routine: RoutineModel,
     ): FirstPromiseCreationResult
+
+    suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult?
+    suspend fun findExistingByRoutineId(routineId: Long): FirstPromiseCreationResult?
+    suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult?
 }
 
 class FirstPromiseRepository : FirstPromiseCreator {
@@ -76,13 +80,14 @@ class FirstPromiseRepository : FirstPromiseCreator {
                 val routineId = insertRoutine(permissionResolution.routine)
                 val routineWithId = permissionResolution.routine.copy(id = routineId)
                 val scheduleDecision = if (routineWithId.isEnabled) {
+                    scheduledRoutineId = routineId
                     exactAlarmOrchestrator.scheduleEnabledRoutine(routineWithId)
                 } else {
                     null
                 }
                 val finalizedRoutine = scheduleDecision?.routine ?: routineWithId
                 val schedulingSucceeded = scheduleDecision?.shouldTrackLockScheduled == true
-                if (schedulingSucceeded) scheduledRoutineId = routineId
+                if (!schedulingSucceeded) scheduledRoutineId = null
                 if (finalizedRoutine != routineWithId) updateRoutine(finalizedRoutine)
 
                 val scheduleState = when {
@@ -108,7 +113,10 @@ class FirstPromiseRepository : FirstPromiseCreator {
                             draftId = draft.draftId,
                             event = FirstPromiseOutboxEvent.RoutineSaved(
                                 repeatDaysBucket = repeatDaysBucket(draft.repeatDays.size),
-                                timeWindowBucket = timeWindowBucket(draft.startMinutes),
+                                timeWindowBucket = timeWindowBucket(
+                                    finalizedRoutine.startTime,
+                                    finalizedRoutine.endTime,
+                                ),
                                 scheduleState = scheduleState,
                             ),
                             occurredAtMillis = clock.millis(),
@@ -138,15 +146,66 @@ class FirstPromiseRepository : FirstPromiseCreator {
         }
     }
 
+    override suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult? =
+        storage.findMapping(draftId)?.let { existingResult(it) }
+
+    override suspend fun findExistingByRoutineId(routineId: Long): FirstPromiseCreationResult? =
+        storage.findMappingByRoutineId(routineId)?.let { existingResult(it) }
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult? {
+        val mapping = storage.findMappingByRoutineId(routineId) ?: return null
+        val current = storage.findRoutine(routineId)
+        if (current.isEnabled) return existingResult(mapping)
+
+        val permissionResolution = exactAlarmOrchestrator.resolveBeforePersist(current.copy(isEnabled = true))
+        var scheduledRoutineId: Long? = null
+        return try {
+            storage.inTransaction {
+                val latestMapping = findMappingByRoutineId(routineId) ?: return@inTransaction null
+                val latest = findRoutine(routineId)
+                if (latest.isEnabled) return@inTransaction existingResult(latestMapping)
+
+                val candidate = permissionResolution.routine.copy(id = routineId)
+                val scheduleDecision = if (candidate.isEnabled) {
+                    scheduledRoutineId = routineId
+                    exactAlarmOrchestrator.scheduleEnabledRoutine(candidate)
+                } else {
+                    null
+                }
+                val finalized = scheduleDecision?.routine ?: candidate
+                val schedulingSucceeded = scheduleDecision?.shouldTrackLockScheduled == true
+                if (!schedulingSucceeded) scheduledRoutineId = null
+                if (finalized != latest) updateRoutine(finalized)
+                val scheduleState = when {
+                    finalized.isEnabled && schedulingSucceeded -> FirstPromiseScheduleState.Enabled
+                    permissionResolution.shouldShowPermissionPrompt ||
+                        scheduleDecision?.shouldShowPermissionPrompt == true ->
+                        FirstPromiseScheduleState.DisabledExactAlarmMissing
+                    else -> FirstPromiseScheduleState.DisabledUnknown
+                }
+                FirstPromiseCreationResult(
+                    routineId = routineId,
+                    routine = finalized,
+                    scheduleState = scheduleState,
+                    schedulingSucceeded = schedulingSucceeded,
+                    created = false,
+                )
+            }
+        } catch (failure: Throwable) {
+            scheduledRoutineId?.let(exactAlarmOrchestrator::cancelRoutine)
+            throw failure
+        }
+    }
+
     private suspend fun existingResult(mapping: FirstPromiseEntity): FirstPromiseCreationResult {
         val routine = storage.findRoutine(mapping.routineId)
         val creationEvent = storage.findOutbox(mapping.draftId)
             .firstOrNull { it.sequence == 20 }
             ?.let(codec::decodeOrNull) as? FirstPromiseOutboxEvent.FirstPromiseCreated
-        val state = creationEvent?.scheduleState ?: if (routine.isEnabled) {
+        val state = if (routine.isEnabled) {
             FirstPromiseScheduleState.Enabled
         } else {
-            FirstPromiseScheduleState.DisabledUnknown
+            creationEvent?.scheduleState ?: FirstPromiseScheduleState.DisabledUnknown
         }
         return FirstPromiseCreationResult(
             routineId = mapping.routineId,
@@ -160,6 +219,7 @@ class FirstPromiseRepository : FirstPromiseCreator {
 
 internal interface FirstPromiseRepositoryStorage {
     suspend fun findMapping(draftId: String): FirstPromiseEntity?
+    suspend fun findMappingByRoutineId(routineId: Long): FirstPromiseEntity?
     suspend fun findRoutine(id: Long): RoutineModel
     suspend fun findOutbox(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> = emptyList()
     suspend fun <T> inTransaction(block: suspend FirstPromiseRepositoryStorage.() -> T): T
@@ -174,6 +234,9 @@ private class RoomFirstPromiseRepositoryStorage(
 ) : FirstPromiseRepositoryStorage {
     override suspend fun findMapping(draftId: String): FirstPromiseEntity? =
         database.firstPromiseDao().findByDraftId(draftId)
+
+    override suspend fun findMappingByRoutineId(routineId: Long): FirstPromiseEntity? =
+        database.firstPromiseDao().findByRoutineId(routineId)
 
     override suspend fun findRoutine(id: Long): RoutineModel = database.routineDao().fetch(id).toModel()
 
@@ -205,9 +268,15 @@ private fun repeatDaysBucket(size: Int): FirstPromiseRepeatDaysBucket = when (si
     else -> FirstPromiseRepeatDaysBucket.Seven
 }
 
-private fun timeWindowBucket(startMinutes: Int): FirstPromiseTimeWindowBucket = when (startMinutes / 60) {
-    in 5..11 -> FirstPromiseTimeWindowBucket.Morning
-    in 12..16 -> FirstPromiseTimeWindowBucket.Afternoon
-    in 17..20 -> FirstPromiseTimeWindowBucket.Evening
-    else -> FirstPromiseTimeWindowBucket.Night
+private fun timeWindowBucket(
+    startTime: kotlinx.datetime.LocalTime,
+    endTime: kotlinx.datetime.LocalTime,
+): FirstPromiseTimeWindowBucket {
+    if (endTime < startTime) return FirstPromiseTimeWindowBucket.Overnight
+    return when (startTime.hour) {
+        in 5..11 -> FirstPromiseTimeWindowBucket.Morning
+        in 12..16 -> FirstPromiseTimeWindowBucket.Afternoon
+        in 17..20 -> FirstPromiseTimeWindowBucket.Evening
+        else -> FirstPromiseTimeWindowBucket.Night
+    }
 }

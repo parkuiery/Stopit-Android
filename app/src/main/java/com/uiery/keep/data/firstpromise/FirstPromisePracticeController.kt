@@ -4,7 +4,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.data.lock.TimedLockStartOrigin
 import com.uiery.keep.data.lock.TimedLockStartResult
 import com.uiery.keep.data.lock.TimedLockStarter
-import com.uiery.keep.datastore.FirstPromisePracticeStore
+import com.uiery.keep.datastore.FirstPromisePracticeStateStore
 import com.uiery.keep.datastore.FirstPromisePracticeToken
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
@@ -27,12 +27,11 @@ sealed interface FirstPromisePracticeStartResult {
 class FirstPromisePracticeController @Inject constructor(
     private val accessibilityChecker: AccessibilityChecker,
     private val timedLockStarter: TimedLockStarter,
-    private val practiceStore: FirstPromisePracticeStore,
+    private val practiceStore: FirstPromisePracticeStateStore,
     private val analytics: KeepAnalytics,
     private val clock: Clock,
 ) {
     private val actionMutex = Mutex()
-    private var skippedTracked = false
 
     suspend fun start(
         draft: FirstPromiseDraft,
@@ -40,7 +39,7 @@ class FirstPromisePracticeController @Inject constructor(
     ): FirstPromisePracticeStartResult = actionMutex.withLock {
         if (!routineEnabled) return FirstPromisePracticeStartResult.RoutineDisabled
         if (!accessibilityChecker.isEnabled()) {
-            trackStartFailed()
+            trackOutcomeSafely(FirstPromisePracticeOutcome.StartFailed)
             return FirstPromisePracticeStartResult.AccessibilityRequired
         }
 
@@ -51,11 +50,11 @@ class FirstPromisePracticeController @Inject constructor(
                 origin = TimedLockStartOrigin.FirstPromisePractice,
             )
         }.getOrElse {
-            trackStartFailed()
+            trackOutcomeSafely(FirstPromisePracticeOutcome.StartFailed)
             return FirstPromisePracticeStartResult.Failed
         }
         if (startResult !is TimedLockStartResult.Started) {
-            trackStartFailed()
+            trackOutcomeSafely(FirstPromisePracticeOutcome.StartFailed)
             return if (startResult == TimedLockStartResult.AlreadyActive) {
                 FirstPromisePracticeStartResult.ActiveTimedLock
             } else {
@@ -64,32 +63,32 @@ class FirstPromisePracticeController @Inject constructor(
         }
 
         val now = clock.millis()
-        return runCatching {
-            practiceStore.saveToken(
+        try {
+            practiceStore.saveStarted(
                 FirstPromisePracticeToken(
                     draftId = draft.draftId,
                     startedAtMillis = now,
                     expiresAtMillis = now + PRACTICE_DURATION_MINUTES * 60_000L,
                 ),
             )
-            analytics.trackFirstPromisePracticeOutcome(FirstPromisePracticeOutcome.Started)
-            FirstPromisePracticeStartResult.Started
-        }.getOrElse {
-            trackStartFailed()
-            FirstPromisePracticeStartResult.Failed
+        } catch (_: Throwable) {
+            runCatching { timedLockStarter.rollback(startResult) }
+            trackOutcomeSafely(FirstPromisePracticeOutcome.StartFailed)
+            return FirstPromisePracticeStartResult.Failed
+        }
+        trackOutcomeSafely(FirstPromisePracticeOutcome.Started)
+        FirstPromisePracticeStartResult.Started
+    }
+
+    suspend fun skip(draftId: String, routineEnabled: Boolean) = actionMutex.withLock {
+        if (!routineEnabled) return@withLock
+        if (practiceStore.recordSkippedIfAbsent(draftId)) {
+            trackOutcomeSafely(FirstPromisePracticeOutcome.Skipped)
         }
     }
 
-    suspend fun skip() = actionMutex.withLock {
-        if (!skippedTracked) {
-            skippedTracked = true
-            analytics.trackFirstPromisePracticeOutcome(FirstPromisePracticeOutcome.Skipped)
-        }
-    }
-
-    private fun trackStartFailed() {
-        analytics.trackFirstPromisePracticeOutcome(FirstPromisePracticeOutcome.StartFailed)
-    }
+    private fun trackOutcomeSafely(outcome: FirstPromisePracticeOutcome) =
+        runCatching { analytics.trackFirstPromisePracticeOutcome(outcome) }
 
     private companion object {
         const val PRACTICE_DURATION_MINUTES = 10L

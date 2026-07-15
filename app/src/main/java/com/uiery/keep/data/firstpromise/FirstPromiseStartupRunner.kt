@@ -11,13 +11,13 @@ import javax.inject.Singleton
 class FirstPromiseStartupRunner {
     private val dispatcher: FirstPromiseOutboxDispatcher
     private val draftStore: FirstPromiseDraftStore?
-    private val creationCoordinator: FirstPromiseCreationCoordinator?
+    private val creationCoordinator: FirstPromisePersistenceCoordinator?
 
     @Inject
     constructor(
         dispatcher: FirstPromiseOutboxDispatcher,
         draftStore: FirstPromiseDraftStore,
-        creationCoordinator: FirstPromiseCreationCoordinator,
+        creationCoordinator: FirstPromisePersistenceCoordinator,
     ) {
         this.dispatcher = dispatcher
         this.draftStore = draftStore

@@ -70,6 +70,12 @@ class BlockingStateStore @Inject constructor(
         return didMark
     }
 
+    suspend fun resetFirstLockConfiguredForRetry() {
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED)
+        }
+    }
+
     suspend fun markFirstOpenTrackedIfNeeded(timestampMillis: Long): Boolean {
         var didMark = false
         dataStore.edit { preferences ->
@@ -149,6 +155,18 @@ class BlockingStateStore @Inject constructor(
             preferences[PreferencesKey.START_TIME] = startTimeMillis
             preferences[PreferencesKey.LOCK_TIME] = encodedDeadline
         }
+    }
+
+    suspend fun rollbackTimedLockSession(encodedDeadline: String): Boolean {
+        var rolledBack = false
+        dataStore.edit { preferences ->
+            if (preferences[PreferencesKey.LOCK_TIME] == encodedDeadline) {
+                preferences.remove(PreferencesKey.LOCK_TIME)
+                preferences.remove(PreferencesKey.START_TIME)
+                rolledBack = true
+            }
+        }
+        return rolledBack
     }
 
     suspend fun setPreventUninstall(enabled: Boolean) {

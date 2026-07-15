@@ -21,6 +21,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -100,6 +101,57 @@ class FirstPromiseCreationCoordinatorTest {
         assertEquals(0, analytics.firstLockCalls)
     }
 
+    @Test
+    fun firstLockAnalyticsFailureIsNonFatalAndRetriesOnNextReconciliation() = runBlocking {
+        val dataStore = persistingDataStore(draft)
+        val analytics = CoordinatorRecordingAnalytics(failFirstLock = true)
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(successResult()),
+            FakeDispatcher(sent = true),
+            FirstPromiseDraftStore(dataStore),
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        val first = coordinator.persistCurrentDraft()
+        assertTrue(first is FirstPromisePersistenceResult.Succeeded)
+        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+
+        val retried = coordinator.persistCurrentDraft()
+        assertTrue(retried is FirstPromisePersistenceResult.Succeeded)
+        assertEquals(2, analytics.firstLockAttempts)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun queryAndFinalizeBoundaryKeepsMappedRoutineId() = runBlocking {
+        val dataStore = persistingDataStore(draft)
+        val disabled = successResult().copy(
+            routine = successResult().routine.copy(isEnabled = false),
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            schedulingSucceeded = false,
+        )
+        val creator = FakeCreator(result = disabled, finalizedResult = successResult())
+        val coordinator = FirstPromiseCreationCoordinator(
+            creator,
+            FakeDispatcher(sent = true),
+            FirstPromiseDraftStore(dataStore),
+            BlockingStateStore(dataStore),
+            CoordinatorRecordingAnalytics(),
+        )
+        coordinator.persistCurrentDraft()
+
+        val queried = coordinator.readCurrentMapping()
+        val finalized = coordinator.finalizeExistingRoutine(41L)
+
+        assertEquals(41L, queried?.routineId)
+        assertEquals(41L, (finalized as FirstPromisePersistenceResult.Succeeded).creation.routineId)
+        assertEquals(listOf(41L), creator.finalizedRoutineIds)
+        val state = FirstPromiseDraftStore(dataStore).readState()
+        assertEquals(41L, state.routineId)
+        assertEquals(FirstPromiseScheduleState.Enabled, state.scheduleState)
+    }
+
     private fun persistingDataStore(draft: FirstPromiseDraft) = FakeDataStore(
         mutablePreferencesOf(
             PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
@@ -140,12 +192,24 @@ class FirstPromiseCreationCoordinatorTest {
 private class FakeCreator(
     private val result: FirstPromiseCreationResult? = null,
     private val failure: Throwable? = null,
+    private val finalizedResult: FirstPromiseCreationResult? = null,
 ) : FirstPromiseCreator {
     var lastRoutine: RoutineModel? = null
+    val finalizedRoutineIds = mutableListOf<Long>()
     override suspend fun createFirstPromise(draft: FirstPromiseDraft, routine: RoutineModel): FirstPromiseCreationResult {
         failure?.let { throw it }
         lastRoutine = routine
         return requireNotNull(result)
+    }
+
+    override suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult? = result
+
+    override suspend fun findExistingByRoutineId(routineId: Long): FirstPromiseCreationResult? =
+        result?.takeIf { it.routineId == routineId }
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult? {
+        finalizedRoutineIds += routineId
+        return finalizedResult
     }
 }
 
@@ -159,8 +223,11 @@ private class FakeDispatcher(private val sent: Boolean) : FirstPromiseOutboxDisp
     override suspend fun creationEventsSent(draftId: String): Boolean = sent
 }
 
-private class CoordinatorRecordingAnalytics : KeepAnalytics {
+private class CoordinatorRecordingAnalytics(
+    private var failFirstLock: Boolean = false,
+) : KeepAnalytics {
     var firstLockCalls = 0
+    var firstLockAttempts = 0
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
     override fun setUserProperty(name: String, value: String) = Unit
@@ -168,7 +235,14 @@ private class CoordinatorRecordingAnalytics : KeepAnalytics {
     override fun trackOnboardingStepView(stepName: String) = Unit
     override fun trackOnboardingStepComplete(stepName: String) = Unit
     override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
-    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) { firstLockCalls++ }
+    override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) {
+        firstLockAttempts++
+        if (failFirstLock) {
+            failFirstLock = false
+            error("analytics unavailable")
+        }
+        firstLockCalls++
+    }
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit

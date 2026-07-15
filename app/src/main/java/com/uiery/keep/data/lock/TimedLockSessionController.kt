@@ -48,7 +48,7 @@ class TimedLockSessionController @Inject constructor(
         targetDeadline: Instant?,
     ): TimedLockStartResult = startMutex.withLock {
         if (packages.isEmpty()) return TimedLockStartResult.EmptyApps
-        if (durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration
+        if (targetDeadline == null && durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration
         val now = clock.instant()
         if (ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime(), now, clock.zone)) {
             return TimedLockStartResult.AlreadyActive
@@ -81,6 +81,10 @@ class TimedLockSessionController @Inject constructor(
         runCatching { analytics.trackLockSessionStart(source = AnalyticsSource.HOME_TIMER, isRoutine = false) }
         TimedLockStartResult.Started(encodedDeadline, firstLockConfigured)
     }
+
+    override suspend fun rollback(started: TimedLockStartResult.Started): Boolean = startMutex.withLock {
+        blockingStateStore.rollbackTimedLockSession(started.encodedDeadline)
+    }
 }
 
 interface TimedLockStarter {
@@ -90,4 +94,6 @@ interface TimedLockStarter {
         origin: TimedLockStartOrigin,
         targetDeadline: Instant? = null,
     ): TimedLockStartResult
+
+    suspend fun rollback(started: TimedLockStartResult.Started): Boolean
 }

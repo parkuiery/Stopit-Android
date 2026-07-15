@@ -112,6 +112,52 @@ class FirstPromiseRepositoryTest {
     }
 
     @Test
+    fun routineSavedUsesFinalizedOvernightWindow() = runBlocking {
+        val overnightDraft = draft.copy(startMinutes = 23 * 60 + 45)
+        val overnightRoutine = routine.copy(
+            startTime = LocalTime(23, 45),
+            endTime = LocalTime(0, 15),
+        )
+        val store = FakeAtomicStore()
+
+        repository(
+            store,
+            scheduler(canSchedule = true, scheduleResult = RoutineScheduleResult.Scheduled),
+        ).createFirstPromise(overnightDraft, overnightRoutine)
+
+        val saved = FirstPromiseOutboxEventCodec().decode(store.outbox.first()) as FirstPromiseOutboxEvent.RoutineSaved
+        assertEquals(FirstPromiseTimeWindowBucket.Overnight, saved.timeWindowBucket)
+    }
+
+    @Test
+    fun queryAndFinalizeExistingRoutineKeepTheSameRoutineId() = runBlocking<Unit> {
+        val store = FakeAtomicStore()
+        val disabledRepository = repository(
+            store,
+            scheduler(canSchedule = false, scheduleResult = RoutineScheduleResult.NotEnabled),
+        )
+        val created = disabledRepository.createFirstPromise(draft, routine)
+        val scheduledIds = mutableListOf<Long>()
+        val enabledScheduler = scheduler(
+            canSchedule = true,
+            scheduleResult = RoutineScheduleResult.Scheduled,
+            onSchedule = { scheduledIds += it.id },
+        )
+        val enabledRepository = repository(store, enabledScheduler)
+
+        val byDraft = enabledRepository.findExistingByDraftId(draft.draftId)
+        val byRoutine = enabledRepository.findExistingByRoutineId(created.routineId)
+        val finalized = enabledRepository.finalizeExistingRoutine(created.routineId)
+
+        assertEquals(created.routineId, byDraft?.routineId)
+        assertEquals(created.routineId, byRoutine?.routineId)
+        assertEquals(created.routineId, finalized?.routineId)
+        assertEquals(1, store.routines.size)
+        assertTrue(store.routines.single().isEnabled)
+        assertEquals(listOf(created.routineId), scheduledIds)
+    }
+
+    @Test
     fun postScheduleTransactionFailureCancelsAlarmAndLeavesNoCommittedRows() = runBlocking {
         val store = FakeAtomicStore(failAfterOutboxInsert = true)
         val scheduler = scheduler(canSchedule = true, scheduleResult = RoutineScheduleResult.Scheduled)
@@ -123,6 +169,22 @@ class FirstPromiseRepositoryTest {
         assertTrue(store.routines.isEmpty())
         assertTrue(store.mappings.isEmpty())
         assertTrue(store.outbox.isEmpty())
+    }
+
+    @Test
+    fun scheduleThrowAfterInstallingAlarmStillCancelsTheOwnedRoutine() = runBlocking {
+        val store = FakeAtomicStore()
+        val scheduler = Mockito.mock(RoutineScheduler::class.java)
+        Mockito.`when`(scheduler.canScheduleExactAlarms()).thenReturn(true)
+        Mockito.`when`(
+            scheduler.scheduleRoutine(Mockito.any(RoutineModel::class.java) ?: routine),
+        ).thenThrow(IllegalStateException("throw after install"))
+
+        val failure = runCatching { repository(store, scheduler).createFirstPromise(draft, routine) }
+
+        assertTrue(failure.isFailure)
+        Mockito.verify(scheduler).cancelRoutine(1L)
+        assertTrue(store.routines.isEmpty())
     }
 
     private fun repository(store: FirstPromiseRepositoryStorage, scheduler: RoutineScheduler) =
@@ -137,6 +199,7 @@ class FirstPromiseRepositoryTest {
         canSchedule: Boolean,
         scheduleResult: RoutineScheduleResult,
         onCanSchedule: () -> Unit = {},
+        onSchedule: (RoutineModel) -> Unit = {},
     ): RoutineScheduler = Mockito.mock(RoutineScheduler::class.java).also { scheduler ->
         Mockito.`when`(scheduler.canScheduleExactAlarms()).thenAnswer {
             onCanSchedule()
@@ -144,7 +207,10 @@ class FirstPromiseRepositoryTest {
         }
         Mockito.`when`(
             scheduler.scheduleRoutine(Mockito.any(RoutineModel::class.java) ?: routine),
-        ).thenReturn(scheduleResult)
+        ).thenAnswer { invocation ->
+            onSchedule(invocation.getArgument(0))
+            scheduleResult
+        }
     }
 }
 
@@ -159,6 +225,9 @@ private class FakeAtomicStore(
 
     override suspend fun findMapping(draftId: String): FirstPromiseEntity? =
         mappings.firstOrNull { it.draftId == draftId }
+
+    override suspend fun findMappingByRoutineId(routineId: Long): FirstPromiseEntity? =
+        mappings.firstOrNull { it.routineId == routineId }
 
     override suspend fun findRoutine(id: Long): RoutineModel =
         routines.first { it.id == id }

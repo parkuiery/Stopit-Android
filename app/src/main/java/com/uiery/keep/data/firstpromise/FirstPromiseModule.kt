@@ -2,6 +2,8 @@ package com.uiery.keep.data.firstpromise
 
 import com.uiery.keep.data.lock.TimedLockSessionController
 import com.uiery.keep.data.lock.TimedLockStarter
+import com.uiery.keep.datastore.FirstPromisePracticeStateStore
+import com.uiery.keep.datastore.FirstPromisePracticeStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -23,5 +25,17 @@ abstract class FirstPromiseModule {
 
     @Binds
     @Singleton
+    abstract fun bindFirstPromisePersistenceCoordinator(
+        coordinator: FirstPromiseCreationCoordinator,
+    ): FirstPromisePersistenceCoordinator
+
+    @Binds
+    @Singleton
     abstract fun bindTimedLockStarter(controller: TimedLockSessionController): TimedLockStarter
+
+    @Binds
+    @Singleton
+    abstract fun bindFirstPromisePracticeStateStore(
+        store: FirstPromisePracticeStore,
+    ): FirstPromisePracticeStateStore
 }

@@ -66,6 +66,47 @@ class TimedLockSessionControllerTest {
         assertEquals(listOf("scheduled:countdown:10", "start:home_timer"), analytics.calls)
         assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
     }
+
+    @Test
+    fun positiveSubMinuteTargetStartsEvenWhenDisplayDurationFloorsToZero() = runBlocking {
+        val dataStore = FakeDataStore()
+        val analytics = RecordingAnalytics()
+        val controller = TimedLockSessionController(BlockingStateStore(dataStore), analytics, clock)
+
+        val result = controller.start(
+            packages = setOf("com.example.focus"),
+            durationMinutes = 0,
+            origin = TimedLockStartOrigin.Home(TimedLockHomeScheduleType.Timer),
+            targetDeadline = now.plusSeconds(30),
+        )
+
+        assertTrue(result is TimedLockStartResult.Started)
+        assertEquals(ManualLockTimePolicy.encodeDeadline(now.plusSeconds(30)), dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertTrue("scheduled:timer:0" in analytics.calls)
+    }
+
+    @Test
+    fun rollbackClearsOnlyTheSessionOwnedByTheStartResult() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = BlockingStateStore(dataStore)
+        val controller = TimedLockSessionController(store, RecordingAnalytics(), clock)
+        val started = controller.start(
+            packages = setOf("com.example.focus"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.FirstPromisePractice,
+        ) as TimedLockStartResult.Started
+
+        assertTrue(controller.rollback(started))
+        assertNull(dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertNull(dataStore.snapshot()[PreferencesKey.START_TIME])
+
+        store.saveLockTime(ManualLockTimePolicy.encodeDeadline(now.plusSeconds(20 * 60)))
+        assertFalse(controller.rollback(started))
+        assertEquals(
+            ManualLockTimePolicy.encodeDeadline(now.plusSeconds(20 * 60)),
+            dataStore.snapshot()[PreferencesKey.LOCK_TIME],
+        )
+    }
 }
 
 private class RecordingAnalytics : KeepAnalytics {
