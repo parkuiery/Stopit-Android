@@ -12,12 +12,14 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromisePersistenceResolution
+import com.uiery.keep.domain.firstpromise.FirstPromiseRecommendationPolicy
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.domain.firstpromise.PendingSystemAction
+import com.uiery.keep.domain.firstpromise.RecommendationReason
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
@@ -221,7 +223,7 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
-    fun manualCreationAndExistingDraftEditEnforcePathSourceAndDraftIdentity() = runBlocking {
+    fun task6GoalTemplatePersistsOnlyItsObservationFreeManualReason() = runBlocking {
         val manual = completeDraftState().copy(
             phase = FirstPromisePhase.ManualSelectPending,
             path = FirstPromisePath.Manual,
@@ -232,22 +234,35 @@ class FirstPromiseDraftStoreTest {
         )
         val dataStore = FirstPromiseFakeDataStore(statePreferences(manual))
         val store = FirstPromiseDraftStore(dataStore)
-        val createdDraft = draft(
+        val proposal = FirstPromiseRecommendationPolicy.fromSelection(
             draftId = "manual-draft",
-            startMinutes = 21 * 60,
-            source = FirstPromiseSource.GoalTemplate,
+            goal = FirstPromiseGoal.Sleep,
+            packageName = "com.example.video",
+            appLabel = "Video",
         )
-        val createdReason = reason(
-            startMinutes = 21 * 60,
-            patternType = UsagePatternType.TopApp,
+        val generatedReason = proposal.reason as RecommendationReason.GoalDefault
+        val createdReason = RecommendationReasonRef(
+            patternType = generatedReason.patternType,
+            usageCoverageDays = generatedReason.usageCoverageDays,
+            eventCoverageDays = 0,
             isGoalDefault = true,
+            selectedStartMinutes = generatedReason.startMinutes,
         )
+        val observationClaim = createdReason.copy(patternType = UsagePatternType.TopApp)
 
-        assertTrue(store.createManualDraft(createdDraft, createdReason) is FirstPromiseStateMutation.Changed)
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            store.createManualDraft(proposal.draft, observationClaim),
+        )
+        assertEquals(0, dataStore.editCount)
+
+        assertTrue(store.createManualDraft(proposal.draft, createdReason) is FirstPromiseStateMutation.Changed)
         assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+        assertEquals(proposal.draft, store.readState().draft)
+        assertEquals(createdReason, store.readState().recommendationReasonRef)
         assertEquals(1, dataStore.editCount)
 
-        val editedDraft = createdDraft.copy(startMinutes = 20 * 60)
+        val editedDraft = proposal.draft.copy(startMinutes = 20 * 60)
         val editedReason = createdReason.copy(selectedStartMinutes = 20 * 60)
         assertTrue(store.editDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
         assertEquals(editedDraft, store.readState().draft)

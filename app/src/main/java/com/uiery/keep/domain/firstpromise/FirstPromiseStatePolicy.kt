@@ -739,7 +739,7 @@ object FirstPromiseStatePolicy {
         source: FirstPromiseSource,
     ): Boolean = when (source) {
         FirstPromiseSource.GoalTemplate ->
-            reason.isGoalDefault && reason.patternType == UsagePatternType.TopApp
+            reason.isGoalDefault && reason.patternType == UsagePatternType.Manual
         FirstPromiseSource.Manual ->
             !reason.isGoalDefault && reason.patternType == UsagePatternType.Manual
         FirstPromiseSource.Personalized -> false
