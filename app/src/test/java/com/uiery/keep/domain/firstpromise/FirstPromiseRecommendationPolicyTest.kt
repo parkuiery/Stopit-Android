@@ -316,6 +316,56 @@ class FirstPromiseRecommendationPolicyTest {
         )
     }
 
+    @Test
+    fun `malformed profile evidence fails at the proposal boundary`() {
+        val malformedProfiles = listOf(
+            profile(
+                dataQuality = UsageDataQuality.Full,
+                patternType = UsagePatternType.TopApp,
+            ),
+            profile(
+                dataQuality = UsageDataQuality.Full,
+                patternType = UsagePatternType.Manual,
+            ),
+            profile(
+                usageCoverageDays = 2,
+                dataQuality = UsageDataQuality.Full,
+                patternType = UsagePatternType.Night,
+            ),
+            profile(
+                eventCoverageDays = 2,
+                dataQuality = UsageDataQuality.Full,
+                patternType = UsagePatternType.Night,
+            ),
+            profile(
+                eventCoverageDays = 3,
+                dataQuality = UsageDataQuality.UsageOnly,
+                patternType = UsagePatternType.TopApp,
+            ),
+            profile(
+                usageCoverageDays = 2,
+                eventCoverageDays = 1,
+                dataQuality = UsageDataQuality.UsageOnly,
+                patternType = UsagePatternType.TopApp,
+            ),
+            profile(
+                eventCoverageDays = 1,
+                dataQuality = UsageDataQuality.UsageOnly,
+                patternType = UsagePatternType.PeakWindow,
+            ),
+        )
+
+        malformedProfiles.forEachIndexed { index, malformed ->
+            assertThrows("profile[$index]", IllegalArgumentException::class.java) {
+                FirstPromiseRecommendationPolicy.fromProfile(
+                    draftId = "malformed-$index",
+                    goal = FirstPromiseGoal.Focus,
+                    profile = malformed,
+                )
+            }
+        }
+    }
+
     private fun profile(
         packageName: String = "com.example.video",
         appLabel: String = "Video",

@@ -39,7 +39,7 @@ object FirstPromiseRecommendationPolicy {
             )
 
             UsageDataQuality.UsageOnly -> RecommendationReason.GoalDefault(
-                patternType = UsagePatternType.TopApp,
+                patternType = profile.patternType,
                 goal = goal,
                 startMinutes = startMinutes,
                 usageCoverageDays = profile.usageCoverageDays,
@@ -205,10 +205,12 @@ object FirstPromiseRecommendationPolicy {
         )
         require(FirstPromiseDraftInvariant.isValid(draft)) { "Invalid first-promise draft" }
 
-        return FirstPromiseProposal(
+        val proposal = FirstPromiseProposal(
             draft = draft,
             reason = reason,
         )
+        toReasonRef(proposal)
+        return proposal
     }
 }
 
