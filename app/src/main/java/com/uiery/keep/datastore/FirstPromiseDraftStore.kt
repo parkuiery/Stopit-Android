@@ -12,7 +12,6 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromisePersistenceResolution
-import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.FirstPromiseStatePolicy
@@ -24,6 +23,8 @@ import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -32,6 +33,7 @@ class FirstPromiseDraftStore @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val commandMutex = Mutex()
 
     suspend fun readState(): FirstPromiseOnboardingState =
         decode(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
@@ -39,26 +41,49 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun assignIfAbsent(
         variant: OnboardingVariant,
         version: OnboardingAssignmentVersion,
-    ): FirstPromiseOnboardingState {
+    ): FirstPromiseOnboardingState = commandMutex.withLock {
         val current = readState()
-        val initialMutation = FirstPromiseStatePolicy.assignIfAbsent(current, variant, version)
-        if (initialMutation !is FirstPromiseStateMutation.Changed) {
-            return current
-        }
-
-        var result = current
-        dataStore.edit { preferences ->
-            val latest = decode(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
-            result = when (val mutation = FirstPromiseStatePolicy.assignIfAbsent(latest, variant, version)) {
-                is FirstPromiseStateMutation.Changed -> mutation.state.also { preferences.write(it) }
-                else -> latest
+        if (FirstPromiseStatePolicy.assignIfAbsent(current, variant, version) !is FirstPromiseStateMutation.Changed) {
+            current
+        } else {
+            var result = current
+            dataStore.edit { preferences ->
+                val latest = decode(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+                result = when (val mutation = FirstPromiseStatePolicy.assignIfAbsent(latest, variant, version)) {
+                    is FirstPromiseStateMutation.Changed -> mutation.state.also { preferences.write(it) }
+                    else -> latest
+                }
             }
+            result
         }
-        return result
     }
 
-    suspend fun transitionTo(target: FirstPromisePhase): FirstPromiseStateMutation =
-        applyMutation { FirstPromiseStatePolicy.transition(it, target) }
+    suspend fun advanceToUsageAccess(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::advanceToUsageAccess)
+
+    suspend fun chooseManualSetup(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::chooseManualSetup)
+
+    suspend fun startAnalysis(attemptId: Long): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.startAnalysis(it, attemptId) }
+
+    suspend fun requestAccessibility(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::requestAccessibility)
+
+    suspend fun returnToDraft(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::returnToDraft)
+
+    suspend fun requestNotification(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::requestNotification)
+
+    suspend fun beginPersistence(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::beginPersistence)
+
+    suspend fun markPersistenceFailed(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::markPersistenceFailed)
+
+    suspend fun completeOnboarding(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::completeOnboarding)
 
     suspend fun selectGoal(
         goal: FirstPromiseGoal,
@@ -80,9 +105,6 @@ class FirstPromiseDraftStore @Inject constructor(
 
     suspend fun clearPendingSystemAction(): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.setPendingSystemAction(it, null) }
-
-    suspend fun beginAnalysisAttempt(attemptId: Long): FirstPromiseStateMutation =
-        applyMutation { FirstPromiseStatePolicy.beginAnalysisAttempt(it, attemptId) }
 
     suspend fun completeAnalysis(
         attemptId: Long,
@@ -165,10 +187,10 @@ class FirstPromiseDraftStore @Inject constructor(
 
     private suspend fun applyMutation(
         policy: (FirstPromiseOnboardingState) -> FirstPromiseStateMutation,
-    ): FirstPromiseStateMutation {
+    ): FirstPromiseStateMutation = commandMutex.withLock {
         val initialMutation = policy(readState())
         if (initialMutation !is FirstPromiseStateMutation.Changed) {
-            return initialMutation
+            return@withLock initialMutation
         }
 
         var result: FirstPromiseStateMutation = initialMutation
@@ -179,16 +201,16 @@ class FirstPromiseDraftStore @Inject constructor(
                 preferences.write(state)
             }
         }
-        return result
+        result
     }
 
     private suspend fun applyEmergencyMutation(
         policy: (FirstPromiseOnboardingState) -> FirstPromiseEmergencyResult,
-    ): FirstPromiseEmergencyResult {
+    ): FirstPromiseEmergencyResult = commandMutex.withLock {
         val current = readState()
         val initialResult = policy(current)
         if (initialResult.state == current) {
-            return initialResult
+            return@withLock initialResult
         }
 
         var result = initialResult
@@ -199,7 +221,7 @@ class FirstPromiseDraftStore @Inject constructor(
                 preferences.write(result.state)
             }
         }
-        return result
+        result
     }
 
     private fun MutablePreferences.write(state: FirstPromiseOnboardingState) {

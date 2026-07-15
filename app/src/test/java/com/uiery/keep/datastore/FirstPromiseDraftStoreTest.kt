@@ -23,11 +23,21 @@ import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
 import com.uiery.keep.domain.firstpromise.UsagePermissionLaunchState
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -49,7 +59,7 @@ class FirstPromiseDraftStoreTest {
         assertEquals(OnboardingVariant.PromiseCoachV1, repeated.assignment)
         assertEquals(writeCountAfterAssignment, dataStore.editCount)
 
-        val rejected = store.transitionTo(FirstPromisePhase.ResultEnabled)
+        val rejected = store.completeOnboarding()
         assertEquals(FirstPromiseStateMutation.Rejected, rejected)
         assertEquals(writeCountAfterAssignment, dataStore.editCount)
 
@@ -57,9 +67,26 @@ class FirstPromiseDraftStoreTest {
             statePreferences(FirstPromiseOnboardingState(phase = FirstPromisePhase.ManualSelectPending)),
         )
         val selfTransition = FirstPromiseDraftStore(selfTransitionDataStore)
-            .transitionTo(FirstPromisePhase.ManualSelectPending)
+            .chooseManualSetup()
         assertEquals(FirstPromiseStateMutation.NoOp, selfTransition)
         assertEquals(0, selfTransitionDataStore.editCount)
+    }
+
+    @Test
+    fun publicCommandsCannotManufactureInvariantBearingPhases() = runBlocking {
+        val publicMethodNames = FirstPromiseDraftStore::class.java.methods.mapTo(mutableSetOf()) { it.name }
+        assertFalse("transitionTo" in publicMethodNames)
+
+        val dataStore = FirstPromiseFakeDataStore()
+        val store = FirstPromiseDraftStore(dataStore)
+
+        assertEquals(FirstPromiseStateMutation.Rejected, store.requestAccessibility())
+        assertEquals(FirstPromiseStateMutation.Rejected, store.returnToDraft())
+        assertEquals(FirstPromiseStateMutation.Rejected, store.requestNotification())
+        assertEquals(FirstPromiseStateMutation.Rejected, store.beginPersistence())
+        assertEquals(FirstPromiseStateMutation.Rejected, store.markPersistenceFailed())
+        assertEquals(FirstPromiseStateMutation.Rejected, store.completeOnboarding())
+        assertEquals(0, dataStore.editCount)
     }
 
     @Test
@@ -78,13 +105,12 @@ class FirstPromiseDraftStoreTest {
             store.selectGoal(FirstPromiseGoal.Sleep, FirstPromisePath.Personalized) is
                 FirstPromiseStateMutation.Changed,
         )
-        assertTrue(store.transitionTo(FirstPromisePhase.UsageAccessPending) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.advanceToUsageAccess() is FirstPromiseStateMutation.Changed)
         assertTrue(store.setPendingSystemAction(PendingSystemAction.UsageAccess) is FirstPromiseStateMutation.Changed)
         assertTrue(store.beginUsagePermissionAttempt(5L))
         assertTrue(store.recordUsagePermissionOpened(5L))
-        assertTrue(store.transitionTo(FirstPromisePhase.Analyzing) is FirstPromiseStateMutation.Changed)
         assertTrue(store.clearPendingSystemAction() is FirstPromiseStateMutation.Changed)
-        assertTrue(store.beginAnalysisAttempt(8L) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.startAnalysis(8L) is FirstPromiseStateMutation.Changed)
         assertTrue(store.completeAnalysis(8L, firstDraft, firstReason))
         assertTrue(store.storeDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
         assertTrue(store.setPendingSystemAction(PendingSystemAction.Accessibility) is FirstPromiseStateMutation.Changed)
@@ -105,12 +131,42 @@ class FirstPromiseDraftStoreTest {
         )
 
         assertEquals(expected, recreatedStore.readState())
-        assertEquals(13, dataStore.editCount)
+        assertEquals(12, dataStore.editCount)
         val json = dataStore.snapshot()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE].orEmpty()
-        assertFalse(json.contains("averageDailyMinutes", ignoreCase = true))
-        assertFalse(json.contains("rawIntervals", ignoreCase = true))
-        assertFalse(json.contains("lastUsedEpoch", ignoreCase = true))
-        assertFalse(json.contains("totalForeground", ignoreCase = true))
+        val stateJson = Json.parseToJsonElement(json).jsonObject
+        assertEquals(
+            setOf(
+                "assignment",
+                "assignmentVersion",
+                "trackedMilestones",
+                "phase",
+                "goal",
+                "draft",
+                "recommendationReasonRef",
+                "pendingSystemAction",
+                "usagePermissionAttempt",
+                "analysisAttemptId",
+            ),
+            stateJson.keys,
+        )
+        assertEquals(
+            setOf("draftId", "goal", "packageName", "appLabel", "startMinutes", "repeatDays", "source"),
+            stateJson.getValue("draft").jsonObject.keys,
+        )
+        assertEquals(
+            setOf(
+                "patternType",
+                "usageCoverageDays",
+                "eventCoverageDays",
+                "isGoalDefault",
+                "selectedStartMinutes",
+            ),
+            stateJson.getValue("recommendationReasonRef").jsonObject.keys,
+        )
+        assertEquals(
+            setOf("id", "launchState"),
+            stateJson.getValue("usagePermissionAttempt").jsonObject.keys,
+        )
     }
 
     @Test
@@ -145,7 +201,7 @@ class FirstPromiseDraftStoreTest {
         val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
         val store = FirstPromiseDraftStore(dataStore)
 
-        assertTrue(store.beginAnalysisAttempt(9L) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.startAnalysis(9L) is FirstPromiseStateMutation.Changed)
         assertFalse(store.failAnalysis(8L))
         assertEquals(1, dataStore.editCount)
         assertEquals(9L, store.readState().analysisAttemptId)
@@ -164,6 +220,12 @@ class FirstPromiseDraftStoreTest {
         assertFalse(failed.futureAnalysisDisabled)
         assertFalse(store.failAnalysis(9L))
         assertEquals(2, dataStore.editCount)
+
+        assertTrue(store.startAnalysis(10L) is FirstPromiseStateMutation.Changed)
+        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
+        assertEquals(FirstPromisePath.Personalized, store.readState().path)
+        assertEquals(10L, store.readState().analysisAttemptId)
+        assertEquals(3, dataStore.editCount)
     }
 
     @Test
@@ -173,6 +235,11 @@ class FirstPromiseDraftStoreTest {
         )
         val enabledStore = FirstPromiseDraftStore(enabledDataStore)
 
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            enabledStore.recordPersistenceMapping(0L, FirstPromiseScheduleState.Enabled),
+        )
+        assertEquals(0, enabledDataStore.editCount)
         val saved = enabledStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
         val repeated = enabledStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
         val conflicting = enabledStore.recordPersistenceMapping(42L, FirstPromiseScheduleState.Enabled)
@@ -201,6 +268,70 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
+    fun concurrentIdenticalAndConflictingMappingsPerformOnlyTheAcceptedEdit() = runBlocking {
+        val initial = statePreferences(completeDraftState().copy(phase = FirstPromisePhase.Persisting))
+        val identicalDataStore = FirstPromiseFakeDataStore(initial, synchronizeInitialReads = 2)
+        val identicalStore = FirstPromiseDraftStore(identicalDataStore)
+
+        val identicalResults = listOf(
+            async(Dispatchers.Default) {
+                identicalStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
+            },
+            async(Dispatchers.Default) {
+                identicalStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
+            },
+        ).awaitAll()
+
+        assertEquals(1, identicalResults.count { it is FirstPromiseStateMutation.Changed })
+        assertEquals(1, identicalResults.count { it is FirstPromiseStateMutation.NoOp })
+        assertEquals(1, identicalDataStore.editCount)
+
+        val conflictingDataStore = FirstPromiseFakeDataStore(initial, synchronizeInitialReads = 2)
+        val conflictingStore = FirstPromiseDraftStore(conflictingDataStore)
+        val conflictingResults = listOf(
+            async(Dispatchers.Default) {
+                conflictingStore.recordPersistenceMapping(42L, FirstPromiseScheduleState.Enabled)
+            },
+            async(Dispatchers.Default) {
+                conflictingStore.recordPersistenceMapping(43L, FirstPromiseScheduleState.Enabled)
+            },
+        ).awaitAll()
+
+        assertEquals(1, conflictingResults.count { it is FirstPromiseStateMutation.Changed })
+        assertEquals(1, conflictingResults.count { it is FirstPromiseStateMutation.Rejected })
+        assertEquals(1, conflictingDataStore.editCount)
+    }
+
+    @Test
+    fun concurrentConflictingAndStaleAnalysisCallbacksPerformOnlyTheAcceptedEdit() = runBlocking {
+        val initial = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            analysisAttemptId = 9L,
+            draft = null,
+            recommendationReasonRef = null,
+        )
+        val dataStore = FirstPromiseFakeDataStore(
+            initial = statePreferences(initial),
+            synchronizeInitialReads = 3,
+        )
+        val store = FirstPromiseDraftStore(dataStore)
+
+        val results = listOf(
+            async(Dispatchers.Default) {
+                store.completeAnalysis(9L, draft("current", 21 * 60), reason(21 * 60))
+            },
+            async(Dispatchers.Default) { store.failAnalysis(9L) },
+            async(Dispatchers.Default) {
+                store.completeAnalysis(8L, draft("stale", 20 * 60), reason(20 * 60))
+            },
+        ).awaitAll()
+
+        assertEquals(1, results.count { it })
+        assertEquals(1, dataStore.editCount)
+        assertTrue(store.readState().phase in setOf(FirstPromisePhase.DraftReady, FirstPromisePhase.ManualSelectPending))
+    }
+
+    @Test
     fun sameRoutineScheduleResolutionUpdatesFinalStateAtomicallyAndRejectsOtherMappings() = runBlocking {
         val disabledStates = listOf(
             FirstPromiseScheduleState.DisabledExactAlarmMissing,
@@ -215,6 +346,7 @@ class FirstPromiseDraftStoreTest {
                         phase = FirstPromisePhase.SchedulePermissionRequired,
                         routineId = 100L + index,
                         scheduleState = initialSchedule,
+                        pendingSystemAction = PendingSystemAction.ExactAlarm,
                     ),
                 ),
             )
@@ -228,6 +360,7 @@ class FirstPromiseDraftStoreTest {
             assertTrue(enabled is FirstPromiseStateMutation.Changed)
             assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
             assertEquals(FirstPromiseScheduleState.Enabled, store.readState().scheduleState)
+            assertNull(store.readState().pendingSystemAction)
             assertEquals(FirstPromiseStateMutation.NoOp, repeated)
             assertEquals(FirstPromiseStateMutation.Rejected, conflicting)
             assertEquals(1, dataStore.editCount)
@@ -328,7 +461,7 @@ class FirstPromiseDraftStoreTest {
         val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
         val store = FirstPromiseDraftStore(dataStore)
 
-        val mutation = store.transitionTo(FirstPromisePhase.CompletedEnabled)
+        val mutation = store.completeOnboarding()
         val completed = store.readState()
 
         assertTrue(mutation is FirstPromiseStateMutation.Changed)
@@ -373,6 +506,30 @@ class FirstPromiseDraftStoreTest {
         assertEquals(1, persistingDataStore.editCount)
     }
 
+    @Test
+    fun concurrentDuplicateEmergencyResolutionReturnsTypedRejectionWithoutAnotherEdit() = runBlocking {
+        val initial = completeDraftState().copy(phase = FirstPromisePhase.Persisting)
+        val dataStore = FirstPromiseFakeDataStore(
+            initial = statePreferences(initial),
+            synchronizeInitialReads = 2,
+        )
+        val store = FirstPromiseDraftStore(dataStore)
+        val resolution = FirstPromisePersistenceResolution.Succeeded(
+            routineId = 45L,
+            scheduleState = FirstPromiseScheduleState.Enabled,
+        )
+
+        val results = listOf(
+            async(Dispatchers.Default) { store.resolveEmergencyPersistence(resolution) },
+            async(Dispatchers.Default) { store.resolveEmergencyPersistence(resolution) },
+        ).awaitAll()
+
+        assertEquals(1, results.count { it.action == FirstPromiseEmergencyAction.Stay })
+        assertEquals(1, results.count { it.action == FirstPromiseEmergencyAction.Rejected })
+        assertEquals(1, dataStore.editCount)
+        assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+    }
+
     private fun completeDraftState() = FirstPromiseOnboardingState(
         assignment = OnboardingVariant.PromiseCoachV1,
         assignmentVersion = OnboardingAssignmentVersion.V1,
@@ -415,19 +572,38 @@ class FirstPromiseDraftStoreTest {
 
 private class FirstPromiseFakeDataStore(
     initial: Preferences = emptyPreferences(),
+    private val synchronizeInitialReads: Int = 0,
 ) : DataStore<Preferences> {
     private val state = MutableStateFlow(initial)
+    private val updateMutex = Mutex()
+    private val readCount = AtomicInteger()
+    private val initialReadBarrier = CompletableDeferred<Unit>()
     var editCount: Int = 0
         private set
 
-    override val data: Flow<Preferences> = state
-
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
-        editCount += 1
-        val next = transform(state.value)
-        state.value = next
-        return next
+    override val data: Flow<Preferences> = if (synchronizeInitialReads == 0) {
+        state
+    } else {
+        flow {
+            val snapshot = state.value
+            val currentRead = readCount.incrementAndGet()
+            if (currentRead <= synchronizeInitialReads) {
+                if (currentRead == synchronizeInitialReads) {
+                    initialReadBarrier.complete(Unit)
+                }
+                withTimeoutOrNull(250L) { initialReadBarrier.await() }
+            }
+            emit(snapshot)
+        }
     }
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        updateMutex.withLock {
+            editCount += 1
+            val next = transform(state.value)
+            state.value = next
+            next
+        }
 
     fun snapshot(): Preferences = state.value
 }

@@ -125,7 +125,7 @@ class FirstPromiseStatePolicyTest {
         )
 
         FirstPromisePhase.entries.forEach { phase ->
-            listOf(null, 77L).forEach { routineId ->
+            listOf<Long?>(null).forEach { routineId ->
                 val state = populatedState(phase = phase, routineId = routineId)
 
                 val result = FirstPromiseStatePolicy.applyEmergency(state)
@@ -233,10 +233,59 @@ class FirstPromiseStatePolicyTest {
             FirstPromisePersistenceResolution.Failed,
         )
         assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, mappedFailure.action)
-        assertEquals(FirstPromisePhase.Persisting, mappedFailure.state.phase)
+        assertEquals(FirstPromisePhase.ResultEnabled, mappedFailure.state.phase)
         assertEquals(99L, mappedFailure.state.routineId)
         assertEquals(FirstPromiseScheduleState.Enabled, mappedFailure.state.scheduleState)
         assertTrue(mappedFailure.state.futureAnalysisDisabled)
+    }
+
+    @Test
+    fun completeMappingsInPreResultPhasesRecoverWithoutManualNavigation() {
+        val preResultPhases = setOf(
+            FirstPromisePhase.GoalPending,
+            FirstPromisePhase.UsageAccessPending,
+            FirstPromisePhase.Analyzing,
+            FirstPromisePhase.ManualSelectPending,
+            FirstPromisePhase.DraftReady,
+            FirstPromisePhase.AccessibilityPending,
+            FirstPromisePhase.NotificationPending,
+            FirstPromisePhase.Persisting,
+            FirstPromisePhase.PersistFailed,
+        )
+
+        preResultPhases.forEach { phase ->
+            val enabled = populatedState(phase, routineId = 77L)
+            val enabledResult = FirstPromiseStatePolicy.applyEmergency(enabled)
+            assertEquals("$phase enabled action", FirstPromiseEmergencyAction.DisableFutureAnalysis, enabledResult.action)
+            assertEquals("$phase enabled recovery", FirstPromisePhase.ResultEnabled, enabledResult.state.phase)
+            assertEquals(77L, enabledResult.state.routineId)
+
+            val disabled = enabled.copy(scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing)
+            val disabledResult = FirstPromiseStatePolicy.applyEmergency(disabled)
+            assertEquals("$phase disabled action", FirstPromiseEmergencyAction.DisableFutureAnalysis, disabledResult.action)
+            assertEquals(
+                "$phase disabled recovery",
+                FirstPromisePhase.SchedulePermissionRequired,
+                disabledResult.state.phase,
+            )
+            assertEquals(77L, disabledResult.state.routineId)
+        }
+    }
+
+    @Test
+    fun partialOrInvalidMappingsAreRejectedWithoutNavigationOrMutation() {
+        val missingSchedule = populatedState(FirstPromisePhase.GoalPending, routineId = 77L).copy(scheduleState = null)
+        val missingRoutine = populatedState(FirstPromisePhase.GoalPending).copy(
+            scheduleState = FirstPromiseScheduleState.Enabled,
+        )
+        val invalidRoutine = populatedState(FirstPromisePhase.GoalPending, routineId = 0L)
+
+        listOf(missingSchedule, missingRoutine, invalidRoutine).forEach { state ->
+            val result = FirstPromiseStatePolicy.applyEmergency(state)
+            assertEquals(FirstPromiseEmergencyAction.Rejected, result.action)
+            assertFalse(result.navigationAllowed)
+            assertEquals(state, result.state)
+        }
     }
 
     @Test
