@@ -510,7 +510,10 @@ object FirstPromiseStatePolicy {
         state: FirstPromiseOnboardingState,
         attemptId: Long,
     ): FirstPromiseStateMutation {
-        if (state.phase != FirstPromisePhase.UsageAccessPending) {
+        if (
+            state.phase != FirstPromisePhase.UsageAccessPending ||
+            state.usagePermissionAttempt?.terminalOutcome == UsagePermissionOutcome.Granted
+        ) {
             return FirstPromiseStateMutation.Rejected
         }
         val mutation = beginUsagePermissionAttempt(state, attemptId)
@@ -528,6 +531,7 @@ object FirstPromiseStatePolicy {
         val currentId = state.usagePermissionAttempt?.id
         if (
             state.phase != FirstPromisePhase.UsageAccessPending ||
+            state.usagePermissionAttempt?.terminalOutcome == UsagePermissionOutcome.Granted ||
             (currentId != null && attemptId <= currentId)
         ) {
             return FirstPromiseStateMutation.Rejected

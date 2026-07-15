@@ -26,7 +26,10 @@ import org.orbitmvi.orbit.viewmodel.container
 
 enum class UsageSettingsLaunchResult { Opened, Unavailable }
 
-data class UsageAccessUiState(val settingsUnavailable: Boolean = false)
+data class UsageAccessUiState(
+    val settingsUnavailable: Boolean = false,
+    val isReconciling: Boolean = false,
+)
 
 sealed interface UsageAccessSideEffect {
     data object NavigateUsageAnalysis : UsageAccessSideEffect
@@ -99,17 +102,28 @@ class UsageAccessViewModel internal constructor(
     }
 
     fun reconcileAfterRecreation() {
+        if (!actionInFlight.compareAndSet(false, true)) return
+        val markReconciling = intent { reduce { state.copy(isReconciling = true) } }
         viewModelScope.launch(workDispatcher) {
-            val outcome = draftStore.reconcileUsagePermissionAfterRecreation(permissionGranted())
-            val launchState = draftStore.readState().usagePermissionAttempt?.launchState
-            if (
-                launchState == UsagePermissionLaunchState.LaunchFailed ||
-                launchState == UsagePermissionLaunchState.UnresolvedAfterRecreation
-            ) {
-                intent { reduce { state.copy(settingsUnavailable = true) } }
+            try {
+                markReconciling.join()
+                val outcome = draftStore.reconcileUsagePermissionAfterRecreation(permissionGranted())
+                val launchState = draftStore.readState().usagePermissionAttempt?.launchState
+                if (
+                    launchState == UsagePermissionLaunchState.LaunchFailed ||
+                    launchState == UsagePermissionLaunchState.UnresolvedAfterRecreation
+                ) {
+                    intent { reduce { state.copy(settingsUnavailable = true) } }.join()
+                }
+                val terminalOutcome = outcome ?: draftStore.readState().usagePermissionAttempt?.terminalOutcome
+                handleTerminalOutcome(terminalOutcome, trackNewOutcome = outcome != null)
+            } finally {
+                try {
+                    intent { reduce { state.copy(isReconciling = false) } }.join()
+                } finally {
+                    actionInFlight.set(false)
+                }
             }
-            val terminalOutcome = outcome ?: draftStore.readState().usagePermissionAttempt?.terminalOutcome
-            handleTerminalOutcome(terminalOutcome, trackNewOutcome = outcome != null)
         }
     }
 
@@ -143,7 +157,7 @@ class UsageAccessViewModel internal constructor(
                     draftStore.readState().phase == com.uiery.keep.domain.firstpromise.FirstPromisePhase.Analyzing &&
                     navigationPosted.compareAndSet(false, true)
                 ) {
-                    intent { postSideEffect(UsageAccessSideEffect.NavigateUsageAnalysis) }
+                    intent { postSideEffect(UsageAccessSideEffect.NavigateUsageAnalysis) }.join()
                 }
             }
             UsagePermissionOutcome.Denied -> if (trackNewOutcome) trackPermission(AnalyticsOutcome.DENIED)

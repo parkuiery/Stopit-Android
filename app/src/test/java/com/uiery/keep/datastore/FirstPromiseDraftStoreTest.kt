@@ -579,6 +579,37 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
+    fun terminalGrantedAttemptRejectsSettingsAndManualOverwriteWithoutWriting() = runBlocking {
+        val granted = FirstPromiseOnboardingState(
+            assignment = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+            phase = FirstPromisePhase.UsageAccessPending,
+            goal = FirstPromiseGoal.Focus,
+            usagePermissionAttempt = UsagePermissionAttempt(
+                id = 7L,
+                launchState = UsagePermissionLaunchState.Opened,
+                terminalOutcome = UsagePermissionOutcome.Granted,
+            ),
+        )
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            com.uiery.keep.domain.firstpromise.FirstPromiseStatePolicy.beginUsagePermissionSettingsAttempt(granted, 8L),
+        )
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            com.uiery.keep.domain.firstpromise.FirstPromiseStatePolicy.chooseManualUsageAccess(granted, 8L),
+        )
+
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(granted))
+        val store = FirstPromiseDraftStore(dataStore)
+
+        assertFalse(store.beginUsagePermissionSettingsAttempt(8L))
+        assertEquals(FirstPromiseStateMutation.Rejected, store.chooseManualUsageAccess(8L))
+        assertEquals(0, dataStore.editCount)
+        assertEquals(granted, store.readState())
+    }
+
+    @Test
     fun launchFailureFalseResumeAndManualChoiceProduceExactTypedTerminalOutcomes() = runBlocking {
         val store = FirstPromiseDraftStore(FirstPromiseFakeDataStore())
 

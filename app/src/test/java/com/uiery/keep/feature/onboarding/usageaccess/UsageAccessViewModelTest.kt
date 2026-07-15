@@ -14,6 +14,8 @@ import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import com.uiery.keep.feature.onboarding.FirstPromiseAnalyticsCall
 import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.feature.onboarding.firstPromiseStore
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -201,7 +203,100 @@ class UsageAccessViewModelTest {
             }
         }
     }
+
+    @Test
+    fun reconcileClaimsTheActionGateBeforeManualCanRaceIt() = runBlocking {
+        val enteredPermissionCheck = CountDownLatch(1)
+        val releasePermissionCheck = CountDownLatch(1)
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(pendingCrashWindowState())
+        val viewModel = UsageAccessViewModel(
+            analytics,
+            store,
+            {
+                enteredPermissionCheck.countDown()
+                releasePermissionCheck.await()
+                true
+            },
+            Dispatchers.Default,
+        )
+        val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.reconcileAfterRecreation()
+        assertTrue(enteredPermissionCheck.await(1, TimeUnit.SECONDS))
+        viewModel.chooseManual()
+        delay(20)
+
+        assertTrue(viewModel.container.stateFlow.value.isReconciling)
+        assertTrue(analytics.permissions(AnalyticsOutcome.SKIPPED).isEmpty())
+        releasePermissionCheck.countDown()
+        assertEquals(UsageAccessSideEffect.NavigateUsageAnalysis, withTimeout(1_000) { navigation.await() })
+        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
+        assertEquals(false, withTimeout(1_000) { viewModel.container.stateFlow.first { !it.isReconciling } }.isReconciling)
+    }
+
+    @Test
+    fun reconcileClaimsTheActionGateBeforeSettingsCanRaceIt() = runBlocking {
+        val enteredPermissionCheck = CountDownLatch(1)
+        val releasePermissionCheck = CountDownLatch(1)
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(pendingCrashWindowState())
+        val viewModel = UsageAccessViewModel(
+            analytics,
+            store,
+            {
+                enteredPermissionCheck.countDown()
+                releasePermissionCheck.await()
+                true
+            },
+            Dispatchers.Default,
+        )
+        var launches = 0
+        val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.reconcileAfterRecreation()
+        assertTrue(enteredPermissionCheck.await(1, TimeUnit.SECONDS))
+        viewModel.openSettings {
+            launches += 1
+            UsageSettingsLaunchResult.Opened
+        }
+        delay(20)
+
+        assertEquals(0, launches)
+        assertTrue(analytics.permissions(AnalyticsOutcome.SETTINGS_OPENED).isEmpty())
+        releasePermissionCheck.countDown()
+        assertEquals(UsageAccessSideEffect.NavigateUsageAnalysis, withTimeout(1_000) { navigation.await() })
+        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
+    }
+
+    @Test
+    fun unresolvedReconcileReleasesTheGateForSettingsRetry() = runBlocking {
+        val store = firstPromiseStore(pendingCrashWindowState())
+        val viewModel = UsageAccessViewModel(FirstPromiseRecordingAnalytics(), store, { false }, Dispatchers.Unconfined)
+        var launches = 0
+
+        viewModel.reconcileAfterRecreation()
+        delay(20)
+        viewModel.openSettings {
+            launches += 1
+            UsageSettingsLaunchResult.Opened
+        }
+        delay(20)
+
+        assertEquals(1, launches)
+        assertEquals(UsagePermissionLaunchState.Opened, store.readState().usagePermissionAttempt?.launchState)
+        assertEquals(false, viewModel.container.stateFlow.value.isReconciling)
+    }
 }
+
+private fun pendingCrashWindowState() = FirstPromiseOnboardingState(
+    assignment = com.uiery.keep.domain.firstpromise.OnboardingVariant.PromiseCoachV1,
+    assignmentVersion = com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion.V1,
+    phase = FirstPromisePhase.UsageAccessPending,
+    goal = FirstPromiseGoal.Focus,
+    pendingSystemAction = PendingSystemAction.UsageAccess,
+    usagePermissionAttempt = UsagePermissionAttempt(7L, UsagePermissionLaunchState.NotLaunched),
+)
 
 private fun FirstPromiseRecordingAnalytics.permissions(outcome: String) = calls.filterIsInstance<FirstPromiseAnalyticsCall.Permission>().filter {
     it.name == AnalyticsPermissionName.USAGE_ACCESS && it.outcome == outcome && it.step == OnboardingStepName.USAGE_ACCESS

@@ -132,11 +132,13 @@ fun UsageAccessScreen(
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.first_promise_check_pattern),
+                enabled = !state.isReconciling,
                 bottomSpacing = false,
                 onClick = { viewModel.openSettings { launchUsageAccessSettings(context) } },
             )
             TextButton(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                enabled = !state.isReconciling,
                 onClick = viewModel::chooseManual,
             ) { Text(stringResource(R.string.first_promise_manual_setup), color = KeepTheme.colors.onSurfaceVariant) }
         }
