@@ -99,7 +99,11 @@ internal fun KeepApp(
             onNavigatePromiseProposal = navController::navigateToPromiseProposal,
             onNavigatePromiseAccessibility = navController::navigateToPromiseAccessibility,
             onNavigatePromiseNotification = navController::navigateToPromiseNotification,
-            onNavigatePromisePersistence = {},
+            onNavigatePromisePersistence = {
+                // Staged release gate: Task 11 installs the persistence writer/reconciliation;
+                // Task 12/13 then replace this Entry wait with creation and PromiseResult.
+                navController.navigate(Onboarding.Route.Entry) { launchSingleTop = true }
+            },
             onNavigateBackFromPromiseAccessibility = navController::navigateUp,
         )
         homeScreen(

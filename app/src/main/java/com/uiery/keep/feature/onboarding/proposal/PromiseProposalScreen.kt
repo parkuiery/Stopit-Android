@@ -1,8 +1,8 @@
 package com.uiery.keep.feature.onboarding.proposal
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -19,18 +19,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -44,11 +51,10 @@ import com.uiery.keep.R
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.ui.component.AppSelectionMode
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
-import com.uiery.keep.ui.component.TimerPicker
 import com.uiery.keep.util.formatWeekdayShort
 import java.time.DayOfWeek
 import java.util.Locale
-import kotlinx.datetime.LocalTime
+import java.util.Calendar
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 
@@ -73,13 +79,13 @@ fun PromiseProposalScreen(
         ) {
             when (state.visiblePicker) {
                 ProposalPicker.App -> CategoryBottomSheetContent(
-                    storeSelectApps = emptySet(),
+                    storeSelectApps = viewModel.selectedAppPackageName()?.let(::setOf).orEmpty(),
                     selectionMode = AppSelectionMode.Single,
                     onComplete = {},
                     onSingleComplete = viewModel::changeApp,
                 )
                 ProposalPicker.StartTime -> StartTimePicker(state.startMinutes, viewModel::changeStartMinutes)
-                ProposalPicker.RepeatDays -> RepeatDaysPicker(state.repeatDays, viewModel::toggleRepeatDay)
+                ProposalPicker.RepeatDays -> RepeatDaysPicker(state.repeatDays, viewModel::changeRepeatDays)
                 ProposalPicker.None -> Unit
             }
         }
@@ -100,30 +106,47 @@ fun PromiseProposalScreen(
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(20.dp))
+                if (state.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 72.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(color = KeepTheme.colors.primary)
+                    }
+                } else {
                 ProposalCard {
                     Text(
-                        text = if (state.averageDailyMinutes != null) {
-                            stringResource(
+                        text = when (state.factType) {
+                            ProposalFactType.Average -> stringResource(
                                 R.string.first_promise_usage_fact,
                                 state.appLabel,
                                 state.averageDailyMinutes ?: 0,
                             )
-                        } else {
-                            stringResource(
-                                R.string.first_promise_usage_fact_categorical,
+                            ProposalFactType.Coverage -> if (state.usageCoverageDays == 7) {
+                                stringResource(R.string.first_promise_usage_fact_all_days, state.appLabel)
+                            } else {
+                                stringResource(
+                                R.string.first_promise_usage_fact_covered_days,
                                 state.appLabel,
                                 state.usageCoverageDays,
+                            )
+                            }
+                            ProposalFactType.Neutral -> stringResource(
+                                R.string.first_promise_usage_fact_neutral,
+                                state.appLabel,
                             )
                         },
                         color = KeepTheme.colors.onSurfaceVariant,
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = patternCopy(state.patternType),
-                        color = KeepTheme.colors.surfaceVariant,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+                    if (state.factType != ProposalFactType.Neutral) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = patternCopy(state.patternType),
+                            color = KeepTheme.colors.surfaceVariant,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.first_promise_recent_usage_note),
@@ -151,21 +174,28 @@ fun PromiseProposalScreen(
                         color = KeepTheme.colors.surfaceVariant,
                     )
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    TextButton(onClick = { viewModel.showPicker(ProposalPicker.StartTime) }) {
-                        Text(stringResource(R.string.first_promise_change_time))
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { viewModel.showPicker(ProposalPicker.StartTime) },
+                    ) {
+                        Text(stringResource(R.string.first_promise_change_time), color = KeepTheme.colors.primary)
                     }
-                    TextButton(onClick = { viewModel.showPicker(ProposalPicker.RepeatDays) }) {
-                        Text(stringResource(R.string.first_promise_change_days))
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { viewModel.showPicker(ProposalPicker.RepeatDays) },
+                    ) {
+                        Text(stringResource(R.string.first_promise_change_days), color = KeepTheme.colors.primary)
                     }
-                    TextButton(onClick = { viewModel.showPicker(ProposalPicker.App) }) {
-                        Text(stringResource(R.string.first_promise_change_app))
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { viewModel.showPicker(ProposalPicker.App) },
+                    ) {
+                        Text(stringResource(R.string.first_promise_change_app), color = KeepTheme.colors.primary)
                     }
                 }
                 Spacer(Modifier.height(20.dp))
+                }
             }
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
@@ -200,7 +230,14 @@ private fun patternCopy(pattern: UsagePatternType): String = stringResource(
 )
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun StartTimePicker(startMinutes: Int, onChange: (Int) -> Unit) {
+    val context = LocalContext.current
+    val pickerState = rememberTimePickerState(
+        initialHour = startMinutes / 60,
+        initialMinute = startMinutes % 60,
+        is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+    )
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
         Text(
             modifier = Modifier.semantics { heading() },
@@ -209,16 +246,21 @@ private fun StartTimePicker(startMinutes: Int, onChange: (Int) -> Unit) {
             color = KeepTheme.colors.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
-        TimerPicker(
-            time = LocalTime(startMinutes / 60, startMinutes % 60),
-            onChangeTimerTime = { onChange(it.hour * 60 + it.minute) },
+        TimeInput(state = pickerState)
+        Spacer(Modifier.height(24.dp))
+        KeepButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(R.string.first_promise_edit_confirm),
+            bottomSpacing = false,
+            onClick = { onChange(pickerState.hour * 60 + pickerState.minute) },
         )
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun RepeatDaysPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
+private fun RepeatDaysPicker(selected: Set<Int>, onConfirm: (Set<Int>) -> Unit) {
+    var pending by remember(selected) { mutableStateOf(selected) }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
         Text(
             modifier = Modifier.semantics { heading() },
@@ -232,11 +274,14 @@ private fun RepeatDaysPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             DayOfWeek.entries.forEach { day ->
-                val isSelected = day.value in selected
+                val isSelected = day.value in pending
                 Card(
                     modifier = Modifier
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .toggleable(isSelected, role = Role.Checkbox) { onToggle(day.value) },
+                        .toggleable(isSelected, role = Role.Checkbox) {
+                            val next = if (day.value in pending) pending - day.value else pending + day.value
+                            if (next.isNotEmpty()) pending = next
+                        },
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) KeepTheme.colors.primary else KeepTheme.colors.onSecondary,
                     ),
@@ -254,8 +299,25 @@ private fun RepeatDaysPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
                 }
             }
         }
+        KeepButton(
+            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+            text = stringResource(R.string.first_promise_edit_confirm),
+            bottomSpacing = false,
+            onClick = { onConfirm(pending) },
+        )
         Spacer(Modifier.height(24.dp))
     }
 }
 
-internal fun formatTime(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
+@Composable
+internal fun formatTime(minutes: Int): String {
+    val context = LocalContext.current
+    val formatter = remember(context) { android.text.format.DateFormat.getTimeFormat(context) }
+    val calendar = remember(minutes) {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, minutes / 60)
+            set(Calendar.MINUTE, minutes % 60)
+        }
+    }
+    return formatter.format(calendar.time)
+}

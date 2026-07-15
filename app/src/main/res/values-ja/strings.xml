@@ -446,6 +446,11 @@
     <string name="first_promise_proposal_title">最初の約束</string>
     <string name="first_promise_usage_fact">過去7日間、%1$sを1日平均約%2$d分使用しました。</string>
     <string name="first_promise_usage_fact_categorical">最近の記録では、%1$sを使用した日が%2$d日あります。</string>
+    <string name="first_promise_usage_fact_all_days">最近7日間すべてに%1$sの使用記録があります。</string>
+    <string name="first_promise_usage_fact_covered_days">%1$sは最近7日間のうち%2$d日に使用しました。</string>
+    <string name="first_promise_usage_fact_neutral">この約束では%1$sを休むことにしました。</string>
+    <string name="first_promise_edit_confirm">変更を適用</string>
+    <string name="first_promise_accessibility_loading">約束を準備しています…</string>
     <string name="first_promise_recent_usage_note">端末内の最近の使用記録に基づく推定です。</string>
     <string name="first_promise_pattern_night">夜遅くに開くことが多いようです。</string>
     <string name="first_promise_pattern_peak">同じ時間帯に開くことが多いようです。</string>

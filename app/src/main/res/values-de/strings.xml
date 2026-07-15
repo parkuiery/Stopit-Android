@@ -448,6 +448,11 @@
     <string name="first_promise_proposal_title">Dein erstes Versprechen</string>
     <string name="first_promise_usage_fact">In den letzten 7 Tagen hast du %1$s täglich etwa %2$d Minuten genutzt.</string>
     <string name="first_promise_usage_fact_categorical">Die letzten Aufzeichnungen enthalten %1$s-Nutzung an %2$d Tagen.</string>
+    <string name="first_promise_usage_fact_all_days">Die letzten Daten zeigen %1$s-Nutzung an allen 7 Tagen.</string>
+    <string name="first_promise_usage_fact_covered_days">Die letzten Daten zeigen %1$s-Nutzung an %2$d von 7 Tagen.</string>
+    <string name="first_promise_usage_fact_neutral">Du hast %1$s für dieses Versprechen gewählt.</string>
+    <string name="first_promise_edit_confirm">Änderungen übernehmen</string>
+    <string name="first_promise_accessibility_loading">Dein Versprechen wird vorbereitet…</string>
     <string name="first_promise_recent_usage_note">Geschätzt aus den letzten lokalen Nutzungsdaten.</string>
     <string name="first_promise_pattern_night">Du hast die App oft spät abends geöffnet.</string>
     <string name="first_promise_pattern_peak">Du hast die App oft zur gleichen Zeit geöffnet.</string>

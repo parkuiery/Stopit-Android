@@ -494,7 +494,15 @@ object FirstPromiseStatePolicy {
         ) {
             return FirstPromiseStateMutation.Rejected
         }
-        val nextState = state.copy(draft = draft, recommendationReasonRef = reason)
+        val nextState = state.copy(
+            draft = draft,
+            recommendationReasonRef = reason,
+            trackedMilestones = if (draft.packageName != currentDraft.packageName) {
+                state.trackedMilestones + FirstPromiseMilestone.ProposalAppEdited
+            } else {
+                state.trackedMilestones
+            },
+        )
         return if (nextState == state) {
             FirstPromiseStateMutation.NoOp
         } else {

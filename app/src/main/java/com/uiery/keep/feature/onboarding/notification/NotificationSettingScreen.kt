@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +19,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -82,8 +86,11 @@ fun NotificationSettingScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp),
         ) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            ) {
             Text(
-                modifier = Modifier.padding(top = 36.dp),
+                modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                 text = stringResource(
                     id = if (context == OnboardingPermissionContext.Control) {
                         R.string.notification_permission_request
@@ -109,13 +116,14 @@ fun NotificationSettingScreen(
             )
             LottieAnimation(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .height(280.dp)
                     .padding(horizontal = 100.dp),
                 composition = composition,
                 speed = 0.8f,
                 iterations = LottieConstants.IterateForever,
             )
+            }
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_notification_permission),

@@ -9,6 +9,7 @@ import com.uiery.keep.data.usageinsight.OnboardingUsageProfileRepository
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.PromiseEditField
 import com.uiery.keep.domain.firstpromise.UsagePatternType
@@ -39,12 +40,15 @@ data class PromiseProposalUiState(
     val repeatDays: Set<Int> = emptySet(),
     val visiblePicker: ProposalPicker = ProposalPicker.None,
     val isLoading: Boolean = true,
+    val factType: ProposalFactType = ProposalFactType.Neutral,
 ) {
     val canStart: Boolean
         get() = appLabel.isNotBlank() && startMinutes in 0..1439 && repeatDays.isNotEmpty()
     val isPickerVisible: Boolean
         get() = visiblePicker != ProposalPicker.None
 }
+
+enum class ProposalFactType { Average, Coverage, Neutral }
 
 enum class ProposalPicker { None, App, StartTime, RepeatDays }
 
@@ -88,6 +92,7 @@ class PromiseProposalViewModel internal constructor(
     override val container: Container<PromiseProposalUiState, PromiseProposalSideEffect> =
         container(PromiseProposalUiState())
     private val commandMutex = Mutex()
+    @Volatile private var selectedPackageName: String? = null
 
     fun onStepViewed() {
         viewModelScope.launch(dispatcher) {
@@ -99,8 +104,22 @@ class PromiseProposalViewModel internal constructor(
                 val durableState = draftStore.readState()
                 val draft = durableState.draft ?: return@withLock
                 val reason = durableState.recommendationReasonRef ?: return@withLock
+                selectedPackageName = draft.packageName
                 val transientAverage = FirstPromiseAnalysisTransientHolder.consume(draft.draftId)
-                val average = transientAverage ?: runCatching { rehydrateAverage(draft) }.getOrNull()
+                val mayShowObservation =
+                    draft.source == FirstPromiseSource.Personalized &&
+                        FirstPromiseMilestone.ProposalAppEdited !in durableState.trackedMilestones
+                val average = if (mayShowObservation) {
+                    transientAverage ?: runCatching { rehydrateAverage(draft) }.getOrNull()
+                } else {
+                    null
+                }
+                val factType = when {
+                    !mayShowObservation -> ProposalFactType.Neutral
+                    average != null -> ProposalFactType.Average
+                    reason.usageCoverageDays > 0 -> ProposalFactType.Coverage
+                    else -> ProposalFactType.Neutral
+                }
                 intent {
                     reduce {
                         state.copy(
@@ -113,6 +132,7 @@ class PromiseProposalViewModel internal constructor(
                             startMinutes = draft.startMinutes,
                             repeatDays = draft.repeatDays,
                             isLoading = false,
+                            factType = factType,
                         )
                     }
                 }
@@ -138,13 +158,12 @@ class PromiseProposalViewModel internal constructor(
         editDraft(PromiseEditField.StartTime) { it.copy(startMinutes = startMinutes) }
     }
 
-    fun toggleRepeatDay(day: Int) {
-        if (day !in 1..7) return
-        editDraft(PromiseEditField.RepeatDays) { draft ->
-            val next = if (day in draft.repeatDays) draft.repeatDays - day else draft.repeatDays + day
-            if (next.isEmpty()) draft else draft.copy(repeatDays = next)
-        }
+    fun changeRepeatDays(repeatDays: Set<Int>) {
+        if (repeatDays.isEmpty() || repeatDays.any { it !in 1..7 }) return
+        editDraft(PromiseEditField.RepeatDays) { it.copy(repeatDays = repeatDays) }
     }
+
+    internal fun selectedAppPackageName(): String? = selectedPackageName
 
     fun startFirstPromise() {
         viewModelScope.launch(dispatcher) {
@@ -166,12 +185,16 @@ class PromiseProposalViewModel internal constructor(
                 val draft = durableState.draft ?: return@withLock
                 val reason = durableState.recommendationReasonRef ?: return@withLock
                 val edited = transform(draft)
-                if (edited == draft) return@withLock
+                if (edited == draft) {
+                    intent { reduce { state.copy(visiblePicker = ProposalPicker.None) } }
+                    return@withLock
+                }
                 val editedReason = reason.copy(selectedStartMinutes = edited.startMinutes)
                 if (draftStore.editDraft(edited, editedReason) !is FirstPromiseStateMutation.Changed) {
                     return@withLock
                 }
                 analytics.trackPromiseRecommendationEdited(field)
+                selectedPackageName = edited.packageName
                 intent {
                     reduce {
                         state.copy(
@@ -179,6 +202,8 @@ class PromiseProposalViewModel internal constructor(
                             startMinutes = edited.startMinutes,
                             repeatDays = edited.repeatDays,
                             visiblePicker = ProposalPicker.None,
+                            averageDailyMinutes = if (field == PromiseEditField.App) null else state.averageDailyMinutes,
+                            factType = if (field == PromiseEditField.App) ProposalFactType.Neutral else state.factType,
                         )
                     }
                 }

@@ -196,6 +196,26 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun firstPromiseAccessibilityRapidGrantNavigatesAndTracksOnlyOnce() = runBlocking {
+        val localAnalytics = RecordingKeepAnalytics()
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(
+            localAnalytics,
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        var navigationCount = 0
+
+        viewModel.onFirstPromisePermissionGranted { navigationCount++ }
+        viewModel.onFirstPromisePermissionGranted { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().size)
+        assertEquals(FirstPromisePhase.NotificationPending, store.readState().phase)
+    }
+
+    @Test
     fun firstPromiseNotificationGrantAndDenialBothContinueToPersisting() = runBlocking {
         listOf(true, false).forEach { granted ->
             val localAnalytics = RecordingKeepAnalytics()
@@ -213,6 +233,26 @@ class OnboardingAnalyticsViewModelTest {
                 localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().single().outcome,
             )
         }
+    }
+
+    @Test
+    fun firstPromiseNotificationRapidCrossTapHasOneOwner() = runBlocking {
+        val localAnalytics = RecordingKeepAnalytics()
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        val viewModel = NotificationSettingViewModel(
+            localAnalytics,
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        var navigationCount = 0
+
+        viewModel.onFirstPromisePermissionResult(true) { navigationCount++ }
+        viewModel.onFirstPromisePermissionResult(false) { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().size)
+        assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
     }
 
     @Test

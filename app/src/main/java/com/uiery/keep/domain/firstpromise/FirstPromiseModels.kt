@@ -130,6 +130,7 @@ enum class FirstPromiseMilestone {
     PromiseProposalView,
     RecommendationShown,
     PromiseProposalCompletion,
+    ProposalAppEdited,
 }
 
 @Serializable

@@ -458,6 +458,11 @@
     <string name="first_promise_proposal_title">Ваше первое обещание</string>
     <string name="first_promise_usage_fact">За последние 7 дней вы использовали %1$s около %2$d минут в день.</string>
     <string name="first_promise_usage_fact_categorical">В недавних данных есть использование %1$s в течение %2$d дней.</string>
+    <string name="first_promise_usage_fact_all_days">Недавние данные показывают использование %1$s во все 7 дней.</string>
+    <string name="first_promise_usage_fact_covered_days">Недавние данные показывают использование %1$s в течение %2$d из 7 дней.</string>
+    <string name="first_promise_usage_fact_neutral">Вы выбрали %1$s для этого обещания.</string>
+    <string name="first_promise_edit_confirm">Применить изменения</string>
+    <string name="first_promise_accessibility_loading">Подготавливаем обещание…</string>
     <string name="first_promise_recent_usage_note">Оценка на основе недавних локальных данных об использовании.</string>
     <string name="first_promise_pattern_night">Вы часто открывали приложение поздно вечером.</string>
     <string name="first_promise_pattern_peak">Вы часто открывали приложение примерно в одно и то же время.</string>

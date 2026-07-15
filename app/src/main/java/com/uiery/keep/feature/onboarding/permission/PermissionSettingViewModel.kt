@@ -13,23 +13,35 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @HiltViewModel
 class PermissionSettingViewModel internal constructor(
     private val analytics: KeepAnalytics,
     private val draftStore: FirstPromiseDraftStore?,
     private val dispatcher: kotlinx.coroutines.CoroutineDispatcher,
+    private val mainDispatcher: kotlinx.coroutines.CoroutineDispatcher,
 ) : ViewModel() {
     @Inject constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
-    ) : this(analytics, draftStore, kotlinx.coroutines.Dispatchers.IO)
+    ) : this(analytics, draftStore, kotlinx.coroutines.Dispatchers.IO, kotlinx.coroutines.Dispatchers.Main.immediate)
+
+    internal constructor(
+        analytics: KeepAnalytics,
+        draftStore: FirstPromiseDraftStore?,
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher,
+    ) : this(analytics, draftStore, dispatcher, dispatcher)
 
     internal constructor(analytics: KeepAnalytics) : this(
         analytics = analytics,
         draftStore = null,
         dispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
+        mainDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
     )
+    private val transitionMutex = Mutex()
     fun onStepViewed() {
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_PERMISSION)
         analytics.trackOnboardingStepView(OnboardingStepName.PERMISSION)
@@ -61,41 +73,42 @@ class PermissionSettingViewModel internal constructor(
             val store = draftStore ?: return@launch
             val state = runCatching { store.readState() }.getOrNull() ?: return@launch
             val draft = state.draft ?: return@launch
-            onLoaded(draft.startMinutes)
+            withContext(mainDispatcher) { onLoaded(draft.startMinutes) }
             if (accessibilityGranted && state.phase == FirstPromisePhase.AccessibilityPending) {
-                continueFirstPromise(onNavigateNotification)
+                continueFirstPromise(trackGrant = false, onNavigateNotification)
             }
         }
     }
 
     fun onFirstPromisePermissionGranted(onNavigateNotification: () -> Unit) {
-        onPermissionGranted()
-        viewModelScope.launch(dispatcher) { continueFirstPromise(onNavigateNotification) }
+        viewModelScope.launch(dispatcher) {
+            continueFirstPromise(trackGrant = true, onNavigateNotification)
+        }
     }
 
     fun onFirstPromiseBack(onNavigateProposal: () -> Unit) {
         viewModelScope.launch(dispatcher) {
-            val store = draftStore ?: return@launch
-            when (store.returnToDraft()) {
-                is FirstPromiseStateMutation.Changed -> onNavigateProposal()
-                FirstPromiseStateMutation.NoOp -> {
-                    if (store.readState().phase == FirstPromisePhase.DraftReady) onNavigateProposal()
+            transitionMutex.withLock {
+                val store = draftStore ?: return@withLock
+                if (store.returnToDraft() is FirstPromiseStateMutation.Changed) {
+                    withContext(mainDispatcher) { onNavigateProposal() }
                 }
-                FirstPromiseStateMutation.Rejected -> Unit
             }
         }
     }
 
-    private suspend fun continueFirstPromise(onNavigateNotification: () -> Unit) {
-        val store = draftStore ?: return
-        when (store.requestNotification()) {
-            is FirstPromiseStateMutation.Changed -> onNavigateNotification()
-            FirstPromiseStateMutation.NoOp -> {
-                if (store.readState().phase == FirstPromisePhase.NotificationPending) {
+    private suspend fun continueFirstPromise(
+        trackGrant: Boolean,
+        onNavigateNotification: () -> Unit,
+    ) {
+        transitionMutex.withLock {
+            val store = draftStore ?: return@withLock
+            if (store.requestNotification() is FirstPromiseStateMutation.Changed) {
+                withContext(mainDispatcher) {
+                    if (trackGrant) onPermissionGranted()
                     onNavigateNotification()
                 }
             }
-            FirstPromiseStateMutation.Rejected -> Unit
         }
     }
 }

@@ -17,7 +17,6 @@ import com.uiery.keep.feature.onboarding.FirstPromiseRecordingAnalytics
 import com.uiery.keep.feature.onboarding.firstPromiseStore
 import com.uiery.keep.feature.onboarding.usageanalysis.FirstPromiseAnalysisTransientHolder
 import com.uiery.keep.feature.onboarding.usageanalysis.TransientAnalysisProposal
-import java.time.DayOfWeek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -42,11 +41,13 @@ class PromiseProposalViewModelTest {
         val ui = viewModel.container.stateFlow.value
         assertEquals("Video", ui.appLabel)
         assertEquals(102L, ui.averageDailyMinutes)
+        assertEquals(ProposalFactType.Average, ui.factType)
         assertEquals(UsagePatternType.Night, ui.patternType)
         assertEquals(23 * 60, ui.startMinutes)
         assertEquals((1..7).toSet(), ui.repeatDays)
         assertTrue(ui.canStart)
         assertFalse(ui.isPickerVisible)
+        assertEquals("com.example.video", viewModel.selectedAppPackageName())
         assertNull(FirstPromiseAnalysisTransientHolder.peek("draft-1"))
     }
 
@@ -58,7 +59,7 @@ class PromiseProposalViewModelTest {
 
         viewModel.changeApp("com.example.chat", "Chat")
         viewModel.changeStartMinutes(22 * 60 + 30)
-        viewModel.toggleRepeatDay(DayOfWeek.SUNDAY.value)
+        viewModel.changeRepeatDays((1..6).toSet())
         delay(100)
 
         val state = store.readState()
@@ -72,6 +73,45 @@ class PromiseProposalViewModelTest {
             analytics.edits,
         )
         assertEquals(FirstPromisePhase.DraftReady, state.phase)
+        assertEquals(ProposalFactType.Neutral, viewModel.container.stateFlow.value.factType)
+        assertNull(viewModel.container.stateFlow.value.averageDailyMinutes)
+        assertTrue(FirstPromiseMilestone.ProposalAppEdited in state.trackedMilestones)
+        assertEquals("com.example.chat", viewModel.selectedAppPackageName())
+    }
+
+    @Test
+    fun `edited personalized app never rehydrates old evidence after recreation`() = runBlocking {
+        val store = firstPromiseStore(personalizedState())
+        val first = viewModel(store, rehydrateAverage = { 102 })
+        first.onStepViewed(); delay(50)
+        first.changeApp("com.example.chat", "Chat"); delay(50)
+
+        var rehydrateCalls = 0
+        val recreated = viewModel(store, rehydrateAverage = { rehydrateCalls++; 88 })
+        recreated.onStepViewed(); delay(50)
+
+        assertEquals(0, rehydrateCalls)
+        assertEquals(ProposalFactType.Neutral, recreated.container.stateFlow.value.factType)
+        assertNull(recreated.container.stateFlow.value.averageDailyMinutes)
+        assertEquals("Chat", recreated.container.stateFlow.value.appLabel)
+    }
+
+    @Test
+    fun `manual and goal-template drafts never display numeric observations`() = runBlocking {
+        listOf(FirstPromiseSource.Manual, FirstPromiseSource.GoalTemplate).forEach { source ->
+            FirstPromiseAnalysisTransientHolder.store(TransientAnalysisProposal("draft-1", 999))
+            val state = personalizedState().copy(
+                path = FirstPromisePath.Manual,
+                draft = personalizedState().draft?.copy(source = source),
+            )
+            val store = firstPromiseStore(state)
+            val viewModel = viewModel(store, rehydrateAverage = { 999 })
+
+            viewModel.onStepViewed(); delay(50)
+
+            assertEquals(ProposalFactType.Neutral, viewModel.container.stateFlow.value.factType)
+            assertNull(viewModel.container.stateFlow.value.averageDailyMinutes)
+        }
     }
 
     @Test

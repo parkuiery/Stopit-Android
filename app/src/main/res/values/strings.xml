@@ -473,6 +473,11 @@
     <string name="first_promise_proposal_title">Your first promise</string>
     <string name="first_promise_usage_fact">Over the last 7 days, you used %1$s for about %2$d minutes a day.</string>
     <string name="first_promise_usage_fact_categorical">Recent records include %1$s usage on %2$d days.</string>
+    <string name="first_promise_usage_fact_all_days">Recent records show %1$s usage on all 7 days.</string>
+    <string name="first_promise_usage_fact_covered_days">Recent records show %1$s usage on %2$d of 7 days.</string>
+    <string name="first_promise_usage_fact_neutral">You chose %1$s for this promise.</string>
+    <string name="first_promise_edit_confirm">Apply changes</string>
+    <string name="first_promise_accessibility_loading">Preparing your promise…</string>
     <string name="first_promise_recent_usage_note">Estimated from recent local usage records.</string>
     <string name="first_promise_pattern_night">You often opened it late at night.</string>
     <string name="first_promise_pattern_peak">You often opened it around the same time.</string>

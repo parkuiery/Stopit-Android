@@ -447,6 +447,11 @@
     <string name="first_promise_proposal_title">Tu primera promesa</string>
     <string name="first_promise_usage_fact">Durante los últimos 7 días usaste %1$s unos %2$d minutos al día.</string>
     <string name="first_promise_usage_fact_categorical">Los registros recientes incluyen el uso de %1$s durante %2$d días.</string>
+    <string name="first_promise_usage_fact_all_days">Los datos recientes muestran el uso de %1$s durante los 7 días.</string>
+    <string name="first_promise_usage_fact_covered_days">Los datos recientes muestran el uso de %1$s en %2$d de 7 días.</string>
+    <string name="first_promise_usage_fact_neutral">Elegiste %1$s para esta promesa.</string>
+    <string name="first_promise_edit_confirm">Aplicar cambios</string>
+    <string name="first_promise_accessibility_loading">Preparando tu promesa…</string>
     <string name="first_promise_recent_usage_note">Estimación basada en registros de uso locales recientes.</string>
     <string name="first_promise_pattern_night">La abriste a menudo por la noche.</string>
     <string name="first_promise_pattern_peak">La abriste a menudo a una hora parecida.</string>
@@ -459,7 +464,7 @@
     <string name="first_promise_start">Iniciar mi primera promesa</string>
     <string name="first_promise_time_picker_title">Elige una hora de inicio</string>
     <string name="first_promise_repeat_picker_title">Elige los días de repetición</string>
-    <string name="first_promise_accessibility_title">Permite el acceso de accesibilidad para tu promesa de las %1$s</string>
+    <string name="first_promise_accessibility_title">Activa el servicio de accesibilidad para tu promesa de las %1$s</string>
     <string name="first_promise_accessibility_description">StopIt usa el servicio de accesibilidad de Android para detectar la aplicación elegida y mostrar la pantalla de bloqueo durante tu promesa.</string>
     <string name="first_promise_notification_title">Recibe un recordatorio de tu promesa</string>
     <string name="first_promise_notification_description">Las notificaciones son opcionales. Puedes continuar aunque no las permitas.</string>

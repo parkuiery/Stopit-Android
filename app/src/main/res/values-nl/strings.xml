@@ -448,6 +448,11 @@
     <string name="first_promise_proposal_title">Je eerste belofte</string>
     <string name="first_promise_usage_fact">De afgelopen 7 dagen gebruikte je %1$s ongeveer %2$d minuten per dag.</string>
     <string name="first_promise_usage_fact_categorical">Recente gegevens bevatten gebruik van %1$s op %2$d dagen.</string>
+    <string name="first_promise_usage_fact_all_days">Recente gegevens tonen gebruik van %1$s op alle 7 dagen.</string>
+    <string name="first_promise_usage_fact_covered_days">Recente gegevens tonen gebruik van %1$s op %2$d van 7 dagen.</string>
+    <string name="first_promise_usage_fact_neutral">Je koos %1$s voor deze belofte.</string>
+    <string name="first_promise_edit_confirm">Wijzigingen toepassen</string>
+    <string name="first_promise_accessibility_loading">Je belofte wordt voorbereid…</string>
     <string name="first_promise_recent_usage_note">Schatting op basis van recente lokale gebruiksgegevens.</string>
     <string name="first_promise_pattern_night">Je opende de app vaak laat op de avond.</string>
     <string name="first_promise_pattern_peak">Je opende de app vaak rond hetzelfde tijdstip.</string>

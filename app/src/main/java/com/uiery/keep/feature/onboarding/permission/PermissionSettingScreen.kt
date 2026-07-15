@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,14 +88,20 @@ fun PermissionSettingScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
         ) {
+            val isReady = flowContext == OnboardingPermissionContext.Control || promiseStartMinutes != null
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            ) {
             Text(
-                modifier = Modifier.padding(top = 36.dp),
+                modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                 text = if (flowContext == OnboardingPermissionContext.Control) {
                     stringResource(id = R.string.accessibility_permission_required)
+                } else if (promiseStartMinutes == null) {
+                    stringResource(R.string.first_promise_accessibility_loading)
                 } else {
                     stringResource(
                         R.string.first_promise_accessibility_title,
-                        com.uiery.keep.feature.onboarding.proposal.formatTime(promiseStartMinutes ?: 0),
+                        com.uiery.keep.feature.onboarding.proposal.formatTime(checkNotNull(promiseStartMinutes)),
                     )
                 },
                 fontWeight = FontWeight.Bold,
@@ -98,6 +109,9 @@ fun PermissionSettingScreen(
                 color = KeepTheme.colors.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(12.dp))
+            if (!isReady) {
+                CircularProgressIndicator(color = KeepTheme.colors.primary)
+            } else {
             Text(
                 text = if (flowContext == OnboardingPermissionContext.Control) {
                     stringResource(id = R.string.accessibility_permission_description)
@@ -126,10 +140,13 @@ fun PermissionSettingScreen(
                 color = KeepTheme.colors.surfaceVariant,
                 style = LocalTextStyle.current.copy(lineHeight = 24.sp)
             )
-            Spacer(modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            }
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_permission),
+                enabled = isReady,
                 onClick = {
                     if (hasAccessibilityPermission(androidContext)) {
                         if (flowContext == OnboardingPermissionContext.Control) {
