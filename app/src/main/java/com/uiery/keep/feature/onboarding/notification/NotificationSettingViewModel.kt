@@ -1,18 +1,34 @@
 package com.uiery.keep.feature.onboarding.notification
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @HiltViewModel
-class NotificationSettingViewModel @Inject constructor(
+class NotificationSettingViewModel internal constructor(
     private val analytics: KeepAnalytics,
+    private val draftStore: FirstPromiseDraftStore?,
+    private val dispatcher: kotlinx.coroutines.CoroutineDispatcher,
 ) : ViewModel() {
+    @Inject constructor(
+        analytics: KeepAnalytics,
+        draftStore: FirstPromiseDraftStore,
+    ) : this(analytics, draftStore, kotlinx.coroutines.Dispatchers.IO)
+
+    internal constructor(analytics: KeepAnalytics) : this(
+        analytics,
+        null,
+        kotlinx.coroutines.Dispatchers.Unconfined,
+    )
     fun onStepViewed() {
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_NOTIFICATION)
         analytics.trackOnboardingStepView(OnboardingStepName.NOTIFICATION)
@@ -42,5 +58,18 @@ class NotificationSettingViewModel @Inject constructor(
             stepName = OnboardingStepName.NOTIFICATION,
         )
         analytics.trackOnboardingStepComplete(OnboardingStepName.NOTIFICATION)
+    }
+
+    fun onFirstPromisePermissionResult(
+        granted: Boolean,
+        onNavigatePersistence: () -> Unit,
+    ) {
+        if (granted) onPermissionGranted() else onPermissionDeniedAndContinue()
+        viewModelScope.launch(dispatcher) {
+            val store = draftStore ?: return@launch
+            if (store.beginPersistence() is FirstPromiseStateMutation.Changed) {
+                onNavigatePersistence()
+            }
+        }
     }
 }

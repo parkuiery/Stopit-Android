@@ -127,6 +127,9 @@ enum class FirstPromiseMilestone {
     UsageAccessView,
     AppSelection,
     UsageAccessCompletion,
+    PromiseProposalView,
+    RecommendationShown,
+    PromiseProposalCompletion,
 }
 
 @Serializable
@@ -139,6 +142,9 @@ enum class PendingOnboardingAnalyticsEvent {
     UsageAccessStepComplete,
     SelectAppStepComplete,
     AppSelectionCompletedSingle,
+    PromiseProposalStepView,
+    PromiseRecommendationShown,
+    PromiseProposalStepComplete,
 }
 
 @Serializable

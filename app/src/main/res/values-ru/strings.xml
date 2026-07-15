@@ -455,4 +455,23 @@
     <string name="first_promise_usage_unavailable">Не удалось открыть настройки использования. Повторите попытку или настройте первое обещание вручную.</string>
     <string name="first_promise_analysis_title">Анализируем ваши недавние привычки использования</string>
     <string name="first_promise_analysis_status">Анализируем использование</string>
+    <string name="first_promise_proposal_title">Ваше первое обещание</string>
+    <string name="first_promise_usage_fact">За последние 7 дней вы использовали %1$s около %2$d минут в день.</string>
+    <string name="first_promise_usage_fact_categorical">В недавних данных есть использование %1$s в течение %2$d дней.</string>
+    <string name="first_promise_recent_usage_note">Оценка на основе недавних локальных данных об использовании.</string>
+    <string name="first_promise_pattern_night">Вы часто открывали приложение поздно вечером.</string>
+    <string name="first_promise_pattern_peak">Вы часто открывали приложение примерно в одно и то же время.</string>
+    <string name="first_promise_pattern_top_app">Это одно из наиболее часто используемых приложений.</string>
+    <string name="first_promise_pattern_manual">Выберите время, которое лучше подходит вашему дню.</string>
+    <string name="first_promise_action_summary">В %1$s сделайте перерыв от %2$s на 30 минут.</string>
+    <string name="first_promise_change_time">Изменить время</string>
+    <string name="first_promise_change_days">Изменить дни</string>
+    <string name="first_promise_change_app">Изменить приложение</string>
+    <string name="first_promise_start">Начать первое обещание</string>
+    <string name="first_promise_time_picker_title">Выберите время начала</string>
+    <string name="first_promise_repeat_picker_title">Выберите дни повторения</string>
+    <string name="first_promise_accessibility_title">Разрешите доступ к специальным возможностям для обещания на %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt использует службу специальных возможностей Android, чтобы определять выбранное приложение и показывать экран блокировки во время обещания.</string>
+    <string name="first_promise_notification_title">Получайте напоминание об обещании</string>
+    <string name="first_promise_notification_description">Уведомления необязательны. Можно продолжить, не разрешая их.</string>
 </resources>

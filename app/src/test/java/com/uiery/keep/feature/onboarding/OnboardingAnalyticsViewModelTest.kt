@@ -13,6 +13,13 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
+import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromisePath
+import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
@@ -158,6 +165,57 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun firstPromiseAccessibilityAlreadyGrantedSkipsRequestAndMovesToNotification() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(analytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+        var navigated = false
+
+        viewModel.loadFirstPromise(
+            accessibilityGranted = true,
+            onLoaded = {},
+            onNavigateNotification = { navigated = true },
+        )
+        delay(100)
+
+        assertTrue(navigated)
+        assertEquals(FirstPromisePhase.NotificationPending, store.readState().phase)
+        assertEquals(emptyList<AnalyticsCall>(), analytics.calls)
+    }
+
+    @Test
+    fun firstPromiseAccessibilityBackRestoresEditableDraft() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(analytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+        var navigated = false
+
+        viewModel.onFirstPromiseBack { navigated = true }
+
+        assertTrue(navigated)
+        assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+        assertEquals("draft-1", store.readState().draft?.draftId)
+    }
+
+    @Test
+    fun firstPromiseNotificationGrantAndDenialBothContinueToPersisting() = runBlocking {
+        listOf(true, false).forEach { granted ->
+            val localAnalytics = RecordingKeepAnalytics()
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val viewModel = NotificationSettingViewModel(localAnalytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+            var navigated = false
+
+            viewModel.onFirstPromisePermissionResult(granted) { navigated = true }
+            delay(100)
+
+            assertTrue(navigated)
+            assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
+            assertEquals(
+                if (granted) AnalyticsOutcome.GRANTED else AnalyticsOutcome.DENIED,
+                localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().single().outcome,
+            )
+        }
+    }
+
+    @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
@@ -226,6 +284,40 @@ class OnboardingAnalyticsViewModelTest {
     fun onboardingAppSelectionRequiresAtLeastOneSelectedPackage() {
         assertFalse(canCompleteOnboardingAppSelection(emptySet()))
         assertTrue(canCompleteOnboardingAppSelection(setOf("com.example.app")))
+    }
+
+    private fun firstPromiseStoreAt(phase: FirstPromisePhase): FirstPromiseDraftStore {
+        val draft = FirstPromiseDraft(
+            draftId = "draft-1",
+            goal = FirstPromiseGoal.Sleep,
+            packageName = "com.example.video",
+            appLabel = "Video",
+            startMinutes = 23 * 60,
+            repeatDays = (1..7).toSet(),
+            source = FirstPromiseSource.Personalized,
+        )
+        val state = FirstPromiseOnboardingState(
+            assignment = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+            phase = phase,
+            path = FirstPromisePath.Personalized,
+            goal = FirstPromiseGoal.Sleep,
+            draft = draft,
+            recommendationReasonRef = RecommendationReasonRef(
+                patternType = UsagePatternType.Night,
+                usageCoverageDays = 4,
+                eventCoverageDays = 3,
+                isGoalDefault = false,
+                selectedStartMinutes = draft.startMinutes,
+            ),
+        )
+        return FirstPromiseDraftStore(
+            FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+                ),
+            ),
+        )
     }
 }
 

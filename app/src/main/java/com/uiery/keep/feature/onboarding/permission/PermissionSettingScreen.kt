@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.onboarding.permission
 
 import androidx.compose.foundation.Image
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
@@ -39,12 +41,26 @@ fun PermissionSettingScreen(
     modifier: Modifier = Modifier,
     viewModel: PermissionSettingViewModel = hiltViewModel(),
     onNavigateNotificationSetting: () -> Unit,
+    flowContext: OnboardingPermissionContext = OnboardingPermissionContext.Control,
+    onNavigateBack: () -> Unit = {},
 ) {
-    val context = LocalContext.current
+    val androidContext = LocalContext.current
     var openAlertDialog by remember { mutableStateOf(false) }
+    var promiseStartMinutes by remember { mutableStateOf<Int?>(null) }
+
+    BackHandler(enabled = flowContext == OnboardingPermissionContext.FirstPromise) {
+        viewModel.onFirstPromiseBack(onNavigateBack)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.onStepViewed()
+        if (flowContext == OnboardingPermissionContext.FirstPromise) {
+            viewModel.loadFirstPromise(
+                accessibilityGranted = hasAccessibilityPermission(androidContext),
+                onLoaded = { promiseStartMinutes = it },
+                onNavigateNotification = onNavigateNotificationSetting,
+            )
+        }
     }
 
     if (openAlertDialog) {
@@ -53,7 +69,7 @@ fun PermissionSettingScreen(
             onConfirmation = {
                 openAlertDialog = false
                 viewModel.onPermissionSettingsOpened()
-                requestAccessibilityPermission(context)
+                requestAccessibilityPermission(androidContext)
             },
         )
     }
@@ -69,14 +85,25 @@ fun PermissionSettingScreen(
         ) {
             Text(
                 modifier = Modifier.padding(top = 36.dp),
-                text = stringResource(id = R.string.accessibility_permission_required),
+                text = if (flowContext == OnboardingPermissionContext.Control) {
+                    stringResource(id = R.string.accessibility_permission_required)
+                } else {
+                    stringResource(
+                        R.string.first_promise_accessibility_title,
+                        com.uiery.keep.feature.onboarding.proposal.formatTime(promiseStartMinutes ?: 0),
+                    )
+                },
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,
                 color = KeepTheme.colors.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(id = R.string.accessibility_permission_description),
+                text = if (flowContext == OnboardingPermissionContext.Control) {
+                    stringResource(id = R.string.accessibility_permission_description)
+                } else {
+                    stringResource(R.string.first_promise_accessibility_description)
+                },
                 color = KeepTheme.colors.surfaceVariant,
             )
             Row(
@@ -104,9 +131,13 @@ fun PermissionSettingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.allow_permission),
                 onClick = {
-                    if (hasAccessibilityPermission(context)) {
-                        viewModel.onPermissionGranted()
-                        onNavigateNotificationSetting()
+                    if (hasAccessibilityPermission(androidContext)) {
+                        if (flowContext == OnboardingPermissionContext.Control) {
+                            viewModel.onPermissionGranted()
+                            onNavigateNotificationSetting()
+                        } else {
+                            viewModel.onFirstPromisePermissionGranted(onNavigateNotificationSetting)
+                        }
                     } else {
                         openAlertDialog = true
                     }

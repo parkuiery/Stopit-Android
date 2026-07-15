@@ -11,6 +11,7 @@ import com.uiery.keep.feature.onboarding.goal.goalSelectScreen
 import com.uiery.keep.feature.onboarding.intro.introScreen
 import com.uiery.keep.feature.onboarding.notification.notificationSettingScreen
 import com.uiery.keep.feature.onboarding.permission.permissionSettingScreen
+import com.uiery.keep.feature.onboarding.proposal.promiseProposalScreen
 import com.uiery.keep.feature.onboarding.select.selectApp
 import com.uiery.keep.feature.onboarding.usageaccess.usageAccessScreen
 import com.uiery.keep.feature.onboarding.usageanalysis.usageAnalysisScreen
@@ -83,14 +84,25 @@ fun NavGraphBuilder.onboarding(
     onNavigateManualAppSelect: () -> Unit,
     onNavigateManualPromiseProposal: () -> Unit,
     onNavigatePromiseProposal: (TransientAnalysisProposal) -> Unit,
+    onNavigatePromiseAccessibility: () -> Unit,
+    onNavigatePromiseNotification: () -> Unit,
+    onNavigatePromisePersistence: () -> Unit,
+    onNavigateBackFromPromiseAccessibility: () -> Unit,
 ) {
     navigation<Onboarding.Route>(
         startDestination = canonicalOnboardingStartDestination()
     ) {
         onboardingEntry(onSideEffect = onEntrySideEffect)
         introScreen(onNavigatePermissionSetting = onNavigatePermissionSetting)
-        permissionSettingScreen(onNavigateNotificationSetting = onNavigateNotificationSetting)
-        notificationSettingScreen(onNavigateSelectApp = onNavigateSelectApp)
+        permissionSettingScreen(
+            onNavigateNotificationSetting = onNavigateNotificationSetting,
+            onNavigatePromiseNotification = onNavigatePromiseNotification,
+            onNavigatePromiseProposal = onNavigateBackFromPromiseAccessibility,
+        )
+        notificationSettingScreen(
+            onNavigateSelectApp = onNavigateSelectApp,
+            onNavigatePromisePersistence = onNavigatePromisePersistence,
+        )
         selectApp(
             onNavigateHome = onNavigateHome,
             onNavigateProposal = onNavigateManualPromiseProposal,
@@ -98,6 +110,7 @@ fun NavGraphBuilder.onboarding(
         goalSelectScreen(onNavigateUsageAccess, onNavigateManualAppSelect)
         usageAccessScreen(onNavigateUsageAnalysis, onNavigateManualAppSelect)
         usageAnalysisScreen(onNavigatePromiseProposal, onNavigateManualAppSelect)
+        promiseProposalScreen(onNavigateAccessibility = onNavigatePromiseAccessibility)
     }
 }
 

@@ -33,7 +33,7 @@ internal sealed interface FirstPromiseAnalyticsCall {
     ) : FirstPromiseAnalyticsCall
 }
 
-internal class FirstPromiseRecordingAnalytics : KeepAnalytics {
+internal open class FirstPromiseRecordingAnalytics : KeepAnalytics {
     val calls = mutableListOf<FirstPromiseAnalyticsCall>()
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit

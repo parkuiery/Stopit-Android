@@ -246,7 +246,11 @@ object FirstPromiseStatePolicy {
         transitionWithDraft(state, FirstPromisePhase.DraftReady)
 
     fun requestNotification(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
-        transitionWithDraft(state, FirstPromisePhase.NotificationPending)
+        when (val mutation = transitionWithDraft(state, FirstPromisePhase.NotificationPending)) {
+            is FirstPromiseStateMutation.Changed ->
+                FirstPromiseStateMutation.Changed(mutation.state.copy(pendingSystemAction = null))
+            else -> mutation
+        }
 
     fun beginPersistence(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         if (state.routineId == null && state.scheduleState == null) {
@@ -364,6 +368,67 @@ object FirstPromiseStatePolicy {
         } else {
             FirstPromiseStateMutation.Rejected
         }
+
+    fun markPromiseProposalViewed(state: FirstPromiseOnboardingState): FirstPromiseStateMutation {
+        if (
+            state.assignment != OnboardingVariant.PromiseCoachV1 ||
+            state.phase != FirstPromisePhase.DraftReady ||
+            state.draft == null ||
+            state.recommendationReasonRef == null
+        ) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val withView = state.withMilestoneEvent(
+            FirstPromiseMilestone.PromiseProposalView,
+            PendingOnboardingAnalyticsEvent.PromiseProposalStepView,
+        )
+        val withRecommendation = withView.withMilestoneEvent(
+            FirstPromiseMilestone.RecommendationShown,
+            PendingOnboardingAnalyticsEvent.PromiseRecommendationShown,
+        )
+        return if (withRecommendation == state) {
+            FirstPromiseStateMutation.NoOp
+        } else {
+            FirstPromiseStateMutation.Changed(withRecommendation)
+        }
+    }
+
+    fun startFirstPromise(state: FirstPromiseOnboardingState): FirstPromiseStateMutation {
+        if (
+            state.assignment != OnboardingVariant.PromiseCoachV1 ||
+            state.phase != FirstPromisePhase.DraftReady ||
+            state.draft == null ||
+            state.recommendationReasonRef == null
+        ) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        var next = state
+        if (state.path == FirstPromisePath.Personalized) {
+            next = next
+                .withMilestoneEvent(
+                    FirstPromiseMilestone.AppSelection,
+                    PendingOnboardingAnalyticsEvent.SelectAppStepComplete,
+                )
+            if (PendingOnboardingAnalyticsEvent.AppSelectionCompletedSingle !in next.pendingOnboardingAnalyticsEvents &&
+                FirstPromiseMilestone.AppSelection !in state.trackedMilestones
+            ) {
+                next = next.copy(
+                    pendingOnboardingAnalyticsEvents = next.pendingOnboardingAnalyticsEvents +
+                        PendingOnboardingAnalyticsEvent.AppSelectionCompletedSingle,
+                )
+            }
+        }
+        next = next.withMilestoneEvent(
+            FirstPromiseMilestone.PromiseProposalCompletion,
+            PendingOnboardingAnalyticsEvent.PromiseProposalStepComplete,
+        )
+        return FirstPromiseStateMutation.Changed(
+            next.copy(
+                phase = FirstPromisePhase.AccessibilityPending,
+                pendingSystemAction = PendingSystemAction.Accessibility,
+            ),
+        )
+    }
 
     fun acknowledgePendingAnalyticsEvent(
         state: FirstPromiseOnboardingState,

@@ -5,6 +5,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.domain.firstpromise.PendingOnboardingAnalyticsEvent
+import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
@@ -27,14 +28,17 @@ class FirstPromiseOnboardingAnalyticsDispatcher @Inject constructor(
     suspend fun drain() = drainMutex.withLock {
         while (true) {
             val event = store.readState().pendingOnboardingAnalyticsEvents.firstOrNull() ?: return@withLock
-            dispatch(event)
+            dispatch(event, store.readState())
             check(store.acknowledgePendingAnalyticsEvent(event) is FirstPromiseStateMutation.Changed) {
                 "Pending onboarding Analytics head changed before acknowledgement"
             }
         }
     }
 
-    private fun dispatch(event: PendingOnboardingAnalyticsEvent) {
+    private fun dispatch(
+        event: PendingOnboardingAnalyticsEvent,
+        state: FirstPromiseOnboardingState,
+    ) {
         when (event) {
             PendingOnboardingAnalyticsEvent.ExperimentExposureControlV1 ->
                 analytics.trackOnboardingExperimentExposed(
@@ -65,6 +69,22 @@ class FirstPromiseOnboardingAnalyticsDispatcher @Inject constructor(
 
             PendingOnboardingAnalyticsEvent.AppSelectionCompletedSingle ->
                 analytics.trackAppSelectionCompleted(selectedAppCount = 1, isOnboarding = true)
+
+            PendingOnboardingAnalyticsEvent.PromiseProposalStepView ->
+                analytics.trackOnboardingStepView(OnboardingStepName.PROMISE_PROPOSAL)
+
+            PendingOnboardingAnalyticsEvent.PromiseRecommendationShown -> {
+                val draft = checkNotNull(state.draft)
+                val reason = checkNotNull(state.recommendationReasonRef)
+                analytics.trackPromiseRecommendationShown(
+                    goalType = state.goal,
+                    patternType = reason.patternType,
+                    source = draft.source,
+                )
+            }
+
+            PendingOnboardingAnalyticsEvent.PromiseProposalStepComplete ->
+                analytics.trackOnboardingStepComplete(OnboardingStepName.PROMISE_PROPOSAL)
         }
     }
 }

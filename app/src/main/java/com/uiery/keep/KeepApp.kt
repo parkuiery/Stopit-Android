@@ -35,8 +35,10 @@ import com.uiery.keep.feature.onboarding.Onboarding
 import com.uiery.keep.feature.onboarding.navigateToOnboarding
 import com.uiery.keep.feature.onboarding.entry.handleOnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSetting
+import com.uiery.keep.feature.onboarding.notification.navigateToPromiseNotification
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
+import com.uiery.keep.feature.onboarding.permission.navigateToPromiseAccessibility
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
 import com.uiery.keep.feature.onboarding.usageaccess.navigateToUsageAccess
 import com.uiery.keep.feature.onboarding.usageanalysis.navigateToPromiseProposal
@@ -95,6 +97,10 @@ internal fun KeepApp(
             onNavigateManualAppSelect = { navController.navigate(Onboarding.Route.ManualAppSelect) },
             onNavigateManualPromiseProposal = { navController.navigate(Onboarding.Route.PromiseProposal) },
             onNavigatePromiseProposal = navController::navigateToPromiseProposal,
+            onNavigatePromiseAccessibility = navController::navigateToPromiseAccessibility,
+            onNavigatePromiseNotification = navController::navigateToPromiseNotification,
+            onNavigatePromisePersistence = {},
+            onNavigateBackFromPromiseAccessibility = navController::navigateUp,
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,

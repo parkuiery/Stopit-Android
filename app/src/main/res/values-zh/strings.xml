@@ -443,4 +443,23 @@
     <string name="first_promise_usage_unavailable">无法打开使用情况设置。请重试，或自行设置你的首次约定。</string>
     <string name="first_promise_analysis_title">正在查看你近期的使用规律</string>
     <string name="first_promise_analysis_status">正在分析使用情况</string>
+    <string name="first_promise_proposal_title">你的第一个约定</string>
+    <string name="first_promise_usage_fact">过去7天，你每天使用%1$s约%2$d分钟。</string>
+    <string name="first_promise_usage_fact_categorical">最近记录显示，%1$s的使用覆盖%2$d天。</string>
+    <string name="first_promise_recent_usage_note">根据设备上最近的使用记录估算。</string>
+    <string name="first_promise_pattern_night">你经常在深夜打开它。</string>
+    <string name="first_promise_pattern_peak">你经常在相近的时间打开它。</string>
+    <string name="first_promise_pattern_top_app">它是你最常用的应用之一。</string>
+    <string name="first_promise_pattern_manual">请选择最适合你日程的时间。</string>
+    <string name="first_promise_action_summary">从%1$s开始，暂停使用%2$s 30分钟。</string>
+    <string name="first_promise_change_time">更改时间</string>
+    <string name="first_promise_change_days">更改日期</string>
+    <string name="first_promise_change_app">更改应用</string>
+    <string name="first_promise_start">开始我的第一个约定</string>
+    <string name="first_promise_time_picker_title">选择开始时间</string>
+    <string name="first_promise_repeat_picker_title">选择重复日期</string>
+    <string name="first_promise_accessibility_title">要执行%1$s的约定，请允许无障碍访问</string>
+    <string name="first_promise_accessibility_description">StopIt使用Android无障碍服务来检测所选应用，并在约定期间显示拦截界面。</string>
+    <string name="first_promise_notification_title">接收约定提醒</string>
+    <string name="first_promise_notification_description">通知是可选的。即使不允许通知，你也可以继续。</string>
 </resources>

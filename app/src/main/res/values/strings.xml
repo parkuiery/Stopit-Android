@@ -470,4 +470,23 @@
     <string name="first_promise_usage_unavailable">We couldn’t open usage settings. Try again or set up your first promise yourself.</string>
     <string name="first_promise_analysis_title">Checking your recent usage patterns</string>
     <string name="first_promise_analysis_status">Analyzing usage</string>
+    <string name="first_promise_proposal_title">Your first promise</string>
+    <string name="first_promise_usage_fact">Over the last 7 days, you used %1$s for about %2$d minutes a day.</string>
+    <string name="first_promise_usage_fact_categorical">Recent records include %1$s usage on %2$d days.</string>
+    <string name="first_promise_recent_usage_note">Estimated from recent local usage records.</string>
+    <string name="first_promise_pattern_night">You often opened it late at night.</string>
+    <string name="first_promise_pattern_peak">You often opened it around the same time.</string>
+    <string name="first_promise_pattern_top_app">It was one of your most-used apps.</string>
+    <string name="first_promise_pattern_manual">Use the time that best fits your day.</string>
+    <string name="first_promise_action_summary">At %1$s, take a 30-minute break from %2$s.</string>
+    <string name="first_promise_change_time">Change time</string>
+    <string name="first_promise_change_days">Change days</string>
+    <string name="first_promise_change_app">Change app</string>
+    <string name="first_promise_start">Start my first promise</string>
+    <string name="first_promise_time_picker_title">Choose a start time</string>
+    <string name="first_promise_repeat_picker_title">Choose repeat days</string>
+    <string name="first_promise_accessibility_title">To run your %1$s promise, allow Accessibility access</string>
+    <string name="first_promise_accessibility_description">StopIt uses the Android Accessibility Service to detect the selected app and show the block screen during your promise.</string>
+    <string name="first_promise_notification_title">Get a reminder for your promise</string>
+    <string name="first_promise_notification_description">Notifications are optional. You can continue even if you do not allow them.</string>
 </resources>

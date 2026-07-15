@@ -445,4 +445,23 @@
     <string name="first_promise_usage_unavailable">Não foi possível abrir as configurações de uso. Tente novamente ou configure seu primeiro compromisso.</string>
     <string name="first_promise_analysis_title">Analisando seus padrões de uso recentes</string>
     <string name="first_promise_analysis_status">Analisando o uso</string>
+    <string name="first_promise_proposal_title">Sua primeira promessa</string>
+    <string name="first_promise_usage_fact">Nos últimos 7 dias, você usou %1$s por cerca de %2$d minutos por dia.</string>
+    <string name="first_promise_usage_fact_categorical">Os registros recentes incluem o uso de %1$s em %2$d dias.</string>
+    <string name="first_promise_recent_usage_note">Estimativa baseada em registros de uso locais recentes.</string>
+    <string name="first_promise_pattern_night">Você abriu o app com frequência à noite.</string>
+    <string name="first_promise_pattern_peak">Você abriu o app com frequência em um horário parecido.</string>
+    <string name="first_promise_pattern_top_app">Foi um dos seus apps mais usados.</string>
+    <string name="first_promise_pattern_manual">Escolha o horário que combina melhor com o seu dia.</string>
+    <string name="first_promise_action_summary">Às %1$s, faça uma pausa de 30 minutos de %2$s.</string>
+    <string name="first_promise_change_time">Alterar horário</string>
+    <string name="first_promise_change_days">Alterar dias</string>
+    <string name="first_promise_change_app">Alterar app</string>
+    <string name="first_promise_start">Iniciar minha primeira promessa</string>
+    <string name="first_promise_time_picker_title">Escolha um horário de início</string>
+    <string name="first_promise_repeat_picker_title">Escolha os dias de repetição</string>
+    <string name="first_promise_accessibility_title">Permita o acesso de acessibilidade para a promessa das %1$s</string>
+    <string name="first_promise_accessibility_description">O StopIt usa o serviço de acessibilidade do Android para detectar o app escolhido e mostrar a tela de bloqueio durante a promessa.</string>
+    <string name="first_promise_notification_title">Receba um lembrete da sua promessa</string>
+    <string name="first_promise_notification_description">As notificações são opcionais. Você pode continuar sem permitir.</string>
 </resources>

@@ -443,4 +443,23 @@
     <string name="first_promise_usage_unavailable">使用状況の設定を開けませんでした。もう一度試すか、自分で最初の約束を設定してください。</string>
     <string name="first_promise_analysis_title">最近の使用パターンを確認しています</string>
     <string name="first_promise_analysis_status">使用状況を分析中</string>
+    <string name="first_promise_proposal_title">最初の約束</string>
+    <string name="first_promise_usage_fact">過去7日間、%1$sを1日平均約%2$d分使用しました。</string>
+    <string name="first_promise_usage_fact_categorical">最近の記録では、%1$sを使用した日が%2$d日あります。</string>
+    <string name="first_promise_recent_usage_note">端末内の最近の使用記録に基づく推定です。</string>
+    <string name="first_promise_pattern_night">夜遅くに開くことが多いようです。</string>
+    <string name="first_promise_pattern_peak">同じ時間帯に開くことが多いようです。</string>
+    <string name="first_promise_pattern_top_app">よく使うアプリの一つです。</string>
+    <string name="first_promise_pattern_manual">一日に合う時間を選んでください。</string>
+    <string name="first_promise_action_summary">%1$sから%2$sを30分休んでみましょう。</string>
+    <string name="first_promise_change_time">時間を変更</string>
+    <string name="first_promise_change_days">曜日を変更</string>
+    <string name="first_promise_change_app">アプリを変更</string>
+    <string name="first_promise_start">最初の約束を始める</string>
+    <string name="first_promise_time_picker_title">開始時間を選択</string>
+    <string name="first_promise_repeat_picker_title">繰り返す曜日を選択</string>
+    <string name="first_promise_accessibility_title">%1$sの約束を実行するにはユーザー補助へのアクセスを許可してください</string>
+    <string name="first_promise_accessibility_description">StopItはAndroidユーザー補助サービスを使用して選択したアプリを検知し、約束の時間中にブロック画面を表示します。</string>
+    <string name="first_promise_notification_title">約束のリマインダーを受け取る</string>
+    <string name="first_promise_notification_description">通知は任意です。許可しなくても続行できます。</string>
 </resources>

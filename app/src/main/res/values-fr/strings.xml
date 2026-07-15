@@ -445,4 +445,23 @@
     <string name="first_promise_usage_unavailable">Impossible d’ouvrir les paramètres d’usage. Réessayez ou configurez vous-même votre premier engagement.</string>
     <string name="first_promise_analysis_title">Analyse de vos habitudes d’usage récentes</string>
     <string name="first_promise_analysis_status">Analyse de l’usage en cours</string>
+    <string name="first_promise_proposal_title">Votre première promesse</string>
+    <string name="first_promise_usage_fact">Ces 7 derniers jours, vous avez utilisé %1$s environ %2$d minutes par jour.</string>
+    <string name="first_promise_usage_fact_categorical">Les données récentes montrent une utilisation de %1$s pendant %2$d jours.</string>
+    <string name="first_promise_recent_usage_note">Estimation à partir des données d’usage locales récentes.</string>
+    <string name="first_promise_pattern_night">Vous l’avez souvent ouverte tard le soir.</string>
+    <string name="first_promise_pattern_peak">Vous l’avez souvent ouverte à une heure similaire.</string>
+    <string name="first_promise_pattern_top_app">Elle faisait partie de vos applications les plus utilisées.</string>
+    <string name="first_promise_pattern_manual">Choisissez l’heure qui convient le mieux à votre journée.</string>
+    <string name="first_promise_action_summary">À %1$s, faites une pause de 30 minutes loin de %2$s.</string>
+    <string name="first_promise_change_time">Changer l’heure</string>
+    <string name="first_promise_change_days">Changer les jours</string>
+    <string name="first_promise_change_app">Changer d’application</string>
+    <string name="first_promise_start">Commencer ma première promesse</string>
+    <string name="first_promise_time_picker_title">Choisir une heure de début</string>
+    <string name="first_promise_repeat_picker_title">Choisir les jours de répétition</string>
+    <string name="first_promise_accessibility_title">Autorisez l’accès d’accessibilité pour votre promesse de %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt utilise le service d’accessibilité Android pour détecter l’application choisie et afficher l’écran de blocage pendant votre promesse.</string>
+    <string name="first_promise_notification_title">Recevez un rappel pour votre promesse</string>
+    <string name="first_promise_notification_description">Les notifications sont facultatives. Vous pouvez continuer sans les autoriser.</string>
 </resources>

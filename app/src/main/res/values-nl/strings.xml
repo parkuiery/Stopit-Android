@@ -445,4 +445,23 @@
     <string name="first_promise_usage_unavailable">De gebruiksinstellingen konden niet worden geopend. Probeer opnieuw of stel je eerste afspraak zelf in.</string>
     <string name="first_promise_analysis_title">Je recente gebruikspatronen worden bekeken</string>
     <string name="first_promise_analysis_status">Gebruik wordt geanalyseerd</string>
+    <string name="first_promise_proposal_title">Je eerste belofte</string>
+    <string name="first_promise_usage_fact">De afgelopen 7 dagen gebruikte je %1$s ongeveer %2$d minuten per dag.</string>
+    <string name="first_promise_usage_fact_categorical">Recente gegevens bevatten gebruik van %1$s op %2$d dagen.</string>
+    <string name="first_promise_recent_usage_note">Schatting op basis van recente lokale gebruiksgegevens.</string>
+    <string name="first_promise_pattern_night">Je opende de app vaak laat op de avond.</string>
+    <string name="first_promise_pattern_peak">Je opende de app vaak rond hetzelfde tijdstip.</string>
+    <string name="first_promise_pattern_top_app">Dit was een van je meest gebruikte apps.</string>
+    <string name="first_promise_pattern_manual">Kies het tijdstip dat het beste bij je dag past.</string>
+    <string name="first_promise_action_summary">Neem om %1$s 30 minuten pauze van %2$s.</string>
+    <string name="first_promise_change_time">Tijd wijzigen</string>
+    <string name="first_promise_change_days">Dagen wijzigen</string>
+    <string name="first_promise_change_app">App wijzigen</string>
+    <string name="first_promise_start">Mijn eerste belofte starten</string>
+    <string name="first_promise_time_picker_title">Kies een starttijd</string>
+    <string name="first_promise_repeat_picker_title">Kies herhaaldagen</string>
+    <string name="first_promise_accessibility_title">Sta toegankelijkheid toe voor je belofte van %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt gebruikt de Android-toegankelijkheidsservice om de gekozen app te herkennen en tijdens je belofte het blokkeerscherm te tonen.</string>
+    <string name="first_promise_notification_title">Ontvang een herinnering voor je belofte</string>
+    <string name="first_promise_notification_description">Meldingen zijn optioneel. Je kunt doorgaan zonder ze toe te staan.</string>
 </resources>

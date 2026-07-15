@@ -444,4 +444,23 @@
     <string name="first_promise_usage_unavailable">No pudimos abrir los ajustes de uso. Inténtalo de nuevo o configura tu primer compromiso.</string>
     <string name="first_promise_analysis_title">Estamos revisando tus patrones de uso recientes</string>
     <string name="first_promise_analysis_status">Analizando el uso</string>
+    <string name="first_promise_proposal_title">Tu primera promesa</string>
+    <string name="first_promise_usage_fact">Durante los últimos 7 días usaste %1$s unos %2$d minutos al día.</string>
+    <string name="first_promise_usage_fact_categorical">Los registros recientes incluyen el uso de %1$s durante %2$d días.</string>
+    <string name="first_promise_recent_usage_note">Estimación basada en registros de uso locales recientes.</string>
+    <string name="first_promise_pattern_night">La abriste a menudo por la noche.</string>
+    <string name="first_promise_pattern_peak">La abriste a menudo a una hora parecida.</string>
+    <string name="first_promise_pattern_top_app">Fue una de tus aplicaciones más usadas.</string>
+    <string name="first_promise_pattern_manual">Elige la hora que mejor encaje en tu día.</string>
+    <string name="first_promise_action_summary">A las %1$s, descansa 30 minutos de %2$s.</string>
+    <string name="first_promise_change_time">Cambiar hora</string>
+    <string name="first_promise_change_days">Cambiar días</string>
+    <string name="first_promise_change_app">Cambiar aplicación</string>
+    <string name="first_promise_start">Iniciar mi primera promesa</string>
+    <string name="first_promise_time_picker_title">Elige una hora de inicio</string>
+    <string name="first_promise_repeat_picker_title">Elige los días de repetición</string>
+    <string name="first_promise_accessibility_title">Permite el acceso de accesibilidad para tu promesa de las %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt usa el servicio de accesibilidad de Android para detectar la aplicación elegida y mostrar la pantalla de bloqueo durante tu promesa.</string>
+    <string name="first_promise_notification_title">Recibe un recordatorio de tu promesa</string>
+    <string name="first_promise_notification_description">Las notificaciones son opcionales. Puedes continuar aunque no las permitas.</string>
 </resources>

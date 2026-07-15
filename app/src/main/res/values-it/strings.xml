@@ -445,4 +445,23 @@
     <string name="first_promise_usage_unavailable">Impossibile aprire le impostazioni di utilizzo. Riprova o configura personalmente il primo impegno.</string>
     <string name="first_promise_analysis_title">Stiamo controllando le tue abitudini di utilizzo recenti</string>
     <string name="first_promise_analysis_status">Analisi dell’utilizzo in corso</string>
+    <string name="first_promise_proposal_title">La tua prima promessa</string>
+    <string name="first_promise_usage_fact">Negli ultimi 7 giorni hai usato %1$s per circa %2$d minuti al giorno.</string>
+    <string name="first_promise_usage_fact_categorical">I dati recenti includono l’uso di %1$s in %2$d giorni.</string>
+    <string name="first_promise_recent_usage_note">Stima basata sui dati di utilizzo locali recenti.</string>
+    <string name="first_promise_pattern_night">L’hai aperta spesso a tarda sera.</string>
+    <string name="first_promise_pattern_peak">L’hai aperta spesso in un orario simile.</string>
+    <string name="first_promise_pattern_top_app">Era una delle app che hai usato di più.</string>
+    <string name="first_promise_pattern_manual">Scegli l’orario più adatto alla tua giornata.</string>
+    <string name="first_promise_action_summary">Alle %1$s, fai una pausa di 30 minuti da %2$s.</string>
+    <string name="first_promise_change_time">Cambia orario</string>
+    <string name="first_promise_change_days">Cambia giorni</string>
+    <string name="first_promise_change_app">Cambia app</string>
+    <string name="first_promise_start">Inizia la mia prima promessa</string>
+    <string name="first_promise_time_picker_title">Scegli un orario di inizio</string>
+    <string name="first_promise_repeat_picker_title">Scegli i giorni di ripetizione</string>
+    <string name="first_promise_accessibility_title">Consenti l’accesso di accessibilità per la promessa delle %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt usa il servizio di accessibilità Android per rilevare l’app scelta e mostrare la schermata di blocco durante la promessa.</string>
+    <string name="first_promise_notification_title">Ricevi un promemoria per la tua promessa</string>
+    <string name="first_promise_notification_description">Le notifiche sono facoltative. Puoi continuare anche senza consentirle.</string>
 </resources>

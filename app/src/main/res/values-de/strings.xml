@@ -445,4 +445,23 @@
     <string name="first_promise_usage_unavailable">Die Nutzungseinstellungen konnten nicht geöffnet werden. Versuche es erneut oder richte dein erstes Versprechen selbst ein.</string>
     <string name="first_promise_analysis_title">Deine aktuellen Nutzungsmuster werden geprüft</string>
     <string name="first_promise_analysis_status">Nutzungsmuster werden analysiert</string>
+    <string name="first_promise_proposal_title">Dein erstes Versprechen</string>
+    <string name="first_promise_usage_fact">In den letzten 7 Tagen hast du %1$s täglich etwa %2$d Minuten genutzt.</string>
+    <string name="first_promise_usage_fact_categorical">Die letzten Aufzeichnungen enthalten %1$s-Nutzung an %2$d Tagen.</string>
+    <string name="first_promise_recent_usage_note">Geschätzt aus den letzten lokalen Nutzungsdaten.</string>
+    <string name="first_promise_pattern_night">Du hast die App oft spät abends geöffnet.</string>
+    <string name="first_promise_pattern_peak">Du hast die App oft zur gleichen Zeit geöffnet.</string>
+    <string name="first_promise_pattern_top_app">Sie gehörte zu deinen meistgenutzten Apps.</string>
+    <string name="first_promise_pattern_manual">Wähle die Zeit, die am besten zu deinem Tag passt.</string>
+    <string name="first_promise_action_summary">Lege um %1$s eine 30-minütige Pause von %2$s ein.</string>
+    <string name="first_promise_change_time">Zeit ändern</string>
+    <string name="first_promise_change_days">Tage ändern</string>
+    <string name="first_promise_change_app">App ändern</string>
+    <string name="first_promise_start">Mein erstes Versprechen starten</string>
+    <string name="first_promise_time_picker_title">Startzeit wählen</string>
+    <string name="first_promise_repeat_picker_title">Wiederholungstage wählen</string>
+    <string name="first_promise_accessibility_title">Erlaube Bedienungshilfen für dein Versprechen um %1$s</string>
+    <string name="first_promise_accessibility_description">StopIt verwendet den Android-Bedienungshilfedienst, um die gewählte App zu erkennen und während deines Versprechens den Sperrbildschirm anzuzeigen.</string>
+    <string name="first_promise_notification_title">Erhalte eine Erinnerung an dein Versprechen</string>
+    <string name="first_promise_notification_description">Benachrichtigungen sind optional. Du kannst auch ohne Erlaubnis fortfahren.</string>
 </resources>

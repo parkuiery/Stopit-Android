@@ -29,6 +29,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
 
 private fun ManagedActivityResultLauncher<String, Boolean>.requestNotificationPermission() {
     launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -39,18 +40,28 @@ fun NotificationSettingScreen(
     modifier: Modifier = Modifier,
     viewModel: NotificationSettingViewModel = hiltViewModel(),
     onNavigateSelectApp: () -> Unit,
+    context: OnboardingPermissionContext = OnboardingPermissionContext.Control,
+    onNavigatePersistence: () -> Unit = {},
 ) {
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             when (resolvePostNotificationPermissionResultAction(isGranted)) {
                 PostNotificationPermissionResultAction.RecordGrantAndContinue -> {
-                    viewModel.onPermissionGranted()
-                    onNavigateSelectApp()
+                    if (context == OnboardingPermissionContext.Control) {
+                        viewModel.onPermissionGranted()
+                        onNavigateSelectApp()
+                    } else {
+                        viewModel.onFirstPromisePermissionResult(true, onNavigatePersistence)
+                    }
                 }
 
                 PostNotificationPermissionResultAction.RecordDenialAndContinue -> {
-                    viewModel.onPermissionDeniedAndContinue()
-                    onNavigateSelectApp()
+                    if (context == OnboardingPermissionContext.Control) {
+                        viewModel.onPermissionDeniedAndContinue()
+                        onNavigateSelectApp()
+                    } else {
+                        viewModel.onFirstPromisePermissionResult(false, onNavigatePersistence)
+                    }
                 }
             }
         }
@@ -73,7 +84,13 @@ fun NotificationSettingScreen(
         ) {
             Text(
                 modifier = Modifier.padding(top = 36.dp),
-                text = stringResource(id = R.string.notification_permission_request),
+                text = stringResource(
+                    id = if (context == OnboardingPermissionContext.Control) {
+                        R.string.notification_permission_request
+                    } else {
+                        R.string.first_promise_notification_title
+                    },
+                ),
                 fontWeight = FontWeight.Bold,
                 lineHeight = 28.sp,
                 fontSize = 22.sp,
@@ -81,7 +98,13 @@ fun NotificationSettingScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(id = R.string.notification_habit_message),
+                text = stringResource(
+                    id = if (context == OnboardingPermissionContext.Control) {
+                        R.string.notification_habit_message
+                    } else {
+                        R.string.first_promise_notification_description
+                    },
+                ),
                 color = KeepTheme.colors.surfaceVariant,
             )
             LottieAnimation(
