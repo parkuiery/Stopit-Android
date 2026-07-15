@@ -87,6 +87,66 @@ class OnboardingUsageStatsReaderTest {
         assertTrue(result.all { it.localDate == date })
     }
 
+    @Test
+    fun `same package rows aggregate per day with saturated totals and latest clamped use`() {
+        val firstDate = LocalDate.of(2026, 7, 13)
+        val secondDate = firstDate.plusDays(1)
+        val zoneId = ZoneId.of("Asia/Seoul")
+        val firstStart = firstDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val firstEnd = secondDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val secondStart = firstEnd
+        val source = DailyUsageStatsSource { startMillis, _ ->
+            when (startMillis) {
+                firstStart -> listOf(
+                    DailyUsageStat("com.repeated", 10, firstStart - 1),
+                    DailyUsageStat("com.repeated", 20, firstEnd + 1),
+                    DailyUsageStat("com.repeated", -100, firstEnd - 1),
+                    DailyUsageStat("com.saturated", Long.MAX_VALUE, firstStart),
+                    DailyUsageStat("com.saturated", 1, firstEnd - 1),
+                    DailyUsageStat("com.other", 5, firstStart + 1),
+                )
+                secondStart -> listOf(
+                    DailyUsageStat("com.repeated", 40, secondStart + 1),
+                )
+                else -> emptyList()
+            }
+        }
+        val reader = reader(source)
+
+        val result = reader.query(firstDate..secondDate, zoneId)
+
+        assertEquals(
+            listOf(
+                AppUsageAggregateDay(
+                    packageName = "com.repeated",
+                    totalForegroundMillis = 30,
+                    lastUsedEpochMillis = firstEnd - 1,
+                    localDate = firstDate,
+                ),
+                AppUsageAggregateDay(
+                    packageName = "com.saturated",
+                    totalForegroundMillis = Long.MAX_VALUE,
+                    lastUsedEpochMillis = firstEnd - 1,
+                    localDate = firstDate,
+                ),
+                AppUsageAggregateDay(
+                    packageName = "com.other",
+                    totalForegroundMillis = 5,
+                    lastUsedEpochMillis = firstStart + 1,
+                    localDate = firstDate,
+                ),
+                AppUsageAggregateDay(
+                    packageName = "com.repeated",
+                    totalForegroundMillis = 40,
+                    lastUsedEpochMillis = secondStart + 1,
+                    localDate = secondDate,
+                ),
+            ),
+            result,
+        )
+        assertTrue(result.all { it.totalForegroundMillis > 0 })
+    }
+
     private fun reader(source: DailyUsageStatsSource) = OnboardingUsageStatsReader(
         source = source,
         ownPackageName = "com.uiery.keep",

@@ -46,7 +46,8 @@ class OnboardingUsageStatsReader(
     ): Sequence<AppUsageAggregateDay> {
         val startMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
         val endExclusiveMillis = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-        return source.query(startMillis, endExclusiveMillis)
+        val aggregates = linkedMapOf<String, AppUsageAggregateDay>()
+        source.query(startMillis, endExclusiveMillis)
             .asSequence()
             .filter { stat ->
                 stat.totalForegroundMillis > 0 &&
@@ -54,16 +55,28 @@ class OnboardingUsageStatsReader(
                     stat.packageName !in excludedPackages &&
                     launchableCache.getOrPut(stat.packageName) { isLaunchable(stat.packageName) }
             }
-            .map { stat ->
-                AppUsageAggregateDay(
+            .forEach { stat ->
+                val previous = aggregates[stat.packageName]
+                val clampedLastUsed = stat.lastUsedEpochMillis.coerceIn(
+                    startMillis,
+                    endExclusiveMillis - 1,
+                )
+                aggregates[stat.packageName] = AppUsageAggregateDay(
                     packageName = stat.packageName,
-                    totalForegroundMillis = stat.totalForegroundMillis,
-                    lastUsedEpochMillis = stat.lastUsedEpochMillis.coerceIn(
-                        startMillis,
-                        endExclusiveMillis - 1,
+                    totalForegroundMillis = saturatedAdd(
+                        previous?.totalForegroundMillis ?: 0,
+                        stat.totalForegroundMillis,
+                    ),
+                    lastUsedEpochMillis = maxOf(
+                        previous?.lastUsedEpochMillis ?: startMillis,
+                        clampedLastUsed,
                     ),
                     localDate = date,
                 )
             }
+        return aggregates.values.asSequence()
     }
+
+    private fun saturatedAdd(current: Long, addition: Long): Long =
+        if (current > Long.MAX_VALUE - addition) Long.MAX_VALUE else current + addition
 }
