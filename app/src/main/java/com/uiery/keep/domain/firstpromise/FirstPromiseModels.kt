@@ -89,6 +89,93 @@ enum class OnboardingVariant(val analyticsValue: String) {
 }
 
 @Serializable
+enum class FirstPromisePath {
+    Personalized,
+    Manual,
+}
+
+@Serializable
+enum class FirstPromisePhase {
+    GoalPending,
+    UsageAccessPending,
+    Analyzing,
+    ManualSelectPending,
+    DraftReady,
+    AccessibilityPending,
+    NotificationPending,
+    Persisting,
+    PersistFailed,
+    SchedulePermissionRequired,
+    ResultEnabled,
+    ResultDisabled,
+    CompletedEnabled,
+    CompletedDisabled,
+}
+
+@Serializable
+enum class PendingSystemAction {
+    UsageAccess,
+    Accessibility,
+    ExactAlarm,
+}
+
+@Serializable
+enum class FirstPromiseMilestone {
+    Exposure,
+    AppSelection,
+}
+
+@Serializable
+enum class UsagePermissionLaunchState {
+    NotLaunched,
+    Opened,
+    LaunchFailed,
+    UnresolvedAfterRecreation,
+}
+
+@Serializable
+enum class UsagePermissionOutcome {
+    Granted,
+    Denied,
+    Skipped,
+    Unknown,
+}
+
+@Serializable
+data class UsagePermissionAttempt(
+    val id: Long,
+    val launchState: UsagePermissionLaunchState,
+    val terminalOutcome: UsagePermissionOutcome? = null,
+)
+
+@Serializable
+data class RecommendationReasonRef(
+    val patternType: UsagePatternType,
+    val usageCoverageDays: Int,
+    val eventCoverageDays: Int,
+    val isGoalDefault: Boolean,
+    val selectedStartMinutes: Int,
+)
+
+@Serializable
+data class FirstPromiseOnboardingState(
+    val assignment: OnboardingVariant? = null,
+    val assignmentVersion: OnboardingAssignmentVersion? = null,
+    val trackedMilestones: Set<FirstPromiseMilestone> = emptySet(),
+    val phase: FirstPromisePhase = FirstPromisePhase.GoalPending,
+    val path: FirstPromisePath = FirstPromisePath.Personalized,
+    val goal: FirstPromiseGoal = FirstPromiseGoal.Unspecified,
+    val draft: FirstPromiseDraft? = null,
+    val recommendationReasonRef: RecommendationReasonRef? = null,
+    val routineId: Long? = null,
+    val scheduleState: FirstPromiseScheduleState? = null,
+    val pendingSystemAction: PendingSystemAction? = null,
+    val usagePermissionAttempt: UsagePermissionAttempt? = null,
+    val analysisAttemptId: Long? = null,
+    val futureAnalysisDisabled: Boolean = false,
+)
+
+@Serializable
 data class FirstPromiseDraft(
     val draftId: String,
     val goal: FirstPromiseGoal,

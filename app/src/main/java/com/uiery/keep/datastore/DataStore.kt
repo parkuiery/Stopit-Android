@@ -51,4 +51,6 @@ object PreferencesKey {
     val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
     val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
     val USAGE_INSIGHT_DISMISSED = stringPreferencesKey("usage_insight_dismissed")
+    val FIRST_PROMISE_ONBOARDING_STATE = stringPreferencesKey("first_promise_onboarding_state")
+    val FIRST_PROMISE_PRACTICE_TOKEN = stringPreferencesKey("first_promise_practice_token")
 }
