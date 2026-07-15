@@ -159,26 +159,20 @@ object FirstPromiseStatePolicy {
             else -> FirstPromiseStateMutation.Rejected
         }
 
-    fun startAnalysis(
+    fun beginUsageAnalysis(
         state: FirstPromiseOnboardingState,
         attemptId: Long,
     ): FirstPromiseStateMutation {
-        if (state.goal == FirstPromiseGoal.Unspecified || state.futureAnalysisDisabled) {
+        if (
+            state.phase != FirstPromisePhase.UsageAccessPending ||
+            state.goal == FirstPromiseGoal.Unspecified ||
+            state.futureAnalysisDisabled
+        ) {
             return FirstPromiseStateMutation.Rejected
         }
-        val analyzingState = when (state.phase) {
-            FirstPromisePhase.UsageAccessPending ->
-                (transition(state, FirstPromisePhase.Analyzing) as? FirstPromiseStateMutation.Changed)?.state
-                    ?: return FirstPromiseStateMutation.Rejected
-
-            FirstPromisePhase.ManualSelectPending -> state.copy(
-                phase = FirstPromisePhase.Analyzing,
-                path = FirstPromisePath.Personalized,
-            )
-
-            FirstPromisePhase.Analyzing -> state
-            else -> return FirstPromiseStateMutation.Rejected
-        }
+        val analyzingState =
+            (transition(state, FirstPromisePhase.Analyzing) as? FirstPromiseStateMutation.Changed)?.state
+                ?: return FirstPromiseStateMutation.Rejected
         return beginAnalysisAttempt(analyzingState, attemptId)
     }
 
@@ -206,6 +200,18 @@ object FirstPromiseStatePolicy {
         }
 
     fun completeOnboarding(state: FirstPromiseOnboardingState): FirstPromiseStateMutation {
+        if (
+            state.routineId != null && state.routineId > 0L &&
+            (
+                state.phase == FirstPromisePhase.CompletedEnabled &&
+                    state.scheduleState == FirstPromiseScheduleState.Enabled ||
+                    state.phase == FirstPromisePhase.CompletedDisabled &&
+                    state.scheduleState != null &&
+                    state.scheduleState != FirstPromiseScheduleState.Enabled
+            )
+        ) {
+            return FirstPromiseStateMutation.NoOp
+        }
         val target = when {
             state.phase == FirstPromisePhase.ResultEnabled &&
                 state.routineId != null && state.routineId > 0L &&
@@ -496,13 +502,23 @@ object FirstPromiseStatePolicy {
         )
     }
 
+    fun recoverAfterRecreation(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        when (state.mappingValidity()) {
+            MappingValidity.Invalid -> FirstPromiseStateMutation.Rejected
+            MappingValidity.Complete -> if (state.phase in mappedRecoveryPhases) {
+                FirstPromiseStateMutation.Changed(state.mappedRecoveryState())
+            } else {
+                FirstPromiseStateMutation.NoOp
+            }
+            MappingValidity.None -> FirstPromiseStateMutation.NoOp
+        }
+
     fun applyEmergency(state: FirstPromiseOnboardingState): FirstPromiseEmergencyResult {
         when (state.mappingValidity()) {
             MappingValidity.Invalid -> return state.rejectedEmergencyResult()
-            MappingValidity.Complete -> if (state.phase in mappedRecoveryPhases) {
-                return state.mappedRecoveryResult()
-            }
-            MappingValidity.None -> Unit
+            MappingValidity.Complete,
+            MappingValidity.None,
+            -> Unit
         }
         return when (state.phase) {
             FirstPromisePhase.GoalPending,
@@ -646,19 +662,23 @@ object FirstPromiseStatePolicy {
     )
 
     private fun FirstPromiseOnboardingState.mappedRecoveryResult(): FirstPromiseEmergencyResult {
-        val mappedScheduleState = checkNotNull(scheduleState)
         return FirstPromiseEmergencyResult(
-            state = copy(
-                phase = if (mappedScheduleState == FirstPromiseScheduleState.Enabled) {
-                    FirstPromisePhase.ResultEnabled
-                } else {
-                    FirstPromisePhase.SchedulePermissionRequired
-                },
-                pendingSystemAction = null,
-                analysisAttemptId = null,
-                futureAnalysisDisabled = true,
-            ),
+            state = mappedRecoveryState(),
             action = FirstPromiseEmergencyAction.DisableFutureAnalysis,
+        )
+    }
+
+    private fun FirstPromiseOnboardingState.mappedRecoveryState(): FirstPromiseOnboardingState {
+        val mappedScheduleState = checkNotNull(scheduleState)
+        return copy(
+            phase = if (mappedScheduleState == FirstPromiseScheduleState.Enabled) {
+                FirstPromisePhase.ResultEnabled
+            } else {
+                FirstPromisePhase.SchedulePermissionRequired
+            },
+            pendingSystemAction = null,
+            analysisAttemptId = null,
+            futureAnalysisDisabled = true,
         )
     }
 

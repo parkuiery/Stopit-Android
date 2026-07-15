@@ -76,6 +76,7 @@ class FirstPromiseDraftStoreTest {
     fun publicCommandsCannotManufactureInvariantBearingPhases() = runBlocking {
         val publicMethodNames = FirstPromiseDraftStore::class.java.methods.mapTo(mutableSetOf()) { it.name }
         assertFalse("transitionTo" in publicMethodNames)
+        assertFalse("startAnalysis" in publicMethodNames)
 
         val dataStore = FirstPromiseFakeDataStore()
         val store = FirstPromiseDraftStore(dataStore)
@@ -110,7 +111,7 @@ class FirstPromiseDraftStoreTest {
         assertTrue(store.beginUsagePermissionAttempt(5L))
         assertTrue(store.recordUsagePermissionOpened(5L))
         assertTrue(store.clearPendingSystemAction() is FirstPromiseStateMutation.Changed)
-        assertTrue(store.startAnalysis(8L) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.beginUsageAnalysis(8L) is FirstPromiseStateMutation.Changed)
         assertTrue(store.completeAnalysis(8L, firstDraft, firstReason))
         assertTrue(store.storeDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
         assertTrue(store.setPendingSystemAction(PendingSystemAction.Accessibility) is FirstPromiseStateMutation.Changed)
@@ -192,25 +193,24 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
-    fun olderAnalysisTimeoutCannotTerminateNewerAttemptAndCurrentFailureIsAtomic() = runBlocking {
+    fun staleAnalysisTimeoutCannotTerminateCurrentAttemptAndCurrentFailureIsAtomic() = runBlocking {
         val initial = completeDraftState().copy(
             phase = FirstPromisePhase.Analyzing,
             pendingSystemAction = PendingSystemAction.UsageAccess,
-            analysisAttemptId = 8L,
+            analysisAttemptId = 9L,
         )
         val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
         val store = FirstPromiseDraftStore(dataStore)
 
-        assertTrue(store.startAnalysis(9L) is FirstPromiseStateMutation.Changed)
         assertFalse(store.failAnalysis(8L))
-        assertEquals(1, dataStore.editCount)
+        assertEquals(0, dataStore.editCount)
         assertEquals(9L, store.readState().analysisAttemptId)
         assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
 
         assertTrue(store.failAnalysis(9L))
 
         val failed = store.readState()
-        assertEquals(2, dataStore.editCount)
+        assertEquals(1, dataStore.editCount)
         assertEquals(FirstPromisePhase.ManualSelectPending, failed.phase)
         assertEquals(FirstPromisePath.Manual, failed.path)
         assertNull(failed.draft)
@@ -219,13 +219,7 @@ class FirstPromiseDraftStoreTest {
         assertNull(failed.analysisAttemptId)
         assertFalse(failed.futureAnalysisDisabled)
         assertFalse(store.failAnalysis(9L))
-        assertEquals(2, dataStore.editCount)
-
-        assertTrue(store.startAnalysis(10L) is FirstPromiseStateMutation.Changed)
-        assertEquals(FirstPromisePhase.Analyzing, store.readState().phase)
-        assertEquals(FirstPromisePath.Personalized, store.readState().path)
-        assertEquals(10L, store.readState().analysisAttemptId)
-        assertEquals(3, dataStore.editCount)
+        assertEquals(1, dataStore.editCount)
     }
 
     @Test
@@ -475,6 +469,9 @@ class FirstPromiseDraftStoreTest {
         assertNull(completed.pendingSystemAction)
         assertNull(completed.usagePermissionAttempt)
         assertNull(completed.analysisAttemptId)
+
+        val repeated = store.completeOnboarding()
+        assertEquals(FirstPromiseStateMutation.NoOp, repeated)
         assertEquals(1, dataStore.editCount)
     }
 
@@ -504,6 +501,24 @@ class FirstPromiseDraftStoreTest {
         assertEquals(FirstPromiseEmergencyAction.WaitForPersistence, waiting.action)
         assertEquals(FirstPromisePhase.ResultEnabled, resolved.state.phase)
         assertEquals(1, persistingDataStore.editCount)
+    }
+
+    @Test
+    fun recreationRecoveryNormalizesACompleteEarlyMappingInOneEdit() = runBlocking {
+        val mappedManual = completeDraftState().copy(
+            phase = FirstPromisePhase.ManualSelectPending,
+            routineId = 45L,
+            scheduleState = FirstPromiseScheduleState.Enabled,
+        )
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(mappedManual))
+        val store = FirstPromiseDraftStore(dataStore)
+
+        val mutation = store.recoverAfterRecreation()
+
+        assertTrue(mutation is FirstPromiseStateMutation.Changed)
+        assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+        assertEquals(45L, store.readState().routineId)
+        assertEquals(1, dataStore.editCount)
     }
 
     @Test

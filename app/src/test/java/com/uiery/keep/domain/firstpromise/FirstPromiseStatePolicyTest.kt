@@ -84,6 +84,17 @@ class FirstPromiseStatePolicyTest {
         }
 
         assertEquals(FirstPromisePhase.entries.toSet(), allowed.keys)
+
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            FirstPromiseStatePolicy.beginUsageAnalysis(
+                state = populatedState(FirstPromisePhase.ManualSelectPending).copy(
+                    futureAnalysisDisabled = false,
+                    analysisAttemptId = null,
+                ),
+                attemptId = 10L,
+            ),
+        )
     }
 
     @Test
@@ -240,7 +251,7 @@ class FirstPromiseStatePolicyTest {
     }
 
     @Test
-    fun completeMappingsInPreResultPhasesRecoverWithoutManualNavigation() {
+    fun completeMappingsInPreResultPhasesRecoverOnlyThroughExplicitRecreationCommand() {
         val preResultPhases = setOf(
             FirstPromisePhase.GoalPending,
             FirstPromisePhase.UsageAccessPending,
@@ -255,21 +266,44 @@ class FirstPromiseStatePolicyTest {
 
         preResultPhases.forEach { phase ->
             val enabled = populatedState(phase, routineId = 77L)
-            val enabledResult = FirstPromiseStatePolicy.applyEmergency(enabled)
-            assertEquals("$phase enabled action", FirstPromiseEmergencyAction.DisableFutureAnalysis, enabledResult.action)
-            assertEquals("$phase enabled recovery", FirstPromisePhase.ResultEnabled, enabledResult.state.phase)
-            assertEquals(77L, enabledResult.state.routineId)
+            val enabledMutation = FirstPromiseStatePolicy.recoverAfterRecreation(enabled)
+            assertTrue("$phase enabled mutation", enabledMutation is FirstPromiseStateMutation.Changed)
+            val enabledState = (enabledMutation as FirstPromiseStateMutation.Changed).state
+            assertEquals("$phase enabled recovery", FirstPromisePhase.ResultEnabled, enabledState.phase)
+            assertEquals(77L, enabledState.routineId)
 
             val disabled = enabled.copy(scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing)
-            val disabledResult = FirstPromiseStatePolicy.applyEmergency(disabled)
-            assertEquals("$phase disabled action", FirstPromiseEmergencyAction.DisableFutureAnalysis, disabledResult.action)
+            val disabledMutation = FirstPromiseStatePolicy.recoverAfterRecreation(disabled)
+            assertTrue("$phase disabled mutation", disabledMutation is FirstPromiseStateMutation.Changed)
+            val disabledState = (disabledMutation as FirstPromiseStateMutation.Changed).state
             assertEquals(
                 "$phase disabled recovery",
                 FirstPromisePhase.SchedulePermissionRequired,
-                disabledResult.state.phase,
+                disabledState.phase,
             )
-            assertEquals(77L, disabledResult.state.routineId)
+            assertEquals(77L, disabledState.routineId)
         }
+    }
+
+    @Test
+    fun emergencyMatrixIsNotOverriddenByACompleteMapping() {
+        val mappedGoal = populatedState(FirstPromisePhase.GoalPending, routineId = 77L)
+        val mappedManual = populatedState(FirstPromisePhase.ManualSelectPending, routineId = 77L)
+        val mappedPersisting = populatedState(FirstPromisePhase.Persisting, routineId = 77L)
+
+        val goalResult = FirstPromiseStatePolicy.applyEmergency(mappedGoal)
+        assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, goalResult.action)
+        assertEquals(FirstPromisePhase.ManualSelectPending, goalResult.state.phase)
+        assertEquals(77L, goalResult.state.routineId)
+
+        val manualResult = FirstPromiseStatePolicy.applyEmergency(mappedManual)
+        assertEquals(FirstPromiseEmergencyAction.Stay, manualResult.action)
+        assertEquals(mappedManual, manualResult.state)
+
+        val persistingResult = FirstPromiseStatePolicy.applyEmergency(mappedPersisting)
+        assertEquals(FirstPromiseEmergencyAction.WaitForPersistence, persistingResult.action)
+        assertFalse(persistingResult.navigationAllowed)
+        assertEquals(mappedPersisting, persistingResult.state)
     }
 
     @Test

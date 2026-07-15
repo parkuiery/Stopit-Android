@@ -64,8 +64,8 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun chooseManualSetup(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::chooseManualSetup)
 
-    suspend fun startAnalysis(attemptId: Long): FirstPromiseStateMutation =
-        applyMutation { FirstPromiseStatePolicy.startAnalysis(it, attemptId) }
+    suspend fun beginUsageAnalysis(attemptId: Long): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.beginUsageAnalysis(it, attemptId) }
 
     suspend fun requestAccessibility(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::requestAccessibility)
@@ -129,6 +129,9 @@ class FirstPromiseDraftStore @Inject constructor(
         scheduleState: FirstPromiseScheduleState,
     ): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.resolveScheduleState(it, routineId, scheduleState) }
+
+    suspend fun recoverAfterRecreation(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::recoverAfterRecreation)
 
     suspend fun applyEmergency(): FirstPromiseEmergencyResult =
         applyEmergencyMutation(FirstPromiseStatePolicy::applyEmergency)
