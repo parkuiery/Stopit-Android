@@ -201,6 +201,7 @@ sealed interface RecommendationReason {
         val goal: FirstPromiseGoal,
         val startMinutes: Int,
         val usageCoverageDays: Int,
+        val eventCoverageDays: Int,
     ) : RecommendationReason
 
     data object Manual : RecommendationReason {

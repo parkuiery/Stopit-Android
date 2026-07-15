@@ -84,6 +84,7 @@ class FirstPromiseRecommendationPolicyTest {
                 goal = FirstPromiseGoal.Focus,
                 startMinutes = 21 * 60,
                 usageCoverageDays = 4,
+                eventCoverageDays = 1,
             ),
             proposal.reason,
         )
@@ -106,6 +107,7 @@ class FirstPromiseRecommendationPolicyTest {
                 goal = FirstPromiseGoal.Sleep,
                 startMinutes = 23 * 60,
                 usageCoverageDays = 0,
+                eventCoverageDays = 0,
             ),
             proposal.reason,
         )
@@ -167,6 +169,13 @@ class FirstPromiseRecommendationPolicyTest {
 
         assertThrows(IllegalArgumentException::class.java) {
             FirstPromiseRecommendationPolicy.fromProfile(
+                draftId = " ",
+                goal = FirstPromiseGoal.Focus,
+                profile = validProfile,
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FirstPromiseRecommendationPolicy.fromProfile(
                 draftId = "invalid-start",
                 goal = FirstPromiseGoal.Focus,
                 profile = validProfile.copy(suggestedStartMinutes = 24 * 60),
@@ -182,6 +191,14 @@ class FirstPromiseRecommendationPolicyTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             FirstPromiseRecommendationPolicy.fromSelection(
+                draftId = "empty-label",
+                goal = FirstPromiseGoal.Focus,
+                packageName = "com.example.app",
+                appLabel = " ",
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FirstPromiseRecommendationPolicy.fromSelection(
                 draftId = "empty-days",
                 goal = FirstPromiseGoal.Focus,
                 packageName = "com.example.app",
@@ -189,6 +206,114 @@ class FirstPromiseRecommendationPolicyTest {
                 repeatDays = emptySet(),
             )
         }
+        listOf(setOf(0), setOf(8), setOf(1, 8)).forEach { repeatDays ->
+            assertThrows(IllegalArgumentException::class.java) {
+                FirstPromiseRecommendationPolicy.fromSelection(
+                    draftId = "invalid-days",
+                    goal = FirstPromiseGoal.Focus,
+                    packageName = "com.example.app",
+                    appLabel = "App",
+                    repeatDays = repeatDays,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `valid repeat boundaries are copied away from caller mutation`() {
+        val repeatDays = mutableSetOf(1, 7)
+        val proposal = FirstPromiseRecommendationPolicy.fromSelection(
+            draftId = "copied-days",
+            goal = FirstPromiseGoal.Unspecified,
+            packageName = "com.example.app",
+            appLabel = "App",
+            startMinutes = 0,
+            repeatDays = repeatDays,
+        )
+
+        repeatDays.clear()
+
+        assertEquals(setOf(1, 7), proposal.draft.repeatDays)
+        assertEquals(0, proposal.draft.startMinutes)
+    }
+
+    @Test
+    fun `typed reason mapping preserves only exact package-independent evidence`() {
+        val observed = FirstPromiseRecommendationPolicy.fromProfile(
+            draftId = "observed",
+            goal = FirstPromiseGoal.Sleep,
+            profile = profile(
+                startMinutes = 22 * 60,
+                usageCoverageDays = 7,
+                eventCoverageDays = 4,
+                dataQuality = UsageDataQuality.Full,
+                patternType = UsagePatternType.Night,
+            ),
+        )
+        val usageOnly = FirstPromiseRecommendationPolicy.fromProfile(
+            draftId = "usage-only",
+            goal = FirstPromiseGoal.Study,
+            profile = profile(
+                usageCoverageDays = 5,
+                eventCoverageDays = 1,
+                dataQuality = UsageDataQuality.UsageOnly,
+                patternType = UsagePatternType.TopApp,
+            ),
+        )
+        val goalTemplate = FirstPromiseRecommendationPolicy.fromSelection(
+            draftId = "goal-template",
+            goal = FirstPromiseGoal.Focus,
+            packageName = "com.example.app",
+            appLabel = "App",
+        )
+        val manual = FirstPromiseRecommendationPolicy.fromSelection(
+            draftId = "manual",
+            goal = FirstPromiseGoal.Unspecified,
+            packageName = "com.example.app",
+            appLabel = "App",
+            startMinutes = 18 * 60,
+        )
+
+        assertEquals(
+            RecommendationReasonRef(
+                patternType = UsagePatternType.Night,
+                usageCoverageDays = 7,
+                eventCoverageDays = 4,
+                isGoalDefault = false,
+                selectedStartMinutes = 22 * 60,
+            ),
+            FirstPromiseRecommendationPolicy.toReasonRef(observed),
+        )
+        assertEquals(
+            RecommendationReasonRef(
+                patternType = UsagePatternType.TopApp,
+                usageCoverageDays = 5,
+                eventCoverageDays = 1,
+                isGoalDefault = true,
+                selectedStartMinutes = 19 * 60,
+            ),
+            FirstPromiseRecommendationPolicy.toReasonRef(usageOnly),
+        )
+        assertEquals(
+            RecommendationReasonRef(
+                patternType = UsagePatternType.Manual,
+                usageCoverageDays = 0,
+                eventCoverageDays = 0,
+                isGoalDefault = true,
+                selectedStartMinutes = 21 * 60,
+            ),
+            FirstPromiseRecommendationPolicy.toReasonRef(goalTemplate),
+        )
+        assertEquals(
+            RecommendationReasonRef(
+                patternType = UsagePatternType.Manual,
+                usageCoverageDays = 0,
+                eventCoverageDays = 0,
+                isGoalDefault = false,
+                selectedStartMinutes = 18 * 60,
+            ),
+            FirstPromiseRecommendationPolicy.toReasonRef(manual),
+        )
     }
 
     private fun profile(

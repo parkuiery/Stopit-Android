@@ -43,6 +43,7 @@ object FirstPromiseRecommendationPolicy {
                 goal = goal,
                 startMinutes = startMinutes,
                 usageCoverageDays = profile.usageCoverageDays,
+                eventCoverageDays = profile.eventCoverageDays,
             )
 
             UsageDataQuality.Insufficient -> error("Validated above")
@@ -80,6 +81,7 @@ object FirstPromiseRecommendationPolicy {
                 goal = goal,
                 startMinutes = startMinutes,
                 usageCoverageDays = 0,
+                eventCoverageDays = 0,
             )
         } else {
             RecommendationReason.Manual
@@ -97,6 +99,91 @@ object FirstPromiseRecommendationPolicy {
         )
     }
 
+    fun toReasonRef(proposal: FirstPromiseProposal): RecommendationReasonRef {
+        val draft = proposal.draft
+        require(FirstPromiseDraftInvariant.isValid(draft)) { "Proposal contains an invalid draft" }
+
+        val reasonRef = when (val reason = proposal.reason) {
+            is RecommendationReason.ObservedPeak -> {
+                require(reason.startMinutes == draft.startMinutes) {
+                    "Observed reason must explain the proposed start"
+                }
+                RecommendationReasonRef(
+                    patternType = reason.patternType,
+                    usageCoverageDays = reason.usageCoverageDays,
+                    eventCoverageDays = reason.eventCoverageDays,
+                    isGoalDefault = false,
+                    selectedStartMinutes = reason.startMinutes,
+                )
+            }
+
+            is RecommendationReason.GoalDefault -> {
+                require(reason.goal == draft.goal && reason.startMinutes == draft.startMinutes) {
+                    "Goal reason must explain the proposed goal and start"
+                }
+                RecommendationReasonRef(
+                    patternType = reason.patternType,
+                    usageCoverageDays = reason.usageCoverageDays,
+                    eventCoverageDays = reason.eventCoverageDays,
+                    isGoalDefault = true,
+                    selectedStartMinutes = reason.startMinutes,
+                )
+            }
+
+            RecommendationReason.Manual -> RecommendationReasonRef(
+                patternType = UsagePatternType.Manual,
+                usageCoverageDays = 0,
+                eventCoverageDays = 0,
+                isGoalDefault = false,
+                selectedStartMinutes = draft.startMinutes,
+            )
+        }
+
+        require(isValidReasonRef(draft.source, reasonRef)) {
+            "Recommendation reason does not match the proposal source"
+        }
+        return reasonRef
+    }
+
+    internal fun isValidReasonRef(
+        source: FirstPromiseSource,
+        reason: RecommendationReasonRef,
+    ): Boolean {
+        if (
+            reason.usageCoverageDays !in 0..7 ||
+            reason.eventCoverageDays !in 0..7 ||
+            reason.selectedStartMinutes !in 0..1439
+        ) {
+            return false
+        }
+        return when (source) {
+            FirstPromiseSource.Personalized -> if (reason.isGoalDefault) {
+                reason.patternType == UsagePatternType.TopApp &&
+                    reason.usageCoverageDays in 3..7 &&
+                    reason.eventCoverageDays in 0..2
+            } else {
+                reason.usageCoverageDays in 3..7 &&
+                    reason.eventCoverageDays in 3..7 &&
+                    (
+                        reason.patternType == UsagePatternType.Night ||
+                            reason.patternType == UsagePatternType.PeakWindow
+                    )
+            }
+
+            FirstPromiseSource.GoalTemplate ->
+                reason.isGoalDefault &&
+                    reason.patternType == UsagePatternType.Manual &&
+                    reason.usageCoverageDays == 0 &&
+                    reason.eventCoverageDays == 0
+
+            FirstPromiseSource.Manual ->
+                !reason.isGoalDefault &&
+                    reason.patternType == UsagePatternType.Manual &&
+                    reason.usageCoverageDays == 0 &&
+                    reason.eventCoverageDays == 0
+        }
+    }
+
     private fun proposal(
         draftId: String,
         goal: FirstPromiseGoal,
@@ -107,21 +194,47 @@ object FirstPromiseRecommendationPolicy {
         source: FirstPromiseSource,
         reason: RecommendationReason,
     ): FirstPromiseProposal {
-        require(packageName.isNotBlank()) { "Package name must not be empty" }
-        require(startMinutes in 0..1439) { "Start time must be within a local day" }
-        require(repeatDays.isNotEmpty()) { "At least one repeat day is required" }
+        val draft = FirstPromiseDraft(
+            draftId = draftId,
+            goal = goal,
+            packageName = packageName,
+            appLabel = appLabel,
+            startMinutes = startMinutes,
+            repeatDays = repeatDays.toSet(),
+            source = source,
+        )
+        require(FirstPromiseDraftInvariant.isValid(draft)) { "Invalid first-promise draft" }
 
         return FirstPromiseProposal(
-            draft = FirstPromiseDraft(
-                draftId = draftId,
-                goal = goal,
-                packageName = packageName,
-                appLabel = appLabel,
-                startMinutes = startMinutes,
-                repeatDays = repeatDays.toSet(),
-                source = source,
-            ),
+            draft = draft,
             reason = reason,
         )
     }
+}
+
+internal object FirstPromiseDraftInvariant {
+    fun isValid(draft: FirstPromiseDraft): Boolean =
+        draft.draftId.isNotBlank() &&
+            draft.packageName.isNotBlank() &&
+            draft.appLabel.isNotBlank() &&
+            draft.startMinutes in 0..1439 &&
+            draft.repeatDays.isNotEmpty() &&
+            draft.repeatDays.all { it in 1..7 } &&
+            when (draft.source) {
+                FirstPromiseSource.Personalized -> true
+                FirstPromiseSource.GoalTemplate -> draft.goal != FirstPromiseGoal.Unspecified
+                FirstPromiseSource.Manual -> draft.goal == FirstPromiseGoal.Unspecified
+            }
+
+    fun isValidForState(
+        draft: FirstPromiseDraft,
+        expectedGoal: FirstPromiseGoal,
+        expectedPath: FirstPromisePath,
+    ): Boolean =
+        isValid(draft) &&
+            draft.goal == expectedGoal &&
+            when (expectedPath) {
+                FirstPromisePath.Personalized -> draft.source == FirstPromiseSource.Personalized
+                FirstPromisePath.Manual -> draft.source != FirstPromiseSource.Personalized
+            }
 }

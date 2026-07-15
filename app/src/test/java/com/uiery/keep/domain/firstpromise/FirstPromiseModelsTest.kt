@@ -143,6 +143,7 @@ class FirstPromiseModelsTest {
             goal = FirstPromiseGoal.Focus,
             startMinutes = 9 * 60,
             usageCoverageDays = 4,
+            eventCoverageDays = 2,
         )
 
         assertEquals(UsagePatternType.Night, observed.patternType)

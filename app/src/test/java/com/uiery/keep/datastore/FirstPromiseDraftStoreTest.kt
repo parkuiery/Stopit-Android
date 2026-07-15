@@ -19,7 +19,6 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.domain.firstpromise.PendingSystemAction
-import com.uiery.keep.domain.firstpromise.RecommendationReason
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.UsagePermissionAttempt
@@ -240,14 +239,7 @@ class FirstPromiseDraftStoreTest {
             packageName = "com.example.video",
             appLabel = "Video",
         )
-        val generatedReason = proposal.reason as RecommendationReason.GoalDefault
-        val createdReason = RecommendationReasonRef(
-            patternType = generatedReason.patternType,
-            usageCoverageDays = generatedReason.usageCoverageDays,
-            eventCoverageDays = 0,
-            isGoalDefault = true,
-            selectedStartMinutes = generatedReason.startMinutes,
-        )
+        val createdReason = FirstPromiseRecommendationPolicy.toReasonRef(proposal)
         val observationClaim = createdReason.copy(patternType = UsagePatternType.TopApp)
 
         assertEquals(
@@ -277,6 +269,107 @@ class FirstPromiseDraftStoreTest {
             store.editDraft(editedDraft.copy(source = FirstPromiseSource.Personalized), editedReason),
         )
         assertEquals(2, dataStore.editCount)
+    }
+
+    @Test
+    fun invalidDraftCopiesAreRejectedAcrossEveryDraftWriteWithoutEdits() = runBlocking {
+        val manualState = completeDraftState().copy(
+            phase = FirstPromisePhase.ManualSelectPending,
+            path = FirstPromisePath.Manual,
+            draft = null,
+            recommendationReasonRef = null,
+            pendingSystemAction = null,
+            analysisAttemptId = null,
+        )
+        val manualProposal = FirstPromiseRecommendationPolicy.fromSelection(
+            draftId = "manual-draft",
+            goal = FirstPromiseGoal.Sleep,
+            packageName = "com.example.video",
+            appLabel = "Video",
+        )
+        val manualReason = FirstPromiseRecommendationPolicy.toReasonRef(manualProposal)
+
+        invalidDraftCopies(manualProposal.draft).forEach { invalidDraft ->
+            val dataStore = FirstPromiseFakeDataStore(statePreferences(manualState))
+            val store = FirstPromiseDraftStore(dataStore)
+
+            assertEquals(FirstPromiseStateMutation.Rejected, store.createManualDraft(invalidDraft, manualReason))
+            assertEquals(0, dataStore.editCount)
+        }
+
+        val editableState = completeDraftState().copy(
+            phase = FirstPromisePhase.DraftReady,
+            pendingSystemAction = null,
+        )
+        invalidDraftCopies(checkNotNull(editableState.draft)).forEach { invalidDraft ->
+            val dataStore = FirstPromiseFakeDataStore(statePreferences(editableState))
+            val store = FirstPromiseDraftStore(dataStore)
+
+            assertEquals(
+                FirstPromiseStateMutation.Rejected,
+                store.editDraft(invalidDraft, checkNotNull(editableState.recommendationReasonRef)),
+            )
+            assertEquals(0, dataStore.editCount)
+        }
+
+        val analyzingState = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            draft = null,
+            recommendationReasonRef = null,
+            pendingSystemAction = null,
+            analysisAttemptId = 8L,
+        )
+        val analysisDraft = draft("analysis-draft", 22 * 60)
+        val analysisReason = reason(22 * 60)
+        invalidDraftCopies(analysisDraft).forEach { invalidDraft ->
+            val dataStore = FirstPromiseFakeDataStore(statePreferences(analyzingState))
+            val store = FirstPromiseDraftStore(dataStore)
+
+            assertFalse(store.completeAnalysis(8L, invalidDraft, analysisReason))
+            assertEquals(0, dataStore.editCount)
+        }
+    }
+
+    @Test
+    fun personalizedAnalysisAcceptsOnlyObservedPeakOrTopAppGoalDefaultEvidence() = runBlocking {
+        val analyzingState = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            draft = null,
+            recommendationReasonRef = null,
+            pendingSystemAction = null,
+            analysisAttemptId = 8L,
+        )
+        val personalizedDraft = draft("personalized", 22 * 60)
+        val forgedReasons = listOf(
+            reason(22 * 60, patternType = UsagePatternType.TopApp, isGoalDefault = false),
+            reason(22 * 60, patternType = UsagePatternType.Manual, isGoalDefault = false),
+            reason(22 * 60, patternType = UsagePatternType.Night, isGoalDefault = true),
+        )
+
+        forgedReasons.forEach { forgedReason ->
+            val dataStore = FirstPromiseFakeDataStore(statePreferences(analyzingState))
+            val store = FirstPromiseDraftStore(dataStore)
+
+            assertFalse(store.completeAnalysis(8L, personalizedDraft, forgedReason))
+            assertEquals(0, dataStore.editCount)
+        }
+
+        listOf(
+            reason(22 * 60, patternType = UsagePatternType.Night, isGoalDefault = false),
+            reason(
+                22 * 60,
+                patternType = UsagePatternType.TopApp,
+                isGoalDefault = true,
+                eventCoverageDays = 2,
+            ),
+        ).forEach { validReason ->
+            val dataStore = FirstPromiseFakeDataStore(statePreferences(analyzingState))
+            val store = FirstPromiseDraftStore(dataStore)
+
+            assertTrue(store.completeAnalysis(8L, personalizedDraft, validReason))
+            assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+            assertEquals(1, dataStore.editCount)
+        }
     }
 
     @Test
@@ -667,12 +760,32 @@ class FirstPromiseDraftStoreTest {
         startMinutes: Int,
         patternType: UsagePatternType = UsagePatternType.Night,
         isGoalDefault: Boolean = false,
+        eventCoverageDays: Int = 6,
     ) = RecommendationReasonRef(
         patternType = patternType,
         usageCoverageDays = 7,
-        eventCoverageDays = 6,
+        eventCoverageDays = eventCoverageDays,
         isGoalDefault = isGoalDefault,
         selectedStartMinutes = startMinutes,
+    )
+
+    private fun invalidDraftCopies(draft: FirstPromiseDraft) = listOf(
+        draft.copy(draftId = " "),
+        draft.copy(packageName = " "),
+        draft.copy(appLabel = " "),
+        draft.copy(startMinutes = -1),
+        draft.copy(startMinutes = 24 * 60),
+        draft.copy(repeatDays = emptySet()),
+        draft.copy(repeatDays = setOf(0)),
+        draft.copy(repeatDays = setOf(8)),
+        draft.copy(goal = FirstPromiseGoal.Focus),
+        draft.copy(
+            source = if (draft.source == FirstPromiseSource.Personalized) {
+                FirstPromiseSource.Manual
+            } else {
+                FirstPromiseSource.Personalized
+            },
+        ),
     )
 
     private fun statePreferences(state: FirstPromiseOnboardingState): Preferences = mutablePreferencesOf(

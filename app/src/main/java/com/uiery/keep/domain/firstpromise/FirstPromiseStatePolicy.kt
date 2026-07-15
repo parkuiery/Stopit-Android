@@ -267,9 +267,7 @@ object FirstPromiseStatePolicy {
         if (
             state.phase != FirstPromisePhase.ManualSelectPending ||
             state.path != FirstPromisePath.Manual ||
-            !sourceMatchesPath(state, draft.source) ||
-            !reasonMatchesManualSource(reason, draft.source) ||
-            !draftMatchesState(state, draft, reason)
+            !draftAndReasonAreValidForState(state, draft, reason)
         ) {
             return FirstPromiseStateMutation.Rejected
         }
@@ -294,9 +292,8 @@ object FirstPromiseStatePolicy {
             currentReason == null ||
             draft.draftId != currentDraft.draftId ||
             draft.source != currentDraft.source ||
-            !sourceMatchesPath(state, draft.source) ||
             reason != currentReason.copy(selectedStartMinutes = draft.startMinutes) ||
-            !draftMatchesState(state, draft, reason)
+            !draftAndReasonAreValidForState(state, draft, reason)
         ) {
             return FirstPromiseStateMutation.Rejected
         }
@@ -351,8 +348,7 @@ object FirstPromiseStatePolicy {
         if (
             !acceptsAnalysisAttempt(state, attemptId) ||
             state.path != FirstPromisePath.Personalized ||
-            draft.source != FirstPromiseSource.Personalized ||
-            !draftMatchesState(state, draft, reason)
+            !draftAndReasonAreValidForState(state, draft, reason)
         ) {
             return FirstPromiseStateMutation.Rejected
         }
@@ -715,35 +711,14 @@ object FirstPromiseStatePolicy {
         )
     }
 
-    private fun draftMatchesState(
+    private fun draftAndReasonAreValidForState(
         state: FirstPromiseOnboardingState,
         draft: FirstPromiseDraft,
         reason: RecommendationReasonRef,
     ): Boolean =
-        draft.goal == state.goal && reason.selectedStartMinutes == draft.startMinutes
-
-    private fun sourceMatchesPath(
-        state: FirstPromiseOnboardingState,
-        source: FirstPromiseSource,
-    ): Boolean = when (state.path) {
-        FirstPromisePath.Personalized -> source == FirstPromiseSource.Personalized
-        FirstPromisePath.Manual -> source == if (state.goal == FirstPromiseGoal.Unspecified) {
-            FirstPromiseSource.Manual
-        } else {
-            FirstPromiseSource.GoalTemplate
-        }
-    }
-
-    private fun reasonMatchesManualSource(
-        reason: RecommendationReasonRef,
-        source: FirstPromiseSource,
-    ): Boolean = when (source) {
-        FirstPromiseSource.GoalTemplate ->
-            reason.isGoalDefault && reason.patternType == UsagePatternType.Manual
-        FirstPromiseSource.Manual ->
-            !reason.isGoalDefault && reason.patternType == UsagePatternType.Manual
-        FirstPromiseSource.Personalized -> false
-    }
+        FirstPromiseDraftInvariant.isValidForState(draft, state.goal, state.path) &&
+            reason.selectedStartMinutes == draft.startMinutes &&
+            FirstPromiseRecommendationPolicy.isValidReasonRef(draft.source, reason)
 
     private fun transitionWithDraft(
         state: FirstPromiseOnboardingState,
@@ -752,7 +727,7 @@ object FirstPromiseStatePolicy {
         if (
             state.draft != null &&
             state.recommendationReasonRef != null &&
-            draftMatchesState(state, state.draft, state.recommendationReasonRef)
+            draftAndReasonAreValidForState(state, state.draft, state.recommendationReasonRef)
         ) {
             transition(state, target)
         } else {
