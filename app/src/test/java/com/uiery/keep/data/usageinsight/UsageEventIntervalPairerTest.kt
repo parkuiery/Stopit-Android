@@ -175,6 +175,39 @@ class UsageEventIntervalPairerTest {
         assertEquals(Duration.ofMinutes(90), summary.nightUsage)
     }
 
+    @Test
+    fun `Home launch count keeps accepted resume whose paired interval is zero duration`() {
+        val pairer = UsageEventIntervalPairer(
+            ownPackageName = "com.keep",
+            excludedPackages = emptySet(),
+            isLaunchable = { true },
+        )
+        val reconstruction = pairer.reconstruct(
+            localDate = day,
+            zoneId = zoneId,
+            requestStartMillis = dayStart(),
+            requestEndExclusiveMillis = dayEnd(),
+            events = listOf(
+                event("com.video", LocalTime.of(10, 0), ForegroundEventType.Resumed),
+                event("com.video", LocalTime.of(10, 10), ForegroundEventType.Paused),
+                event("com.video", LocalTime.of(11, 0), ForegroundEventType.Resumed),
+                event("com.video", LocalTime.of(11, 0), ForegroundEventType.Paused),
+            ),
+        )
+
+        val summary = aggregateAppUsageIntervals(
+            localDate = day,
+            zoneId = zoneId,
+            intervals = reconstruction.intervals,
+            acceptedInDayLaunchCounts = reconstruction.acceptedInDayLaunchCounts,
+        ).single()
+
+        assertEquals(1, reconstruction.intervals.size)
+        assertTrue(reconstruction.intervals.single().countsAsLaunch)
+        assertEquals(Duration.ofMinutes(10), summary.totalUsage)
+        assertEquals(2, summary.launchCount)
+    }
+
     private fun pair(
         date: LocalDate = day,
         zone: ZoneId = zoneId,

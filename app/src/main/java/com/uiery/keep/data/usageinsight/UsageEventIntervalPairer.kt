@@ -25,6 +25,12 @@ data class AppUsageInterval(
     val countsAsLaunch: Boolean,
 )
 
+data class UsageEventReconstruction(
+    val localDate: LocalDate,
+    val intervals: List<AppUsageInterval>,
+    val acceptedInDayLaunchCounts: Map<String, Int>,
+)
+
 /** Pairs framework-free foreground events using the same rules as the Home daily summary. */
 class UsageEventIntervalPairer(
     private val ownPackageName: String,
@@ -37,12 +43,28 @@ class UsageEventIntervalPairer(
         requestStartMillis: Long,
         requestEndExclusiveMillis: Long,
         events: List<ForegroundEventSample>,
-    ): List<AppUsageInterval> {
+    ): List<AppUsageInterval> = reconstruct(
+        localDate = localDate,
+        zoneId = zoneId,
+        requestStartMillis = requestStartMillis,
+        requestEndExclusiveMillis = requestEndExclusiveMillis,
+        events = events,
+    ).intervals
+
+    fun reconstruct(
+        localDate: LocalDate,
+        zoneId: ZoneId,
+        requestStartMillis: Long,
+        requestEndExclusiveMillis: Long,
+        events: List<ForegroundEventSample>,
+    ): UsageEventReconstruction {
         val dayStartMillis = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
         val dayEndExclusiveMillis = localDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
         val clampedRequestStart = maxOf(requestStartMillis, dayStartMillis)
         val clampedRequestEnd = minOf(requestEndExclusiveMillis, dayEndExclusiveMillis)
-        if (clampedRequestStart >= clampedRequestEnd) return emptyList()
+        if (clampedRequestStart >= clampedRequestEnd) {
+            return UsageEventReconstruction(localDate, emptyList(), emptyMap())
+        }
 
         val launchableCache = mutableMapOf<String, Boolean>()
         fun isIncluded(packageName: String): Boolean =
@@ -53,6 +75,7 @@ class UsageEventIntervalPairer(
         val foregroundSince = mutableMapOf<String, Long>()
         val resumedPackages = mutableSetOf<String>()
         val closedFromDayStart = mutableSetOf<String>()
+        val acceptedInDayLaunchCounts = mutableMapOf<String, Int>()
         val intervals = mutableListOf<AppUsageInterval>()
 
         fun addInterval(
@@ -80,7 +103,9 @@ class UsageEventIntervalPairer(
                 when (event.type) {
                     ForegroundEventType.Resumed -> {
                         resumedPackages += event.packageName
-                        foregroundSince.putIfAbsent(event.packageName, event.timestampMillis)
+                        if (foregroundSince.putIfAbsent(event.packageName, event.timestampMillis) == null) {
+                            acceptedInDayLaunchCounts.merge(event.packageName, 1, Int::plus)
+                        }
                     }
 
                     ForegroundEventType.Paused,
@@ -116,10 +141,14 @@ class UsageEventIntervalPairer(
             )
         }
 
-        return intervals.sortedWith(
-            compareBy<AppUsageInterval> { it.startMillis }
-                .thenBy { it.packageName }
-                .thenBy { it.endMillis },
+        return UsageEventReconstruction(
+            localDate = localDate,
+            intervals = intervals.sortedWith(
+                compareBy<AppUsageInterval> { it.startMillis }
+                    .thenBy { it.packageName }
+                    .thenBy { it.endMillis },
+            ),
+            acceptedInDayLaunchCounts = acceptedInDayLaunchCounts.toMap(),
         )
     }
 }
@@ -128,6 +157,7 @@ internal fun aggregateAppUsageIntervals(
     localDate: LocalDate,
     zoneId: ZoneId,
     intervals: List<AppUsageInterval>,
+    acceptedInDayLaunchCounts: Map<String, Int>? = null,
 ): List<AppUsageDay> {
     val dayStartMillis = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
     val nightEndMillis = localDate.atTime(6, 0).atZone(zoneId).toInstant().toEpochMilli()
@@ -141,7 +171,8 @@ internal fun aggregateAppUsageIntervals(
                 totalUsage = Duration.ofMillis(
                     packageIntervals.sumOf { it.endMillis - it.startMillis },
                 ),
-                launchCount = packageIntervals.count { it.countsAsLaunch },
+                launchCount = acceptedInDayLaunchCounts?.get(packageName)
+                    ?: packageIntervals.count { it.countsAsLaunch },
                 nightUsage = Duration.ofMillis(
                     packageIntervals.sumOf { interval ->
                         (minOf(interval.endMillis, nightEndMillis) -

@@ -44,10 +44,15 @@ class AndroidUsageStatsGateway @Inject constructor(
     override fun queryDailyUsage(from: LocalDate, toInclusive: LocalDate): List<AppUsageDay> {
         if (from.isAfter(toInclusive)) return emptyList()
         val zone = ZoneId.systemDefault()
-        return queryOnboardingUsageIntervals(from..toInclusive, zone)
-            .groupBy { it.localDate }
-            .toSortedMap()
-            .flatMap { (day, intervals) -> aggregateAppUsageIntervals(day, zone, intervals) }
+        return queryUsageReconstructions(from..toInclusive, zone)
+            .flatMap { reconstruction ->
+                aggregateAppUsageIntervals(
+                    localDate = reconstruction.localDate,
+                    zoneId = zone,
+                    intervals = reconstruction.intervals,
+                    acceptedInDayLaunchCounts = reconstruction.acceptedInDayLaunchCounts,
+                )
+            }
     }
 
     override fun queryOnboardingDailyAggregates(
@@ -81,7 +86,13 @@ class AndroidUsageStatsGateway @Inject constructor(
     override fun queryOnboardingUsageIntervals(
         days: ClosedRange<LocalDate>,
         zoneId: ZoneId,
-    ): List<AppUsageInterval> {
+    ): List<AppUsageInterval> = queryUsageReconstructions(days, zoneId)
+        .flatMap { it.intervals }
+
+    private fun queryUsageReconstructions(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<UsageEventReconstruction> {
         if (days.start > days.endInclusive) return emptyList()
         val usageStatsManager =
             context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
@@ -97,17 +108,17 @@ class AndroidUsageStatsGateway @Inject constructor(
         )
         return generateSequence(days.start) { date ->
             date.plusDays(1).takeIf { it <= days.endInclusive }
-        }.flatMap { date ->
+        }.map { date ->
             val dayStartMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
             val dayEndExclusiveMillis = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-            pairer.pair(
+            pairer.reconstruct(
                 localDate = date,
                 zoneId = zoneId,
                 requestStartMillis = dayStartMillis,
                 requestEndExclusiveMillis = dayEndExclusiveMillis,
                 events = usageStatsManager.queryEvents(dayStartMillis, dayEndExclusiveMillis)
                     .toForegroundEventSamples(),
-            ).asSequence()
+            )
         }.toList()
     }
 
