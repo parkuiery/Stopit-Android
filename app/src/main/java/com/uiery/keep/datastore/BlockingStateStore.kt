@@ -149,24 +149,42 @@ class BlockingStateStore @Inject constructor(
         packages: Set<String>,
         startTimeMillis: Long,
         encodedDeadline: String,
-    ) {
+    ): TimedLockSessionOwnership {
+        var ownership: TimedLockSessionOwnership? = null
         dataStore.edit { preferences ->
+            ownership = TimedLockSessionOwnership(
+                encodedDeadline = encodedDeadline,
+                previous = TimedLockSessionSnapshot(
+                    selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES],
+                    startTimeMillis = preferences[PreferencesKey.START_TIME],
+                    encodedDeadline = preferences[PreferencesKey.LOCK_TIME],
+                ),
+            )
             preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
             preferences[PreferencesKey.START_TIME] = startTimeMillis
             preferences[PreferencesKey.LOCK_TIME] = encodedDeadline
         }
+        return checkNotNull(ownership)
     }
 
-    suspend fun rollbackTimedLockSession(encodedDeadline: String): Boolean {
+    suspend fun rollbackTimedLockSession(ownership: TimedLockSessionOwnership): Boolean {
         var rolledBack = false
         dataStore.edit { preferences ->
-            if (preferences[PreferencesKey.LOCK_TIME] == encodedDeadline) {
-                preferences.remove(PreferencesKey.LOCK_TIME)
-                preferences.remove(PreferencesKey.START_TIME)
+            if (preferences[PreferencesKey.LOCK_TIME] == ownership.encodedDeadline) {
+                preferences.restore(PreferencesKey.SELECTED_APP_PACKAGES, ownership.previous.selectedAppPackages)
+                preferences.restore(PreferencesKey.START_TIME, ownership.previous.startTimeMillis)
+                preferences.restore(PreferencesKey.LOCK_TIME, ownership.previous.encodedDeadline)
                 rolledBack = true
             }
         }
         return rolledBack
+    }
+
+    private fun <T> androidx.datastore.preferences.core.MutablePreferences.restore(
+        key: Preferences.Key<T>,
+        value: T?,
+    ) {
+        if (value == null) remove(key) else this[key] = value
     }
 
     suspend fun setPreventUninstall(enabled: Boolean) {
@@ -189,6 +207,17 @@ class BlockingStateStore @Inject constructor(
         }
     }
 }
+
+data class TimedLockSessionSnapshot(
+    val selectedAppPackages: Set<String>?,
+    val startTimeMillis: Long?,
+    val encodedDeadline: String?,
+)
+
+data class TimedLockSessionOwnership(
+    val encodedDeadline: String,
+    val previous: TimedLockSessionSnapshot,
+)
 
 data class AccessibilityBlockingSnapshot(
     val isKeep: Boolean = false,

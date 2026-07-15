@@ -11,6 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
 
 private const val SENT_RETENTION_DAYS = 30L
 private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
@@ -64,7 +65,13 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
 
     override suspend fun drainAll() = drainMutex.withLock {
         store.pendingDraftIds().forEach { draftId ->
-            runCatching { drainDraftUnlocked(draftId) }
+            try {
+                drainDraftUnlocked(draftId)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                // Isolate ordinary delivery failures so later drafts can still drain.
+            }
         }
     }
 

@@ -10,11 +10,13 @@ import com.uiery.keep.feature.review.FakeDataStore
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class TimedLockSessionControllerTest {
@@ -34,6 +36,8 @@ class TimedLockSessionControllerTest {
         )
 
         assertTrue(result is TimedLockStartResult.Started)
+        assertTrue(analytics.calls.isEmpty())
+        controller.commit(result as TimedLockStartResult.Started)
         val snapshot = dataStore.snapshot()
         assertEquals(setOf("com.example.focus"), snapshot[PreferencesKey.SELECTED_APP_PACKAGES])
         assertEquals(now.toEpochMilli(), snapshot[PreferencesKey.START_TIME])
@@ -63,6 +67,8 @@ class TimedLockSessionControllerTest {
         val result = controller.start(setOf("com.example.focus"), 10, TimedLockStartOrigin.FirstPromisePractice)
 
         assertTrue(result is TimedLockStartResult.Started)
+        assertTrue(analytics.calls.isEmpty())
+        controller.commit(result as TimedLockStartResult.Started)
         assertEquals(listOf("scheduled:countdown:10", "start:home_timer"), analytics.calls)
         assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
     }
@@ -81,6 +87,7 @@ class TimedLockSessionControllerTest {
         )
 
         assertTrue(result is TimedLockStartResult.Started)
+        controller.commit(result as TimedLockStartResult.Started)
         assertEquals(ManualLockTimePolicy.encodeDeadline(now.plusSeconds(30)), dataStore.snapshot()[PreferencesKey.LOCK_TIME])
         assertTrue("scheduled:timer:0" in analytics.calls)
     }
@@ -107,9 +114,54 @@ class TimedLockSessionControllerTest {
             dataStore.snapshot()[PreferencesKey.LOCK_TIME],
         )
     }
+
+    @Test
+    fun rollbackRestoresPreviousSelectionStartAndExpiredDeadlineAtomically() = runBlocking {
+        val previousDeadline = ManualLockTimePolicy.encodeDeadline(now.minusSeconds(60))
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.previous"),
+                PreferencesKey.START_TIME to 123L,
+                PreferencesKey.LOCK_TIME to previousDeadline,
+            ),
+        )
+        val controller = TimedLockSessionController(BlockingStateStore(dataStore), RecordingAnalytics(), clock)
+        val started = controller.start(
+            packages = setOf("com.example.practice"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.FirstPromisePractice,
+        ) as TimedLockStartResult.Started
+
+        assertTrue(controller.rollback(started))
+
+        val restored = dataStore.snapshot()
+        assertEquals(setOf("com.example.previous"), restored[PreferencesKey.SELECTED_APP_PACKAGES])
+        assertEquals(123L, restored[PreferencesKey.START_TIME])
+        assertEquals(previousDeadline, restored[PreferencesKey.LOCK_TIME])
+    }
+
+    @Test
+    fun analyticsCancellationAtCommitBoundaryIsRethrown() {
+        val dataStore = FakeDataStore()
+        val analytics = RecordingAnalytics(scheduledFailure = CancellationException("cancel analytics"))
+        val controller = TimedLockSessionController(BlockingStateStore(dataStore), analytics, clock)
+        val started = runBlocking {
+            controller.start(
+                setOf("com.example.focus"),
+                10,
+                TimedLockStartOrigin.FirstPromisePractice,
+            ) as TimedLockStartResult.Started
+        }
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { controller.commit(started) }
+        }
+    }
 }
 
-private class RecordingAnalytics : KeepAnalytics {
+private class RecordingAnalytics(
+    private val scheduledFailure: Throwable? = null,
+) : KeepAnalytics {
     val calls = mutableListOf<String>()
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
@@ -127,6 +179,7 @@ private class RecordingAnalytics : KeepAnalytics {
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
     override fun trackLockScheduled(scheduleType: String, scheduledDurationMinutes: Long) {
+        scheduledFailure?.let { throw it }
         calls += "scheduled:$scheduleType:$scheduledDurationMinutes"
     }
 }

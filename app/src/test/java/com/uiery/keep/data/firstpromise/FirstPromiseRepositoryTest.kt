@@ -13,8 +13,11 @@ import com.uiery.keep.notification.RoutineScheduler
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,17 +50,21 @@ class FirstPromiseRepositoryTest {
     )
 
     @Test
-    fun sameDraftAndConcurrentDuplicateTapsCommitOneRoutineMappingAndOrderedPair() = runBlocking {
-        val store = FakeAtomicStore()
+    fun sameDraftAndConcurrentDuplicateTapsCommitOneRoutineMappingAndOrderedPair() = runBlocking<Unit> {
+        val store = FakeAtomicStore(initialReadGate = CountDownLatch(2))
         val scheduler = scheduler(canSchedule = true, scheduleResult = RoutineScheduleResult.Scheduled)
         val repository = repository(store, scheduler)
 
-        val results = List(8) { async { repository.createFirstPromise(draft, routine) } }.awaitAll()
+        val results = List(2) {
+            async(Dispatchers.Default) { repository.createFirstPromise(draft, routine) }
+        }.awaitAll()
 
         assertEquals(1, results.map { it.routineId }.distinct().size)
         assertEquals(1, store.routines.size)
         assertEquals(1, store.mappings.size)
         assertEquals(listOf(10, 20), store.outbox.map { it.sequence }.sorted())
+        Mockito.verify(scheduler, Mockito.times(1))
+            .scheduleRoutine(Mockito.any(RoutineModel::class.java) ?: routine)
     }
 
     @Test
@@ -217,14 +224,21 @@ class FirstPromiseRepositoryTest {
 private class FakeAtomicStore(
     private val onInsertRoutine: () -> Unit = {},
     private val failAfterOutboxInsert: Boolean = false,
+    private val initialReadGate: CountDownLatch? = null,
 ) : FirstPromiseRepositoryStorage {
     private val mutex = Mutex()
     val routines = mutableListOf<RoutineModel>()
     val mappings = mutableListOf<FirstPromiseEntity>()
     val outbox = mutableListOf<FirstPromiseAnalyticsOutboxEntity>()
 
-    override suspend fun findMapping(draftId: String): FirstPromiseEntity? =
-        mappings.firstOrNull { it.draftId == draftId }
+    override suspend fun findMapping(draftId: String): FirstPromiseEntity? {
+        val result = mappings.firstOrNull { it.draftId == draftId }
+        initialReadGate?.takeIf { it.count > 0L }?.let { gate ->
+            gate.countDown()
+            check(gate.await(5, TimeUnit.SECONDS)) { "duplicate creation calls did not overlap" }
+        }
+        return result
+    }
 
     override suspend fun findMappingByRoutineId(routineId: Long): FirstPromiseEntity? =
         mappings.firstOrNull { it.routineId == routineId }

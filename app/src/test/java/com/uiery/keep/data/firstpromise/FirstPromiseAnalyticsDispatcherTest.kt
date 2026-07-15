@@ -9,9 +9,11 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseSource
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class FirstPromiseAnalyticsDispatcherTest {
@@ -65,6 +67,21 @@ class FirstPromiseAnalyticsDispatcherTest {
                 .all { it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT },
         )
         assertEquals(listOf("saved", "saved", "created"), analytics.calls)
+    }
+
+    @Test
+    fun drainAllNeverIsolatesCoroutineCancellation() {
+        val store = FakeOutboxStore(creationRows("draft"))
+        val analytics = DispatcherRecordingAnalytics(
+            firstFailure = CancellationException("cancel drain"),
+        )
+        val dispatcher = FirstPromiseAnalyticsDispatcher(store, codec, analytics, clock)
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { dispatcher.drainAll() }
+        }
+
+        assertEquals(FirstPromiseOutboxEventCodec.DELIVERY_PENDING, store.rows.first().deliveryState)
     }
 
     @Test
@@ -311,6 +328,7 @@ internal class FakeCreationBarrier : FirstPromiseCreationBarrier {
 
 private class DispatcherRecordingAnalytics(
     private var failFirstCall: Boolean = false,
+    private var firstFailure: Throwable? = null,
 ) : KeepAnalytics {
     val calls = mutableListOf<String>()
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
@@ -327,6 +345,10 @@ private class DispatcherRecordingAnalytics(
 
     override fun trackRoutineSaved(payload: RoutineSavedAnalyticsPayload) {
         calls += "saved"
+        firstFailure?.let { failure ->
+            firstFailure = null
+            throw failure
+        }
         if (failFirstCall) {
             failFirstCall = false
             error("analytics unavailable")

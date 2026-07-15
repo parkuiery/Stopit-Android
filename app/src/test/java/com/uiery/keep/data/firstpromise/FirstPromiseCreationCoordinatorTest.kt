@@ -1,5 +1,7 @@
 package com.uiery.keep.data.firstpromise
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
@@ -12,6 +14,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.feature.review.FakeDataStore
@@ -20,9 +23,12 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -31,6 +37,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class FirstPromiseCreationCoordinatorTest {
@@ -90,6 +97,81 @@ class FirstPromiseCreationCoordinatorTest {
         val state = FirstPromiseDraftStore(dataStore).readState()
         assertEquals(FirstPromisePhase.PersistFailed, state.phase)
         assertEquals(draft, state.draft)
+    }
+
+    @Test
+    fun postCommitMappingWriteFailureStaysPersistingAndRetryReusesSameDraftMapping() = runBlocking {
+        val dataStore = FailNextUpdateDataStore(persistingPreferences(draft))
+        val creator = IdempotentDraftCreator(successResult())
+        val store = FirstPromiseDraftStore(dataStore)
+        val coordinator = FirstPromiseCreationCoordinator(
+            creator,
+            FakeDispatcher(sent = true),
+            store,
+            BlockingStateStore(dataStore),
+            CoordinatorRecordingAnalytics(),
+        )
+
+        val failed = coordinator.persistCurrentDraft()
+
+        assertTrue(failed is FirstPromisePersistenceResult.Failed)
+        assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
+        assertEquals(
+            FirstPromiseStateMutation.Rejected,
+            store.createManualDraft(
+                draft.copy(draftId = "fork"),
+                requireNotNull(store.readState().recommendationReasonRef),
+            ),
+        )
+        assertEquals(
+            com.uiery.keep.domain.firstpromise.FirstPromiseEmergencyAction.WaitForPersistence,
+            store.applyEmergency().action,
+        )
+
+        val recovered = coordinator.persistCurrentDraft()
+
+        assertTrue(recovered is FirstPromisePersistenceResult.Succeeded)
+        assertEquals(1, creator.createdRoutineCount)
+        assertEquals(2, creator.createCalls)
+        assertEquals(41L, store.readState().routineId)
+        assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+    }
+
+    @Test
+    fun rejectedPostCommitMappingIsFailureWithoutMovingToPersistFailed() = runBlocking {
+        val dataStore = persistingDataStore(draft)
+        val store = FirstPromiseDraftStore(dataStore)
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(successResult().copy(routineId = 0L)),
+            FakeDispatcher(sent = true),
+            store,
+            BlockingStateStore(dataStore),
+            CoordinatorRecordingAnalytics(),
+        )
+
+        val result = coordinator.persistCurrentDraft()
+
+        assertTrue(result is FirstPromisePersistenceResult.Failed)
+        assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
+    }
+
+    @Test
+    fun cancellationDuringCreationPropagatesWithoutMarkingPersistenceFailed() {
+        val dataStore = persistingDataStore(draft)
+        val store = FirstPromiseDraftStore(dataStore)
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(failure = CancellationException("cancel creation")),
+            FakeDispatcher(sent = false),
+            store,
+            BlockingStateStore(dataStore),
+            CoordinatorRecordingAnalytics(),
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { coordinator.persistCurrentDraft() }
+        }
+
+        assertEquals(FirstPromisePhase.Persisting, runBlocking { store.readState() }.phase)
     }
 
     @Test
@@ -158,6 +240,36 @@ class FirstPromiseCreationCoordinatorTest {
         val state = FirstPromiseDraftStore(dataStore).readState()
         assertEquals(41L, state.routineId)
         assertEquals(FirstPromiseScheduleState.Enabled, state.scheduleState)
+    }
+
+    @Test
+    fun readOnlyReconciliationDoesNotFinalizeOrTrackWhenCurrentRoutineWasDisabled() = runBlocking {
+        val disabled = successResult().copy(
+            routine = successResult().routine.copy(isEnabled = false),
+            scheduleState = FirstPromiseScheduleState.DisabledUserChoice,
+            schedulingSucceeded = false,
+            draftId = draft.draftId,
+        )
+        val creator = FakeCreator(result = disabled, finalizedResult = successResult())
+        val dispatcher = FakeDispatcher(sent = true)
+        val analytics = CoordinatorRecordingAnalytics()
+        val dataStore = completedEnabledDataStore()
+        val store = FirstPromiseDraftStore(dataStore)
+        val coordinator = FirstPromiseCreationCoordinator(
+            creator,
+            dispatcher,
+            store,
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        val result = coordinator.reconcileExistingRoutine(41L)
+
+        assertTrue(result is FirstPromisePersistenceResult.Succeeded)
+        assertFalse((result as FirstPromisePersistenceResult.Succeeded).creation.routine.isEnabled)
+        assertTrue(creator.finalizedRoutineIds.isEmpty())
+        assertTrue(dispatcher.drainedDrafts.isEmpty())
+        assertEquals(0, analytics.firstLockAttempts)
     }
 
     @Test
@@ -300,8 +412,9 @@ class FirstPromiseCreationCoordinatorTest {
         assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
     }
 
-    private fun persistingDataStore(draft: FirstPromiseDraft) = FakeDataStore(
-        mutablePreferencesOf(
+    private fun persistingDataStore(draft: FirstPromiseDraft) = FakeDataStore(persistingPreferences(draft))
+
+    private fun persistingPreferences(draft: FirstPromiseDraft) = mutablePreferencesOf(
             PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
                 FirstPromiseOnboardingState(
                     phase = FirstPromisePhase.Persisting,
@@ -317,7 +430,6 @@ class FirstPromiseCreationCoordinatorTest {
                     ),
                 ),
             ),
-        ),
     )
 
     private fun resultDisabledDataStore(draft: FirstPromiseDraft) = FakeDataStore(
@@ -342,6 +454,20 @@ class FirstPromiseCreationCoordinatorTest {
         ),
     )
 
+    private fun completedEnabledDataStore() = FakeDataStore(
+        mutablePreferencesOf(
+            PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
+                FirstPromiseOnboardingState(
+                    phase = FirstPromisePhase.CompletedEnabled,
+                    path = FirstPromisePath.Manual,
+                    goal = draft.goal,
+                    routineId = 41L,
+                    scheduleState = FirstPromiseScheduleState.Enabled,
+                ),
+            ),
+        ),
+    )
+
     private fun successResult() = FirstPromiseCreationResult(
         routineId = 41L,
         routine = RoutineModel(
@@ -359,27 +485,65 @@ class FirstPromiseCreationCoordinatorTest {
     )
 }
 
+private class FailNextUpdateDataStore(initial: Preferences) : DataStore<Preferences> {
+    private val state = MutableStateFlow(initial)
+    private var shouldFail = true
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+        if (shouldFail) {
+            shouldFail = false
+            error("datastore unavailable after Room commit")
+        }
+        return transform(state.value).also { state.value = it }
+    }
+}
+
+private class IdempotentDraftCreator(
+    private val committed: FirstPromiseCreationResult,
+) : FirstPromiseCreator {
+    var createCalls = 0
+    var createdRoutineCount = 0
+    private var existing: FirstPromiseCreationResult? = null
+
+    override suspend fun createFirstPromise(
+        draft: FirstPromiseDraft,
+        routine: RoutineModel,
+    ): FirstPromiseCreationResult {
+        createCalls++
+        existing?.let { return it.copy(created = false) }
+        createdRoutineCount++
+        return committed.copy(draftId = draft.draftId).also { existing = it }
+    }
+
+    override suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult? = existing
+    override suspend fun findExistingByRoutineId(routineId: Long): FirstPromiseCreationResult? =
+        existing?.takeIf { it.routineId == routineId }
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult? = null
+}
+
 private class FakeCreator(
-    private val result: FirstPromiseCreationResult? = null,
+    result: FirstPromiseCreationResult? = null,
     private val failure: Throwable? = null,
     private val finalizedResult: FirstPromiseCreationResult? = null,
 ) : FirstPromiseCreator {
+    private var currentResult = result
     var lastRoutine: RoutineModel? = null
     val finalizedRoutineIds = mutableListOf<Long>()
     override suspend fun createFirstPromise(draft: FirstPromiseDraft, routine: RoutineModel): FirstPromiseCreationResult {
         failure?.let { throw it }
         lastRoutine = routine
-        return requireNotNull(result)
+        return requireNotNull(currentResult)
     }
 
-    override suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult? = result
+    override suspend fun findExistingByDraftId(draftId: String): FirstPromiseCreationResult? = currentResult
 
     override suspend fun findExistingByRoutineId(routineId: Long): FirstPromiseCreationResult? =
-        result?.takeIf { it.routineId == routineId }
+        currentResult?.takeIf { it.routineId == routineId }
 
     override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromiseCreationResult? {
         finalizedRoutineIds += routineId
-        return finalizedResult
+        return finalizedResult?.also { currentResult = it }
     }
 }
 

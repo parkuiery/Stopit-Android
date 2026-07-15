@@ -6,9 +6,13 @@ import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.model.RoutineModel
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 
 sealed interface FirstPromisePersistenceResult {
@@ -21,6 +25,7 @@ sealed interface FirstPromisePersistenceResult {
 interface FirstPromisePersistenceCoordinator {
     suspend fun persistCurrentDraft(): FirstPromisePersistenceResult
     suspend fun readCurrentMapping(): FirstPromiseCreationResult?
+    suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult
     suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult
 }
 
@@ -37,17 +42,39 @@ class FirstPromiseCreationCoordinator @Inject constructor(
         return creator.findExistingByRoutineId(routineId)
     }
 
+    override suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
+        val state = draftStore.readState()
+        if (state.routineId != routineId) return FirstPromisePersistenceResult.MissingRoutine
+        val creation = try {
+            creator.findExistingByRoutineId(routineId)
+                ?: return FirstPromisePersistenceResult.MissingRoutine
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            return FirstPromisePersistenceResult.Failed(failure)
+        }
+        val draftId = creation.draftId ?: state.draft?.draftId
+        if (creation.routine.isEnabled && draftId != null) {
+            deliverAndTrackFirstLock(draftId, creation)
+        }
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
     override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
         val state = draftStore.readState()
         if (state.routineId != routineId) return FirstPromisePersistenceResult.MissingRoutine
         val creation = try {
             creator.finalizeExistingRoutine(routineId)
                 ?: return FirstPromisePersistenceResult.MissingRoutine
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (failure: Throwable) {
             return FirstPromisePersistenceResult.Failed(failure)
         }
         try {
             draftStore.resolveScheduleState(routineId, creation.scheduleState)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (failure: Throwable) {
             return FirstPromisePersistenceResult.Failed(failure)
         }
@@ -60,16 +87,30 @@ class FirstPromiseCreationCoordinator @Inject constructor(
         val draft = draftStore.readState().draft ?: return FirstPromisePersistenceResult.MissingDraft
         val creation = try {
             creator.createFirstPromise(draft, draft.toRoutine())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (failure: Throwable) {
-            draftStore.markPersistenceFailed()
+            try {
+                draftStore.markPersistenceFailed()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                // Preserve the creation failure if local failure-state persistence is unavailable.
+            }
             return FirstPromisePersistenceResult.Failed(failure)
         }
 
-        try {
+        val mappingMutation = try {
             draftStore.recordPersistenceMapping(creation.routineId, creation.scheduleState)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (failure: Throwable) {
-            draftStore.markPersistenceFailed()
             return FirstPromisePersistenceResult.Failed(failure)
+        }
+        if (mappingMutation == FirstPromiseStateMutation.Rejected) {
+            return FirstPromisePersistenceResult.Failed(
+                IllegalStateException("Committed first-promise mapping was rejected by local state"),
+            )
         }
 
         deliverAndTrackFirstLock(draft.draftId, creation)
@@ -82,23 +123,37 @@ class FirstPromiseCreationCoordinator @Inject constructor(
     ) {
         // Analytics delivery is at-least-once and must not roll back a committed routine. Startup
         // recovery drains the same rows if this attempt fails or the process dies.
-        runCatching { dispatcher.drainDraft(draftId) }
-        val creationEventsSent = runCatching {
+        try {
+            dispatcher.drainDraft(draftId)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Startup recovery retries pending outbox delivery.
+        }
+        val creationEventsSent = try {
             dispatcher.creationEventsSent(draftId)
-        }.getOrDefault(false)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            false
+        }
         if (
             creation.scheduleState == FirstPromiseScheduleState.Enabled &&
             creation.schedulingSucceeded &&
             creationEventsSent &&
             blockingStateStore.markFirstLockConfiguredIfNeeded()
         ) {
-            val analyticsResult = runCatching {
+            try {
                 analytics.trackFirstLockConfigured(
                     source = AnalyticsSource.ONBOARDING,
                     selectedAppCount = 1,
                 )
-            }
-            if (analyticsResult.isFailure) {
+            } catch (cancellation: CancellationException) {
+                withContext(NonCancellable) {
+                    blockingStateStore.resetFirstLockConfiguredForRetry()
+                }
+                throw cancellation
+            } catch (_: Throwable) {
                 blockingStateStore.resetFirstLockConfiguredForRetry()
             }
         }

@@ -5,12 +5,17 @@ import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
+import com.uiery.keep.datastore.TimedLockSessionOwnership
+import com.uiery.keep.datastore.TimedLockSessionSnapshot
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 sealed interface TimedLockStartOrigin {
     data class Home(val scheduleType: TimedLockHomeScheduleType) : TimedLockStartOrigin
@@ -26,6 +31,10 @@ sealed interface TimedLockStartResult {
     data class Started(
         val encodedDeadline: String,
         val firstLockConfigured: Boolean,
+        internal val ownership: TimedLockSessionOwnership? = null,
+        internal val analyticsScheduleType: String? = null,
+        internal val analyticsDurationMinutes: Long = 0L,
+        internal val firstLockSelectedAppCount: Int? = null,
     ) : TimedLockStartResult
 
     data object EmptyApps : TimedLockStartResult
@@ -57,7 +66,7 @@ class TimedLockSessionController @Inject constructor(
         val deadline = targetDeadline ?: now.plusSeconds(durationMinutes * 60L)
         if (!deadline.isAfter(now)) return TimedLockStartResult.InvalidDuration
         val encodedDeadline = ManualLockTimePolicy.encodeDeadline(deadline)
-        blockingStateStore.startTimedLockSession(
+        val ownership = blockingStateStore.startTimedLockSession(
             packages = packages,
             startTimeMillis = now.toEpochMilli(),
             encodedDeadline = encodedDeadline,
@@ -69,21 +78,57 @@ class TimedLockSessionController @Inject constructor(
         }
         val firstLockConfigured = origin is TimedLockStartOrigin.Home &&
             blockingStateStore.markFirstLockConfiguredIfNeeded()
-        if (firstLockConfigured) {
-            runCatching {
+        TimedLockStartResult.Started(
+            encodedDeadline = encodedDeadline,
+            firstLockConfigured = firstLockConfigured,
+            ownership = ownership,
+            analyticsScheduleType = scheduleType,
+            analyticsDurationMinutes = durationMinutes,
+            firstLockSelectedAppCount = packages.size.takeIf { firstLockConfigured },
+        )
+    }
+
+    override suspend fun commit(started: TimedLockStartResult.Started) {
+        val scheduleType = started.analyticsScheduleType ?: return
+        started.firstLockSelectedAppCount?.let { selectedAppCount ->
+            try {
                 analytics.trackFirstLockConfigured(
                     source = AnalyticsSource.HOME_TIMER,
-                    selectedAppCount = packages.size,
+                    selectedAppCount = selectedAppCount,
                 )
+            } catch (cancellation: CancellationException) {
+                withContext(NonCancellable) {
+                    blockingStateStore.resetFirstLockConfiguredForRetry()
+                }
+                throw cancellation
+            } catch (_: Throwable) {
+                // Existing home behavior keeps an active session even when analytics is unavailable.
             }
         }
-        runCatching { analytics.trackLockScheduled(scheduleType, durationMinutes) }
-        runCatching { analytics.trackLockSessionStart(source = AnalyticsSource.HOME_TIMER, isRoutine = false) }
-        TimedLockStartResult.Started(encodedDeadline, firstLockConfigured)
+        trackBestEffort {
+            analytics.trackLockScheduled(scheduleType, started.analyticsDurationMinutes)
+        }
+        trackBestEffort {
+            analytics.trackLockSessionStart(source = AnalyticsSource.HOME_TIMER, isRoutine = false)
+        }
     }
 
     override suspend fun rollback(started: TimedLockStartResult.Started): Boolean = startMutex.withLock {
-        blockingStateStore.rollbackTimedLockSession(started.encodedDeadline)
+        val ownership = started.ownership ?: TimedLockSessionOwnership(
+            encodedDeadline = started.encodedDeadline,
+            previous = TimedLockSessionSnapshot(null, null, null),
+        )
+        blockingStateStore.rollbackTimedLockSession(ownership)
+    }
+
+    private inline fun trackBestEffort(block: () -> Unit) {
+        try {
+            block()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Timed-lock persistence is authoritative; analytics remains best effort.
+        }
     }
 }
 
@@ -95,5 +140,6 @@ interface TimedLockStarter {
         targetDeadline: Instant? = null,
     ): TimedLockStartResult
 
+    suspend fun commit(started: TimedLockStartResult.Started)
     suspend fun rollback(started: TimedLockStartResult.Started): Boolean
 }

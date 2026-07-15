@@ -6,6 +6,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 
 @Singleton
 class FirstPromiseStartupRunner {
@@ -31,15 +32,30 @@ class FirstPromiseStartupRunner {
     }
 
     suspend fun run() {
-        val state = (runCatching { draftStore?.readStateResult() }.getOrNull() as?
-            FirstPromiseStateReadResult.Available)?.state
+        val state = try {
+            (draftStore?.readStateResult() as? FirstPromiseStateReadResult.Available)?.state
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            null
+        }
         when {
             state?.phase == FirstPromisePhase.Persisting ->
-                runCatching { creationCoordinator?.persistCurrentDraft() }
+                recoverSafely { creationCoordinator?.persistCurrentDraft() }
             state?.routineId != null && state.scheduleState == FirstPromiseScheduleState.Enabled ->
-                runCatching { creationCoordinator?.finalizeExistingRoutine(state.routineId) }
+                recoverSafely { creationCoordinator?.reconcileExistingRoutine(state.routineId) }
         }
-        runCatching { dispatcher.drainAll() }
-        runCatching { dispatcher.cleanupSentRows() }
+        recoverSafely { dispatcher.drainAll() }
+        recoverSafely { dispatcher.cleanupSentRows() }
+    }
+
+    private suspend fun recoverSafely(block: suspend () -> Any?) {
+        try {
+            block()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // A later process start retries durable recovery work.
+        }
     }
 }

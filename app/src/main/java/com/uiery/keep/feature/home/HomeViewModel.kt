@@ -803,6 +803,7 @@ class HomeViewModel
                     targetDeadline = targetLockInstant,
                 )
                 if (startResult !is TimedLockStartResult.Started) return@intent
+                timedLockStarter.commit(startResult)
                 reduce {
                     state.copy(
                         pendingManualLockRouteDeadline = startResult.encodedDeadline,

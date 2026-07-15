@@ -547,6 +547,9 @@ private class NotificationPersistenceCoordinator(
 
     override suspend fun readCurrentMapping(): FirstPromiseCreationResult? = null
 
+    override suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
+
     override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
         FirstPromisePersistenceResult.MissingRoutine
 }

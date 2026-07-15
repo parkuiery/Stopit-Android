@@ -14,10 +14,13 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class FirstPromiseStartupRunnerTest {
@@ -63,12 +66,69 @@ class FirstPromiseStartupRunnerTest {
         assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
         assertEquals(77L, store.readState().routineId)
     }
+
+    @Test
+    fun staleEnabledStateUsesReadOnlyReconciliationAndNeverFinalizesDisabledRoutine() = runBlocking {
+        val state = FirstPromiseOnboardingState(
+            phase = FirstPromisePhase.CompletedEnabled,
+            path = FirstPromisePath.Manual,
+            goal = FirstPromiseGoal.Focus,
+            routineId = 77L,
+            scheduleState = FirstPromiseScheduleState.Enabled,
+        )
+        val store = FirstPromiseDraftStore(
+            FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+                ),
+            ),
+        )
+        val calls = mutableListOf<String>()
+        val coordinator = StartupPersistenceCoordinator(store, calls, currentRoutineEnabled = false)
+
+        FirstPromiseStartupRunner(StartupDispatcher(calls), store, coordinator).run()
+
+        assertEquals(listOf("reconcile:77:false", "drain", "cleanup"), calls)
+        assertEquals(0, coordinator.finalizeCalls)
+        assertFalse(coordinator.currentRoutineEnabled)
+    }
+
+    @Test
+    fun cancellationFromReconciliationPropagatesAndStopsLaterRecovery() {
+        val state = FirstPromiseOnboardingState(
+            phase = FirstPromisePhase.CompletedEnabled,
+            routineId = 77L,
+            scheduleState = FirstPromiseScheduleState.Enabled,
+        )
+        val store = FirstPromiseDraftStore(
+            FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+                ),
+            ),
+        )
+        val calls = mutableListOf<String>()
+        val coordinator = StartupPersistenceCoordinator(
+            store,
+            calls,
+            reconciliationFailure = CancellationException("cancel startup"),
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { FirstPromiseStartupRunner(StartupDispatcher(calls), store, coordinator).run() }
+        }
+
+        assertEquals(listOf("reconcile:77:true"), calls)
+    }
 }
 
 private class StartupPersistenceCoordinator(
     private val store: FirstPromiseDraftStore,
     private val calls: MutableList<String>,
+    var currentRoutineEnabled: Boolean = true,
+    private val reconciliationFailure: Throwable? = null,
 ) : FirstPromisePersistenceCoordinator {
+    var finalizeCalls = 0
     override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
         calls += "persist"
         val creation = FirstPromiseCreationResult(
@@ -92,8 +152,17 @@ private class StartupPersistenceCoordinator(
 
     override suspend fun readCurrentMapping(): FirstPromiseCreationResult? = null
 
-    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
-        FirstPromisePersistenceResult.MissingRoutine
+    override suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
+        calls += "reconcile:$routineId:$currentRoutineEnabled"
+        reconciliationFailure?.let { throw it }
+        return FirstPromisePersistenceResult.MissingRoutine
+    }
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult {
+        finalizeCalls++
+        currentRoutineEnabled = true
+        return FirstPromisePersistenceResult.MissingRoutine
+    }
 }
 
 private class StartupDispatcher(
