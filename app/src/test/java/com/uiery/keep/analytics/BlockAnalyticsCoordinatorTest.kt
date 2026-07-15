@@ -12,8 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.Dispatchers
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -211,8 +210,8 @@ class BlockAnalyticsCoordinatorTest {
     fun concurrentAttributableAndOrdinaryCallsExposeExactlyOneFirstFeedback() = runBlocking {
         val kinds = mutableListOf<FirstPromiseCoreActionKind>()
         var reserved = false
-        val firstReservationEntered = CountDownLatch(1)
-        val releaseFirstReservation = CountDownLatch(1)
+        val firstReservationEntered = CompletableDeferred<Unit>()
+        val releaseFirstReservation = CompletableDeferred<Unit>()
         val store = object : FirstPromiseAttributionStore {
             override suspend fun findRoutineAttribution(routineId: Long) = FirstPromiseAttribution(
                 "draft-$routineId",
@@ -229,8 +228,8 @@ class BlockAnalyticsCoordinatorTest {
                 val kind = if (allowFirst && !reserved) FirstPromiseCoreActionKind.First else FirstPromiseCoreActionKind.Repeat
                 if (kind == FirstPromiseCoreActionKind.First) {
                     reserved = true
-                    firstReservationEntered.countDown()
-                    check(releaseFirstReservation.await(5, TimeUnit.SECONDS))
+                    firstReservationEntered.complete(Unit)
+                    releaseFirstReservation.await()
                 }
                 kinds += kind
                 return FirstPromiseValueReservation.Created(kind)
@@ -249,24 +248,21 @@ class BlockAnalyticsCoordinatorTest {
         val first = async(Dispatchers.Default) {
             coordinator.track(BlockAnalyticsRequest("a", AnalyticsBlockSource.ROUTINE, "1", null))
         }
-        check(firstReservationEntered.await(5, TimeUnit.SECONDS))
+        firstReservationEntered.await()
 
-        val ready = CountDownLatch(2)
-        val start = CountDownLatch(1)
+        val contendersReady = List(2) { CompletableDeferred<Unit>() }
         val requests = listOf(
             BlockAnalyticsRequest("b", AnalyticsBlockSource.ROUTINE, "2", null),
             BlockAnalyticsRequest("c", AnalyticsBlockSource.MANUAL_KEEP, null, null),
         )
-        val jobs = requests.map { request ->
+        val jobs = requests.mapIndexed { index, request ->
             async(Dispatchers.Default) {
-                ready.countDown()
-                check(start.await(5, TimeUnit.SECONDS))
+                contendersReady[index].complete(Unit)
                 coordinator.track(request)
             }
         }
-        check(ready.await(5, TimeUnit.SECONDS))
-        start.countDown()
-        releaseFirstReservation.countDown()
+        contendersReady.awaitAll()
+        releaseFirstReservation.complete(Unit)
         val results = listOf(first.await()) + jobs.awaitAll()
 
         assertEquals(1, results.count { it.showFirstCoreActionFeedback })
