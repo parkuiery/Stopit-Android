@@ -60,7 +60,7 @@ sealed interface Onboarding {
 }
 
 fun NavController.navigateToOnboarding(
-    route: Onboarding = Onboarding.Route.Intro,
+    route: Onboarding = defaultOnboardingLaunchDestination(),
     navOptions: NavOptions = navOptions {
         popUpTo(graph.id) {
             inclusive = true
@@ -87,3 +87,5 @@ fun NavGraphBuilder.onboarding(
 }
 
 internal fun canonicalOnboardingStartDestination(): Onboarding = Onboarding.Route.Entry
+
+internal fun defaultOnboardingLaunchDestination(): Onboarding = Onboarding.Route.Entry

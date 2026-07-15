@@ -13,6 +13,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.random.Random
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
@@ -49,11 +52,24 @@ class OnboardingEntryViewModel private constructor(
 
     fun resolve() {
         if (!hasResolved.compareAndSet(false, true)) return
-        intent { postSideEffect(resolveEntry()) }
+        intent {
+            val snapshot = experimentSnapshot()
+            val initialEffect = resolveEntry(snapshot)
+            val navigationEffect = if (initialEffect == OnboardingEntrySideEffect.WaitForPersistence) {
+                awaitPersistenceNavigation(snapshot)
+            } else {
+                initialEffect
+            }
+            postSideEffect(navigationEffect)
+        }
     }
 
-    internal suspend fun resolveEntry(): OnboardingEntrySideEffect {
-        val snapshot = experimentSnapshot()
+    internal suspend fun resolveEntry(): OnboardingEntrySideEffect =
+        resolveEntry(experimentSnapshot())
+
+    private suspend fun resolveEntry(
+        snapshot: OnboardingExperimentSnapshot,
+    ): OnboardingEntrySideEffect {
         var state = draftStore.readState()
         if (state.assignment == null) {
             val assignment = OnboardingExperimentPolicy.assign(
@@ -88,6 +104,14 @@ class OnboardingEntryViewModel private constructor(
             destination = OnboardingEntryRoutePolicy.destinationFor(state.phase),
         )
     }
+
+    private suspend fun awaitPersistenceNavigation(
+        snapshot: OnboardingExperimentSnapshot,
+    ): OnboardingEntrySideEffect.Navigate =
+        draftStore.observeState()
+            .filter { state -> state.phase != FirstPromisePhase.Persisting }
+            .mapNotNull { resolveEntry(snapshot) as? OnboardingEntrySideEffect.Navigate }
+            .first()
 }
 
 enum class OnboardingEntryDestination {

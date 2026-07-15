@@ -22,7 +22,10 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
@@ -37,6 +40,13 @@ class FirstPromiseDraftStore @Inject constructor(
 
     suspend fun readState(): FirstPromiseOnboardingState =
         decode(dataStore.data.first()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+
+    fun observeState(): Flow<FirstPromiseOnboardingState> =
+        dataStore.data
+            .map { preferences ->
+                decode(preferences[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
+            }
+            .distinctUntilChanged()
 
     suspend fun assignIfAbsent(
         variant: OnboardingVariant,

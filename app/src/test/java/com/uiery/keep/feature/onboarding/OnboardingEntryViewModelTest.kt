@@ -6,6 +6,7 @@ import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.FirstPromisePersistenceResolution
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
@@ -16,8 +17,10 @@ import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentConfig
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentSnapshot
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -39,6 +42,57 @@ class OnboardingEntryViewModelTest {
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
             firstEffect.await(),
         )
+        assertEquals(null, withTimeoutOrNull(100L) { viewModel.container.sideEffectFlow.first() })
+    }
+
+    @Test
+    fun persistingWaitsWithoutNavigationUntilMappingSuccessThenRoutesResultOnce() = runBlocking {
+        val dataStore = stateDataStore(
+            assigned(OnboardingVariant.PromiseCoachV1).copy(phase = FirstPromisePhase.Persisting),
+        )
+        val viewModel = viewModel(dataStore = dataStore, snapshot = emergencySnapshot())
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.resolve()
+        delay(100)
+        assertFalse(effect.isCompleted)
+
+        FirstPromiseDraftStore(dataStore).resolveEmergencyPersistence(
+            FirstPromisePersistenceResolution.Succeeded(
+                routineId = 42L,
+                scheduleState = FirstPromiseScheduleState.Enabled,
+            ),
+        )
+
+        assertEquals(
+            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.PromiseResult),
+            withTimeout(1_000L) { effect.await() },
+        )
+        viewModel.resolve()
+        assertEquals(null, withTimeoutOrNull(100L) { viewModel.container.sideEffectFlow.first() })
+    }
+
+    @Test
+    fun persistingWaitsWithoutNavigationUntilFailureThenRoutesManualOnce() = runBlocking {
+        val dataStore = stateDataStore(
+            assigned(OnboardingVariant.PromiseCoachV1).copy(phase = FirstPromisePhase.Persisting),
+        )
+        val viewModel = viewModel(dataStore = dataStore, snapshot = emergencySnapshot())
+        val effect = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.resolve()
+        delay(100)
+        assertFalse(effect.isCompleted)
+
+        FirstPromiseDraftStore(dataStore).resolveEmergencyPersistence(
+            FirstPromisePersistenceResolution.Failed,
+        )
+
+        assertEquals(
+            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.ManualAppSelect),
+            withTimeout(1_000L) { effect.await() },
+        )
+        viewModel.resolve()
         assertEquals(null, withTimeoutOrNull(100L) { viewModel.container.sideEffectFlow.first() })
     }
 

@@ -10,6 +10,7 @@ import com.uiery.keep.feature.goallock.markGoalLockEditSaved
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
 import com.uiery.keep.feature.onboarding.Onboarding
 import com.uiery.keep.feature.onboarding.canonicalOnboardingStartDestination
+import com.uiery.keep.feature.onboarding.defaultOnboardingLaunchDestination
 import com.uiery.keep.feature.onboarding.entry.onboardingEntryNavOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +21,11 @@ class KeepAppNavigationPolicyTest {
     @Test
     fun onboardingStartsAtTheZeroContentAssignmentEntry() {
         assertEquals(Onboarding.Route.Entry, canonicalOnboardingStartDestination())
+    }
+
+    @Test
+    fun noArgumentOnboardingNavigationTargetsEntryInsteadOfBypassingAssignment() {
+        assertEquals(Onboarding.Route.Entry, defaultOnboardingLaunchDestination())
     }
 
     @Test
