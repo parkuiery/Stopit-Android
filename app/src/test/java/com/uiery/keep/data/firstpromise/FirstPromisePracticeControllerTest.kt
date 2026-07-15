@@ -8,6 +8,7 @@ import com.uiery.keep.data.lock.TimedLockStartResult
 import com.uiery.keep.data.lock.TimedLockStarter
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.FirstPromisePracticeDecision
+import com.uiery.keep.datastore.FirstPromisePracticeAttempt
 import com.uiery.keep.datastore.FirstPromisePracticeStore
 import com.uiery.keep.datastore.FirstPromisePracticeStateStore
 import com.uiery.keep.datastore.FirstPromisePracticeToken
@@ -25,6 +26,7 @@ import java.time.ZoneOffset
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
@@ -166,6 +168,103 @@ class FirstPromisePracticeControllerTest {
     }
 
     @Test
+    fun staleExpiredStartedAttemptNeverSuppressesSecondAttemptCompensation() {
+        val dataStore = FakeDataStore()
+        val durableStore = FirstPromisePracticeStore(dataStore)
+        runBlocking {
+            durableStore.saveStarted(
+                FirstPromisePracticeToken(
+                    draftId = draft.draftId,
+                    startedAtMillis = 1L,
+                    expiresAtMillis = 2L,
+                    attemptId = "attempt-prior",
+                    encodedDeadline = "deadline-prior",
+                ),
+            )
+            durableStore.readActiveToken(clock.millis())
+        }
+        val store = AttemptCancellingPracticeStateStore(
+            delegate = durableStore,
+            mode = AttemptCancellationMode.BeforeSave,
+        )
+        val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline-current", false))
+        val analytics = PracticeRecordingAnalytics()
+        val controller = FirstPromisePracticeController(
+            accessibilityChecker = accessibility(true),
+            timedLockStarter = timed,
+            practiceStore = store,
+            analytics = analytics,
+            clock = clock,
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { controller.start(draft, true) }
+        }
+
+        assertEquals(1, timed.rollbackCalls)
+        assertEquals(0, timed.commitCalls)
+        assertFalse(runBlocking { durableStore.isStartedAttemptCommitted(store.currentAttempt()) })
+        assertTrue(analytics.lockCalls.isEmpty())
+        assertTrue(FirstPromisePracticeOutcome.Started !in analytics.outcomes)
+    }
+
+    @Test
+    fun exactCurrentAttemptCommittedBeforeCancellationKeepsItsOwnedSession() {
+        val durableStore = FirstPromisePracticeStore(FakeDataStore())
+        val store = AttemptCancellingPracticeStateStore(
+            delegate = durableStore,
+            mode = AttemptCancellationMode.CommitThenCancel,
+        )
+        val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline-current", false))
+        val controller = FirstPromisePracticeController(
+            accessibilityChecker = accessibility(true),
+            timedLockStarter = timed,
+            practiceStore = store,
+            analytics = PracticeRecordingAnalytics(),
+            clock = clock,
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { controller.start(draft, true) }
+        }
+
+        assertEquals(0, timed.rollbackCalls)
+        assertTrue(runBlocking { durableStore.isStartedAttemptCommitted(store.currentAttempt()) })
+        assertEquals(0, timed.commitCalls)
+    }
+
+    @Test
+    fun proofReadFailureRollsBackAndClearsMatchingPartialAttempt() {
+        val dataStore = FakeDataStore()
+        val durableStore = FirstPromisePracticeStore(dataStore)
+        val store = AttemptCancellingPracticeStateStore(
+            delegate = durableStore,
+            mode = AttemptCancellationMode.PartialTokenThenCancel,
+            failProofReadOnce = true,
+        )
+        val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline-current", false))
+        val analytics = PracticeRecordingAnalytics()
+        val controller = FirstPromisePracticeController(
+            accessibilityChecker = accessibility(true),
+            timedLockStarter = timed,
+            practiceStore = store,
+            analytics = analytics,
+            clock = clock,
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { controller.start(draft, true) }
+        }
+
+        assertEquals(1, timed.rollbackCalls)
+        assertEquals(0, timed.commitCalls)
+        assertFalse(dataStore.snapshot().contains(PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN))
+        assertFalse(runBlocking { durableStore.isStartedAttemptCommitted(store.currentAttempt()) })
+        assertTrue(analytics.lockCalls.isEmpty())
+        assertTrue(FirstPromisePracticeOutcome.Started !in analytics.outcomes)
+    }
+
+    @Test
     fun cancellationAfterStartedDecisionKeepsOwnedSessionButStillRethrows() {
         val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline", false))
         val analytics = PracticeRecordingAnalytics()
@@ -184,28 +283,6 @@ class FirstPromisePracticeControllerTest {
 
         assertEquals(0, timed.rollbackCalls)
         assertEquals(FirstPromisePracticeDecision.Started, runBlocking { store.readDecision(draft.draftId) })
-        assertEquals(0, timed.commitCalls)
-    }
-
-    @Test
-    fun cancellationWithUnavailableDecisionReadDoesNotDestroyPossiblyCommittedSession() {
-        val timed = FakeTimedStarter(TimedLockStartResult.Started("deadline", false))
-        val controller = FirstPromisePracticeController(
-            accessibilityChecker = accessibility(true),
-            timedLockStarter = timed,
-            practiceStore = CancellingPracticeStateStore(
-                commitBeforeCancel = false,
-                failDecisionRead = true,
-            ),
-            analytics = PracticeRecordingAnalytics(),
-            clock = clock,
-        )
-
-        assertThrows(CancellationException::class.java) {
-            runBlocking { controller.start(draft, true) }
-        }
-
-        assertEquals(0, timed.rollbackCalls)
         assertEquals(0, timed.commitCalls)
     }
 
@@ -340,24 +417,82 @@ private class AlwaysFailPracticeStateStore : FirstPromisePracticeStateStore {
     override suspend fun saveStarted(token: FirstPromisePracticeToken) = error("token unavailable")
     override suspend fun recordSkippedIfAbsent(draftId: String): Boolean = false
     override suspend fun readDecision(draftId: String): FirstPromisePracticeDecision? = null
+    override suspend fun isStartedAttemptCommitted(attempt: FirstPromisePracticeAttempt): Boolean = false
+    override suspend fun clearAttempt(attempt: FirstPromisePracticeAttempt) = Unit
 }
 
 private class CancellingPracticeStateStore(
     private val commitBeforeCancel: Boolean,
-    private val failDecisionRead: Boolean = false,
 ) : FirstPromisePracticeStateStore {
     private var decision: FirstPromisePracticeDecision? = null
+    private var committedAttempt: FirstPromisePracticeAttempt? = null
 
     override suspend fun saveStarted(token: FirstPromisePracticeToken) {
-        if (commitBeforeCancel) decision = FirstPromisePracticeDecision.Started
+        if (commitBeforeCancel) {
+            decision = FirstPromisePracticeDecision.Started
+            committedAttempt = FirstPromisePracticeAttempt(
+                attemptId = token.attemptId,
+                draftId = token.draftId,
+                encodedDeadline = token.encodedDeadline,
+            )
+        }
         throw CancellationException("cancel practice")
     }
 
     override suspend fun recordSkippedIfAbsent(draftId: String): Boolean = false
     override suspend fun readDecision(draftId: String): FirstPromisePracticeDecision? {
-        if (failDecisionRead) error("decision unavailable")
         return decision
     }
+    override suspend fun isStartedAttemptCommitted(attempt: FirstPromisePracticeAttempt): Boolean =
+        committedAttempt == attempt
+    override suspend fun clearAttempt(attempt: FirstPromisePracticeAttempt) {
+        if (committedAttempt == attempt) {
+            committedAttempt = null
+            decision = null
+        }
+    }
+}
+
+private enum class AttemptCancellationMode {
+    BeforeSave,
+    CommitThenCancel,
+    PartialTokenThenCancel,
+}
+
+private class AttemptCancellingPracticeStateStore(
+    private val delegate: FirstPromisePracticeStore,
+    private val mode: AttemptCancellationMode,
+    private var failProofReadOnce: Boolean = false,
+) : FirstPromisePracticeStateStore by delegate {
+    private lateinit var attemptedToken: FirstPromisePracticeToken
+
+    override suspend fun saveStarted(token: FirstPromisePracticeToken) {
+        attemptedToken = token
+        when (mode) {
+            AttemptCancellationMode.BeforeSave -> Unit
+            AttemptCancellationMode.CommitThenCancel -> delegate.saveStarted(token)
+            AttemptCancellationMode.PartialTokenThenCancel -> delegate.saveToken(token)
+        }
+        throw CancellationException("cancel current practice attempt")
+    }
+
+    override suspend fun isStartedAttemptCommitted(attempt: FirstPromisePracticeAttempt): Boolean {
+        if (failProofReadOnce) {
+            failProofReadOnce = false
+            error("proof unavailable")
+        }
+        return delegate.isStartedAttemptCommitted(attempt)
+    }
+
+    override suspend fun clearAttempt(attempt: FirstPromisePracticeAttempt) {
+        delegate.clearAttempt(attempt)
+    }
+
+    fun currentAttempt(): FirstPromisePracticeAttempt = FirstPromisePracticeAttempt(
+        attemptId = attemptedToken.attemptId,
+        draftId = attemptedToken.draftId,
+        encodedDeadline = attemptedToken.encodedDeadline,
+    )
 }
 
 private class FailOncePracticeStateStore(

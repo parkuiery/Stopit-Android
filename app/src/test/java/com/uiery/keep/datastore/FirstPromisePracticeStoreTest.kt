@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirstPromisePracticeStoreTest {
@@ -65,6 +66,60 @@ class FirstPromisePracticeStoreTest {
         assertFalse(json.contains("package_name", ignoreCase = true))
         assertFalse(json.contains("routine_id", ignoreCase = true))
         assertEquals(true, json.contains("draft-only"))
+    }
+
+    @Test
+    fun startedCommitProofRequiresExactAttemptAndDeadlineAndClearsOnlyThatAttempt() = runBlocking {
+        val dataStore = PracticeFakeDataStore()
+        val store = FirstPromisePracticeStore(dataStore)
+        val token = FirstPromisePracticeToken(
+            draftId = "draft",
+            startedAtMillis = 100L,
+            expiresAtMillis = 200L,
+            attemptId = "attempt-current",
+            encodedDeadline = "deadline-current",
+        )
+        val exact = FirstPromisePracticeAttempt(
+            attemptId = token.attemptId,
+            draftId = token.draftId,
+            encodedDeadline = token.encodedDeadline,
+        )
+
+        store.saveStarted(token)
+
+        assertTrue(store.isStartedAttemptCommitted(exact))
+        assertFalse(store.isStartedAttemptCommitted(exact.copy(attemptId = "attempt-stale")))
+        assertFalse(store.isStartedAttemptCommitted(exact.copy(encodedDeadline = "deadline-stale")))
+
+        store.clearAttempt(exact)
+
+        assertFalse(store.isStartedAttemptCommitted(exact))
+        assertFalse(dataStore.snapshot().contains(PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN))
+        assertFalse(dataStore.snapshot().contains(PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION))
+    }
+
+    @Test
+    fun compensationClearsMatchingDecisionEvenWhenItsTokenWasAlreadyRemoved() = runBlocking {
+        val dataStore = PracticeFakeDataStore()
+        val store = FirstPromisePracticeStore(dataStore)
+        val token = FirstPromisePracticeToken(
+            draftId = "draft",
+            startedAtMillis = 100L,
+            expiresAtMillis = 200L,
+            attemptId = "attempt-current",
+            encodedDeadline = "deadline-current",
+        )
+        val attempt = FirstPromisePracticeAttempt(
+            token.attemptId,
+            token.draftId,
+            token.encodedDeadline,
+        )
+        store.saveStarted(token)
+        store.clearToken()
+
+        store.clearAttempt(attempt)
+
+        assertFalse(dataStore.snapshot().contains(PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION))
     }
 }
 

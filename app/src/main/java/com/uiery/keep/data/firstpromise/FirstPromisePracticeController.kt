@@ -5,12 +5,13 @@ import com.uiery.keep.data.lock.TimedLockStartOrigin
 import com.uiery.keep.data.lock.TimedLockStartResult
 import com.uiery.keep.data.lock.TimedLockStarter
 import com.uiery.keep.datastore.FirstPromisePracticeStateStore
-import com.uiery.keep.datastore.FirstPromisePracticeDecision
+import com.uiery.keep.datastore.FirstPromisePracticeAttempt
 import com.uiery.keep.datastore.FirstPromisePracticeToken
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
 import com.uiery.keep.feature.review.AccessibilityChecker
 import java.time.Clock
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -69,28 +70,37 @@ class FirstPromisePracticeController @Inject constructor(
         }
 
         val now = clock.millis()
+        val attempt = FirstPromisePracticeAttempt(
+            attemptId = UUID.randomUUID().toString(),
+            draftId = draft.draftId,
+            encodedDeadline = startResult.encodedDeadline,
+        )
         try {
             practiceStore.saveStarted(
                 FirstPromisePracticeToken(
                     draftId = draft.draftId,
                     startedAtMillis = now,
                     expiresAtMillis = now + PRACTICE_DURATION_MINUTES * 60_000L,
+                    attemptId = attempt.attemptId,
+                    encodedDeadline = attempt.encodedDeadline,
                 ),
             )
         } catch (cancellation: CancellationException) {
             withContext(NonCancellable) {
-                var decisionReadSucceeded = false
-                val decision = try {
-                    practiceStore.readDecision(draft.draftId).also {
-                        decisionReadSucceeded = true
-                    }
+                val committed = try {
+                    practiceStore.isStartedAttemptCommitted(attempt)
                 } catch (failure: Throwable) {
                     cancellation.addSuppressed(failure)
-                    null
+                    false
                 }
-                if (decisionReadSucceeded && decision != FirstPromisePracticeDecision.Started) {
+                if (!committed) {
                     try {
                         timedLockStarter.rollback(startResult)
+                    } catch (failure: Throwable) {
+                        cancellation.addSuppressed(failure)
+                    }
+                    try {
+                        practiceStore.clearAttempt(attempt)
                     } catch (failure: Throwable) {
                         cancellation.addSuppressed(failure)
                     }
@@ -105,6 +115,11 @@ class FirstPromisePracticeController @Inject constructor(
                     throw cancellation
                 } catch (_: Throwable) {
                     // The durable decision was not committed; keep the start failure retryable.
+                }
+                try {
+                    practiceStore.clearAttempt(attempt)
+                } catch (_: Throwable) {
+                    // A later attempt uses a different ID and cannot trust this partial proof.
                 }
             }
             trackOutcomeSafely(FirstPromisePracticeOutcome.StartFailed)
