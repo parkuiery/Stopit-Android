@@ -4,6 +4,17 @@ import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvents
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PromiseEditField
+import com.uiery.keep.domain.firstpromise.UsageCoverageBucket
+import com.uiery.keep.domain.firstpromise.UsageDataQuality
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,6 +61,80 @@ class FirebaseKeepAnalytics
             backend.logEvent(
                 name = KeepAnalyticsEvent.ONBOARDING_STEP_COMPLETE,
                 params = mapOf(KeepAnalyticsParam.STEP_NAME to stepName),
+            )
+        }
+
+        override fun trackOnboardingExperimentExposed(
+            variant: OnboardingVariant,
+            assignmentVersion: OnboardingAssignmentVersion,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.ONBOARDING_EXPERIMENT_EXPOSED,
+                params = mapOf(
+                    KeepAnalyticsParam.VARIANT to variant.analyticsValue,
+                    KeepAnalyticsParam.ASSIGNMENT_VERSION to assignmentVersion.analyticsValue,
+                ),
+            )
+        }
+
+        override fun trackUsageAnalysisCompleted(
+            dataQuality: UsageDataQuality,
+            patternType: UsagePatternType,
+            coverageDaysBucket: UsageCoverageBucket,
+            latencyBucket: AnalysisLatencyBucket,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.USAGE_ANALYSIS_COMPLETED,
+                params = mapOf(
+                    KeepAnalyticsParam.DATA_QUALITY to dataQuality.analyticsValue,
+                    KeepAnalyticsParam.PATTERN_TYPE to patternType.analyticsValue,
+                    KeepAnalyticsParam.COVERAGE_DAYS_BUCKET to coverageDaysBucket.analyticsValue,
+                    KeepAnalyticsParam.LATENCY_BUCKET to latencyBucket.analyticsValue,
+                ),
+            )
+        }
+
+        override fun trackPromiseRecommendationShown(
+            goalType: FirstPromiseGoal,
+            patternType: UsagePatternType,
+            source: FirstPromiseSource,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PROMISE_RECOMMENDATION_SHOWN,
+                params = mapOf(
+                    KeepAnalyticsParam.GOAL_TYPE to goalType.analyticsValue,
+                    KeepAnalyticsParam.PATTERN_TYPE to patternType.analyticsValue,
+                    KeepAnalyticsParam.SOURCE to source.analyticsValue,
+                ),
+            )
+        }
+
+        override fun trackPromiseRecommendationEdited(fieldName: PromiseEditField) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.PROMISE_RECOMMENDATION_EDITED,
+                params = mapOf(KeepAnalyticsParam.FIELD_NAME to fieldName.analyticsValue),
+            )
+        }
+
+        override fun trackFirstPromiseCreated(
+            goalType: FirstPromiseGoal,
+            source: FirstPromiseSource,
+            scheduleState: FirstPromiseScheduleState,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FIRST_PROMISE_CREATED,
+                params = mapOf(
+                    KeepAnalyticsParam.GOAL_TYPE to goalType.analyticsValue,
+                    KeepAnalyticsParam.SOURCE to source.analyticsValue,
+                    KeepAnalyticsParam.SCHEDULE_STATE to scheduleState.analyticsValue,
+                ),
+            )
+        }
+
+        override fun trackFirstPromisePracticeOutcome(outcome: FirstPromisePracticeOutcome) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.FIRST_PROMISE_PRACTICE_OUTCOME,
+                params = mapOf(KeepAnalyticsParam.OUTCOME to outcome.analyticsValue),
             )
         }
 

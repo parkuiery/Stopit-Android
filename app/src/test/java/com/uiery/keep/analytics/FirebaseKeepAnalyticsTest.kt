@@ -11,6 +11,17 @@ import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
 import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
 import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
 import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
+import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PromiseEditField
+import com.uiery.keep.domain.firstpromise.UsageCoverageBucket
+import com.uiery.keep.domain.firstpromise.UsageDataQuality
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -18,6 +29,102 @@ import org.junit.Test
 class FirebaseKeepAnalyticsTest {
     private val backend = FakeAnalyticsBackend()
     private val analytics = FirebaseKeepAnalytics(backend)
+
+    @Test
+    fun firstPromiseEventsUseExactPrivacySafeTypedSchema() {
+        analytics.trackOnboardingExperimentExposed(
+            variant = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+        )
+        analytics.trackUsageAnalysisCompleted(
+            dataQuality = UsageDataQuality.UsageOnly,
+            patternType = UsagePatternType.TopApp,
+            coverageDaysBucket = UsageCoverageBucket.ThreeSix,
+            latencyBucket = AnalysisLatencyBucket.OneToThreeSeconds,
+        )
+        analytics.trackPromiseRecommendationShown(
+            goalType = FirstPromiseGoal.FreeTime,
+            patternType = UsagePatternType.Night,
+            source = FirstPromiseSource.GoalTemplate,
+        )
+        analytics.trackPromiseRecommendationEdited(PromiseEditField.StartTime)
+        analytics.trackFirstPromiseCreated(
+            goalType = FirstPromiseGoal.Study,
+            source = FirstPromiseSource.Manual,
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+        )
+        analytics.trackFirstPromisePracticeOutcome(FirstPromisePracticeOutcome.StartFailed)
+
+        assertEquals(
+            listOf(
+                LoggedEvent(
+                    name = "onboarding_experiment_exposed",
+                    params = mapOf(
+                        "variant" to "promise_coach_v1",
+                        "assignment_version" to "v1",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "usage_analysis_completed",
+                    params = mapOf(
+                        "data_quality" to "usage_only",
+                        "pattern_type" to "top_app",
+                        "coverage_days_bucket" to "3_6",
+                        "latency_bucket" to "1_3s",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "promise_recommendation_shown",
+                    params = mapOf(
+                        "goal_type" to "free_time",
+                        "pattern_type" to "night",
+                        "source" to "goal_template",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "promise_recommendation_edited",
+                    params = mapOf("field_name" to "start_time"),
+                ),
+                LoggedEvent(
+                    name = "first_promise_created",
+                    params = mapOf(
+                        "goal_type" to "study",
+                        "source" to "manual",
+                        "schedule_state" to RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING,
+                    ),
+                ),
+                LoggedEvent(
+                    name = "first_promise_practice_outcome",
+                    params = mapOf("outcome" to "start_failed"),
+                ),
+            ),
+            backend.loggedEvents,
+        )
+    }
+
+    @Test
+    fun firstPromiseEntryPointsAcceptNoRawStrings() {
+        val firstPromiseMethodNames = setOf(
+            "trackOnboardingExperimentExposed",
+            "trackUsageAnalysisCompleted",
+            "trackPromiseRecommendationShown",
+            "trackPromiseRecommendationEdited",
+            "trackFirstPromiseCreated",
+            "trackFirstPromisePracticeOutcome",
+        )
+
+        val methods = KeepAnalytics::class.java.methods.filter { it.name in firstPromiseMethodNames }
+
+        assertEquals(firstPromiseMethodNames, methods.mapTo(mutableSetOf()) { it.name })
+        assertEquals(
+            emptyList<String>(),
+            methods.flatMap { method ->
+                method.parameterTypes
+                    .filter { parameterType -> parameterType == String::class.java }
+                    .map { method.name }
+            },
+        )
+    }
 
     @Test
     fun onboardingEventsUseCanonicalSchema() {

@@ -3,6 +3,17 @@ package com.uiery.keep.analytics
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PromiseEditField
+import com.uiery.keep.domain.firstpromise.UsageCoverageBucket
+import com.uiery.keep.domain.firstpromise.UsageDataQuality
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 
 interface KeepAnalytics {
     fun logEvent(
@@ -26,6 +37,34 @@ interface KeepAnalytics {
     fun trackOnboardingStepView(stepName: String)
 
     fun trackOnboardingStepComplete(stepName: String)
+
+    fun trackOnboardingExperimentExposed(
+        variant: OnboardingVariant,
+        assignmentVersion: OnboardingAssignmentVersion,
+    ) = Unit
+
+    fun trackUsageAnalysisCompleted(
+        dataQuality: UsageDataQuality,
+        patternType: UsagePatternType,
+        coverageDaysBucket: UsageCoverageBucket,
+        latencyBucket: AnalysisLatencyBucket,
+    ) = Unit
+
+    fun trackPromiseRecommendationShown(
+        goalType: FirstPromiseGoal,
+        patternType: UsagePatternType,
+        source: FirstPromiseSource,
+    ) = Unit
+
+    fun trackPromiseRecommendationEdited(fieldName: PromiseEditField) = Unit
+
+    fun trackFirstPromiseCreated(
+        goalType: FirstPromiseGoal,
+        source: FirstPromiseSource,
+        scheduleState: FirstPromiseScheduleState,
+    ) = Unit
+
+    fun trackFirstPromisePracticeOutcome(outcome: FirstPromisePracticeOutcome) = Unit
 
     fun trackPermissionOutcome(
         permissionName: String,
@@ -314,6 +353,12 @@ object KeepAnalyticsEvent {
     const val APP_FIRST_OPEN = "app_first_open"
     const val ONBOARDING_STEP_VIEW = "onboarding_step_view"
     const val ONBOARDING_STEP_COMPLETE = "onboarding_step_complete"
+    const val ONBOARDING_EXPERIMENT_EXPOSED = "onboarding_experiment_exposed"
+    const val USAGE_ANALYSIS_COMPLETED = "usage_analysis_completed"
+    const val PROMISE_RECOMMENDATION_SHOWN = "promise_recommendation_shown"
+    const val PROMISE_RECOMMENDATION_EDITED = "promise_recommendation_edited"
+    const val FIRST_PROMISE_CREATED = "first_promise_created"
+    const val FIRST_PROMISE_PRACTICE_OUTCOME = "first_promise_practice_outcome"
     const val PERMISSION_OUTCOME = "permission_outcome"
     const val FIRST_LOCK_CONFIGURED = "first_lock_configured"
     const val LOCK_SESSION_START = "lock_session_start"
@@ -373,6 +418,15 @@ object KeepAnalyticsEvent {
 
 object KeepAnalyticsParam {
     const val STEP_NAME = "step_name"
+    const val VARIANT = "variant"
+    const val ASSIGNMENT_VERSION = "assignment_version"
+    const val DATA_QUALITY = "data_quality"
+    const val PATTERN_TYPE = "pattern_type"
+    const val COVERAGE_DAYS_BUCKET = "coverage_days_bucket"
+    const val LATENCY_BUCKET = "latency_bucket"
+    const val GOAL_TYPE = "goal_type"
+    const val FIELD_NAME = "field_name"
+    const val SCHEDULE_STATE = "schedule_state"
     const val PERMISSION_NAME = "permission_name"
     const val OUTCOME = "outcome"
     const val SOURCE = "source"
