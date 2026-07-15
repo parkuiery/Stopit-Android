@@ -227,6 +227,11 @@ private class FakeUsageStatsGateway(
         zoneId: ZoneId,
     ): List<AppUsageAggregateDay> = emptyList()
 
+    override fun queryOnboardingUsageIntervals(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<AppUsageInterval> = emptyList()
+
     override fun appLabel(packageName: String): String? = labels[packageName]
 
     override fun insightExcludedPackages(): Set<String> = excludedPackages

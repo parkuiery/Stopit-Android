@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.home
 
 import com.uiery.keep.data.usageinsight.AppUsageAggregateDay
+import com.uiery.keep.data.usageinsight.AppUsageInterval
 import com.uiery.keep.data.usageinsight.UsageInsightCardStateStore
 import com.uiery.keep.data.usageinsight.UsageInsightRepository
 import com.uiery.keep.data.usageinsight.UsageStatsGateway
@@ -28,6 +29,11 @@ internal class FakeUsageStatsGateway(
         days: ClosedRange<LocalDate>,
         zoneId: ZoneId,
     ): List<AppUsageAggregateDay> = emptyList()
+
+    override fun queryOnboardingUsageIntervals(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<AppUsageInterval> = emptyList()
 
     override fun appLabel(packageName: String): String? = labels[packageName]
 
