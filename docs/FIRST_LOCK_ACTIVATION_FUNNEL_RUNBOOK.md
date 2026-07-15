@@ -304,6 +304,62 @@ cd <repo-root>
 ./gradlew -q help --task :app:assembleProdDebug
 ```
 
+## 첫 약속 코치 실험 측정·출시 게이트 (2026-07-16)
+
+### 첫 실행 원칙의 제한적 실험 override
+
+`docs/USAGE_STATS_PERSONALIZATION_MVP.md`의 “첫 실행에서 Usage Access를 강제하지 않는다”는 일반 제품 원칙과 Control 계약은 그대로 유지한다. 예외는 설치 단위로 `promise_coach_v1` Treatment 배정이 저장된 사용자뿐이다. 이 군은 `GoalSelect` 다음에 사전 설명을 거쳐 Usage Access 설정을 제안할 수 있으며, 거절·뒤로가기·설정 intent 실패·데이터 부족은 모두 manual 선택으로 계속 진행한다. Control은 기존 `Intro → Permission → Notification → SelectedApp` 순서와 화면/완료 의미를 바꾸지 않는다.
+
+- 일반 kill switch는 **새 Treatment 배정만** 중단한다. 이미 배정된 사용자는 저장된 variant와 phase를 유지해 같은 route에서 완료한다.
+- emergency kill switch도 variant를 Control로 바꾸거나 Intro로 되돌리지 않는다. 저장 전 Goal/Usage/분석/제안 phase는 manual 경로로 수렴하고, `Persisting`은 저장 결과를 기다리며, 이미 routine mapping/result에 도달한 phase는 기존 enabled/disabled 결과를 보존한다. emergency kill 뒤에는 새 Usage 분석을 시작하지 않는다.
+- Remote Config fetch 실패·읽기 불가·기본값은 Control이다. 이 계약은 배정 안전장치이며, 적은 표본을 A/B 유의성으로 과장하는 근거가 아니다.
+
+### variant별 terminal 완료
+
+| Variant | terminal 완료 | 해석 |
+| --- | --- | --- |
+| Control | 기존 `SelectedApp` 완료 후 Home 진입 | 기존 온보딩 완료 의미를 유지한다. Treatment 전용 Usage/약속 단계가 끼어들지 않는다. |
+| Treatment | `CompletedEnabled` 또는 `CompletedDisabled` | routine persistence와 mapping이 끝난 뒤에만 terminal이다. exact alarm 부족 등으로 disabled 저장된 결과는 완료로 기록하되 “차단 준비 완료”로 해석하지 않는다. |
+
+프로세스 재생성 시 `UsageAccess`, `Accessibility`, `ExactAlarm` pending action은 저장된 phase/action으로 복구하며 권한 결과를 추측하지 않는다. clean reinstall/reset 상태에는 assignment, draft, pending action, completion proof가 없어야 한다.
+
+### ordered 24시간 funnel과 guardrail
+
+Treatment의 핵심 value funnel은 같은 sticky assignment cohort에서 아래 순서를 모두 만족한 고유 사용자만 분자로 인정한다.
+
+```text
+onboarding_experiment_exposed(variant=promise_coach_v1)
+→ first_promise_created
+→ app_block_intercepted(promise_origin=first_promise_routine|first_promise_practice)
+```
+
+마지막 차단은 `first_promise_created` 뒤 86,400초 안에 발생해야 한다. 로컬 outbox는 `routine_saved → first_promise_created → app_block_intercepted → first_core_action_completed|core_action_completed` 순서를 지키며, 정확한 생성/사용 시각은 analytics payload로 보내지 않는다. Control/Treatment 공통 first-value guardrail은 `onboarding_experiment_exposed → app_block_intercepted(any canonical block_source)`의 86,400초 ordered funnel이고 각 variant exposure를 분모로 쓴다.
+
+BlockScreen 긴급해제 guardrail은 exposure 전체가 아니라 **같은 variant/appVersion/관측 창에서 먼저 `app_block_intercepted`로 BlockScreen에 도달한 고유 사용자**를 분모로 한다. 분자는 그 분모와 교집합이며 7일 안에 `emergency_unlock_used(source=block_screen)`까지 도달한 사용자만 인정한다. `source=lock_screen` 또는 선행 interception 없는 해제는 제외한다. 어느 군이든 이 분모가 20명 미만이면 50% 이후 승격 판단을 보류한다.
+
+### privacy·표본·승격 gate
+
+- 신규 이벤트에는 raw package/app label, 앱 목록, raw Usage history, 정확한 사용/생성 시각, routine id, draft id를 보내지 않는다. 외부 축은 typed enum/bucket만 허용한다.
+- fake backend payload 회귀와 dev-device DebugView에서 금지값 부재를 모두 확인하기 전에는 실험 관측을 privacy-safe로 승인하지 않는다.
+- 10% Treatment는 완료된 7일 이상과 Treatment exposure 30명 이상이 필요하다. 신규 attributable fatal/ANR 0건, 분석 timeout+exception 5% 이하, terminal 완료율 Control 대비 -10%p 이내가 승격 조건이다.
+- 50% Treatment는 완료된 14일 이상과 각 군 exposure 100명 이상이 필요하다. terminal 완료율 기준선 대비 -5%p 이내, 조기 종료·BlockScreen 긴급해제 +5%p 이내, 공통 24시간 first-value guardrail이 Control보다 악화되지 않아야 한다.
+- 100% 후보는 50% 단계 통과, 제품 승인, 개인정보/Play 문구 최종 확인, 필수 GA4 dimension queryability 확인 뒤에만 판단한다. 필수 dimension 하나라도 조회 불가하면 50% 승격부터 자동 보류한다.
+- 어느 단계든 신규 attributable fatal/ANR, 원시 사용정보 전송, terminal 완료율 Control 대비 -10%p 초과가 확인되면 표본과 무관하게 새 Treatment 배정을 중단한다.
+
+### Task 16 검증 경계
+
+저장소 내부 자동 검증은 Control/Treatment 분기, Usage 허용·거절/manual·데이터 부족, 접근성 기허용, 알림 거절 후 계속, exact-alarm enabled/disabled 결과, 모든 pending system action 직렬화 복구, OEM Usage settings intent 실패 fallback, 자정 경계, timezone 재평가와 timezone-action 뒤 enabled routine alarm 재계산, Usage Access 철회 fallback, clean reset, 10분 연습 token의 실제 timed-lock 차단 attribution을 deterministic contract로 고정한다.
+
+아래 항목은 이 문서/테스트 변경으로 완료 처리하지 않는다.
+
+- [ ] 개인정보 처리방침·Play listing·제품 승인
+- [ ] GA4 Admin custom dimension 실제 등록, metadata 확인, DebugView/runReport readback
+- [ ] Remote Config production rollout 비율 변경과 실제 production 영향/표본 창
+- [ ] 실제 OEM Usage settings 화면, AppOps 권한 허용·거절·철회, 접근성/알림/exact-alarm 상태 matrix
+- [ ] OS에 의한 실제 process kill/relaunch, 기기 시스템 timezone을 실제 변경해 broadcast가 전달되는 end-to-end 경로, `pm clear`/재설치
+- [ ] BlockScreen 긴급해제 matched denominator live query
+- [ ] 실제 기기의 light/dark, 100%/200% font, TalkBack, 모든 shipped locale screenshot/잘림 검사
+
 ## 이 문서가 닫지 않는 경계
 
 이번 docs lane 계약 정리만으로는 아직 다음이 남는다.
