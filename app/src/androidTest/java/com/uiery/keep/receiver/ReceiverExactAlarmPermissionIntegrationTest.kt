@@ -38,6 +38,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,9 +79,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
 
     @Test
     fun bootReceiverWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent() = runBlocking {
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Boot deny"))
         val receiver = BootReceiver().apply {
@@ -104,9 +105,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     @Test
     fun bootReceiverWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
         val repeatDays = multiDayRepeatDays()
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
@@ -138,9 +139,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
 
     @Test
     fun packageReplacedWithExactAlarmPermissionDeniedDisablesEnabledRoutinesAndLeavesNoPendingIntent() = runBlocking {
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Package replaced deny"))
         val receiver = BootReceiver().apply {
@@ -164,9 +165,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     @Test
     fun packageReplacedWithExactAlarmPermissionDeniedDisablesMultiDayRoutineAndRevokesEveryRepeatDayAlarm() = runBlocking {
         val repeatDays = multiDayRepeatDays()
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         val receiver = BootReceiver().apply {
             routineScheduler = RoutineScheduler(context)
@@ -248,9 +249,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
 
     @Test
     fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredRoutineEnabledAndLeavesNoNextPendingIntent() = runBlocking {
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         grantPostNotificationsPermission()
         database.routineDao().insert(enabledRoutineEntity(id = TEST_ROUTINE_ID, name = "Morning focus"))
@@ -287,9 +288,9 @@ class ReceiverExactAlarmPermissionIntegrationTest {
     fun routineAlarmReceiverWithExactAlarmPermissionDeniedKeepsTriggeredMultiDayRoutineEnabledAndRevokesEveryRepeatDayAlarm() = runBlocking {
         grantPostNotificationsPermission()
         val repeatDays = multiDayRepeatDays()
-        assertTrue(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
-            !RoutineScheduler(context).canScheduleExactAlarms(),
+            RoutineScheduler(context).canScheduleExactAlarms(),
         )
         database.routineDao().insert(
             enabledRoutineEntity(
