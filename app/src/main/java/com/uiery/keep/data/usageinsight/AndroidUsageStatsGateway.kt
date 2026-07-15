@@ -57,6 +57,34 @@ class AndroidUsageStatsGateway @Inject constructor(
         }.toList()
     }
 
+    override fun queryOnboardingDailyAggregates(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<AppUsageAggregateDay> {
+        val usageStatsManager =
+            context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        return OnboardingUsageStatsReader(
+            source = DailyUsageStatsSource { startMillis, endExclusiveMillis ->
+                usageStatsManager.queryUsageStats(
+                    UsageStatsManager.INTERVAL_DAILY,
+                    startMillis,
+                    endExclusiveMillis,
+                ).orEmpty().map { usageStats ->
+                    DailyUsageStat(
+                        packageName = usageStats.packageName,
+                        totalForegroundMillis = usageStats.totalTimeInForeground,
+                        lastUsedEpochMillis = usageStats.lastTimeUsed,
+                    )
+                }
+            },
+            ownPackageName = context.packageName,
+            excludedPackages = excludedPackages,
+            isLaunchable = { packageName ->
+                context.packageManager.getLaunchIntentForPackage(packageName) != null
+            },
+        ).query(days, zoneId)
+    }
+
     private fun aggregateDay(
         usageStatsManager: UsageStatsManager,
         day: LocalDate,

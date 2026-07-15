@@ -8,6 +8,7 @@ import com.uiery.keep.domain.usageinsight.UsageInsightType
 import com.uiery.keep.feature.review.FakeDataStore
 import java.time.Duration
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -220,6 +221,11 @@ private class FakeUsageStatsGateway(
         queriedRanges += from to toInclusive
         return daysToReturn.filter { !it.date.isBefore(from) && !it.date.isAfter(toInclusive) }
     }
+
+    override fun queryOnboardingDailyAggregates(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<AppUsageAggregateDay> = emptyList()
 
     override fun appLabel(packageName: String): String? = labels[packageName]
 

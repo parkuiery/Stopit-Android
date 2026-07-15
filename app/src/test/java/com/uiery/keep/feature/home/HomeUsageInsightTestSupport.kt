@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.home
 
+import com.uiery.keep.data.usageinsight.AppUsageAggregateDay
 import com.uiery.keep.data.usageinsight.UsageInsightCardStateStore
 import com.uiery.keep.data.usageinsight.UsageInsightRepository
 import com.uiery.keep.data.usageinsight.UsageStatsGateway
@@ -9,6 +10,7 @@ import com.uiery.keep.domain.usageinsight.AppUsageDay
 import com.uiery.keep.feature.review.FakeDataStore
 import java.time.Duration
 import java.time.LocalDate
+import java.time.ZoneId
 
 /** JVM 테스트용 UsageStatsManager 게이트웨이 fake. 권한/일별 사용량/앱 라벨을 주입한다. */
 internal class FakeUsageStatsGateway(
@@ -21,6 +23,11 @@ internal class FakeUsageStatsGateway(
 
     override fun queryDailyUsage(from: LocalDate, toInclusive: LocalDate): List<AppUsageDay> =
         dailyUsage.filter { !it.date.isBefore(from) && !it.date.isAfter(toInclusive) }
+
+    override fun queryOnboardingDailyAggregates(
+        days: ClosedRange<LocalDate>,
+        zoneId: ZoneId,
+    ): List<AppUsageAggregateDay> = emptyList()
 
     override fun appLabel(packageName: String): String? = labels[packageName]
 
