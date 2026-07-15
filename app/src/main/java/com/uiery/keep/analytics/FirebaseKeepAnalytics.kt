@@ -6,6 +6,7 @@ import com.uiery.keep.analytics.routine.RoutineAnalyticsEvents
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
@@ -245,6 +246,7 @@ class FirebaseKeepAnalytics
             blockedAppPackage: String,
             routineId: String?,
             goalLockId: String?,
+            promiseOrigin: FirstPromiseOrigin?,
         ) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
@@ -254,6 +256,9 @@ class FirebaseKeepAnalytics
                         KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
                         blockedAppCategoryBucketForPackage(blockedAppPackage),
                     )
+                    promiseOrigin?.let {
+                        put(KeepAnalyticsParam.PROMISE_ORIGIN, it.analyticsValue)
+                    }
                     // routineId/goalLockId remain local/debug attribution inputs, but are not exported to GA4.
                     // They can link long-lived user behavior to a specific routine/goal-lock row, so keep
                     // external analytics on privacy-safe source/category/bucket dimensions only.

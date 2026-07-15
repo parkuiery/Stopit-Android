@@ -135,7 +135,7 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
                     KeepAnalyticsParam.BLOCK_SOURCE to event.blockSource.analyticsValue,
                     KeepAnalyticsParam.BLOCKING_MODE to event.blockingMode.analyticsValue,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to event.categoryBucket.analyticsValue,
-                    "promise_origin" to event.promiseOrigin.analyticsValue,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to event.promiseOrigin.analyticsValue,
                 ),
             )
             is FirstPromiseOutboxEvent.CoreAction -> analytics.logEvent(
@@ -143,8 +143,8 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
                 params = mapOf(
                     KeepAnalyticsParam.BLOCKING_MODE to event.blockingMode.analyticsValue,
                     KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to event.categoryBucket.analyticsValue,
-                    "elapsed_since_first_open_bucket" to event.elapsedBucket.analyticsValue,
-                    "promise_origin" to event.promiseOrigin.analyticsValue,
+                    KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET to event.elapsedBucket.analyticsValue,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to event.promiseOrigin.analyticsValue,
                 ),
             )
         }

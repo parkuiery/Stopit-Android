@@ -5,6 +5,7 @@ import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPay
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
 import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
@@ -110,6 +111,7 @@ interface KeepAnalytics {
         blockedAppPackage: String,
         routineId: String? = null,
         goalLockId: String? = null,
+        promiseOrigin: FirstPromiseOrigin? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
@@ -442,10 +444,12 @@ object KeepAnalyticsParam {
     @Deprecated("Use BLOCKED_APP_CATEGORY_BUCKET for external analytics payloads.")
     const val BLOCKED_APP_PACKAGE = "blocked_app_package"
     const val BLOCKED_APP_CATEGORY_BUCKET = "blocked_app_category_bucket"
+    const val PROMISE_ORIGIN = "promise_origin"
     const val REASON = "reason"
     const val DURATION_MINUTES = "duration_minutes"
     const val REMAINING_UNLOCKS = "remaining_unlocks"
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
+    const val ELAPSED_SINCE_FIRST_OPEN_BUCKET = "elapsed_since_first_open_bucket"
     const val BLOCKING_MODE = "blocking_mode"
     // Do not export routine row IDs to GA4; use block_source/routines_count/bucketed params instead.
     const val ROUTINE_ID = "routine_id"

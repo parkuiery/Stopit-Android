@@ -152,12 +152,74 @@ class FirstPromiseOutboxEventTest {
         val coreEntity = codec.encode("secret-draft", core, 2L)
 
         assertEquals(listOf(30, 40), listOf(interceptedEntity.sequence, coreEntity.sequence))
+        assertEquals(
+            listOf("first_promise_value_intercepted", "first_promise_core_action"),
+            listOf(interceptedEntity.eventName, coreEntity.eventName),
+        )
+        assertEquals(
+            listOf("app_block_intercepted", "first_core_action_completed"),
+            listOf(interceptedEntity.canonicalEventName, coreEntity.canonicalEventName),
+        )
         assertEquals(intercepted, codec.decode(interceptedEntity))
         assertEquals(core, codec.decode(coreEntity))
         assertEquals(
             setOf("block_source", "blocking_mode", "blocked_app_category_bucket", "promise_origin"),
             Json.parseToJsonElement(interceptedEntity.payloadJson).jsonObject.keys,
         )
-        assertFalse((interceptedEntity.payloadJson + coreEntity.payloadJson).contains("secret-draft"))
+        assertEquals(
+            setOf(
+                "core_action_kind",
+                "blocking_mode",
+                "blocked_app_category_bucket",
+                "elapsed_since_first_open_bucket",
+                "promise_origin",
+            ),
+            Json.parseToJsonElement(coreEntity.payloadJson).jsonObject.keys,
+        )
+
+        val durablePayload = interceptedEntity.payloadJson + coreEntity.payloadJson
+        listOf(
+            "secret-draft",
+            "package",
+            "app_label",
+            "observed_minutes",
+            "observed_time",
+            "draft_id",
+            "routine_id",
+        ).forEach { forbidden -> assertFalse(forbidden, durablePayload.contains(forbidden)) }
+    }
+
+    @Test
+    fun valueEventsAcceptOnlyTypedPromiseOriginsAndMapRepeatCoreToCanonicalBackendEvent() {
+        FirstPromiseOrigin.entries.forEach { origin ->
+            val entity = codec.encode(
+                draftId = "draft",
+                event = FirstPromiseOutboxEvent.AppBlockIntercepted(
+                    blockSource = FirstPromiseBlockSource.Routine,
+                    blockingMode = FirstPromiseBlockingMode.Routine,
+                    categoryBucket = FirstPromiseAppCategoryBucket.Unknown,
+                    promiseOrigin = origin,
+                ),
+                occurredAtMillis = 1L,
+            )
+            assertEquals(origin, (codec.decode(entity) as FirstPromiseOutboxEvent.AppBlockIntercepted).promiseOrigin)
+        }
+
+        val repeat = codec.encode(
+            draftId = "draft",
+            event = FirstPromiseOutboxEvent.CoreAction(
+                kind = FirstPromiseCoreActionKind.Repeat,
+                blockingMode = FirstPromiseBlockingMode.Routine,
+                categoryBucket = FirstPromiseAppCategoryBucket.Unknown,
+                elapsedBucket = FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes,
+                promiseOrigin = FirstPromiseOrigin.FirstPromiseRoutine,
+            ),
+            occurredAtMillis = 1L,
+        )
+        assertEquals("core_action_completed", repeat.canonicalEventName)
+
+        val payload = Json.parseToJsonElement(repeat.payloadJson).jsonObject
+        val arbitraryOrigin = JsonObject(payload + ("promise_origin" to JsonPrimitive("arbitrary-origin")))
+        assertNull(codec.decodeOrNull(repeat.copy(payloadJson = arbitraryOrigin.toString())))
     }
 }

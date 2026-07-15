@@ -71,6 +71,9 @@
 | 온보딩 접근성 권한 | `OnboardingPermissionScreen` | `PermissionSettingViewModel.onStepViewed()` |
 | 온보딩 알림 권한 | `OnboardingNotificationScreen` | `NotificationSettingViewModel.onStepViewed()` |
 | 온보딩 앱 선택 | `OnboardingSelectAppScreen` | `SelectAppViewModel.onStepViewed()` |
+| 온보딩 첫 약속 목적 선택 | `OnboardingGoalSelectScreen` | `GoalSelectViewModel.onStepViewed()` |
+| 온보딩 Usage Access | `OnboardingUsageAccessScreen` | `UsageAccessViewModel.onStepViewed()` |
+| 온보딩 Usage 분석 | `OnboardingUsageAnalysisScreen` | `UsageAnalysisViewModel.onStepViewed()` |
 
 원칙:
 
@@ -113,12 +116,31 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `onboarding_step_complete` | `step_name` | 온보딩 스텝 완료 |
 | `permission_outcome` | `permission_name`, `outcome`, `step_name?` | 권한 결과 |
 
+첫 약속 코치 실험은 아래 여섯 이벤트를 Firebase/GA4 전용으로 추가한다. 앱 기능에서는 `KeepAnalytics`의 typed method만 호출하며 raw event name/parameter map을 직접 만들지 않는다.
+
+| 이벤트명 | 허용 파라미터 | 허용 값 |
+| --- | --- | --- |
+| `onboarding_experiment_exposed` | `variant`, `assignment_version` | `control`/`promise_coach_v1`, `v1` |
+| `usage_analysis_completed` | `data_quality`, `pattern_type`, `coverage_days_bucket`, `latency_bucket` | `full`/`usage_only`/`insufficient`, `night`/`peak_window`/`top_app`/`manual`, `0`/`1_2`/`3_6`/`7`, `under_1s`/`1_3s`/`3_5s`/`timeout` |
+| `promise_recommendation_shown` | `goal_type`, `pattern_type`, `source` | `sleep`/`focus`/`study`/`free_time`/`unspecified`, 위 `pattern_type`, `personalized`/`goal_template`/`manual` |
+| `promise_recommendation_edited` | `field_name` | `app`/`start_time`/`repeat_days` |
+| `first_promise_created` | `goal_type`, `source`, `schedule_state` | 위 `goal_type`/`source`, `enabled`/`disabled_exact_alarm_missing`/`disabled_user_choice`/`disabled_unknown` |
+| `first_promise_practice_outcome` | `outcome` | `started`/`skipped`/`start_failed` |
+
+Treatment의 `step_name`은 `goal_select`, `usage_access`, `promise_proposal`, `promise_result`를 추가한다. `promise_result`의 view는 결과 화면이 실제 노출될 때, complete는 enabled/disabled와 무관하게 사용자가 결과를 확인하고 Home으로 진행할 때 각각 최초 한 번 기록한다. Control terminal은 기존 `select_app` complete를 유지한다. `permission_outcome`은 `permission_name=usage_access`, terminal `outcome=granted|denied|skipped|unknown`, 비terminal `settings_opened`를 지원한다.
+
+첫 약속 mapping 또는 활성 10분 연습으로 판정된 차단은 local outbox의 sequence 30 `first_promise_value_intercepted`를 canonical `app_block_intercepted`로, sequence 40 `first_promise_core_action`을 예약된 canonical `first_core_action_completed|core_action_completed`로 매핑한다. 30의 외부 key는 `block_source`, `blocking_mode`, `blocked_app_category_bucket`, `promise_origin`; 40의 외부 key는 `blocking_mode`, `blocked_app_category_bucket`, `elapsed_since_first_open_bucket`, `promise_origin`만 허용한다. `core_action_kind`는 canonical event 선택을 위한 local-only codec field이며 외부 payload가 아니다. `promise_origin`은 typed `first_promise_routine|first_promise_practice`만 허용하고 일반 차단에서는 생략한다.
+
+금지 payload/query 축: package name, app label/name, 관측된 정확한 사용 분 수/시각, raw start/end time, draft id, routine id, routine name, arbitrary origin string, raw usage event/history. Phase 1 약속 30분과 연습 10분도 별도 duration 파라미터로 전송하지 않는다.
+
 알림 권한 온보딩 계약:
 - 현재 지원 범위는 minSdk 33 / Android 13+ `POST_NOTIFICATIONS` runtime permission이다. 따라서 현재 릴리즈/QA에서 검증해야 하는 canonical 흐름은 runtime dialog 허용/거절과 notification-denied fallback이다.
 - Android 13+ runtime permission dialog에서는 사용자가 `POST_NOTIFICATIONS`를 거절해도 온보딩을 막지 않는다. 이 경우 `permission_outcome(permission_name=notifications, outcome=denied)`와 `onboarding_step_complete(step_name=notification)`를 함께 남긴 뒤 앱 선택 단계로 진행한다.
 - notification-denied 사용자의 루틴 시작 안내는 `POST_NOTIFICATION ignore` receiver fallback baseline으로 별도 검증한다.
 - Historical / out of scope: `permission_outcome(permission_name=notifications, outcome=settings_opened)`와 Android 12L 이하 legacy 설정 왕복은 minSdk를 다시 낮출 때만 복원 검토한다. minSdk 33 유지 상태에서는 현재 검증 대상이 아니다.
 
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
 | `app_selection_completed` | `selected_app_count`, `is_onboarding` | 차단 앱 1개 이상 선택 완료 (`selected_app_count >= 1`) |
 | `first_lock_configured` | `source`, `selected_app_count?` | 첫 잠금 설정 완료. 온보딩/홈 Keep 토글/홈 타이머 모두 앱 1개 이상 선택 이후에만 기록 |
 | `first_core_action_completed` | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` | 첫 핵심 행동 완료. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
@@ -145,7 +167,7 @@ Play Install Referrer / UTM attribution의 제품·ops 계약은 `docs/INSTALL_R
 | `lock_session_end` | `source`, `end_reason`, `is_routine?` | 잠금 세션 종료 |
 | `lock_scheduled` | `schedule_type`, `scheduled_duration_minutes` | 타이머/루틴 예약. 홈 countdown은 선택한 `day/hour/minute` duration 자체를 분 단위로 기록하고, timer는 예약 deadline까지 남은 시간을 기록한다. 0분 countdown은 `lock_scheduled`를 보내지 않는다. |
 | `keep_mode_toggled` | `is_enabled` | 홈 Keep 토글 |
-| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket` | 실제 차단 발생. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
+| `app_block_intercepted` | `block_source`, `blocked_app_category_bucket`, `blocking_mode?`, `promise_origin?` | 실제 차단 발생. `promise_origin`은 첫 약속 routine/practice로 로컬 판정된 경우만 typed enum으로 추가한다. PR #617 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 신규 등록 대상이 아니며 legacy baseline으로만 해석한다. #1079 이후 `routine_id` / `goal_lock_id` row id도 외부 GA4 payload에서 제외한다. |
 | `emergency_unlock_used` | `source`, `unlock_count_remaining?` | 긴급해제 진입 |
 | `emergency_unlock_completed` | `reason`, `duration_minutes`, `remaining_unlocks` | 긴급해제 완료 |
 | `emergency_unlock_step_viewed` | `step_name`, `reason_required_enabled`, `entry_surface` | 긴급해제 bottom sheet 단계 노출. PR #783 Android wiring은 `develop`에 반영됐지만 GA4 등록·release 전 live 0건은 병목 부재로 해석하지 않는다. |
@@ -401,9 +423,20 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 | 파라미터 | 의미 |
 | --- | --- |
-| `step_name` | 온보딩 단계 이름 (`intro`, `permission`, `notification`, `select_app`) |
-| `permission_name` | 권한 종류 (`accessibility`, `notifications`) |
-| `outcome` | 권한 결과 (`granted`, `denied`, `settings_opened`) |
+| `step_name` | 온보딩 단계 이름 (`intro`, `permission`, `notification`, `select_app`, `goal_select`, `usage_access`, `promise_proposal`, `promise_result`) |
+| `permission_name` | 권한 종류 (`accessibility`, `notifications`, `usage_access`) |
+| `outcome` | 권한/첫 약속 연습 결과. 권한은 `granted`, `denied`, `settings_opened`, `skipped`, `unknown`; 연습은 `started`, `skipped`, `start_failed` |
+| `variant` | 온보딩 실험군 (`control`, `promise_coach_v1`) |
+| `assignment_version` | sticky 배정 알고리즘 버전 (`v1`) |
+| `goal_type` | 첫 약속 목적 (`sleep`, `focus`, `study`, `free_time`, `unspecified`) |
+| `data_quality` | 로컬 Usage 분석 품질 (`full`, `usage_only`, `insufficient`) |
+| `pattern_type` | 추천 근거 유형 (`night`, `peak_window`, `top_app`, `manual`) |
+| `coverage_days_bucket` | 완결된 로컬 관측일 bucket (`0`, `1_2`, `3_6`, `7`) |
+| `latency_bucket` | 로컬 분석 지연 bucket (`under_1s`, `1_3s`, `3_5s`, `timeout`) |
+| `field_name` | 추천 편집 필드 (`app`, `start_time`, `repeat_days`) |
+| `schedule_state` | 저장된 첫 약속 상태 (`enabled`, `disabled_exact_alarm_missing`, `disabled_user_choice`, `disabled_unknown`) |
+| `promise_origin` | 첫 약속 가치 attribution (`first_promise_routine`, `first_promise_practice`); 그 외 차단은 생략 |
+| `elapsed_since_first_open_bucket` | durable first-promise core action의 첫 실행 후 경과 bucket (`under_1m`, `1_5m`, `over_5m`) |
 | `source` | 이벤트 발생 출처 (`onboarding`, `home`, `home_timer`, `routine` 등) |
 | `block_source` | 차단 발생 출처 (`manual_keep`, `timed_lock`, `routine`, `goal_lock`, `parent_mode`) |
 | `blocked_app_package` | legacy/deprecated. 차단된 앱 패키지명 원문이며 #611에 따라 GA4 payload/custom dimension 신규 등록 대상에서 제외한다. PR #617 이후 신규 payload가 아니라 historical/legacy baseline으로만 취급한다. |
@@ -492,14 +525,26 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 
 ### 우선 등록할 이벤트 차원
 
+첫 약속 코치에서 새로 필요한 `variant`, `assignment_version`, `goal_type`, `data_quality`, `pattern_type`, `coverage_days_bucket`, `latency_bucket`, `field_name`, `promise_origin`, `elapsed_since_first_open_bucket`과 기존 축의 신규 값은 모두 **planned — 미등록** 상태다. 이 저장소 변경은 GA4 Admin 등록이나 live metadata 조회 성공을 의미하지 않는다.
+
 | 분류 | GA4 등록 이름 예시 | 코드 파라미터 | 주 사용 이벤트 | 왜 필요한가 |
 | --- | --- | --- | --- | --- |
-| Required | `step_name` | `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome` | 온보딩 단계별 이탈/완료 분석 |
-| Required | `permission_name` | `permission_name` | `permission_outcome` | 접근성/알림 권한 병목 분리 |
-| Required | `outcome` | `outcome` | `permission_outcome` | granted / denied / settings_opened 비교 |
-| Required | `source` | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 온보딩/홈/루틴 출처별 행동 비교 |
+| Required | `step_name` | `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome` | 기존 단계와 `goal_select`/`usage_access`/`promise_proposal`/`promise_result` 이탈·완료 분석 |
+| Required | `permission_name` | `permission_name` | `permission_outcome` | 접근성/알림/Usage Access 권한 병목 분리 |
+| Required | `outcome` | `outcome` | `permission_outcome`, `first_promise_practice_outcome` | 권한 outcome과 started/skipped/start_failed 연습 결과를 event context별 비교 |
+| Required | `source` | `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used`, `promise_recommendation_shown`, `first_promise_created` | 온보딩/홈/루틴 및 첫 약속 추천 출처별 행동 비교 |
 | Required | `block_source` | `block_source` | `app_block_intercepted` | manual_keep / timed_lock / routine / goal_lock / parent_mode 차단 성공 비교 |
 | Required | `blocked_app_category_bucket` | `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 실제 차단 가치가 어느 앱 카테고리에서 발생하는지 privacy-safe bucket으로 확인. `blocked_app_package` 원문은 #611에 따라 등록 금지 |
+| Required | `variant` | `variant` | `onboarding_experiment_exposed` | Control/Treatment 분모와 50% rollout guardrail cohort 분리 |
+| Required | `assignment_version` | `assignment_version` | `onboarding_experiment_exposed` | sticky assignment contract 버전 분리 |
+| Required | `goal_type` | `goal_type` | `promise_recommendation_shown`, `first_promise_created` | 목적별 추천→생성 전환 |
+| Required | `data_quality` | `data_quality` | `usage_analysis_completed` | 로컬 분석 성공/부족 분리 |
+| Required | `pattern_type` | `pattern_type` | `usage_analysis_completed`, `promise_recommendation_shown` | 추천 근거 유형별 성능 비교 |
+| Required | `coverage_days_bucket` | `coverage_days_bucket` | `usage_analysis_completed` | raw 날짜/사용기록 없이 coverage 분리 |
+| Required | `latency_bucket` | `latency_bucket` | `usage_analysis_completed` | raw latency 없이 timeout/지연 guardrail 확인 |
+| Required | `field_name` | `field_name` | `promise_recommendation_edited` | 추천 수정 friction 분리 |
+| Required | `promise_origin` | `promise_origin` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | 첫 약속 routine/practice 24시간 value attribution |
+| Required | `elapsed_since_first_open_bucket` | `elapsed_since_first_open_bucket` | `first_core_action_completed`, `core_action_completed` | first-promise durable core path의 privacy-safe latency bucket |
 | Required | `selected_app_count` | `selected_app_count` | `app_selection_completed`, `first_lock_configured` | 앱 선택량과 활성화 상관관계 확인 |
 | Required | `is_onboarding` | `is_onboarding` | `app_selection_completed` | 온보딩 vs 이후 설정 행동 분리 |
 | Required | `is_routine` | `is_routine` | `lock_session_start`, `lock_session_end` | 루틴 세션과 수동 세션 분리 |
@@ -522,7 +567,7 @@ AdMob 배너 노출/클릭/수익 이벤트는 `TrackedBannerAd.kt`의 전용 co
 | Required | `selected_app_count_bucket` | `selected_app_count_bucket` | `routine_saved`, `goal_lock_created` | 선택 앱 수 bucket. 루틴 저장은 `1/2_3/4_6/7_plus`, 목표 잠금은 해당 문서의 event별 계약을 따른다. 앱 package/name/list 금지 |
 | Required | `repeat_days_bucket` | `repeat_days_bucket` | `routine_saved`, `routine_template_share_tapped`, `routine_template_share_sheet_opened` | event별 요일 bucket. `routine_saved`는 반복 요일 수(`1/2_3/4_6/7`), 루틴 템플릿 공유는 공유 템플릿 패턴 계약을 따른다. raw weekday list 금지 |
 | Required | `time_window_bucket` | `time_window_bucket` | `routine_saved`, `routine_template_share_tapped`, `routine_template_share_sheet_opened` | event별 시간대 bucket. `routine_saved`는 `morning/afternoon/evening/night/overnight/all_day/custom`; raw start/end time 금지 |
-| Required | `schedule_state` | `schedule_state` | `routine_saved` | 루틴 저장 완료 후 enabled/disabled 상태 구분. exact alarm 권한 부족 disabled 저장은 `disabled_exact_alarm_missing`으로 분리하고 `lock_scheduled`와 혼동하지 않는다 |
+| Required | `schedule_state` | `schedule_state` | `routine_saved`, `first_promise_created` | 루틴/첫 약속 저장 완료 후 enabled/disabled 상태 구분. exact alarm 권한 부족 disabled 저장은 `disabled_exact_alarm_missing`으로 분리하고 `lock_scheduled`와 혼동하지 않는다 |
 | Required | `fallback_type` | `fallback_type` | `support_contact_fallback_used` | 이메일 앱 미설치 fallback 방식. 현재 `clipboard`만 허용하며 진단 payload 원문은 analytics에 기록하지 않는다. |
 | Required | `activation_stage` | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | `post_first_core_action` vs returning blocked user 맥락 분리 |
 | Required | `has_routine` | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | 루틴 보유자 오노출을 감지하고 MVP 대상(`false`)만 분리 |

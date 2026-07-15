@@ -116,6 +116,17 @@ PR #1005(`b1aa97d`) 기준 추가 확인:
 - `blocked_app_package` 원문은 #611 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 차단 앱별 해석이 필요하면 `blocked_app_category_bucket`과 local-only QA evidence를 조합한다.
 - `routine_id` / `goal_lock_id` row id는 #1079 privacy 계약에 따라 신규 등록/조회 대상에서 제외한다. 루틴/목표잠금별 live 디버깅이 필요하면 repo-internal debug-state/instrumentation evidence를 사용하고, 제품 지표는 `block_source`, `blocking_mode`, `routines_count`, goal-lock bucket 이벤트로 해석한다.
 
+#### 첫 약속 코치 planned 등록 package
+
+첫 약속 코치의 여섯 신규 이벤트와 optional `app_block_intercepted.promise_origin`은 코드/문서 계약만 추가된 상태다. 다음 dimension은 모두 **planned — 미등록**이며 이 문서 갱신을 live GA4 Admin 변경으로 해석하지 않는다.
+
+- 신규: `variant`, `assignment_version`, `goal_type`, `data_quality`, `pattern_type`, `coverage_days_bucket`, `latency_bucket`, `field_name`, `promise_origin`, `elapsed_since_first_open_bucket`
+- 기존 축의 신규 사용/값: `step_name`(`goal_select`, `usage_access`, `promise_proposal`, `promise_result`), `permission_name`(`usage_access`), `outcome`(`skipped`, `unknown`, `started`, `start_failed`), `source`, `schedule_state`, `blocking_mode`, `blocked_app_category_bucket`
+- 신규 이벤트: `onboarding_experiment_exposed`, `usage_analysis_completed`, `promise_recommendation_shown`, `promise_recommendation_edited`, `first_promise_created`, `first_promise_practice_outcome`
+- backend 경계: 위 여섯 이벤트와 `app_block_intercepted`는 Firebase/GA4 전용이며 Amplitude allowlist에 넣지 않는다.
+
+50% rollout 판정에 사용하는 guardrail dimension(`variant`, `assignment_version`, `step_name`, `end_reason`, `source`, `block_source` 및 해당 funnel의 `promise_origin`) 중 하나라도 metadata/runReport queryability가 없으면 수치가 좋아 보여도 rollout을 자동 보류한다. 즉 **50% rollout guardrail dimension의 missing queryability는 자동 hold**이며, 등록 계획만으로 승격하지 않는다.
+
 ### 2순위: 세션 종료/리뷰/신뢰 흐름
 
 - `is_routine`
@@ -308,12 +319,22 @@ GA4 Admin 증적 후보:
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
 | --- | --- | --- | --- | --- |
-| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | 미확인/등록 필요 | GA4 Admin custom dimension 등록 후 metadata 확인. PR #783 이후 긴급해제 reason/app_selection/duration/countdown 단계도 같은 dimension을 쓴다. | `customEvent:step_name` |
-| `permission_name` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:permission_name` |
-| `outcome` | `permission_outcome` | 미확인/등록 필요 | 동일 | `customEvent:outcome` |
-| `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used` | 미확인/등록 필요 | 동일 | `customEvent:source` |
-| `block_source` | `app_block_intercepted` | 미확인/등록 필요 | 동일 | `customEvent:block_source` |
+| `step_name` | `onboarding_step_view`, `onboarding_step_complete`, `permission_outcome`, `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | planned — 미등록 | GA4 Admin 등록 후 metadata 확인. 첫 약속 코치는 `goal_select`/`usage_access`/`promise_proposal`/`promise_result`, PR #783 긴급해제는 reason/app_selection/duration/countdown을 같은 dimension에서 쓴다. | `customEvent:step_name` |
+| `permission_name` | `permission_outcome` | planned — 미등록 | `usage_access` 포함 GA4 Admin 등록 후 metadata 확인 | `customEvent:permission_name` |
+| `outcome` | `permission_outcome`, `first_promise_practice_outcome` | planned — 미등록 | 권한/연습 event context별 허용 enum을 유지한 채 등록 후 metadata 확인 | `customEvent:outcome` |
+| `source` | `first_lock_configured`, `lock_session_start`, `lock_session_end`, `emergency_unlock_used`, `promise_recommendation_shown`, `first_promise_created` | planned — 미등록 | 첫 약속 personalized/goal_template/manual 포함 등록 후 metadata 확인 | `customEvent:source` |
+| `block_source` | `app_block_intercepted` | planned — 미등록 | 50% rollout guardrail 사용 전 metadata/runReport 조회성 확인 | `customEvent:block_source` |
 | `blocked_app_category_bucket` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | #611 문서 계약 + PR #617 Android payload 전환 완료 | PR #617 포함 버전의 release/tag/Play deploy 전후로 GA4 Admin custom dimension 등록 후 metadata 확인 | `customEvent:blocked_app_category_bucket` |
+| `variant` | `onboarding_experiment_exposed` | planned — 미등록 | Control/Treatment cohort 및 50% guardrail 판정 전 등록/metadata/runReport 확인 | `customEvent:variant` |
+| `assignment_version` | `onboarding_experiment_exposed` | planned — 미등록 | sticky assignment version 분리 전 등록/조회성 확인 | `customEvent:assignment_version` |
+| `goal_type` | `promise_recommendation_shown`, `first_promise_created` | planned — 미등록 | 목적별 추천→생성 전환 분석 전 등록/조회성 확인 | `customEvent:goal_type` |
+| `data_quality` | `usage_analysis_completed` | planned — 미등록 | full/usage_only/insufficient 분석 전 등록/조회성 확인 | `customEvent:data_quality` |
+| `pattern_type` | `usage_analysis_completed`, `promise_recommendation_shown` | planned — 미등록 | night/peak_window/top_app/manual 근거별 비교 전 등록/조회성 확인 | `customEvent:pattern_type` |
+| `coverage_days_bucket` | `usage_analysis_completed` | planned — 미등록 | raw 관측일 없이 coverage 비교 전 등록/조회성 확인 | `customEvent:coverage_days_bucket` |
+| `latency_bucket` | `usage_analysis_completed` | planned — 미등록 | timeout/지연 guardrail 판정 전 등록/조회성 확인 | `customEvent:latency_bucket` |
+| `field_name` | `promise_recommendation_edited` | planned — 미등록 | app/start_time/repeat_days 편집 friction 분석 전 등록/조회성 확인 | `customEvent:field_name` |
+| `promise_origin` | `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | planned — 미등록 | first_promise_routine/practice 24시간 ordered funnel 분석 전 등록/조회성 확인 | `customEvent:promise_origin` |
+| `elapsed_since_first_open_bucket` | `first_core_action_completed`, `core_action_completed` | planned — 미등록 | first-promise durable core action latency 분석 전 등록/조회성 확인 | `customEvent:elapsed_since_first_open_bucket` |
 | `blocked_app_package` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | GA4 Admin 신규 등록 대상에서 제외. 기존 live 흔적은 legacy baseline으로만 해석 | 등록하지 않음 |
 | `routine_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
 | `goal_lock_id` | legacy `app_block_intercepted`, `first_core_action_completed`, `core_action_completed` | deprecated / 신규 등록 금지 | #1079 이후 GA4 Admin 신규 등록 대상에서 제외. repo-internal debug-state/instrumentation attribution만 허용 | 등록하지 않음 |
@@ -350,7 +371,7 @@ GA4 Admin 증적 후보:
 | `selected_app_count_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | 루틴 저장 시 선택 앱 수 bucket. 앱 package/name/list 금지 | `customEvent:selected_app_count_bucket` |
 | `repeat_days_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | raw weekday list 대신 반복 요일 수 bucket만 사용 | `customEvent:repeat_days_bucket` |
 | `time_window_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | raw start/end time 대신 morning/afternoon/evening/night/overnight/all_day/custom bucket만 사용 | `customEvent:time_window_bucket` |
-| `schedule_state` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | enabled 저장과 exact alarm 권한 부족으로 disabled 저장된 루틴을 분리. `lock_scheduled` 성공 예약 이벤트와 혼동하지 않음 | `customEvent:schedule_state` |
+| `schedule_state` | `routine_saved`, `first_promise_created` | 기존 routine_saved 코드 완료 + first-promise 사용 planned — 미등록 | enabled 저장과 exact alarm 권한 부족 disabled 저장을 분리. `lock_scheduled` 성공 예약 이벤트와 혼동하지 않고 등록/조회성 확인 | `customEvent:schedule_state` |
 | `activation_stage` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료(`post_first_core_action`) / GA4 등록 필요 | 동일 | `customEvent:activation_stage` |
 | `has_routine` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed` | #455 PR #533 Home CTA 구현 완료 / GA4 등록 필요 | 루틴 보유자 오노출 감지. MVP는 `false`만 허용 | `customEvent:has_routine` |
 | `suggestion_reason` | `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #531 PR #537/#552/#555/#561/#835/#843/#887/#899/#923/#931/#983/#994 구현 완료 surface 기준 / release·GA4 등록 전 | 반복 차단 기반 추천 이유별 반응 비교. 앱 이름/package/raw history 금지 | `customEvent:suggestion_reason` |
@@ -439,12 +460,23 @@ GA4 Admin 증적 후보:
 
 | 항목 | 분류 | 등록 여부 | 등록 일시 | 담당 | metadata 확인 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `step_name` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `permission_name` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `outcome` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
-| `block_source` | Required dimension | `TODO` | `TODO` | `TODO` | `TODO` | |
+| `step_name` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 첫 약속 `promise_result` 포함; live 등록 주장 금지 |
+| `permission_name` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | `usage_access` 포함 |
+| `outcome` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 권한/연습 event context별 enum |
+| `source` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 첫 약속 personalized/goal_template/manual 포함 |
+| `block_source` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 50% rollout guardrail 필수 축 |
 | `blocked_app_category_bucket` | Required dimension | 등록 필요 | PR #617 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:blocked_app_category_bucket` 확인 필요 | #611 privacy-safe 대체 축 |
+| `variant` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | Control/Treatment 및 50% guardrail cohort |
+| `assignment_version` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | sticky assignment `v1` |
+| `goal_type` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 추천→첫 약속 생성 |
+| `data_quality` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 로컬 분석 품질 |
+| `pattern_type` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 추천 근거 유형 |
+| `coverage_days_bucket` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 완결 관측일 bucket |
+| `latency_bucket` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 분석 timeout/지연 guardrail |
+| `field_name` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | 추천 편집 friction |
+| `schedule_state` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | first_promise_created enabled/disabled |
+| `promise_origin` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | routine/practice ordered value funnel |
+| `elapsed_since_first_open_bucket` | Required dimension | planned — 미등록 | 미등록 | GA4 Admin 수동 예정 | 미확인 | durable core-action latency bucket |
 | `blocked_app_package` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | raw package 원문. #611에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `routine_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 routine row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
 | `goal_lock_id` | Deprecated / 금지 | 신규 등록하지 않음 | 해당 없음 | 해당 없음 | 해당 없음 | 내부 goal-lock row id. #1079에 따라 GA4 payload/custom dimension 등록 대상에서 제외 |
@@ -666,6 +698,7 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
 | `(not set)+빈 값` 비율 | `78.1%` | `TODO` | 2026-05-29 baseline은 PR #296의 `SplashScreen` / `BlockedAppsScreen` / `EmergencyUnlockSettingsScreen` 및 PR #318의 dev/debug `DevToolScreen` 보강 전 기준선이고, PR #358 merge commit `6ceaecc4`가 이 release-boundary를 고정했다. 2026-06-03 14일 live smoke는 `13,780 / 22,584 = 61.0%`였고, 2026-06-26T02:07:51Z 30일 metrics snapshot은 `(not set)+blank` `41,100 / 78,600 = 52.3%`였다. 최신 `1.7.7` active share는 `559 / 938 = 59.6%`로 충분 상태에 들어왔지만 `PR #296/#318/#358` package와 PR #755 Firebase `screen_view` backend payload 보강이 `origin/main`/`v1.7.7`에 없으므로 **post-fix 성과가 아니라 release boundary 전 중간 smoke**로만 기록한다. 화면 호출 coverage package와 backend payload package가 모두 포함된 버전 배포 후 14일 창에서 **D+14 screen quality 재측정**. `DevToolScreen`은 dev/debug 내부 진단 surface로 production 사용자 screen denominator와 분리. |
 | metadata에서 보이는 `customUser:*` | `routines_count` | `TODO` | |
 | activation metadata에서 보이는 `customEvent:*` | `없음` | `TODO` | `permission_name`, `outcome`, `source`, `selected_app_count`, `block_source`, `blocked_app_category_bucket` 등 activation/funnel breakdown은 아직 낮은 confidence. `blocked_app_package` 원문은 #611에 따라 신규 등록/조회 대상에서 제외 |
+| first-promise planned `customEvent:*` | `없음` (planned — 미등록) | `TODO` | `variant`, `assignment_version`, `goal_type`, `data_quality`, `pattern_type`, `coverage_days_bucket`, `latency_bucket`, `field_name`, `schedule_state`, `promise_origin`, `elapsed_since_first_open_bucket` 등록/조회성 확인 전에는 50% rollout 승격 자동 보류 |
 | review skip metadata에서 보이는 `customEvent:*` | `reason` | `TODO` | 2026-06-02T18:06:45Z 기준 `review_prompt_skipped` reason breakdown 조회 가능. #307에서는 더 이상 `reason`을 미등록 경계로 반복 보고하지 않음 |
 | review failure metadata에서 보이는 `customEvent:*` | `없음` (`error` 미등록) | `TODO` | `review_prompt_failed` 원인 breakdown은 계속 #13 GA4 Admin/manual boundary |
 | 광고 metadata에서 보이는 `customEvent:*` | `ad_unit_id`, `ad_placement`, `screen_context`, `ad_format`, `ad_value_micros`, `screen_name` | `TODO` | source split/query contract 확인 필요 |
@@ -689,6 +722,13 @@ metadata에 보인 뒤에는 실제로 필요한 쿼리에서 dimension/metric�
   - `permission_outcome` by `permission_name/outcome`:
   - `first_lock_configured` by `source`:
   - `app_block_intercepted` by `block_source/blocked_app_category_bucket`:
+- first-promise coach check 결과:
+  - `onboarding_experiment_exposed` by `variant/assignment_version`:
+  - `onboarding_step_complete(step_name=promise_result)` by `variant`:
+  - `usage_analysis_completed` by `data_quality/pattern_type/coverage_days_bucket/latency_bucket`:
+  - `first_promise_created` by `goal_type/source/schedule_state`:
+  - ordered 24h `first_promise_created → app_block_intercepted` by `promise_origin/block_source`:
+  - 50% rollout guardrail dimension queryability missing 여부와 automatic hold 적용 여부:
 - trust/review check 결과:
   - `lock_session_end` by `end_reason/is_routine`:
   - `review_prompt_skipped` / `review_prompt_failed`:

@@ -2,6 +2,7 @@ package com.uiery.keep.analytics.amplitude
 
 import com.uiery.keep.analytics.KeepAnalyticsEvent
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -35,6 +36,25 @@ class AmplitudeEventAllowlistTest {
             "Allowlist grew beyond the budgeted ceiling (${AmplitudeEventAllowlist.EVENTS.size})",
             AmplitudeEventAllowlist.EVENTS.size <= 30,
         )
+    }
+
+    @Test
+    fun firstPromiseExperimentEventsRemainFirebaseOnly() {
+        val firebaseOnlyEvents = setOf(
+            KeepAnalyticsEvent.ONBOARDING_EXPERIMENT_EXPOSED,
+            KeepAnalyticsEvent.USAGE_ANALYSIS_COMPLETED,
+            KeepAnalyticsEvent.PROMISE_RECOMMENDATION_SHOWN,
+            KeepAnalyticsEvent.PROMISE_RECOMMENDATION_EDITED,
+            KeepAnalyticsEvent.FIRST_PROMISE_CREATED,
+            KeepAnalyticsEvent.FIRST_PROMISE_PRACTICE_OUTCOME,
+            KeepAnalyticsEvent.APP_BLOCK_INTERCEPTED,
+        )
+
+        assertFalse(
+            "First-promise experiment/value events must remain Firebase-only",
+            AmplitudeEventAllowlist.EVENTS.any(firebaseOnlyEvents::contains),
+        )
+        assertTrue(AmplitudeEventAllowlist.EVENTS.size <= 30)
     }
 
     private fun stringConstantsOf(owner: Any): Set<String> =

@@ -2,6 +2,7 @@ package com.uiery.keep.data.firstpromise
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.KeepAnalyticsEvent
+import com.uiery.keep.analytics.KeepAnalyticsParam
 import com.uiery.keep.analytics.routine.RoutineAnalyticsEvent
 import com.uiery.keep.database.entity.FirstPromiseAnalyticsOutboxEntity
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
@@ -137,20 +138,20 @@ class FirstPromiseOutboxEventCodec @Inject constructor() {
             "first_promise_value_intercepted" -> {
                 requireExactKeys(payload, APP_BLOCK_INTERCEPTED_KEYS)
                 FirstPromiseOutboxEvent.AppBlockIntercepted(
-                    blockSource = enumValue(payload, "block_source", FirstPromiseBlockSource.entries, FirstPromiseBlockSource::analyticsValue),
-                    blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
-                    categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
-                    promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
+                    blockSource = enumValue(payload, KeepAnalyticsParam.BLOCK_SOURCE, FirstPromiseBlockSource.entries, FirstPromiseBlockSource::analyticsValue),
+                    blockingMode = enumValue(payload, KeepAnalyticsParam.BLOCKING_MODE, FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
+                    categoryBucket = enumValue(payload, KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
+                    promiseOrigin = enumValue(payload, KeepAnalyticsParam.PROMISE_ORIGIN, FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
                 )
             }
             "first_promise_core_action" -> {
                 requireExactKeys(payload, CORE_ACTION_KEYS)
                 FirstPromiseOutboxEvent.CoreAction(
                     kind = enumValueByName(payload, "core_action_kind", FirstPromiseCoreActionKind.entries),
-                    blockingMode = enumValue(payload, "blocking_mode", FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
-                    categoryBucket = enumValue(payload, "blocked_app_category_bucket", FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
-                    elapsedBucket = enumValue(payload, "elapsed_since_first_open_bucket", FirstPromiseElapsedSinceOpenBucket.entries, FirstPromiseElapsedSinceOpenBucket::analyticsValue),
-                    promiseOrigin = enumValue(payload, "promise_origin", FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
+                    blockingMode = enumValue(payload, KeepAnalyticsParam.BLOCKING_MODE, FirstPromiseBlockingMode.entries, FirstPromiseBlockingMode::analyticsValue),
+                    categoryBucket = enumValue(payload, KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET, FirstPromiseAppCategoryBucket.entries, FirstPromiseAppCategoryBucket::analyticsValue),
+                    elapsedBucket = enumValue(payload, KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET, FirstPromiseElapsedSinceOpenBucket.entries, FirstPromiseElapsedSinceOpenBucket::analyticsValue),
+                    promiseOrigin = enumValue(payload, KeepAnalyticsParam.PROMISE_ORIGIN, FirstPromiseOrigin.entries, FirstPromiseOrigin::analyticsValue),
                 )
             }
             else -> return null
@@ -175,17 +176,17 @@ class FirstPromiseOutboxEventCodec @Inject constructor() {
             "schedule_state" to JsonPrimitive(scheduleState.analyticsValue),
         )
         is FirstPromiseOutboxEvent.AppBlockIntercepted -> mapOf(
-            "block_source" to JsonPrimitive(blockSource.analyticsValue),
-            "blocking_mode" to JsonPrimitive(blockingMode.analyticsValue),
-            "blocked_app_category_bucket" to JsonPrimitive(categoryBucket.analyticsValue),
-            "promise_origin" to JsonPrimitive(promiseOrigin.analyticsValue),
+            KeepAnalyticsParam.BLOCK_SOURCE to JsonPrimitive(blockSource.analyticsValue),
+            KeepAnalyticsParam.BLOCKING_MODE to JsonPrimitive(blockingMode.analyticsValue),
+            KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to JsonPrimitive(categoryBucket.analyticsValue),
+            KeepAnalyticsParam.PROMISE_ORIGIN to JsonPrimitive(promiseOrigin.analyticsValue),
         )
         is FirstPromiseOutboxEvent.CoreAction -> mapOf(
             "core_action_kind" to JsonPrimitive(kind.name),
-            "blocking_mode" to JsonPrimitive(blockingMode.analyticsValue),
-            "blocked_app_category_bucket" to JsonPrimitive(categoryBucket.analyticsValue),
-            "elapsed_since_first_open_bucket" to JsonPrimitive(elapsedBucket.analyticsValue),
-            "promise_origin" to JsonPrimitive(promiseOrigin.analyticsValue),
+            KeepAnalyticsParam.BLOCKING_MODE to JsonPrimitive(blockingMode.analyticsValue),
+            KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to JsonPrimitive(categoryBucket.analyticsValue),
+            KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET to JsonPrimitive(elapsedBucket.analyticsValue),
+            KeepAnalyticsParam.PROMISE_ORIGIN to JsonPrimitive(promiseOrigin.analyticsValue),
         )
     }
 
@@ -225,17 +226,17 @@ class FirstPromiseOutboxEventCodec @Inject constructor() {
         )
         private val FIRST_PROMISE_CREATED_KEYS = setOf("goal_type", "source", "schedule_state")
         private val APP_BLOCK_INTERCEPTED_KEYS = setOf(
-            "block_source",
-            "blocking_mode",
-            "blocked_app_category_bucket",
-            "promise_origin",
+            KeepAnalyticsParam.BLOCK_SOURCE,
+            KeepAnalyticsParam.BLOCKING_MODE,
+            KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+            KeepAnalyticsParam.PROMISE_ORIGIN,
         )
         private val CORE_ACTION_KEYS = setOf(
             "core_action_kind",
-            "blocking_mode",
-            "blocked_app_category_bucket",
-            "elapsed_since_first_open_bucket",
-            "promise_origin",
+            KeepAnalyticsParam.BLOCKING_MODE,
+            KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET,
+            KeepAnalyticsParam.ELAPSED_SINCE_FIRST_OPEN_BUCKET,
+            KeepAnalyticsParam.PROMISE_ORIGIN,
         )
     }
 }

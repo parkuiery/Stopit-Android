@@ -99,6 +99,17 @@ receives exactly what Firebase receives for these events.
 
 Excluded to protect the budget and/or because they carry low marginal value in Amplitude:
 
+- **First-promise experiment (all six new events):** `onboarding_experiment_exposed`,
+  `usage_analysis_completed`, `promise_recommendation_shown`,
+  `promise_recommendation_edited`, `first_promise_created`,
+  `first_promise_practice_outcome`. Phase 1's ordered promise-value funnel stays in
+  Firebase/GA4. These names are deliberately absent from `AmplitudeEventAllowlist`, and
+  the allowlist regression asserts both that exclusion and the `<=30` event ceiling.
+- **First-promise value attribution:** optional typed
+  `app_block_intercepted.promise_origin=first_promise_routine|first_promise_practice`
+  remains Firebase/GA4-only with the canonical `app_block_intercepted` event. No package,
+  app label, observed usage minutes/time, draft id, routine id, or arbitrary origin string
+  is forwarded.
 - **High-frequency:** `app_block_intercepted`, `core_action_completed`,
   `parent_mode_block_intercepted`
 - **Screen views:** `logScreenView` / `screen_view` (Amplitude has its own session model)

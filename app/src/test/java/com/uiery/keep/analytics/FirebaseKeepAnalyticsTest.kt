@@ -13,6 +13,7 @@ import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
 import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
 import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseSource
@@ -24,6 +25,7 @@ import com.uiery.keep.domain.firstpromise.UsageDataQuality
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirebaseKeepAnalyticsTest {
@@ -100,6 +102,56 @@ class FirebaseKeepAnalyticsTest {
             ),
             backend.loggedEvents,
         )
+        backend.loggedEvents.forEach { event ->
+            assertTrue(event.params.keys.none(FIRST_PROMISE_FORBIDDEN_KEYS::contains))
+            val serializedValues = event.params.values.joinToString("|")
+            assertTrue(FIRST_PROMISE_FORBIDDEN_VALUES.none(serializedValues::contains))
+        }
+    }
+
+    @Test
+    fun appBlockInterceptedUsesOptionalTypedFirstPromiseOriginWithoutExportingLocalIdentity() {
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.ROUTINE,
+            blockedAppPackage = "com.example.private-package",
+            routineId = "local-routine-id",
+            promiseOrigin = FirstPromiseOrigin.FirstPromiseRoutine,
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            blockedAppPackage = "com.example.private-package",
+            promiseOrigin = FirstPromiseOrigin.FirstPromisePractice,
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            blockedAppPackage = "com.example.private-package",
+        )
+
+        assertEquals(
+            listOf(
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to "first_promise_routine",
+                ),
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to "first_promise_practice",
+                ),
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents.map { it.params },
+        )
+        backend.loggedEvents.forEach { event ->
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
+            assertFalse(event.params.values.contains("local-routine-id"))
+            assertFalse(event.params.values.contains("com.example.private-package"))
+        }
     }
 
     @Test
@@ -123,6 +175,23 @@ class FirebaseKeepAnalyticsTest {
                     .filter { parameterType -> parameterType == String::class.java }
                     .map { method.name }
             },
+        )
+    }
+
+    companion object {
+        private val FIRST_PROMISE_FORBIDDEN_KEYS = setOf(
+            "package",
+            "app_package",
+            "app_label",
+            "observed_minutes",
+            "observed_time",
+            "draft_id",
+            "routine_id",
+        )
+        private val FIRST_PROMISE_FORBIDDEN_VALUES = setOf(
+            "com.example",
+            "local-routine",
+            "local-draft",
         )
     }
 

@@ -7,6 +7,7 @@ import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
@@ -620,6 +621,7 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         blockedAppPackage: String,
         routineId: String?,
         goalLockId: String?,
+        promiseOrigin: FirstPromiseOrigin?,
     ) {
         calls += BlockAnalyticsCall.AppBlockIntercepted(
             blockSource = blockSource,
