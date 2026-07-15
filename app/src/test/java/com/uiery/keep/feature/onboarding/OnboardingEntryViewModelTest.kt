@@ -3,6 +3,7 @@ package com.uiery.keep.feature.onboarding
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.FirstPromiseStateReadResult
 import com.uiery.keep.datastore.PreferencesKey
@@ -13,6 +14,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromisePersistenceResolution
 import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PendingOnboardingAnalyticsEvent
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryDestination
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryViewModel
@@ -35,6 +37,37 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingEntryViewModelTest {
+    @Test
+    fun entryDrainsPendingOnboardingAnalyticsBeforeRoutingAfterRecreation() = runBlocking {
+        val analytics = FirstPromiseRecordingAnalytics()
+        val dataStore = stateDataStore(
+            assigned(OnboardingVariant.Control).copy(
+                trackedMilestones = setOf(FirstPromiseMilestone.Exposure),
+                pendingOnboardingAnalyticsEvents = listOf(
+                    PendingOnboardingAnalyticsEvent.ExperimentExposureControlV1,
+                ),
+            ),
+        )
+        val store = FirstPromiseDraftStore(dataStore)
+        val viewModel = viewModel(
+            dataStore = dataStore,
+            onboardingAnalyticsDispatcher = FirstPromiseOnboardingAnalyticsDispatcher(store, analytics),
+        )
+        val navigation = async { viewModel.container.sideEffectFlow.first() }
+
+        viewModel.resolve()
+
+        assertEquals(
+            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
+            navigation.await(),
+        )
+        assertEquals(
+            listOf(FirstPromiseAnalyticsCall.Exposure(OnboardingVariant.Control)),
+            analytics.calls,
+        )
+        assertTrue(store.readState().pendingOnboardingAnalyticsEvents.isEmpty())
+    }
+
     @Test
     fun malformedPersistedStateFailsClosedWithoutAssignmentWriteOrNavigation() = runBlocking {
         val malformed = "{not-valid-json"
@@ -326,12 +359,14 @@ class OnboardingEntryViewModelTest {
         state: FirstPromiseOnboardingState = FirstPromiseOnboardingState(),
         snapshot: OnboardingExperimentSnapshot = OnboardingExperimentSnapshot(),
         dataStore: DataStore<Preferences> = stateDataStore(state),
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher? = null,
     ) = OnboardingEntryViewModel(
         draftStore = FirstPromiseDraftStore(dataStore),
         experimentConfig = object : OnboardingExperimentConfig {
             override fun snapshot() = snapshot
         },
         bucketProvider = { 0 },
+        onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher,
     )
 
     private fun assigned(variant: OnboardingVariant) = FirstPromiseOnboardingState(

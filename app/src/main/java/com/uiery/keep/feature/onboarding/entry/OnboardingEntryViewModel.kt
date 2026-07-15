@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.onboarding.entry
 
 import androidx.lifecycle.ViewModel
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.FirstPromiseStateCorruptedException
 import com.uiery.keep.datastore.FirstPromiseStateReadResult
@@ -25,6 +26,7 @@ import org.orbitmvi.orbit.viewmodel.container
 @HiltViewModel
 class OnboardingEntryViewModel private constructor(
     private val draftStore: FirstPromiseDraftStore,
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher?,
     private val experimentSnapshot: () -> OnboardingExperimentSnapshot,
     private val bucketProvider: () -> Int,
 ) : ViewModel(), ContainerHost<Unit, OnboardingEntrySideEffect> {
@@ -32,8 +34,10 @@ class OnboardingEntryViewModel private constructor(
     constructor(
         draftStore: FirstPromiseDraftStore,
         experimentConfig: FirebaseOnboardingExperimentConfig,
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
     ) : this(
         draftStore = draftStore,
+        onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher,
         experimentSnapshot = experimentConfig::snapshot,
         bucketProvider = { Random.nextInt(100) },
     )
@@ -42,8 +46,10 @@ class OnboardingEntryViewModel private constructor(
         draftStore: FirstPromiseDraftStore,
         experimentConfig: OnboardingExperimentConfig,
         bucketProvider: () -> Int,
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher? = null,
     ) : this(
         draftStore = draftStore,
+        onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher,
         experimentSnapshot = experimentConfig::snapshot,
         bucketProvider = bucketProvider,
     )
@@ -55,6 +61,7 @@ class OnboardingEntryViewModel private constructor(
     fun resolve() {
         if (!hasResolved.compareAndSet(false, true)) return
         intent {
+            runCatching { onboardingAnalyticsDispatcher?.drain() }
             val snapshot = experimentSnapshot()
             val initialEffect = resolveEntry(snapshot)
             val finalEffect = if (initialEffect == OnboardingEntrySideEffect.WaitForPersistence) {

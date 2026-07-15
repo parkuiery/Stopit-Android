@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.datastore.FirstPromiseDraftStore
-import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -18,21 +18,35 @@ import javax.inject.Inject
 class IntroViewModel private constructor(
     private val analytics: KeepAnalytics,
     private val draftStore: FirstPromiseDraftStore?,
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher?,
     private val exposureDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     @Inject
     constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
     ) : this(
         analytics = analytics,
         draftStore = draftStore,
+        onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher,
+        exposureDispatcher = Dispatchers.IO,
+    )
+
+    internal constructor(
+        analytics: KeepAnalytics,
+        draftStore: FirstPromiseDraftStore,
+    ) : this(
+        analytics = analytics,
+        draftStore = draftStore,
+        onboardingAnalyticsDispatcher = FirstPromiseOnboardingAnalyticsDispatcher(draftStore, analytics),
         exposureDispatcher = Dispatchers.IO,
     )
 
     internal constructor(analytics: KeepAnalytics) : this(
         analytics = analytics,
         draftStore = null,
+        onboardingAnalyticsDispatcher = null,
         exposureDispatcher = Dispatchers.IO,
     )
 
@@ -41,12 +55,8 @@ class IntroViewModel private constructor(
         analytics.trackOnboardingStepView(OnboardingStepName.INTRO)
         val store = draftStore ?: return
         viewModelScope.launch(exposureDispatcher) {
-            if (store.markExposedIfNeeded(OnboardingVariant.Control)) {
-                analytics.trackOnboardingExperimentExposed(
-                    variant = OnboardingVariant.Control,
-                    assignmentVersion = OnboardingAssignmentVersion.V1,
-                )
-            }
+            store.markExposedIfNeeded(OnboardingVariant.Control)
+            runCatching { onboardingAnalyticsDispatcher?.drain() }
         }
     }
 

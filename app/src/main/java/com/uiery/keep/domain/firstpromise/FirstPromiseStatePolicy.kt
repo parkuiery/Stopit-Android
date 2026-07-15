@@ -160,6 +160,9 @@ object FirstPromiseStatePolicy {
                 phase = FirstPromisePhase.UsageAccessPending,
                 goal = goal,
                 path = FirstPromisePath.Personalized,
+            ).withMilestoneEvent(
+                milestone = FirstPromiseMilestone.GoalSelectCompletion,
+                event = PendingOnboardingAnalyticsEvent.GoalSelectStepComplete,
             ),
         )
     }
@@ -167,7 +170,12 @@ object FirstPromiseStatePolicy {
     fun chooseManualGoal(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         if (state.phase == FirstPromisePhase.GoalPending) {
             FirstPromiseStateMutation.Changed(
-                state.normalAnalysisFallback().copy(goal = FirstPromiseGoal.Unspecified),
+                state.normalAnalysisFallback()
+                    .copy(goal = FirstPromiseGoal.Unspecified)
+                    .withMilestoneEvent(
+                        milestone = FirstPromiseMilestone.GoalSelectCompletion,
+                        event = PendingOnboardingAnalyticsEvent.GoalSelectStepComplete,
+                    ),
             )
         } else {
             FirstPromiseStateMutation.Rejected
@@ -222,10 +230,12 @@ object FirstPromiseStatePolicy {
             else -> return FirstPromiseStateMutation.Rejected
         }
         return FirstPromiseStateMutation.Changed(
-            analyzingState.copy(
-                trackedMilestones = analyzingState.trackedMilestones + FirstPromiseMilestone.UsageAccessCompletion,
-                pendingSystemAction = null,
-            ),
+            analyzingState
+                .copy(pendingSystemAction = null)
+                .withMilestoneEvent(
+                    milestone = FirstPromiseMilestone.UsageAccessCompletion,
+                    event = PendingOnboardingAnalyticsEvent.UsageAccessStepComplete,
+                ),
         )
     }
 
@@ -312,6 +322,61 @@ object FirstPromiseStatePolicy {
             )
         }
 
+    fun markExposure(
+        state: FirstPromiseOnboardingState,
+        variant: OnboardingVariant,
+    ): FirstPromiseStateMutation {
+        if (state.assignment != variant || state.assignmentVersion != OnboardingAssignmentVersion.V1) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val event = when (variant) {
+            OnboardingVariant.Control -> PendingOnboardingAnalyticsEvent.ExperimentExposureControlV1
+            OnboardingVariant.PromiseCoachV1 ->
+                PendingOnboardingAnalyticsEvent.ExperimentExposurePromiseCoachV1
+        }
+        return markMilestoneWithEvent(state, FirstPromiseMilestone.Exposure, event)
+    }
+
+    fun markGoalSelectViewed(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        if (
+            state.assignment == OnboardingVariant.PromiseCoachV1 &&
+            state.phase == FirstPromisePhase.GoalPending
+        ) {
+            markMilestoneWithEvent(
+                state,
+                FirstPromiseMilestone.GoalSelectView,
+                PendingOnboardingAnalyticsEvent.GoalSelectStepView,
+            )
+        } else {
+            FirstPromiseStateMutation.Rejected
+        }
+
+    fun markUsageAccessViewed(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        if (
+            state.assignment == OnboardingVariant.PromiseCoachV1 &&
+            state.phase == FirstPromisePhase.UsageAccessPending
+        ) {
+            markMilestoneWithEvent(
+                state,
+                FirstPromiseMilestone.UsageAccessView,
+                PendingOnboardingAnalyticsEvent.UsageAccessStepView,
+            )
+        } else {
+            FirstPromiseStateMutation.Rejected
+        }
+
+    fun acknowledgePendingAnalyticsEvent(
+        state: FirstPromiseOnboardingState,
+        event: PendingOnboardingAnalyticsEvent,
+    ): FirstPromiseStateMutation =
+        if (state.pendingOnboardingAnalyticsEvents.firstOrNull() != event) {
+            FirstPromiseStateMutation.Rejected
+        } else {
+            FirstPromiseStateMutation.Changed(
+                state.copy(pendingOnboardingAnalyticsEvents = state.pendingOnboardingAnalyticsEvents.drop(1)),
+            )
+        }
+
     fun createManualDraft(
         state: FirstPromiseOnboardingState,
         draft: FirstPromiseDraft,
@@ -327,12 +392,22 @@ object FirstPromiseStatePolicy {
         val phaseMutation = transition(state, FirstPromisePhase.DraftReady)
         val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state
             ?: return FirstPromiseStateMutation.Rejected
+        val withDraft = phaseState.copy(
+            draft = draft,
+            recommendationReasonRef = reason,
+        )
         return FirstPromiseStateMutation.Changed(
-            phaseState.copy(
-                draft = draft,
-                recommendationReasonRef = reason,
-                trackedMilestones = phaseState.trackedMilestones + FirstPromiseMilestone.AppSelection,
-            ),
+            if (FirstPromiseMilestone.AppSelection in withDraft.trackedMilestones) {
+                withDraft
+            } else {
+                withDraft.copy(
+                    trackedMilestones = withDraft.trackedMilestones + FirstPromiseMilestone.AppSelection,
+                    pendingOnboardingAnalyticsEvents = withDraft.pendingOnboardingAnalyticsEvents + listOf(
+                        PendingOnboardingAnalyticsEvent.SelectAppStepComplete,
+                        PendingOnboardingAnalyticsEvent.AppSelectionCompletedSingle,
+                    ),
+                )
+            },
         )
     }
 
@@ -541,13 +616,18 @@ object FirstPromiseStatePolicy {
             return FirstPromiseStateMutation.Rejected
         }
         return FirstPromiseStateMutation.Changed(
-            state.normalAnalysisFallback().copy(
-                usagePermissionAttempt = UsagePermissionAttempt(
-                    id = attemptId,
-                    launchState = UsagePermissionLaunchState.NotLaunched,
-                    terminalOutcome = UsagePermissionOutcome.Skipped,
+            state.normalAnalysisFallback()
+                .copy(
+                    usagePermissionAttempt = UsagePermissionAttempt(
+                        id = attemptId,
+                        launchState = UsagePermissionLaunchState.NotLaunched,
+                        terminalOutcome = UsagePermissionOutcome.Skipped,
+                    ),
+                )
+                .withMilestoneEvent(
+                    milestone = FirstPromiseMilestone.UsageAccessCompletion,
+                    event = PendingOnboardingAnalyticsEvent.UsageAccessStepComplete,
                 ),
-            ),
         )
     }
 
@@ -786,6 +866,30 @@ object FirstPromiseStatePolicy {
         analysisAttemptId = null,
         futureAnalysisDisabled = false,
     )
+
+    private fun markMilestoneWithEvent(
+        state: FirstPromiseOnboardingState,
+        milestone: FirstPromiseMilestone,
+        event: PendingOnboardingAnalyticsEvent,
+    ): FirstPromiseStateMutation =
+        if (milestone in state.trackedMilestones) {
+            FirstPromiseStateMutation.NoOp
+        } else {
+            FirstPromiseStateMutation.Changed(state.withMilestoneEvent(milestone, event))
+        }
+
+    private fun FirstPromiseOnboardingState.withMilestoneEvent(
+        milestone: FirstPromiseMilestone,
+        event: PendingOnboardingAnalyticsEvent,
+    ): FirstPromiseOnboardingState =
+        if (milestone in trackedMilestones) {
+            this
+        } else {
+            copy(
+                trackedMilestones = trackedMilestones + milestone,
+                pendingOnboardingAnalyticsEvents = pendingOnboardingAnalyticsEvents + event,
+            )
+        }
 
     private fun FirstPromiseOnboardingState.mappingValidity(): MappingValidity = when {
         routineId == null && scheduleState == null -> MappingValidity.None

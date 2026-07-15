@@ -122,8 +122,23 @@ enum class PendingSystemAction {
 @Serializable
 enum class FirstPromiseMilestone {
     Exposure,
+    GoalSelectView,
+    GoalSelectCompletion,
+    UsageAccessView,
     AppSelection,
     UsageAccessCompletion,
+}
+
+@Serializable
+enum class PendingOnboardingAnalyticsEvent {
+    ExperimentExposureControlV1,
+    ExperimentExposurePromiseCoachV1,
+    GoalSelectStepView,
+    GoalSelectStepComplete,
+    UsageAccessStepView,
+    UsageAccessStepComplete,
+    SelectAppStepComplete,
+    AppSelectionCompletedSingle,
 }
 
 @Serializable
@@ -163,6 +178,7 @@ data class FirstPromiseOnboardingState(
     val assignment: OnboardingVariant? = null,
     val assignmentVersion: OnboardingAssignmentVersion? = null,
     val trackedMilestones: Set<FirstPromiseMilestone> = emptySet(),
+    val pendingOnboardingAnalyticsEvents: List<PendingOnboardingAnalyticsEvent> = emptyList(),
     val phase: FirstPromisePhase = FirstPromisePhase.GoalPending,
     val path: FirstPromisePath = FirstPromisePath.Personalized,
     val goal: FirstPromiseGoal = FirstPromiseGoal.Unspecified,

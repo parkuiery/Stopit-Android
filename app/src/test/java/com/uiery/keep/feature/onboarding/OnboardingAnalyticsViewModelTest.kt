@@ -79,6 +79,7 @@ class OnboardingAnalyticsViewModelTest {
             ),
             analytics.calls.filterIsInstance<AnalyticsCall.ExperimentExposed>(),
         )
+        assertTrue(FirstPromiseDraftStore(dataStore).readState().pendingOnboardingAnalyticsEvents.isEmpty())
     }
 
     @Test

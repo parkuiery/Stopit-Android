@@ -18,6 +18,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseStatePolicy
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.domain.firstpromise.PendingSystemAction
+import com.uiery.keep.domain.firstpromise.PendingOnboardingAnalyticsEvent
 import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import javax.inject.Inject
@@ -117,13 +118,19 @@ class FirstPromiseDraftStore @Inject constructor(
         applyMutation { FirstPromiseStatePolicy.markMilestone(it, milestone) }
 
     suspend fun markExposedIfNeeded(variant: OnboardingVariant): Boolean =
-        applyMutation { state ->
-            if (state.assignment != variant || state.assignmentVersion == null) {
-                FirstPromiseStateMutation.Rejected
-            } else {
-                FirstPromiseStatePolicy.markMilestone(state, FirstPromiseMilestone.Exposure)
-            }
-        } is FirstPromiseStateMutation.Changed
+        applyMutation { state -> FirstPromiseStatePolicy.markExposure(state, variant) } is
+            FirstPromiseStateMutation.Changed
+
+    suspend fun markGoalSelectViewed(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::markGoalSelectViewed)
+
+    suspend fun markUsageAccessViewed(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::markUsageAccessViewed)
+
+    suspend fun acknowledgePendingAnalyticsEvent(
+        event: PendingOnboardingAnalyticsEvent,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.acknowledgePendingAnalyticsEvent(it, event) }
 
     suspend fun createManualDraft(
         draft: FirstPromiseDraft,

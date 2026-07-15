@@ -21,12 +21,15 @@ import org.junit.Test
 class GoalSelectViewModelTest {
     @Test
     fun primaryCtaIsDisabledUntilOneGoalIsSelected() = runBlocking {
-        val viewModel = GoalSelectViewModel(FirstPromiseRecordingAnalytics(), firstPromiseStore(FirstPromisePhase.GoalPending), Dispatchers.Unconfined)
+        val store = firstPromiseStore(FirstPromisePhase.GoalPending)
+        val viewModel = GoalSelectViewModel(FirstPromiseRecordingAnalytics(), store, Dispatchers.Unconfined)
         assertFalse(viewModel.container.stateFlow.value.canContinue)
         viewModel.selectGoal(FirstPromiseGoal.Sleep)
         delay(20)
         assertTrue(viewModel.container.stateFlow.value.canContinue)
         assertEquals(FirstPromiseGoal.Sleep, viewModel.container.stateFlow.value.selectedGoal)
+        assertTrue(store.readState().pendingOnboardingAnalyticsEvents.isEmpty())
+        assertFalse(FirstPromiseMilestone.GoalSelectView in store.readState().trackedMilestones)
     }
 
     @Test
@@ -42,7 +45,14 @@ class GoalSelectViewModelTest {
         assertEquals(FirstPromiseGoal.Unspecified, state.goal)
         assertEquals(FirstPromisePath.Manual, state.path)
         assertEquals(FirstPromisePhase.ManualSelectPending, state.phase)
-        assertEquals(setOf(FirstPromiseMilestone.Exposure), state.trackedMilestones)
+        assertEquals(
+            setOf(
+                FirstPromiseMilestone.Exposure,
+                FirstPromiseMilestone.GoalSelectView,
+                FirstPromiseMilestone.GoalSelectCompletion,
+            ),
+            state.trackedMilestones,
+        )
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepView(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it is FirstPromiseAnalyticsCall.Exposure })

@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
-import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
-import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.feature.onboarding.usageanalysis.FirstPromiseAnalysisTransientHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,31 +36,30 @@ class GoalSelectViewModel internal constructor(
     private val analytics: KeepAnalytics,
     private val draftStore: FirstPromiseDraftStore,
     private val persistenceDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher =
+        FirstPromiseOnboardingAnalyticsDispatcher(draftStore, analytics),
 ) : ViewModel(), ContainerHost<GoalSelectUiState, GoalSelectSideEffect> {
     @Inject constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
-    ) : this(analytics, draftStore, Dispatchers.IO)
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
+    ) : this(analytics, draftStore, Dispatchers.IO, onboardingAnalyticsDispatcher)
 
     override val container: Container<GoalSelectUiState, GoalSelectSideEffect> = container(GoalSelectUiState())
     private val viewed = AtomicBoolean(false)
-    private val completed = AtomicBoolean(false)
     private val actionClaimed = AtomicBoolean(false)
     private val exposureResolved = CompletableDeferred<Boolean>()
 
     fun onStepViewed() {
         if (!viewed.compareAndSet(false, true)) return
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_GOAL_SELECT)
-        analytics.trackOnboardingStepView(OnboardingStepName.GOAL_SELECT)
         viewModelScope.launch(persistenceDispatcher) {
             val resolved = runCatching {
-                if (draftStore.markExposedIfNeeded(OnboardingVariant.PromiseCoachV1)) {
-                    analytics.trackOnboardingExperimentExposed(
-                        OnboardingVariant.PromiseCoachV1,
-                        OnboardingAssignmentVersion.V1,
-                    )
-                }
+                draftStore.markExposedIfNeeded(OnboardingVariant.PromiseCoachV1)
+                check(FirstPromiseMilestone.Exposure in draftStore.readState().trackedMilestones)
+                check(draftStore.markGoalSelectViewed() !is FirstPromiseStateMutation.Rejected)
             }.isSuccess
+            if (resolved) runCatching { onboardingAnalyticsDispatcher.drain() }
             exposureResolved.complete(resolved)
         }
     }
@@ -80,7 +79,7 @@ class GoalSelectViewModel internal constructor(
             return@intent
         }
         if (draftStore.choosePersonalizedGoal(goal) is FirstPromiseStateMutation.Changed) {
-            completeOnce()
+            runCatching { onboardingAnalyticsDispatcher.drain() }
             postSideEffect(GoalSelectSideEffect.NavigateUsageAccess)
         } else {
             actionClaimed.set(false)
@@ -95,16 +94,10 @@ class GoalSelectViewModel internal constructor(
         }
         if (draftStore.chooseManualGoal() is FirstPromiseStateMutation.Changed) {
             FirstPromiseAnalysisTransientHolder.clear()
-            completeOnce()
+            runCatching { onboardingAnalyticsDispatcher.drain() }
             postSideEffect(GoalSelectSideEffect.NavigateManualAppSelect)
         } else {
             actionClaimed.set(false)
-        }
-    }
-
-    private fun completeOnce() {
-        if (completed.compareAndSet(false, true)) {
-            analytics.trackOnboardingStepComplete(OnboardingStepName.GOAL_SELECT)
         }
     }
 }

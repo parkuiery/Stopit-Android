@@ -23,6 +23,7 @@ internal sealed interface FirstPromiseAnalyticsCall {
     data class StepView(val value: String) : FirstPromiseAnalyticsCall
     data class StepComplete(val value: String) : FirstPromiseAnalyticsCall
     data class Exposure(val variant: OnboardingVariant) : FirstPromiseAnalyticsCall
+    data object AppSelectionCompletedSingle : FirstPromiseAnalyticsCall
     data class Permission(val name: String, val outcome: String, val step: String?) : FirstPromiseAnalyticsCall
     data class Analysis(
         val quality: UsageDataQuality,
@@ -54,6 +55,11 @@ internal class FirstPromiseRecordingAnalytics : KeepAnalytics {
         latencyBucket: AnalysisLatencyBucket,
     ) {
         calls += FirstPromiseAnalyticsCall.Analysis(dataQuality, patternType, coverageDaysBucket, latencyBucket)
+    }
+    override fun trackAppSelectionCompleted(selectedAppCount: Int, isOnboarding: Boolean) {
+        if (selectedAppCount == 1 && isOnboarding) {
+            calls += FirstPromiseAnalyticsCall.AppSelectionCompletedSingle
+        }
     }
     override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) = Unit
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit

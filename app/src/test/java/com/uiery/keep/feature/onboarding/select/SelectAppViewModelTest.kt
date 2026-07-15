@@ -86,8 +86,8 @@ class SelectAppViewModelTest {
         assertEquals(state.draft?.startMinutes, state.recommendationReasonRef?.selectedStartMinutes)
         assertEquals(
             listOf(
-                AnalyticsCall.AppSelectionCompleted(selectedAppCount = 1, isOnboarding = true),
                 AnalyticsCall.StepCompleted(OnboardingStepName.SELECT_APP),
+                AnalyticsCall.AppSelectionCompleted(selectedAppCount = 1, isOnboarding = true),
             ),
             analytics.calls,
         )

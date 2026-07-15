@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
@@ -42,16 +43,24 @@ class UsageAccessViewModel internal constructor(
     private val draftStore: FirstPromiseDraftStore,
     private val permissionGranted: () -> Boolean,
     private val workDispatcher: CoroutineDispatcher,
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher =
+        FirstPromiseOnboardingAnalyticsDispatcher(draftStore, analytics),
 ) : ViewModel(), ContainerHost<UsageAccessUiState, UsageAccessSideEffect> {
     @Inject constructor(
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
         usageStatsGateway: UsageStatsGateway,
-    ) : this(analytics, draftStore, usageStatsGateway::isPermissionGranted, Dispatchers.Main.immediate)
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
+    ) : this(
+        analytics,
+        draftStore,
+        usageStatsGateway::isPermissionGranted,
+        Dispatchers.Main.immediate,
+        onboardingAnalyticsDispatcher,
+    )
 
     override val container: Container<UsageAccessUiState, UsageAccessSideEffect> = container(UsageAccessUiState())
     private val viewed = AtomicBoolean(false)
-    private val completed = AtomicBoolean(false)
     private val actionInFlight = AtomicBoolean(false)
     private val navigationPosted = AtomicBoolean(false)
     private var openedAttemptInProcess: Long? = null
@@ -59,7 +68,11 @@ class UsageAccessViewModel internal constructor(
     fun onStepViewed() {
         if (!viewed.compareAndSet(false, true)) return
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_USAGE_ACCESS)
-        analytics.trackOnboardingStepView(OnboardingStepName.USAGE_ACCESS)
+        viewModelScope.launch(workDispatcher) {
+            if (draftStore.markUsageAccessViewed() !is FirstPromiseStateMutation.Rejected) {
+                runCatching { onboardingAnalyticsDispatcher.drain() }
+            }
+        }
     }
 
     fun openSettings(launcher: () -> UsageSettingsLaunchResult) {
@@ -135,7 +148,7 @@ class UsageAccessViewModel internal constructor(
             if (mutation is FirstPromiseStateMutation.Changed) {
                 trackPermission(AnalyticsOutcome.SKIPPED)
                 FirstPromiseAnalysisTransientHolder.clear()
-                completeOnce()
+                runCatching { onboardingAnalyticsDispatcher.drain() }
                 intent { postSideEffect(UsageAccessSideEffect.NavigateManualAppSelect) }
             } else {
                 actionInFlight.set(false)
@@ -150,9 +163,8 @@ class UsageAccessViewModel internal constructor(
         when (outcome) {
             UsagePermissionOutcome.Granted -> {
                 if (trackNewOutcome) trackPermission(AnalyticsOutcome.GRANTED)
-                if (draftStore.completeUsageAccess() is FirstPromiseStateMutation.Changed) {
-                    completeOnce()
-                }
+                draftStore.completeUsageAccess()
+                runCatching { onboardingAnalyticsDispatcher.drain() }
                 if (
                     draftStore.readState().phase == com.uiery.keep.domain.firstpromise.FirstPromisePhase.Analyzing &&
                     navigationPosted.compareAndSet(false, true)
@@ -170,8 +182,4 @@ class UsageAccessViewModel internal constructor(
         outcome = outcome,
         stepName = OnboardingStepName.USAGE_ACCESS,
     )
-
-    private fun completeOnce() {
-        if (completed.compareAndSet(false, true)) analytics.trackOnboardingStepComplete(OnboardingStepName.USAGE_ACCESS)
-    }
 }
