@@ -48,13 +48,21 @@ interface FirstPromiseAnalyticsOutboxDao {
 
     @Query(
         "DELETE FROM first_promise_analytics_outbox " +
-            "WHERE delivery_state = 'sent' AND sent_at_millis < :cutoffMillis",
+            "WHERE delivery_state = 'sent' AND sent_at_millis < :cutoffMillis " +
+            "AND (sequence NOT IN (10, 20) OR draft_id IN (:creationBarrierReadyDraftIds))",
     )
-    suspend fun deleteSentBefore(cutoffMillis: Long)
+    suspend fun deleteSentBefore(cutoffMillis: Long, creationBarrierReadyDraftIds: List<String>)
 
     @Query(
         "SELECT COUNT(*) FROM first_promise_analytics_outbox " +
             "WHERE draft_id = :draftId AND sequence IN (10, 20) AND delivery_state = 'sent'",
     )
     suspend fun countSentCreationEvents(draftId: String): Int
+
+    @Query(
+        "SELECT draft_id FROM first_promise_analytics_outbox " +
+            "WHERE sequence IN (10, 20) AND delivery_state = 'sent' " +
+            "GROUP BY draft_id HAVING COUNT(*) = 2",
+    )
+    suspend fun findCreationBarrierReadyDraftIds(): List<String>
 }

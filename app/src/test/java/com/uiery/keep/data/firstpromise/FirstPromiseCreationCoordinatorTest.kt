@@ -16,6 +16,9 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -182,6 +185,96 @@ class FirstPromiseCreationCoordinatorTest {
         assertEquals(FirstPromisePhase.CompletedEnabled, store.readState().phase)
         assertEquals(FirstPromiseScheduleState.Enabled, store.readState().scheduleState)
         assertNull(store.readState().draft)
+    }
+
+    @Test
+    fun completedActivationAnalyticsFailureRetriesFromDurableMappingOnStartup() = runBlocking {
+        val dataStore = resultDisabledDataStore(draft)
+        val store = FirstPromiseDraftStore(dataStore)
+        store.completeOnboarding()
+        val finalized = successResult().copy(draftId = draft.draftId)
+        val dispatcher = FakeDispatcher(sent = true)
+        val analytics = CoordinatorRecordingAnalytics(failFirstLock = true)
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(
+                result = finalized.copy(scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing),
+                finalizedResult = finalized,
+            ),
+            dispatcher,
+            store,
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        coordinator.finalizeExistingRoutine(41L)
+        assertEquals(1, analytics.firstLockAttempts)
+        assertEquals(0, analytics.firstLockCalls)
+        assertEquals(FirstPromisePhase.CompletedEnabled, store.readState().phase)
+
+        FirstPromiseStartupRunner(dispatcher, store, coordinator).run()
+
+        assertEquals(2, analytics.firstLockAttempts)
+        assertEquals(1, analytics.firstLockCalls)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+    }
+
+    @Test
+    fun sentRowsCanBeCleanedBeforeSameIdEnableBecauseDurableBarrierStillTracksFirstLock() = runBlocking {
+        val clock = Clock.fixed(Instant.parse("2026-07-16T09:00:00Z"), ZoneOffset.UTC)
+        val codec = FirstPromiseOutboxEventCodec()
+        val outboxStore = FakeOutboxStore(
+            listOf(
+                codec.encode(
+                    draft.draftId,
+                    FirstPromiseOutboxEvent.RoutineSaved(
+                        FirstPromiseRepeatDaysBucket.TwoThree,
+                        FirstPromiseTimeWindowBucket.Overnight,
+                        FirstPromiseScheduleState.DisabledExactAlarmMissing,
+                    ),
+                    1L,
+                ),
+                codec.encode(
+                    draft.draftId,
+                    FirstPromiseOutboxEvent.FirstPromiseCreated(
+                        draft.goal,
+                        draft.source,
+                        FirstPromiseScheduleState.DisabledExactAlarmMissing,
+                    ),
+                    2L,
+                ),
+            ),
+        )
+        val barrier = FakeCreationBarrier()
+        val analytics = CoordinatorRecordingAnalytics()
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            store = outboxStore,
+            codec = codec,
+            analytics = analytics,
+            clock = clock,
+            creationBarrier = barrier,
+        )
+        dispatcher.drainDraft(draft.draftId)
+        assertTrue(dispatcher.creationEventsSent(draft.draftId))
+        outboxStore.ageSentRows(clock.millis() - 31L * 24 * 60 * 60 * 1000)
+        dispatcher.cleanupSentRows()
+        assertTrue(outboxStore.rows.isEmpty())
+
+        val dataStore = resultDisabledDataStore(draft)
+        val stateStore = FirstPromiseDraftStore(dataStore)
+        stateStore.completeOnboarding()
+        val finalized = successResult().copy(draftId = draft.draftId)
+        val coordinator = FirstPromiseCreationCoordinator(
+            FakeCreator(finalized, finalizedResult = finalized),
+            dispatcher,
+            stateStore,
+            BlockingStateStore(dataStore),
+            analytics,
+        )
+
+        val result = coordinator.finalizeExistingRoutine(41L)
+
+        assertEquals(41L, (result as FirstPromisePersistenceResult.Succeeded).creation.routineId)
+        assertEquals(1, analytics.firstLockCalls)
     }
 
     @Test

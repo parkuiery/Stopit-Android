@@ -126,6 +126,7 @@ class NotificationSettingViewModel internal constructor(
             FirstPromisePhase.ResultEnabled,
             FirstPromisePhase.ResultDisabled,
             FirstPromisePhase.PersistFailed,
+            FirstPromisePhase.SchedulePermissionRequired,
         )
     }
 }

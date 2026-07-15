@@ -33,14 +33,11 @@ class FirstPromiseStartupRunner {
     suspend fun run() {
         val state = (runCatching { draftStore?.readStateResult() }.getOrNull() as?
             FirstPromiseStateReadResult.Available)?.state
-        val shouldResumeCreation = state?.phase == FirstPromisePhase.Persisting ||
-            (
-                state?.phase == FirstPromisePhase.ResultEnabled &&
-                    state.draft != null &&
-                    state.scheduleState == FirstPromiseScheduleState.Enabled
-            )
-        if (shouldResumeCreation) {
-            runCatching { creationCoordinator?.persistCurrentDraft() }
+        when {
+            state?.phase == FirstPromisePhase.Persisting ->
+                runCatching { creationCoordinator?.persistCurrentDraft() }
+            state?.routineId != null && state.scheduleState == FirstPromiseScheduleState.Enabled ->
+                runCatching { creationCoordinator?.finalizeExistingRoutine(state.routineId) }
         }
         runCatching { dispatcher.drainAll() }
         runCatching { dispatcher.cleanupSentRows() }

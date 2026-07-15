@@ -21,6 +21,7 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
     private val codec: FirstPromiseOutboxEventCodec
     private val analytics: KeepAnalytics
     private val clock: Clock
+    private val creationBarrier: FirstPromiseCreationBarrier
     private val invalidPayloadReporter: (String) -> Unit
     private val drainMutex = Mutex()
 
@@ -30,11 +31,13 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
         codec: FirstPromiseOutboxEventCodec,
         analytics: KeepAnalytics,
         clock: Clock,
+        creationBarrier: FirstPromiseCreationBarrierStore,
     ) {
         store = RoomFirstPromiseOutboxStore(dao)
         this.codec = codec
         this.analytics = analytics
         this.clock = clock
+        this.creationBarrier = creationBarrier
         invalidPayloadReporter = { eventName ->
             AppLogger.debug(
                 tag = "FirstPromiseOutbox",
@@ -49,11 +52,13 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
         analytics: KeepAnalytics,
         clock: Clock,
         invalidPayloadReporter: (String) -> Unit = {},
+        creationBarrier: FirstPromiseCreationBarrier = InMemoryFirstPromiseCreationBarrier(),
     ) {
         this.store = store
         this.codec = codec
         this.analytics = analytics
         this.clock = clock
+        this.creationBarrier = creationBarrier
         this.invalidPayloadReporter = invalidPayloadReporter
     }
 
@@ -68,10 +73,22 @@ class FirstPromiseAnalyticsDispatcher : FirstPromiseOutboxDispatcher {
     }
 
     override suspend fun cleanupSentRows() {
-        store.deleteSentBefore(clock.millis() - SENT_RETENTION_DAYS * MILLIS_PER_DAY)
+        val creationBarrierReadyDraftIds = store.creationBarrierReadyDraftIds()
+        creationBarrierReadyDraftIds.forEach { draftId ->
+            creationBarrier.markComplete(draftId)
+        }
+        store.deleteSentBefore(
+            cutoffMillis = clock.millis() - SENT_RETENTION_DAYS * MILLIS_PER_DAY,
+            creationBarrierReadyDraftIds = creationBarrierReadyDraftIds,
+        )
     }
 
-    override suspend fun creationEventsSent(draftId: String): Boolean = store.creationEventsSent(draftId)
+    override suspend fun creationEventsSent(draftId: String): Boolean {
+        if (creationBarrier.isComplete(draftId)) return true
+        if (!store.creationEventsSent(draftId)) return false
+        creationBarrier.markComplete(draftId)
+        return true
+    }
 
     private suspend fun drainDraftUnlocked(draftId: String) {
         while (true) {
@@ -139,8 +156,9 @@ internal interface FirstPromiseOutboxStore {
     suspend fun nextDeliverable(draftId: String): FirstPromiseAnalyticsOutboxEntity?
     suspend fun markSent(draftId: String, eventName: String, sentAtMillis: Long): Boolean
     suspend fun quarantine(draftId: String, eventName: String): Boolean
-    suspend fun deleteSentBefore(cutoffMillis: Long)
+    suspend fun deleteSentBefore(cutoffMillis: Long, creationBarrierReadyDraftIds: List<String>)
     suspend fun creationEventsSent(draftId: String): Boolean
+    suspend fun creationBarrierReadyDraftIds(): List<String>
 }
 
 private class RoomFirstPromiseOutboxStore(
@@ -153,6 +171,8 @@ private class RoomFirstPromiseOutboxStore(
         dao.markSent(draftId, eventName, sentAtMillis) == 1
     override suspend fun quarantine(draftId: String, eventName: String): Boolean =
         dao.quarantine(draftId, eventName) == 1
-    override suspend fun deleteSentBefore(cutoffMillis: Long) = dao.deleteSentBefore(cutoffMillis)
+    override suspend fun deleteSentBefore(cutoffMillis: Long, creationBarrierReadyDraftIds: List<String>) =
+        dao.deleteSentBefore(cutoffMillis, creationBarrierReadyDraftIds)
     override suspend fun creationEventsSent(draftId: String): Boolean = dao.countSentCreationEvents(draftId) == 2
+    override suspend fun creationBarrierReadyDraftIds(): List<String> = dao.findCreationBarrierReadyDraftIds()
 }

@@ -382,6 +382,32 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun restoredNotificationRouteNavigatesActualDisabledPersistenceMapping() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        store.beginPersistence()
+        val coordinator = NotificationPersistenceCoordinator(
+            store = store,
+            shouldFail = false,
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+        )
+        coordinator.persistCurrentDraft()
+        assertEquals(FirstPromisePhase.SchedulePermissionRequired, store.readState().phase)
+        val restored = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var navigationCount = 0
+
+        restored.onFirstPromiseRouteResumed { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, coordinator.persistCalls)
+    }
+
+    @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
@@ -490,6 +516,7 @@ class OnboardingAnalyticsViewModelTest {
 private class NotificationPersistenceCoordinator(
     private val store: FirstPromiseDraftStore,
     private val shouldFail: Boolean,
+    private val scheduleState: FirstPromiseScheduleState = FirstPromiseScheduleState.Enabled,
 ) : FirstPromisePersistenceCoordinator {
     var persistCalls = 0
 
@@ -508,10 +535,10 @@ private class NotificationPersistenceCoordinator(
                 endTime = kotlinx.datetime.LocalTime(23, 30),
                 repeatDays = "1111111",
                 lockApplications = listOf("com.example.video"),
-                isEnabled = true,
+                isEnabled = scheduleState == FirstPromiseScheduleState.Enabled,
             ),
-            scheduleState = FirstPromiseScheduleState.Enabled,
-            schedulingSucceeded = true,
+            scheduleState = scheduleState,
+            schedulingSucceeded = scheduleState == FirstPromiseScheduleState.Enabled,
             created = true,
         )
         store.recordPersistenceMapping(creation.routineId, creation.scheduleState)

@@ -69,6 +69,7 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE,
             PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN,
             PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION,
+            PreferencesKey.FIRST_PROMISE_CREATION_BARRIER_DRAFT_IDS,
         )
 
         assertEquals(

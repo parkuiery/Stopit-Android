@@ -117,19 +117,59 @@ class FirstPromiseAnalyticsDispatcherTest {
     @Test
     fun cleanupDeletesOnlySentRowsOlderThanThirtyDays() = runBlocking {
         val cutoff = clock.millis() - 30L * 24 * 60 * 60 * 1000
-        val old = creationRows("old").first().copy(
-            deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT,
-            sentAtMillis = cutoff - 1,
-        )
+        val old = creationRows("old").map {
+            it.copy(
+                deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT,
+                sentAtMillis = cutoff - 1,
+            )
+        }
         val recent = creationRows("recent").first().copy(
             deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT,
             sentAtMillis = cutoff + 1,
         )
-        val store = FakeOutboxStore(listOf(old, recent))
+        val store = FakeOutboxStore(old + recent)
 
         FirstPromiseAnalyticsDispatcher(store, codec, DispatcherRecordingAnalytics(), clock).cleanupSentRows()
 
         assertEquals(listOf("recent"), store.rows.map { it.draftId })
+    }
+
+    @Test
+    fun cleanupKeepsPartialCreationEvidenceUntilBarrierCanBeCompleted() = runBlocking {
+        val oldSent = creationRows("draft").first().copy(
+            deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_SENT,
+            sentAtMillis = clock.millis() - 31L * 24 * 60 * 60 * 1000,
+        )
+        val pending = creationRows("draft").last()
+        val store = FakeOutboxStore(listOf(oldSent, pending))
+
+        FirstPromiseAnalyticsDispatcher(store, codec, DispatcherRecordingAnalytics(), clock).cleanupSentRows()
+
+        assertEquals(listOf(oldSent, pending), store.rows)
+    }
+
+    @Test
+    fun durableCreationBarrierSurvivesSentRowCleanupWithoutInferringAbsence() = runBlocking {
+        val store = FakeOutboxStore(creationRows("draft"))
+        val barrier = FakeCreationBarrier()
+        val dispatcher = FirstPromiseAnalyticsDispatcher(
+            store = store,
+            codec = codec,
+            analytics = DispatcherRecordingAnalytics(),
+            clock = clock,
+            creationBarrier = barrier,
+        )
+
+        dispatcher.drainDraft("draft")
+        assertTrue(dispatcher.creationEventsSent("draft"))
+        assertEquals(setOf("draft"), barrier.completedDraftIds)
+
+        store.ageSentRows(clock.millis() - 31L * 24 * 60 * 60 * 1000)
+        dispatcher.cleanupSentRows()
+
+        assertTrue(store.rows.isEmpty())
+        assertTrue(dispatcher.creationEventsSent("draft"))
+        assertTrue(barrier.completedDraftIds.contains("draft"))
     }
 
     private fun creationRows(draftId: String): List<FirstPromiseAnalyticsOutboxEntity> = listOf(
@@ -154,7 +194,7 @@ class FirstPromiseAnalyticsDispatcherTest {
     )
 }
 
-private class FakeOutboxStore(
+internal class FakeOutboxStore(
     initial: List<FirstPromiseAnalyticsOutboxEntity>,
     private var returnFalseFromNextMark: Boolean = false,
     private var throwFromNextMark: Boolean = false,
@@ -164,6 +204,16 @@ private class FakeOutboxStore(
 
     fun allowNextDrain() {
         rejectImmediateRedelivery = false
+    }
+
+    fun ageSentRows(sentAtMillis: Long) {
+        rows.replaceAll { row ->
+            if (row.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT) {
+                row.copy(sentAtMillis = sentAtMillis)
+            } else {
+                row
+            }
+        }
     }
 
     override suspend fun pendingDraftIds(): List<String> = rows
@@ -207,10 +257,14 @@ private class FakeOutboxStore(
     override suspend fun quarantine(draftId: String, eventName: String): Boolean =
         replace(draftId, eventName) { it.copy(deliveryState = FirstPromiseOutboxEventCodec.DELIVERY_QUARANTINED) }
 
-    override suspend fun deleteSentBefore(cutoffMillis: Long) {
+    override suspend fun deleteSentBefore(
+        cutoffMillis: Long,
+        creationBarrierReadyDraftIds: List<String>,
+    ) {
         rows.removeAll {
             it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT &&
-                (it.sentAtMillis ?: Long.MAX_VALUE) < cutoffMillis
+                (it.sentAtMillis ?: Long.MAX_VALUE) < cutoffMillis &&
+                (it.sequence !in setOf(10, 20) || it.draftId in creationBarrierReadyDraftIds)
         }
     }
 
@@ -218,6 +272,17 @@ private class FakeOutboxStore(
         it.draftId == draftId && it.sequence in setOf(10, 20) &&
             it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT
     } == 2
+
+    override suspend fun creationBarrierReadyDraftIds(): List<String> = rows
+        .filter {
+            it.sequence in setOf(10, 20) &&
+                it.deliveryState == FirstPromiseOutboxEventCodec.DELIVERY_SENT
+        }
+        .groupingBy { it.draftId }
+        .eachCount()
+        .filterValues { it == 2 }
+        .keys
+        .toList()
 
     private fun replace(
         draftId: String,
@@ -231,6 +296,16 @@ private class FakeOutboxStore(
         if (index < 0) return false
         rows[index] = transform(rows[index])
         return true
+    }
+}
+
+internal class FakeCreationBarrier : FirstPromiseCreationBarrier {
+    val completedDraftIds = mutableSetOf<String>()
+
+    override suspend fun isComplete(draftId: String): Boolean = draftId in completedDraftIds
+
+    override suspend fun markComplete(draftId: String) {
+        completedDraftIds += draftId
     }
 }
 
