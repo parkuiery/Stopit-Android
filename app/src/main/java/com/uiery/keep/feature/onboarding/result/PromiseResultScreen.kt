@@ -124,7 +124,7 @@ fun PromiseResultScreen(
                                 if (state.practiceFailed) R.string.first_promise_result_practice_failed
                                 else R.string.first_promise_result_activation_failed,
                             ),
-                            color = KeepTheme.colors.error,
+                            color = KeepTheme.colors.onSurfaceVariant,
                         )
                     }
                 }

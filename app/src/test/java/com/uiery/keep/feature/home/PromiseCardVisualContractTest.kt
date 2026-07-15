@@ -44,6 +44,20 @@ class PromiseCardVisualContractTest {
         assertTrue(resume.contains("R.string.first_promise_resume_waiting"))
         assertTrue(resume.contains("liveRegion = LiveRegionMode.Polite"))
     }
+
+    @Test
+    fun resultErrorFeedbackUsesAaForegroundAndKeepsPoliteAnnouncement() {
+        val result = source("feature/onboarding/result/PromiseResultScreen.kt")
+        val feedbackStart = result.indexOf("if (state.practiceFailed || state.activationFailed)")
+        val feedbackEnd = result.indexOf("ResultActions(state, viewModel)", feedbackStart)
+        val feedback = result.substring(feedbackStart, feedbackEnd)
+
+        assertTrue(feedback.contains("liveRegion = LiveRegionMode.Polite"))
+        assertTrue(feedback.contains("color = KeepTheme.colors.onSurfaceVariant"))
+        assertFalse(feedback.contains("color = KeepTheme.colors.error"))
+        assertTrue(contrast(0xFFFFFF, 0x191F28) >= 4.5)
+        assertTrue(contrast(0x17171C, 0xFFFFFF) >= 4.5)
+    }
 }
 
 private fun source(relativePath: String): String =

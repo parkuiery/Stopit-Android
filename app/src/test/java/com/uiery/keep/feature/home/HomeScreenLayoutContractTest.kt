@@ -27,4 +27,18 @@ class HomeScreenLayoutContractTest {
         assertTrue(source.contains("contentDescription = keepSwitchDescription"))
         assertTrue(source.contains("contentDescription = stringResource(R.string.cd_open_timer)"))
     }
+
+    @Test
+    fun centralToggleImageKeepsTouchActionButIsHiddenFromTalkBack() {
+        val source = File("src/main/java/com/uiery/keep/feature/home/HomeScreen.kt").readText()
+        val controlsStart = source.indexOf("val (image, message)")
+        val imageStart = source.indexOf("Image(", controlsStart)
+        val imageEnd = source.indexOf("painter = painterResource(id = image)", imageStart)
+        val imageModifier = source.substring(imageStart, imageEnd)
+
+        val clickable = imageModifier.indexOf(".clickable")
+        val cleared = imageModifier.indexOf(".clearAndSetSemantics { }")
+        assertTrue(clickable >= 0)
+        assertTrue(cleared > clickable)
+    }
 }
