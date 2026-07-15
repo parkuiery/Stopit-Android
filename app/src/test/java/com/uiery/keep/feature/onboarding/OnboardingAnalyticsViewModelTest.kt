@@ -2,6 +2,7 @@ package com.uiery.keep.feature.onboarding
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.AnalyticsSource
@@ -10,6 +11,10 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
@@ -19,6 +24,8 @@ import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -42,6 +49,35 @@ class OnboardingAnalyticsViewModelTest {
                 AnalyticsCall.StepCompleted(OnboardingStepName.INTRO),
             ),
             analytics.calls,
+        )
+    }
+
+    @Test
+    fun controlIntroTracksExperimentExposureOnlyOnThePersistedBooleanTransition() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
+                    FirstPromiseOnboardingState(
+                        assignment = OnboardingVariant.Control,
+                        assignmentVersion = OnboardingAssignmentVersion.V1,
+                    ),
+                ),
+            ),
+        )
+        val viewModel = IntroViewModel(analytics, FirstPromiseDraftStore(dataStore))
+
+        viewModel.onStepViewed()
+        viewModel.onStepViewed()
+        delay(100)
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.ExperimentExposed(
+                    variant = OnboardingVariant.Control,
+                    assignmentVersion = OnboardingAssignmentVersion.V1,
+                ),
+            ),
+            analytics.calls.filterIsInstance<AnalyticsCall.ExperimentExposed>(),
         )
     }
 
@@ -199,6 +235,10 @@ private sealed interface AnalyticsCall {
     data object FirstOpen : AnalyticsCall
     data class StepViewed(val stepName: String) : AnalyticsCall
     data class StepCompleted(val stepName: String) : AnalyticsCall
+    data class ExperimentExposed(
+        val variant: OnboardingVariant,
+        val assignmentVersion: OnboardingAssignmentVersion,
+    ) : AnalyticsCall
     data class PermissionOutcome(
         val permissionName: String,
         val outcome: String,
@@ -258,6 +298,16 @@ private class RecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackOnboardingStepComplete(stepName: String) {
         calls += AnalyticsCall.StepCompleted(stepName = stepName)
+    }
+
+    override fun trackOnboardingExperimentExposed(
+        variant: OnboardingVariant,
+        assignmentVersion: OnboardingAssignmentVersion,
+    ) {
+        calls += AnalyticsCall.ExperimentExposed(
+            variant = variant,
+            assignmentVersion = assignmentVersion,
+        )
     }
 
     override fun trackPermissionOutcome(

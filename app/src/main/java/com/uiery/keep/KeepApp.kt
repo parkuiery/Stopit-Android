@@ -32,6 +32,7 @@ import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
 import com.uiery.keep.feature.menu.navigateToMenu
 import com.uiery.keep.feature.onboarding.navigateToOnboarding
+import com.uiery.keep.feature.onboarding.entry.handleOnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSetting
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
@@ -80,6 +81,7 @@ internal fun KeepApp(
             onNavigateLock = navController::navigateToLock,
         )
         onboarding(
+            onEntrySideEffect = navController::handleOnboardingEntrySideEffect,
             onNavigatePermissionSetting = navController::navigateToPermissionSetting,
             onNavigateNotificationSetting = navController::navigateToNotificationSetting,
             onNavigateSelectApp = navController::navigateToSelectApp,

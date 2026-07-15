@@ -5,6 +5,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
 import androidx.navigation.navigation
+import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
+import com.uiery.keep.feature.onboarding.entry.onboardingEntry
 import com.uiery.keep.feature.onboarding.intro.introScreen
 import com.uiery.keep.feature.onboarding.notification.notificationSettingScreen
 import com.uiery.keep.feature.onboarding.permission.permissionSettingScreen
@@ -17,6 +19,9 @@ sealed interface Onboarding {
     data object Route {
 
         @Serializable
+        data object Entry : Onboarding
+
+        @Serializable
         data object Intro : Onboarding
 
         @Serializable
@@ -27,6 +32,30 @@ sealed interface Onboarding {
 
         @Serializable
         data object SelectedApp : Onboarding
+
+        @Serializable
+        data object GoalSelect : Onboarding
+
+        @Serializable
+        data object UsageAccess : Onboarding
+
+        @Serializable
+        data object UsageAnalysis : Onboarding
+
+        @Serializable
+        data object ManualAppSelect : Onboarding
+
+        @Serializable
+        data object PromiseProposal : Onboarding
+
+        @Serializable
+        data object PromiseAccessibility : Onboarding
+
+        @Serializable
+        data object PromiseNotification : Onboarding
+
+        @Serializable
+        data object PromiseResult : Onboarding
     }
 }
 
@@ -40,17 +69,21 @@ fun NavController.navigateToOnboarding(
 ) = navigate(route = route, navOptions = navOptions)
 
 fun NavGraphBuilder.onboarding(
+    onEntrySideEffect: (OnboardingEntrySideEffect) -> Unit,
     onNavigatePermissionSetting: () -> Unit,
     onNavigateNotificationSetting: () -> Unit,
     onNavigateSelectApp: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     navigation<Onboarding.Route>(
-        startDestination = Onboarding.Route.Intro
+        startDestination = canonicalOnboardingStartDestination()
     ) {
+        onboardingEntry(onSideEffect = onEntrySideEffect)
         introScreen(onNavigatePermissionSetting = onNavigatePermissionSetting)
         permissionSettingScreen(onNavigateNotificationSetting = onNavigateNotificationSetting)
         notificationSettingScreen(onNavigateSelectApp = onNavigateSelectApp)
         selectApp(onNavigateHome = onNavigateHome)
     }
 }
+
+internal fun canonicalOnboardingStartDestination(): Onboarding = Onboarding.Route.Entry

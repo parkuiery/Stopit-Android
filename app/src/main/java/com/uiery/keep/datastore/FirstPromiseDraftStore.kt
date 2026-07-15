@@ -94,6 +94,15 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun markMilestone(milestone: FirstPromiseMilestone): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.markMilestone(it, milestone) }
 
+    suspend fun markExposedIfNeeded(variant: OnboardingVariant): Boolean =
+        applyMutation { state ->
+            if (state.assignment != variant || state.assignmentVersion == null) {
+                FirstPromiseStateMutation.Rejected
+            } else {
+                FirstPromiseStatePolicy.markMilestone(state, FirstPromiseMilestone.Exposure)
+            }
+        } is FirstPromiseStateMutation.Changed
+
     suspend fun createManualDraft(
         draft: FirstPromiseDraft,
         reason: RecommendationReasonRef,

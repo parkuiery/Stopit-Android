@@ -8,12 +8,28 @@ import com.uiery.keep.feature.goallock.goalLockDetailAfterCreationNavOptions
 import com.uiery.keep.feature.goallock.goalLockEditNavOptions
 import com.uiery.keep.feature.goallock.markGoalLockEditSaved
 import com.uiery.keep.feature.lockhistory.LockHistoryRoute
+import com.uiery.keep.feature.onboarding.Onboarding
+import com.uiery.keep.feature.onboarding.canonicalOnboardingStartDestination
+import com.uiery.keep.feature.onboarding.entry.onboardingEntryNavOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KeepAppNavigationPolicyTest {
+    @Test
+    fun onboardingStartsAtTheZeroContentAssignmentEntry() {
+        assertEquals(Onboarding.Route.Entry, canonicalOnboardingStartDestination())
+    }
+
+    @Test
+    fun onboardingEntryIsRemovedAfterItsSingleRoutingDecision() {
+        val navOptions = onboardingEntryNavOptions()
+
+        assertEquals(Onboarding.Route.Entry::class, navOptions.popUpToRouteClass)
+        assertTrue(navOptions.isPopUpToInclusive())
+    }
+
     @Test
     fun historyDomainUsesLockHistoryAsCanonicalTopLevelRoute() {
         assertEquals(LockHistoryRoute, canonicalHistoryRoute())
