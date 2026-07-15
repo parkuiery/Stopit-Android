@@ -63,18 +63,110 @@ class FirstPromiseDraftStoreTest {
     }
 
     @Test
-    fun typedDraftReasonPendingActionAndPermissionAttemptSurviveStoreRecreation() = runBlocking {
-        val expected = completeDraftState()
-        val dataStore = FirstPromiseFakeDataStore(statePreferences(expected))
+    fun publicMutationApisPersistCompleteTypedStateAcrossStoreRecreation() = runBlocking {
+        val dataStore = FirstPromiseFakeDataStore()
+        val store = FirstPromiseDraftStore(dataStore)
+        val firstDraft = draft(draftId = "local-draft", startMinutes = 22 * 60)
+        val firstReason = reason(startMinutes = 22 * 60)
+        val editedDraft = draft(draftId = "local-draft", startMinutes = 21 * 60)
+        val editedReason = reason(startMinutes = 21 * 60)
+
+        store.assignIfAbsent(OnboardingVariant.PromiseCoachV1, OnboardingAssignmentVersion.V1)
+        assertTrue(store.markMilestone(FirstPromiseMilestone.Exposure) is FirstPromiseStateMutation.Changed)
+        assertEquals(FirstPromiseStateMutation.NoOp, store.markMilestone(FirstPromiseMilestone.Exposure))
+        assertTrue(
+            store.selectGoal(FirstPromiseGoal.Sleep, FirstPromisePath.Personalized) is
+                FirstPromiseStateMutation.Changed,
+        )
+        assertTrue(store.transitionTo(FirstPromisePhase.UsageAccessPending) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.setPendingSystemAction(PendingSystemAction.UsageAccess) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.beginUsagePermissionAttempt(5L))
+        assertTrue(store.recordUsagePermissionOpened(5L))
+        assertTrue(store.transitionTo(FirstPromisePhase.Analyzing) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.clearPendingSystemAction() is FirstPromiseStateMutation.Changed)
+        assertTrue(store.beginAnalysisAttempt(8L) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.completeAnalysis(8L, firstDraft, firstReason))
+        assertTrue(store.storeDraft(editedDraft, editedReason) is FirstPromiseStateMutation.Changed)
+        assertTrue(store.setPendingSystemAction(PendingSystemAction.Accessibility) is FirstPromiseStateMutation.Changed)
 
         val recreatedStore = FirstPromiseDraftStore(dataStore)
+        val expected = FirstPromiseOnboardingState(
+            assignment = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+            trackedMilestones = setOf(FirstPromiseMilestone.Exposure),
+            phase = FirstPromisePhase.DraftReady,
+            path = FirstPromisePath.Personalized,
+            goal = FirstPromiseGoal.Sleep,
+            draft = editedDraft,
+            recommendationReasonRef = editedReason,
+            pendingSystemAction = PendingSystemAction.Accessibility,
+            usagePermissionAttempt = UsagePermissionAttempt(5L, UsagePermissionLaunchState.Opened),
+            analysisAttemptId = 8L,
+        )
 
         assertEquals(expected, recreatedStore.readState())
+        assertEquals(13, dataStore.editCount)
         val json = dataStore.snapshot()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE].orEmpty()
         assertFalse(json.contains("averageDailyMinutes", ignoreCase = true))
         assertFalse(json.contains("rawIntervals", ignoreCase = true))
         assertFalse(json.contains("lastUsedEpoch", ignoreCase = true))
         assertFalse(json.contains("totalForeground", ignoreCase = true))
+    }
+
+    @Test
+    fun staleAnalysisCompletionDoesNotWriteOrExposeSuccess() = runBlocking {
+        val initial = completeDraftState().copy(
+            phase = FirstPromisePhase.Analyzing,
+            analysisAttemptId = 8L,
+            draft = null,
+            recommendationReasonRef = null,
+        )
+        val dataStore = FirstPromiseFakeDataStore(statePreferences(initial))
+        val store = FirstPromiseDraftStore(dataStore)
+
+        val staleAccepted = store.completeAnalysis(7L, draft("late", 20 * 60), reason(20 * 60))
+
+        assertFalse(staleAccepted)
+        assertEquals(0, dataStore.editCount)
+        assertEquals(initial, store.readState())
+
+        assertTrue(store.completeAnalysis(8L, draft("current", 21 * 60), reason(21 * 60)))
+        assertEquals(1, dataStore.editCount)
+        assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+    }
+
+    @Test
+    fun normalPersistenceMappingIsAtomicIdempotentAndRejectsConflicts() = runBlocking {
+        val enabledDataStore = FirstPromiseFakeDataStore(
+            statePreferences(completeDraftState().copy(phase = FirstPromisePhase.Persisting)),
+        )
+        val enabledStore = FirstPromiseDraftStore(enabledDataStore)
+
+        val saved = enabledStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
+        val repeated = enabledStore.recordPersistenceMapping(41L, FirstPromiseScheduleState.Enabled)
+        val conflicting = enabledStore.recordPersistenceMapping(42L, FirstPromiseScheduleState.Enabled)
+
+        assertTrue(saved is FirstPromiseStateMutation.Changed)
+        assertEquals(FirstPromisePhase.ResultEnabled, enabledStore.readState().phase)
+        assertEquals(41L, enabledStore.readState().routineId)
+        assertEquals(FirstPromiseStateMutation.NoOp, repeated)
+        assertEquals(FirstPromiseStateMutation.Rejected, conflicting)
+        assertEquals(1, enabledDataStore.editCount)
+
+        val disabledDataStore = FirstPromiseFakeDataStore(
+            statePreferences(completeDraftState().copy(phase = FirstPromisePhase.Persisting)),
+        )
+        val disabledStore = FirstPromiseDraftStore(disabledDataStore)
+
+        assertTrue(
+            disabledStore.recordPersistenceMapping(
+                43L,
+                FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            ) is FirstPromiseStateMutation.Changed,
+        )
+        assertEquals(FirstPromisePhase.SchedulePermissionRequired, disabledStore.readState().phase)
+        assertEquals(43L, disabledStore.readState().routineId)
+        assertEquals(1, disabledDataStore.editCount)
     }
 
     @Test
@@ -162,6 +254,8 @@ class FirstPromiseDraftStoreTest {
         assertNull(completed.draft)
         assertNull(completed.recommendationReasonRef)
         assertNull(completed.pendingSystemAction)
+        assertNull(completed.usagePermissionAttempt)
+        assertNull(completed.analysisAttemptId)
         assertEquals(1, dataStore.editCount)
     }
 
@@ -200,28 +294,32 @@ class FirstPromiseDraftStoreTest {
         phase = FirstPromisePhase.AccessibilityPending,
         path = FirstPromisePath.Personalized,
         goal = FirstPromiseGoal.Sleep,
-        draft = FirstPromiseDraft(
-            draftId = "local-draft",
-            goal = FirstPromiseGoal.Sleep,
-            packageName = "com.example.video",
-            appLabel = "Video",
-            startMinutes = 22 * 60,
-            repeatDays = setOf(1, 3, 5),
-            source = FirstPromiseSource.Personalized,
-        ),
-        recommendationReasonRef = RecommendationReasonRef(
-            patternType = UsagePatternType.Night,
-            usageCoverageDays = 7,
-            eventCoverageDays = 6,
-            isGoalDefault = false,
-            selectedStartMinutes = 22 * 60,
-        ),
+        draft = draft(draftId = "local-draft", startMinutes = 22 * 60),
+        recommendationReasonRef = reason(startMinutes = 22 * 60),
         pendingSystemAction = PendingSystemAction.Accessibility,
         usagePermissionAttempt = UsagePermissionAttempt(
             id = 5L,
             launchState = UsagePermissionLaunchState.Opened,
         ),
         analysisAttemptId = 8L,
+    )
+
+    private fun draft(draftId: String, startMinutes: Int) = FirstPromiseDraft(
+        draftId = draftId,
+        goal = FirstPromiseGoal.Sleep,
+        packageName = "com.example.video",
+        appLabel = "Video",
+        startMinutes = startMinutes,
+        repeatDays = setOf(1, 3, 5),
+        source = FirstPromiseSource.Personalized,
+    )
+
+    private fun reason(startMinutes: Int) = RecommendationReasonRef(
+        patternType = UsagePatternType.Night,
+        usageCoverageDays = 7,
+        eventCoverageDays = 6,
+        isGoalDefault = false,
+        selectedStartMinutes = startMinutes,
     )
 
     private fun statePreferences(state: FirstPromiseOnboardingState): Preferences = mutablePreferencesOf(

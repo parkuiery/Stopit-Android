@@ -126,61 +126,48 @@ class FirstPromiseStatePolicyTest {
         )
 
         FirstPromisePhase.entries.forEach { phase ->
-            val state = populatedState(phase = phase, routineId = null)
+            listOf(null, 77L).forEach { routineId ->
+                val state = populatedState(phase = phase, routineId = routineId)
 
-            val result = FirstPromiseStatePolicy.applyEmergency(state)
+                val result = FirstPromiseStatePolicy.applyEmergency(state)
 
-            assertEquals("$phase assignment", state.assignment, result.state.assignment)
-            assertEquals("$phase version", state.assignmentVersion, result.state.assignmentVersion)
-            assertEquals("$phase milestones", state.trackedMilestones, result.state.trackedMilestones)
-            assertEquals("$phase goal", state.goal, result.state.goal)
-            assertNull("$phase mapping", result.state.routineId)
+                assertEquals("$phase assignment", state.assignment, result.state.assignment)
+                assertEquals("$phase version", state.assignmentVersion, result.state.assignmentVersion)
+                assertEquals("$phase milestones", state.trackedMilestones, result.state.trackedMilestones)
+                assertEquals("$phase goal", state.goal, result.state.goal)
+                assertEquals("$phase mapping", routineId, result.state.routineId)
+                assertEquals("$phase schedule", state.scheduleState, result.state.scheduleState)
 
-            when (phase) {
-                in manualFallbackPhases -> {
-                    assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, result.action)
-                    assertEquals(FirstPromisePhase.ManualSelectPending, result.state.phase)
-                    assertEquals(FirstPromisePath.Manual, result.state.path)
-                    assertNull(result.state.draft)
-                    assertNull(result.state.recommendationReasonRef)
-                    assertNull(result.state.pendingSystemAction)
-                    assertNull(result.state.analysisAttemptId)
+                when (phase) {
+                    in manualFallbackPhases -> {
+                        assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, result.action)
+                        assertEquals(FirstPromisePhase.ManualSelectPending, result.state.phase)
+                        assertEquals(FirstPromisePath.Manual, result.state.path)
+                        assertNull(result.state.draft)
+                        assertNull(result.state.recommendationReasonRef)
+                        assertNull(result.state.pendingSystemAction)
+                        assertNull(result.state.analysisAttemptId)
+                    }
+
+                    FirstPromisePhase.ManualSelectPending -> {
+                        assertEquals(FirstPromiseEmergencyAction.Stay, result.action)
+                        assertEquals(state, result.state)
+                    }
+
+                    FirstPromisePhase.Persisting -> {
+                        assertEquals(FirstPromiseEmergencyAction.WaitForPersistence, result.action)
+                        assertFalse(result.navigationAllowed)
+                        assertEquals(state, result.state)
+                    }
+
+                    in disableFutureAnalysisPhases -> {
+                        assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, result.action)
+                        assertEquals(state.copy(futureAnalysisDisabled = true), result.state)
+                    }
+
+                    else -> error("Unclassified phase $phase")
                 }
-
-                FirstPromisePhase.ManualSelectPending -> {
-                    assertEquals(FirstPromiseEmergencyAction.Stay, result.action)
-                    assertEquals(state, result.state)
-                }
-
-                FirstPromisePhase.Persisting -> {
-                    assertEquals(FirstPromiseEmergencyAction.WaitForPersistence, result.action)
-                    assertFalse(result.navigationAllowed)
-                    assertEquals(state, result.state)
-                }
-
-                in disableFutureAnalysisPhases -> {
-                    assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, result.action)
-                    assertEquals(state.copy(futureAnalysisDisabled = true), result.state)
-                }
-
-                else -> error("Unclassified phase $phase")
             }
-        }
-    }
-
-    @Test
-    fun anyExistingRoutineMappingDisablesFutureAnalysisWithoutChangingPhaseOrMapping() {
-        FirstPromisePhase.entries.forEach { phase ->
-            val state = populatedState(phase = phase, routineId = 77L)
-
-            val result = FirstPromiseStatePolicy.applyEmergency(state)
-
-            assertEquals("$phase action", FirstPromiseEmergencyAction.DisableFutureAnalysis, result.action)
-            assertEquals("$phase phase", phase, result.state.phase)
-            assertEquals("$phase mapping", 77L, result.state.routineId)
-            assertEquals("$phase schedule", FirstPromiseScheduleState.Enabled, result.state.scheduleState)
-            assertEquals("$phase draft", state.draft, result.state.draft)
-            assertTrue(result.state.futureAnalysisDisabled)
         }
     }
 
@@ -232,9 +219,10 @@ class FirstPromiseStatePolicyTest {
             persisting.copy(routineId = 99L, scheduleState = FirstPromiseScheduleState.Enabled),
             FirstPromisePersistenceResolution.Failed,
         )
-        assertEquals(FirstPromiseEmergencyAction.DisableFutureAnalysis, mappedFailure.action)
-        assertEquals(FirstPromisePhase.Persisting, mappedFailure.state.phase)
+        assertEquals(FirstPromiseEmergencyAction.NavigateManualSelect, mappedFailure.action)
+        assertEquals(FirstPromisePhase.ManualSelectPending, mappedFailure.state.phase)
         assertEquals(99L, mappedFailure.state.routineId)
+        assertEquals(FirstPromiseScheduleState.Enabled, mappedFailure.state.scheduleState)
     }
 
     @Test

@@ -6,13 +6,20 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.domain.firstpromise.FirstPromiseEmergencyResult
+import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseMilestone
 import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
+import com.uiery.keep.domain.firstpromise.FirstPromisePath
 import com.uiery.keep.domain.firstpromise.FirstPromisePersistenceResolution
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import com.uiery.keep.domain.firstpromise.FirstPromiseStatePolicy
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PendingSystemAction
+import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePermissionOutcome
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,6 +59,44 @@ class FirstPromiseDraftStore @Inject constructor(
 
     suspend fun transitionTo(target: FirstPromisePhase): FirstPromiseStateMutation =
         applyMutation { FirstPromiseStatePolicy.transition(it, target) }
+
+    suspend fun selectGoal(
+        goal: FirstPromiseGoal,
+        path: FirstPromisePath,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.selectGoal(it, goal, path) }
+
+    suspend fun markMilestone(milestone: FirstPromiseMilestone): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.markMilestone(it, milestone) }
+
+    suspend fun storeDraft(
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.storeDraft(it, draft, reason) }
+
+    suspend fun setPendingSystemAction(action: PendingSystemAction): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.setPendingSystemAction(it, action) }
+
+    suspend fun clearPendingSystemAction(): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.setPendingSystemAction(it, null) }
+
+    suspend fun beginAnalysisAttempt(attemptId: Long): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.beginAnalysisAttempt(it, attemptId) }
+
+    suspend fun completeAnalysis(
+        attemptId: Long,
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): Boolean =
+        applyMutation { FirstPromiseStatePolicy.completeAnalysis(it, attemptId, draft, reason) } is
+            FirstPromiseStateMutation.Changed
+
+    suspend fun recordPersistenceMapping(
+        routineId: Long,
+        scheduleState: FirstPromiseScheduleState,
+    ): FirstPromiseStateMutation =
+        applyMutation { FirstPromiseStatePolicy.recordPersistenceMapping(it, routineId, scheduleState) }
 
     suspend fun applyEmergency(): FirstPromiseEmergencyResult =
         applyEmergencyMutation(FirstPromiseStatePolicy::applyEmergency)

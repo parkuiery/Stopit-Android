@@ -105,6 +105,7 @@ object FirstPromiseStatePolicy {
                     draft = null,
                     recommendationReasonRef = null,
                     pendingSystemAction = null,
+                    usagePermissionAttempt = null,
                     analysisAttemptId = null,
                 )
             } else {
@@ -125,6 +126,141 @@ object FirstPromiseStatePolicy {
                 state.copy(assignment = variant, assignmentVersion = version),
             )
         }
+
+    fun selectGoal(
+        state: FirstPromiseOnboardingState,
+        goal: FirstPromiseGoal,
+        path: FirstPromisePath,
+    ): FirstPromiseStateMutation {
+        if (
+            state.phase !in setOf(
+                FirstPromisePhase.GoalPending,
+                FirstPromisePhase.UsageAccessPending,
+                FirstPromisePhase.ManualSelectPending,
+            )
+        ) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        if (state.goal == goal && state.path == path) {
+            return FirstPromiseStateMutation.NoOp
+        }
+        return FirstPromiseStateMutation.Changed(state.copy(goal = goal, path = path))
+    }
+
+    fun markMilestone(
+        state: FirstPromiseOnboardingState,
+        milestone: FirstPromiseMilestone,
+    ): FirstPromiseStateMutation =
+        if (milestone in state.trackedMilestones) {
+            FirstPromiseStateMutation.NoOp
+        } else {
+            FirstPromiseStateMutation.Changed(
+                state.copy(trackedMilestones = state.trackedMilestones + milestone),
+            )
+        }
+
+    fun storeDraft(
+        state: FirstPromiseOnboardingState,
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): FirstPromiseStateMutation {
+        if (!draftMatchesState(state, draft, reason)) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val phaseMutation = transition(state, FirstPromisePhase.DraftReady)
+        if (phaseMutation is FirstPromiseStateMutation.Rejected) {
+            return phaseMutation
+        }
+        val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state ?: state
+        val nextState = phaseState.copy(draft = draft, recommendationReasonRef = reason)
+        return if (nextState == state) {
+            FirstPromiseStateMutation.NoOp
+        } else {
+            FirstPromiseStateMutation.Changed(nextState)
+        }
+    }
+
+    fun setPendingSystemAction(
+        state: FirstPromiseOnboardingState,
+        action: PendingSystemAction?,
+    ): FirstPromiseStateMutation {
+        if (state.phase == FirstPromisePhase.CompletedEnabled || state.phase == FirstPromisePhase.CompletedDisabled) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        return if (state.pendingSystemAction == action) {
+            FirstPromiseStateMutation.NoOp
+        } else {
+            FirstPromiseStateMutation.Changed(state.copy(pendingSystemAction = action))
+        }
+    }
+
+    fun beginAnalysisAttempt(
+        state: FirstPromiseOnboardingState,
+        attemptId: Long,
+    ): FirstPromiseStateMutation {
+        if (
+            state.phase != FirstPromisePhase.Analyzing ||
+            state.futureAnalysisDisabled ||
+            (state.analysisAttemptId != null && attemptId <= state.analysisAttemptId)
+        ) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        return FirstPromiseStateMutation.Changed(
+            state.copy(
+                analysisAttemptId = attemptId,
+                draft = null,
+                recommendationReasonRef = null,
+            ),
+        )
+    }
+
+    fun completeAnalysis(
+        state: FirstPromiseOnboardingState,
+        attemptId: Long,
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): FirstPromiseStateMutation {
+        if (!acceptsAnalysisAttempt(state, attemptId) || !draftMatchesState(state, draft, reason)) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val phaseMutation = transition(state, FirstPromisePhase.DraftReady)
+        val phaseState = (phaseMutation as? FirstPromiseStateMutation.Changed)?.state
+            ?: return FirstPromiseStateMutation.Rejected
+        return FirstPromiseStateMutation.Changed(
+            phaseState.copy(draft = draft, recommendationReasonRef = reason),
+        )
+    }
+
+    fun recordPersistenceMapping(
+        state: FirstPromiseOnboardingState,
+        routineId: Long,
+        scheduleState: FirstPromiseScheduleState,
+    ): FirstPromiseStateMutation {
+        if (state.routineId != null) {
+            return if (state.routineId == routineId && state.scheduleState == scheduleState) {
+                FirstPromiseStateMutation.NoOp
+            } else {
+                FirstPromiseStateMutation.Rejected
+            }
+        }
+        if (state.phase != FirstPromisePhase.Persisting) {
+            return FirstPromiseStateMutation.Rejected
+        }
+        val target = if (scheduleState == FirstPromiseScheduleState.Enabled) {
+            FirstPromisePhase.ResultEnabled
+        } else {
+            FirstPromisePhase.SchedulePermissionRequired
+        }
+        val phaseState = (transition(state, target) as? FirstPromiseStateMutation.Changed)?.state
+            ?: return FirstPromiseStateMutation.Rejected
+        return FirstPromiseStateMutation.Changed(
+            phaseState.copy(
+                routineId = routineId,
+                scheduleState = scheduleState,
+                pendingSystemAction = null,
+            ),
+        )
+    }
 
     fun beginUsagePermissionAttempt(
         state: FirstPromiseOnboardingState,
@@ -225,12 +361,6 @@ object FirstPromiseStatePolicy {
     }
 
     fun applyEmergency(state: FirstPromiseOnboardingState): FirstPromiseEmergencyResult {
-        if (state.routineId != null) {
-            return FirstPromiseEmergencyResult(
-                state = state.copy(futureAnalysisDisabled = true),
-                action = FirstPromiseEmergencyAction.DisableFutureAnalysis,
-            )
-        }
         return when (state.phase) {
             FirstPromisePhase.GoalPending,
             FirstPromisePhase.UsageAccessPending,
@@ -272,12 +402,6 @@ object FirstPromiseStatePolicy {
     ): FirstPromiseEmergencyResult {
         require(state.phase == FirstPromisePhase.Persisting) {
             "Emergency persistence can only resolve from Persisting"
-        }
-        if (resolution == FirstPromisePersistenceResolution.Failed && state.routineId != null) {
-            return FirstPromiseEmergencyResult(
-                state = state.copy(futureAnalysisDisabled = true),
-                action = FirstPromiseEmergencyAction.DisableFutureAnalysis,
-            )
         }
         return when (resolution) {
             is FirstPromisePersistenceResolution.Succeeded -> {
@@ -328,4 +452,11 @@ object FirstPromiseStatePolicy {
         analysisAttemptId = null,
         futureAnalysisDisabled = true,
     )
+
+    private fun draftMatchesState(
+        state: FirstPromiseOnboardingState,
+        draft: FirstPromiseDraft,
+        reason: RecommendationReasonRef,
+    ): Boolean =
+        draft.goal == state.goal && reason.selectedStartMinutes == draft.startMinutes
 }
