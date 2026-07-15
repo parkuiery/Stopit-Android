@@ -74,7 +74,7 @@ receives exactly what Firebase receives for these events.
 | `permission_outcome` | Accessibility/notification permission resolved | `permission_name`, `outcome`, `step_name?` |
 | `app_selection_completed` | App selection confirmed | `selected_app_count`, `is_onboarding` |
 | `first_lock_configured` | First lock configured | `source`, `selected_app_count?` |
-| `first_core_action_completed` | First real block delivered (activation) | `elapsed_since_first_open_seconds`, `blocking_mode`, `blocked_app_category_bucket` |
+| `first_core_action_completed` | First real block delivered (activation) | common: `blocking_mode`, `blocked_app_category_bucket`; ordinary direct path: `elapsed_since_first_open_seconds`; durable first-promise path: `elapsed_since_first_open_bucket`, `promise_origin` |
 | `keep_mode_toggled` | Keep switch on/off | `is_enabled` |
 | `lock_session_start` | Lock session begins | `source`, `is_routine?` |
 | `lock_session_end` | Lock session ends | `source`, `end_reason`, `is_routine?` |
@@ -93,6 +93,15 @@ receives exactly what Firebase receives for these events.
 | `review_prompt_shown` | In-app review prompt shown | — |
 | `monetization_interest_clicked` | Monetization interest clicked | `interest_surface`, `interest_context`, `interest_variant?`, `purchase_available?` |
 
+`first_core_action_completed` is allowlisted by event name, so both path-specific payload
+shapes above reach Amplitude exactly as Firebase receives them. The ordinary direct path may
+retain exact `elapsed_since_first_open_seconds` for canonical compatibility. The durable
+first-promise sequence-40 path never stores or sends exact seconds; it sends only
+`elapsed_since_first_open_bucket=under_1m|1_5m|over_5m` plus typed
+`promise_origin=first_promise_routine|first_promise_practice`, with the common
+`blocking_mode` and `blocked_app_category_bucket` properties. The two elapsed keys are never
+present in the same payload.
+
 ---
 
 ## 3. Events NOT sent to Amplitude (Firebase-only)
@@ -107,9 +116,11 @@ Excluded to protect the budget and/or because they carry low marginal value in A
   the allowlist regression asserts both that exclusion and the `<=30` event ceiling.
 - **First-promise value attribution:** optional typed
   `app_block_intercepted.promise_origin=first_promise_routine|first_promise_practice`
-  remains Firebase/GA4-only with the canonical `app_block_intercepted` event. No package,
-  app label, observed usage minutes/time, draft id, routine id, or arbitrary origin string
-  is forwarded.
+  remains Firebase/GA4-only with the canonical sequence-30 `app_block_intercepted` event.
+  Its paired sequence-40 `first_core_action_completed` is allowlisted and therefore reaches
+  both Firebase and Amplitude with the durable bucket schema documented above. No package,
+  app label, observed usage minutes/time, exact elapsed seconds, draft id, routine id, or
+  arbitrary origin string is forwarded by the durable first-promise path.
 - **High-frequency:** `app_block_intercepted`, `core_action_completed`,
   `parent_mode_block_intercepted`
 - **Screen views:** `logScreenView` / `screen_view` (Amplitude has its own session model)
