@@ -568,6 +568,43 @@ git merge-base --is-ancestor 36cee46158f6b2f11f6b841b2eb191a0871ccf1c origin/mai
 git merge-base --is-ancestor 36cee46158f6b2f11f6b841b2eb191a0871ccf1c v1.7.7
 ```
 
+## Meta Audience Network bidding 계약
+
+2026-07-17 code-lane에서 기존 6개 배너 placement에 Meta Audience Network를 AdMob bidding source로 추가할 수 있는 앱 runtime 계약을 마련했다. 이 변경은 새로운 광고 포맷을 추가하지 않으며, 기존 AdMob ad unit ID와 `TrackedBannerAd` analytics 계약을 그대로 사용한다.
+
+### 앱 runtime 계약
+
+- 광고 runtime 의존성은 계속 `:app`만 소유한다.
+  - Google Mobile Ads `24.6.0`
+  - Meta adapter `6.20.0.1`
+  - adapter가 resolve하는 Meta Audience Network SDK `6.20.0`
+- Google 공식 adapter changelog상 이 조합은 함께 build/test된 조합이다. 공식 최신 Google Mobile Ads `25.4.0` + Meta adapter `6.21.0.4`는 Kotlin metadata `2.3.0`을 요구해 현재 repo Kotlin `2.1.10`과 컴파일되지 않으므로, Kotlin/AGP/KSP 전체 upgrade를 이 수익화 변경에 섞지 않는다.
+- Meta Audience Network는 anchored/inline adaptive banner를 지원하지 않는다. 모든 active banner request는 `AdSize.BANNER`(320x50)를 사용하고, 앱 wrapper가 50dp 높이를 예약한 뒤 화면 중앙에 배치한다.
+- `MainActivity`와 cold-start `BlockActivity`가 같은 지연 초기화 상태를 공유한다. `MobileAds.initialize(...)` callback이 끝나기 전에는 `loadAd()`를 호출하지 않으며, 두 Activity가 동시에 초기화를 시작하지 않는다.
+- Meta placement ID는 앱 source/BuildConfig/Manifest에 넣지 않는다. AdMob mediation mapping만 placement ID를 소유한다.
+- dev flavor는 Google sample app/ad unit ID를 계속 사용한다. Meta 실제 mapping 검증은 등록된 test device의 `prodDebug` + Ad Inspector에서만 수행하고 live 광고를 클릭하지 않는다.
+
+### 외부 콘솔 계약
+
+1. Meta Audience Network property에 Android package `com.uiery.keep`를 연결한다.
+2. `block_top`, `home_bottom`, `lock_bottom`, `menu_bottom`, `routine_list_bottom`, `routine_empty_bottom`용 Banner placement 6개를 일대일로 만든다.
+3. AdMob Android/Banner mediation group의 Bidding source로 Meta Audience Network를 추가하고 기존 production ad unit 6개에 placement ID를 일대일 mapping한다.
+4. AdMob Privacy & messaging의 GDPR/US-state 광고 파트너 목록에 Meta를 추가하고, 배포 지역에 필요한 UMP/Meta data-processing 계약을 별도로 충족한다.
+5. `app-ads.txt`에 Meta authorized seller row를 추가하고 crawler 상태를 확인한다.
+
+### release gate
+
+repo build/test 성공만으로 Meta 광고 송출 완료라고 기록하지 않는다. release 전 아래 외부 evidence가 모두 필요하다.
+
+- Meta property/placement와 AdMob bidding mapping이 active다.
+- Meta test mode와 AdMob test device가 활성화돼 있다.
+- Ad Inspector single ad source test에서 production ad unit 6개가 각각 Meta test ad를 최소 1회 load한다.
+- 초기화 status에 Meta adapter가 나타나고 invalid server parameter(101), unsupported size(102), Activity context(103) 오류가 없다.
+- 내부 트랙에서 6개 화면의 320x50 배너 정렬, foreground/background lifecycle, crash/ANR을 확인한다.
+- production 배포 후 14일 동안 ad source/ad unit별 impressions, match rate, eCPM, revenue, CTR을 변경 전 baseline과 비교한다.
+
+문제가 생기면 1차 rollback은 AdMob mediation group에서 Meta bidding source를 비활성화하는 server-side 조치다. adapter 자체 crash가 확인되면 후속 앱 버전에서 Meta adapter 의존성을 제거한다.
+
 ## issue #250: flavor별 광고 설정 계약
 
 #250은 #16의 성과 감사와 연결되지만, 문제의 핵심은 성과표가 아니라 **production AdMob application/ad unit id가 Manifest와 여러 Compose 화면에 분산된 설정 계약 drift**다. docs-lane PR #254에서 구현 handoff를 먼저 고정했고, code-lane PR은 아래 계약을 실제 Gradle/Manifest/Compose call site에 반영한다.

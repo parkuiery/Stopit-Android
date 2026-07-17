@@ -9,6 +9,8 @@ METRICS_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "metrics-context.md"
 PRODUCT_CONTEXT = REPO_ROOT / "docs" / "ops" / "stopit" / "product-context.md"
 PRODUCT_DASHBOARD = REPO_ROOT / "docs" / "PRODUCT_METRICS_DASHBOARD.md"
 EVENT_DICTIONARY = REPO_ROOT / "docs" / "ANALYTICS_EVENT_DICTIONARY.md"
+VERSION_CATALOG = REPO_ROOT / "gradle" / "libs.versions.toml"
+APP_BUILD = REPO_ROOT / "app" / "build.gradle.kts"
 
 
 class KdsAdMobBoundaryTest(unittest.TestCase):
@@ -32,6 +34,26 @@ class KdsAdMobBoundaryTest(unittest.TestCase):
             build_file.read_text(),
             ":core:kds must not depend on Google Mobile Ads; keep it in :app/monetization.",
         )
+
+    def test_meta_mediation_adapter_is_versioned_and_owned_by_app(self):
+        version_catalog = VERSION_CATALOG.read_text()
+        app_build = APP_BUILD.read_text()
+        kds_build = (KDS_ROOT / "build.gradle.kts").read_text()
+
+        self.assertIn('playServicesAds = "24.6.0"', version_catalog)
+        self.assertIn('metaAudienceNetworkAdapter = "6.20.0.1"', version_catalog)
+        self.assertIn('module = "com.google.ads.mediation:facebook"', version_catalog)
+        self.assertIn("implementation(libs.meta.audience.network.adapter)", app_build)
+        self.assertNotIn("libs.meta.audience.network.adapter", kds_build)
+
+    def test_admob_runbook_documents_meta_mediation_release_gate(self):
+        admob_runbook = ADMOB_RUNBOOK.read_text()
+
+        self.assertIn("Meta Audience Network bidding 계약", admob_runbook)
+        self.assertIn("Google Mobile Ads `24.6.0`", admob_runbook)
+        self.assertIn("Meta adapter `6.20.0.1`", admob_runbook)
+        self.assertIn("AdSize.BANNER", admob_runbook)
+        self.assertIn("Ad Inspector single ad source test", admob_runbook)
 
     def test_high_traffic_docs_name_app_monetization_as_admob_owner(self):
         admob_runbook = ADMOB_RUNBOOK.read_text()
