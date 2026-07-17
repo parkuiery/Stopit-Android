@@ -443,11 +443,11 @@ Discovery/contract package가 닫힌 뒤에만 아래 구현 issue를 `ready` �
 
 | 범위 | 현재 증거 | 완료 해석 |
 | --- | --- | --- |
-| Control 불변, Treatment 허용·거절/manual·insufficient, 접근성 기허용, 알림 거절, exact-alarm 결과 | `PromiseCoachOnboardingIntegrationTest`의 production entry/legacy·permission ViewModel/typed store/Splash 통합 계약 | repo-internal deterministic contract |
+| Control 불변, Treatment 허용·거절/manual·insufficient, 접근성 기허용, 알림 거절, exact-alarm 결과 | `PromiseCoachOnboardingIntegrationTest`가 한 instrumentation process 안에서 production entry/legacy·permission ViewModel/typed store/Splash 경계를 조립한 시뮬레이션 | repo-internal deterministic contract. 실제 OS process kill, Settings Activity 왕복, AppOps 전환, Room+AlarmManager 프로세스 간 동작 또는 OEM 기기 evidence가 아님 |
 | 모든 pending action 재생성, OEM settings intent 실패, 자정 경계, timezone 재평가와 timezone-action scheduler 재계산, 권한 철회, reset-only | 직렬화/순수 정책, receiver, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 통합 계약 | 실제 OS process kill/AppOps/OEM 설정 변경/`pm clear`·재설치를 대체하지 않음 |
 | 연습 시작 후 실제 timed-lock 차단 attribution | durable practice token 재생성과 `BlockAnalyticsCoordinator` 연결 계약 | 실제 AccessibilityService foreground 차단의 device evidence는 별도 |
 
-다음은 명시적 외부 경계이며 미완료다: 개인정보/Play 최종 승인, GA4 Admin 등록·metadata/readback, Remote Config rollout %, production 전환 영향과 최소 표본, OEM별 Usage settings/권한 matrix, 실제 process death, 기기 timezone을 실제 변경해 OS broadcast가 전달되는 end-to-end 경로, `pm clear`/재설치, light/dark·font scale·TalkBack·locale screenshot QA. unavailable 조합은 PASS가 아니라 gap으로 기록한다.
+다음은 명시적 외부 경계이며 미완료다: 개인정보/Play 최종 승인, GA4 Admin 등록·metadata/readback, Remote Config rollout %, production 전환 영향과 최소 표본, 실제 Settings Activity 왕복과 OEM별 Usage settings/권한 matrix, 실제 AppOps 허용·거절·철회, 실제 OS process death, Room+AlarmManager의 프로세스 간 동작, 기기 timezone을 실제 변경해 OS broadcast가 전달되는 end-to-end 경로, `pm clear`/재설치, light/dark·font scale·TalkBack·locale screenshot QA. unavailable 조합은 PASS가 아니라 gap으로 기록한다.
 
 첫 약속 코치의 승격/표본/24시간 ordered funnel/BlockScreen matched emergency denominator는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 따른다. 10% Treatment는 최소 7일·Treatment exposure 30명, 50% Treatment는 최소 14일·각 군 100명이 필요하며, 적은 사용자 수 자체를 이유로 이 gate를 낮추지 않는다.
 

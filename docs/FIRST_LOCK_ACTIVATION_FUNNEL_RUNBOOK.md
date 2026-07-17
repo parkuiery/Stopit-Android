@@ -348,7 +348,7 @@ BlockScreen 긴급해제 guardrail은 exposure 전체가 아니라 **같은 vari
 
 ### Task 16 검증 경계
 
-저장소 내부 자동 검증은 production entry/legacy ViewModel/Splash를 연결한 Control `Intro → Permission → Notification → SelectedApp → Home`, Treatment Usage 허용·거절/manual·데이터 부족, production permission ViewModel을 통과한 접근성 기허용·알림 거절 후 persistence/result 계속, exact-alarm enabled/disabled 결과, 모든 pending system action 직렬화 복구, OEM Usage settings intent 실패 fallback, 자정 경계, timezone 재평가와 timezone-action 뒤 enabled routine alarm 재계산, Usage Access 철회 fallback, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 reset-only 상태, 10분 연습 token의 실제 timed-lock 차단 attribution을 deterministic contract로 고정한다.
+저장소 내부 자동 검증은 production entry/legacy ViewModel/Splash를 연결한 Control `Intro → Permission → Notification → SelectedApp → Home`, Treatment Usage 허용·거절/manual·데이터 부족, production permission ViewModel을 통과한 접근성 기허용·알림 거절 후 persistence/result 계속, exact-alarm enabled/disabled 결과, 모든 pending system action 직렬화 복구, OEM Usage settings intent 실패 fallback, 자정 경계, timezone 재평가와 timezone-action 뒤 enabled routine alarm 재계산, Usage Access 철회 fallback, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 reset-only 상태, 10분 연습 token의 실제 timed-lock 차단 attribution을 deterministic contract로 고정한다. 이 중 `PromiseCoachOnboardingIntegrationTest`는 한 instrumentation process 안에서 production entry/ViewModel/store 경계를 조립한 시뮬레이션이다. 실제 OS process kill, Settings Activity 왕복, AppOps 전환, Room+AlarmManager의 프로세스 간 동작 또는 OEM 기기 동작을 실행했다는 증거로 분류하지 않는다.
 
 아래 항목은 이 문서/테스트 변경으로 완료 처리하지 않는다.
 
