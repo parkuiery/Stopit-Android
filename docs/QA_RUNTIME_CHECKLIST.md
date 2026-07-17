@@ -1252,7 +1252,10 @@ python3 -m unittest scripts.tests.test_android_manifest_contract.AndroidManifest
 검증 기준:
 - `MainActivity.onCreate`와 cold-start `BlockActivity.onCreate`에서 `MobileAds.initialize(...)`를 즉시 호출하지 않고 공용 deferred initializer만 예약한다.
 - 광고 SDK 초기화는 첫 frame/post 이후 최소 1초 이상 지연된 lifecycle coroutine에서 실행한다.
-- 두 Activity가 경쟁해도 process당 초기화는 한 번만 시작하고, initialization callback 완료 전에는 banner `loadAd()`를 호출하지 않는다.
+- 지연 후 UMP `requestConsentInfoUpdate()`와 필요한 consent form을 먼저 처리하고, `canRequestAds()`가 `false`이면 Mobile Ads 초기화와 banner 요청을 하지 않는다.
+- 두 Activity가 경쟁해도 consent 갱신은 한 번에 하나만 실행하고 Mobile Ads 초기화는 process당 한 번만 시작한다. consent 완료 후에는 다음 앱 시작에서 다시 갱신할 수 있어야 한다.
+- UMP가 privacy options entry point를 요구하면 Menu에 현지화된 개인정보 선택 항목이 표시되고 privacy options form을 다시 열 수 있어야 한다.
+- initialization callback 완료 전에는 banner `loadAd()`를 호출하지 않는다.
 - Activity가 이미 `finishing` 또는 `destroyed` 상태면 지연된 초기화를 생략한다.
 - known SDK/platform mismatch는 main thread crash가 아닐 때만 containment 대상이다. 앱 코드 crash 또는 main thread crash는 기존 platform/Crashlytics handler로 위임한다.
 - Profile Installer API mismatch는 handler containment에만 의존하지 않고 merged manifest에서 `ProfileInstallerInitializer`가 제거되어 자동 실행 경로 자체가 없어야 한다.

@@ -9,11 +9,19 @@ internal const val FcmTokenDeferredStartupDelayMillis = MobileAdsDeferredStartup
 
 internal class MobileAdsInitializationState {
     private val mutableIsInitialized = MutableStateFlow(false)
+    private val consentGatheringStarted = AtomicBoolean(false)
     private val initializationStarted = AtomicBoolean(false)
 
     val isInitialized = mutableIsInitialized.asStateFlow()
 
-    fun tryStartInitialization(): Boolean = initializationStarted.compareAndSet(false, true)
+    fun tryStartConsentGathering(): Boolean = consentGatheringStarted.compareAndSet(false, true)
+
+    fun completeConsentGathering() {
+        consentGatheringStarted.set(false)
+    }
+
+    fun tryStartInitialization(canRequestAds: Boolean): Boolean =
+        canRequestAds && initializationStarted.compareAndSet(false, true)
 
     fun markInitialized() {
         mutableIsInitialized.value = true
@@ -21,6 +29,18 @@ internal class MobileAdsInitializationState {
 }
 
 internal val MobileAdsInitialization = MobileAdsInitializationState()
+
+internal class MobileAdsPrivacyOptionsState {
+    private val mutableIsRequired = MutableStateFlow(false)
+
+    val isRequired = mutableIsRequired.asStateFlow()
+
+    fun update(isRequired: Boolean) {
+        mutableIsRequired.value = isRequired
+    }
+}
+
+internal val MobileAdsPrivacyOptions = MobileAdsPrivacyOptionsState()
 
 internal fun shouldStartMobileAdsForActivity(
     isFinishing: Boolean,

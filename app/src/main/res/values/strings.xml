@@ -176,6 +176,7 @@
     <string name="routine_next_run_label">Next run: %1$s</string>
     <string name="routine_active_action_blocked_message">This routine is running now, so edit, delete, and off actions are locked. Use Emergency Unlock if you need a temporary exception.</string>
     <string name="contact_us">Contact Us</string>
+    <string name="ad_privacy_options">Privacy options</string>
     <string name="monetization_interest_menu_title">Want to use StopIt without ads?</string>
     <string name="monetization_interest_menu_message">Tell us if an ad-free option would be useful. No purchase is available yet.</string>
     <string name="feedback_subject">[StopIt Android] Feedback</string>

@@ -18,11 +18,37 @@ class MobileAdsStartupPolicyTest {
     }
 
     @Test
-    fun mobileAdsInitializationStartsOnlyOnceAcrossActivities() {
+    fun mobileAdsInitializationRequiresConsentAndStartsOnlyOnceAcrossActivities() {
         val state = MobileAdsInitializationState()
 
-        assertTrue(state.tryStartInitialization())
-        assertFalse(state.tryStartInitialization())
+        assertFalse(state.tryStartInitialization(canRequestAds = false))
+        assertTrue(state.tryStartInitialization(canRequestAds = true))
+        assertFalse(state.tryStartInitialization(canRequestAds = true))
+    }
+
+    @Test
+    fun consentGatheringStartsOnceAtATimeAndRunsAgainOnTheNextAppLaunch() {
+        val state = MobileAdsInitializationState()
+
+        assertTrue(state.tryStartConsentGathering())
+        assertFalse(state.tryStartConsentGathering())
+
+        state.completeConsentGathering()
+
+        assertTrue(state.tryStartConsentGathering())
+    }
+
+    @Test
+    fun privacyOptionsStateReflectsTheLatestConsentRequirement() {
+        val state = MobileAdsPrivacyOptionsState()
+
+        assertFalse(state.isRequired.value)
+
+        state.update(isRequired = true)
+        assertTrue(state.isRequired.value)
+
+        state.update(isRequired = false)
+        assertFalse(state.isRequired.value)
     }
 
     @Test
