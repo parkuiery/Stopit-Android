@@ -69,6 +69,7 @@ import com.uiery.keep.feature.onboarding.entry.OnboardingEntryViewModel
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentConfig
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentPolicy
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentSnapshot
+import com.uiery.keep.feature.onboarding.intro.IntroSideEffect
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
@@ -81,7 +82,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,10 +139,13 @@ class PromiseCoachOnboardingIntegrationTest {
         )
         assertEquals(OnboardingVariant.Control, draftStore.readState().assignment)
 
-        IntroViewModel(analytics, draftStore).apply {
-            onStepViewed()
-            onContinue()
+        val introViewModel = IntroViewModel(analytics, draftStore)
+        val introNavigation = async(start = CoroutineStart.UNDISPATCHED) {
+            introViewModel.container.sideEffectFlow.first()
         }
+        introViewModel.onStepViewed()
+        introViewModel.onContinue()
+        assertEquals(IntroSideEffect.NavigatePermissionSetting, introNavigation.await())
         PermissionSettingViewModel(analytics).apply {
             onStepViewed()
             onPermissionSettingsOpened()
@@ -524,7 +530,10 @@ class PromiseCoachOnboardingIntegrationTest {
         val recreatedPracticeStore = FirstPromisePracticeStore(dataStore)
         assertEquals(token, recreatedPracticeStore.readActiveToken(200L))
 
-        val attributionStore = RecordingAttributionStore()
+        val attributionStore = RecordingAttributionStore(
+            expectedDraftId = draft.draftId,
+            expectedPackageName = draft.packageName,
+        )
         val coordinator = BlockAnalyticsCoordinator(
             attributionStore = attributionStore,
             activePracticeAt = recreatedPracticeStore::readActiveToken,
@@ -734,7 +743,10 @@ private object EmptyRoutineRepository : RoutineRepository {
     override suspend fun fetchAllOnce(): List<RoutineModel> = emptyList()
 }
 
-private class RecordingAttributionStore : FirstPromiseAttributionStore {
+private class RecordingAttributionStore(
+    private val expectedDraftId: String,
+    private val expectedPackageName: String,
+) : FirstPromiseAttributionStore {
     var reservedAttribution: FirstPromiseAttribution? = null
     var reservedInput: FirstPromiseValueEventInput? = null
 
@@ -744,6 +756,9 @@ private class RecordingAttributionStore : FirstPromiseAttributionStore {
         draftId: String,
         origin: FirstPromiseOrigin,
     ) = FirstPromiseAttribution(draftId, origin, createdAtMillis = 100L)
+
+    override suspend fun matchesDraftPackage(draftId: String, packageName: String): Boolean =
+        draftId == expectedDraftId && packageName == expectedPackageName
 
     override suspend fun hasFirstCoreActionReservation() = false
 
