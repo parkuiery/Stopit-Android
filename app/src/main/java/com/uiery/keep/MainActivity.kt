@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.ads.MobileAds
 import com.google.firebase.messaging.FirebaseMessaging
 import com.uiery.keep.service.FcmTokenPersistenceRunner
 import com.uiery.keep.util.AppLogger
@@ -42,13 +41,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        deferMobileAdsInitialization()
+
         window.decorView.post {
-            lifecycleScope.launch {
-                delay(MobileAdsDeferredStartupDelayMillis)
-                if (shouldStartMobileAdsForActivity(isFinishing, isDestroyed)) {
-                    MobileAds.initialize(applicationContext)
-                }
-            }
             lifecycleScope.launch {
                 delay(FcmTokenDeferredStartupDelayMillis)
                 if (shouldFetchFcmTokenForActivity(isFinishing, isDestroyed)) {

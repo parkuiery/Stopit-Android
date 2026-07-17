@@ -248,6 +248,8 @@ dependencies {
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.google.play.services.ads)
+    implementation(libs.meta.audience.network.adapter)
+    implementation(libs.google.user.messaging.platform)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(project(":core:kds"))

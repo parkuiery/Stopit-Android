@@ -1,6 +1,7 @@
 package com.uiery.keep.analytics
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,6 +13,48 @@ class TrackedBannerAdTest {
         placement = "routine_empty_bottom",
         adUnitId = "ca-app-pub-1234567890/1234567890",
     )
+
+    @Test
+    fun `meta mediation uses a supported standard banner size`() {
+        assertEquals(320, MetaCompatibleBannerAdSize.width)
+        assertEquals(50, MetaCompatibleBannerAdSize.height)
+    }
+
+    @Test
+    fun `banner request waits for mobile ads initialization and an activity context`() {
+        assertFalse(
+            shouldLoadBannerAd(
+                isInspectionMode = false,
+                hasActivityContext = true,
+                isMobileAdsInitialized = false,
+            ),
+        )
+        assertFalse(
+            shouldLoadBannerAd(
+                isInspectionMode = false,
+                hasActivityContext = false,
+                isMobileAdsInitialized = true,
+            ),
+        )
+        assertTrue(
+            shouldLoadBannerAd(
+                isInspectionMode = false,
+                hasActivityContext = true,
+                isMobileAdsInitialized = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `preview never loads a banner request`() {
+        assertFalse(
+            shouldLoadBannerAd(
+                isInspectionMode = true,
+                hasActivityContext = true,
+                isMobileAdsInitialized = true,
+            ),
+        )
+    }
 
     @Test
     fun `buildAdImpressionEvent uses app-owned banner event name and placement metadata`() {

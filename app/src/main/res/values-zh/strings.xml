@@ -140,6 +140,7 @@
     <string name="goal_lock_detail_update_lock_mode_cancel">Cancel</string>
     <string name="goal_lock_detail_update_lock_mode_save">Save mode</string>
     <string name="contact_us">联系我们</string>
+    <string name="ad_privacy_options">隐私选项</string>
     <string name="monetization_interest_menu_title">想无广告使用 StopIt 吗？</string>
     <string name="monetization_interest_menu_message">如果无广告选项对你有帮助，请告诉我们。目前尚未提供购买。</string>
     <string name="feedback_subject">[StopIt Android] 反馈</string>
