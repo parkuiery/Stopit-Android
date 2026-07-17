@@ -426,6 +426,32 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun activeTimedLockPreventsOpeningOrApplyingAppSelection() = runBlocking {
+        val originalPackages = setOf("com.example.practice")
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to originalPackages,
+                PreferencesKey.LOCK_TIME to ManualLockTimePolicy.encodeDeadline(
+                    Instant.now().plusSeconds(600),
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        waitFor { viewModel.container.stateFlow.value.hasActiveTimedLock }
+        viewModel.showCategoryBottomSheet()
+        viewModel.selectCategoryComplete(setOf("com.example.unrelated"))
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(originalPackages, viewModel.container.stateFlow.value.selectedAppPackage)
+        assertEquals(originalPackages, dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    @Test
     fun firstLockActivationCtaHidesAfterHomeKeepStartsFirstLock() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(

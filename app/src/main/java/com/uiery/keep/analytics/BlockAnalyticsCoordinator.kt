@@ -160,6 +160,7 @@ class BlockAnalyticsCoordinator {
         }
         if (request.blockSource == AnalyticsBlockSource.TIMED_LOCK) {
             val token = activePracticeAt(now) ?: return null
+            if (!attributionStore.matchesDraftPackage(token.draftId, request.packageName)) return null
             return attributionStore.findDraftAttribution(
                 token.draftId,
                 FirstPromiseOrigin.FirstPromisePractice,

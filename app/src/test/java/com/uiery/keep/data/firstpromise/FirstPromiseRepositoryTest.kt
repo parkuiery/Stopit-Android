@@ -86,6 +86,20 @@ class FirstPromiseRepositoryTest {
     }
 
     @Test
+    fun draftPackageMatchUsesPersistedRoutineWithoutExposingItInAttribution() = runBlocking {
+        val store = FakeAtomicStore()
+        val repository = repository(
+            store,
+            scheduler(canSchedule = true, scheduleResult = RoutineScheduleResult.Scheduled),
+        )
+        repository.createFirstPromise(draft, routine)
+
+        assertTrue(repository.matchesDraftPackage(draft.draftId, draft.packageName))
+        assertFalse(repository.matchesDraftPackage(draft.draftId, "com.example.unrelated"))
+        assertFalse(repository.matchesDraftPackage("another-draft", draft.packageName))
+    }
+
+    @Test
     fun exactAlarmResolutionHappensBeforeInsertAndMissingPermissionPersistsDisabledState() = runBlocking {
         val calls = mutableListOf<String>()
         val store = FakeAtomicStore(onInsertRoutine = { calls += "insert" })

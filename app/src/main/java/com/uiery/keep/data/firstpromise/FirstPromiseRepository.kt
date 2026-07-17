@@ -57,6 +57,7 @@ sealed interface FirstPromiseValueReservation {
 interface FirstPromiseAttributionStore {
     suspend fun findRoutineAttribution(routineId: Long): FirstPromiseAttribution?
     suspend fun findDraftAttribution(draftId: String, origin: FirstPromiseOrigin): FirstPromiseAttribution?
+    suspend fun matchesDraftPackage(draftId: String, packageName: String): Boolean = false
     suspend fun hasFirstCoreActionReservation(): Boolean
     suspend fun reserveValueEvents(
         attribution: FirstPromiseAttribution,
@@ -239,6 +240,11 @@ class FirstPromiseRepository : FirstPromiseCreator, FirstPromiseAttributionStore
         draftId: String,
         origin: FirstPromiseOrigin,
     ): FirstPromiseAttribution? = storage.findMapping(draftId)?.toAttribution(origin)
+
+    override suspend fun matchesDraftPackage(draftId: String, packageName: String): Boolean {
+        val mapping = storage.findMapping(draftId) ?: return false
+        return packageName in storage.findRoutine(mapping.routineId).lockApplications.orEmpty()
+    }
 
     override suspend fun hasFirstCoreActionReservation(): Boolean =
         storage.hasFirstCoreActionReservation()

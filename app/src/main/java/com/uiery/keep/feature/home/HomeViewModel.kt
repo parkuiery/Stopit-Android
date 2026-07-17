@@ -230,7 +230,7 @@ class HomeViewModel
         internal fun showCategoryBottomSheet() =
             intent {
                 // 잠금 활성 중에는 차단 앱 선택을 변경할 수 없다 (우회 방지).
-                if (state.isKeep) return@intent
+                if (state.isKeep || activeTimedLockExists()) return@intent
                 reduce {
                     state.copy(
                         isShowCategoryBottomSheet = true,
@@ -698,6 +698,7 @@ class HomeViewModel
 
         internal fun selectCategoryComplete(selectedAppPackage: Set<String>) =
             intent {
+                if (state.isKeep || activeTimedLockExists()) return@intent
                 analytics.trackAppSelectionCompleted(
                     selectedAppCount = selectedAppPackage.size,
                     isOnboarding = false,
@@ -730,6 +731,9 @@ class HomeViewModel
                     )
                 }
             }
+
+        private suspend fun activeTimedLockExists(): Boolean =
+            ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime())
 
         private fun storeIsKeep() =
             intent {

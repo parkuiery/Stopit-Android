@@ -71,6 +71,7 @@ class BlockAnalyticsCoordinatorTest {
     fun activePracticeTokenMapsToPracticeOrigin() = runBlocking {
         val store = RecordingAttributionStore(
             draft = FirstPromiseAttribution("practice-draft", FirstPromiseOrigin.FirstPromisePractice, 0L),
+            practicePackage = "com.example.video",
         )
         val coordinator = coordinator(
             store,
@@ -83,6 +84,25 @@ class BlockAnalyticsCoordinatorTest {
         )
 
         assertEquals(FirstPromiseOrigin.FirstPromisePractice, store.reservedAttribution?.origin)
+    }
+
+    @Test
+    fun activePracticeTokenDoesNotAttributeDifferentTimedLockPackage() = runBlocking {
+        val store = RecordingAttributionStore(
+            draft = FirstPromiseAttribution("practice-draft", FirstPromiseOrigin.FirstPromisePractice, 0L),
+            practicePackage = "com.example.practice",
+        )
+        val coordinator = coordinator(
+            store,
+            { FirstPromisePracticeToken("practice-draft", 0L, 10_000L) },
+            mutableListOf(),
+        )
+
+        coordinator.track(
+            BlockAnalyticsRequest("com.example.unrelated", AnalyticsBlockSource.TIMED_LOCK, null, null),
+        )
+
+        assertEquals(null, store.reservedAttribution)
     }
 
     @Test
@@ -320,12 +340,15 @@ class BlockAnalyticsCoordinatorTest {
 private class RecordingAttributionStore(
     private val routine: FirstPromiseAttribution? = null,
     private val draft: FirstPromiseAttribution? = null,
+    private val practicePackage: String? = null,
     private val reservation: FirstPromiseValueReservation? = null,
     private var firstReserved: Boolean = false,
 ) : FirstPromiseAttributionStore {
     var reservedAttribution: FirstPromiseAttribution? = null
     override suspend fun findRoutineAttribution(routineId: Long) = routine
     override suspend fun findDraftAttribution(draftId: String, origin: FirstPromiseOrigin) = draft
+    override suspend fun matchesDraftPackage(draftId: String, packageName: String) =
+        draft?.draftId == draftId && practicePackage == packageName
     override suspend fun hasFirstCoreActionReservation() = firstReserved
     override suspend fun reserveValueEvents(
         attribution: FirstPromiseAttribution,
