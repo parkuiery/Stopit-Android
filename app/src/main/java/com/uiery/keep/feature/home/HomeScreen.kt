@@ -336,7 +336,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                 onClick = viewModel::showCategoryBottomSheet,
-                enabled = !uiState.isKeep,
+                enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
                 categorySize = uiState.selectedAppPackage.size,
             )
             if (uiState.showFirstLockActivationCta) {

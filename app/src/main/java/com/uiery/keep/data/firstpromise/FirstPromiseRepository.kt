@@ -13,6 +13,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
 import com.uiery.keep.model.RoutineModel
 import java.time.Clock
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 
 data class FirstPromiseCreationResult(
     val routineId: Long,
@@ -243,7 +244,14 @@ class FirstPromiseRepository : FirstPromiseCreator, FirstPromiseAttributionStore
 
     override suspend fun matchesDraftPackage(draftId: String, packageName: String): Boolean {
         val mapping = storage.findMapping(draftId) ?: return false
-        return packageName in storage.findRoutine(mapping.routineId).lockApplications.orEmpty()
+        return try {
+            packageName in storage.findRoutine(mapping.routineId).lockApplications.orEmpty()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Attribution fails closed if the routine is concurrently removed or unreadable.
+            false
+        }
     }
 
     override suspend fun hasFirstCoreActionReservation(): Boolean =

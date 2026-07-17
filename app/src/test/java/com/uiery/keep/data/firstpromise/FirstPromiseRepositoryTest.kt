@@ -100,6 +100,19 @@ class FirstPromiseRepositoryTest {
     }
 
     @Test
+    fun draftPackageMatchReturnsFalseWhenRoutineIsDeletedBetweenLocalReads() = runBlocking {
+        val store = FakeAtomicStore()
+        val repository = repository(
+            store,
+            scheduler(canSchedule = true, scheduleResult = RoutineScheduleResult.Scheduled),
+        )
+        repository.createFirstPromise(draft, routine)
+        store.routines.clear()
+
+        assertFalse(repository.matchesDraftPackage(draft.draftId, draft.packageName))
+    }
+
+    @Test
     fun exactAlarmResolutionHappensBeforeInsertAndMissingPermissionPersistsDisabledState() = runBlocking {
         val calls = mutableListOf<String>()
         val store = FakeAtomicStore(onInsertRoutine = { calls += "insert" })

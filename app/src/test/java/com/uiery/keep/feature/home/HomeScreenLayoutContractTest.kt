@@ -26,6 +26,7 @@ class HomeScreenLayoutContractTest {
         assertTrue(source.contains("contentAlignment = Alignment.BottomCenter"))
         assertTrue(source.contains("contentDescription = keepSwitchDescription"))
         assertTrue(source.contains("contentDescription = stringResource(R.string.cd_open_timer)"))
+        assertTrue(source.contains("enabled = !uiState.isKeep && !uiState.hasActiveTimedLock"))
     }
 
     @Test
