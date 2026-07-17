@@ -301,16 +301,22 @@ class BlockViewModelTest {
             ),
         )
         val now = LocalDateTime.now()
+        val rapidRetryAnchor = now
+            .minusDays(1)
+            .withHour(15)
+            .withMinute(30)
+            .withSecond(0)
+            .withNano(0)
         val viewModel = createViewModel(
             dataStore = dataStore,
             analytics = analytics,
             lockHistoryRepository = LockHistoryRepository(
                 LockHistoryDaoWithSessions(
                     listOf(
-                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
-                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
-                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
-                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusDays(1), "com.instagram.android"),
                     ),
                 ),
             ),
