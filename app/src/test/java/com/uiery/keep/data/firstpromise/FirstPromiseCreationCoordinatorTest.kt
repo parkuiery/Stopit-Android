@@ -390,9 +390,9 @@ class FirstPromiseCreationCoordinatorTest {
     }
 
     @Test
-    fun concurrentReconciliationCannotClaimFirstLockWhileFailureOwnerHoldsMarker() = runBlocking {
+    fun concurrentReconciliationWaitsThenRetriesPendingFirstLockAfterOwnerFailure() = runBlocking {
         val dataStore = persistingDataStore(draft)
-        val analytics = BlockingFailingFirstLockAnalytics()
+        val analytics = BlockingFailOnceFirstLockAnalytics()
         val coordinator = FirstPromiseCreationCoordinator(
             FakeCreator(successResult()),
             FakeDispatcher(sent = true),
@@ -403,13 +403,25 @@ class FirstPromiseCreationCoordinatorTest {
 
         val owner = async(Dispatchers.Default) { coordinator.persistCurrentDraft() }
         assertTrue(analytics.entered.await(5, TimeUnit.SECONDS))
-        val concurrent = async(Dispatchers.Default) { coordinator.persistCurrentDraft() }
-        assertTrue(concurrent.await() is FirstPromisePersistenceResult.Succeeded)
+        val concurrentFinished = CountDownLatch(1)
+        val concurrent = async(Dispatchers.Default) {
+            try {
+                coordinator.persistCurrentDraft()
+            } finally {
+                concurrentFinished.countDown()
+            }
+        }
+
+        assertFalse(concurrentFinished.await(200, TimeUnit.MILLISECONDS))
         assertEquals(1, analytics.attempts)
 
         analytics.release.countDown()
         assertTrue(owner.await() is FirstPromisePersistenceResult.Succeeded)
-        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+        assertTrue(concurrent.await() is FirstPromisePersistenceResult.Succeeded)
+        assertEquals(2, analytics.attempts)
+        assertEquals(1, analytics.successfulCalls)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertNull(dataStore.snapshot()[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE])
     }
 
     private fun persistingDataStore(draft: FirstPromiseDraft) = FakeDataStore(persistingPreferences(draft))
@@ -582,10 +594,11 @@ private class CoordinatorRecordingAnalytics(
     override fun trackEmergencyUnlockUsed(source: String, unlockCountRemaining: Int?) = Unit
 }
 
-private class BlockingFailingFirstLockAnalytics : KeepAnalytics {
+private class BlockingFailOnceFirstLockAnalytics : KeepAnalytics {
     val entered = CountDownLatch(1)
     val release = CountDownLatch(1)
     var attempts = 0
+    var successfulCalls = 0
 
     override fun logEvent(name: String, params: Map<String, Any?>) = Unit
     override fun logScreenView(screenName: String) = Unit
@@ -596,9 +609,12 @@ private class BlockingFailingFirstLockAnalytics : KeepAnalytics {
     override fun trackPermissionOutcome(permissionName: String, outcome: String, stepName: String?) = Unit
     override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) {
         attempts++
-        entered.countDown()
-        check(release.await(5, TimeUnit.SECONDS))
-        error("analytics unavailable")
+        if (attempts == 1) {
+            entered.countDown()
+            check(release.await(5, TimeUnit.SECONDS))
+            error("analytics unavailable")
+        }
+        successfulCalls++
     }
     override fun trackLockSessionStart(source: String, isRoutine: Boolean?) = Unit
     override fun trackLockSessionEnd(source: String, endReason: String, isRoutine: Boolean?) = Unit

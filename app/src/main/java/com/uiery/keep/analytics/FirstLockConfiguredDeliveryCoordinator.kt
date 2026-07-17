@@ -25,19 +25,10 @@ class FirstLockConfiguredDeliveryCoordinator @Inject constructor(
     suspend fun trackIfNeeded(
         source: String,
         selectedAppCount: Int?,
-    ): Boolean {
-        if (!deliveryMutex.tryLock()) return false
-        return try {
-            if (!blockingStateStore.reserveFirstLockConfiguredDelivery(source, selectedAppCount)) {
-                deliverPendingLocked()
-                false
-            } else {
-                deliverPendingLocked()
-                true
-            }
-        } finally {
-            deliveryMutex.unlock()
-        }
+    ): Boolean = deliveryMutex.withLock {
+        val didReserve = blockingStateStore.reserveFirstLockConfiguredDelivery(source, selectedAppCount)
+        deliverPendingLocked()
+        didReserve
     }
 
     suspend fun deliverPending(): Boolean = deliveryMutex.withLock {
