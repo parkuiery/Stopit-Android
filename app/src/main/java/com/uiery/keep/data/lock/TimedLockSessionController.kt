@@ -110,7 +110,16 @@ class TimedLockSessionController @Inject constructor(
             encodedDeadline = started.encodedDeadline,
             previous = TimedLockSessionSnapshot(null, null, null),
         )
-        blockingStateStore.rollbackTimedLockSession(ownership)
+        val rolledBack = blockingStateStore.rollbackTimedLockSession(ownership)
+        if (rolledBack) {
+            started.firstLockSelectedAppCount?.let { selectedAppCount ->
+                firstLockDelivery.releasePending(
+                    source = AnalyticsSource.HOME_TIMER,
+                    selectedAppCount = selectedAppCount,
+                )
+            }
+        }
+        rolledBack
     }
 
     private inline fun trackBestEffort(block: () -> Unit) {

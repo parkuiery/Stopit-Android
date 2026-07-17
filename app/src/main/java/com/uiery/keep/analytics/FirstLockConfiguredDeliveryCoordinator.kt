@@ -44,6 +44,15 @@ class FirstLockConfiguredDeliveryCoordinator @Inject constructor(
         deliverPendingLocked()
     }
 
+    suspend fun releasePending(
+        source: String,
+        selectedAppCount: Int?,
+    ): Boolean = deliveryMutex.withLock {
+        blockingStateStore.releaseFirstLockConfiguredDelivery(
+            PendingFirstLockConfiguredDelivery(source, selectedAppCount),
+        )
+    }
+
     private suspend fun deliverPendingLocked(): Boolean {
         val pending = blockingStateStore.readPendingFirstLockConfiguredDelivery() ?: return false
         return try {

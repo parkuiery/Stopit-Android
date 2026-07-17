@@ -116,6 +116,28 @@ class TimedLockSessionControllerTest {
     }
 
     @Test
+    fun homeRollbackReleasesUndeliveredFirstLockReservation() = runBlocking {
+        val dataStore = FakeDataStore()
+        val store = BlockingStateStore(dataStore)
+        val controller = TimedLockSessionController(store, RecordingAnalytics(), clock)
+        val started = controller.start(
+            packages = setOf("com.example.focus"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.Home(TimedLockHomeScheduleType.Countdown),
+        ) as TimedLockStartResult.Started
+
+        assertEquals(
+            AnalyticsSource.HOME_TIMER,
+            dataStore.snapshot()[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE],
+        )
+
+        assertTrue(controller.rollback(started))
+
+        assertNull(dataStore.snapshot()[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE])
+        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+    }
+
+    @Test
     fun rollbackRestoresPreviousSelectionStartAndExpiredDeadlineAtomically() = runBlocking {
         val previousDeadline = ManualLockTimePolicy.encodeDeadline(now.minusSeconds(60))
         val dataStore = FakeDataStore(

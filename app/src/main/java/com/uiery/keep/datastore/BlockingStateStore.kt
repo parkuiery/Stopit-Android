@@ -113,6 +113,27 @@ class BlockingStateStore @Inject constructor(
         return didComplete
     }
 
+    suspend fun releaseFirstLockConfiguredDelivery(
+        pending: PendingFirstLockConfiguredDelivery,
+    ): Boolean {
+        var didRelease = false
+        dataStore.edit { preferences ->
+            val current = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE]?.let { source ->
+                PendingFirstLockConfiguredDelivery(
+                    source = source,
+                    selectedAppCount =
+                        preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+                )
+            }
+            if (current == pending) {
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE)
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                didRelease = true
+            }
+        }
+        return didRelease
+    }
+
     suspend fun markFirstOpenTrackedIfNeeded(timestampMillis: Long): Boolean {
         var didMark = false
         dataStore.edit { preferences ->
