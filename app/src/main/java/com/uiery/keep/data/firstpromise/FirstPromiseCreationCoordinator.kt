@@ -1,6 +1,7 @@
 package com.uiery.keep.data.firstpromise
 
 import com.uiery.keep.analytics.AnalyticsSource
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.FirstPromiseDraftStore
@@ -11,8 +12,6 @@ import com.uiery.keep.model.RoutineModel
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 
 sealed interface FirstPromisePersistenceResult {
@@ -36,6 +35,8 @@ class FirstPromiseCreationCoordinator @Inject constructor(
     private val draftStore: FirstPromiseDraftStore,
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
+    private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+        FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : FirstPromisePersistenceCoordinator {
     override suspend fun readCurrentMapping(): FirstPromiseCreationResult? {
         val routineId = draftStore.readState().routineId ?: return null
@@ -140,22 +141,12 @@ class FirstPromiseCreationCoordinator @Inject constructor(
         if (
             creation.scheduleState == FirstPromiseScheduleState.Enabled &&
             creation.schedulingSucceeded &&
-            creationEventsSent &&
-            blockingStateStore.markFirstLockConfiguredIfNeeded()
+            creationEventsSent
         ) {
-            try {
-                analytics.trackFirstLockConfigured(
-                    source = AnalyticsSource.ONBOARDING,
-                    selectedAppCount = 1,
-                )
-            } catch (cancellation: CancellationException) {
-                withContext(NonCancellable) {
-                    blockingStateStore.resetFirstLockConfiguredForRetry()
-                }
-                throw cancellation
-            } catch (_: Throwable) {
-                blockingStateStore.resetFirstLockConfiguredForRetry()
-            }
+            firstLockDelivery.trackIfNeeded(
+                source = AnalyticsSource.ONBOARDING,
+                selectedAppCount = 1,
+            )
         }
     }
 }

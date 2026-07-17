@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.BlockingStateStore
@@ -25,18 +26,22 @@ class SelectAppViewModel internal constructor(
     private val draftId: () -> String,
     private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher? =
         draftStore?.let { FirstPromiseOnboardingAnalyticsDispatcher(it, analytics) },
+    private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+        FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : ContainerHost<SelectAppUiState, SelectAppSideEffect>, ViewModel() {
     @Inject constructor(
         blockingStateStore: BlockingStateStore,
         analytics: KeepAnalytics,
         draftStore: FirstPromiseDraftStore,
         onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
+        firstLockDelivery: FirstLockConfiguredDeliveryCoordinator,
     ) : this(
         blockingStateStore,
         analytics,
         draftStore,
         { UUID.randomUUID().toString() },
         onboardingAnalyticsDispatcher,
+        firstLockDelivery,
     )
 
     constructor(
@@ -106,9 +111,7 @@ class SelectAppViewModel internal constructor(
     }
 
     private suspend fun trackFirstLockConfiguredIfNeeded(selectedAppPackage: Set<String>) {
-        if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return
-
-        analytics.trackFirstLockConfigured(
+        firstLockDelivery.trackIfNeeded(
             source = AnalyticsSource.ONBOARDING,
             selectedAppCount = selectedAppPackage.size,
         )

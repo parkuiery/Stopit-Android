@@ -39,7 +39,9 @@ class BlockingStateStore @Inject constructor(
         val preferences = dataStore.data.first()
         return BlockingSelectionState(
             selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty(),
-            hasTrackedFirstLockConfigured = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true,
+            hasTrackedFirstLockConfigured =
+                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true ||
+                    preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null,
         )
     }
 
@@ -58,22 +60,57 @@ class BlockingStateStore @Inject constructor(
     suspend fun readIsNew(default: Boolean = true): Boolean =
         dataStore.data.first()[PreferencesKey.IS_NEW] ?: default
 
-    suspend fun markFirstLockConfiguredIfNeeded(): Boolean {
-        var didMark = false
+    suspend fun reserveFirstLockConfiguredDelivery(
+        source: String,
+        selectedAppCount: Int?,
+    ): Boolean {
+        var didReserve = false
         dataStore.edit { preferences ->
-            val hasTracked = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true
-            if (!hasTracked) {
-                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
-                didMark = true
+            val hasDelivered = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true
+            val hasPending = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null
+            if (!hasDelivered && !hasPending) {
+                preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] = source
+                if (selectedAppCount == null) {
+                    preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                } else {
+                    preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT] =
+                        selectedAppCount
+                }
+                didReserve = true
             }
         }
-        return didMark
+        return didReserve
     }
 
-    suspend fun resetFirstLockConfiguredForRetry() {
+    suspend fun readPendingFirstLockConfiguredDelivery(): PendingFirstLockConfiguredDelivery? {
+        val preferences = dataStore.data.first()
+        val source = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] ?: return null
+        return PendingFirstLockConfiguredDelivery(
+            source = source,
+            selectedAppCount = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+        )
+    }
+
+    suspend fun markFirstLockConfiguredDeliveryCompleted(
+        pending: PendingFirstLockConfiguredDelivery,
+    ): Boolean {
+        var didComplete = false
         dataStore.edit { preferences ->
-            preferences.remove(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED)
+            val current = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE]?.let { source ->
+                PendingFirstLockConfiguredDelivery(
+                    source = source,
+                    selectedAppCount =
+                        preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+                )
+            }
+            if (current == pending) {
+                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE)
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                didComplete = true
+            }
         }
+        return didComplete
     }
 
     suspend fun markFirstOpenTrackedIfNeeded(timestampMillis: Long): Boolean {
@@ -231,6 +268,11 @@ data class AccessibilityBlockingSnapshot(
 data class BlockingSelectionState(
     val selectedAppPackages: Set<String> = emptySet(),
     val hasTrackedFirstLockConfigured: Boolean = false,
+)
+
+data class PendingFirstLockConfiguredDelivery(
+    val source: String,
+    val selectedAppCount: Int?,
 )
 
 data class FirstCoreActionState(

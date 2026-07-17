@@ -3,6 +3,7 @@ package com.uiery.keep.data.lock
 import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.TimedLockSessionOwnership
@@ -12,10 +13,8 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
 sealed interface TimedLockStartOrigin {
     data class Home(val scheduleType: TimedLockHomeScheduleType) : TimedLockStartOrigin
@@ -47,6 +46,8 @@ class TimedLockSessionController @Inject constructor(
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
     private val clock: Clock,
+    private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+        FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : TimedLockStarter {
     private val startMutex = Mutex()
 
@@ -77,7 +78,10 @@ class TimedLockSessionController @Inject constructor(
             TimedLockStartOrigin.FirstPromisePractice -> AnalyticsScheduleType.COUNTDOWN
         }
         val firstLockConfigured = origin is TimedLockStartOrigin.Home &&
-            blockingStateStore.markFirstLockConfiguredIfNeeded()
+            firstLockDelivery.reserveIfNeeded(
+                source = AnalyticsSource.HOME_TIMER,
+                selectedAppCount = packages.size,
+            )
         TimedLockStartResult.Started(
             encodedDeadline = encodedDeadline,
             firstLockConfigured = firstLockConfigured,
@@ -90,20 +94,8 @@ class TimedLockSessionController @Inject constructor(
 
     override suspend fun commit(started: TimedLockStartResult.Started) {
         val scheduleType = started.analyticsScheduleType ?: return
-        started.firstLockSelectedAppCount?.let { selectedAppCount ->
-            try {
-                analytics.trackFirstLockConfigured(
-                    source = AnalyticsSource.HOME_TIMER,
-                    selectedAppCount = selectedAppCount,
-                )
-            } catch (cancellation: CancellationException) {
-                withContext(NonCancellable) {
-                    blockingStateStore.resetFirstLockConfiguredForRetry()
-                }
-                throw cancellation
-            } catch (_: Throwable) {
-                // Existing home behavior keeps an active session even when analytics is unavailable.
-            }
+        if (started.firstLockSelectedAppCount != null) {
+            firstLockDelivery.deliverPending()
         }
         trackBestEffort {
             analytics.trackLockScheduled(scheduleType, started.analyticsDurationMinutes)

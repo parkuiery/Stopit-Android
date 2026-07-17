@@ -11,6 +11,7 @@ import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaSurface
 import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaVariant
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
@@ -87,6 +88,8 @@ class HomeViewModel
         private val inAppReviewManager: InAppReviewManager,
         private val timedLockStarter: TimedLockStarter,
         private val firstPromiseRecovery: FirstPromiseHomeRecovery = NoOpFirstPromiseHomeRecovery,
+        private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+            FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
         override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
@@ -880,15 +883,11 @@ class HomeViewModel
             }
 
         private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
-            if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return false
-
             val selectedAppCount = blockingStateStore.readSelectedAppPackages().size
-
-            analytics.trackFirstLockConfigured(
+            return firstLockDelivery.trackIfNeeded(
                 source = source,
                 selectedAppCount = selectedAppCount,
             )
-            return true
         }
 
         private fun shouldShowFirstLockActivationCta(

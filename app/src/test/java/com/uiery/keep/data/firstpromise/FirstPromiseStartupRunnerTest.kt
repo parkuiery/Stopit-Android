@@ -2,7 +2,9 @@ package com.uiery.keep.data.firstpromise
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.PreferencesKey
@@ -31,6 +33,41 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirstPromiseStartupRunnerTest {
+    @Test
+    fun processDeathAfterFirstLockReservationRetriesPendingAnalyticsOnStartup() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val firstLockCalls = mutableListOf<Pair<String, Int?>>()
+        val analytics = object : KeepAnalytics by FirstPromiseRecordingAnalytics() {
+            override fun trackFirstLockConfigured(source: String, selectedAppCount: Int?) {
+                firstLockCalls += source to selectedAppCount
+            }
+        }
+        val delivery = FirstLockConfiguredDeliveryCoordinator(
+            blockingStateStore = com.uiery.keep.datastore.BlockingStateStore(dataStore),
+            analytics = analytics,
+        )
+
+        assertTrue(
+            delivery.reserveIfNeeded(
+                source = AnalyticsSource.ONBOARDING,
+                selectedAppCount = 1,
+            ),
+        )
+        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+        assertEquals(
+            AnalyticsSource.ONBOARDING,
+            dataStore.snapshot()[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE],
+        )
+
+        val dispatcher = StartupDispatcher(mutableListOf())
+        FirstPromiseStartupRunner(dispatcher, delivery).run()
+        FirstPromiseStartupRunner(dispatcher, delivery).run()
+
+        assertEquals(listOf(AnalyticsSource.ONBOARDING to 1), firstLockCalls)
+        assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(null, dataStore.snapshot()[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE])
+    }
+
     @Test
     fun committedCompletionEventIsDrainedOnNextProcessStartup() = runBlocking {
         val initial = FirstPromiseOnboardingState(

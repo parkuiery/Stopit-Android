@@ -35,13 +35,24 @@ class BlockingStateStoreTest {
     }
 
     @Test
-    fun markFirstLockConfiguredIfNeededOnlyTransitionsOnce() = runBlocking {
+    fun firstLockDeliveryReservationPersistsPendingThenTransitionsToDeliveredOnce() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
         val store = BlockingStateStore(dataStore)
+        val pending = PendingFirstLockConfiguredDelivery(
+            source = "home_timer",
+            selectedAppCount = 2,
+        )
 
-        assertTrue(store.markFirstLockConfiguredIfNeeded())
-        assertFalse(store.markFirstLockConfiguredIfNeeded())
+        assertTrue(store.reserveFirstLockConfiguredDelivery(pending.source, pending.selectedAppCount))
+        assertFalse(store.reserveFirstLockConfiguredDelivery("onboarding", 1))
+        assertEquals(pending, store.readPendingFirstLockConfiguredDelivery())
+        assertTrue(store.readSelectionState().hasTrackedFirstLockConfigured)
+        assertFalse(dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true)
+
+        assertTrue(store.markFirstLockConfiguredDeliveryCompleted(pending))
+        assertFalse(store.markFirstLockConfiguredDeliveryCompleted(pending))
         assertEquals(true, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
+        assertEquals(null, store.readPendingFirstLockConfiguredDelivery())
     }
 
     @Test

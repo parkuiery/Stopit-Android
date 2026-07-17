@@ -51,6 +51,8 @@ class BackupRestoreDataStoreKeyPolicyTest {
             PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
             PreferencesKey.HAS_TRACKED_FIRST_OPEN,
             PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED,
+            PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE,
+            PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT,
             PreferencesKey.FIRST_OPEN_TIMESTAMP,
             PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION,
             PreferencesKey.REVIEW_PENDING,
