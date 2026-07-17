@@ -26,6 +26,7 @@ import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
 import com.uiery.keep.domain.firstpromise.UsagePatternType
 import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
 import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.feature.onboarding.intro.IntroSideEffect
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
@@ -33,8 +34,11 @@ import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
 import com.uiery.keep.feature.onboarding.select.canCompleteOnboardingAppSelection
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.model.RoutineModel
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -48,11 +52,15 @@ class OnboardingAnalyticsViewModelTest {
     private val analytics = RecordingKeepAnalytics()
 
     @Test
-    fun introTracksViewAndCompletion() {
+    fun introTracksViewAndCompletion() = runBlocking {
         val viewModel = IntroViewModel(analytics)
+        val navigation = async(start = CoroutineStart.UNDISPATCHED) {
+            viewModel.container.sideEffectFlow.first()
+        }
 
         viewModel.onStepViewed()
         viewModel.onContinue()
+        assertEquals(IntroSideEffect.NavigatePermissionSetting, navigation.await())
 
         assertEquals(
             listOf(
