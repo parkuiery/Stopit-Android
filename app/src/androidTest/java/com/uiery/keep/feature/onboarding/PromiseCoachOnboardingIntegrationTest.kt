@@ -67,8 +67,7 @@ import com.uiery.keep.feature.onboarding.entry.OnboardingEntryRoutePolicy
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryViewModel
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentConfig
-import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentPolicy
-import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentSnapshot
+import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentResolution
 import com.uiery.keep.feature.onboarding.intro.IntroSideEffect
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
@@ -106,25 +105,8 @@ import org.junit.runner.RunWith
 class PromiseCoachOnboardingIntegrationTest {
     @Test
     fun controlKeepsProductionIntroPermissionNotificationSelectionAndHomeCompletion() = runBlocking {
-        assertEquals(
-            OnboardingVariant.Control,
-            OnboardingExperimentPolicy.assign(OnboardingExperimentSnapshot(), bucket = 0),
-        )
-        assertEquals(
-            OnboardingVariant.Control,
-            OnboardingExperimentPolicy.assign(
-                OnboardingExperimentSnapshot(
-                    treatmentPercent = 100,
-                    newAssignmentEnabled = true,
-                    remoteReadable = false,
-                ),
-                bucket = 0,
-            ),
-        )
-        assertEquals(
-            OnboardingVariant.PromiseCoachV1,
-            OnboardingExperimentPolicy.assign(treatmentSnapshot(), bucket = 99),
-        )
+        assertEquals(OnboardingVariant.Control, OnboardingExperimentResolution().variant)
+        assertEquals(OnboardingVariant.PromiseCoachV1, treatmentResolution().variant)
 
         val dataStore = InMemoryPreferencesDataStore(
             mutablePreferencesOf(PreferencesKey.IS_NEW to true),
@@ -566,9 +548,8 @@ class PromiseCoachOnboardingIntegrationTest {
     ) = OnboardingEntryViewModel(
         draftStore = FirstPromiseDraftStore(dataStore),
         experimentConfig = object : OnboardingExperimentConfig {
-            override fun snapshot() = OnboardingExperimentSnapshot()
+            override suspend fun resolve() = OnboardingExperimentResolution()
         },
-        bucketProvider = { 0 },
     )
 
     private fun emptyRoutineRestoreAftercare(
@@ -661,9 +642,8 @@ class PromiseCoachOnboardingIntegrationTest {
             selectedStartMinutes = draft.startMinutes,
         )
 
-        fun treatmentSnapshot() = OnboardingExperimentSnapshot(
-            treatmentPercent = 100,
-            newAssignmentEnabled = true,
+        fun treatmentResolution() = OnboardingExperimentResolution(
+            variant = OnboardingVariant.PromiseCoachV1,
             remoteReadable = true,
         )
     }

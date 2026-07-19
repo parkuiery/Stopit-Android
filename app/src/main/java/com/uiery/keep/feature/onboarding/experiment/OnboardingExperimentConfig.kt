@@ -1,12 +1,12 @@
 package com.uiery.keep.feature.onboarding.experiment
 
-data class OnboardingExperimentSnapshot(
-    val treatmentPercent: Int = 0,
-    val newAssignmentEnabled: Boolean = false,
-    val emergencyDisabled: Boolean = false,
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+
+data class OnboardingExperimentResolution(
+    val variant: OnboardingVariant = OnboardingVariant.Control,
     val remoteReadable: Boolean = false,
 )
 
 interface OnboardingExperimentConfig {
-    fun snapshot(): OnboardingExperimentSnapshot
+    suspend fun resolve(): OnboardingExperimentResolution
 }

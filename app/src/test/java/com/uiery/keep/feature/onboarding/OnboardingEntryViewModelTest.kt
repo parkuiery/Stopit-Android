@@ -19,7 +19,7 @@ import com.uiery.keep.feature.onboarding.entry.OnboardingEntryDestination
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.entry.OnboardingEntryViewModel
 import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentConfig
-import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentSnapshot
+import com.uiery.keep.feature.onboarding.experiment.OnboardingExperimentResolution
 import com.uiery.keep.feature.review.FakeDataStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -74,13 +74,10 @@ class OnboardingEntryViewModelTest {
         val dataStore = CountingDataStore(
             mutablePreferencesOf(PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to malformed),
         )
+        val experimentConfig = CountingExperimentConfig(readableTreatment())
         val viewModel = viewModel(
             dataStore = dataStore,
-            snapshot = OnboardingExperimentSnapshot(
-                treatmentPercent = 100,
-                newAssignmentEnabled = true,
-                remoteReadable = true,
-            ),
+            experimentConfig = experimentConfig,
         )
 
         val effect = async { viewModel.container.sideEffectFlow.first() }
@@ -89,6 +86,7 @@ class OnboardingEntryViewModelTest {
 
         assertEquals(OnboardingEntrySideEffect.StateCorrupted, emittedEffect)
         assertFalse(emittedEffect is OnboardingEntrySideEffect.Navigate)
+        assertEquals(0, experimentConfig.resolveCount)
         assertEquals(0, dataStore.updateCount)
         assertEquals(malformed, dataStore.snapshot()[PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE])
         assertEquals(
@@ -98,21 +96,35 @@ class OnboardingEntryViewModelTest {
     }
 
     @Test
-    fun absentPersistedStateIsAValidFreshInstallAndStillAssigns() = runBlocking {
+    fun freshInstallUsesReadableTreatmentResolutionAndPersistsIt() = runBlocking {
         val dataStore = FakeDataStore()
+        val experimentConfig = CountingExperimentConfig(readableTreatment())
 
         val effect = viewModel(
             dataStore = dataStore,
-            snapshot = OnboardingExperimentSnapshot(
-                treatmentPercent = 100,
-                newAssignmentEnabled = true,
-                remoteReadable = true,
-            ),
+            experimentConfig = experimentConfig,
         ).resolveEntry()
 
         assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect), effect)
         assertEquals(OnboardingVariant.PromiseCoachV1, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(1, experimentConfig.resolveCount)
     }
+
+    @Test
+    fun freshInstallUsesUnreadableControlResolutionAndPersistsControl() = runBlocking {
+        val dataStore = FakeDataStore()
+        val experimentConfig = CountingExperimentConfig(OnboardingExperimentResolution())
+
+        val effect = viewModel(
+            dataStore = dataStore,
+            experimentConfig = experimentConfig,
+        ).resolveEntry()
+
+        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro), effect)
+        assertEquals(OnboardingVariant.Control, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(1, experimentConfig.resolveCount)
+    }
+
     @Test
     fun entryPublishesOnlyOneRoutingDecision() = runBlocking {
         val viewModel = viewModel(state = assigned(OnboardingVariant.Control))
@@ -133,7 +145,8 @@ class OnboardingEntryViewModelTest {
         val dataStore = stateDataStore(
             assigned(OnboardingVariant.PromiseCoachV1).copy(phase = FirstPromisePhase.Persisting),
         )
-        val viewModel = viewModel(dataStore = dataStore, snapshot = emergencySnapshot())
+        val experimentConfig = CountingExperimentConfig(readableControl())
+        val viewModel = viewModel(dataStore = dataStore, experimentConfig = experimentConfig)
         val effect = async { viewModel.container.sideEffectFlow.first() }
 
         viewModel.resolve()
@@ -151,6 +164,7 @@ class OnboardingEntryViewModelTest {
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.PromiseResult),
             withTimeout(1_000L) { effect.await() },
         )
+        assertEquals(1, experimentConfig.resolveCount)
         viewModel.resolve()
         assertEquals(null, withTimeoutOrNull(100L) { viewModel.container.sideEffectFlow.first() })
     }
@@ -160,7 +174,8 @@ class OnboardingEntryViewModelTest {
         val dataStore = stateDataStore(
             assigned(OnboardingVariant.PromiseCoachV1).copy(phase = FirstPromisePhase.Persisting),
         )
-        val viewModel = viewModel(dataStore = dataStore, snapshot = emergencySnapshot())
+        val experimentConfig = CountingExperimentConfig(readableControl())
+        val viewModel = viewModel(dataStore = dataStore, experimentConfig = experimentConfig)
         val effect = async { viewModel.container.sideEffectFlow.first() }
 
         viewModel.resolve()
@@ -175,20 +190,63 @@ class OnboardingEntryViewModelTest {
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.ManualAppSelect),
             withTimeout(1_000L) { effect.await() },
         )
+        assertEquals(1, experimentConfig.resolveCount)
         viewModel.resolve()
         assertEquals(null, withTimeoutOrNull(100L) { viewModel.container.sideEffectFlow.first() })
     }
 
     @Test
-    fun controlKeepsTheExistingIntroWhileNewTreatmentStartsAtGoalSelect() = runBlocking {
+    fun existingControlRoutesIntroWithoutResolvingExperiment() = runBlocking {
+        val experimentConfig = CountingExperimentConfig(readableTreatment())
+
         assertEquals(
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
-            viewModel(state = assigned(OnboardingVariant.Control)).resolveEntry(),
+            viewModel(
+                state = assigned(OnboardingVariant.Control),
+                experimentConfig = experimentConfig,
+            ).resolveEntry(),
         )
+        assertEquals(0, experimentConfig.resolveCount)
+    }
+
+    @Test
+    fun existingControlStaysControlEvenWhenTreatmentIsAvailable() = runBlocking {
+        val dataStore = stateDataStore(assigned(OnboardingVariant.Control))
+        val experimentConfig = CountingExperimentConfig(readableTreatment())
+
+        val effect = viewModel(
+            dataStore = dataStore,
+            experimentConfig = experimentConfig,
+        ).resolveEntry()
+
+        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro), effect)
+        assertEquals(OnboardingVariant.Control, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(0, experimentConfig.resolveCount)
+    }
+
+    @Test
+    fun existingTreatmentWithUnreadableControlFallbackPreservesTreatment() = runBlocking {
+        val dataStore = stateDataStore(assigned(OnboardingVariant.PromiseCoachV1))
+        val experimentConfig = CountingExperimentConfig(OnboardingExperimentResolution())
+
         assertEquals(
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect),
-            viewModel(state = assigned(OnboardingVariant.PromiseCoachV1)).resolveEntry(),
+            viewModel(dataStore = dataStore, experimentConfig = experimentConfig).resolveEntry(),
         )
+        assertEquals(OnboardingVariant.PromiseCoachV1, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(1, experimentConfig.resolveCount)
+    }
+
+    @Test
+    fun existingTreatmentWithReadableTreatmentContinuesTreatment() = runBlocking {
+        val dataStore = stateDataStore(assigned(OnboardingVariant.PromiseCoachV1))
+        val experimentConfig = CountingExperimentConfig(readableTreatment())
+
+        val effect = viewModel(dataStore = dataStore, experimentConfig = experimentConfig).resolveEntry()
+
+        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect), effect)
+        assertEquals(OnboardingVariant.PromiseCoachV1, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(1, experimentConfig.resolveCount)
     }
 
     @Test
@@ -231,43 +289,31 @@ class OnboardingEntryViewModelTest {
     }
 
     @Test
-    fun stickyAssignmentIgnoresLaterRolloutAndGeneralKillSwitchChanges() = runBlocking {
+    fun existingTreatmentWithReadableControlAppliesEmergencyRecovery() = runBlocking {
         val exposedTreatment = assigned(OnboardingVariant.PromiseCoachV1).copy(
+            phase = FirstPromisePhase.DraftReady,
             trackedMilestones = setOf(FirstPromiseMilestone.Exposure),
         )
         val dataStore = stateDataStore(exposedTreatment)
         val effect = viewModel(
             dataStore = dataStore,
-            snapshot = OnboardingExperimentSnapshot(
-                treatmentPercent = 0,
-                newAssignmentEnabled = false,
-                remoteReadable = true,
-            ),
+            resolution = readableControl(),
         ).resolveEntry()
 
-        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect), effect)
+        assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.ManualAppSelect), effect)
         assertEquals(OnboardingVariant.PromiseCoachV1, FirstPromiseDraftStore(dataStore).readState().assignment)
+        assertEquals(FirstPromisePhase.ManualSelectPending, FirstPromiseDraftStore(dataStore).readState().phase)
     }
 
     @Test
-    fun generalKillSwitchOnlyControlsPreviouslyUnassignedUsers() = runBlocking {
-        val disabledSnapshot = OnboardingExperimentSnapshot(
-            treatmentPercent = 100,
-            newAssignmentEnabled = false,
-            remoteReadable = true,
-        )
+    fun readableControlResolutionAssignsFreshUsersToControl() = runBlocking {
         val unassignedStore = stateDataStore(FirstPromiseOnboardingState())
 
         assertEquals(
             OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.Intro),
-            viewModel(dataStore = unassignedStore, snapshot = disabledSnapshot).resolveEntry(),
+            viewModel(dataStore = unassignedStore, resolution = readableControl()).resolveEntry(),
         )
         assertEquals(OnboardingVariant.Control, FirstPromiseDraftStore(unassignedStore).readState().assignment)
-
-        assertEquals(
-            OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.GoalSelect),
-            viewModel(state = assigned(OnboardingVariant.PromiseCoachV1), snapshot = disabledSnapshot).resolveEntry(),
-        )
     }
 
     @Test
@@ -291,7 +337,7 @@ class OnboardingEntryViewModelTest {
             val dataStore = stateDataStore(initial)
             val effect = viewModel(
                 dataStore = dataStore,
-                snapshot = emergencySnapshot(),
+                resolution = readableControl(),
             ).resolveEntry()
             val recovered = FirstPromiseDraftStore(dataStore).readState()
 
@@ -339,7 +385,7 @@ class OnboardingEntryViewModelTest {
         )
         val dataStore = stateDataStore(mappedPersistFailure)
 
-        val effect = viewModel(dataStore = dataStore, snapshot = emergencySnapshot()).resolveEntry()
+        val effect = viewModel(dataStore = dataStore, resolution = readableControl()).resolveEntry()
 
         assertEquals(OnboardingEntrySideEffect.Navigate(OnboardingEntryDestination.PromiseResult), effect)
         assertEquals(FirstPromisePhase.ResultEnabled, FirstPromiseDraftStore(dataStore).readState().phase)
@@ -357,15 +403,13 @@ class OnboardingEntryViewModelTest {
 
     private fun viewModel(
         state: FirstPromiseOnboardingState = FirstPromiseOnboardingState(),
-        snapshot: OnboardingExperimentSnapshot = OnboardingExperimentSnapshot(),
+        resolution: OnboardingExperimentResolution = OnboardingExperimentResolution(),
         dataStore: DataStore<Preferences> = stateDataStore(state),
+        experimentConfig: CountingExperimentConfig = CountingExperimentConfig(resolution),
         onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher? = null,
     ) = OnboardingEntryViewModel(
         draftStore = FirstPromiseDraftStore(dataStore),
-        experimentConfig = object : OnboardingExperimentConfig {
-            override fun snapshot() = snapshot
-        },
-        bucketProvider = { 0 },
+        experimentConfig = experimentConfig,
         onboardingAnalyticsDispatcher = onboardingAnalyticsDispatcher,
     )
 
@@ -380,10 +424,13 @@ class OnboardingEntryViewModelTest {
         ),
     )
 
-    private fun emergencySnapshot() = OnboardingExperimentSnapshot(
-        treatmentPercent = 100,
-        newAssignmentEnabled = true,
-        emergencyDisabled = true,
+    private fun readableTreatment() = OnboardingExperimentResolution(
+        variant = OnboardingVariant.PromiseCoachV1,
+        remoteReadable = true,
+    )
+
+    private fun readableControl() = OnboardingExperimentResolution(
+        variant = OnboardingVariant.Control,
         remoteReadable = true,
     )
 
@@ -418,4 +465,16 @@ private class CountingDataStore(initial: Preferences) : DataStore<Preferences> {
     }
 
     fun snapshot(): Preferences = state.value
+}
+
+private class CountingExperimentConfig(
+    private val resolution: OnboardingExperimentResolution,
+) : OnboardingExperimentConfig {
+    var resolveCount: Int = 0
+        private set
+
+    override suspend fun resolve(): OnboardingExperimentResolution {
+        resolveCount += 1
+        return resolution
+    }
 }

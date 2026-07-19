@@ -41,9 +41,7 @@ class FirebaseReviewRemoteConfigTest {
         verify(remoteConfig, times(1)).setDefaultsAsync(
             mapOf<String, Any>(
                 "in_app_review_enabled" to true,
-                "onboarding_promise_coach_percent" to 0L,
-                "onboarding_promise_coach_new_assignment_enabled" to false,
-                "onboarding_promise_coach_emergency_disabled" to false,
+                "onboarding_variant" to "control",
             ),
         )
         verify(remoteConfig, times(1)).fetchAndActivate()
