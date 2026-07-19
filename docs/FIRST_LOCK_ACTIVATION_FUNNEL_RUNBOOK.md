@@ -306,6 +306,14 @@ cd <repo-root>
 
 ## 첫 약속 코치 실험 측정·출시 게이트 (2026-07-16)
 
+### 현재 Firebase A/B 계약
+
+Firebase A/B Testing에서 관리하는 Remote Config 입력은 단일 parameter `onboarding_variant`다. 기본값과 Baseline은 기존 온보딩 경로를 유지하는 `control`이며, Treatment는 첫 약속 코치 경로 `promise_coach_v1`이다.
+
+Firebase activation event는 `onboarding_experiment_exposed`이고, Firebase experiment primary goal은 `app_block_intercepted`다. 제품 의사결정용 attributable 지표는 여전히 같은 sticky assignment cohort에서 `first_promise_created → app_block_intercepted` 순서를 만족하고 마지막 차단이 86,400초 안에 발생한 고유 사용자 비율이다.
+
+Firebase console publication과 FID targeting 적용 여부는 source change로 완료되지 않는다. 이 항목은 console/readback 증거가 필요한 외부 운영 경계로 남기며, 로컬 코드와 문서 변경만으로 live enrollment가 시작됐다고 보고하지 않는다.
+
 ### 첫 실행 원칙의 제한적 실험 override
 
 `docs/USAGE_STATS_PERSONALIZATION_MVP.md`의 “첫 실행에서 Usage Access를 강제하지 않는다”는 일반 제품 원칙과 Control 계약은 그대로 유지한다. 예외는 설치 단위로 `promise_coach_v1` Treatment 배정이 저장된 사용자뿐이다. 이 군은 `GoalSelect` 다음에 사전 설명을 거쳐 Usage Access 설정을 제안할 수 있으며, 거절·뒤로가기·설정 intent 실패·데이터 부족은 모두 manual 선택으로 계속 진행한다. Control은 기존 `Intro → Permission → Notification → SelectedApp` 순서와 화면/완료 의미를 바꾸지 않는다.
