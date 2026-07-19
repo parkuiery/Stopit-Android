@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
@@ -26,127 +27,147 @@ class FirebaseOnboardingExperimentConfigTest {
     }
 
     @Test
-    fun remoteTreatmentResolvesReadableTreatment() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "promise_coach_v1",
-        )
+    fun remoteTreatmentResolvesReadableTreatment() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "promise_coach_v1",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(
-                variant = OnboardingVariant.PromiseCoachV1,
-                remoteReadable = true,
-            ),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.PromiseCoachV1,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+            inOrder(remoteConfig).apply {
+                verify(remoteConfig).fetchAndActivate()
+                verify(remoteConfig).getValue(VARIANT_KEY)
+            }
+        }
     }
 
     @Test
-    fun remoteControlResolvesReadableControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "control",
-        )
+    fun remoteControlResolvesReadableControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "control",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(
-                variant = OnboardingVariant.Control,
-                remoteReadable = true,
-            ),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.Control,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun failedFetchUsesCachedRemoteTreatment() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            fetchTask = Tasks.forException(IllegalStateException("network")),
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "promise_coach_v1",
-        )
+    fun failedFetchUsesCachedRemoteTreatment() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                fetchTask = Tasks.forException(IllegalStateException("network")),
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "promise_coach_v1",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(
-                variant = OnboardingVariant.PromiseCoachV1,
-                remoteReadable = true,
-            ),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.PromiseCoachV1,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun failedFetchUsesCachedRemoteControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            fetchTask = Tasks.forException(IllegalStateException("network")),
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "control",
-        )
+    fun failedFetchUsesCachedRemoteControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                fetchTask = Tasks.forException(IllegalStateException("network")),
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "control",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(
-                variant = OnboardingVariant.Control,
-                remoteReadable = true,
-            ),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.Control,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun failedFetchWithoutActiveRemoteResolvesUnreadableControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            fetchTask = Tasks.forException(IllegalStateException("network")),
-            source = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT,
-            variant = "control",
-        )
+    fun failedFetchWithoutActiveRemoteResolvesUnreadableControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                fetchTask = Tasks.forException(IllegalStateException("network")),
+                source = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT,
+                variant = "control",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun defaultOnlyValueResolvesUnreadableControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            source = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT,
-            variant = "control",
-        )
+    fun defaultOnlyValueResolvesUnreadableControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT,
+                variant = "control",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun malformedRemoteStringResolvesReadableControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "something_else",
-        )
+    fun malformedRemoteStringResolvesReadableControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "something_else",
+            )
 
-        assertEquals(
-            OnboardingExperimentResolution(
-                variant = OnboardingVariant.Control,
-                remoteReadable = true,
-            ),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.Control,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
-    fun remoteValueConversionFailureResolvesUnreadableControl() = runBlocking {
-        val remoteConfig = remoteConfigWithVariant(
-            source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
-            variant = "promise_coach_v1",
-        )
-        `when`(remoteConfig.getValue(VARIANT_KEY).asString())
-            .thenThrow(IllegalArgumentException("invalid variant"))
+    fun remoteValueConversionFailureResolvesUnreadableControl() {
+        runBlocking {
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "promise_coach_v1",
+            )
+            `when`(remoteConfig.getValue(VARIANT_KEY).asString())
+                .thenThrow(IllegalArgumentException("invalid variant"))
 
-        assertEquals(
-            OnboardingExperimentResolution(),
-            FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
-        )
+            assertEquals(
+                OnboardingExperimentResolution(),
+                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+            )
+        }
     }
 
     @Test
