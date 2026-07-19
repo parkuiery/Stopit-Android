@@ -7,6 +7,8 @@ import com.uiery.keep.domain.firstpromise.OnboardingVariant
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.mockito.Mockito.inOrder
@@ -17,6 +19,11 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 
 class FirebaseOnboardingExperimentConfigTest {
+    private data class LogEntry(
+        val message: String,
+        val throwable: Throwable?,
+    )
+
     @Test
     fun constructingAdapterDoesNotOwnSharedRemoteConfigInitialization() {
         val remoteConfig = mock(FirebaseRemoteConfig::class.java)
@@ -24,6 +31,118 @@ class FirebaseOnboardingExperimentConfigTest {
         FirebaseOnboardingExperimentConfig(remoteConfig)
 
         verifyNoInteractions(remoteConfig)
+    }
+
+    @Test
+    fun successfulRemoteTreatmentLogsFetchSourceRawValueAndResolution() {
+        runBlocking {
+            val logs = mutableListOf<LogEntry>()
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "promise_coach_v1",
+            )
+
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.PromiseCoachV1,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig) { message, throwable ->
+                    logs += LogEntry(message, throwable)
+                }.resolve(),
+            )
+
+            assertEquals(
+                listOf(
+                    "fetchAndActivate success",
+                    "source=remote",
+                    "rawValue=promise_coach_v1",
+                    "resolved variant=PromiseCoachV1 remoteReadable=true",
+                ),
+                logs.map(LogEntry::message),
+            )
+            logs.forEach { log -> assertNull(log.throwable) }
+        }
+    }
+
+    @Test
+    fun failedFetchWithCachedRemoteControlLogsFailureAndActivatedValue() {
+        runBlocking {
+            val logs = mutableListOf<LogEntry>()
+            val fetchFailure = IllegalStateException("network")
+            val remoteConfig = remoteConfigWithVariant(
+                fetchTask = Tasks.forException(fetchFailure),
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                variant = "control",
+            )
+
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.Control,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig) { message, throwable ->
+                    logs += LogEntry(message, throwable)
+                }.resolve(),
+            )
+
+            assertEquals(
+                listOf(
+                    "fetchAndActivate failed type=IllegalStateException; using activated value",
+                    "source=remote",
+                    "rawValue=control",
+                    "resolved variant=Control remoteReadable=true",
+                ),
+                logs.map(LogEntry::message),
+            )
+            assertSame(fetchFailure, logs.first().throwable)
+            logs.drop(1).forEach { log -> assertNull(log.throwable) }
+        }
+    }
+
+    @Test
+    fun defaultSourceLogsUnreadableControlWithoutRawValue() {
+        runBlocking {
+            val logs = mutableListOf<LogEntry>()
+            val remoteConfig = remoteConfigWithVariant(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT,
+                variant = "control",
+            )
+
+            assertEquals(
+                OnboardingExperimentResolution(),
+                FirebaseOnboardingExperimentConfig(remoteConfig) { message, throwable ->
+                    logs += LogEntry(message, throwable)
+                }.resolve(),
+            )
+
+            assertEquals(
+                listOf(
+                    "fetchAndActivate success",
+                    "source=default",
+                    "resolved variant=Control remoteReadable=false",
+                ),
+                logs.map(LogEntry::message),
+            )
+            logs.forEach { log -> assertNull(log.throwable) }
+        }
+    }
+
+    @Test
+    fun cancelledFetchPropagatesCancellationAndDoesNotLog() {
+        val logs = mutableListOf<LogEntry>()
+        val remoteConfig = mock(FirebaseRemoteConfig::class.java)
+        `when`(remoteConfig.fetchAndActivate()).thenReturn(Tasks.forCanceled())
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking {
+                FirebaseOnboardingExperimentConfig(remoteConfig) { message, throwable ->
+                    logs += LogEntry(message, throwable)
+                }.resolve()
+            }
+        }
+        verify(remoteConfig, never()).getValue(VARIANT_KEY)
+        assertEquals(emptyList<LogEntry>(), logs)
     }
 
     @Test
@@ -39,7 +158,7 @@ class FirebaseOnboardingExperimentConfigTest {
                     variant = OnboardingVariant.PromiseCoachV1,
                     remoteReadable = true,
                 ),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
             inOrder(remoteConfig).apply {
                 verify(remoteConfig).fetchAndActivate()
@@ -61,7 +180,7 @@ class FirebaseOnboardingExperimentConfigTest {
                     variant = OnboardingVariant.Control,
                     remoteReadable = true,
                 ),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -80,7 +199,7 @@ class FirebaseOnboardingExperimentConfigTest {
                     variant = OnboardingVariant.PromiseCoachV1,
                     remoteReadable = true,
                 ),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -99,7 +218,7 @@ class FirebaseOnboardingExperimentConfigTest {
                     variant = OnboardingVariant.Control,
                     remoteReadable = true,
                 ),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -115,7 +234,7 @@ class FirebaseOnboardingExperimentConfigTest {
 
             assertEquals(
                 OnboardingExperimentResolution(),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -130,7 +249,7 @@ class FirebaseOnboardingExperimentConfigTest {
 
             assertEquals(
                 OnboardingExperimentResolution(),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -148,7 +267,7 @@ class FirebaseOnboardingExperimentConfigTest {
                     variant = OnboardingVariant.Control,
                     remoteReadable = true,
                 ),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -165,7 +284,7 @@ class FirebaseOnboardingExperimentConfigTest {
 
             assertEquals(
                 OnboardingExperimentResolution(),
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve(),
+                config(remoteConfig).resolve(),
             )
         }
     }
@@ -177,7 +296,7 @@ class FirebaseOnboardingExperimentConfigTest {
 
         assertThrows(CancellationException::class.java) {
             runBlocking {
-                FirebaseOnboardingExperimentConfig(remoteConfig).resolve()
+                config(remoteConfig).resolve()
             }
         }
         verify(remoteConfig, never()).getValue(VARIANT_KEY)
@@ -202,6 +321,9 @@ class FirebaseOnboardingExperimentConfigTest {
         `when`(value.source).thenReturn(source)
         `when`(value.asString()).thenReturn(stringValue)
     }
+
+    private fun config(remoteConfig: FirebaseRemoteConfig): FirebaseOnboardingExperimentConfig =
+        FirebaseOnboardingExperimentConfig(remoteConfig) { _, _ -> }
 
     private companion object {
         const val VARIANT_KEY = "onboarding_variant"
