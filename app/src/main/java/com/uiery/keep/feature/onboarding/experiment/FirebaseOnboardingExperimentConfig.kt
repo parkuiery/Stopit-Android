@@ -31,14 +31,15 @@ class FirebaseOnboardingExperimentConfig internal constructor(
     )
 
     override suspend fun resolve(): OnboardingExperimentResolution {
-        val fetchTask = remoteConfig.fetchAndActivate()
+        var fetchTask: Task<Boolean>? = null
         try {
+            fetchTask = remoteConfig.fetchAndActivate()
             fetchTask.await()
             logDebug("fetchAndActivate success", null)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            val fetchFailure = fetchTask.exception ?: exception
+            val fetchFailure = fetchTask?.exception ?: exception
             val failureType = fetchFailure::class.java.simpleName.ifEmpty { "Unknown" }
             logDebug(
                 "fetchAndActivate failed type=$failureType; using activated value",

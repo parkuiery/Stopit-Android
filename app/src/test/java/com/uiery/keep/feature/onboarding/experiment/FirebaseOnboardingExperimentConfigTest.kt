@@ -101,6 +101,43 @@ class FirebaseOnboardingExperimentConfigTest {
     }
 
     @Test
+    fun synchronousFetchFailureWithCachedRemoteControlLogsFailureAndActivatedValue() {
+        runBlocking {
+            val logs = mutableListOf<LogEntry>()
+            val fetchFailure = IllegalStateException("network")
+            val remoteConfig = mock(FirebaseRemoteConfig::class.java)
+            val variantValue = remoteValue(
+                source = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE,
+                stringValue = "control",
+            )
+            `when`(remoteConfig.fetchAndActivate()).thenThrow(fetchFailure)
+            `when`(remoteConfig.getValue(VARIANT_KEY)).thenReturn(variantValue)
+
+            assertEquals(
+                OnboardingExperimentResolution(
+                    variant = OnboardingVariant.Control,
+                    remoteReadable = true,
+                ),
+                FirebaseOnboardingExperimentConfig(remoteConfig) { message, throwable ->
+                    logs += LogEntry(message, throwable)
+                }.resolve(),
+            )
+
+            assertEquals(
+                listOf(
+                    "fetchAndActivate failed type=IllegalStateException; using activated value",
+                    "source=remote",
+                    "rawValue=control",
+                    "resolved variant=Control remoteReadable=true",
+                ),
+                logs.map(LogEntry::message),
+            )
+            assertSame(fetchFailure, logs.first().throwable)
+            logs.drop(1).forEach { log -> assertNull(log.throwable) }
+        }
+    }
+
+    @Test
     fun defaultSourceLogsUnreadableControlWithoutRawValue() {
         runBlocking {
             val logs = mutableListOf<LogEntry>()
