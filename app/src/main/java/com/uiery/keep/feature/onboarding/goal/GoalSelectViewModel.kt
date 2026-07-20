@@ -51,6 +51,7 @@ class GoalSelectViewModel internal constructor(
     private val exposureResolved = CompletableDeferred<Boolean>()
 
     fun onStepViewed() {
+        actionClaimed.set(false)
         if (!viewed.compareAndSet(false, true)) return
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_GOAL_SELECT)
         viewModelScope.launch(persistenceDispatcher) {

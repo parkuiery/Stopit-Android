@@ -60,7 +60,7 @@ class GoalSelectViewModelTest {
     }
 
     @Test
-    fun returningFromManualSelectionCanContinueWithPersonalizedGoal() = runBlocking {
+    fun retainedViewModelCanContinueWithPersonalizedGoalAfterReturningFromManualSelection() = runBlocking {
         val analytics = FirstPromiseRecordingAnalytics()
         val store = firstPromiseStore(FirstPromisePhase.GoalPending)
         val initialViewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
@@ -75,11 +75,10 @@ class GoalSelectViewModelTest {
         )
         assertEquals(FirstPromisePhase.ManualSelectPending, store.readState().phase)
 
-        val revisitedViewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
-        val personalizedNavigation = async { revisitedViewModel.container.sideEffectFlow.first() }
-        revisitedViewModel.onStepViewed()
-        revisitedViewModel.selectGoal(FirstPromiseGoal.Focus)
-        revisitedViewModel.continuePersonalized()
+        val personalizedNavigation = async { initialViewModel.container.sideEffectFlow.first() }
+        initialViewModel.onStepViewed()
+        initialViewModel.selectGoal(FirstPromiseGoal.Focus)
+        initialViewModel.continuePersonalized()
 
         assertEquals(
             GoalSelectSideEffect.NavigateUsageAccess,
