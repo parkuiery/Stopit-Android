@@ -152,7 +152,12 @@ object FirstPromiseStatePolicy {
         state: FirstPromiseOnboardingState,
         goal: FirstPromiseGoal,
     ): FirstPromiseStateMutation {
-        if (state.phase != FirstPromisePhase.GoalPending || goal == FirstPromiseGoal.Unspecified) {
+        if (
+            state.phase !in setOf(
+                FirstPromisePhase.GoalPending,
+                FirstPromisePhase.ManualSelectPending,
+            ) || goal == FirstPromiseGoal.Unspecified
+        ) {
             return FirstPromiseStateMutation.Rejected
         }
         return FirstPromiseStateMutation.Changed(
@@ -351,7 +356,10 @@ object FirstPromiseStatePolicy {
     fun markGoalSelectViewed(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         if (
             state.assignment == OnboardingVariant.PromiseCoachV1 &&
-            state.phase == FirstPromisePhase.GoalPending
+            state.phase in setOf(
+                FirstPromisePhase.GoalPending,
+                FirstPromisePhase.ManualSelectPending,
+            )
         ) {
             markMilestoneWithEvent(
                 state,

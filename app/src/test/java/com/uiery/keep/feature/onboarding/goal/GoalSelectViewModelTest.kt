@@ -13,6 +13,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -53,6 +54,41 @@ class GoalSelectViewModelTest {
             ),
             state.trackedMilestones,
         )
+        assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepView(OnboardingStepName.GOAL_SELECT) })
+        assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) })
+        assertEquals(1, analytics.calls.count { it is FirstPromiseAnalyticsCall.Exposure })
+    }
+
+    @Test
+    fun returningFromManualSelectionCanContinueWithPersonalizedGoal() = runBlocking {
+        val analytics = FirstPromiseRecordingAnalytics()
+        val store = firstPromiseStore(FirstPromisePhase.GoalPending)
+        val initialViewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
+        val manualNavigation = async { initialViewModel.container.sideEffectFlow.first() }
+
+        initialViewModel.onStepViewed()
+        initialViewModel.chooseManual()
+
+        assertEquals(
+            GoalSelectSideEffect.NavigateManualAppSelect,
+            withTimeout(1_000) { manualNavigation.await() },
+        )
+        assertEquals(FirstPromisePhase.ManualSelectPending, store.readState().phase)
+
+        val revisitedViewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
+        val personalizedNavigation = async { revisitedViewModel.container.sideEffectFlow.first() }
+        revisitedViewModel.onStepViewed()
+        revisitedViewModel.selectGoal(FirstPromiseGoal.Focus)
+        revisitedViewModel.continuePersonalized()
+
+        assertEquals(
+            GoalSelectSideEffect.NavigateUsageAccess,
+            withTimeout(1_000) { personalizedNavigation.await() },
+        )
+        val state = store.readState()
+        assertEquals(FirstPromisePhase.UsageAccessPending, state.phase)
+        assertEquals(FirstPromisePath.Personalized, state.path)
+        assertEquals(FirstPromiseGoal.Focus, state.goal)
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepView(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it is FirstPromiseAnalyticsCall.Exposure })
