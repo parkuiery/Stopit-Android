@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,9 +40,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.onboarding.OnboardingActionStack
 import com.uiery.keep.ui.component.SetupGroupCard
 import com.uiery.keep.ui.component.SetupGroupDivider
 import org.orbitmvi.orbit.compose.collectAsState
@@ -131,18 +130,14 @@ fun UsageAccessScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_check_pattern),
-                enabled = !state.isReconciling,
-                bottomSpacing = false,
-                onClick = { viewModel.openSettings { launchUsageAccessSettings(context) } },
+            OnboardingActionStack(
+                primaryText = stringResource(R.string.first_promise_check_pattern),
+                secondaryText = stringResource(R.string.first_promise_manual_setup),
+                primaryEnabled = !state.isReconciling,
+                secondaryEnabled = !state.isReconciling,
+                onPrimaryClick = { viewModel.openSettings { launchUsageAccessSettings(context) } },
+                onSecondaryClick = viewModel::chooseManual,
             )
-            TextButton(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                enabled = !state.isReconciling,
-                onClick = viewModel::chooseManual,
-            ) { Text(stringResource(R.string.first_promise_manual_setup), color = KeepTheme.colors.onSurfaceVariant) }
         }
     }
 }

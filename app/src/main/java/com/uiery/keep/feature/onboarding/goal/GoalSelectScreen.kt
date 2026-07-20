@@ -20,7 +20,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,10 +32,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.feature.onboarding.OnboardingActionStack
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 
@@ -81,19 +80,13 @@ fun GoalSelectScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_check_pattern),
-                enabled = state.canContinue,
-                bottomSpacing = false,
-                onClick = viewModel::continuePersonalized,
+            OnboardingActionStack(
+                primaryText = stringResource(R.string.first_promise_check_pattern),
+                secondaryText = stringResource(R.string.first_promise_manual_setup),
+                primaryEnabled = state.canContinue,
+                onPrimaryClick = viewModel::continuePersonalized,
+                onSecondaryClick = viewModel::chooseManual,
             )
-            TextButton(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                onClick = viewModel::chooseManual,
-            ) {
-                Text(stringResource(R.string.first_promise_manual_setup), color = KeepTheme.colors.onSurfaceVariant)
-            }
         }
     }
 }

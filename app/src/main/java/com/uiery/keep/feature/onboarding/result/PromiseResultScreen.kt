@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.onboarding.OnboardingActionStack
 import com.uiery.keep.feature.onboarding.proposal.formatTime
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLaunchResult
@@ -176,55 +177,56 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
     when (state.kind) {
         PromiseResultKind.Enabled -> {
             if (state.showPractice) {
-                KeepButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(
+                OnboardingActionStack(
+                    primaryText = stringResource(
                         if (state.practiceFailed) R.string.first_promise_result_retry_practice
                         else R.string.first_promise_result_practice,
                     ),
-                    enabled = !state.isBusy,
-                    onClick = viewModel::startPractice,
+                    secondaryText = stringResource(R.string.first_promise_result_scheduled),
+                    primaryEnabled = !state.isBusy,
+                    secondaryEnabled = !state.isBusy,
+                    bottomSpacing = false,
+                    onPrimaryClick = viewModel::startPractice,
+                    onSecondaryClick = viewModel::continueAtScheduledTime,
                 )
+            } else {
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isBusy,
+                    onClick = viewModel::continueAtScheduledTime,
+                ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
             }
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isBusy,
-                onClick = viewModel::continueAtScheduledTime,
-            ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
         }
         PromiseResultKind.PermissionRequired -> {
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_enable),
-                enabled = !state.isBusy,
-                onClick = viewModel::requestExactAlarm,
+            OnboardingActionStack(
+                primaryText = stringResource(R.string.first_promise_result_enable),
+                secondaryText = stringResource(R.string.first_promise_result_later),
+                primaryEnabled = !state.isBusy,
+                secondaryEnabled = !state.isBusy,
+                bottomSpacing = false,
+                onPrimaryClick = viewModel::requestExactAlarm,
+                onSecondaryClick = viewModel::continueLater,
             )
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isBusy,
-                onClick = viewModel::continueLater,
-            ) { Text(stringResource(R.string.first_promise_result_later)) }
         }
         PromiseResultKind.Disabled -> {
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.first_promise_result_home),
                 enabled = !state.isBusy,
+                bottomSpacing = false,
                 onClick = viewModel::continueHome,
             )
         }
         PromiseResultKind.PersistFailed -> {
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_retry_save),
-                enabled = state.canRetry && !state.isBusy,
-                onClick = viewModel::retryPersistence,
+            OnboardingActionStack(
+                primaryText = stringResource(R.string.first_promise_result_retry_save),
+                secondaryText = stringResource(R.string.first_promise_result_edit),
+                primaryEnabled = state.canRetry && !state.isBusy,
+                secondaryEnabled = state.canEdit && !state.isBusy,
+                bottomSpacing = false,
+                onPrimaryClick = viewModel::retryPersistence,
+                onSecondaryClick = viewModel::editPromise,
             )
-            TextButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = state.canEdit && !state.isBusy,
-                onClick = viewModel::editPromise,
-            ) { Text(stringResource(R.string.first_promise_result_edit)) }
         }
         PromiseResultKind.Loading -> Unit
     }
