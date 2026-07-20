@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,12 +21,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -195,26 +198,8 @@ fun PromiseProposalScreen(
                         color = KeepTheme.colors.surfaceVariant,
                     )
                 }
-                Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.showPicker(ProposalPicker.StartTime) },
-                    ) {
-                        Text(stringResource(R.string.first_promise_change_time), color = KeepTheme.colors.primary)
-                    }
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.showPicker(ProposalPicker.RepeatDays) },
-                    ) {
-                        Text(stringResource(R.string.first_promise_change_days), color = KeepTheme.colors.primary)
-                    }
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.showPicker(ProposalPicker.App) },
-                    ) {
-                        Text(stringResource(R.string.first_promise_change_app), color = KeepTheme.colors.primary)
-                    }
-                }
+                Spacer(Modifier.height(12.dp))
+                ProposalEditActions(onEdit = viewModel::showPicker)
                 Spacer(Modifier.height(20.dp))
                 }
             }
@@ -225,6 +210,51 @@ fun PromiseProposalScreen(
                 onClick = viewModel::startFirstPromise,
             )
         }
+    }
+}
+
+@Composable
+internal fun ProposalEditActions(onEdit: (ProposalPicker) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ProposalEditButton(
+            text = stringResource(R.string.first_promise_change_time),
+            onClick = { onEdit(ProposalPicker.StartTime) },
+        )
+        ProposalEditButton(
+            text = stringResource(R.string.first_promise_change_days),
+            onClick = { onEdit(ProposalPicker.RepeatDays) },
+        )
+        ProposalEditButton(
+            text = stringResource(R.string.first_promise_change_app),
+            onClick = { onEdit(ProposalPicker.App) },
+        )
+    }
+}
+
+@Composable
+private fun RowScope.ProposalEditButton(
+    text: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        modifier = Modifier.weight(1f).sizeIn(minHeight = 48.dp),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = KeepTheme.colors.onSecondary,
+            contentColor = KeepTheme.colors.onSurfaceVariant,
+        ),
+        border = BorderStroke(1.dp, KeepTheme.colors.tertiary),
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = text,
+            maxLines = 1,
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }
 

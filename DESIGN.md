@@ -155,6 +155,7 @@ Use for existing circular progress/emphasis motion. Do not introduce decorative 
 - Use `background` for full-screen surface.
 - Titles generally map to `titleLarge` or equivalent existing style.
 - Primary CTA should use `KeepButton`.
+- When a proposal summary has two or three peer edit actions, group them in one compact horizontal row when localized labels fit. Use neutral outlined containers with at least 48dp touch height so the primary color remains reserved for the forward CTA.
 
 ### Home And Lock
 
