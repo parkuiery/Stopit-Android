@@ -251,6 +251,27 @@ object FirstPromiseStatePolicy {
     fun returnToDraft(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         transitionWithDraft(state, FirstPromisePhase.DraftReady)
 
+    fun returnToManualSelection(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
+        when {
+            state.phase == FirstPromisePhase.ManualSelectPending &&
+                state.path == FirstPromisePath.Manual -> FirstPromiseStateMutation.NoOp
+            state.phase == FirstPromisePhase.DraftReady &&
+                state.path == FirstPromisePath.Manual &&
+                state.draft != null &&
+                state.recommendationReasonRef != null &&
+                draftAndReasonAreValidForState(state, state.draft, state.recommendationReasonRef) ->
+                FirstPromiseStateMutation.Changed(
+                    state.copy(
+                        phase = FirstPromisePhase.ManualSelectPending,
+                        draft = null,
+                        recommendationReasonRef = null,
+                        pendingSystemAction = null,
+                        analysisAttemptId = null,
+                    ),
+                )
+            else -> FirstPromiseStateMutation.Rejected
+        }
+
     fun requestNotification(state: FirstPromiseOnboardingState): FirstPromiseStateMutation =
         when (val mutation = transitionWithDraft(state, FirstPromisePhase.NotificationPending)) {
             is FirstPromiseStateMutation.Changed ->

@@ -97,6 +97,48 @@ class SelectAppViewModelTest {
     }
 
     @Test
+    fun manualSelectionCanBeChangedAfterReturningFromPromiseProposal() = runBlocking {
+        val dataStore = manualSelectionDataStore(goal = FirstPromiseGoal.Sleep)
+        val analytics = RecordingAnalytics()
+        var draftSequence = 0
+        val viewModel = SelectAppViewModel(
+            blockingStateStore = BlockingStateStore(dataStore),
+            analytics = analytics,
+            draftStore = FirstPromiseDraftStore(dataStore),
+            draftId = { "draft-${++draftSequence}" },
+        )
+        val firstNavigation = async {
+            withTimeoutOrNull(1_000) { viewModel.container.sideEffectFlow.first() }
+        }
+
+        viewModel.onStepViewed()
+        viewModel.selectManualCategoryComplete("com.example.first", "First")
+
+        assertEquals(SelectAppSideEffect.NavigateProposal, firstNavigation.await())
+        assertEquals(FirstPromisePhase.DraftReady, FirstPromiseDraftStore(dataStore).readState().phase)
+
+        val revisedNavigation = async {
+            withTimeoutOrNull(1_000) { viewModel.container.sideEffectFlow.first() }
+        }
+        viewModel.onStepViewed()
+        viewModel.selectManualCategoryComplete("com.example.second", "Second")
+
+        assertEquals(SelectAppSideEffect.NavigateProposal, revisedNavigation.await())
+        val revisedState = FirstPromiseDraftStore(dataStore).readState()
+        assertEquals(FirstPromisePhase.DraftReady, revisedState.phase)
+        assertEquals("draft-2", revisedState.draft?.draftId)
+        assertEquals("com.example.second", revisedState.draft?.packageName)
+        assertEquals("Second", revisedState.draft?.appLabel)
+        assertEquals(
+            listOf(
+                AnalyticsCall.StepCompleted(OnboardingStepName.SELECT_APP),
+                AnalyticsCall.AppSelectionCompleted(selectedAppCount = 1, isOnboarding = true),
+            ),
+            analytics.calls,
+        )
+    }
+
+    @Test
     fun manualRetryDoesNotReplaceDraftOrRepeatCompletion() = runBlocking {
         val dataStore = manualSelectionDataStore(goal = FirstPromiseGoal.Unspecified)
         val analytics = RecordingAnalytics()

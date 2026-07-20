@@ -96,6 +96,9 @@ class FirstPromiseDraftStore @Inject constructor(
     suspend fun returnToDraft(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::returnToDraft)
 
+    suspend fun returnToManualSelection(): FirstPromiseStateMutation =
+        applyMutation(FirstPromiseStatePolicy::returnToManualSelection)
+
     suspend fun requestNotification(): FirstPromiseStateMutation =
         applyMutation(FirstPromiseStatePolicy::requestNotification)
 

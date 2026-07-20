@@ -55,6 +55,8 @@ class SelectAppViewModel internal constructor(
     fun onStepViewed() {
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_SELECT_APP)
         analytics.trackOnboardingStepView(OnboardingStepName.SELECT_APP)
+        val store = draftStore ?: return
+        intent { store.returnToManualSelection() }
     }
 
     internal fun showCategoryBottomSheet() = intent {
