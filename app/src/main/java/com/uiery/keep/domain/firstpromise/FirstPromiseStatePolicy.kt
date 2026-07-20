@@ -155,6 +155,7 @@ object FirstPromiseStatePolicy {
         if (
             state.phase !in setOf(
                 FirstPromisePhase.GoalPending,
+                FirstPromisePhase.UsageAccessPending,
                 FirstPromisePhase.ManualSelectPending,
             ) || goal == FirstPromiseGoal.Unspecified
         ) {

@@ -60,7 +60,7 @@ class GoalSelectViewModelTest {
     }
 
     @Test
-    fun retainedViewModelCanContinueWithPersonalizedGoalAfterReturningFromManualSelection() = runBlocking {
+    fun retainedViewModelCanReviseGoalAcrossManualAndUsageAccessBackNavigation() = runBlocking {
         val analytics = FirstPromiseRecordingAnalytics()
         val store = firstPromiseStore(FirstPromisePhase.GoalPending)
         val initialViewModel = GoalSelectViewModel(analytics, store, Dispatchers.Unconfined)
@@ -88,6 +88,20 @@ class GoalSelectViewModelTest {
         assertEquals(FirstPromisePhase.UsageAccessPending, state.phase)
         assertEquals(FirstPromisePath.Personalized, state.path)
         assertEquals(FirstPromiseGoal.Focus, state.goal)
+
+        val revisedPersonalizedNavigation = async { initialViewModel.container.sideEffectFlow.first() }
+        initialViewModel.onStepViewed()
+        initialViewModel.selectGoal(FirstPromiseGoal.Study)
+        initialViewModel.continuePersonalized()
+
+        assertEquals(
+            GoalSelectSideEffect.NavigateUsageAccess,
+            withTimeout(1_000) { revisedPersonalizedNavigation.await() },
+        )
+        val revisedState = store.readState()
+        assertEquals(FirstPromisePhase.UsageAccessPending, revisedState.phase)
+        assertEquals(FirstPromisePath.Personalized, revisedState.path)
+        assertEquals(FirstPromiseGoal.Study, revisedState.goal)
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepView(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it == FirstPromiseAnalyticsCall.StepComplete(OnboardingStepName.GOAL_SELECT) })
         assertEquals(1, analytics.calls.count { it is FirstPromiseAnalyticsCall.Exposure })
