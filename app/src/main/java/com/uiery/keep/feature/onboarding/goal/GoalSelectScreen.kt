@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -99,12 +101,17 @@ private fun GoalOption(
     onSelect: (FirstPromiseGoal) -> Unit,
 ) {
     val selected = selectedGoal == goal
+    val shape = RoundedCornerShape(12.dp)
     Card(
-        modifier = Modifier.fillMaxWidth().selectable(
-            selected = selected,
-            role = Role.RadioButton,
-            onClick = { onSelect(goal) },
-        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = { onSelect(goal) },
+            ),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) KeepTheme.colors.primary else KeepTheme.colors.tertiary),
     ) {
