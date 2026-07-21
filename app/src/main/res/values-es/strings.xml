@@ -490,6 +490,7 @@
     <string name="first_promise_result_edit">Editar promesa</string>
     <string name="first_promise_resume_title">Termina de activar tu primera promesa</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30 min · %3$s</string>
+    <string name="first_promise_resume_schedule_summary">%1$s · 30 min · %2$s</string>
     <string name="first_promise_resume_retry_message">Sigue guardada, pero desactivada. Intenta activarla de nuevo.</string>
     <string name="first_promise_resume_waiting">Esperando el permiso…</string>
 </resources>

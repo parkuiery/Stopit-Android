@@ -474,7 +474,7 @@ fun HomeScreen(
                 mainControls(
                     Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
+                        .height(260.dp)
                         .testTag(HOME_MAIN_CONTROLS_TEST_TAG),
                 )
                 bottomContent()

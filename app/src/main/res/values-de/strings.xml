@@ -491,6 +491,7 @@
     <string name="first_promise_result_edit">Versprechen bearbeiten</string>
     <string name="first_promise_resume_title">Aktiviere dein erstes Versprechen vollständig</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30 Min. · %3$s</string>
+    <string name="first_promise_resume_schedule_summary">%1$s · 30 Min. · %2$s</string>
     <string name="first_promise_resume_retry_message">Es ist gespeichert, aber deaktiviert. Versuche die Aktivierung erneut.</string>
     <string name="first_promise_resume_waiting">Warten auf Berechtigung…</string>
 </resources>
