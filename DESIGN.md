@@ -163,6 +163,7 @@ Use for existing circular progress/emphasis motion. Do not introduce decorative 
 - Preserve timer/category/lock semantics.
 - Use `primary` for active lock/focus emphasis.
 - Use KDS or documented component patterns for repeated picker, category, and app-row surfaces.
+- Keep the lock-screen banner in a dedicated full-width bottom slot immediately above the system safe area, with protection status and emergency actions above it.
 
 ### Routine
 
