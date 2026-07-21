@@ -511,6 +511,7 @@
     <string name="first_promise_result_edit">약속 수정하기</string>
     <string name="first_promise_resume_title">첫 약속을 마저 켜주세요</string>
     <string name="first_promise_resume_summary">%1$s · %2$s · 30분 · %3$s</string>
+    <string name="first_promise_resume_schedule_summary">%1$s · 30분 · %2$s</string>
     <string name="first_promise_resume_retry_message">약속은 저장되어 있지만 꺼져 있어요. 다시 켜보세요.</string>
     <string name="first_promise_resume_waiting">권한 확인을 기다리는 중…</string>
 </resources>
