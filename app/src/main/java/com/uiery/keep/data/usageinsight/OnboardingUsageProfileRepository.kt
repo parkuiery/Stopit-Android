@@ -78,7 +78,17 @@ class OnboardingUsageProfileRepository @Inject constructor(
             proposedRepeatDays = ALL_REPEAT_DAYS,
             zoneId = zoneId,
         )
-        if (BuildConfig.DEBUG) {
+        debugLogResult(result, aggregates)
+        return result
+    }
+
+    private fun debugLogResult(
+        result: OnboardingUsageProfileResult,
+        aggregates: List<AppUsageAggregateDay>,
+    ) {
+        if (!BuildConfig.DEBUG) return
+
+        try {
             when (result) {
                 is OnboardingUsageProfileResult.Ready -> {
                     val profile = result.profile
@@ -103,8 +113,9 @@ class OnboardingUsageProfileRepository @Inject constructor(
                         "eventCoverageDays=${result.eventCoverageDays}",
                 )
             }
+        } catch (_: RuntimeException) {
+            // Debug diagnostics must never change the onboarding recommendation outcome.
         }
-        return result
     }
 
     private fun queryFailed() = OnboardingUsageProfileResult.Insufficient(
