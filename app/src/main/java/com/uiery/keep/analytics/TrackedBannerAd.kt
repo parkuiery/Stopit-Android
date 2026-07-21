@@ -1,17 +1,23 @@
 package com.uiery.keep.analytics
 
+import android.app.Activity
 import android.content.Context
 import androidx.annotation.RequiresPermission
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
@@ -19,6 +25,8 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdValue
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.OnPaidEventListener
+import com.uiery.keep.MobileAdsInitialization
+import com.uiery.keep.util.findActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -27,6 +35,7 @@ import dagger.hilt.components.SingletonComponent
 internal const val AdBannerImpressionEvent = "ad_banner_impression"
 internal const val AdBannerClickEvent = "ad_banner_click"
 internal const val AdBannerRevenueEvent = "ad_banner_revenue"
+internal val MetaCompatibleBannerAdSize: AdSize = AdSize.BANNER
 
 internal data class AdPlacementMetadata(
     val screenName: String,
@@ -82,20 +91,58 @@ private fun AppBannerAd(
     onAdRevenuePaid: ((AdValue) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val screenWidth = LocalConfiguration.current.screenWidthDp
-    val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, screenWidth)
-    val adView = remember {
-        AdView(context).apply {
+    val activity = remember(context) { context.findActivity() }
+    val isInspectionMode = LocalInspectionMode.current
+    val isMobileAdsInitialized by MobileAdsInitialization.isInitialized.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MetaCompatibleBannerAdSize.height.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (
+            shouldLoadBannerAd(
+                isInspectionMode = isInspectionMode,
+                hasActivityContext = activity != null,
+                isMobileAdsInitialized = isMobileAdsInitialized,
+            )
+        ) {
+            LoadedBannerAd(
+                activity = requireNotNull(activity),
+                adUnitId = adUnitId,
+                onAdImpression = onAdImpression,
+                onAdClick = onAdClick,
+                onAdRevenuePaid = onAdRevenuePaid,
+            )
+        }
+    }
+}
+
+internal fun shouldLoadBannerAd(
+    isInspectionMode: Boolean,
+    hasActivityContext: Boolean,
+    isMobileAdsInitialized: Boolean,
+): Boolean = !isInspectionMode && hasActivityContext && isMobileAdsInitialized
+
+@Composable
+private fun LoadedBannerAd(
+    activity: Activity,
+    adUnitId: String,
+    onAdImpression: (() -> Unit)?,
+    onAdClick: (() -> Unit)?,
+    onAdRevenuePaid: ((AdValue) -> Unit)?,
+) {
+    val adView = remember(activity, adUnitId) {
+        AdView(activity).apply {
             this.adUnitId = adUnitId
-            this.setAdSize(adSize)
+            setAdSize(MetaCompatibleBannerAdSize)
         }
     }
 
-    if (!LocalInspectionMode.current) {
-        LaunchedEffect(adView) {
-            val adRequest = AdRequest.Builder().build()
-            adView.loadAd(adRequest)
-        }
+    LaunchedEffect(adView) {
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
     }
 
     DisposableEffect(adView, onAdImpression, onAdClick, onAdRevenuePaid) {
@@ -123,7 +170,6 @@ private fun AppBannerAd(
     }
 
     AndroidView(
-        modifier = modifier.wrapContentSize(),
         factory = {
             adView
         },

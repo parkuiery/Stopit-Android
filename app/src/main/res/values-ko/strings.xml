@@ -176,6 +176,7 @@
     <string name="routine_next_run_label">다음 실행: %1$s</string>
     <string name="routine_active_action_blocked_message">루틴 실행 중에는 수정·삭제·끄기가 잠겨요. 잠깐 예외가 필요하면 긴급 해제를 사용하세요.</string>
     <string name="contact_us">문의하기</string>
+    <string name="ad_privacy_options">개인정보 선택</string>
     <string name="monetization_interest_menu_title">광고 없이 스탑잇을 쓰고 싶으신가요?</string>
     <string name="monetization_interest_menu_message">광고 제거 옵션이 필요하다면 알려주세요. 아직 실제 결제는 제공되지 않습니다.</string>
     <string name="feedback_subject">[스탑잇 안드로이드] 피드백</string>

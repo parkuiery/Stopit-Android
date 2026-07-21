@@ -19,6 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class BlockActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        deferMobileAdsInitialization()
         val args = createBlockActivityArgs(
             packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME),
             blockSource = intent.getStringExtra(EXTRA_BLOCK_SOURCE),

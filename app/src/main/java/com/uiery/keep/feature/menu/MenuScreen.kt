@@ -1,11 +1,12 @@
 package com.uiery.keep.feature.menu
 
-import android.content.Context
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -25,6 +27,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -34,24 +40,21 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.BuildConfig
+import com.uiery.keep.MobileAdsPrivacyOptions
 import com.uiery.keep.R
+import com.uiery.keep.analytics.AdPlacement
+import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.feature.menu.component.MenuItem
 import com.uiery.keep.feature.menu.component.MenuToggleItem
-import androidx.core.net.toUri
-import com.uiery.keep.BuildConfig
-import com.uiery.keep.analytics.AdPlacement
-import com.uiery.keep.analytics.toMetadata
-import com.uiery.keep.analytics.TrackedBannerAd
-import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.showMobileAdsPrivacyOptions
+import com.uiery.keep.util.findActivity
+import com.uiery.kds.theme.KeepTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +76,7 @@ fun MenuScreen(
     val goalLockNavigationGate = remember { GoalLockNavigationGate() }
     val preventUninstall by menuViewModel.preventUninstall.collectAsStateWithLifecycle()
     val isBlocking by menuViewModel.isBlocking.collectAsStateWithLifecycle()
+    val isPrivacyOptionsRequired by MobileAdsPrivacyOptions.isRequired.collectAsStateWithLifecycle()
     val monetizationInterestTitle = stringResource(id = R.string.monetization_interest_menu_title)
     val monetizationInterestMessage = stringResource(id = R.string.monetization_interest_menu_message)
     LaunchedEffect(menuViewModel) {
@@ -173,6 +177,19 @@ fun MenuScreen(
                 title = stringResource(id = R.string.emergency_unlock_settings_title),
                 onClick = onNavigateEmergencyUnlockSettings,
             )
+            if (isPrivacyOptionsRequired) {
+                MenuItem(
+                    icon = R.drawable.ic_shield,
+                    title = stringResource(id = R.string.ad_privacy_options),
+                    onClick = {
+                        context.findActivity()?.let { activity ->
+                            showMobileAdsPrivacyOptions(activity) { errorMessage ->
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                )
+            }
             MenuItem(
                 icon = R.drawable.ic_letter,
                 title = stringResource(id = R.string.contact_us),
