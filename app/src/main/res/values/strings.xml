@@ -471,8 +471,8 @@
     <string name="first_promise_analysis_title">Checking your recent usage patterns</string>
     <string name="first_promise_analysis_status">Analyzing usage</string>
     <string name="first_promise_proposal_title">Your first promise</string>
-    <string name="first_promise_usage_fact">Over the last 7 days, you used %1$s for about %2$d minutes a day.</string>
-    <string name="first_promise_usage_fact_partial_average">Your %1$s usage, based on %2$d recorded days, averaged about %3$d minutes per day.</string>
+    <string name="first_promise_usage_fact">Over the last 7 days, you used %1$s for about %2$s a day.</string>
+    <string name="first_promise_usage_fact_partial_average">Your %1$s usage, based on %2$d recorded days, averaged about %3$s per day.</string>
     <string name="first_promise_usage_fact_categorical">Recent records include %1$s usage on %2$d days.</string>
     <string name="first_promise_usage_fact_all_days">Recent records show %1$s usage on all 7 days.</string>
     <string name="first_promise_usage_fact_covered_days">Recent records show %1$s usage on %2$d of 7 days.</string>

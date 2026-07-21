@@ -446,8 +446,8 @@
     <string name="first_promise_analysis_title">Je recente gebruikspatronen worden bekeken</string>
     <string name="first_promise_analysis_status">Gebruik wordt geanalyseerd</string>
     <string name="first_promise_proposal_title">Je eerste belofte</string>
-    <string name="first_promise_usage_fact">De afgelopen 7 dagen gebruikte je %1$s ongeveer %2$d minuten per dag.</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s is op basis van %2$d geregistreerde dagen ongeveer %3$d minuten per dag gebruikt.</string>
+    <string name="first_promise_usage_fact">De afgelopen 7 dagen gebruikte je %1$s ongeveer %2$s per dag.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s is op basis van %2$d geregistreerde dagen ongeveer %3$s per dag gebruikt.</string>
     <string name="first_promise_usage_fact_categorical">Recente gegevens bevatten gebruik van %1$s op %2$d dagen.</string>
     <string name="first_promise_usage_fact_all_days">Recente gegevens tonen gebruik van %1$s op alle 7 dagen.</string>
     <string name="first_promise_usage_fact_covered_days">Recente gegevens tonen gebruik van %1$s op %2$d van 7 dagen.</string>

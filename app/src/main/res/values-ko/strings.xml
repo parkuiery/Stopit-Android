@@ -466,8 +466,8 @@
     <string name="first_promise_analysis_title">최근 사용 패턴을 확인하고 있어요</string>
     <string name="first_promise_analysis_status">사용 패턴 분석 중</string>
     <string name="first_promise_proposal_title">첫 약속을 제안할게요</string>
-    <string name="first_promise_usage_fact">지난 7일 동안 %1$s을 하루 평균 약 %2$d분 사용했어요.</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s은 기록이 있는 %2$d일을 기준으로 하루 평균 약 %3$d분 사용했어요.</string>
+    <string name="first_promise_usage_fact">지난 7일 동안 %1$s을 하루 평균 약 %2$s 사용했어요.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s은 기록이 있는 %2$d일을 기준으로 하루 평균 약 %3$s 사용했어요.</string>
     <string name="first_promise_usage_fact_categorical">최근 기록에서 %1$s을 사용한 날이 %2$d일 있어요.</string>
     <string name="first_promise_usage_fact_all_days">최근 7일 모두 %1$s 사용 기록이 있어요.</string>
     <string name="first_promise_usage_fact_covered_days">%1$s은 최근 7일 중 %2$d일에 사용했어요.</string>

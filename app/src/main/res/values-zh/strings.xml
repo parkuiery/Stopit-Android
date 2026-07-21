@@ -444,8 +444,8 @@
     <string name="first_promise_analysis_title">正在查看你近期的使用规律</string>
     <string name="first_promise_analysis_status">正在分析使用情况</string>
     <string name="first_promise_proposal_title">你的第一个约定</string>
-    <string name="first_promise_usage_fact">过去7天，你每天使用%1$s约%2$d分钟。</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s根据有记录的%2$d天估算，日均使用约%3$d分钟。</string>
+    <string name="first_promise_usage_fact">过去7天，你每天使用%1$s约%2$s。</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s根据有记录的%2$d天估算，日均使用约%3$s。</string>
     <string name="first_promise_usage_fact_categorical">最近记录显示，%1$s的使用覆盖%2$d天。</string>
     <string name="first_promise_usage_fact_all_days">最近7天每天都有%1$s的使用记录。</string>
     <string name="first_promise_usage_fact_covered_days">%1$s在最近7天中使用了%2$d天。</string>

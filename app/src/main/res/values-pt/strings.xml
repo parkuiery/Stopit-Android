@@ -446,8 +446,8 @@
     <string name="first_promise_analysis_title">A analisar os seus padrões de uso recentes</string>
     <string name="first_promise_analysis_status">A analisar a utilização</string>
     <string name="first_promise_proposal_title">A sua primeira promessa</string>
-    <string name="first_promise_usage_fact">Nos últimos 7 dias, utilizou %1$s cerca de %2$d minutos por dia.</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s, com base em %2$d dias registados, foi utilizada cerca de %3$d minutos por dia.</string>
+    <string name="first_promise_usage_fact">Nos últimos 7 dias, utilizou %1$s cerca de %2$s por dia.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s, com base em %2$d dias registados, foi utilizada cerca de %3$s por dia.</string>
     <string name="first_promise_usage_fact_categorical">Os registos recentes incluem utilização de %1$s em %2$d dias.</string>
     <string name="first_promise_usage_fact_all_days">Os dados recentes mostram utilização de %1$s nos 7 dias.</string>
     <string name="first_promise_usage_fact_covered_days">Os dados recentes mostram utilização de %1$s em %2$d de 7 dias.</string>

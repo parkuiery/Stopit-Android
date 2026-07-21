@@ -456,8 +456,8 @@
     <string name="first_promise_analysis_title">Анализируем ваши недавние привычки использования</string>
     <string name="first_promise_analysis_status">Анализируем использование</string>
     <string name="first_promise_proposal_title">Ваше первое обещание</string>
-    <string name="first_promise_usage_fact">За последние 7 дней вы использовали %1$s около %2$d минут в день.</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s по данным за %2$d дней использовалось около %3$d минут в день.</string>
+    <string name="first_promise_usage_fact">За последние 7 дней вы использовали %1$s около %2$s в день.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s по данным за %2$d дней использовалось около %3$s в день.</string>
     <string name="first_promise_usage_fact_categorical">В недавних данных есть использование %1$s в течение %2$d дней.</string>
     <string name="first_promise_usage_fact_all_days">Недавние данные показывают использование %1$s во все 7 дней.</string>
     <string name="first_promise_usage_fact_covered_days">Недавние данные показывают использование %1$s в течение %2$d из 7 дней.</string>

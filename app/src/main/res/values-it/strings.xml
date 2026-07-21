@@ -446,8 +446,8 @@
     <string name="first_promise_analysis_title">Stiamo controllando le tue abitudini di utilizzo recenti</string>
     <string name="first_promise_analysis_status">Analisi dell’utilizzo in corso</string>
     <string name="first_promise_proposal_title">La tua prima promessa</string>
-    <string name="first_promise_usage_fact">Negli ultimi 7 giorni hai usato %1$s per circa %2$d minuti al giorno.</string>
-    <string name="first_promise_usage_fact_partial_average">%1$s, in base a %2$d giorni registrati, è stata usata circa %3$d minuti al giorno.</string>
+    <string name="first_promise_usage_fact">Negli ultimi 7 giorni hai usato %1$s per circa %2$s al giorno.</string>
+    <string name="first_promise_usage_fact_partial_average">%1$s, in base a %2$d giorni registrati, è stata usata circa %3$s al giorno.</string>
     <string name="first_promise_usage_fact_categorical">I dati recenti includono l’uso di %1$s in %2$d giorni.</string>
     <string name="first_promise_usage_fact_all_days">I dati recenti mostrano l’uso di %1$s in tutti e 7 i giorni.</string>
     <string name="first_promise_usage_fact_covered_days">I dati recenti mostrano l’uso di %1$s in %2$d giorni su 7.</string>

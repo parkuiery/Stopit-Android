@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -132,15 +133,15 @@ fun PromiseProposalScreen(
                 ProposalCard {
                     val factCopy = when (proposalFactCopyVariant(state.factType, state.usageCoverageDays)) {
                         ProposalFactCopyVariant.AverageSevenDays -> stringResource(
-                                R.string.first_promise_usage_fact,
-                                state.appLabel,
-                                state.averageDailyMinutes ?: 0,
-                            )
+                            R.string.first_promise_usage_fact,
+                            state.appLabel,
+                            formatAverageUsageDuration(state.averageDailyMinutes ?: 0),
+                        )
                         ProposalFactCopyVariant.AveragePartialCoverage -> stringResource(
                             R.string.first_promise_usage_fact_partial_average,
                             state.appLabel,
                             state.usageCoverageDays,
-                            state.averageDailyMinutes ?: 0,
+                            formatAverageUsageDuration(state.averageDailyMinutes ?: 0),
                         )
                         ProposalFactCopyVariant.CoverageSevenDays -> stringResource(
                             R.string.first_promise_usage_fact_all_days,
@@ -210,6 +211,38 @@ fun PromiseProposalScreen(
                 onClick = viewModel::startFirstPromise,
             )
         }
+    }
+}
+
+@Composable
+private fun formatAverageUsageDuration(totalMinutes: Long): String {
+    val safeTotalMinutes = totalMinutes.coerceAtLeast(0)
+    val hours = safeTotalMinutes / 60
+    val minutes = safeTotalMinutes % 60
+    return when {
+        hours > 0 && minutes > 0 -> stringResource(
+            R.string.focus_summary_share_duration_hours_minutes,
+            pluralStringResource(
+                R.plurals.focus_summary_share_duration_hour,
+                hours.toInt(),
+                hours,
+            ),
+            pluralStringResource(
+                R.plurals.focus_summary_share_duration_minute,
+                minutes.toInt(),
+                minutes,
+            ),
+        )
+        hours > 0 -> pluralStringResource(
+            R.plurals.focus_summary_share_duration_hour,
+            hours.toInt(),
+            hours,
+        )
+        else -> pluralStringResource(
+            R.plurals.focus_summary_share_duration_minute,
+            minutes.toInt(),
+            minutes,
+        )
     }
 }
 
