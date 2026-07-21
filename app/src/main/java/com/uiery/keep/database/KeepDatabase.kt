@@ -10,11 +10,15 @@ import com.uiery.keep.database.converter.ListStringTypeConverter
 import com.uiery.keep.database.converter.TimeTypeConverter
 import com.uiery.keep.database.dao.AppUsageDailyDao
 import com.uiery.keep.database.dao.EmergencyUnlockDao
+import com.uiery.keep.database.dao.FirstPromiseAnalyticsOutboxDao
+import com.uiery.keep.database.dao.FirstPromiseDao
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.AppUsageDailyEntity
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
+import com.uiery.keep.database.entity.FirstPromiseAnalyticsOutboxEntity
+import com.uiery.keep.database.entity.FirstPromiseEntity
 import com.uiery.keep.database.entity.GoalLockEntity
 import com.uiery.keep.database.entity.LockHistoryEntity
 import com.uiery.keep.database.entity.RoutineEntity
@@ -26,8 +30,10 @@ import com.uiery.keep.database.entity.RoutineEntity
         EmergencyUnlockEntity::class,
         GoalLockEntity::class,
         AppUsageDailyEntity::class,
+        FirstPromiseEntity::class,
+        FirstPromiseAnalyticsOutboxEntity::class,
     ],
-    version = 6,
+    version = 7,
 )
 @TypeConverters(
     value = [
@@ -42,6 +48,8 @@ abstract class KeepDatabase : RoomDatabase() {
     abstract fun emergencyUnlockDao(): EmergencyUnlockDao
     abstract fun goalLockDao(): GoalLockDao
     abstract fun appUsageDailyDao(): AppUsageDailyDao
+    abstract fun firstPromiseDao(): FirstPromiseDao
+    abstract fun firstPromiseAnalyticsOutboxDao(): FirstPromiseAnalyticsOutboxDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -118,6 +126,47 @@ abstract class KeepDatabase : RoomDatabase() {
                         PRIMARY KEY(date, package_name)
                     )
                     """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS first_promise (
+                        draft_id TEXT NOT NULL,
+                        routine_id INTEGER NOT NULL,
+                        goal_type TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        created_at_millis INTEGER NOT NULL,
+                        PRIMARY KEY(draft_id),
+                        FOREIGN KEY(routine_id) REFERENCES routine(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_first_promise_routine_id " +
+                        "ON first_promise(routine_id)",
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS first_promise_analytics_outbox (
+                        draft_id TEXT NOT NULL,
+                        event_name TEXT NOT NULL,
+                        sequence INTEGER NOT NULL,
+                        canonical_event_name TEXT NOT NULL,
+                        payload_json TEXT NOT NULL,
+                        occurred_at_millis INTEGER NOT NULL,
+                        delivery_state TEXT NOT NULL,
+                        sent_at_millis INTEGER,
+                        PRIMARY KEY(draft_id, event_name)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_first_promise_analytics_outbox_draft_id_sequence " +
+                        "ON first_promise_analytics_outbox(draft_id, sequence)",
                 )
             }
         }

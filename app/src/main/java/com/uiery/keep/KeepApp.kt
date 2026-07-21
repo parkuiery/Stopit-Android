@@ -31,11 +31,19 @@ import com.uiery.keep.feature.lock.lockScreen
 import com.uiery.keep.feature.lock.navigateToLock
 import com.uiery.keep.feature.menu.menuScreen
 import com.uiery.keep.feature.menu.navigateToMenu
+import com.uiery.keep.feature.onboarding.Onboarding
 import com.uiery.keep.feature.onboarding.navigateToOnboarding
+import com.uiery.keep.feature.onboarding.entry.handleOnboardingEntrySideEffect
 import com.uiery.keep.feature.onboarding.notification.navigateToNotificationSetting
+import com.uiery.keep.feature.onboarding.notification.navigateToPromiseNotification
 import com.uiery.keep.feature.onboarding.onboarding
 import com.uiery.keep.feature.onboarding.permission.navigateToPermissionSetting
+import com.uiery.keep.feature.onboarding.permission.navigateToPromiseAccessibility
+import com.uiery.keep.feature.onboarding.result.navigateToPromiseResult
 import com.uiery.keep.feature.onboarding.select.navigateToSelectApp
+import com.uiery.keep.feature.onboarding.usageaccess.navigateToUsageAccess
+import com.uiery.keep.feature.onboarding.usageanalysis.navigateToPromiseProposal
+import com.uiery.keep.feature.onboarding.usageanalysis.navigateToUsageAnalysis
 import com.uiery.keep.feature.parentmode.navigateToParentModeSetup
 import com.uiery.keep.feature.parentmode.parentModeSetupScreen
 import com.uiery.keep.feature.routine.navigateToRoutine
@@ -80,10 +88,29 @@ internal fun KeepApp(
             onNavigateLock = navController::navigateToLock,
         )
         onboarding(
+            onEntrySideEffect = navController::handleOnboardingEntrySideEffect,
             onNavigatePermissionSetting = navController::navigateToPermissionSetting,
             onNavigateNotificationSetting = navController::navigateToNotificationSetting,
             onNavigateSelectApp = navController::navigateToSelectApp,
             onNavigateHome = navController::navigateToHome,
+            onNavigateLock = navController::navigateToLock,
+            onNavigateUsageAccess = navController::navigateToUsageAccess,
+            onNavigateUsageAnalysis = navController::navigateToUsageAnalysis,
+            onNavigateManualAppSelect = { navController.navigate(Onboarding.Route.ManualAppSelect) },
+            onNavigateManualPromiseProposal = { navController.navigate(Onboarding.Route.PromiseProposal) },
+            onNavigatePromiseProposal = navController::navigateToPromiseProposal,
+            onNavigatePromiseAccessibility = navController::navigateToPromiseAccessibility,
+            onNavigatePromiseNotification = navController::navigateToPromiseNotification,
+            onNavigatePromisePersistence = {
+                navController.navigateToPromiseResult()
+            },
+            onNavigateBackFromPromiseAccessibility = navController::navigateUp,
+            onNavigatePromiseEdit = {
+                navController.navigate(Onboarding.Route.PromiseProposal) {
+                    popUpTo(Onboarding.Route.PromiseProposal) { inclusive = false }
+                    launchSingleTop = true
+                }
+            },
         )
         homeScreen(
             onNavigateMenu = navController::navigateToMenu,

@@ -7,6 +7,8 @@ import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.BlockAnalyticsCoordinator
+import com.uiery.keep.analytics.BlockAnalyticsRequest
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
 import com.uiery.keep.data.routine.RoutineRepository
@@ -34,7 +36,6 @@ import org.orbitmvi.orbit.viewmodel.container
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -43,6 +44,7 @@ class BlockViewModel
     constructor(
         private val blockingStateStore: BlockingStateStore,
         private val analytics: KeepAnalytics,
+        private val blockAnalyticsCoordinator: BlockAnalyticsCoordinator,
         private val emergencyUnlockCoordinator: EmergencyUnlockCoordinator,
         private val lockHistoryRepository: LockHistoryRepository,
         private val routineRepository: RoutineRepository,
@@ -101,47 +103,22 @@ class BlockViewModel
             goalLockId: String? = null,
         ) = intent {
             val normalizedGoalLockId = goalLockId?.trim()?.takeIf { it.isNotEmpty() }
-            val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
-                fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
-            )
-            val firstOpenTimestamp = firstCoreActionState.firstOpenTimestampMillis
-            val elapsedSeconds =
-                TimeUnit.MILLISECONDS
-                    .toSeconds(System.currentTimeMillis() - firstOpenTimestamp)
-                    .coerceAtLeast(0L)
-            val hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction
-
-            analytics.trackAppBlockIntercepted(
-                blockSource = blockSource,
-                blockedAppPackage = packageName,
-                routineId = routineId,
-                goalLockId = normalizedGoalLockId,
-            )
-            if (blockSource == AnalyticsBlockSource.PARENT_MODE) {
-                analytics.trackParentModeBlockIntercepted(
-                    blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
-                )
-            }
-            if (hasTrackedFirstCoreAction) {
-                reduce { state.copy(showFirstCoreActionFeedback = false) }
-                analytics.trackCoreActionCompleted(
-                    elapsedSinceFirstOpenSeconds = elapsedSeconds,
-                    blockingMode = blockSource,
-                    blockedAppPackage = packageName,
+            val result = blockAnalyticsCoordinator.track(
+                request = BlockAnalyticsRequest(
+                    packageName = packageName,
+                    blockSource = blockSource,
                     routineId = routineId,
                     goalLockId = normalizedGoalLockId,
-                )
-            } else {
-                reduce { state.copy(showFirstCoreActionFeedback = true) }
-                analytics.trackFirstCoreActionCompleted(
-                    elapsedSinceFirstOpenSeconds = elapsedSeconds,
-                    blockingMode = blockSource,
-                    blockedAppPackage = packageName,
-                    routineId = routineId,
-                    goalLockId = normalizedGoalLockId,
-                )
-                blockingStateStore.markFirstCoreActionTracked(firstOpenTimestampMillis = firstOpenTimestamp)
-            }
+                ),
+                afterAppBlockTracked = {
+                    if (blockSource == AnalyticsBlockSource.PARENT_MODE) {
+                        analytics.trackParentModeBlockIntercepted(
+                            blockContext = AnalyticsParentModeBlockContext.DISALLOWED_APP,
+                        )
+                    }
+                },
+            )
+            reduce { state.copy(showFirstCoreActionFeedback = result.showFirstCoreActionFeedback) }
             val suggestion = if (blockSource.shouldShowPostBlockRepeatBlockSuggestion()) {
                 loadPostBlockRepeatBlockRoutineSuggestion()
             } else {

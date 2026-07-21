@@ -3,6 +3,8 @@ package com.uiery.keep.feature.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -52,6 +55,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +88,11 @@ import com.uiery.keep.feature.home.component.TimeBottomSheetContent
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.feature.home.component.UsageInsightCard
+import com.uiery.keep.feature.home.component.FirstPromiseResumeCard
+import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
+import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLaunchResult
+import com.uiery.keep.feature.routine.createAppDetailsSettingsIntent
+import com.uiery.keep.feature.routine.createExactAlarmSettingsIntent
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
@@ -161,6 +170,14 @@ fun HomeScreen(
                 runCatching {
                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 }
+            is HomeSideEffect.OpenExactAlarmSettings ->
+                if (RoutineAlarmPermissionSettingsLauncher.open(
+                    exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),
+                    appDetailsTarget = createAppDetailsSettingsIntent(context.packageName),
+                    launch = context::startActivity,
+                ) == RoutineAlarmPermissionSettingsLaunchResult.Unavailable) {
+                    viewModel.onFirstPromiseExactAlarmSettingsUnavailable()
+                }
         }
     }
 
@@ -180,6 +197,7 @@ fun HomeScreen(
                 viewModel.maybeDrainReviewFlag(activity)
                 // Usage Access 설정 딥링크에서 복귀했을 때 인사이트 카드를 재평가한다(권한 전환 감지).
                 viewModel.loadUsageInsightCard()
+                viewModel.onFirstPromiseExactAlarmResume()
             }
         }
         observedLifecycle.addObserver(observer)
@@ -285,8 +303,16 @@ fun HomeScreen(
         },
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
+        val hasFirstPromiseResumeCard = uiState.firstPromiseResumeCard != null
         Column(
-            modifier = Modifier.padding(paddingValues),
+            modifier = if (hasFirstPromiseResumeCard) {
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+            } else {
+                Modifier.padding(paddingValues)
+            },
         ) {
             val configuration = LocalConfiguration.current
             var lottieOffset by remember { mutableStateOf(IntOffset.Zero) }
@@ -310,7 +336,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                 onClick = viewModel::showCategoryBottomSheet,
-                enabled = !uiState.isKeep,
+                enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
                 categorySize = uiState.selectedAppPackage.size,
             )
             if (uiState.showFirstLockActivationCta) {
@@ -322,6 +348,13 @@ fun HomeScreen(
                     onClick = { viewModel.changeIsKeep() },
                 )
             }
+            FirstPromiseResumeCard(
+                state = uiState.firstPromiseResumeCard,
+                onActivate = viewModel::activateFirstPromiseResumeCard,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+            )
             UsageInsightCard(
                 state = uiState.usageInsightCard,
                 onCtaClick = viewModel::onUsageInsightCtaClick,
@@ -330,52 +363,40 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             )
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
+            val mainControls: @Composable (Modifier) -> Unit = { modifier ->
                 Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .onGloballyPositioned { parentCoordinates = it },
+                    modifier = modifier.onGloballyPositioned { parentCoordinates = it },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
-                        modifier =
-                            Modifier
-                                .fillMaxSize(),
-                        verticalArrangement =
-                            Arrangement.spacedBy(
-                                space = 20.dp,
-                                alignment = Alignment.CenterVertically,
-                            ),
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(
+                            space = 20.dp,
+                            alignment = Alignment.CenterVertically,
+                        ),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val (image, message) =
-                            if (uiState.isKeep) {
-                                R.drawable.kepp_icon to stringResource(R.string.keep_turned_off)
-                            } else {
-                                R.drawable.disable_logo to
-                                    stringResource(R.string.keep_turned_on)
-                            }
+                        val (image, message) = if (uiState.isKeep) {
+                            R.drawable.kepp_icon to stringResource(R.string.keep_turned_off)
+                        } else {
+                            R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
+                        }
                         Image(
-                            modifier =
-                                Modifier
-                                    .sizeIn(
-                                        minHeight = 100.dp,
-                                        minWidth = 100.dp,
-                                    ).onGloballyPositioned(calculateLottieOffset)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
-                                            viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
-                                        } else {
-                                            viewModel.showSnackBar(message)
-                                            viewModel.changeIsKeep()
-                                        }
-                                    },
+                            modifier = Modifier
+                                .sizeIn(minHeight = 100.dp, minWidth = 100.dp)
+                                .onGloballyPositioned(calculateLottieOffset)
+                                .clip(RoundedCornerShape(12.dp))
+                                .testTag(HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG)
+                                .clearAndSetSemantics { }
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                        viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                    } else {
+                                        viewModel.showSnackBar(message)
+                                        viewModel.changeIsKeep()
+                                    }
+                                },
                             painter = painterResource(id = image),
                             contentDescription = null,
                         )
@@ -383,7 +404,14 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(18.dp),
                         ) {
+                            val keepSwitchDescription = stringResource(
+                                if (uiState.isKeep) R.string.keep_on_status
+                                else R.string.keep_off_status,
+                            )
                             KeepSwitch(
+                                modifier = Modifier.semantics {
+                                    contentDescription = keepSwitchDescription
+                                },
                                 checked = uiState.isKeep,
                                 onCheckedChange = {
                                     if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
@@ -395,39 +423,40 @@ fun HomeScreen(
                                 },
                             )
                             Image(
-                                modifier =
-                                    Modifier
-                                        .size(40.dp)
-                                        .background(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = KeepTheme.colors.onSecondary,
-                                        ).clip(RoundedCornerShape(8.dp))
-                                        .clickable(
-                                            onClick = viewModel::showTimeBottomSheet,
-                                            enabled = !uiState.isKeep,
-                                        ).padding(4.dp),
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = KeepTheme.colors.onSecondary,
+                                    )
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable(
+                                        onClick = viewModel::showTimeBottomSheet,
+                                        enabled = !uiState.isKeep,
+                                )
+                                    .padding(4.dp),
                                 painter = painterResource(id = R.drawable.timer_outline),
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.cd_open_timer),
                             )
                         }
                     }
                     if (uiState.isKeep) {
                         LottieAnimation(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .absoluteOffset { lottieOffset },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .absoluteOffset { lottieOffset },
                             composition = composition,
                             iterations = LottieConstants.IterateForever,
                         )
                     }
                 }
+            }
+            val bottomContent: @Composable () -> Unit = {
                 Column {
                     ContentDescription(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 20.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
                         isKeep = uiState.isKeep,
                         startTime = uiState.startTime,
                     )
@@ -441,9 +470,29 @@ fun HomeScreen(
                     )
                 }
             }
+            if (hasFirstPromiseResumeCard) {
+                mainControls(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .testTag(HOME_MAIN_CONTROLS_TEST_TAG),
+                )
+                bottomContent()
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    mainControls(Modifier.fillMaxSize())
+                    bottomContent()
+                }
+            }
         }
     }
 }
+
+private const val HOME_MAIN_CONTROLS_TEST_TAG = "home_main_controls"
+private const val HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG = "home_keep_toggle_touch_shortcut"
 
 @Composable
 private fun FirstLockActivationCta(

@@ -11,6 +11,7 @@ import com.uiery.keep.datastore.ReviewPromptStateStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.data.lock.TimedLockSessionController
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.feature.review.AnalyticsEventRecord
@@ -164,6 +165,11 @@ class HomeViewModelReviewTest {
                 analytics = analytics,
                 reviewPromptStateStore = reviewPromptStateStore,
                 clock = clock,
+            ),
+            timedLockStarter = TimedLockSessionController(
+                BlockingStateStore(dataStore),
+                analytics,
+                Clock.systemDefaultZone(),
             ),
         )
     }

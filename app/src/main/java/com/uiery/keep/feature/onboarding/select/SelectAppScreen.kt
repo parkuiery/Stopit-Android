@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,13 +23,14 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepModalBottomSheet
+import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.ui.component.AppSelectionMode
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
-import androidx.compose.ui.res.stringResource
-import com.uiery.kds.KeepModalBottomSheet
-import com.uiery.kds.theme.KeepTheme
+import org.orbitmvi.orbit.compose.collectSideEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +38,8 @@ fun SelectAppScreen(
     modifier: Modifier = Modifier,
     viewModel: SelectAppViewModel = hiltViewModel(),
     onNavigateHome: () -> Unit,
+    selectionMode: AppSelectionMode = AppSelectionMode.Multiple,
+    onNavigateProposal: () -> Unit = {},
 ) {
     val uiState by viewModel.collectAsState()
     val categoryBottomSheetState = rememberModalBottomSheetState(
@@ -45,6 +49,19 @@ fun SelectAppScreen(
         LottieCompositionSpec.RawRes(R.raw.picker_guide_lottie)
     )
     val coroutineScope = rememberCoroutineScope()
+
+    viewModel.collectSideEffect { effect ->
+        when (effect) {
+            SelectAppSideEffect.NavigateProposal -> coroutineScope.launch {
+                categoryBottomSheetState.hide()
+            }.invokeOnCompletion {
+                if (!categoryBottomSheetState.isVisible) {
+                    viewModel.hideCategoryBottomSheet()
+                    onNavigateProposal()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.onStepViewed()
@@ -57,8 +74,12 @@ fun SelectAppScreen(
         ) {
             CategoryBottomSheetContent(
                 storeSelectApps = emptySet(),
+                selectionMode = selectionMode,
                 onComplete = { selectPackages ->
-                    if (canCompleteOnboardingAppSelection(selectPackages)) {
+                    if (
+                        selectionMode == AppSelectionMode.Multiple &&
+                        canCompleteOnboardingAppSelection(selectPackages)
+                    ) {
                         viewModel.selectCategoryComplete(selectPackages)
                         coroutineScope.launch {
                             categoryBottomSheetState.hide()
@@ -69,6 +90,9 @@ fun SelectAppScreen(
                             }
                         }
                     }
+                },
+                onSingleComplete = { packageName, appLabel ->
+                    viewModel.selectManualCategoryComplete(packageName, appLabel)
                 },
             )
         }

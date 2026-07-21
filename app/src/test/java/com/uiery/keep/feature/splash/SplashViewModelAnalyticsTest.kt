@@ -6,6 +6,7 @@ import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.RoutineDao
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
@@ -29,6 +30,7 @@ class SplashViewModelAnalyticsTest {
 
         SplashViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
+            firstPromiseDraftStore = FirstPromiseDraftStore(dataStore),
             analytics = analytics,
             routineRestoreAftercare = RoutineRestoreAftercare(
                 routineRepository = routineRepository,

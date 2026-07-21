@@ -11,13 +11,189 @@ import com.uiery.keep.analytics.routine.RoutineTemplateCategoryName
 import com.uiery.keep.analytics.routine.RoutineTemplateRepeatDaysBucketName
 import com.uiery.keep.analytics.routine.RoutineTemplateShareFailureReason
 import com.uiery.keep.analytics.routine.RoutineTemplateTimeWindowBucketName
+import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
+import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PromiseEditField
+import com.uiery.keep.domain.firstpromise.UsageCoverageBucket
+import com.uiery.keep.domain.firstpromise.UsageDataQuality
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FirebaseKeepAnalyticsTest {
     private val backend = FakeAnalyticsBackend()
     private val analytics = FirebaseKeepAnalytics(backend)
+
+    @Test
+    fun firstPromiseEventsUseExactPrivacySafeTypedSchema() {
+        analytics.trackOnboardingExperimentExposed(
+            variant = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+        )
+        analytics.trackUsageAnalysisCompleted(
+            dataQuality = UsageDataQuality.UsageOnly,
+            patternType = UsagePatternType.TopApp,
+            coverageDaysBucket = UsageCoverageBucket.ThreeSix,
+            latencyBucket = AnalysisLatencyBucket.OneToThreeSeconds,
+        )
+        analytics.trackPromiseRecommendationShown(
+            goalType = FirstPromiseGoal.FreeTime,
+            patternType = UsagePatternType.Night,
+            source = FirstPromiseSource.GoalTemplate,
+        )
+        analytics.trackPromiseRecommendationEdited(PromiseEditField.StartTime)
+        analytics.trackFirstPromiseCreated(
+            goalType = FirstPromiseGoal.Study,
+            source = FirstPromiseSource.Manual,
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+        )
+        analytics.trackFirstPromisePracticeOutcome(FirstPromisePracticeOutcome.StartFailed)
+
+        assertEquals(
+            listOf(
+                LoggedEvent(
+                    name = "onboarding_experiment_exposed",
+                    params = mapOf(
+                        "variant" to "promise_coach_v1",
+                        "assignment_version" to "v1",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "usage_analysis_completed",
+                    params = mapOf(
+                        "data_quality" to "usage_only",
+                        "pattern_type" to "top_app",
+                        "coverage_days_bucket" to "3_6",
+                        "latency_bucket" to "1_3s",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "promise_recommendation_shown",
+                    params = mapOf(
+                        "goal_type" to "free_time",
+                        "pattern_type" to "night",
+                        "source" to "goal_template",
+                    ),
+                ),
+                LoggedEvent(
+                    name = "promise_recommendation_edited",
+                    params = mapOf("field_name" to "start_time"),
+                ),
+                LoggedEvent(
+                    name = "first_promise_created",
+                    params = mapOf(
+                        "goal_type" to "study",
+                        "source" to "manual",
+                        "schedule_state" to RoutineSavedScheduleState.DISABLED_EXACT_ALARM_MISSING,
+                    ),
+                ),
+                LoggedEvent(
+                    name = "first_promise_practice_outcome",
+                    params = mapOf("outcome" to "start_failed"),
+                ),
+            ),
+            backend.loggedEvents,
+        )
+        backend.loggedEvents.forEach { event ->
+            assertTrue(event.params.keys.none(FIRST_PROMISE_FORBIDDEN_KEYS::contains))
+            val serializedValues = event.params.values.joinToString("|")
+            assertTrue(FIRST_PROMISE_FORBIDDEN_VALUES.none(serializedValues::contains))
+        }
+    }
+
+    @Test
+    fun appBlockInterceptedUsesOptionalTypedFirstPromiseOriginWithoutExportingLocalIdentity() {
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.ROUTINE,
+            blockedAppPackage = "com.example.private-package",
+            routineId = "local-routine-id",
+            promiseOrigin = FirstPromiseOrigin.FirstPromiseRoutine,
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            blockedAppPackage = "com.example.private-package",
+            promiseOrigin = FirstPromiseOrigin.FirstPromisePractice,
+        )
+        analytics.trackAppBlockIntercepted(
+            blockSource = AnalyticsBlockSource.TIMED_LOCK,
+            blockedAppPackage = "com.example.private-package",
+        )
+
+        assertEquals(
+            listOf(
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.ROUTINE,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to "first_promise_routine",
+                ),
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                    KeepAnalyticsParam.PROMISE_ORIGIN to "first_promise_practice",
+                ),
+                mapOf(
+                    KeepAnalyticsParam.BLOCK_SOURCE to AnalyticsBlockSource.TIMED_LOCK,
+                    KeepAnalyticsParam.BLOCKED_APP_CATEGORY_BUCKET to BlockedAppCategoryBucket.UNKNOWN,
+                ),
+            ),
+            backend.loggedEvents.map { it.params },
+        )
+        backend.loggedEvents.forEach { event ->
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.BLOCKED_APP_PACKAGE))
+            assertFalse(event.params.containsKey(KeepAnalyticsParam.ROUTINE_ID))
+            assertFalse(event.params.values.contains("local-routine-id"))
+            assertFalse(event.params.values.contains("com.example.private-package"))
+        }
+    }
+
+    @Test
+    fun firstPromiseEntryPointsAcceptNoRawStrings() {
+        val firstPromiseMethodNames = setOf(
+            "trackOnboardingExperimentExposed",
+            "trackUsageAnalysisCompleted",
+            "trackPromiseRecommendationShown",
+            "trackPromiseRecommendationEdited",
+            "trackFirstPromiseCreated",
+            "trackFirstPromisePracticeOutcome",
+        )
+
+        val methods = KeepAnalytics::class.java.methods.filter { it.name in firstPromiseMethodNames }
+
+        assertEquals(firstPromiseMethodNames, methods.mapTo(mutableSetOf()) { it.name })
+        assertEquals(
+            emptyList<String>(),
+            methods.flatMap { method ->
+                method.parameterTypes
+                    .filter { parameterType -> parameterType == String::class.java }
+                    .map { method.name }
+            },
+        )
+    }
+
+    companion object {
+        private val FIRST_PROMISE_FORBIDDEN_KEYS = setOf(
+            "package",
+            "app_package",
+            "app_label",
+            "observed_minutes",
+            "observed_time",
+            "draft_id",
+            "routine_id",
+        )
+        private val FIRST_PROMISE_FORBIDDEN_VALUES = setOf(
+            "com.example",
+            "local-routine",
+            "local-draft",
+        )
+    }
 
     @Test
     fun onboardingEventsUseCanonicalSchema() {
@@ -868,6 +1044,9 @@ class FirebaseKeepAnalyticsTest {
                 KeepAnalyticsScreen.ONBOARDING_PERMISSION,
                 KeepAnalyticsScreen.ONBOARDING_NOTIFICATION,
                 KeepAnalyticsScreen.ONBOARDING_SELECT_APP,
+                KeepAnalyticsScreen.ONBOARDING_GOAL_SELECT,
+                KeepAnalyticsScreen.ONBOARDING_USAGE_ACCESS,
+                KeepAnalyticsScreen.ONBOARDING_USAGE_ANALYSIS,
                 KeepAnalyticsScreen.HOME,
                 KeepAnalyticsScreen.MENU,
                 KeepAnalyticsScreen.LOCK_HISTORY,
@@ -894,6 +1073,9 @@ class FirebaseKeepAnalyticsTest {
         assertEquals("referrer_status", KeepAnalyticsParam.REFERRER_STATUS)
         assertEquals("campaign_bucket", KeepAnalyticsParam.CAMPAIGN_BUCKET)
         assertEquals("15_30", AnalyticsGoalLockDurationDaysBucket.FIFTEEN_TO_THIRTY)
+        assertEquals("usage_access", AnalyticsPermissionName.USAGE_ACCESS)
+        assertEquals("skipped", AnalyticsOutcome.SKIPPED)
+        assertEquals("unknown", AnalyticsOutcome.UNKNOWN)
     }
 }
 

@@ -60,17 +60,19 @@ class BackupRestoreRuntimeResetIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context: Context = instrumentation.targetContext
     private lateinit var database: KeepDatabase
+    private lateinit var databaseName: String
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var dataStoreName: String
 
     @Before
     fun setUp() {
         runBlocking {
+            databaseName = "$DATABASE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
             dataStoreName = "$DATASTORE_PREFIX-${System.currentTimeMillis()}-${System.nanoTime()}"
             grantPostNotificationsPermission()
             grantExactAlarmPermission()
             clearAppState()
-            database = Room.databaseBuilder(context, KeepDatabase::class.java, DATABASE_NAME)
+            database = Room.databaseBuilder(context, KeepDatabase::class.java, databaseName)
                 .allowMainThreadQueries()
                 .build()
             dataStore = createDataStore()
@@ -200,7 +202,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
     }
 
     private fun clearAppState() = runBlocking {
-        context.deleteDatabase(DATABASE_NAME)
+        context.deleteDatabase(databaseName)
         cancelRoutineAlarm(TEST_ROUTINE_ID)
         cancelNotification(TEST_ROUTINE_ID)
         dataStoreFile().delete()
@@ -286,7 +288,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
     }
 
     companion object {
-        private const val DATABASE_NAME = "keep-database"
+        private const val DATABASE_PREFIX = "backup-restore-runtime-reset-db"
         private const val DATASTORE_PREFIX = "backup-restore-runtime-reset"
         private const val TEST_ROUTINE_ID = 103L
         private val today: DayOfWeek = java.time.LocalDate.now().dayOfWeek

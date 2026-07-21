@@ -33,6 +33,7 @@ fun buildHomeStatusCtaModel(
     showRoutineCreationCta: Boolean,
     hasGoalLockCard: Boolean,
     hasActiveTimedLock: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") hasFirstPromiseResumeCard: Boolean = false,
 ): HomeStatusCtaModel {
     val hasSelectedApps = selectedAppCount > 0
     val statusKind = when {

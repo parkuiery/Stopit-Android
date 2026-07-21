@@ -2,27 +2,61 @@ package com.uiery.keep.feature.onboarding.select
 
 import androidx.lifecycle.ViewModel
 import com.uiery.keep.analytics.AnalyticsSource
+import com.uiery.keep.analytics.FirstPromiseOnboardingAnalyticsDispatcher
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseRecommendationPolicy
+import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 import javax.inject.Inject
 
 @HiltViewModel
-class SelectAppViewModel @Inject constructor(
+class SelectAppViewModel internal constructor(
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
+    private val draftStore: FirstPromiseDraftStore?,
+    private val draftId: () -> String,
+    private val onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher? =
+        draftStore?.let { FirstPromiseOnboardingAnalyticsDispatcher(it, analytics) },
+    private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+        FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : ContainerHost<SelectAppUiState, SelectAppSideEffect>, ViewModel() {
+    @Inject constructor(
+        blockingStateStore: BlockingStateStore,
+        analytics: KeepAnalytics,
+        draftStore: FirstPromiseDraftStore,
+        onboardingAnalyticsDispatcher: FirstPromiseOnboardingAnalyticsDispatcher,
+        firstLockDelivery: FirstLockConfiguredDeliveryCoordinator,
+    ) : this(
+        blockingStateStore,
+        analytics,
+        draftStore,
+        { UUID.randomUUID().toString() },
+        onboardingAnalyticsDispatcher,
+        firstLockDelivery,
+    )
+
+    constructor(
+        blockingStateStore: BlockingStateStore,
+        analytics: KeepAnalytics,
+    ) : this(blockingStateStore, analytics, null, { UUID.randomUUID().toString() }, null)
+
     override val container: Container<SelectAppUiState, SelectAppSideEffect> =
         container(SelectAppUiState())
 
     fun onStepViewed() {
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_SELECT_APP)
         analytics.trackOnboardingStepView(OnboardingStepName.SELECT_APP)
+        val store = draftStore ?: return
+        intent { store.returnToManualSelection() }
     }
 
     internal fun showCategoryBottomSheet() = intent {
@@ -46,6 +80,30 @@ class SelectAppViewModel @Inject constructor(
         storeIsNew()
     }
 
+    internal fun selectManualCategoryComplete(
+        packageName: String,
+        appLabel: String,
+    ) = intent {
+        val store = draftStore ?: return@intent
+        val current = runCatching { store.readState() }.getOrNull() ?: return@intent
+        val proposal = runCatching {
+            FirstPromiseRecommendationPolicy.fromSelection(
+                draftId = draftId(),
+                goal = current.goal,
+                packageName = packageName,
+                appLabel = appLabel,
+            )
+        }.getOrNull() ?: return@intent
+        val mutation = store.createManualDraft(
+            draft = proposal.draft,
+            reason = FirstPromiseRecommendationPolicy.toReasonRef(proposal),
+        )
+        if (mutation !is FirstPromiseStateMutation.Changed) return@intent
+
+        runCatching { onboardingAnalyticsDispatcher?.drain() }
+        postSideEffect(SelectAppSideEffect.NavigateProposal)
+    }
+
     private fun storeSelectedApp(selectedAppPackage: Set<String>) = intent {
         blockingStateStore.saveSelectedAppPackages(selectedAppPackage)
     }
@@ -55,9 +113,7 @@ class SelectAppViewModel @Inject constructor(
     }
 
     private suspend fun trackFirstLockConfiguredIfNeeded(selectedAppPackage: Set<String>) {
-        if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return
-
-        analytics.trackFirstLockConfigured(
+        firstLockDelivery.trackIfNeeded(
             source = AnalyticsSource.ONBOARDING,
             selectedAppCount = selectedAppPackage.size,
         )
@@ -68,7 +124,9 @@ data class SelectAppUiState(
     val isShowCategoryBottomSheet: Boolean = false,
 )
 
-sealed class SelectAppSideEffect
+sealed interface SelectAppSideEffect {
+    data object NavigateProposal : SelectAppSideEffect
+}
 
 internal fun canCompleteOnboardingAppSelection(selectedAppPackages: Set<String>): Boolean =
     selectedAppPackages.isNotEmpty()

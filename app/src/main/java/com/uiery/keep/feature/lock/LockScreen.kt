@@ -11,11 +11,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -123,17 +123,18 @@ fun LockScreen(
         }
     }
 
-    Scaffold(
+    LockScreenLayout(
         modifier = modifier.fillMaxSize(),
-        containerColor = KeepTheme.colors.background,
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        banner = {
+            TrackedBannerAd(
+                modifier = Modifier.fillMaxWidth(),
+                metadata = AdPlacement.LockBottom.toMetadata(
+                    screenName = KeepAnalyticsScreen.LOCK,
+                    screenContext = if (uiState.isRoutine) "routine" else "manual",
+                ),
+            )
+        },
+    ) {
             CategoryButton(
                 modifier = Modifier.padding(top = 60.dp),
                 onClick = { },
@@ -227,7 +228,6 @@ fun LockScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
                     .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -277,13 +277,38 @@ fun LockScreen(
                         )
                     }
                 }
-                TrackedBannerAd(
-                    modifier = Modifier.padding(top = 16.dp),
-                    metadata = AdPlacement.LockBottom.toMetadata(
-                        screenName = KeepAnalyticsScreen.LOCK,
-                        screenContext = if (uiState.isRoutine) "routine" else "manual",
-                    ),
-                )
+            }
+    }
+}
+
+@Composable
+internal fun LockScreenLayout(
+    modifier: Modifier = Modifier,
+    banner: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        containerColor = KeepTheme.colors.background,
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                content = content,
+            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                banner()
             }
         }
     }

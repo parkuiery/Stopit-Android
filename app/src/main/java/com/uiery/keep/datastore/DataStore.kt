@@ -36,6 +36,9 @@ object PreferencesKey {
     val EMERGENCY_UNLOCK_COUNTDOWN_SECONDS = intPreferencesKey("emergency_unlock_countdown_seconds")
     val HAS_TRACKED_FIRST_OPEN = booleanPreferencesKey("has_tracked_first_open")
     val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
+    val PENDING_FIRST_LOCK_CONFIGURED_SOURCE = stringPreferencesKey("pending_first_lock_configured_source")
+    val PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT =
+        intPreferencesKey("pending_first_lock_configured_selected_app_count")
     val FIRST_OPEN_TIMESTAMP = longPreferencesKey("first_open_timestamp")
     val HAS_TRACKED_FIRST_CORE_ACTION = booleanPreferencesKey("has_tracked_first_core_action")
     val REVIEW_PENDING = booleanPreferencesKey("review_pending")
@@ -51,4 +54,9 @@ object PreferencesKey {
     val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
     val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
     val USAGE_INSIGHT_DISMISSED = stringPreferencesKey("usage_insight_dismissed")
+    val FIRST_PROMISE_ONBOARDING_STATE = stringPreferencesKey("first_promise_onboarding_state")
+    val FIRST_PROMISE_PRACTICE_TOKEN = stringPreferencesKey("first_promise_practice_token")
+    val FIRST_PROMISE_PRACTICE_DECISION = stringPreferencesKey("first_promise_practice_decision")
+    val FIRST_PROMISE_CREATION_BARRIER_DRAFT_IDS =
+        stringSetPreferencesKey("first_promise_creation_barrier_draft_ids")
 }

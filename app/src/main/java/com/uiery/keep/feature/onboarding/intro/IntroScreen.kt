@@ -22,6 +22,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import org.orbitmvi.orbit.compose.collectSideEffect
 
 @Composable
 fun IntroScreen(
@@ -29,6 +30,11 @@ fun IntroScreen(
     viewModel: IntroViewModel = hiltViewModel(),
     onNavigatePermissionSetting: () -> Unit,
 ) {
+    viewModel.collectSideEffect { effect ->
+        when (effect) {
+            IntroSideEffect.NavigatePermissionSetting -> onNavigatePermissionSetting()
+        }
+    }
     val composition by rememberLottieComposition(
         LottieCompositionSpec.RawRes(R.raw.intro_lottie)
     )
@@ -64,10 +70,7 @@ fun IntroScreen(
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.start_button),
-                onClick = {
-                    viewModel.onContinue()
-                    onNavigatePermissionSetting()
-                },
+                onClick = viewModel::onContinue,
             )
         }
     }

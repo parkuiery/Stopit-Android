@@ -28,6 +28,7 @@ import com.uiery.keep.domain.goallock.GoalLockMode
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.data.lock.TimedLockSessionController
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
 import com.uiery.keep.data.routine.RoutineRepository
@@ -422,6 +423,32 @@ class HomeViewModelActivationAnalyticsTest {
         delay(50)
 
         assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun activeTimedLockPreventsOpeningOrApplyingAppSelection() = runBlocking {
+        val originalPackages = setOf("com.example.practice")
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to originalPackages,
+                PreferencesKey.LOCK_TIME to ManualLockTimePolicy.encodeDeadline(
+                    Instant.now().plusSeconds(600),
+                ),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        waitFor { viewModel.container.stateFlow.value.hasActiveTimedLock }
+        viewModel.showCategoryBottomSheet()
+        viewModel.selectCategoryComplete(setOf("com.example.unrelated"))
+        delay(50)
+
+        assertEquals(false, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
+        assertEquals(originalPackages, viewModel.container.stateFlow.value.selectedAppPackage)
+        assertEquals(originalPackages, dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
     }
 
     @Test
@@ -1256,6 +1283,11 @@ class HomeViewModelActivationAnalyticsTest {
                 analytics = analytics,
                 reviewPromptStateStore = reviewPromptStateStore,
                 clock = clock,
+            ),
+            timedLockStarter = TimedLockSessionController(
+                BlockingStateStore(dataStore),
+                analytics,
+                Clock.systemDefaultZone(),
             ),
         )
     }
