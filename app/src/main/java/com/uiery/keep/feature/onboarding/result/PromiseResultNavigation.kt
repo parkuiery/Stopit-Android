@@ -12,11 +12,13 @@ fun NavController.navigateToPromiseResult(navOptions: NavOptions? = null) =
 fun NavGraphBuilder.promiseResultScreen(
     onNavigateProposal: () -> Unit,
     onNavigateHome: () -> Unit,
+    onNavigateLock: (String?, Boolean) -> Unit,
 ) {
     composable<Onboarding.Route.PromiseResult> {
         PromiseResultScreen(
             onNavigateProposal = onNavigateProposal,
             onNavigateHome = onNavigateHome,
+            onNavigateLock = onNavigateLock,
         )
     }
 }

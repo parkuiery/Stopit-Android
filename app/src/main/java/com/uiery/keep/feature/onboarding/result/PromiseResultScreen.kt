@@ -55,6 +55,7 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 fun PromiseResultScreen(
     onNavigateProposal: () -> Unit,
     onNavigateHome: () -> Unit,
+    onNavigateLock: (String?, Boolean) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PromiseResultViewModel = hiltViewModel(),
 ) {
@@ -64,6 +65,7 @@ fun PromiseResultScreen(
         when (effect) {
             PromiseResultSideEffect.NavigateProposal -> onNavigateProposal()
             PromiseResultSideEffect.NavigateHome -> onNavigateHome()
+            is PromiseResultSideEffect.NavigateLock -> onNavigateLock(effect.lockTime, false)
             PromiseResultSideEffect.OpenExactAlarmSettings -> {
                 if (RoutineAlarmPermissionSettingsLauncher.open(
                     exactAlarmTarget = createExactAlarmSettingsIntent(context.packageName),

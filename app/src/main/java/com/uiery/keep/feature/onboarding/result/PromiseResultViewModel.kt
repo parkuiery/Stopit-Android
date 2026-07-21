@@ -53,6 +53,7 @@ sealed interface PromiseResultSideEffect {
     data object OpenExactAlarmSettings : PromiseResultSideEffect
     data object NavigateProposal : PromiseResultSideEffect
     data object NavigateHome : PromiseResultSideEffect
+    data class NavigateLock(val lockTime: String?) : PromiseResultSideEffect
 }
 
 @HiltViewModel
@@ -103,7 +104,7 @@ class PromiseResultViewModel internal constructor(
     override val container: Container<PromiseResultUiState, PromiseResultSideEffect> =
         container(PromiseResultUiState())
     private val actionMutex = Mutex()
-    private var homeNavigationPosted = false
+    private var navigationPosted = false
 
     internal constructor(
         draftStore: FirstPromiseDraftStore,
@@ -257,7 +258,9 @@ class PromiseResultViewModel internal constructor(
                 if (state.phase != FirstPromisePhase.ResultEnabled) return@withLock
                 setBusy(true)
                 when (startPractice(draft, state.scheduleState == FirstPromiseScheduleState.Enabled)) {
-                    FirstPromisePracticeStartResult.Started -> completeAndNavigate()
+                    FirstPromisePracticeStartResult.Started -> completeAndNavigate(
+                        PromiseResultSideEffect.NavigateLock(blockingStateStore.readLockTime()),
+                    )
                     else -> refresh(practiceFailed = true)
                 }
             }
@@ -272,24 +275,26 @@ class PromiseResultViewModel internal constructor(
         }
     }
 
-    private suspend fun completeAndNavigate() {
+    private suspend fun completeAndNavigate(
+        destination: PromiseResultSideEffect = PromiseResultSideEffect.NavigateHome,
+    ) {
         when (draftStore.completeOnboarding()) {
             is FirstPromiseStateMutation.Changed -> {
                 analyticsDispatcher.drain()
-                postHomeOnce()
+                postNavigationOnce(destination)
             }
             FirstPromiseStateMutation.NoOp -> {
                 analyticsDispatcher.drain()
-                postHomeOnce()
+                postNavigationOnce(destination)
             }
             FirstPromiseStateMutation.Rejected -> refresh()
         }
     }
 
-    private suspend fun postHomeOnce() {
-        if (homeNavigationPosted) return
-        homeNavigationPosted = true
-        post(PromiseResultSideEffect.NavigateHome)
+    private suspend fun postNavigationOnce(destination: PromiseResultSideEffect) {
+        if (navigationPosted) return
+        navigationPosted = true
+        post(destination)
     }
 
     private suspend fun refresh(

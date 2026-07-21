@@ -80,6 +80,7 @@ fun NavGraphBuilder.onboarding(
     onNavigateNotificationSetting: () -> Unit,
     onNavigateSelectApp: () -> Unit,
     onNavigateHome: () -> Unit,
+    onNavigateLock: (String?, Boolean) -> Unit,
     onNavigateUsageAccess: () -> Unit,
     onNavigateUsageAnalysis: () -> Unit,
     onNavigateManualAppSelect: () -> Unit,
@@ -116,6 +117,7 @@ fun NavGraphBuilder.onboarding(
         promiseResultScreen(
             onNavigateProposal = onNavigatePromiseEdit,
             onNavigateHome = onNavigateHome,
+            onNavigateLock = onNavigateLock,
         )
     }
 }

@@ -93,6 +93,7 @@ internal fun KeepApp(
             onNavigateNotificationSetting = navController::navigateToNotificationSetting,
             onNavigateSelectApp = navController::navigateToSelectApp,
             onNavigateHome = navController::navigateToHome,
+            onNavigateLock = navController::navigateToLock,
             onNavigateUsageAccess = navController::navigateToUsageAccess,
             onNavigateUsageAnalysis = navController::navigateToUsageAnalysis,
             onNavigateManualAppSelect = { navController.navigate(Onboarding.Route.ManualAppSelect) },

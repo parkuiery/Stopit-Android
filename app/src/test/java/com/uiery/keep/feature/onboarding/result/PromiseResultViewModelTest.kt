@@ -239,6 +239,27 @@ class PromiseResultViewModelTest {
         assertEquals(FirstPromisePhase.CompletedEnabled, fixture.store.readState().phase)
         assertFalse(fixture.blockingStateStore.readIsNew())
     }
+
+    @Test
+    fun successfulPracticeNavigatesToTheActiveLockInsteadOfHome() = runBlocking {
+        val fixture = fixture(
+            FirstPromisePhase.ResultEnabled,
+            FirstPromiseScheduleState.Enabled,
+            activeLockDeadline = "practice-deadline",
+        )
+        fixture.viewModel.load()
+        fixture.viewModel.awaitKind(PromiseResultKind.Enabled)
+        val navigation = async(start = CoroutineStart.UNDISPATCHED) {
+            fixture.viewModel.container.sideEffectFlow.first()
+        }
+
+        fixture.viewModel.startPractice()
+
+        assertEquals(
+            PromiseResultSideEffect.NavigateLock("practice-deadline"),
+            withTimeout(1_000) { navigation.await() },
+        )
+    }
 }
 
 private suspend fun PromiseResultViewModel.awaitKind(kind: PromiseResultKind) {
@@ -261,6 +282,7 @@ private fun fixture(
     accessibilityGranted: Boolean = true,
     activeTimedLock: Boolean = false,
     canScheduleExactAlarms: Boolean = true,
+    activeLockDeadline: String? = null,
     practiceResults: ArrayDeque<FirstPromisePracticeStartResult> = ArrayDeque(
         listOf(FirstPromisePracticeStartResult.Started),
     ),
@@ -288,6 +310,9 @@ private fun fixture(
         mutablePreferencesOf(
             PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
             PreferencesKey.IS_NEW to true,
+            *listOfNotNull(
+                activeLockDeadline?.let { PreferencesKey.LOCK_TIME to it },
+            ).toTypedArray(),
         ),
     )
     val store = FirstPromiseDraftStore(dataStore)
