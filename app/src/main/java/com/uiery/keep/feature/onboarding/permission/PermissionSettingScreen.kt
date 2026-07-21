@@ -17,6 +17,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -54,6 +58,7 @@ fun PermissionSettingScreen(
     onNavigateBack: () -> Unit = {},
 ) {
     val androidContext = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var openAlertDialog by remember { mutableStateOf(false) }
     var promiseStartMinutes by remember { mutableStateOf<Int?>(null) }
 
@@ -69,7 +74,24 @@ fun PermissionSettingScreen(
                 onLoaded = { promiseStartMinutes = it },
                 onNavigateNotification = onNavigateNotificationSetting,
             )
+        } else if (hasAccessibilityPermission(androidContext)) {
+            viewModel.onControlPermissionGranted(onNavigateNotificationSetting)
         }
+    }
+
+    DisposableEffect(lifecycleOwner, flowContext, viewModel, onNavigateNotificationSetting) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && hasAccessibilityPermission(androidContext)) {
+                when (flowContext) {
+                    OnboardingPermissionContext.Control ->
+                        viewModel.onControlPermissionGranted(onNavigateNotificationSetting)
+                    OnboardingPermissionContext.FirstPromise ->
+                        viewModel.onFirstPromisePermissionGranted(onNavigateNotificationSetting)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     if (openAlertDialog) {
@@ -162,8 +184,7 @@ fun PermissionSettingScreen(
                 onClick = {
                     if (hasAccessibilityPermission(androidContext)) {
                         if (flowContext == OnboardingPermissionContext.Control) {
-                            viewModel.onPermissionGranted()
-                            onNavigateNotificationSetting()
+                            viewModel.onControlPermissionGranted(onNavigateNotificationSetting)
                         } else {
                             viewModel.onFirstPromisePermissionGranted(onNavigateNotificationSetting)
                         }

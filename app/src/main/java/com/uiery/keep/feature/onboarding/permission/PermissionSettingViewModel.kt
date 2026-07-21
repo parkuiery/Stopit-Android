@@ -11,6 +11,7 @@ import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromisePhase
 import com.uiery.keep.domain.firstpromise.FirstPromiseStateMutation
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +43,7 @@ class PermissionSettingViewModel internal constructor(
         mainDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
     )
     private val transitionMutex = Mutex()
+    private val controlNavigationPosted = AtomicBoolean(false)
     fun onStepViewed() {
         analytics.logScreenView(KeepAnalyticsScreen.ONBOARDING_PERMISSION)
         analytics.trackOnboardingStepView(OnboardingStepName.PERMISSION)
@@ -54,6 +56,12 @@ class PermissionSettingViewModel internal constructor(
             stepName = OnboardingStepName.PERMISSION,
         )
         analytics.trackOnboardingStepComplete(OnboardingStepName.PERMISSION)
+    }
+
+    fun onControlPermissionGranted(onNavigateNotification: () -> Unit) {
+        if (!controlNavigationPosted.compareAndSet(false, true)) return
+        onPermissionGranted()
+        onNavigateNotification()
     }
 
     fun onPermissionSettingsOpened() {
