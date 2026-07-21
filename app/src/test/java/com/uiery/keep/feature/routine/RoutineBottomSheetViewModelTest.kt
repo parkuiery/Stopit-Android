@@ -246,7 +246,11 @@ class RoutineBottomSheetViewModelTest {
         fillValidRoutine(viewModel)
         viewModel.setStartTime(LocalTime(hour = 23, minute = 0))
         viewModel.setEndTime(LocalTime(hour = 1, minute = 0))
-        val validState = awaitState(viewModel) { it.isButtonEnable }
+        val validState = awaitState(viewModel, "overnight routine time update") {
+            it.startTime == LocalTime(hour = 23, minute = 0) &&
+                it.endTime == LocalTime(hour = 1, minute = 0) &&
+                it.isButtonEnable
+        }
 
         assertEquals(LocalTime(hour = 23, minute = 0), validState.startTime)
         assertEquals(LocalTime(hour = 1, minute = 0), validState.endTime)
