@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.dao.AppUsageDailyDao
 import com.uiery.keep.database.dao.EmergencyUnlockDao
+import com.uiery.keep.database.dao.FirstPromiseAnalyticsOutboxDao
+import com.uiery.keep.database.dao.FirstPromiseDao
 import com.uiery.keep.database.dao.GoalLockDao
 import com.uiery.keep.database.dao.LockHistoryDao
 import com.uiery.keep.database.dao.RoutineDao
@@ -34,6 +36,7 @@ internal object DatabaseModule {
             KeepDatabase.MIGRATION_3_4,
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
+            KeepDatabase.MIGRATION_6_7,
         )
         .build()
 
@@ -56,5 +59,15 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppUsageDailyDao(db: KeepDatabase): AppUsageDailyDao = db.appUsageDailyDao()
+
+    @Provides
+    @Singleton
+    fun provideFirstPromiseDao(db: KeepDatabase): FirstPromiseDao = db.firstPromiseDao()
+
+    @Provides
+    @Singleton
+    fun provideFirstPromiseAnalyticsOutboxDao(
+        db: KeepDatabase,
+    ): FirstPromiseAnalyticsOutboxDao = db.firstPromiseAnalyticsOutboxDao()
 
 }

@@ -422,6 +422,35 @@ Discovery/contract package가 닫힌 뒤에만 아래 구현 issue를 `ready` �
 - Notes / screenshots:
 ```
 
+## 첫 약속 코치 first-run 실험 예외 (2026-07-16)
+
+이 문서의 기존 “첫 실행에서 강제하지 않는다” 원칙은 Usage 리포트/재방문 개인화 제품의 기본값이며 #119 backlog 계약으로 유지한다. 별도 첫 약속 코치 실험에서는 설치 단위로 저장된 `promise_coach_v1` Treatment에 한해 Goal 선택 뒤 Usage Access를 **선택형으로 제안**한다. Control은 기존 온보딩 순서와 완료 기준을 바꾸지 않고, Treatment도 거절·뒤로가기·설정 화면 미지원·데이터 부족이면 manual 앱 선택으로 계속할 수 있어야 한다. 이 제한된 실험 예외를 #119 전체 기능의 first-run 강제 승격으로 해석하지 않는다.
+
+### 로컬 처리와 privacy gate
+
+- UsageStats 원시 interval, package/app label, 정확한 사용 시간은 추천 계산에만 로컬로 사용한다.
+- analytics/outbox에는 goal/data-quality/pattern/coverage/latency/category/schedule 같은 typed enum·bucket만 남긴다. raw package/app label, 앱 목록, raw history, 정확한 timestamp, routine/draft id는 금지한다.
+- fake backend payload 회귀 테스트와 dev-device DebugView 확인이 둘 다 끝나기 전에는 privacy/Play 준비 완료 또는 production rollout 가능 상태로 표시하지 않는다.
+
+### 복구·kill 계약
+
+- 일반 kill은 새 Treatment 배정만 멈추고 이미 배정된 사용자의 variant/phase를 바꾸지 않는다.
+- emergency kill은 Control/Intro로 되돌리지 않는다. 저장 전 phase는 manual fallback, 저장 중은 persistence 결과 대기, mapping/result 이후는 저장된 enabled/disabled 결과 보존으로 수렴하며 추가 Usage 분석을 중단한다.
+- Usage Access 철회나 집계 부족은 개인화 결과 없음으로 처리하되 이미 terminal인 온보딩을 다시 열지 않는다.
+- 프로세스 재생성은 Usage/Accessibility/ExactAlarm pending action과 state를 복구할 뿐, OS 권한 결과를 임의로 granted/denied로 만들지 않는다.
+
+### 자동화 evidence와 외부 gap
+
+| 범위 | 현재 증거 | 완료 해석 |
+| --- | --- | --- |
+| Control 불변, Treatment 허용·거절/manual·insufficient, 접근성 기허용, 알림 거절, exact-alarm 결과 | `PromiseCoachOnboardingIntegrationTest`가 한 instrumentation process 안에서 production entry/legacy·permission ViewModel/typed store/Splash 경계를 조립한 시뮬레이션 | repo-internal deterministic contract. 실제 OS process kill, Settings Activity 왕복, AppOps 전환, Room+AlarmManager 프로세스 간 동작 또는 OEM 기기 evidence가 아님 |
+| 모든 pending action 재생성, OEM settings intent 실패, 자정 경계, timezone 재평가와 timezone-action scheduler 재계산, 권한 철회, reset-only | 직렬화/순수 정책, receiver, 같은 Preferences DataStore에 `BackupRestoreDataStoreKeyPolicy.resetOnlyKeys`를 적용한 통합 계약 | 실제 OS process kill/AppOps/OEM 설정 변경/`pm clear`·재설치를 대체하지 않음 |
+| 연습 시작 후 실제 timed-lock 차단 attribution | durable practice token 재생성과 `BlockAnalyticsCoordinator` 연결 계약 | 실제 AccessibilityService foreground 차단의 device evidence는 별도 |
+
+다음은 명시적 외부 경계이며 미완료다: 개인정보/Play 최종 승인, GA4 Admin 등록·metadata/readback, Remote Config rollout %, production 전환 영향과 최소 표본, 실제 Settings Activity 왕복과 OEM별 Usage settings/권한 matrix, 실제 AppOps 허용·거절·철회, 실제 OS process death, Room+AlarmManager의 프로세스 간 동작, 기기 timezone을 실제 변경해 OS broadcast가 전달되는 end-to-end 경로, `pm clear`/재설치, light/dark·font scale·TalkBack·locale screenshot QA. unavailable 조합은 PASS가 아니라 gap으로 기록한다.
+
+첫 약속 코치의 승격/표본/24시간 ordered funnel/BlockScreen matched emergency denominator는 `docs/FIRST_LOCK_ACTIVATION_FUNNEL_RUNBOOK.md`를 source of truth로 따른다. 10% Treatment는 최소 7일·Treatment exposure 30명, 50% Treatment는 최소 14일·각 군 100명이 필요하며, 적은 사용자 수 자체를 이유로 이 gate를 낮추지 않는다.
+
 ## code-lane handoff 표면
 
 이 이슈가 child implementation issue로 승격될 때 code-lane은 아래 표면을 먼저 확인한다. 파일명은 현재 repo 구조 기준의 예상 표면이며, 실제 구현 전 `search_files`로 최신 위치를 다시 확인한다.

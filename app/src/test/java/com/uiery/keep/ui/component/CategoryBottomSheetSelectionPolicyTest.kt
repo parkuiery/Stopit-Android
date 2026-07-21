@@ -8,6 +8,30 @@ import org.junit.Test
 class CategoryBottomSheetSelectionPolicyTest {
 
     @Test
+    fun multipleModeKeepsSelectAllAndToggleBehavior() {
+        val selected = updateSelectableAppSelection(
+            mode = AppSelectionMode.Multiple,
+            currentSelection = setOf("com.example.one"),
+            packageName = "com.example.two",
+        )
+
+        assertTrue(AppSelectionMode.Multiple.showsSelectAll)
+        assertEquals(setOf("com.example.one", "com.example.two"), selected)
+    }
+
+    @Test
+    fun singleModeHidesSelectAllAndReplacesThePreviousSelection() {
+        val selected = updateSelectableAppSelection(
+            mode = AppSelectionMode.Single,
+            currentSelection = setOf("com.example.one"),
+            packageName = "com.example.two",
+        )
+
+        assertFalse(AppSelectionMode.Single.showsSelectAll)
+        assertEquals(setOf("com.example.two"), selected)
+    }
+
+    @Test
     fun togglingAllAppsReplacesSelectionWithANewImmutableSet() {
         val initial = mutableSetOf("com.example.one")
         val allApps = listOf("com.example.one", "com.example.two")

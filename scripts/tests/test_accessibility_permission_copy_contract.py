@@ -23,6 +23,10 @@ FORBIDDEN_PHRASES = (
     "Время экрана",
     "スクリーンタイムの許可",
     "屏幕使用时间权限",
+    "acceso de accesibilidad",
+    "accès d’accessibilité",
+    "accesso di accessibilità",
+    "acesso de acessibilidade",
 )
 
 REQUIRED_DOC_PHRASES = (
@@ -59,7 +63,12 @@ class AccessibilityPermissionCopyContractTest(unittest.TestCase):
             if not strings_file.exists():
                 continue
             strings = _strings_for_locale(locale_dir)
-            for key in ("accessibility_permission_required", "accessibility_permission_description"):
+            for key in (
+                "accessibility_permission_required",
+                "accessibility_permission_description",
+                "first_promise_accessibility_title",
+                "first_promise_accessibility_description",
+            ):
                 value = strings.get(key, "")
                 checked.append((locale_dir.name, key))
                 with self.subTest(locale=locale_dir.name, key=key):

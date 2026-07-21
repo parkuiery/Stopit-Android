@@ -3,6 +3,18 @@ package com.uiery.keep.analytics
 import com.uiery.keep.analytics.acquisition.AcquisitionAttribution
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RoutineSavedAnalyticsPayload
+import com.uiery.keep.domain.firstpromise.AnalysisLatencyBucket
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
+import com.uiery.keep.domain.firstpromise.FirstPromisePracticeOutcome
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.domain.firstpromise.PromiseEditField
+import com.uiery.keep.domain.firstpromise.UsageCoverageBucket
+import com.uiery.keep.domain.firstpromise.UsageDataQuality
+import com.uiery.keep.domain.firstpromise.UsagePatternType
 
 interface KeepAnalytics {
     fun logEvent(
@@ -26,6 +38,34 @@ interface KeepAnalytics {
     fun trackOnboardingStepView(stepName: String)
 
     fun trackOnboardingStepComplete(stepName: String)
+
+    fun trackOnboardingExperimentExposed(
+        variant: OnboardingVariant,
+        assignmentVersion: OnboardingAssignmentVersion,
+    ) = Unit
+
+    fun trackUsageAnalysisCompleted(
+        dataQuality: UsageDataQuality,
+        patternType: UsagePatternType,
+        coverageDaysBucket: UsageCoverageBucket,
+        latencyBucket: AnalysisLatencyBucket,
+    ) = Unit
+
+    fun trackPromiseRecommendationShown(
+        goalType: FirstPromiseGoal,
+        patternType: UsagePatternType,
+        source: FirstPromiseSource,
+    ) = Unit
+
+    fun trackPromiseRecommendationEdited(fieldName: PromiseEditField) = Unit
+
+    fun trackFirstPromiseCreated(
+        goalType: FirstPromiseGoal,
+        source: FirstPromiseSource,
+        scheduleState: FirstPromiseScheduleState,
+    ) = Unit
+
+    fun trackFirstPromisePracticeOutcome(outcome: FirstPromisePracticeOutcome) = Unit
 
     fun trackPermissionOutcome(
         permissionName: String,
@@ -71,6 +111,7 @@ interface KeepAnalytics {
         blockedAppPackage: String,
         routineId: String? = null,
         goalLockId: String? = null,
+        promiseOrigin: FirstPromiseOrigin? = null,
     ) = Unit
 
     fun trackEmergencyUnlockCompleted(
@@ -314,6 +355,12 @@ object KeepAnalyticsEvent {
     const val APP_FIRST_OPEN = "app_first_open"
     const val ONBOARDING_STEP_VIEW = "onboarding_step_view"
     const val ONBOARDING_STEP_COMPLETE = "onboarding_step_complete"
+    const val ONBOARDING_EXPERIMENT_EXPOSED = "onboarding_experiment_exposed"
+    const val USAGE_ANALYSIS_COMPLETED = "usage_analysis_completed"
+    const val PROMISE_RECOMMENDATION_SHOWN = "promise_recommendation_shown"
+    const val PROMISE_RECOMMENDATION_EDITED = "promise_recommendation_edited"
+    const val FIRST_PROMISE_CREATED = "first_promise_created"
+    const val FIRST_PROMISE_PRACTICE_OUTCOME = "first_promise_practice_outcome"
     const val PERMISSION_OUTCOME = "permission_outcome"
     const val FIRST_LOCK_CONFIGURED = "first_lock_configured"
     const val LOCK_SESSION_START = "lock_session_start"
@@ -373,6 +420,15 @@ object KeepAnalyticsEvent {
 
 object KeepAnalyticsParam {
     const val STEP_NAME = "step_name"
+    const val VARIANT = "variant"
+    const val ASSIGNMENT_VERSION = "assignment_version"
+    const val DATA_QUALITY = "data_quality"
+    const val PATTERN_TYPE = "pattern_type"
+    const val COVERAGE_DAYS_BUCKET = "coverage_days_bucket"
+    const val LATENCY_BUCKET = "latency_bucket"
+    const val GOAL_TYPE = "goal_type"
+    const val FIELD_NAME = "field_name"
+    const val SCHEDULE_STATE = "schedule_state"
     const val PERMISSION_NAME = "permission_name"
     const val OUTCOME = "outcome"
     const val SOURCE = "source"
@@ -388,10 +444,12 @@ object KeepAnalyticsParam {
     @Deprecated("Use BLOCKED_APP_CATEGORY_BUCKET for external analytics payloads.")
     const val BLOCKED_APP_PACKAGE = "blocked_app_package"
     const val BLOCKED_APP_CATEGORY_BUCKET = "blocked_app_category_bucket"
+    const val PROMISE_ORIGIN = "promise_origin"
     const val REASON = "reason"
     const val DURATION_MINUTES = "duration_minutes"
     const val REMAINING_UNLOCKS = "remaining_unlocks"
     const val ELAPSED_SINCE_FIRST_OPEN_SECONDS = "elapsed_since_first_open_seconds"
+    const val ELAPSED_SINCE_FIRST_OPEN_BUCKET = "elapsed_since_first_open_bucket"
     const val BLOCKING_MODE = "blocking_mode"
     // Do not export routine row IDs to GA4; use block_source/routines_count/bucketed params instead.
     const val ROUTINE_ID = "routine_id"
@@ -446,6 +504,10 @@ object OnboardingStepName {
     const val PERMISSION = "permission"
     const val NOTIFICATION = "notification"
     const val SELECT_APP = "select_app"
+    const val GOAL_SELECT = "goal_select"
+    const val USAGE_ACCESS = "usage_access"
+    const val PROMISE_PROPOSAL = "promise_proposal"
+    const val PROMISE_RESULT = "promise_result"
 }
 
 object KeepAnalyticsScreen {
@@ -454,6 +516,11 @@ object KeepAnalyticsScreen {
     const val ONBOARDING_PERMISSION = "OnboardingPermissionScreen"
     const val ONBOARDING_NOTIFICATION = "OnboardingNotificationScreen"
     const val ONBOARDING_SELECT_APP = "OnboardingSelectAppScreen"
+    const val ONBOARDING_GOAL_SELECT = "OnboardingGoalSelectScreen"
+    const val ONBOARDING_USAGE_ACCESS = "OnboardingUsageAccessScreen"
+    const val ONBOARDING_USAGE_ANALYSIS = "OnboardingUsageAnalysisScreen"
+    const val ONBOARDING_PROMISE_PROPOSAL = "OnboardingPromiseProposalScreen"
+    const val ONBOARDING_PROMISE_RESULT = "OnboardingPromiseResultScreen"
     const val HOME = "HomeScreen"
     const val MENU = "MenuScreen"
     const val LOCK_HISTORY = "LockHistoryScreen"
@@ -474,6 +541,9 @@ object KeepAnalyticsScreen {
         ONBOARDING_PERMISSION,
         ONBOARDING_NOTIFICATION,
         ONBOARDING_SELECT_APP,
+        ONBOARDING_GOAL_SELECT,
+        ONBOARDING_USAGE_ACCESS,
+        ONBOARDING_USAGE_ANALYSIS,
         HOME,
         MENU,
         LOCK_HISTORY,
@@ -583,12 +653,15 @@ object AnalyticsEmergencyUnlockCancelSource {
 object AnalyticsPermissionName {
     const val ACCESSIBILITY = "accessibility"
     const val NOTIFICATIONS = "notifications"
+    const val USAGE_ACCESS = "usage_access"
 }
 
 object AnalyticsOutcome {
     const val GRANTED = "granted"
     const val DENIED = "denied"
     const val SETTINGS_OPENED = "settings_opened"
+    const val SKIPPED = "skipped"
+    const val UNKNOWN = "unknown"
 }
 
 object AnalyticsEndReason {

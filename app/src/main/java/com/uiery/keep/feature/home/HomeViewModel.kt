@@ -9,9 +9,9 @@ import com.uiery.keep.analytics.AnalyticsEndReason
 import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaActivationStage
 import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaSurface
 import com.uiery.keep.analytics.AnalyticsRoutineCreationCtaVariant
-import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
@@ -30,6 +30,10 @@ import com.uiery.keep.domain.goallock.GoalLockStoredStatus
 import com.uiery.keep.feature.goallock.analyticsLockMode
 import com.uiery.keep.feature.goallock.goalLockDurationDaysBucket
 import com.uiery.keep.data.lockhistory.LockHistoryRepository
+import com.uiery.keep.data.lock.TimedLockStartOrigin
+import com.uiery.keep.data.lock.TimedLockStartResult
+import com.uiery.keep.data.lock.TimedLockStarter
+import com.uiery.keep.data.lock.TimedLockHomeScheduleType
 import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
@@ -82,6 +86,10 @@ class HomeViewModel
         private val usageInsightRepository: UsageInsightRepository,
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val inAppReviewManager: InAppReviewManager,
+        private val timedLockStarter: TimedLockStarter,
+        private val firstPromiseRecovery: FirstPromiseHomeRecovery = NoOpFirstPromiseHomeRecovery,
+        private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
+            FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
     ) : ViewModel(),
         ContainerHost<HomeUiState, HomeSideEffect> {
         override val container: Container<HomeUiState, HomeSideEffect> = container(HomeUiState())
@@ -99,7 +107,60 @@ class HomeViewModel
             getGoalLockCard()
             loadRepeatBlockRoutineSuggestion()
             loadUsageInsightCard()
+            loadFirstPromiseResumeCard()
         }
+
+        internal fun loadFirstPromiseResumeCard() =
+            intent {
+                when (val decision = firstPromiseRecovery.load()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
+
+        internal fun activateFirstPromiseResumeCard() =
+            intent {
+                val card = state.firstPromiseResumeCard ?: return@intent
+                if (card.isBusy) return@intent
+                reduce {
+                    state.copy(firstPromiseResumeCard = card.copy(isBusy = true))
+                }
+                when (val decision = firstPromiseRecovery.activate()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
+
+        internal fun onFirstPromiseExactAlarmSettingsUnavailable() =
+            intent {
+                when (val decision = firstPromiseRecovery.onSettingsLaunchFailed()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings -> Unit
+                }
+            }
+
+        internal fun onFirstPromiseExactAlarmResume() =
+            intent {
+                when (val decision = firstPromiseRecovery.onResume()) {
+                    is FirstPromiseResumeDecision.Show ->
+                        reduce { state.copy(firstPromiseResumeCard = decision.card) }
+                    FirstPromiseResumeDecision.Hidden ->
+                        reduce { state.copy(firstPromiseResumeCard = null) }
+                    FirstPromiseResumeDecision.OpenSettings ->
+                        postSideEffect(HomeSideEffect.OpenExactAlarmSettings)
+                }
+            }
 
         internal fun changeIsKeep(
             noSelectedAppsMessage: String? = null,
@@ -169,7 +230,7 @@ class HomeViewModel
         internal fun showCategoryBottomSheet() =
             intent {
                 // 잠금 활성 중에는 차단 앱 선택을 변경할 수 없다 (우회 방지).
-                if (state.isKeep) return@intent
+                if (state.isKeep || activeTimedLockExists()) return@intent
                 reduce {
                     state.copy(
                         isShowCategoryBottomSheet = true,
@@ -637,6 +698,7 @@ class HomeViewModel
 
         internal fun selectCategoryComplete(selectedAppPackage: Set<String>) =
             intent {
+                if (state.isKeep || activeTimedLockExists()) return@intent
                 analytics.trackAppSelectionCompleted(
                     selectedAppCount = selectedAppPackage.size,
                     isOnboarding = false,
@@ -669,6 +731,9 @@ class HomeViewModel
                     )
                 }
             }
+
+        private suspend fun activeTimedLockExists(): Boolean =
+            ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime())
 
         private fun storeIsKeep() =
             intent {
@@ -773,17 +838,12 @@ class HomeViewModel
                 if (state.manualLockMode == ManualLockMode.COUNTDOWN && state.countdownDurationIsZero()) {
                     return@intent
                 }
-                val sessionStartTime = System.currentTimeMillis()
                 val targetLockDateTime = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     calculateCountdownTargetDateTime(state.countdownDays, state.countdownTime)
                 } else {
                     calculateTargetLockDateTime(state.blockTime)
                 }
                 val targetLockInstant = targetLockDateTime.atZone(ZoneId.systemDefault()).toInstant()
-                val encodedDeadline = ManualLockTimePolicy.encodeDeadline(targetLockInstant)
-                blockingStateStore.saveLockTime(encodedDeadline)
-                blockingStateStore.saveStartTime(sessionStartTime)
-                reduce { state.copy(pendingManualLockRouteDeadline = encodedDeadline, hasActiveTimedLock = true) }
                 val lockedDurationMinutes = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
                     state.countdownDurationMinutes()
                 } else {
@@ -792,7 +852,26 @@ class HomeViewModel
                         .toMillis()
                         .coerceAtLeast(0L) / 60_000L
                 }
-                if (trackFirstLockConfiguredIfNeeded(source = AnalyticsSource.HOME_TIMER)) {
+                val scheduleType = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
+                    TimedLockHomeScheduleType.Countdown
+                } else {
+                    TimedLockHomeScheduleType.Timer
+                }
+                val startResult = timedLockStarter.start(
+                    packages = state.selectedAppPackage,
+                    durationMinutes = lockedDurationMinutes,
+                    origin = TimedLockStartOrigin.Home(scheduleType),
+                    targetDeadline = targetLockInstant,
+                )
+                if (startResult !is TimedLockStartResult.Started) return@intent
+                timedLockStarter.commit(startResult)
+                reduce {
+                    state.copy(
+                        pendingManualLockRouteDeadline = startResult.encodedDeadline,
+                        hasActiveTimedLock = true,
+                    )
+                }
+                if (startResult.firstLockConfigured) {
                     if (!firstLockScheduledMessage.isNullOrBlank()) {
                         postSideEffect(HomeSideEffect.ShowSnackBar(firstLockScheduledMessage))
                         reduce {
@@ -805,30 +884,14 @@ class HomeViewModel
                         reduce { state.copy(showFirstLockActivationCta = false) }
                     }
                 }
-                analytics.trackLockScheduled(
-                    scheduleType = if (state.manualLockMode == ManualLockMode.COUNTDOWN) {
-                        AnalyticsScheduleType.COUNTDOWN
-                    } else {
-                        AnalyticsScheduleType.TIMER
-                    },
-                    scheduledDurationMinutes = lockedDurationMinutes,
-                )
-                analytics.trackLockSessionStart(
-                    source = AnalyticsSource.HOME_TIMER,
-                    isRoutine = false,
-                )
             }
 
         private suspend fun trackFirstLockConfiguredIfNeeded(source: String): Boolean {
-            if (!blockingStateStore.markFirstLockConfiguredIfNeeded()) return false
-
             val selectedAppCount = blockingStateStore.readSelectedAppPackages().size
-
-            analytics.trackFirstLockConfigured(
+            return firstLockDelivery.trackIfNeeded(
                 source = source,
                 selectedAppCount = selectedAppCount,
             )
-            return true
         }
 
         private fun shouldShowFirstLockActivationCta(
@@ -906,6 +969,7 @@ data class HomeUiState(
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
     val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
+    val firstPromiseResumeCard: FirstPromiseResumeCardState? = null,
 ) {
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
@@ -1011,6 +1075,7 @@ sealed class HomeSideEffect {
     ) : HomeSideEffect()
 
     data object OpenUsageAccessSettings : HomeSideEffect()
+    data object OpenExactAlarmSettings : HomeSideEffect()
 }
 
 private const val USAGE_INSIGHT_CARD_SHOWN = "usage_insight_card_shown"

@@ -5,8 +5,17 @@ import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.analytics.BlockAnalyticsCoordinator
+import com.uiery.keep.analytics.FirstCoreActionDeliveryCoordinator
+import com.uiery.keep.analytics.FirstCoreActionMarker
+import com.uiery.keep.analytics.FirstCoreActionMarkerState
+import com.uiery.keep.analytics.FirstCoreActionReservationStore
+import com.uiery.keep.analytics.KeepBlockDirectAnalyticsDelivery
+import com.uiery.keep.analytics.NoAttributionStore
+import com.uiery.keep.analytics.NoOpOutboxDispatcher
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionAnalyticsPayload
 import com.uiery.keep.analytics.routine.RepeatBlockRoutineSuggestionSurface
@@ -301,16 +310,22 @@ class BlockViewModelTest {
             ),
         )
         val now = LocalDateTime.now()
+        val rapidRetryAnchor = now
+            .minusDays(1)
+            .withHour(15)
+            .withMinute(30)
+            .withSecond(0)
+            .withNano(0)
         val viewModel = createViewModel(
             dataStore = dataStore,
             analytics = analytics,
             lockHistoryRepository = LockHistoryRepository(
                 LockHistoryDaoWithSessions(
                     listOf(
-                        lockHistoryAt(now.minusMinutes(2), "com.instagram.android"),
-                        lockHistoryAt(now.minusMinutes(4), "com.instagram.android"),
-                        lockHistoryAt(now.minusMinutes(6), "com.instagram.android"),
-                        lockHistoryAt(now.minusDays(1), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(2), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(4), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusMinutes(6), "com.instagram.android"),
+                        lockHistoryAt(rapidRetryAnchor.minusDays(1), "com.instagram.android"),
                     ),
                 ),
             ),
@@ -492,6 +507,7 @@ class BlockViewModelTest {
         BlockViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
             analytics = analytics,
+            blockAnalyticsCoordinator = ordinaryBlockAnalyticsCoordinator(dataStore, analytics),
             emergencyUnlockCoordinator = EmergencyUnlockCoordinator(
                 settingsStore = EmergencyUnlockSettingsStore(dataStore),
                 blockingStateStore = BlockingStateStore(dataStore),
@@ -502,6 +518,37 @@ class BlockViewModelTest {
             routineRepository = routineRepository,
             repeatBlockSuggestionStore = repeatBlockSuggestionStore,
         )
+
+    private fun ordinaryBlockAnalyticsCoordinator(
+        dataStore: FakeDataStore,
+        analytics: KeepAnalytics,
+    ): BlockAnalyticsCoordinator {
+        val blockingStore = BlockingStateStore(dataStore)
+        val marker = object : FirstCoreActionMarker {
+            override suspend fun read(nowMillis: Long): FirstCoreActionMarkerState {
+                val state = blockingStore.readFirstCoreActionState(nowMillis)
+                return FirstCoreActionMarkerState(
+                    state.firstOpenTimestampMillis,
+                    state.hasTrackedFirstCoreAction,
+                )
+            }
+
+            override suspend fun mark(firstOpenTimestampMillis: Long) {
+                blockingStore.markFirstCoreActionTracked(firstOpenTimestampMillis)
+            }
+        }
+        return BlockAnalyticsCoordinator(
+            attributionStore = NoAttributionStore,
+            activePracticeAt = { null },
+            firstCoreActionCoordinator = FirstCoreActionDeliveryCoordinator(
+                reservationStore = FirstCoreActionReservationStore { false },
+                marker = marker,
+            ),
+            outboxDispatcher = NoOpOutboxDispatcher,
+            directDelivery = KeepBlockDirectAnalyticsDelivery(analytics),
+            nowMillis = System::currentTimeMillis,
+        )
+    }
 
     private fun lockHistoryAt(dateTime: LocalDateTime, packageName: String): LockHistoryEntity {
         val start = dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -620,6 +667,7 @@ private class BlockRecordingKeepAnalytics : KeepAnalytics {
         blockedAppPackage: String,
         routineId: String?,
         goalLockId: String?,
+        promiseOrigin: FirstPromiseOrigin?,
     ) {
         calls += BlockAnalyticsCall.AppBlockIntercepted(
             blockSource = blockSource,

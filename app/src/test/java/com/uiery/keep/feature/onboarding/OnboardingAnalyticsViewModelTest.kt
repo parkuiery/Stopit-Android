@@ -2,23 +2,46 @@ package com.uiery.keep.feature.onboarding
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsOutcome
 import com.uiery.keep.analytics.AnalyticsPermissionName
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.OnboardingStepName
+import com.uiery.keep.data.firstpromise.FirstPromiseCreationResult
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceCoordinator
+import com.uiery.keep.data.firstpromise.FirstPromisePersistenceResult
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
+import com.uiery.keep.datastore.FirstPromiseDraftStore
+import com.uiery.keep.domain.firstpromise.FirstPromiseOnboardingState
+import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromisePath
+import com.uiery.keep.domain.firstpromise.FirstPromisePhase
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.RecommendationReasonRef
+import com.uiery.keep.domain.firstpromise.UsagePatternType
+import com.uiery.keep.domain.firstpromise.OnboardingAssignmentVersion
+import com.uiery.keep.domain.firstpromise.OnboardingVariant
+import com.uiery.keep.feature.onboarding.intro.IntroSideEffect
 import com.uiery.keep.feature.onboarding.intro.IntroViewModel
 import com.uiery.keep.feature.onboarding.notification.NotificationSettingViewModel
 import com.uiery.keep.feature.onboarding.permission.PermissionSettingViewModel
 import com.uiery.keep.feature.onboarding.select.SelectAppViewModel
 import com.uiery.keep.feature.onboarding.select.canCompleteOnboardingAppSelection
 import com.uiery.keep.feature.review.FakeDataStore
+import com.uiery.keep.model.RoutineModel
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -29,11 +52,15 @@ class OnboardingAnalyticsViewModelTest {
     private val analytics = RecordingKeepAnalytics()
 
     @Test
-    fun introTracksViewAndCompletion() {
+    fun introTracksViewAndCompletion() = runBlocking {
         val viewModel = IntroViewModel(analytics)
+        val navigation = async(start = CoroutineStart.UNDISPATCHED) {
+            viewModel.container.sideEffectFlow.first()
+        }
 
         viewModel.onStepViewed()
         viewModel.onContinue()
+        assertEquals(IntroSideEffect.NavigatePermissionSetting, navigation.await())
 
         assertEquals(
             listOf(
@@ -43,6 +70,36 @@ class OnboardingAnalyticsViewModelTest {
             ),
             analytics.calls,
         )
+    }
+
+    @Test
+    fun controlIntroTracksExperimentExposureOnlyOnThePersistedBooleanTransition() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(
+                    FirstPromiseOnboardingState(
+                        assignment = OnboardingVariant.Control,
+                        assignmentVersion = OnboardingAssignmentVersion.V1,
+                    ),
+                ),
+            ),
+        )
+        val viewModel = IntroViewModel(analytics, FirstPromiseDraftStore(dataStore))
+
+        viewModel.onStepViewed()
+        viewModel.onStepViewed()
+        delay(100)
+
+        assertEquals(
+            listOf(
+                AnalyticsCall.ExperimentExposed(
+                    variant = OnboardingVariant.Control,
+                    assignmentVersion = OnboardingAssignmentVersion.V1,
+                ),
+            ),
+            analytics.calls.filterIsInstance<AnalyticsCall.ExperimentExposed>(),
+        )
+        assertTrue(FirstPromiseDraftStore(dataStore).readState().pendingOnboardingAnalyticsEvents.isEmpty())
     }
 
     @Test
@@ -121,6 +178,244 @@ class OnboardingAnalyticsViewModelTest {
     }
 
     @Test
+    fun firstPromiseAccessibilityAlreadyGrantedSkipsRequestAndMovesToNotification() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(analytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+        var navigated = false
+
+        viewModel.loadFirstPromise(
+            accessibilityGranted = true,
+            onLoaded = {},
+            onNavigateNotification = { navigated = true },
+        )
+        delay(100)
+
+        assertTrue(navigated)
+        assertEquals(FirstPromisePhase.NotificationPending, store.readState().phase)
+        assertEquals(emptyList<AnalyticsCall>(), analytics.calls)
+    }
+
+    @Test
+    fun firstPromiseAccessibilityBackRestoresEditableDraft() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(analytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+        var navigated = false
+
+        viewModel.onFirstPromiseBack { navigated = true }
+
+        assertTrue(navigated)
+        assertEquals(FirstPromisePhase.DraftReady, store.readState().phase)
+        assertEquals("draft-1", store.readState().draft?.draftId)
+    }
+
+    @Test
+    fun firstPromiseAccessibilityRapidGrantNavigatesAndTracksOnlyOnce() = runBlocking {
+        val localAnalytics = RecordingKeepAnalytics()
+        val store = firstPromiseStoreAt(FirstPromisePhase.AccessibilityPending)
+        val viewModel = PermissionSettingViewModel(
+            localAnalytics,
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        var navigationCount = 0
+
+        viewModel.onFirstPromisePermissionGranted { navigationCount++ }
+        viewModel.onFirstPromisePermissionGranted { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().size)
+        assertEquals(FirstPromisePhase.NotificationPending, store.readState().phase)
+    }
+
+    @Test
+    fun firstPromiseNotificationGrantAndDenialBothContinueToPersisting() = runBlocking {
+        listOf(true, false).forEach { granted ->
+            val localAnalytics = RecordingKeepAnalytics()
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val viewModel = NotificationSettingViewModel(localAnalytics, store, kotlinx.coroutines.Dispatchers.Unconfined)
+            var navigated = false
+
+            viewModel.onFirstPromisePermissionResult(granted) { navigated = true }
+            delay(100)
+
+            assertTrue(navigated)
+            assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
+            assertEquals(
+                if (granted) AnalyticsOutcome.GRANTED else AnalyticsOutcome.DENIED,
+                localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().single().outcome,
+            )
+        }
+    }
+
+    @Test
+    fun firstPromiseNotificationRapidCrossTapHasOneOwner() = runBlocking {
+        val localAnalytics = RecordingKeepAnalytics()
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        val viewModel = NotificationSettingViewModel(
+            localAnalytics,
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        var navigationCount = 0
+
+        viewModel.onFirstPromisePermissionResult(true) { navigationCount++ }
+        viewModel.onFirstPromisePermissionResult(false) { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, localAnalytics.calls.filterIsInstance<AnalyticsCall.PermissionOutcome>().size)
+        assertEquals(FirstPromisePhase.Persisting, store.readState().phase)
+    }
+
+    @Test
+    fun productionNotificationPathInvokesCoordinatorBeforeNavigatingToResultOrPersistFailed() = runBlocking {
+        listOf(false, true).forEach { shouldFail ->
+            val localAnalytics = RecordingKeepAnalytics()
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail)
+            val viewModel = NotificationSettingViewModel(
+                localAnalytics,
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigated = false
+
+            viewModel.onFirstPromisePermissionResult(granted = true) { navigated = true }
+
+            assertTrue(navigated)
+            assertEquals(1, coordinator.persistCalls)
+            assertEquals(
+                if (shouldFail) FirstPromisePhase.PersistFailed else FirstPromisePhase.ResultEnabled,
+                store.readState().phase,
+            )
+        }
+    }
+
+    @Test
+    fun restoredNotificationRouteResumesPersistingThenNavigatesAlreadyResolvedState() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        store.beginPersistence()
+        val coordinator = NotificationPersistenceCoordinator(store, shouldFail = false)
+        val restored = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var firstNavigationCount = 0
+
+        restored.onFirstPromiseRouteResumed { firstNavigationCount++ }
+
+        assertEquals(1, coordinator.persistCalls)
+        assertEquals(FirstPromisePhase.ResultEnabled, store.readState().phase)
+        assertEquals(1, firstNavigationCount)
+
+        val recreated = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var restoredNavigationCount = 0
+        recreated.onFirstPromiseRouteResumed { restoredNavigationCount++ }
+
+        assertEquals(1, coordinator.persistCalls)
+        assertEquals(1, restoredNavigationCount)
+    }
+
+    @Test
+    fun restoredResolvedOrFailedNotificationTapCannotRemainStuckOnRejectedBeginPersistence() = runBlocking {
+        listOf(false, true).forEach { shouldFail ->
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail)
+            val initial = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            initial.onFirstPromisePermissionResult(granted = true) {}
+            val restored = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigationCount = 0
+
+            restored.onFirstPromisePermissionResult(granted = true) { navigationCount++ }
+
+            assertEquals(1, navigationCount)
+            assertEquals(
+                if (shouldFail) FirstPromisePhase.PersistFailed else FirstPromisePhase.ResultEnabled,
+                store.readState().phase,
+            )
+        }
+    }
+
+    @Test
+    fun restoredNotificationRouteNavigatesResultDisabledAndPersistFailedWithoutRepersisting() = runBlocking {
+        listOf(FirstPromisePhase.ResultDisabled, FirstPromisePhase.PersistFailed).forEach { terminalPhase ->
+            val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+            store.beginPersistence()
+            if (terminalPhase == FirstPromisePhase.PersistFailed) {
+                store.markPersistenceFailed()
+            } else {
+                store.recordPersistenceMapping(41L, FirstPromiseScheduleState.DisabledExactAlarmMissing)
+                store.resolveScheduleState(41L, FirstPromiseScheduleState.DisabledExactAlarmMissing)
+            }
+            val coordinator = NotificationPersistenceCoordinator(store, shouldFail = false)
+            val restored = NotificationSettingViewModel(
+                RecordingKeepAnalytics(),
+                store,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                kotlinx.coroutines.Dispatchers.Unconfined,
+                coordinator,
+            )
+            var navigationCount = 0
+
+            restored.onFirstPromiseRouteResumed { navigationCount++ }
+
+            assertEquals(terminalPhase, store.readState().phase)
+            assertEquals(0, coordinator.persistCalls)
+            assertEquals(1, navigationCount)
+        }
+    }
+
+    @Test
+    fun restoredNotificationRouteNavigatesActualDisabledPersistenceMapping() = runBlocking {
+        val store = firstPromiseStoreAt(FirstPromisePhase.NotificationPending)
+        store.beginPersistence()
+        val coordinator = NotificationPersistenceCoordinator(
+            store = store,
+            shouldFail = false,
+            scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+        )
+        coordinator.persistCurrentDraft()
+        assertEquals(FirstPromisePhase.SchedulePermissionRequired, store.readState().phase)
+        val restored = NotificationSettingViewModel(
+            RecordingKeepAnalytics(),
+            store,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            kotlinx.coroutines.Dispatchers.Unconfined,
+            coordinator,
+        )
+        var navigationCount = 0
+
+        restored.onFirstPromiseRouteResumed { navigationCount++ }
+
+        assertEquals(1, navigationCount)
+        assertEquals(1, coordinator.persistCalls)
+    }
+
+    @Test
     fun selectAppTracksScreenViewAndStepView() {
         val viewModel = SelectAppViewModel(
             blockingStateStore = BlockingStateStore(FakeDataStore()),
@@ -190,6 +485,81 @@ class OnboardingAnalyticsViewModelTest {
         assertFalse(canCompleteOnboardingAppSelection(emptySet()))
         assertTrue(canCompleteOnboardingAppSelection(setOf("com.example.app")))
     }
+
+    private fun firstPromiseStoreAt(phase: FirstPromisePhase): FirstPromiseDraftStore {
+        val draft = FirstPromiseDraft(
+            draftId = "draft-1",
+            goal = FirstPromiseGoal.Sleep,
+            packageName = "com.example.video",
+            appLabel = "Video",
+            startMinutes = 23 * 60,
+            repeatDays = (1..7).toSet(),
+            source = FirstPromiseSource.Personalized,
+        )
+        val state = FirstPromiseOnboardingState(
+            assignment = OnboardingVariant.PromiseCoachV1,
+            assignmentVersion = OnboardingAssignmentVersion.V1,
+            phase = phase,
+            path = FirstPromisePath.Personalized,
+            goal = FirstPromiseGoal.Sleep,
+            draft = draft,
+            recommendationReasonRef = RecommendationReasonRef(
+                patternType = UsagePatternType.Night,
+                usageCoverageDays = 4,
+                eventCoverageDays = 3,
+                isGoalDefault = false,
+                selectedStartMinutes = draft.startMinutes,
+            ),
+        )
+        return FirstPromiseDraftStore(
+            FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE to Json.encodeToString(state),
+                ),
+            ),
+        )
+    }
+}
+
+private class NotificationPersistenceCoordinator(
+    private val store: FirstPromiseDraftStore,
+    private val shouldFail: Boolean,
+    private val scheduleState: FirstPromiseScheduleState = FirstPromiseScheduleState.Enabled,
+) : FirstPromisePersistenceCoordinator {
+    var persistCalls = 0
+
+    override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
+        persistCalls++
+        if (shouldFail) {
+            store.markPersistenceFailed()
+            return FirstPromisePersistenceResult.Failed(IllegalStateException("db"))
+        }
+        val creation = FirstPromiseCreationResult(
+            routineId = 41L,
+            routine = RoutineModel(
+                id = 41L,
+                name = "Promise",
+                startTime = kotlinx.datetime.LocalTime(23, 0),
+                endTime = kotlinx.datetime.LocalTime(23, 30),
+                repeatDays = "1111111",
+                lockApplications = listOf("com.example.video"),
+                isEnabled = scheduleState == FirstPromiseScheduleState.Enabled,
+            ),
+            scheduleState = scheduleState,
+            schedulingSucceeded = scheduleState == FirstPromiseScheduleState.Enabled,
+            created = true,
+        )
+        store.recordPersistenceMapping(creation.routineId, creation.scheduleState)
+        return FirstPromisePersistenceResult.Succeeded(creation)
+    }
+
+    override suspend fun readCurrentMapping(): FirstPromiseCreationResult? = null
+
+    override suspend fun reconcileExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
+
+    override suspend fun finalizeExistingRoutine(routineId: Long): FirstPromisePersistenceResult =
+        FirstPromisePersistenceResult.MissingRoutine
 }
 
 private sealed interface AnalyticsCall {
@@ -199,6 +569,10 @@ private sealed interface AnalyticsCall {
     data object FirstOpen : AnalyticsCall
     data class StepViewed(val stepName: String) : AnalyticsCall
     data class StepCompleted(val stepName: String) : AnalyticsCall
+    data class ExperimentExposed(
+        val variant: OnboardingVariant,
+        val assignmentVersion: OnboardingAssignmentVersion,
+    ) : AnalyticsCall
     data class PermissionOutcome(
         val permissionName: String,
         val outcome: String,
@@ -258,6 +632,16 @@ private class RecordingKeepAnalytics : KeepAnalytics {
 
     override fun trackOnboardingStepComplete(stepName: String) {
         calls += AnalyticsCall.StepCompleted(stepName = stepName)
+    }
+
+    override fun trackOnboardingExperimentExposed(
+        variant: OnboardingVariant,
+        assignmentVersion: OnboardingAssignmentVersion,
+    ) {
+        calls += AnalyticsCall.ExperimentExposed(
+            variant = variant,
+            assignmentVersion = assignmentVersion,
+        )
     }
 
     override fun trackPermissionOutcome(

@@ -7,6 +7,51 @@ import org.junit.Test
 class MobileAdsStartupPolicyTest {
 
     @Test
+    fun mobileAdsInitializationStateStartsPendingAndBecomesReady() {
+        val state = MobileAdsInitializationState()
+
+        assertFalse(state.isInitialized.value)
+
+        state.markInitialized()
+
+        assertTrue(state.isInitialized.value)
+    }
+
+    @Test
+    fun mobileAdsInitializationRequiresConsentAndStartsOnlyOnceAcrossActivities() {
+        val state = MobileAdsInitializationState()
+
+        assertFalse(state.tryStartInitialization(canRequestAds = false))
+        assertTrue(state.tryStartInitialization(canRequestAds = true))
+        assertFalse(state.tryStartInitialization(canRequestAds = true))
+    }
+
+    @Test
+    fun consentGatheringStartsOnceAtATimeAndRunsAgainOnTheNextAppLaunch() {
+        val state = MobileAdsInitializationState()
+
+        assertTrue(state.tryStartConsentGathering())
+        assertFalse(state.tryStartConsentGathering())
+
+        state.completeConsentGathering()
+
+        assertTrue(state.tryStartConsentGathering())
+    }
+
+    @Test
+    fun privacyOptionsStateReflectsTheLatestConsentRequirement() {
+        val state = MobileAdsPrivacyOptionsState()
+
+        assertFalse(state.isRequired.value)
+
+        state.update(isRequired = true)
+        assertTrue(state.isRequired.value)
+
+        state.update(isRequired = false)
+        assertFalse(state.isRequired.value)
+    }
+
+    @Test
     fun mobileAdsInitializationIsDeferredPastActivityOnCreateCriticalPath() {
         assertTrue(
             "MobileAds initialization should be delayed so WebView/Play-services startup work does not run inline during Activity.onCreate",

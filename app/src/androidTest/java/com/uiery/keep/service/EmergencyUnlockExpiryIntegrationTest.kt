@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,9 +41,9 @@ class EmergencyUnlockExpiryIntegrationTest {
 
     @Test
     fun emergencyUnlockNotificationHelperWithoutPostNotificationsPermissionReturnsPermissionDeniedAndDoesNotPostNotification() {
-        assertTrue(
+        assumeFalse(
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
-            !NotificationManagerCompat.from(context).areNotificationsEnabled(),
+            NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
 
         val helper = EmergencyUnlockNotificationHelper(context)

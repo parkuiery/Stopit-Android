@@ -39,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -291,7 +292,7 @@ class ReceiverRuntimeIntegrationTest {
     @Test
     fun bootReceiverWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent() = runBlocking {
         val scheduler = RoutineScheduler(context)
-        assertFalse(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             scheduler.canScheduleExactAlarms(),
         )
@@ -319,7 +320,7 @@ class ReceiverRuntimeIntegrationTest {
     @Test
     fun packageReplacedWithoutExactAlarmPermissionDisablesEnabledRoutineAndLeavesNoPendingIntent() = runBlocking {
         val scheduler = RoutineScheduler(context)
-        assertFalse(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             scheduler.canScheduleExactAlarms(),
         )
@@ -451,9 +452,9 @@ class ReceiverRuntimeIntegrationTest {
 
     @Test
     fun routineAlarmReceiverWithoutPostNotificationsPermissionQueuesFallbackNoticeRehydratesDataStoreAndReschedulesEnabledRoutine() = runBlocking {
-        assertTrue(
+        assumeFalse(
             "Disable POST_NOTIFICATION with host adb/appops before running this focused test",
-            !NotificationManagerCompat.from(context).areNotificationsEnabled(),
+            NotificationManagerCompat.from(context).areNotificationsEnabled(),
         )
         grantExactAlarmPermission()
         val eveningRoutineId = TEST_ROUTINE_ID + 1
@@ -502,7 +503,7 @@ class ReceiverRuntimeIntegrationTest {
     @Test
     fun routineAlarmReceiverWithoutExactAlarmPermissionKeepsTriggeredRoutineEnabledAndDoesNotReschedule() = runBlocking {
         val scheduler = RoutineScheduler(context)
-        assertFalse(
+        assumeFalse(
             "Disable SCHEDULE_EXACT_ALARM with host adb/appops before running this focused test",
             scheduler.canScheduleExactAlarms(),
         )

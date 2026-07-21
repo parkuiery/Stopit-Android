@@ -155,12 +155,15 @@ Use for existing circular progress/emphasis motion. Do not introduce decorative 
 - Use `background` for full-screen surface.
 - Titles generally map to `titleLarge` or equivalent existing style.
 - Primary CTA should use `KeepButton`.
+- In a bottom action region with both primary and secondary actions, place the secondary action first and the primary CTA last, closest to the bottom safe area.
+- When a proposal summary has two or three peer edit actions, group them in one compact horizontal row when localized labels fit. Use neutral outlined containers with at least 48dp touch height so the primary color remains reserved for the forward CTA.
 
 ### Home And Lock
 
 - Preserve timer/category/lock semantics.
 - Use `primary` for active lock/focus emphasis.
 - Use KDS or documented component patterns for repeated picker, category, and app-row surfaces.
+- Keep the lock-screen banner in a dedicated full-width bottom slot immediately above the system safe area, with protection status and emergency actions above it.
 
 ### Routine
 

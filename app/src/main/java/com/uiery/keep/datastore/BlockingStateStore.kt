@@ -39,7 +39,9 @@ class BlockingStateStore @Inject constructor(
         val preferences = dataStore.data.first()
         return BlockingSelectionState(
             selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty(),
-            hasTrackedFirstLockConfigured = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true,
+            hasTrackedFirstLockConfigured =
+                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true ||
+                    preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null,
         )
     }
 
@@ -58,16 +60,78 @@ class BlockingStateStore @Inject constructor(
     suspend fun readIsNew(default: Boolean = true): Boolean =
         dataStore.data.first()[PreferencesKey.IS_NEW] ?: default
 
-    suspend fun markFirstLockConfiguredIfNeeded(): Boolean {
-        var didMark = false
+    suspend fun reserveFirstLockConfiguredDelivery(
+        source: String,
+        selectedAppCount: Int?,
+    ): Boolean {
+        var didReserve = false
         dataStore.edit { preferences ->
-            val hasTracked = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true
-            if (!hasTracked) {
-                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
-                didMark = true
+            val hasDelivered = preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true
+            val hasPending = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null
+            if (!hasDelivered && !hasPending) {
+                preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] = source
+                if (selectedAppCount == null) {
+                    preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                } else {
+                    preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT] =
+                        selectedAppCount
+                }
+                didReserve = true
             }
         }
-        return didMark
+        return didReserve
+    }
+
+    suspend fun readPendingFirstLockConfiguredDelivery(): PendingFirstLockConfiguredDelivery? {
+        val preferences = dataStore.data.first()
+        val source = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] ?: return null
+        return PendingFirstLockConfiguredDelivery(
+            source = source,
+            selectedAppCount = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+        )
+    }
+
+    suspend fun markFirstLockConfiguredDeliveryCompleted(
+        pending: PendingFirstLockConfiguredDelivery,
+    ): Boolean {
+        var didComplete = false
+        dataStore.edit { preferences ->
+            val current = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE]?.let { source ->
+                PendingFirstLockConfiguredDelivery(
+                    source = source,
+                    selectedAppCount =
+                        preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+                )
+            }
+            if (current == pending) {
+                preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] = true
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE)
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                didComplete = true
+            }
+        }
+        return didComplete
+    }
+
+    suspend fun releaseFirstLockConfiguredDelivery(
+        pending: PendingFirstLockConfiguredDelivery,
+    ): Boolean {
+        var didRelease = false
+        dataStore.edit { preferences ->
+            val current = preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE]?.let { source ->
+                PendingFirstLockConfiguredDelivery(
+                    source = source,
+                    selectedAppCount =
+                        preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT],
+                )
+            }
+            if (current == pending) {
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE)
+                preferences.remove(PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT)
+                didRelease = true
+            }
+        }
+        return didRelease
     }
 
     suspend fun markFirstOpenTrackedIfNeeded(timestampMillis: Long): Boolean {
@@ -139,6 +203,48 @@ class BlockingStateStore @Inject constructor(
     suspend fun readLockTime(): String? =
         dataStore.data.first()[PreferencesKey.LOCK_TIME]
 
+    suspend fun startTimedLockSession(
+        packages: Set<String>,
+        startTimeMillis: Long,
+        encodedDeadline: String,
+    ): TimedLockSessionOwnership {
+        var ownership: TimedLockSessionOwnership? = null
+        dataStore.edit { preferences ->
+            ownership = TimedLockSessionOwnership(
+                encodedDeadline = encodedDeadline,
+                previous = TimedLockSessionSnapshot(
+                    selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES],
+                    startTimeMillis = preferences[PreferencesKey.START_TIME],
+                    encodedDeadline = preferences[PreferencesKey.LOCK_TIME],
+                ),
+            )
+            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
+            preferences[PreferencesKey.START_TIME] = startTimeMillis
+            preferences[PreferencesKey.LOCK_TIME] = encodedDeadline
+        }
+        return checkNotNull(ownership)
+    }
+
+    suspend fun rollbackTimedLockSession(ownership: TimedLockSessionOwnership): Boolean {
+        var rolledBack = false
+        dataStore.edit { preferences ->
+            if (preferences[PreferencesKey.LOCK_TIME] == ownership.encodedDeadline) {
+                preferences.restore(PreferencesKey.SELECTED_APP_PACKAGES, ownership.previous.selectedAppPackages)
+                preferences.restore(PreferencesKey.START_TIME, ownership.previous.startTimeMillis)
+                preferences.restore(PreferencesKey.LOCK_TIME, ownership.previous.encodedDeadline)
+                rolledBack = true
+            }
+        }
+        return rolledBack
+    }
+
+    private fun <T> androidx.datastore.preferences.core.MutablePreferences.restore(
+        key: Preferences.Key<T>,
+        value: T?,
+    ) {
+        if (value == null) remove(key) else this[key] = value
+    }
+
     suspend fun setPreventUninstall(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.PREVENT_UNINSTALL] = enabled
@@ -160,6 +266,17 @@ class BlockingStateStore @Inject constructor(
     }
 }
 
+data class TimedLockSessionSnapshot(
+    val selectedAppPackages: Set<String>?,
+    val startTimeMillis: Long?,
+    val encodedDeadline: String?,
+)
+
+data class TimedLockSessionOwnership(
+    val encodedDeadline: String,
+    val previous: TimedLockSessionSnapshot,
+)
+
 data class AccessibilityBlockingSnapshot(
     val isKeep: Boolean = false,
     val lockTime: String? = null,
@@ -172,6 +289,11 @@ data class AccessibilityBlockingSnapshot(
 data class BlockingSelectionState(
     val selectedAppPackages: Set<String> = emptySet(),
     val hasTrackedFirstLockConfigured: Boolean = false,
+)
+
+data class PendingFirstLockConfiguredDelivery(
+    val source: String,
+    val selectedAppCount: Int?,
 )
 
 data class FirstCoreActionState(

@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -57,6 +60,8 @@ fun CategoryBottomSheetContent(
     modifier: Modifier = Modifier,
     storeSelectApps: Set<String>,
     onComplete: (Set<String>) -> Unit,
+    selectionMode: AppSelectionMode = AppSelectionMode.Multiple,
+    onSingleComplete: ((packageName: String, appLabel: String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val installedAppRepository = remember(context.packageManager) {
@@ -78,6 +83,8 @@ fun CategoryBottomSheetContent(
         storeSelectApps = storeSelectApps,
         isLoading = isLoading,
         onComplete = onComplete,
+        selectionMode = selectionMode,
+        onSingleComplete = onSingleComplete,
     )
 }
 
@@ -88,9 +95,20 @@ fun CategoryBottomSheetLoadedContent(
     storeSelectApps: Set<String>,
     isLoading: Boolean = false,
     onComplete: (Set<String>) -> Unit,
+    selectionMode: AppSelectionMode = AppSelectionMode.Multiple,
+    onSingleComplete: ((packageName: String, appLabel: String) -> Unit)? = null,
 ) {
-    val initialSelectedAppPackages = remember(apps) { storeSelectApps.toSet() }
-    var selectedAppPackages by remember(apps) { mutableStateOf(initialSelectedAppPackages) }
+    val initialSelectedAppPackages = remember(apps, selectionMode) {
+        when (selectionMode) {
+            AppSelectionMode.Multiple -> storeSelectApps.toSet()
+            AppSelectionMode.Single -> apps
+                .firstOrNull { it.packageName in storeSelectApps }
+                ?.packageName
+                ?.let(::setOf)
+                .orEmpty()
+        }
+    }
+    var selectedAppPackages by remember(apps, selectionMode) { mutableStateOf(initialSelectedAppPackages) }
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
     val orderedApps = remember(apps) {
         val appsByPackage = apps.associateBy { it.packageName }
@@ -143,7 +161,7 @@ fun CategoryBottomSheetLoadedContent(
                         color = KeepTheme.colors.secondary
                     ),
             ) {
-                if (searchContent.isEmpty()) {
+                if (selectionMode.showsSelectAll && searchContent.isEmpty()) {
                     item {
                         Row(
                             modifier = Modifier
@@ -189,19 +207,37 @@ fun CategoryBottomSheetLoadedContent(
                         .filter { it.appName.contains(searchContent, ignoreCase = true) },
                     key = { it.packageName }
                 ) { app ->
-                    AppItem(
-                        modifier = Modifier.testTag("category_app_row_${app.packageName}"),
-                        checkboxModifier = Modifier.testTag("category_app_checkbox_${app.packageName}"),
-                        image = app.appIcon.toBitmap().asImageBitmap(),
-                        name = app.appName,
-                        checked = isSelectAll || selectedAppPackages.contains(app.packageName),
-                        onCheckedChange = {
-                            selectedAppPackages = toggleSelectableAppSelection(
-                                currentSelection = selectedAppPackages,
-                                packageName = app.packageName,
-                            )
-                        }
-                    )
+                    val checked = selectedAppPackages.contains(app.packageName)
+                    when (selectionMode) {
+                        AppSelectionMode.Multiple -> AppItem(
+                            modifier = Modifier.testTag("category_app_row_${app.packageName}"),
+                            checkboxModifier = Modifier.testTag("category_app_checkbox_${app.packageName}"),
+                            image = app.appIcon.toBitmap().asImageBitmap(),
+                            name = app.appName,
+                            checked = isSelectAll || checked,
+                            onCheckedChange = {
+                                selectedAppPackages = updateSelectableAppSelection(
+                                    mode = selectionMode,
+                                    currentSelection = selectedAppPackages,
+                                    packageName = app.packageName,
+                                )
+                            },
+                        )
+
+                        AppSelectionMode.Single -> SingleSelectionAppItem(
+                            modifier = Modifier.testTag("category_app_row_${app.packageName}"),
+                            name = app.appName,
+                            image = app.appIcon.toBitmap().asImageBitmap(),
+                            selected = checked,
+                            onClick = {
+                                selectedAppPackages = updateSelectableAppSelection(
+                                    mode = selectionMode,
+                                    currentSelection = selectedAppPackages,
+                                    packageName = app.packageName,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -210,7 +246,18 @@ fun CategoryBottomSheetLoadedContent(
                 .fillMaxWidth()
                 .testTag("category_selection_complete")
                 .padding(top = 18.dp, bottom = 24.dp),
-            onClick = { onComplete(selectedAppPackages) },
+            onClick = {
+                val selectedApp = if (selectionMode == AppSelectionMode.Single) {
+                    apps.firstOrNull { it.packageName in selectedAppPackages }
+                } else {
+                    null
+                }
+                if (selectedApp != null && onSingleComplete != null) {
+                    onSingleComplete(selectedApp.packageName, selectedApp.appName)
+                } else {
+                    onComplete(selectedAppPackages)
+                }
+            },
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = KeepTheme.colors.primary,
@@ -224,6 +271,46 @@ fun CategoryBottomSheetLoadedContent(
                 fontSize = 18.sp,
             )
         }
+    }
+}
+
+enum class AppSelectionMode(internal val showsSelectAll: Boolean) {
+    Multiple(showsSelectAll = true),
+    Single(showsSelectAll = false),
+}
+
+@Composable
+private fun SingleSelectionAppItem(
+    name: String,
+    image: ImageBitmap,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectionStateDescription = stringResource(
+        id = if (selected) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(vertical = 10.dp)
+            .semantics { stateDescription = selectionStateDescription }
+            .then(modifier),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Image(
+            modifier = Modifier.size(30.dp),
+            bitmap = image,
+            contentDescription = null,
+        )
+        Text(text = name, color = KeepTheme.colors.onSurfaceVariant)
     }
 }
 
@@ -244,6 +331,15 @@ internal fun toggleSelectableAppSelection(
     currentSelection - packageName
 } else {
     currentSelection + packageName
+}
+
+internal fun updateSelectableAppSelection(
+    mode: AppSelectionMode,
+    currentSelection: Set<String>,
+    packageName: String,
+): Set<String> = when (mode) {
+    AppSelectionMode.Multiple -> toggleSelectableAppSelection(currentSelection, packageName)
+    AppSelectionMode.Single -> setOf(packageName)
 }
 
 internal fun areAllSelectableAppsSelected(

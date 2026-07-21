@@ -35,6 +35,12 @@ class ProdReleaseShrinkingContractTest(unittest.TestCase):
         self.assertIn("-renamesourcefileattribute SourceFile", rules)
         self.assertIn("@android.webkit.JavascriptInterface", rules)
 
+    def test_meta_compile_time_nullsafe_annotations_do_not_block_r8(self):
+        rules = PROGUARD_RULES.read_text()
+
+        self.assertIn("-dontwarn com.facebook.infer.annotation.Nullsafe", rules)
+        self.assertIn("-dontwarn com.facebook.infer.annotation.Nullsafe$Mode", rules)
+
     def test_release_operator_docs_record_shrinking_evidence_gate(self):
         for path in RELEASE_DOCS:
             with self.subTest(path=path.name):

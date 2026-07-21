@@ -1,0 +1,255 @@
+package com.uiery.keep.data.firstpromise
+
+import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
+import com.uiery.keep.domain.firstpromise.FirstPromiseScheduleState
+import com.uiery.keep.domain.firstpromise.FirstPromiseSource
+import com.uiery.keep.domain.firstpromise.FirstPromiseOrigin
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class FirstPromiseOutboxEventTest {
+    private val codec = FirstPromiseOutboxEventCodec()
+
+    @Test
+    fun elapsedSinceOpenBucketUsesApprovedWireValuesAndExactSecondBoundaries() {
+        assertEquals(
+            mapOf(
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute to "under_1m",
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes to "1_5m",
+                FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes to "over_5m",
+            ),
+            FirstPromiseElapsedSinceOpenBucket.entries.associateWith(
+                FirstPromiseElapsedSinceOpenBucket::analyticsValue,
+            ),
+        )
+        assertEquals(
+            listOf(
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                FirstPromiseElapsedSinceOpenBucket.OneToFiveMinutes,
+                FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes,
+            ),
+            listOf(0L, 59L, 60L, 300L, 301L).map(
+                FirstPromiseElapsedSinceOpenBucket::fromElapsedSeconds,
+            ),
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FirstPromiseElapsedSinceOpenBucket.fromElapsedSeconds(-1L)
+        }
+    }
+
+    @Test
+    fun fixedCreationEventsRoundTripWithCanonicalNamesAndSequences() {
+        val events = listOf(
+            FirstPromiseOutboxEvent.RoutineSaved(
+                repeatDaysBucket = FirstPromiseRepeatDaysBucket.Seven,
+                timeWindowBucket = FirstPromiseTimeWindowBucket.Night,
+                scheduleState = FirstPromiseScheduleState.Enabled,
+            ),
+            FirstPromiseOutboxEvent.FirstPromiseCreated(
+                goal = FirstPromiseGoal.Focus,
+                source = FirstPromiseSource.Personalized,
+                scheduleState = FirstPromiseScheduleState.Enabled,
+            ),
+        )
+
+        val entities = events.map { codec.encode("local-draft", it, 100L) }
+
+        assertEquals(listOf(10, 20), entities.map { it.sequence })
+        assertEquals(listOf("routine_saved", "first_promise_created"), entities.map { it.canonicalEventName })
+        assertEquals(events, entities.map(codec::decode))
+    }
+
+    @Test
+    fun encodedPayloadContainsOnlyApprovedBucketsAndNeverLocalOrObservedFacts() {
+        val entity = codec.encode(
+            draftId = "draft-secret",
+            event = FirstPromiseOutboxEvent.FirstPromiseCreated(
+                goal = FirstPromiseGoal.Sleep,
+                source = FirstPromiseSource.GoalTemplate,
+                scheduleState = FirstPromiseScheduleState.DisabledExactAlarmMissing,
+            ),
+            occurredAtMillis = 123L,
+        )
+
+        val payload = Json.parseToJsonElement(entity.payloadJson).jsonObject
+        assertEquals(setOf("goal_type", "source", "schedule_state"), payload.keys)
+        val serialized = entity.payloadJson.lowercase()
+        listOf("draft-secret", "package", "app_label", "routine_id", "draft_id", "observed", "minutes").forEach {
+            assertFalse(serialized.contains(it))
+        }
+    }
+
+    @Test
+    fun unknownOrMismatchedSequenceIsRejected() {
+        val valid = codec.encode(
+            draftId = "draft",
+            event = FirstPromiseOutboxEvent.FirstPromiseCreated(
+                FirstPromiseGoal.Study,
+                FirstPromiseSource.Manual,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            occurredAtMillis = 1L,
+        )
+
+        assertNull(codec.decodeOrNull(valid.copy(sequence = 10)))
+        assertNull(codec.decodeOrNull(valid.copy(eventName = "future_event")))
+        assertTrue(codec.decodeOrNull(valid) is FirstPromiseOutboxEvent.FirstPromiseCreated)
+    }
+
+    @Test
+    fun decodeRejectsMissingExtraAndChangedFixedRoutineSavedFields() {
+        val valid = codec.encode(
+            draftId = "draft",
+            event = FirstPromiseOutboxEvent.RoutineSaved(
+                FirstPromiseRepeatDaysBucket.Seven,
+                FirstPromiseTimeWindowBucket.Night,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            occurredAtMillis = 1L,
+        )
+        val payload = Json.parseToJsonElement(valid.payloadJson).jsonObject
+
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload - "entry_surface").toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("unexpected" to JsonPrimitive("value"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("entry_surface" to JsonPrimitive("home"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("creation_source" to JsonPrimitive("manual"))).toString())))
+        assertNull(codec.decodeOrNull(valid.copy(payloadJson = JsonObject(payload + ("selected_app_count_bucket" to JsonPrimitive("2_3"))).toString())))
+    }
+
+    @Test
+    fun decodeRejectsExtraFieldsForEveryTypedVariant() {
+        val events = listOf<FirstPromiseOutboxEvent>(
+            FirstPromiseOutboxEvent.RoutineSaved(
+                FirstPromiseRepeatDaysBucket.Seven,
+                FirstPromiseTimeWindowBucket.Night,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            FirstPromiseOutboxEvent.FirstPromiseCreated(
+                FirstPromiseGoal.Focus,
+                FirstPromiseSource.Personalized,
+                FirstPromiseScheduleState.Enabled,
+            ),
+            FirstPromiseOutboxEvent.AppBlockIntercepted(
+                FirstPromiseBlockSource.TimedLock,
+                FirstPromiseBlockingMode.TimedLock,
+                FirstPromiseAppCategoryBucket.Productivity,
+                FirstPromiseOrigin.FirstPromisePractice,
+            ),
+            FirstPromiseOutboxEvent.CoreAction(
+                FirstPromiseCoreActionKind.First,
+                FirstPromiseBlockingMode.TimedLock,
+                FirstPromiseAppCategoryBucket.Productivity,
+                FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+                FirstPromiseOrigin.FirstPromisePractice,
+            ),
+        )
+
+        events.forEach { event ->
+            val entity = codec.encode("draft", event, 1L)
+            val payload = Json.parseToJsonElement(entity.payloadJson).jsonObject
+            val extra = JsonObject(payload + ("routine_id" to JsonPrimitive("secret")))
+            assertNull(event.localEventName, codec.decodeOrNull(entity.copy(payloadJson = extra.toString())))
+        }
+    }
+
+    @Test
+    fun valueEventsUseFixedThirtyFortySequencesAndPrivacySafeAllowlist() {
+        val intercepted = FirstPromiseOutboxEvent.AppBlockIntercepted(
+            blockSource = FirstPromiseBlockSource.TimedLock,
+            blockingMode = FirstPromiseBlockingMode.TimedLock,
+            categoryBucket = FirstPromiseAppCategoryBucket.Productivity,
+            promiseOrigin = FirstPromiseOrigin.FirstPromisePractice,
+        )
+        val core = FirstPromiseOutboxEvent.CoreAction(
+            kind = FirstPromiseCoreActionKind.First,
+            blockingMode = FirstPromiseBlockingMode.TimedLock,
+            categoryBucket = FirstPromiseAppCategoryBucket.Productivity,
+            elapsedBucket = FirstPromiseElapsedSinceOpenBucket.UnderMinute,
+            promiseOrigin = FirstPromiseOrigin.FirstPromisePractice,
+        )
+
+        val interceptedEntity = codec.encode("secret-draft", intercepted, 1L)
+        val coreEntity = codec.encode("secret-draft", core, 2L)
+
+        assertEquals(listOf(30, 40), listOf(interceptedEntity.sequence, coreEntity.sequence))
+        assertEquals(
+            listOf("first_promise_value_intercepted", "first_promise_core_action"),
+            listOf(interceptedEntity.eventName, coreEntity.eventName),
+        )
+        assertEquals(
+            listOf("app_block_intercepted", "first_core_action_completed"),
+            listOf(interceptedEntity.canonicalEventName, coreEntity.canonicalEventName),
+        )
+        assertEquals(intercepted, codec.decode(interceptedEntity))
+        assertEquals(core, codec.decode(coreEntity))
+        assertEquals(
+            setOf("block_source", "blocking_mode", "blocked_app_category_bucket", "promise_origin"),
+            Json.parseToJsonElement(interceptedEntity.payloadJson).jsonObject.keys,
+        )
+        assertEquals(
+            setOf(
+                "core_action_kind",
+                "blocking_mode",
+                "blocked_app_category_bucket",
+                "elapsed_since_first_open_bucket",
+                "promise_origin",
+            ),
+            Json.parseToJsonElement(coreEntity.payloadJson).jsonObject.keys,
+        )
+
+        val durablePayload = interceptedEntity.payloadJson + coreEntity.payloadJson
+        listOf(
+            "secret-draft",
+            "package",
+            "app_label",
+            "observed_minutes",
+            "observed_time",
+            "draft_id",
+            "routine_id",
+        ).forEach { forbidden -> assertFalse(forbidden, durablePayload.contains(forbidden)) }
+    }
+
+    @Test
+    fun valueEventsAcceptOnlyTypedPromiseOriginsAndMapRepeatCoreToCanonicalBackendEvent() {
+        FirstPromiseOrigin.entries.forEach { origin ->
+            val entity = codec.encode(
+                draftId = "draft",
+                event = FirstPromiseOutboxEvent.AppBlockIntercepted(
+                    blockSource = FirstPromiseBlockSource.Routine,
+                    blockingMode = FirstPromiseBlockingMode.Routine,
+                    categoryBucket = FirstPromiseAppCategoryBucket.Unknown,
+                    promiseOrigin = origin,
+                ),
+                occurredAtMillis = 1L,
+            )
+            assertEquals(origin, (codec.decode(entity) as FirstPromiseOutboxEvent.AppBlockIntercepted).promiseOrigin)
+        }
+
+        val repeat = codec.encode(
+            draftId = "draft",
+            event = FirstPromiseOutboxEvent.CoreAction(
+                kind = FirstPromiseCoreActionKind.Repeat,
+                blockingMode = FirstPromiseBlockingMode.Routine,
+                categoryBucket = FirstPromiseAppCategoryBucket.Unknown,
+                elapsedBucket = FirstPromiseElapsedSinceOpenBucket.OverFiveMinutes,
+                promiseOrigin = FirstPromiseOrigin.FirstPromiseRoutine,
+            ),
+            occurredAtMillis = 1L,
+        )
+        assertEquals("core_action_completed", repeat.canonicalEventName)
+
+        val payload = Json.parseToJsonElement(repeat.payloadJson).jsonObject
+        val arbitraryOrigin = JsonObject(payload + ("promise_origin" to JsonPrimitive("arbitrary-origin")))
+        assertNull(codec.decodeOrNull(repeat.copy(payloadJson = arbitraryOrigin.toString())))
+    }
+}

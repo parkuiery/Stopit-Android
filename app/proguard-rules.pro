@@ -17,6 +17,11 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
+# Meta Audience Network references these compile-time annotations without
+# packaging the Infer annotation artifact in its runtime dependency graph.
+-dontwarn com.facebook.infer.annotation.Nullsafe
+-dontwarn com.facebook.infer.annotation.Nullsafe$Mode
+
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }

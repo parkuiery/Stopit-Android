@@ -33,6 +33,8 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.EMERGENCY_UNLOCK_COUNTDOWN_SECONDS,
         PreferencesKey.HAS_TRACKED_FIRST_OPEN,
         PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED,
+        PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE,
+        PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT,
         PreferencesKey.FIRST_OPEN_TIMESTAMP,
         PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION,
         PreferencesKey.REVIEW_PENDING,
@@ -48,6 +50,10 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.PARENT_MODE_STATE,
         PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         PreferencesKey.USAGE_INSIGHT_DISMISSED,
+        PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE,
+        PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN,
+        PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION,
+        PreferencesKey.FIRST_PROMISE_CREATION_BARRIER_DRAFT_IDS,
     )
 
     val rehydratedCompatibilityCacheKeys: Set<Preferences.Key<*>> = setOf(
