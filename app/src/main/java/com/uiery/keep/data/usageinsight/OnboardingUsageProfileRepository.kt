@@ -1,5 +1,6 @@
 package com.uiery.keep.data.usageinsight
 
+import com.uiery.keep.BuildConfig
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.domain.usageinsight.EnabledRoutineCoverage
 import com.uiery.keep.domain.usageinsight.InsufficientReason
@@ -7,6 +8,7 @@ import com.uiery.keep.domain.usageinsight.OnboardingUsageAggregate
 import com.uiery.keep.domain.usageinsight.OnboardingUsageInterval
 import com.uiery.keep.domain.usageinsight.OnboardingUsageProfilePolicy
 import com.uiery.keep.domain.usageinsight.OnboardingUsageProfileResult
+import com.uiery.keep.util.AppLogger
 import com.uiery.keep.util.toDayOfWeekList
 import java.time.LocalDate
 import java.time.ZoneId
@@ -53,7 +55,7 @@ class OnboardingUsageProfileRepository @Inject constructor(
                 )
             }
             .toList()
-        return OnboardingUsageProfilePolicy.evaluate(
+        val result = OnboardingUsageProfilePolicy.evaluate(
             aggregates = aggregates.map { aggregate ->
                 OnboardingUsageAggregate(
                     packageName = aggregate.packageName,
@@ -76,6 +78,33 @@ class OnboardingUsageProfileRepository @Inject constructor(
             proposedRepeatDays = ALL_REPEAT_DAYS,
             zoneId = zoneId,
         )
+        if (BuildConfig.DEBUG) {
+            when (result) {
+                is OnboardingUsageProfileResult.Ready -> {
+                    val profile = result.profile
+                    val selectedAppTotalMillis = aggregates
+                        .asSequence()
+                        .filter { it.packageName == profile.packageName }
+                        .fold(0L) { total, aggregate -> total + aggregate.totalForegroundMillis }
+                    AppLogger.debug(
+                        LOG_TAG,
+                        "[usage_profile_result] package=${profile.packageName}, " +
+                            "selectedAppTotalMillis=$selectedAppTotalMillis, " +
+                            "usageCoverageDays=${profile.usageCoverageDays}, " +
+                            "averageDailyMinutes=${profile.averageDailyMinutes}, " +
+                            "eventCoverageDays=${profile.eventCoverageDays}, " +
+                            "dataQuality=${profile.dataQuality}",
+                    )
+                }
+                is OnboardingUsageProfileResult.Insufficient -> AppLogger.debug(
+                    LOG_TAG,
+                    "[usage_profile_result] insufficient=${result.reason}, " +
+                        "usageCoverageDays=${result.usageCoverageDays}, " +
+                        "eventCoverageDays=${result.eventCoverageDays}",
+                )
+            }
+        }
+        return result
     }
 
     private fun queryFailed() = OnboardingUsageProfileResult.Insufficient(
@@ -85,6 +114,7 @@ class OnboardingUsageProfileRepository @Inject constructor(
     )
 
     private companion object {
+        const val LOG_TAG = "UsageStatsDebug"
         val ALL_REPEAT_DAYS = (1..7).toSet()
     }
 }
