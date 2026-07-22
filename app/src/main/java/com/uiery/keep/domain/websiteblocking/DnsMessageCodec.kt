@@ -24,7 +24,6 @@ enum class DnsQueryFailureReason {
     PointerOutOfBounds,
     PointerLoop,
     ExcessivePointerHops,
-    LabelTooLong,
     NameTooLong,
     InvalidEmptyLabel,
     NonAsciiLabel,
@@ -37,7 +36,6 @@ enum class DnsBlockDecision {
 
 object DnsMessageCodec {
     private const val DNS_HEADER_LENGTH = 12
-    private const val MAX_LABEL_LENGTH = 63
     private const val MAX_NAME_LENGTH = 253
     private const val MAX_POINTER_HOPS = 16
     private const val QR_MASK = 0x8000
@@ -137,14 +135,8 @@ object DnsMessageCodec {
             val lengthByte = packet[offset].unsigned()
             when (lengthByte and 0xC0) {
                 0x00 -> {
-                    if (lengthByte > MAX_LABEL_LENGTH) {
-                        return NameDecodeResult.Failure(DnsQueryFailureReason.LabelTooLong)
-                    }
                     offset += 1
                     if (lengthByte == 0) {
-                        if (labels.isEmpty()) {
-                            return NameDecodeResult.Failure(DnsQueryFailureReason.InvalidEmptyLabel)
-                        }
                         val name = labels.joinToString(".").lowercase(Locale.US)
                         if (name.length > MAX_NAME_LENGTH) {
                             return NameDecodeResult.Failure(DnsQueryFailureReason.NameTooLong)
@@ -198,6 +190,9 @@ object DnsMessageCodec {
     }
 
     private fun encodeName(name: String): ByteArray {
+        if (name.isEmpty()) {
+            return byteArrayOf(0)
+        }
         val labels = name.split(".")
         val encoded = ArrayList<Byte>(name.length + 2)
         labels.forEach { label ->
