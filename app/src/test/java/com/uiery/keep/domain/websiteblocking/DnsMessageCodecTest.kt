@@ -65,6 +65,18 @@ class DnsMessageCodecTest {
     }
 
     @Test
+    fun rootQueryParsesAndDoesNotMatchBlockedDomains() {
+        val parsed = DnsMessageCodec.parseQuery(
+            dnsQuery(rawQuestionName = byteArrayOf(0), qtype = 1, qclass = 1),
+        ).requireParsed()
+
+        assertEquals("", parsed.queryName)
+        assertEquals(1, parsed.qtype)
+        assertEquals(1, parsed.qclass)
+        assertEquals(DnsBlockDecision.Allow, DnsMessageCodec.decide(parsed, setOf(DomainName("example.com"))))
+    }
+
+    @Test
     fun buildsValidNxDomainResponseWithoutMutatingQuery() {
         val query = dnsQuery(
             transactionId = 0xBEEF,
@@ -133,15 +145,13 @@ class DnsMessageCodecTest {
         assertFailure(DnsQueryFailureReason.QuestionCountNotOne, dnsQuery(qdcount = 2))
         assertFailure(DnsQueryFailureReason.TruncatedQuestion, dnsQuery().copyOf(14))
         assertFailure(DnsQueryFailureReason.ReservedLabelEncoding, dnsQuery().also { it[12] = 0x40 })
+        assertFailure(DnsQueryFailureReason.ReservedLabelEncoding, dnsQuery().also { it[12] = 0x80.toByte() })
         assertFailure(DnsQueryFailureReason.PointerOutOfBounds, pointerQuery(0xC0, 0x7F))
         assertFailure(DnsQueryFailureReason.PointerLoop, pointerQuery(0xC0, 0x0C))
+        assertFailure(DnsQueryFailureReason.ExcessivePointerHops, excessivePointerHopQuery())
         assertFailure(
             DnsQueryFailureReason.NameTooLong,
             dnsQuery(name = List(5) { "a".repeat(50) }.joinToString(".")),
-        )
-        assertFailure(
-            DnsQueryFailureReason.InvalidEmptyLabel,
-            dnsQuery(rawQuestionName = byteArrayOf(0)),
         )
         assertFailure(
             DnsQueryFailureReason.NonAsciiLabel,
@@ -184,6 +194,25 @@ class DnsMessageCodecTest {
 
     private fun pointerQuery(firstPointerByte: Int, secondPointerByte: Int): ByteArray =
         dnsQuery(rawQuestionName = byteArrayOf(firstPointerByte.toByte(), secondPointerByte.toByte()))
+
+    private fun excessivePointerHopQuery(): ByteArray {
+        val headerAndQuestion = byteArrayOf(
+            0xCA.toByte(), 0xFE.toByte(),
+            0x01, 0x00,
+            0x00, 0x01,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0xC0.toByte(), 0x12,
+            0x00, 0x01,
+            0x00, 0x01,
+        )
+        val pointerChain = (18..48 step 2).flatMap { offset ->
+            val nextOffset = offset + 2
+            listOf(0xC0.toByte(), nextOffset.toByte())
+        }
+        return headerAndQuestion + pointerChain.toByteArray() + byteArrayOf(0)
+    }
 
     private fun encodeName(name: String): ByteArray =
         name.split(".").flatMap { label ->
