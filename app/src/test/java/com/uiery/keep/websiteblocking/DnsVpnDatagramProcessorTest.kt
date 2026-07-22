@@ -60,22 +60,87 @@ class DnsVpnDatagramProcessorTest {
     }
 
     @Test
-    fun malformedDnsInsideValidUdpEnvelopeForwardsRawPayload() {
+    fun allowedQueryRejectsUpstreamResponseWithMismatchedTransactionId() {
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it).withTransactionId(0x4321) },
+        )
+
+        val result = processor.process(ipv4DnsPacket(dnsQuery("allowed.example")))
+
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
+            result.requireStopReason(),
+        )
+    }
+
+    @Test
+    fun allowedQueryRejectsUpstreamResponseThatIsStillAQuery() {
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it).also { response -> response[2] = 0x01 } },
+        )
+
+        val result = processor.process(ipv4DnsPacket(dnsQuery("allowed.example")))
+
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
+            result.requireStopReason(),
+        )
+    }
+
+    @Test
+    fun allowedQueryRejectsUpstreamResponseWithMismatchedQuestion() {
+        val query = dnsQuery("allowed.example")
+        val mismatchedResponse = dnsResponse(dnsQuery("other.example")).withTransactionId(query.readUnsignedShort(0))
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { mismatchedResponse },
+        )
+
+        val result = processor.process(ipv4DnsPacket(query))
+
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
+            result.requireStopReason(),
+        )
+    }
+
+    @Test
+    fun allowedQueryRejectsUpstreamResponseTooLargeForIpv4Mtu() {
+        val oversizedResponse = dnsResponse(dnsQuery("allowed.example")) + ByteArray(1_473)
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { oversizedResponse },
+        )
+
+        val result = processor.process(ipv4DnsPacket(dnsQuery("allowed.example")))
+
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
+            result.requireStopReason(),
+        )
+    }
+
+    @Test
+    fun malformedDnsInsideValidUdpEnvelopeRequestsFailOpenStopVpn() {
         val malformedDns = byteArrayOf(0x12, 0x34, 0x01, 0x00)
-        val upstreamAnswer = dnsResponse(dnsQuery("fallback.example"))
-        var forwardedPayload: ByteArray? = null
+        var upstreamCalls = 0
         val processor = DnsVpnDatagramProcessor(
             blockedDomains = setOf(DomainName("blocked.example")),
             upstreamExchange = {
-                forwardedPayload = it.copyOf()
-                upstreamAnswer
+                upstreamCalls += 1
+                dnsResponse(dnsQuery("fallback.example"))
             },
         )
 
         val result = processor.process(ipv4DnsPacket(malformedDns))
 
-        assertArrayEquals(malformedDns, forwardedPayload)
-        assertArrayEquals(upstreamAnswer, result.requireResponseDnsPayload())
+        assertEquals(0, upstreamCalls)
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
+            result.requireStopReason(),
+        )
     }
 
     @Test
@@ -109,7 +174,7 @@ class DnsVpnDatagramProcessorTest {
     }
 
     @Test
-    fun responseBuildFailureRequestsFailOpenStopVpn() {
+    fun oversizedUpstreamResponseRequestsFailOpenStopVpnBeforeResponseBuild() {
         val oversizedPayload = ByteArray(65_508) { 0x42 }
         val processor = DnsVpnDatagramProcessor(
             blockedDomains = emptySet(),
@@ -119,7 +184,7 @@ class DnsVpnDatagramProcessorTest {
         val result = processor.process(ipv4DnsPacket(dnsQuery("allowed.example")))
 
         assertEquals(
-            DnsVpnDatagramProcessStopReason.ResponseBuildFailed,
+            DnsVpnDatagramProcessStopReason.UpstreamRejected,
             result.requireStopReason(),
         )
     }
@@ -181,6 +246,12 @@ class DnsVpnDatagramProcessorTest {
         query.copyOf().also {
             it[2] = 0x81.toByte()
             it[3] = 0x80.toByte()
+        }
+
+    private fun ByteArray.withTransactionId(transactionId: Int): ByteArray =
+        copyOf().also { response ->
+            response[0] = (transactionId ushr 8).toByte()
+            response[1] = transactionId.toByte()
         }
 
     private fun ipv4DnsPacket(dnsPayload: ByteArray): ByteArray {
