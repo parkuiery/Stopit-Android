@@ -101,7 +101,7 @@ class DnsTunPacketCodecTest {
         val originalRequestPayload = request.dnsPayload.copyOf()
         val responsePayload = byteArrayOf(0x44, 0x55, 0x66, 0x77)
 
-        val response = DnsTunPacketCodec.buildDnsUdpResponse(request, responsePayload)
+        val response = DnsTunPacketCodec.buildDnsUdpResponse(request, responsePayload).requireBuilt()
 
         assertArrayEquals(originalRequestPacket, requestPacket)
         assertArrayEquals(originalRequestPayload, request.dnsPayload)
@@ -140,7 +140,7 @@ class DnsTunPacketCodecTest {
         val request = DnsTunPacketCodec.parseDnsUdpDatagram(requestPacket).requireParsed()
         val responsePayload = byteArrayOf(0x21, 0x22, 0x23)
 
-        val response = DnsTunPacketCodec.buildDnsUdpResponse(request, responsePayload)
+        val response = DnsTunPacketCodec.buildDnsUdpResponse(request, responsePayload).requireBuilt()
 
         assertEquals(6, response[0].unsigned() ushr 4)
         assertEquals(8 + responsePayload.size, response.readUnsignedShort(4))
@@ -174,7 +174,7 @@ class DnsTunPacketCodecTest {
 
         packet[12] = 127
         packet[28] = 0x7F
-        val response = DnsTunPacketCodec.buildDnsUdpResponse(datagram, responsePayload)
+        val response = DnsTunPacketCodec.buildDnsUdpResponse(datagram, responsePayload).requireBuilt()
         responsePayload[0] = 0x7F
 
         assertArrayEquals(byteArrayOf(10, 0, 0, 2), datagram.sourceAddress)
@@ -187,16 +187,16 @@ class DnsTunPacketCodecTest {
         assertFailure(DnsTunPacketFailureReason.PacketTooShort, ByteArray(0))
         assertFailure(DnsTunPacketFailureReason.PacketTooShort, bytes(0x45, 0, 0, 19))
         assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv4UdpPacket().also { it[0] = 0x44 })
-        assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv4UdpPacket().also { it.writeUnsignedShort(2, 19) })
-        assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv4UdpPacket().also { it.writeUnsignedShort(24, 7) })
-        assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv4UdpPacket().also { it.writeUnsignedShort(24, 2000) })
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv4UdpPacket().also { it.writeUnsignedShort(2, 19) })
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv4UdpPacket().also { it.writeUnsignedShort(24, 7) })
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv4UdpPacket().also { it.writeUnsignedShort(24, 2000) })
         assertFailure(DnsTunPacketFailureReason.FragmentedPacket, ipv4UdpPacket().also { it.writeUnsignedShort(6, 0x2000) })
         assertFailure(DnsTunPacketFailureReason.FragmentedPacket, ipv4UdpPacket().also { it.writeUnsignedShort(6, 0x0001) })
         assertFailure(DnsTunPacketFailureReason.UnsupportedProtocol, ipv4UdpPacket(protocol = 6))
         assertFailure(DnsTunPacketFailureReason.NonDnsPort, ipv4UdpPacket(destinationPort = 54))
         assertFailure(DnsTunPacketFailureReason.PacketTooShort, bytes(0x60, 0, 0, 0, 0, 8, 17, 64))
-        assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv6UdpPacket().also { it.writeUnsignedShort(4, 7) })
-        assertFailure(DnsTunPacketFailureReason.MalformedPacket, ipv6UdpPacket().also { it.writeUnsignedShort(44, 2000) })
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6UdpPacket().also { it.writeUnsignedShort(4, 7) })
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6UdpPacket().also { it.writeUnsignedShort(44, 2000) })
         assertFailure(DnsTunPacketFailureReason.UnsupportedProtocol, ipv6UdpPacket(nextHeader = 6))
         assertFailure(DnsTunPacketFailureReason.UnsupportedProtocol, ipv6UdpPacket(nextHeader = 0))
         assertFailure(DnsTunPacketFailureReason.NonDnsPort, ipv6UdpPacket(destinationPort = 5353))
@@ -216,9 +216,79 @@ class DnsTunPacketCodecTest {
         assertArrayEquals(ipv6Payload, ipv6.dnsPayload)
     }
 
+    @Test
+    fun buildsMaximumLegalResponsePayloadsAndRejectsOversizedResponses() {
+        val ipv4Request = DnsTunPacketCodec.parseDnsUdpDatagram(ipv4UdpPacket()).requireParsed()
+        val ipv6Request = DnsTunPacketCodec.parseDnsUdpDatagram(ipv6UdpPacket()).requireParsed()
+
+        val ipv4Max = DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request, ByteArray(65_507)).requireBuilt()
+        val ipv6Max = DnsTunPacketCodec.buildDnsUdpResponse(ipv6Request, ByteArray(65_527)).requireBuilt()
+
+        assertEquals(65_535, ipv4Max.size)
+        assertEquals(65_575, ipv6Max.size)
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.ResponseTooLarge,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request, ByteArray(65_508)),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.ResponseTooLarge,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv6Request, ByteArray(65_528)),
+        )
+    }
+
+    @Test
+    fun buildResponseRejectsCallerCreatedDatagramsWithInvalidInvariants() {
+        val ipv4Request = DnsTunPacketCodec.parseDnsUdpDatagram(ipv4UdpPacket()).requireParsed()
+
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.InvalidAddressLength,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request.copy(sourceAddress = byteArrayOf(1, 2, 3)), byteArrayOf(1)),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.InvalidAddressLength,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request.copy(destinationAddress = ByteArray(16)), byteArrayOf(1)),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.InvalidAddressLength,
+            DnsTunPacketCodec.buildDnsUdpResponse(
+                ipv4Request.copy(ipVersion = DnsTunIpVersion.IPv6, sourceAddress = ByteArray(4), destinationAddress = ByteArray(4)),
+                byteArrayOf(1),
+            ),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.InvalidPort,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request.copy(sourcePort = -1), byteArrayOf(1)),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.InvalidPort,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request.copy(destinationPort = 65_536), byteArrayOf(1)),
+        )
+        assertBuildFailure(
+            DnsTunPacketBuildFailureReason.UnsupportedIpVersion,
+            DnsTunPacketCodec.buildDnsUdpResponse(ipv4Request.copy(ipVersion = DnsTunIpVersion.Unsupported), byteArrayOf(1)),
+        )
+    }
+
+    @Test
+    fun rejectsHiddenBytesInsideDeclaredDirectUdpPayloadLength() {
+        val ipv4 = ipv4UdpPacket(payload = byteArrayOf(0x01, 0x02)) + byteArrayOf(0x7A)
+        ipv4.writeUnsignedShort(2, ipv4.size)
+        val ipv6 = ipv6UdpPacket(payload = byteArrayOf(0x03, 0x04)) + byteArrayOf(0x7B)
+        ipv6.writeUnsignedShort(4, ipv6.size - 40)
+
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv4)
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6)
+    }
+
     private fun assertFailure(expected: DnsTunPacketFailureReason, packet: ByteArray) {
         val failure = DnsTunPacketCodec.parseDnsUdpDatagram(packet) as? DnsTunPacketParseResult.Failure
         requireNotNull(failure) { "Expected failure $expected" }
+        assertEquals(expected, failure.reason)
+    }
+
+    private fun assertBuildFailure(expected: DnsTunPacketBuildFailureReason, result: DnsTunPacketBuildResult) {
+        val failure = result as? DnsTunPacketBuildResult.Failure
+        requireNotNull(failure) { "Expected build failure $expected" }
         assertEquals(expected, failure.reason)
     }
 
@@ -226,6 +296,12 @@ class DnsTunPacketCodecTest {
         val parsed = this as? DnsTunPacketParseResult.Parsed
         requireNotNull(parsed) { "Expected parsed datagram but was $this" }
         return parsed.datagram
+    }
+
+    private fun DnsTunPacketBuildResult.requireBuilt(): ByteArray {
+        val success = this as? DnsTunPacketBuildResult.Success
+        requireNotNull(success) { "Expected built response but was $this" }
+        return success.packet
     }
 
     private fun ipv4UdpPacket(

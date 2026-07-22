@@ -3,6 +3,7 @@ package com.uiery.keep.domain.websiteblocking
 enum class DnsTunIpVersion {
     IPv4,
     IPv6,
+    Unsupported,
 }
 
 data class DnsTunDatagram(
@@ -22,9 +23,23 @@ sealed interface DnsTunPacketParseResult {
 enum class DnsTunPacketFailureReason {
     PacketTooShort,
     MalformedPacket,
+    MalformedLength,
     UnsupportedProtocol,
     FragmentedPacket,
     NonDnsPort,
+}
+
+sealed interface DnsTunPacketBuildResult {
+    data class Success(val packet: ByteArray) : DnsTunPacketBuildResult
+    data class Failure(val reason: DnsTunPacketBuildFailureReason) : DnsTunPacketBuildResult
+}
+
+enum class DnsTunPacketBuildFailureReason {
+    ResponseTooLarge,
+    InvalidAddressLength,
+    InvalidPort,
+    UnsupportedIpVersion,
+    MalformedDatagram,
 }
 
 object DnsTunPacketCodec {
@@ -52,11 +67,25 @@ object DnsTunPacketCodec {
             DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedPacket)
         }
 
-    fun buildDnsUdpResponse(request: DnsTunDatagram, dnsPayload: ByteArray): ByteArray =
-        when (request.ipVersion) {
-            DnsTunIpVersion.IPv4 -> buildIpv4UdpResponse(request, dnsPayload.copyOf())
-            DnsTunIpVersion.IPv6 -> buildIpv6UdpResponse(request, dnsPayload.copyOf())
+    fun buildDnsUdpResponse(request: DnsTunDatagram, dnsPayload: ByteArray): DnsTunPacketBuildResult {
+        return try {
+            val validationFailure = validateResponseRequest(request, dnsPayload.size)
+            if (validationFailure != null) {
+                DnsTunPacketBuildResult.Failure(validationFailure)
+            } else {
+                val packet = when (request.ipVersion) {
+                    DnsTunIpVersion.IPv4 -> buildIpv4UdpResponse(request, dnsPayload.copyOf())
+                    DnsTunIpVersion.IPv6 -> buildIpv6UdpResponse(request, dnsPayload.copyOf())
+                    DnsTunIpVersion.Unsupported -> return DnsTunPacketBuildResult.Failure(
+                        DnsTunPacketBuildFailureReason.UnsupportedIpVersion,
+                    )
+                }
+                DnsTunPacketBuildResult.Success(packet)
+            }
+        } catch (_: RuntimeException) {
+            DnsTunPacketBuildResult.Failure(DnsTunPacketBuildFailureReason.MalformedDatagram)
         }
+    }
 
     private fun parseIpv4DnsUdpDatagram(packet: ByteArray): DnsTunPacketParseResult {
         if (packet.size < IPV4_MIN_HEADER_LENGTH) {
@@ -73,7 +102,7 @@ object DnsTunPacketCodec {
 
         val totalLength = packet.readUnsignedShort(2)
         if (totalLength < headerLength) {
-            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedPacket)
+            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
         if (packet.size < totalLength) {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.PacketTooShort)
@@ -91,12 +120,12 @@ object DnsTunPacketCodec {
         }
 
         if (totalLength - headerLength < UDP_HEADER_LENGTH) {
-            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.PacketTooShort)
+            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
         val udpLength = packet.readUnsignedShort(headerLength + 4)
-        if (udpLength < UDP_HEADER_LENGTH || headerLength + udpLength > totalLength) {
-            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedPacket)
+        if (udpLength < UDP_HEADER_LENGTH || headerLength + udpLength != totalLength) {
+            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
         val destinationPort = packet.readUnsignedShort(headerLength + 2)
@@ -131,12 +160,12 @@ object DnsTunPacketCodec {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.UnsupportedProtocol)
         }
         if (payloadLength < UDP_HEADER_LENGTH) {
-            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedPacket)
+            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
         val udpLength = packet.readUnsignedShort(IPV6_HEADER_LENGTH + 4)
-        if (udpLength < UDP_HEADER_LENGTH || udpLength > payloadLength) {
-            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedPacket)
+        if (udpLength < UDP_HEADER_LENGTH || udpLength != payloadLength) {
+            return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
         val destinationPort = packet.readUnsignedShort(IPV6_HEADER_LENGTH + 2)
@@ -185,6 +214,33 @@ object DnsTunPacketCodec {
         packet.writeUnsignedShort(udpOffset + 6, udpChecksum)
 
         return packet
+    }
+
+    private fun validateResponseRequest(request: DnsTunDatagram, dnsPayloadSize: Int): DnsTunPacketBuildFailureReason? {
+        val expectedAddressLength = when (request.ipVersion) {
+            DnsTunIpVersion.IPv4 -> 4
+            DnsTunIpVersion.IPv6 -> 16
+            DnsTunIpVersion.Unsupported -> return DnsTunPacketBuildFailureReason.UnsupportedIpVersion
+        }
+        if (request.sourceAddress.size != expectedAddressLength ||
+            request.destinationAddress.size != expectedAddressLength
+        ) {
+            return DnsTunPacketBuildFailureReason.InvalidAddressLength
+        }
+        if (request.sourcePort !in 0..0xFFFF || request.destinationPort !in 0..0xFFFF) {
+            return DnsTunPacketBuildFailureReason.InvalidPort
+        }
+
+        val maxDnsPayloadSize = when (request.ipVersion) {
+            DnsTunIpVersion.IPv4 -> 65_535 - IPV4_MIN_HEADER_LENGTH - UDP_HEADER_LENGTH
+            DnsTunIpVersion.IPv6 -> 65_535 - UDP_HEADER_LENGTH
+            DnsTunIpVersion.Unsupported -> return DnsTunPacketBuildFailureReason.UnsupportedIpVersion
+        }
+        if (dnsPayloadSize > maxDnsPayloadSize) {
+            return DnsTunPacketBuildFailureReason.ResponseTooLarge
+        }
+
+        return null
     }
 
     private fun buildIpv6UdpResponse(request: DnsTunDatagram, dnsPayload: ByteArray): ByteArray {
