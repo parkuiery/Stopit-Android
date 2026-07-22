@@ -38,6 +38,9 @@ object DomainNamePolicy {
         if (rawHost.isEmpty()) {
             return DomainNameNormalizationResult.Invalid(DomainNameInvalidReason.Empty)
         }
+        if ("@" in rawHost) {
+            return DomainNameNormalizationResult.Invalid(DomainNameInvalidReason.MalformedLabel)
+        }
         if (rawHost.startsWith("[") || rawHost.endsWith("]") || ":" in rawHost) {
             return DomainNameNormalizationResult.Invalid(DomainNameInvalidReason.IpLiteral)
         }
@@ -45,6 +48,7 @@ object DomainNamePolicy {
         val host = rawHost
             .removeSuffix(".")
             .lowercase(Locale.US)
+            .removePrefix("www.")
         if (host.isEmpty()) {
             return DomainNameNormalizationResult.Invalid(DomainNameInvalidReason.Empty)
         }
@@ -92,8 +96,7 @@ object DomainNamePolicy {
             return DomainNameNormalizationResult.Invalid(DomainNameInvalidReason.HostTooLong)
         }
 
-        val canonicalHost = asciiHost.removePrefix("www.")
-        return DomainNameNormalizationResult.Valid(DomainName(canonicalHost))
+        return DomainNameNormalizationResult.Valid(DomainName(asciiHost))
     }
 
     fun matches(blockedDomain: DomainName, candidateHostOrUrl: String): Boolean {
@@ -105,9 +108,13 @@ object DomainNamePolicy {
     }
 
     private fun String.toRawHost(): String {
-        val withoutScheme = substringAfterSchemeOrNetworkPrefix()
-        val authority = withoutScheme.substringBeforeAny('/', '?', '#')
-        val withoutUserInfo = authority.substringAfterLast('@')
+        val authorityInput = toAuthorityInput()
+        val authority = authorityInput.value.substringBeforeAny('/', '?', '#')
+        val withoutUserInfo = if (authorityInput.hasExplicitAuthority) {
+            authority.substringAfterLast('@')
+        } else {
+            authority
+        }
 
         if (withoutUserInfo.startsWith("[")) {
             return withoutUserInfo
@@ -126,16 +133,25 @@ object DomainNamePolicy {
         }
     }
 
-    private fun String.substringAfterSchemeOrNetworkPrefix(): String {
+    private fun String.toAuthorityInput(): AuthorityInput {
         if (startsWith("//")) {
-            return drop(2)
+            return AuthorityInput(
+                value = drop(2),
+                hasExplicitAuthority = true,
+            )
         }
 
         val schemeSeparator = indexOf("://")
         return if (schemeSeparator >= 0) {
-            drop(schemeSeparator + 3)
+            AuthorityInput(
+                value = drop(schemeSeparator + 3),
+                hasExplicitAuthority = true,
+            )
         } else {
-            this
+            AuthorityInput(
+                value = this,
+                hasExplicitAuthority = false,
+            )
         }
     }
 
@@ -153,4 +169,9 @@ object DomainNamePolicy {
                     part.toIntOrNull()?.let { it in 0..255 } == true
             }
     }
+
+    private data class AuthorityInput(
+        val value: String,
+        val hasExplicitAuthority: Boolean,
+    )
 }
