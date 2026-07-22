@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.uiery.keep.R
+import com.uiery.keep.domain.websiteblocking.DnsTunIpVersion
 import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.DomainNameNormalizationResult
 import com.uiery.keep.domain.websiteblocking.DomainNamePolicy
@@ -24,13 +25,13 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 
 class KeepDnsVpnSpikeService : VpnService() {
-    private val closed = AtomicBoolean(true)
+    private val lifecycleLock = Any()
+    private val sessionOwner = DnsVpnSessionOwner()
     private var worker: ExecutorService? = null
     @Volatile
-    private var tunDescriptor: ParcelFileDescriptor? = null
+    private var tunHandle: TunHandle? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP || intent?.getBooleanExtra(EXTRA_STOP, false) == true) {
@@ -71,23 +72,27 @@ class KeepDnsVpnSpikeService : VpnService() {
     }
 
     private fun startVpnWorker(blockedDomains: Set<DomainName>) {
-        closed.set(true)
-        shutdownWorkerOnly()
-        closeTun()
-        closed.set(false)
-        worker = Executors.newSingleThreadExecutor { runnable ->
-            Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
-        }.also { executor ->
+        synchronized(lifecycleLock) {
+            val previousSession = sessionOwner.activeSession()
+            val session = sessionOwner.startSession()
+            shutdownWorkerOnlyLocked()
+            if (previousSession != null) {
+                closeTunLocked(previousSession)
+            }
+            val executor = Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
+            }
+            worker = executor
             executor.execute {
-                runVpn(blockedDomains)
+                runVpn(session, blockedDomains)
             }
         }
     }
 
-    private fun runVpn(blockedDomains: Set<DomainName>) {
+    private fun runVpn(session: DnsVpnSession, blockedDomains: Set<DomainName>) {
         val upstreamDnsServers = activeUpstreamDnsServers()
         if (upstreamDnsServers.isEmpty()) {
-            stopFromWorker()
+            stopFromWorker(session)
             return
         }
 
@@ -97,10 +102,20 @@ class KeepDnsVpnSpikeService : VpnService() {
             null
         }
         if (descriptor == null) {
-            stopFromWorker()
+            stopFromWorker(session)
             return
         }
-        tunDescriptor = descriptor
+        if (sessionOwner.shouldWorkerExit(session)) {
+            closeDescriptor(descriptor)
+            return
+        }
+        synchronized(lifecycleLock) {
+            if (sessionOwner.shouldWorkerExit(session)) {
+                closeDescriptor(descriptor)
+                return
+            }
+            tunHandle = TunHandle(session, descriptor)
+        }
 
         try {
             FileInputStream(descriptor.fileDescriptor).use { input ->
@@ -110,13 +125,13 @@ class KeepDnsVpnSpikeService : VpnService() {
                         upstreamExchange = { payload -> exchangeWithUpstream(payload, upstreamDnsServers) },
                     )
                     val buffer = ByteArray(TUN_BUFFER_SIZE)
-                    while (!closed.get()) {
+                    while (!sessionOwner.shouldWorkerExit(session)) {
                         val length = input.read(buffer)
                         if (length <= 0) continue
                         when (val result = processor.process(buffer.copyOf(length))) {
                             is DnsVpnDatagramProcessResult.SendToTun -> output.write(result.packet)
                             is DnsVpnDatagramProcessResult.FailOpenStopVpn -> {
-                                stopFromWorker()
+                                stopFromWorker(session)
                                 return
                             }
                         }
@@ -124,9 +139,9 @@ class KeepDnsVpnSpikeService : VpnService() {
                 }
             }
         } catch (_: IOException) {
-            stopFromWorker()
+            stopFromWorker(session)
         } finally {
-            closeTun()
+            closeTun(session)
         }
     }
 
@@ -154,14 +169,11 @@ class KeepDnsVpnSpikeService : VpnService() {
                 DatagramSocket().use { socket ->
                     if (!protect(socket)) return@forEach
                     socket.soTimeout = DNS_TIMEOUT_MILLIS
-                    val outbound = DatagramPacket(
-                        payload.copyOf(),
-                        payload.size,
-                        InetSocketAddress(dnsServer, DNS_PORT),
-                    )
+                    socket.connect(InetSocketAddress(dnsServer, DNS_PORT))
+                    val outbound = DatagramPacket(payload.copyOf(), payload.size)
                     socket.send(outbound)
 
-                    val responseBuffer = ByteArray(MAX_DNS_UDP_PAYLOAD)
+                    val responseBuffer = ByteArray(MAX_UPSTREAM_DNS_RECEIVE_SIZE)
                     val inbound = DatagramPacket(responseBuffer, responseBuffer.size)
                     socket.receive(inbound)
                     return responseBuffer.copyOf(inbound.length)
@@ -202,33 +214,58 @@ class KeepDnsVpnSpikeService : VpnService() {
         return (result as? DomainNameNormalizationResult.Valid)?.domain ?: DomainName(DEFAULT_DOMAIN)
     }
 
-    private fun stopFromWorker() {
-        shutdown()
-        stopSelf()
+    private fun stopFromWorker(session: DnsVpnSession) {
+        if (sessionOwner.stopIfOwner(session)) {
+            synchronized(lifecycleLock) {
+                shutdownWorkerOnlyLocked()
+                closeTunLocked(session)
+            }
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
     }
 
     private fun shutdown() {
-        if (!closed.getAndSet(true)) {
-            shutdownWorkerOnly()
-            closeTun()
+        val session = sessionOwner.stopActive()
+        if (session != null) {
+            synchronized(lifecycleLock) {
+                shutdownWorkerOnlyLocked()
+                closeTunLocked(session)
+            }
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
     }
 
-    private fun shutdownWorkerOnly() {
+    private fun shutdownWorkerOnlyLocked() {
         worker?.shutdownNow()
         worker = null
     }
 
-    private fun closeTun() {
-        try {
-            tunDescriptor?.close()
-        } catch (_: IOException) {
-            // Idempotent cleanup only.
-        } finally {
-            tunDescriptor = null
+    private fun closeTun(session: DnsVpnSession) {
+        synchronized(lifecycleLock) {
+            closeTunLocked(session)
         }
     }
+
+    private fun closeTunLocked(session: DnsVpnSession) {
+        val handle = tunHandle ?: return
+        if (handle.session != session) return
+        tunHandle = null
+        closeDescriptor(handle.descriptor)
+    }
+
+    private fun closeDescriptor(descriptor: ParcelFileDescriptor) {
+        try {
+            descriptor.close()
+        } catch (_: IOException) {
+            // Idempotent cleanup only.
+        }
+    }
+
+    private data class TunHandle(
+        val session: DnsVpnSession,
+        val descriptor: ParcelFileDescriptor,
+    )
 
     companion object {
         const val ACTION_START = "com.uiery.keep.websiteblocking.START_DNS_VPN_SPIKE"
@@ -245,7 +282,8 @@ class KeepDnsVpnSpikeService : VpnService() {
         private const val TUN_BUFFER_SIZE = 65_535
         private const val DNS_PORT = 53
         private const val DNS_TIMEOUT_MILLIS = 1_500
-        private const val MAX_DNS_UDP_PAYLOAD = 4_096
+        private val MAX_UPSTREAM_DNS_RECEIVE_SIZE =
+            DnsVpnUpstreamResponsePolicy.receiveBufferSize(DnsTunIpVersion.IPv4)
 
         fun startIntent(context: Context, domain: DomainName): Intent =
             Intent(context, KeepDnsVpnSpikeService::class.java)
