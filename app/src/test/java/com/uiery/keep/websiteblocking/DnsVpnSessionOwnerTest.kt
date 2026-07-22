@@ -8,23 +8,39 @@ import org.junit.Test
 class DnsVpnSessionOwnerTest {
     @Test
     fun oldSessionCannotStopReplacementSession() {
-        val owner = DnsVpnSessionOwner()
+        val owner = DnsVpnSessionOwner<String>()
         val oldSession = owner.startSession()
         val replacementSession = owner.startSession()
 
-        assertFalse(owner.stopIfOwner(oldSession))
+        assertFalse(owner.stopIfOwner(oldSession).shouldStopService)
         assertTrue(owner.isActive(replacementSession))
-        assertTrue(owner.stopIfOwner(replacementSession))
+        assertTrue(owner.stopIfOwner(replacementSession).shouldStopService)
     }
 
     @Test
     fun replacingSessionRequestsOldWorkerShutdownOnce() {
-        val owner = DnsVpnSessionOwner()
+        val owner = DnsVpnSessionOwner<String>()
         val firstSession = owner.startSession()
         val secondSession = owner.startSession()
 
         assertTrue(owner.shouldWorkerExit(firstSession))
         assertFalse(owner.shouldWorkerExit(secondSession))
         assertEquals(secondSession, owner.activeSession())
+    }
+
+    @Test
+    fun staleWorkerStopDoesNotReturnOrClearReplacementWorkerHandle() {
+        val owner = DnsVpnSessionOwner<String>()
+        val oldSession = owner.startSession()
+        owner.publishWorkerHandle(DnsVpnWorkerHandle(oldSession, worker = "old"))
+        val replacementSession = owner.startSession()
+        val replacementHandle = DnsVpnWorkerHandle(replacementSession, worker = "replacement")
+        owner.publishWorkerHandle(replacementHandle)
+
+        val stopResult = owner.stopIfOwner(oldSession)
+
+        assertFalse(stopResult.shouldStopService)
+        assertEquals(null, stopResult.workerToShutdown)
+        assertEquals(replacementHandle, owner.activeWorkerHandle())
     }
 }

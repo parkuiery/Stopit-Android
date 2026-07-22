@@ -28,7 +28,7 @@ import java.util.concurrent.Executors
 
 class KeepDnsVpnSpikeService : VpnService() {
     private val lifecycleLock = Any()
-    private val sessionOwner = DnsVpnSessionOwner()
+    private val sessionOwner = DnsVpnSessionOwner<ExecutorService>()
     private var worker: ExecutorService? = null
     @Volatile
     private var tunHandle: TunHandle? = null
@@ -73,16 +73,15 @@ class KeepDnsVpnSpikeService : VpnService() {
 
     private fun startVpnWorker(blockedDomains: Set<DomainName>) {
         synchronized(lifecycleLock) {
-            val previousSession = sessionOwner.activeSession()
+            val previousWorker = sessionOwner.activeWorkerHandle()?.worker
             val session = sessionOwner.startSession()
-            shutdownWorkerOnlyLocked()
-            if (previousSession != null) {
-                closeTunLocked(previousSession)
-            }
+            shutdownWorkerLocked(previousWorker)
+            closeInactiveTunLocked(session)
             val executor = Executors.newSingleThreadExecutor { runnable ->
                 Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
             }
             worker = executor
+            sessionOwner.publishWorkerHandle(DnsVpnWorkerHandle(session, executor))
             executor.execute {
                 runVpn(session, blockedDomains)
             }
@@ -215,30 +214,46 @@ class KeepDnsVpnSpikeService : VpnService() {
     }
 
     private fun stopFromWorker(session: DnsVpnSession) {
-        if (sessionOwner.stopIfOwner(session)) {
-            synchronized(lifecycleLock) {
-                shutdownWorkerOnlyLocked()
+        val shouldStopService = synchronized(lifecycleLock) {
+            val stopResult = sessionOwner.stopIfOwner(session)
+            if (stopResult.shouldStopService) {
+                shutdownWorkerLocked(stopResult.workerToShutdown)
                 closeTunLocked(session)
             }
+            stopResult.shouldStopService
+        }
+        if (shouldStopService) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
     }
 
     private fun shutdown() {
-        val session = sessionOwner.stopActive()
-        if (session != null) {
-            synchronized(lifecycleLock) {
-                shutdownWorkerOnlyLocked()
-                closeTunLocked(session)
+        val shouldStopService = synchronized(lifecycleLock) {
+            val stopResult = sessionOwner.stopActive()
+            if (stopResult.shouldStopService) {
+                shutdownWorkerLocked(stopResult.workerToShutdown)
+                tunHandle?.let { closeTunLocked(it.session) }
             }
+            stopResult.shouldStopService
+        }
+        if (shouldStopService) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
     }
 
-    private fun shutdownWorkerOnlyLocked() {
-        worker?.shutdownNow()
-        worker = null
+    private fun shutdownWorkerLocked(workerToShutdown: ExecutorService?) {
+        workerToShutdown?.shutdownNow()
+        if (worker == workerToShutdown) {
+            worker = null
+        }
+    }
+
+    private fun closeInactiveTunLocked(activeSession: DnsVpnSession) {
+        val handle = tunHandle ?: return
+        if (handle.session != activeSession) {
+            closeTunLocked(handle.session)
+        }
     }
 
     private fun closeTun(session: DnsVpnSession) {
