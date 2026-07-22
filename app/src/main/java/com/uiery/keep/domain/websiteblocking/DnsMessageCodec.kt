@@ -27,6 +27,7 @@ enum class DnsQueryFailureReason {
     NameTooLong,
     InvalidEmptyLabel,
     NonAsciiLabel,
+    InvalidLabelCharacter,
 }
 
 enum class DnsBlockDecision {
@@ -157,7 +158,11 @@ object DnsMessageCodec {
                     if (labelBytes.any { it.unsigned() > 0x7F }) {
                         return NameDecodeResult.Failure(DnsQueryFailureReason.NonAsciiLabel)
                     }
-                    labels += labelBytes.toString(Charsets.US_ASCII)
+                    val label = labelBytes.toString(Charsets.US_ASCII)
+                    if (!label.isValidHostnameLabel()) {
+                        return NameDecodeResult.Failure(DnsQueryFailureReason.InvalidLabelCharacter)
+                    }
+                    labels += label
                     val currentLength = labels.sumOf { it.length } + labels.size - 1
                     if (currentLength > MAX_NAME_LENGTH) {
                         return NameDecodeResult.Failure(DnsQueryFailureReason.NameTooLong)
@@ -205,6 +210,14 @@ object DnsMessageCodec {
 
     private fun ByteArray.readUnsignedShort(offset: Int): Int =
         (this[offset].unsigned() shl 8) or this[offset + 1].unsigned()
+
+    private fun String.isValidHostnameLabel(): Boolean =
+        all { char -> char.isAsciiLetterOrDigit() || char == '-' } &&
+            first() != '-' &&
+            last() != '-'
+
+    private fun Char.isAsciiLetterOrDigit(): Boolean =
+        this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9'
 
     private fun Byte.unsigned(): Int = toInt() and 0xFF
 

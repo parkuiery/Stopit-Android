@@ -157,6 +157,18 @@ class DnsMessageCodecTest {
             DnsQueryFailureReason.NonAsciiLabel,
             dnsQuery(rawQuestionName = byteArrayOf(1, 0xFF.toByte(), 0)),
         )
+        assertFailure(
+            DnsQueryFailureReason.InvalidLabelCharacter,
+            dnsQuery(rawQuestionName = rawSingleLabel("example.com")),
+        )
+        assertFailure(
+            DnsQueryFailureReason.InvalidLabelCharacter,
+            dnsQuery(rawQuestionName = rawSingleLabel("-example")),
+        )
+        assertFailure(
+            DnsQueryFailureReason.InvalidLabelCharacter,
+            dnsQuery(rawQuestionName = rawSingleLabel("example-")),
+        )
     }
 
     private fun assertFailure(expected: DnsQueryFailureReason, packet: ByteArray) {
@@ -194,6 +206,9 @@ class DnsMessageCodecTest {
 
     private fun pointerQuery(firstPointerByte: Int, secondPointerByte: Int): ByteArray =
         dnsQuery(rawQuestionName = byteArrayOf(firstPointerByte.toByte(), secondPointerByte.toByte()))
+
+    private fun rawSingleLabel(label: String): ByteArray =
+        byteArrayOf(label.length.toByte()) + label.map { it.code.toByte() }.toByteArray() + byteArrayOf(0)
 
     private fun excessivePointerHopQuery(): ByteArray {
         val headerAndQuestion = byteArrayOf(
