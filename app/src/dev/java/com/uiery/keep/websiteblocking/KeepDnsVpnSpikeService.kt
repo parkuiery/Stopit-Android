@@ -41,8 +41,11 @@ class KeepDnsVpnSpikeService : VpnService() {
         }
 
         val blockedDomains = setOf(normalizeDomain(intent?.getStringExtra(EXTRA_DOMAIN)))
-        startForegroundForSpike(blockedDomains.size)
-        startVpnWorker(blockedDomains)
+        startVpnWorker(
+            blockedDomains = blockedDomains,
+            blockedDomainCount = blockedDomains.size,
+            startId = startId,
+        )
         return START_NOT_STICKY
     }
 
@@ -71,12 +74,17 @@ class KeepDnsVpnSpikeService : VpnService() {
         )
     }
 
-    private fun startVpnWorker(blockedDomains: Set<DomainName>) {
+    private fun startVpnWorker(
+        blockedDomains: Set<DomainName>,
+        blockedDomainCount: Int,
+        startId: Int,
+    ) {
         synchronized(lifecycleLock) {
             val previousWorker = sessionOwner.activeWorkerHandle()?.worker
-            val session = sessionOwner.startSession()
+            val session = sessionOwner.startSession(startId)
             shutdownWorkerLocked(previousWorker)
             closeInactiveTunLocked(session)
+            startForegroundForSpike(blockedDomainCount)
             val executor = Executors.newSingleThreadExecutor { runnable ->
                 Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
             }
@@ -214,31 +222,28 @@ class KeepDnsVpnSpikeService : VpnService() {
     }
 
     private fun stopFromWorker(session: DnsVpnSession) {
-        val shouldStopService = synchronized(lifecycleLock) {
+        val startIdToStop = synchronized(lifecycleLock) {
             val stopResult = sessionOwner.stopIfOwner(session)
             if (stopResult.shouldStopService) {
                 shutdownWorkerLocked(stopResult.workerToShutdown)
                 closeTunLocked(session)
+                stopForeground(STOP_FOREGROUND_REMOVE)
             }
-            stopResult.shouldStopService
+            stopResult.startIdToStop
         }
-        if (shouldStopService) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+        if (startIdToStop != null) {
+            stopSelfResult(startIdToStop)
         }
     }
 
     private fun shutdown() {
-        val shouldStopService = synchronized(lifecycleLock) {
+        synchronized(lifecycleLock) {
             val stopResult = sessionOwner.stopActive()
             if (stopResult.shouldStopService) {
                 shutdownWorkerLocked(stopResult.workerToShutdown)
                 tunHandle?.let { closeTunLocked(it.session) }
+                stopForeground(STOP_FOREGROUND_REMOVE)
             }
-            stopResult.shouldStopService
-        }
-        if (shouldStopService) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
         }
     }
 

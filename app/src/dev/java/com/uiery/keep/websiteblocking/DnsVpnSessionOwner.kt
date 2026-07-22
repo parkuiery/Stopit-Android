@@ -8,8 +8,11 @@ class DnsVpnSessionOwner<Worker> {
     private val activeSession = AtomicReference<DnsVpnSession?>(null)
     private val activeWorkerHandle = AtomicReference<DnsVpnWorkerHandle<Worker>?>(null)
 
-    fun startSession(): DnsVpnSession {
-        val session = DnsVpnSession(nextGeneration.incrementAndGet())
+    fun startSession(startId: Int): DnsVpnSession {
+        val session = DnsVpnSession(
+            generation = nextGeneration.incrementAndGet(),
+            startId = startId,
+        )
         activeSession.set(session)
         return session
     }
@@ -33,17 +36,33 @@ class DnsVpnSessionOwner<Worker> {
 
     fun stopIfOwner(session: DnsVpnSession): DnsVpnSessionStopResult<Worker> {
         if (!activeSession.compareAndSet(session, null)) {
-            return DnsVpnSessionStopResult(shouldStopService = false, workerToShutdown = null)
+            return DnsVpnSessionStopResult(
+                shouldStopService = false,
+                workerToShutdown = null,
+                startIdToStop = null,
+            )
         }
         val worker = takeWorkerIfOwner(session)
-        return DnsVpnSessionStopResult(shouldStopService = true, workerToShutdown = worker)
+        return DnsVpnSessionStopResult(
+            shouldStopService = true,
+            workerToShutdown = worker,
+            startIdToStop = session.startId,
+        )
     }
 
     fun stopActive(): DnsVpnSessionStopResult<Worker> {
         val session = activeSession.getAndSet(null)
-            ?: return DnsVpnSessionStopResult(shouldStopService = false, workerToShutdown = null)
+            ?: return DnsVpnSessionStopResult(
+                shouldStopService = false,
+                workerToShutdown = null,
+                startIdToStop = null,
+            )
         val worker = takeWorkerIfOwner(session)
-        return DnsVpnSessionStopResult(shouldStopService = true, workerToShutdown = worker)
+        return DnsVpnSessionStopResult(
+            shouldStopService = true,
+            workerToShutdown = worker,
+            startIdToStop = session.startId,
+        )
     }
 
     private fun takeWorkerIfOwner(session: DnsVpnSession): Worker? {
@@ -65,10 +84,12 @@ data class DnsVpnWorkerHandle<Worker>(
 data class DnsVpnSessionStopResult<Worker>(
     val shouldStopService: Boolean,
     val workerToShutdown: Worker?,
+    val startIdToStop: Int?,
 )
 
 class DnsVpnSession internal constructor(
     val generation: Int,
+    val startId: Int,
 ) {
     override fun equals(other: Any?): Boolean =
         other is DnsVpnSession && other.generation == generation
