@@ -15,6 +15,7 @@ class DomainNamePolicyTest {
     fun trailingDotAndUserInfoPortAreRemovedBeforeStorage() {
         assertValidDomain("example.com", DomainNamePolicy.normalize("example.com."))
         assertValidDomain("example.com", DomainNamePolicy.normalize("https://user:pass@www.example.com:8443/path"))
+        assertValidDomain("example.com", DomainNamePolicy.normalize("//user:pass@www.example.com:8443/path"))
     }
 
     @Test
@@ -33,8 +34,15 @@ class DomainNamePolicyTest {
         assertInvalidReason(DomainNameInvalidReason.IpLiteral, DomainNamePolicy.normalize("2001:db8::1"))
         assertInvalidReason(DomainNameInvalidReason.MalformedLabel, DomainNamePolicy.normalize("bad..example.com"))
         assertInvalidReason(DomainNameInvalidReason.MalformedLabel, DomainNamePolicy.normalize("-bad.example.com"))
+        assertInvalidReason(DomainNameInvalidReason.MalformedLabel, DomainNamePolicy.normalize("user@example.com"))
         assertInvalidReason(DomainNameInvalidReason.LabelTooLong, DomainNamePolicy.normalize("${"a".repeat(64)}.example.com"))
         assertInvalidReason(DomainNameInvalidReason.HostTooLong, DomainNamePolicy.normalize(longHost()))
+    }
+
+    @Test
+    fun removingLeadingWwwCannotCreateInvalidCanonicalDomains() {
+        assertInvalidReason(DomainNameInvalidReason.LocalhostOrSingleLabel, DomainNamePolicy.normalize("www.localhost"))
+        assertInvalidReason(DomainNameInvalidReason.LocalhostOrSingleLabel, DomainNamePolicy.normalize("www.example"))
     }
 
     @Test
