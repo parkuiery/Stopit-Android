@@ -8,6 +8,7 @@
         <activity
             android:name=".websiteblocking.KeepDnsVpnSpikeActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Keep" />
 
         <service

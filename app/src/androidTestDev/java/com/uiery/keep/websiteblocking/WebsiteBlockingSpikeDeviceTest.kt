@@ -2,14 +2,17 @@ package com.uiery.keep.websiteblocking
 
 import android.net.VpnService
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.domain.websiteblocking.DomainName
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,27 +58,102 @@ class WebsiteBlockingSpikeDeviceTest {
                     exchangeDns(dnsServer, ALLOWED_DOMAIN, transactionBase + 3).rcode(),
                 )
             }
+            verifyLocalBlockLatency()
+            verifyAllowedDnsReliability()
         } finally {
             context.startService(KeepDnsVpnSpikeService.stopIntent(context))
         }
     }
 
+    private fun verifyAllowedDnsReliability() {
+        val probes = listOf(DnsProbe(VIRTUAL_IPV4_DNS), DnsProbe(VIRTUAL_IPV6_DNS))
+        var successfulAttempts = 0
+        try {
+            repeat(ALLOWED_RELIABILITY_ATTEMPTS) { index ->
+                try {
+                    assertEquals(
+                        "Allowed DNS attempt ${index + 1} must succeed",
+                        NO_ERROR_RCODE,
+                        probes[index % probes.size]
+                            .exchange(ALLOWED_DOMAIN, RELIABILITY_TRANSACTION_BASE + index)
+                            .rcode(),
+                    )
+                    successfulAttempts += 1
+                } catch (error: IOException) {
+                    Log.i(
+                        DIAGNOSTIC_TAG,
+                        "allowed_dns_attempts=$ALLOWED_RELIABILITY_ATTEMPTS" +
+                            " successes=$successfulAttempts failures=1",
+                    )
+                    throw AssertionError(
+                        "Allowed DNS attempt ${index + 1} failed after $successfulAttempts successes",
+                        error,
+                    )
+                }
+                if (index < ALLOWED_RELIABILITY_ATTEMPTS - 1) {
+                    SystemClock.sleep(ALLOWED_RELIABILITY_INTERVAL_MILLIS)
+                }
+            }
+        } finally {
+            probes.forEach(DnsProbe::close)
+        }
+        Log.i(DIAGNOSTIC_TAG, "allowed_dns_attempts=$ALLOWED_RELIABILITY_ATTEMPTS failures=0")
+    }
+
+    private fun verifyLocalBlockLatency() {
+        DnsProbe(VIRTUAL_IPV4_DNS).use { probe ->
+            repeat(LATENCY_WARMUP_ATTEMPTS) { index ->
+                probe.exchange(BLOCKED_DOMAIN, LATENCY_WARMUP_TRANSACTION_BASE + index)
+            }
+            val samplesMillis = List(LATENCY_SAMPLE_COUNT) { index ->
+                val startedAtNanos = SystemClock.elapsedRealtimeNanos()
+                val response = probe.exchange(BLOCKED_DOMAIN, LATENCY_TRANSACTION_BASE + index)
+                val elapsedMillis = (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / NANOS_PER_MILLI
+                assertEquals(NXDOMAIN_RCODE, response.rcode())
+                elapsedMillis
+            }.sorted()
+            val p95Millis = samplesMillis[(samplesMillis.size * 95 / 100).coerceAtMost(samplesMillis.lastIndex)]
+            Log.i(
+                DIAGNOSTIC_TAG,
+                "local_block_latency_samples=$LATENCY_SAMPLE_COUNT p95_ms=$p95Millis",
+            )
+            assertTrue(
+                "Local block latency p95 ${p95Millis}ms must be <= ${MAX_LOCAL_P95_MILLIS}ms",
+                p95Millis <= MAX_LOCAL_P95_MILLIS,
+            )
+        }
+    }
+
     private fun exchangeDns(dnsServer: String, domain: String, transactionId: Int): ByteArray =
-        DatagramSocket().use { socket ->
-            socket.soTimeout = DNS_TIMEOUT_MILLIS
+        DnsProbe(dnsServer).use { probe ->
+            probe.exchange(domain, transactionId)
+        }
+
+    private inner class DnsProbe(dnsServer: String) : AutoCloseable {
+        private val socket = DatagramSocket().apply {
+            soTimeout = DNS_TIMEOUT_MILLIS
+        }
+        private val address = InetAddress.getByName(dnsServer)
+
+        fun exchange(domain: String, transactionId: Int): ByteArray {
             val query = dnsQuery(domain, transactionId)
             socket.send(
                 DatagramPacket(
                     query,
                     query.size,
-                    InetAddress.getByName(dnsServer),
+                    address,
                     DNS_PORT,
                 ),
             )
             val response = DatagramPacket(ByteArray(DNS_RESPONSE_BUFFER_SIZE), DNS_RESPONSE_BUFFER_SIZE)
             socket.receive(response)
-            response.data.copyOf(response.length)
+            return response.data.copyOf(response.length)
         }
+
+        override fun close() {
+            socket.close()
+        }
+    }
 
     private fun dnsQuery(domain: String, transactionId: Int): ByteArray {
         val labels = domain.split(".").flatMap { label ->
@@ -111,5 +189,15 @@ class WebsiteBlockingSpikeDeviceTest {
         const val DNS_RESPONSE_BUFFER_SIZE = 1_500
         const val NO_ERROR_RCODE = 0
         const val NXDOMAIN_RCODE = 3
+        const val ALLOWED_RELIABILITY_ATTEMPTS = 500
+        const val ALLOWED_RELIABILITY_INTERVAL_MILLIS = 50L
+        const val LATENCY_WARMUP_ATTEMPTS = 20
+        const val LATENCY_SAMPLE_COUNT = 200
+        const val MAX_LOCAL_P95_MILLIS = 20L
+        const val RELIABILITY_TRANSACTION_BASE = 0x5000
+        const val LATENCY_WARMUP_TRANSACTION_BASE = 0x6000
+        const val LATENCY_TRANSACTION_BASE = 0x6100
+        const val NANOS_PER_MILLI = 1_000_000L
+        const val DIAGNOSTIC_TAG = "KeepDnsVpnSpikeTest"
     }
 }
