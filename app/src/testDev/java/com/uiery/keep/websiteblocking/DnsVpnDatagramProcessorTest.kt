@@ -1,5 +1,6 @@
 package com.uiery.keep.websiteblocking
 
+import com.uiery.keep.domain.websiteblocking.DnsTunPacketFailureReason
 import com.uiery.keep.domain.websiteblocking.DomainName
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -156,6 +157,157 @@ class DnsVpnDatagramProcessorTest {
             DnsVpnDatagramProcessStopReason.TunPacketRejected,
             result.requireStopReason(),
         )
+        assertEquals(
+            DnsTunPacketFailureReason.UnsupportedProtocol,
+            result.requireTunFailureReason(),
+        )
+    }
+
+    @Test
+    fun ipv6ControlPacketIsIgnoredAndReportsProtocolMetadataWithoutPayload() {
+        val ipv6IcmpPacket = ByteArray(40).apply {
+            this[0] = 0x60
+            this[6] = 58
+        }
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(ipv6IcmpPacket)
+
+        result as DnsVpnDatagramProcessResult.IgnorePacket
+        assertEquals(6, result.tunIpVersion)
+        assertEquals(58, result.tunProtocol)
+    }
+
+    @Test
+    fun ipv6ControlPacketAfterHopByHopHeaderIsIgnored() {
+        val ipv6HopByHopIcmpPacket = ByteArray(48).apply {
+            this[0] = 0x60
+            this[4] = 0x00
+            this[5] = 0x08
+            this[6] = 0
+            this[40] = 58
+            this[41] = 0
+        }
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(ipv6HopByHopIcmpPacket)
+
+        result as DnsVpnDatagramProcessResult.IgnorePacket
+        assertEquals(6, result.tunIpVersion)
+        assertEquals(58, result.tunProtocol)
+    }
+
+    @Test
+    fun ipv4TcpSynIsExplicitlyRejectedWithReset() {
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(ipv4TcpSynPacket())
+
+        val response = (result as DnsVpnDatagramProcessResult.SendToTun).packet
+        assertEquals(4, response[0].toInt() ushr 4)
+        assertEquals(6, response[9].toInt())
+        assertEquals(53, response.readUnsignedShort(20))
+        assertEquals(42_000, response.readUnsignedShort(22))
+        assertEquals(0x14, response[33].toInt() and 0xFF)
+        assertEquals(0x1020_3041, response.readInt(28))
+        assertEquals(0, internetChecksum(response, 0, 20))
+        assertEquals(
+            0,
+            tcpChecksumIpv4(
+                sourceAddress = response.copyOfRange(12, 16),
+                destinationAddress = response.copyOfRange(16, 20),
+                tcpSegment = response.copyOfRange(20, 40),
+            ),
+        )
+    }
+
+    @Test
+    fun ipv6TcpSynIsExplicitlyRejectedWithReset() {
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(ipv6TcpSynPacket())
+
+        val response = (result as DnsVpnDatagramProcessResult.SendToTun).packet
+        assertEquals(6, response[0].toInt() ushr 4)
+        assertEquals(6, response[6].toInt())
+        assertEquals(53, response.readUnsignedShort(40))
+        assertEquals(42_000, response.readUnsignedShort(42))
+        assertEquals(0x14, response[53].toInt() and 0xFF)
+        assertEquals(0x1020_3041, response.readInt(48))
+        assertEquals(
+            0,
+            tcpChecksumIpv6(
+                sourceAddress = response.copyOfRange(8, 24),
+                destinationAddress = response.copyOfRange(24, 40),
+                tcpSegment = response.copyOfRange(40, 60),
+            ),
+        )
+    }
+
+    @Test
+    fun tcpSynAndFinBothConsumeSequenceSpaceInResetAcknowledgement() {
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(ipv4TcpSynPacket(flags = 0x03))
+
+        val response = (result as DnsVpnDatagramProcessResult.SendToTun).packet
+        assertEquals(0x1020_3042, response.readInt(28))
+    }
+
+    @Test
+    fun incomingTcpResetIsIgnoredWithoutCreatingAResetLoop() {
+        val packet = ipv4TcpSynPacket().apply {
+            this[33] = 0x04
+        }
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(packet)
+
+        result as DnsVpnDatagramProcessResult.IgnorePacket
+        assertEquals(4, result.tunIpVersion)
+        assertEquals(6, result.tunProtocol)
+    }
+
+    @Test
+    fun malformedTcpPacketRequestsFailOpen() {
+        val packet = ByteArray(20).apply {
+            this[0] = 0x45
+            writeUnsignedShort(2, size)
+            this[9] = 6
+        }
+        val processor = DnsVpnDatagramProcessor(
+            blockedDomains = emptySet(),
+            upstreamExchange = { dnsResponse(it) },
+        )
+
+        val result = processor.process(packet)
+
+        assertEquals(
+            DnsVpnDatagramProcessStopReason.TunPacketRejected,
+            result.requireStopReason(),
+        )
+        assertEquals(
+            DnsTunPacketFailureReason.UnsupportedProtocol,
+            result.requireTunFailureReason(),
+        )
     }
 
     @Test
@@ -224,6 +376,11 @@ class DnsVpnDatagramProcessorTest {
         return reason
     }
 
+    private fun DnsVpnDatagramProcessResult.requireTunFailureReason(): DnsTunPacketFailureReason {
+        this as DnsVpnDatagramProcessResult.FailOpenStopVpn
+        return tunFailureReason ?: error("Expected TUN failure reason")
+    }
+
     private fun dnsQuery(name: String): ByteArray {
         val question = encodeName(name) + byteArrayOf(0x00, 0x01, 0x00, 0x01)
         return byteArrayOf(
@@ -272,6 +429,36 @@ class DnsVpnDatagramProcessorTest {
         return packet
     }
 
+    private fun ipv4TcpSynPacket(flags: Int = 0x02): ByteArray =
+        ByteArray(40).apply {
+            this[0] = 0x45
+            writeUnsignedShort(2, size)
+            this[8] = 64
+            this[9] = 6
+            byteArrayOf(10, 0, 0, 2).copyInto(this, 12)
+            byteArrayOf(10, 0, 0, 1).copyInto(this, 16)
+            writeUnsignedShort(20, 42_000)
+            writeUnsignedShort(22, 53)
+            writeInt(24, 0x1020_3040)
+            this[32] = 0x50
+            this[33] = flags.toByte()
+        }
+
+    private fun ipv6TcpSynPacket(): ByteArray =
+        ByteArray(60).apply {
+            this[0] = 0x60
+            writeUnsignedShort(4, 20)
+            this[6] = 6
+            this[7] = 64
+            ByteArray(16) { index -> (index + 1).toByte() }.copyInto(this, 8)
+            ByteArray(16) { index -> (index + 17).toByte() }.copyInto(this, 24)
+            writeUnsignedShort(40, 42_000)
+            writeUnsignedShort(42, 53)
+            writeInt(44, 0x1020_3040)
+            this[52] = 0x50
+            this[53] = 0x02
+        }
+
     private fun encodeName(name: String): ByteArray {
         val encoded = ArrayList<Byte>()
         name.split(".").forEach { label ->
@@ -285,9 +472,22 @@ class DnsVpnDatagramProcessorTest {
     private fun ByteArray.readUnsignedShort(offset: Int): Int =
         ((this[offset].toInt() and 0xFF) shl 8) or (this[offset + 1].toInt() and 0xFF)
 
+    private fun ByteArray.readInt(offset: Int): Int =
+        ((this[offset].toInt() and 0xFF) shl 24) or
+            ((this[offset + 1].toInt() and 0xFF) shl 16) or
+            ((this[offset + 2].toInt() and 0xFF) shl 8) or
+            (this[offset + 3].toInt() and 0xFF)
+
     private fun ByteArray.writeUnsignedShort(offset: Int, value: Int) {
         this[offset] = (value ushr 8).toByte()
         this[offset + 1] = value.toByte()
+    }
+
+    private fun ByteArray.writeInt(offset: Int, value: Int) {
+        this[offset] = (value ushr 24).toByte()
+        this[offset + 1] = (value ushr 16).toByte()
+        this[offset + 2] = (value ushr 8).toByte()
+        this[offset + 3] = value.toByte()
     }
 
     private fun internetChecksum(packet: ByteArray, offset: Int, length: Int): Int {
@@ -303,5 +503,33 @@ class DnsVpnDatagramProcessorTest {
             index += 2
         }
         return sum.inv().toInt() and 0xFFFF
+    }
+
+    private fun tcpChecksumIpv4(
+        sourceAddress: ByteArray,
+        destinationAddress: ByteArray,
+        tcpSegment: ByteArray,
+    ): Int {
+        val pseudoPacket = ByteArray(12 + tcpSegment.size)
+        sourceAddress.copyInto(pseudoPacket, 0)
+        destinationAddress.copyInto(pseudoPacket, 4)
+        pseudoPacket[9] = 6
+        pseudoPacket.writeUnsignedShort(10, tcpSegment.size)
+        tcpSegment.copyInto(pseudoPacket, 12)
+        return internetChecksum(pseudoPacket, 0, pseudoPacket.size)
+    }
+
+    private fun tcpChecksumIpv6(
+        sourceAddress: ByteArray,
+        destinationAddress: ByteArray,
+        tcpSegment: ByteArray,
+    ): Int {
+        val pseudoPacket = ByteArray(40 + tcpSegment.size)
+        sourceAddress.copyInto(pseudoPacket, 0)
+        destinationAddress.copyInto(pseudoPacket, 16)
+        pseudoPacket.writeInt(32, tcpSegment.size)
+        pseudoPacket[39] = 6
+        tcpSegment.copyInto(pseudoPacket, 40)
+        return internetChecksum(pseudoPacket, 0, pseudoPacket.size)
     }
 }

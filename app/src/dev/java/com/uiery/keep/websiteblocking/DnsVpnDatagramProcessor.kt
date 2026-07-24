@@ -5,10 +5,14 @@ import com.uiery.keep.domain.websiteblocking.DnsMessageCodec
 import com.uiery.keep.domain.websiteblocking.DnsQueryParseResult
 import com.uiery.keep.domain.websiteblocking.DnsTunPacketBuildResult
 import com.uiery.keep.domain.websiteblocking.DnsTunPacketCodec
+import com.uiery.keep.domain.websiteblocking.DnsTunPacketFailureReason
 import com.uiery.keep.domain.websiteblocking.DnsTunIpVersion
 import com.uiery.keep.domain.websiteblocking.DnsTunPacketParseResult
 import com.uiery.keep.domain.websiteblocking.DomainName
 import java.util.Locale
+
+private const val ICMPV4_PROTOCOL = 1
+private const val ICMPV6_PROTOCOL = 58
 
 class DnsVpnDatagramProcessor(
     private val blockedDomains: Set<DomainName>,
@@ -17,9 +21,42 @@ class DnsVpnDatagramProcessor(
     fun process(packet: ByteArray): DnsVpnDatagramProcessResult =
         try {
             when (val tunResult = DnsTunPacketCodec.parseDnsUdpDatagram(packet.copyOf())) {
-                is DnsTunPacketParseResult.Failure -> DnsVpnDatagramProcessResult.FailOpenStopVpn(
-                    DnsVpnDatagramProcessStopReason.TunPacketRejected,
-                )
+                is DnsTunPacketParseResult.Failure -> {
+                    val metadata = DnsVpnTunDiagnosticMetadata.from(packet)
+                    val tcpReset = DnsTunTcpResetCodec.buildReset(packet)
+                    if (tcpReset is DnsTunTcpResetResult.Success) {
+                        DnsVpnDatagramProcessResult.SendToTun(tcpReset.packet)
+                    } else if (tcpReset is DnsTunTcpResetResult.IgnoreReset) {
+                        DnsVpnDatagramProcessResult.IgnorePacket(
+                            tunFailureReason = tunResult.reason,
+                            tunIpVersion = metadata.ipVersion,
+                            tunProtocol = metadata.protocol,
+                        )
+                    } else {
+                        val isIgnorableControlPacket =
+                            (metadata.ipVersion == 4 && metadata.protocol == ICMPV4_PROTOCOL) ||
+                                (metadata.ipVersion == 6 && metadata.protocol == ICMPV6_PROTOCOL)
+                        // Android may emit ICMP control traffic for the two virtual DNS
+                        // endpoints. Malformed TCP and unknown protocols still stop the
+                        // DNS-only VPN so unsupported traffic cannot be silently blackholed.
+                        if (tunResult.reason == DnsTunPacketFailureReason.UnsupportedProtocol &&
+                            isIgnorableControlPacket
+                        ) {
+                            DnsVpnDatagramProcessResult.IgnorePacket(
+                                tunFailureReason = tunResult.reason,
+                                tunIpVersion = metadata.ipVersion,
+                                tunProtocol = metadata.protocol,
+                            )
+                        } else {
+                            DnsVpnDatagramProcessResult.FailOpenStopVpn(
+                                reason = DnsVpnDatagramProcessStopReason.TunPacketRejected,
+                                tunFailureReason = tunResult.reason,
+                                tunIpVersion = metadata.ipVersion,
+                                tunProtocol = metadata.protocol,
+                            )
+                        }
+                    }
+                }
                 is DnsTunPacketParseResult.Parsed -> {
                     val request = tunResult.datagram
                     val dnsPayload = request.dnsPayload.copyOf()
@@ -49,9 +86,7 @@ class DnsVpnDatagramProcessor(
                         is DnsQueryParseResult.Failure -> return DnsVpnDatagramProcessResult.FailOpenStopVpn(
                             DnsVpnDatagramProcessStopReason.UpstreamRejected,
                         )
-                    } ?: return DnsVpnDatagramProcessResult.FailOpenStopVpn(
-                        DnsVpnDatagramProcessStopReason.UpstreamUnavailable,
-                    )
+                    }
 
                     when (val buildResult = DnsTunPacketCodec.buildDnsUdpResponse(request, responsePayload.copyOf())) {
                         is DnsTunPacketBuildResult.Success -> DnsVpnDatagramProcessResult.SendToTun(
@@ -71,8 +106,17 @@ class DnsVpnDatagramProcessor(
 sealed interface DnsVpnDatagramProcessResult {
     data class SendToTun(val packet: ByteArray) : DnsVpnDatagramProcessResult
 
+    data class IgnorePacket(
+        val tunFailureReason: DnsTunPacketFailureReason,
+        val tunIpVersion: Int?,
+        val tunProtocol: Int?,
+    ) : DnsVpnDatagramProcessResult
+
     data class FailOpenStopVpn(
         val reason: DnsVpnDatagramProcessStopReason,
+        val tunFailureReason: DnsTunPacketFailureReason? = null,
+        val tunIpVersion: Int? = null,
+        val tunProtocol: Int? = null,
     ) : DnsVpnDatagramProcessResult
 }
 
@@ -82,6 +126,26 @@ enum class DnsVpnDatagramProcessStopReason {
     UpstreamRejected,
     ResponseBuildFailed,
     ProcessorFailed,
+}
+
+private data class DnsVpnTunDiagnosticMetadata(
+    val ipVersion: Int?,
+    val protocol: Int?,
+) {
+    companion object {
+        fun from(packet: ByteArray): DnsVpnTunDiagnosticMetadata {
+            val ipVersion = packet.firstOrNull()?.let { (it.toInt() and 0xFF) ushr 4 }
+            val protocol = when (ipVersion) {
+                4 -> packet.getOrNull(9)?.toInt()?.and(0xFF)
+                6 -> when (val nextHeader = packet.getOrNull(6)?.toInt()?.and(0xFF)) {
+                    0 -> packet.getOrNull(40)?.toInt()?.and(0xFF)
+                    else -> nextHeader
+                }
+                else -> null
+            }
+            return DnsVpnTunDiagnosticMetadata(ipVersion, protocol)
+        }
+    }
 }
 
 object DnsVpnUpstreamResponsePolicy {
