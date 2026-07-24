@@ -73,6 +73,20 @@ adb logcat -c
 adb logcat | rg 'KeepDnsVpnSpike|Vpn'
 ```
 
+Run the explicit physical-device DNS path check after VPN consent has been granted:
+
+```bash
+./gradlew :app:assembleDevDebug :app:assembleDevDebugAndroidTest
+adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
+adb install -r app/build/outputs/apk/androidTest/dev/debug/app-dev-debug-androidTest.apk
+adb shell am instrument -w -r \
+  -e runVpnDeviceTest true \
+  -e class com.uiery.keep.websiteblocking.WebsiteBlockingSpikeDeviceTest \
+  com.uiery.keep.dev.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and verifies exact-domain NXDOMAIN, subdomain NXDOMAIN, and an allowed upstream response on both paths. It is skipped unless `runVpnDeviceTest=true` is supplied because it requires a physical device, network access, and pre-granted VPN consent.
+
 ## VPN Consent Steps
 
 1. Run the start command.
@@ -155,8 +169,8 @@ For every network cell, test:
 
 | Scenario | Steps | Pass condition | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | NOT YET EXECUTED | |
-| Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | NOT YET EXECUTED | |
+| Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | PARTIAL PASS | Galaxy S21 Android 15: service remained active and the explicit device DNS test forwarded an allowed query; browser UI was not checked because the device was PIN-locked. |
+| Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21 Android 15: service was absent after test cleanup and `www.cloudflare.com` resolved/replied immediately. |
 | VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | NOT YET EXECUTED | |
 | VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | NOT YET EXECUTED | |
 | Other VPN active before start | Activate another VPN, start Keep spike | Keep does not become active or displace expected VPN behavior silently | NOT YET EXECUTED | |
@@ -168,23 +182,30 @@ For every network cell, test:
 
 ## Results Summary
 
-Do not fill this table until device testing has been executed.
-
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Exact/subdomain blocking | NOT YET EXECUTED | |
+| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Browser/settings matrix remains open. |
 | Similar-domain allow behavior | NOT YET EXECUTED | |
-| Allowed-site 500/0 reliability | NOT YET EXECUTED | |
+| Allowed-site 500/0 reliability | PARTIAL (2/2) | The same device test received successful upstream responses for `www.cloudflare.com` through both virtual IP paths; 498 samples remain. |
 | Local p95 latency `<=20ms` | NOT YET EXECUTED | |
-| Recovery `<=3s` | NOT YET EXECUTED | |
+| Recovery `<=3s` | PASS FOR STOP | After test cleanup, the VPN service was absent and `www.cloudflare.com` resolved/replied in the first immediate probe. Revoke/failure recovery remains open. |
 | Other VPN conflict behavior | NOT YET EXECUTED | |
-| Wi-Fi/mobile coverage | NOT YET EXECUTED | |
-| IPv4/IPv6 coverage | NOT YET EXECUTED | |
+| Wi-Fi/mobile coverage | PARTIAL | Wi-Fi only; mobile remains open. |
+| IPv4/IPv6 coverage | PARTIAL PASS | Direct DNS query/response assertions passed through both virtual IP paths. IPv6 Hop-by-Hop and ICMPv6 control traffic no longer terminates the VPN. Additional network cells and browser behavior remain open. |
+
+### 2026-07-24 Galaxy S21 checkpoint
+
+- Device: Samsung Galaxy S21 (`SM-G991N`), Android 15 / API 35.
+- Initial failure: the VPN stopped immediately on a valid IPv6 Hop-by-Hop Options packet carrying ICMPv6.
+- Second failure: the TUN client address and virtual DNS endpoint used the same address, so DNS traffic was locally consumed instead of reaching the packet processor.
+- Fix checkpoint: ICMP/ICMPv6 control traffic is ignored, unsupported TCP connections to the virtual DNS endpoints receive an immediate RST instead of being blackholed, the IPv6 Hop-by-Hop header is parsed safely, and client/DNS addresses are distinct.
+- Automated physical-device result: 1/1 explicit device test passed exact block, subdomain block, and allowed upstream forwarding through both virtual IPv4 and IPv6 DNS paths.
+- Browser result: not executed in this checkpoint because the device was PIN-locked. No Chrome, Samsung Internet, Firefox, Edge, Secure DNS, or Private DNS row should be inferred from the direct DNS-path pass.
 
 ## Expected Limitations
 
 - DNS-only: the TUN route targets DNS, not arbitrary web traffic.
-- UDP-only: the spike parses and forwards UDP DNS. TCP DNS fallback is not implemented.
+- UDP-only forwarding: the spike parses and forwards UDP DNS. TCP DNS fallback is not implemented; TCP attempts to the virtual DNS endpoints are explicitly rejected with RST.
 - Private DNS and browser Secure DNS may bypass the local DNS path.
 - Fragmented DNS packets fail open.
 - Only one Android VPN can be active at a time.

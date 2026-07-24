@@ -48,6 +48,8 @@ object DnsTunPacketCodec {
     private const val UDP_HEADER_LENGTH = 8
     private const val DNS_PORT = 53
     private const val UDP_PROTOCOL = 17
+    private const val IPV6_HOP_BY_HOP_OPTIONS = 0
+    private const val IPV6_EXTENSION_MIN_LENGTH = 8
     private const val IPV4_FLAG_MORE_FRAGMENTS = 0x2000
     private const val IPV4_FRAGMENT_OFFSET_MASK = 0x1FFF
     private const val RESPONSE_TTL_OR_HOP_LIMIT = 64
@@ -156,19 +158,34 @@ object DnsTunPacketCodec {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.PacketTooShort)
         }
 
-        if (packet[6].unsigned() != UDP_PROTOCOL) {
+        var nextHeader = packet[6].unsigned()
+        var udpOffset = IPV6_HEADER_LENGTH
+        if (nextHeader == IPV6_HOP_BY_HOP_OPTIONS) {
+            if (declaredLength - udpOffset < IPV6_EXTENSION_MIN_LENGTH) {
+                return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
+            }
+            nextHeader = packet[udpOffset].unsigned()
+            val extensionLength = (packet[udpOffset + 1].unsigned() + 1) * 8
+            if (extensionLength > declaredLength - udpOffset) {
+                return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
+            }
+            udpOffset += extensionLength
+        }
+
+        if (nextHeader != UDP_PROTOCOL) {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.UnsupportedProtocol)
         }
-        if (payloadLength < UDP_HEADER_LENGTH) {
+        val upperLayerLength = declaredLength - udpOffset
+        if (upperLayerLength < UDP_HEADER_LENGTH) {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
-        val udpLength = packet.readUnsignedShort(IPV6_HEADER_LENGTH + 4)
-        if (udpLength < UDP_HEADER_LENGTH || udpLength != payloadLength) {
+        val udpLength = packet.readUnsignedShort(udpOffset + 4)
+        if (udpLength < UDP_HEADER_LENGTH || udpLength != upperLayerLength) {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.MalformedLength)
         }
 
-        val destinationPort = packet.readUnsignedShort(IPV6_HEADER_LENGTH + 2)
+        val destinationPort = packet.readUnsignedShort(udpOffset + 2)
         if (destinationPort != DNS_PORT) {
             return DnsTunPacketParseResult.Failure(DnsTunPacketFailureReason.NonDnsPort)
         }
@@ -178,11 +195,11 @@ object DnsTunPacketCodec {
                 ipVersion = DnsTunIpVersion.IPv6,
                 sourceAddress = packet.copyOfRange(8, 24),
                 destinationAddress = packet.copyOfRange(24, 40),
-                sourcePort = packet.readUnsignedShort(IPV6_HEADER_LENGTH),
+                sourcePort = packet.readUnsignedShort(udpOffset),
                 destinationPort = destinationPort,
                 dnsPayload = packet.copyOfRange(
-                    IPV6_HEADER_LENGTH + UDP_HEADER_LENGTH,
-                    IPV6_HEADER_LENGTH + udpLength,
+                    udpOffset + UDP_HEADER_LENGTH,
+                    udpOffset + udpLength,
                 ),
             ),
         )

@@ -50,6 +50,19 @@ class DnsTunPacketCodecTest {
     }
 
     @Test
+    fun parsesIpv6DnsUdpQueryAfterHopByHopOptionsHeader() {
+        val dnsPayload = byteArrayOf(0x12, 0x34, 0x01, 0x00)
+        val packet = ipv6UdpPacket(payload = dnsPayload).withHopByHopOptionsHeader()
+
+        val datagram = DnsTunPacketCodec.parseDnsUdpDatagram(packet).requireParsed()
+
+        assertEquals(DnsTunIpVersion.IPv6, datagram.ipVersion)
+        assertEquals(40000, datagram.sourcePort)
+        assertEquals(53, datagram.destinationPort)
+        assertArrayEquals(dnsPayload, datagram.dnsPayload)
+    }
+
+    @Test
     fun parsesIpv4PacketWithOptions() {
         val options = byteArrayOf(1, 1, 1, 1)
         val packet = ipv4UdpPacket(
@@ -198,7 +211,7 @@ class DnsTunPacketCodecTest {
         assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6UdpPacket().also { it.writeUnsignedShort(4, 7) })
         assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6UdpPacket().also { it.writeUnsignedShort(44, 2000) })
         assertFailure(DnsTunPacketFailureReason.UnsupportedProtocol, ipv6UdpPacket(nextHeader = 6))
-        assertFailure(DnsTunPacketFailureReason.UnsupportedProtocol, ipv6UdpPacket(nextHeader = 0))
+        assertFailure(DnsTunPacketFailureReason.MalformedLength, ipv6UdpPacket(nextHeader = 0))
         assertFailure(DnsTunPacketFailureReason.NonDnsPort, ipv6UdpPacket(destinationPort = 5353))
     }
 
@@ -355,6 +368,18 @@ class DnsTunPacketCodecTest {
         packet.writeUnsignedShort(44, udpLength)
         payload.copyInto(packet, 48)
         packet.writeUnsignedShort(46, udpChecksumIpv6(sourceAddress, destinationAddress, packet.copyOfRange(40, packet.size)))
+        return packet
+    }
+
+    private fun ByteArray.withHopByHopOptionsHeader(): ByteArray {
+        val originalPayloadLength = readUnsignedShort(4)
+        val packet = ByteArray(size + 8)
+        copyInto(packet, endIndex = 40)
+        packet.writeUnsignedShort(4, originalPayloadLength + 8)
+        packet[6] = 0
+        packet[40] = 17
+        packet[41] = 0
+        copyInto(packet, destinationOffset = 48, startIndex = 40)
         return packet
     }
 

@@ -9,6 +9,7 @@ import android.net.ConnectivityManager
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.uiery.keep.R
@@ -99,6 +100,7 @@ class KeepDnsVpnSpikeService : VpnService() {
     private fun runVpn(session: DnsVpnSession, blockedDomains: Set<DomainName>) {
         val upstreamDnsServers = activeUpstreamDnsServers()
         if (upstreamDnsServers.isEmpty()) {
+            Log.d(DIAGNOSTIC_TAG, "stop_reason=no_upstream_dns")
             stopFromWorker(session)
             return
         }
@@ -109,6 +111,7 @@ class KeepDnsVpnSpikeService : VpnService() {
             null
         }
         if (descriptor == null) {
+            Log.d(DIAGNOSTIC_TAG, "stop_reason=tun_establish_failed")
             stopFromWorker(session)
             return
         }
@@ -123,7 +126,6 @@ class KeepDnsVpnSpikeService : VpnService() {
             }
             tunHandle = TunHandle(session, descriptor)
         }
-
         try {
             FileInputStream(descriptor.fileDescriptor).use { input ->
                 FileOutputStream(descriptor.fileDescriptor).use { output ->
@@ -137,7 +139,15 @@ class KeepDnsVpnSpikeService : VpnService() {
                         if (length <= 0) continue
                         when (val result = processor.process(buffer.copyOf(length))) {
                             is DnsVpnDatagramProcessResult.SendToTun -> output.write(result.packet)
+                            is DnsVpnDatagramProcessResult.IgnorePacket -> Unit
                             is DnsVpnDatagramProcessResult.FailOpenStopVpn -> {
+                                Log.d(
+                                    DIAGNOSTIC_TAG,
+                                    "stop_reason=${result.reason.name}" +
+                                        " tun_reason=${result.tunFailureReason?.name ?: "none"}" +
+                                        " ip_version=${result.tunIpVersion ?: -1}" +
+                                        " protocol=${result.tunProtocol ?: -1}",
+                                )
                                 stopFromWorker(session)
                                 return
                             }
@@ -146,6 +156,7 @@ class KeepDnsVpnSpikeService : VpnService() {
                 }
             }
         } catch (_: IOException) {
+            Log.d(DIAGNOSTIC_TAG, "stop_reason=tun_io_failed")
             stopFromWorker(session)
         } finally {
             closeTun(session)
@@ -156,8 +167,8 @@ class KeepDnsVpnSpikeService : VpnService() {
         Builder()
             .setSession(getString(R.string.website_blocking_spike_vpn_session))
             .setMtu(TUN_MTU)
-            .addAddress(VIRTUAL_IPV4_DNS, 32)
-            .addAddress(VIRTUAL_IPV6_DNS, 128)
+            .addAddress(VIRTUAL_IPV4_CLIENT, 32)
+            .addAddress(VIRTUAL_IPV6_CLIENT, 128)
             .addDnsServer(VIRTUAL_IPV4_DNS)
             .addDnsServer(VIRTUAL_IPV6_DNS)
             .addRoute(VIRTUAL_IPV4_DNS, 32)
@@ -294,9 +305,12 @@ class KeepDnsVpnSpikeService : VpnService() {
         const val EXTRA_STOP = "stop"
 
         private const val CHANNEL_ID = "website_blocking_spike"
+        private const val DIAGNOSTIC_TAG = "KeepDnsVpnSpike"
         private const val NOTIFICATION_ID = 53_053
         private const val DEFAULT_DOMAIN = "example.com"
+        private const val VIRTUAL_IPV4_CLIENT = "10.111.0.2"
         private const val VIRTUAL_IPV4_DNS = "10.111.0.1"
+        private const val VIRTUAL_IPV6_CLIENT = "fd00:7579:6473::2"
         private const val VIRTUAL_IPV6_DNS = "fd00:7579:6473::1"
         private const val TUN_MTU = 1500
         private const val TUN_BUFFER_SIZE = 65_535
