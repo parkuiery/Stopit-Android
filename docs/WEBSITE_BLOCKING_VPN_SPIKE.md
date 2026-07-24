@@ -140,7 +140,7 @@ For every network cell, test:
 
 | Browser | Android Private DNS | Browser Secure DNS | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| Chrome | Automatic | Automatic | PARTIAL PASS (EMULATOR) | Android 16 emulator: `example.net` and `www.example.net` showed `DNS_PROBE_FINISHED_NXDOMAIN`; `www.cloudflare.com` loaded while the VPN service remained active. Wi-Fi only; physical-device and reliability matrix remain open. |
+| Chrome | Automatic | Automatic | PARTIAL PASS | Android 16 emulator and Galaxy S21 Android 15: exact and subdomain checks showed `DNS_PROBE_FINISHED_NXDOMAIN`; `www.cloudflare.com` loaded while the VPN service remained active. Wi-Fi only; reliability and other browser rows remain open. |
 | Chrome | Off | Off | NOT YET EXECUTED | |
 | Chrome | Off | On | NOT YET EXECUTED | |
 | Chrome | Automatic | Off | NOT YET EXECUTED | |
@@ -185,9 +185,9 @@ For every network cell, test:
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Android 16 emulator Chrome with Automatic Private DNS and Automatic Secure DNS also showed NXDOMAIN for `example.net` and `www.example.net`. Other browser/settings rows remain open. |
+| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Chrome with Automatic Private DNS and Automatic Secure DNS showed NXDOMAIN for exact and subdomain checks on both Galaxy S21 and Android 16 emulator. Other browser/settings rows remain open. |
 | Similar-domain allow behavior | NOT YET EXECUTED | |
-| Allowed-site 500/0 reliability | PARTIAL (2/2) | The same device test received successful upstream responses for `www.cloudflare.com` through both virtual IP paths; 498 samples remain. |
+| Allowed-site 500/0 reliability | PARTIAL (4 observed successes) | The physical-device test received successful upstream responses for `www.cloudflare.com` through both virtual IP paths, and Chrome loaded the site on Galaxy S21 and Android 16 emulator while each VPN session remained active. 496 samples remain. |
 | Local p95 latency `<=20ms` | NOT YET EXECUTED | |
 | Recovery `<=3s` | PASS FOR STOP | After test cleanup, the VPN service was absent and `www.cloudflare.com` resolved/replied in the first immediate probe. Revoke/failure recovery remains open. |
 | Other VPN conflict behavior | NOT YET EXECUTED | |
@@ -201,7 +201,8 @@ For every network cell, test:
 - Second failure: the TUN client address and virtual DNS endpoint used the same address, so DNS traffic was locally consumed instead of reaching the packet processor.
 - Fix checkpoint: ICMP/ICMPv6 control traffic is ignored, unsupported TCP connections to the virtual DNS endpoints receive an immediate RST instead of being blackholed, the IPv6 Hop-by-Hop header is parsed safely, and client/DNS addresses are distinct.
 - Automated physical-device result: 1/1 explicit device test passed exact block, subdomain block, and allowed upstream forwarding through both virtual IPv4 and IPv6 DNS paths.
-- Browser result: not executed in this checkpoint because the device was PIN-locked. No Chrome, Samsung Internet, Firefox, Edge, Secure DNS, or Private DNS row should be inferred from the direct DNS-path pass.
+- Browser follow-up after unlock: Android Private DNS and Chrome Secure DNS were both `Automatic`; exact `example.org` and subdomain `www.example.org` showed `DNS_PROBE_FINISHED_NXDOMAIN`; allowed `www.cloudflare.com` loaded; the VPN service remained active after all three checks.
+- Samsung Internet, Firefox, and Edge were not installed on the device, so their rows remain unexecuted.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
