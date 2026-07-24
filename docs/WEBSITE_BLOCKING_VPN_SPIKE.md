@@ -85,7 +85,7 @@ adb shell am instrument -w -r \
   com.uiery.keep.dev.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and verifies exact-domain NXDOMAIN, subdomain NXDOMAIN, and an allowed upstream response on both paths. It is skipped unless `runVpnDeviceTest=true` is supplied because it requires a physical device, network access, and pre-granted VPN consent.
+The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and verifies exact-domain NXDOMAIN, subdomain NXDOMAIN, and an allowed upstream response on both paths. In the same VPN session it also runs 500 alternating IPv4/IPv6 allowed queries at 50ms intervals and 200 local blocked-query latency samples after 20 warmups. The pacing avoids treating a resolver-rate-limit stress test as browser reliability evidence. It is skipped unless `runVpnDeviceTest=true` is supplied because it requires a physical device, network access, and pre-granted VPN consent.
 
 ## VPN Consent Steps
 
@@ -140,59 +140,44 @@ For every network cell, test:
 
 | Browser | Android Private DNS | Browser Secure DNS | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| Chrome | Automatic | Automatic | PARTIAL PASS | Android 16 emulator and Galaxy S21 Android 15: exact and subdomain checks showed `DNS_PROBE_FINISHED_NXDOMAIN`; `www.cloudflare.com` loaded while the VPN service remained active. Wi-Fi only; reliability and other browser rows remain open. |
-| Chrome | Off | Off | NOT YET EXECUTED | |
-| Chrome | Off | On | NOT YET EXECUTED | |
-| Chrome | Automatic | Off | NOT YET EXECUTED | |
-| Chrome | Automatic | On | NOT YET EXECUTED | |
-| Chrome | Strict hostname | Off | NOT YET EXECUTED | |
-| Chrome | Strict hostname | On | NOT YET EXECUTED | |
-| Samsung Internet | Off | Off | NOT YET EXECUTED | |
-| Samsung Internet | Off | On | NOT YET EXECUTED | |
-| Samsung Internet | Automatic | Off | NOT YET EXECUTED | |
-| Samsung Internet | Automatic | On | NOT YET EXECUTED | |
-| Samsung Internet | Strict hostname | Off | NOT YET EXECUTED | |
-| Samsung Internet | Strict hostname | On | NOT YET EXECUTED | |
-| Firefox | Off | Off | NOT YET EXECUTED | |
-| Firefox | Off | On | NOT YET EXECUTED | |
-| Firefox | Automatic | Off | NOT YET EXECUTED | |
-| Firefox | Automatic | On | NOT YET EXECUTED | |
-| Firefox | Strict hostname | Off | NOT YET EXECUTED | |
-| Firefox | Strict hostname | On | NOT YET EXECUTED | |
-| Edge | Off | Off | NOT YET EXECUTED | |
-| Edge | Off | On | NOT YET EXECUTED | |
-| Edge | Automatic | Off | NOT YET EXECUTED | |
-| Edge | Automatic | On | NOT YET EXECUTED | |
-| Edge | Strict hostname | Off | NOT YET EXECUTED | |
-| Edge | Strict hostname | On | NOT YET EXECUTED | |
+| Chrome | Automatic | Automatic/current provider | PASS (supported row) | Android 16 emulator and Galaxy S21 Android 15: exact and subdomain checks showed `DNS_PROBE_FINISHED_NXDOMAIN`; `www.cloudflare.com` loaded while the VPN service remained active. |
+| Chrome | Off | Automatic/current provider | PASS (supported row) | Galaxy S21: exact and subdomain checks returned NXDOMAIN; Cloudflare loaded; the service remained active. |
+| Chrome | Automatic | Off | PASS (supported row) | Galaxy S21: the setting was visibly off; exact and subdomain checks returned NXDOMAIN; Cloudflare loaded; the service remained active. The setting was restored to Automatic. |
+| Chrome | Automatic | Explicit Cloudflare DoH | EXPECTED BYPASS | Galaxy S21: the Cloudflare provider was visibly selected and the blocked exact domain loaded while the VPN service remained active. The setting was restored to Automatic. |
+| Chrome | Strict hostname (`dns.google`) | Automatic/current provider | EXPECTED BYPASS | Galaxy S21: exact and subdomain pages loaded while the service remained active. Android Private DNS was restored to its original Automatic state. |
+| Samsung Internet | Automatic | System / no separate setting found | PASS (supported row) | Galaxy S21: exact and subdomain pages showed the browser connection error; Cloudflare loaded; the service remained active. |
+| Samsung Internet | Off | System / no separate setting found | PASS (supported row) | Galaxy S21: exact and subdomain pages showed the browser connection error; Cloudflare loaded; the service remained active. |
+| Samsung Internet | Strict hostname (`dns.google`) | System / no separate setting found | EXPECTED BYPASS | Galaxy S21: exact and subdomain pages loaded while the service remained active. |
+| Firefox | — | — | BLOCKED | Not installed on the test device. |
+| Edge | — | — | BLOCKED | Not installed on the test device. |
 
 ## Lifecycle Matrix
 
 | Scenario | Steps | Pass condition | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | PARTIAL PASS | Galaxy S21 Android 15: service remained active and the explicit device DNS test forwarded an allowed query; browser UI was not checked because the device was PIN-locked. |
-| Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21 Android 15: service was absent after test cleanup and `www.cloudflare.com` resolved/replied immediately. |
-| VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | NOT YET EXECUTED | |
-| VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | NOT YET EXECUTED | |
-| Other VPN active before start | Activate another VPN, start Keep spike | Keep does not become active or displace expected VPN behavior silently | NOT YET EXECUTED | |
-| Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | NOT YET EXECUTED | |
-| Reboot while active | Start spike, reboot device | Spike does not auto-enable; no stale active success state | NOT YET EXECUTED | |
-| Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | NOT YET EXECUTED | |
-| Mobile to Wi-Fi | Start on mobile data, switch to Wi-Fi | Allowed DNS/browser traffic recovers within 3s | NOT YET EXECUTED | |
-| Airplane mode recovery | Start spike, enable/disable airplane mode | Service fails open or resumes without breaking allowed browsing | NOT YET EXECUTED | |
+| Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | PASS | Galaxy S21 Android 15: consent was approved, the service remained active, direct DNS checks passed, and Chrome/Samsung Internet loaded allowed pages. |
+| Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21: service stopped and allowed DNS/internet was available on the first probe. Repeated start/stop commands were also verified without force-stopping the app. |
+| VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | PASS | Galaxy S21: tapping Cancel left the service absent and the activity reported that consent was not granted. |
+| VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | BLOCKED | ADB AppOps changes do not revoke an already-established VPN. Samsung VPN settings required configuring a device screen lock before changing VPN ownership, so the active-revoke path was not changed on the user's device. |
+| Other VPN active before start | Activate another VPN, start Keep spike | Keep does not become active or displace expected VPN behavior silently | BLOCKED | A third-party VPN profile is installed, but activating or reconfiguring it would change that app's privacy/network state and the system requires a screen lock. |
+| Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | BLOCKED | Same device-policy and third-party state boundary as the previous row. |
+| Reboot while active | Start spike, reboot device | Spike does not auto-enable; no stale active success state | PASS | Galaxy S21: service was active before reboot, absent after boot, and general internet succeeded immediately. |
+| Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | BLOCKED | Mobile data was disabled and telephony reported out-of-service/data registration denied. It was not enabled due charge and service-state risk. |
+| Mobile to Wi-Fi | Start on mobile data, switch to Wi-Fi | Allowed DNS/browser traffic recovers within 3s | BLOCKED | No usable mobile starting network. Re-enabling Wi-Fi after the attempted observation restored validated internet in about 5.1s. |
+| Airplane mode recovery | Start spike, enable/disable airplane mode | Service fails open or resumes without breaking allowed browsing | PASS (fail open) | Galaxy S21: airplane mode stopped the spike service; after disabling airplane mode, IP and DNS browsing recovered in 2s. The spike did not auto-resume. |
 
 ## Results Summary
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Chrome with Automatic Private DNS and Automatic Secure DNS showed NXDOMAIN for exact and subdomain checks on both Galaxy S21 and Android 16 emulator. Other browser/settings rows remain open. |
-| Similar-domain allow behavior | NOT YET EXECUTED | |
-| Allowed-site 500/0 reliability | PARTIAL (4 observed successes) | The physical-device test received successful upstream responses for `www.cloudflare.com` through both virtual IP paths, and Chrome loaded the site on Galaxy S21 and Android 16 emulator while each VPN session remained active. 496 samples remain. |
-| Local p95 latency `<=20ms` | NOT YET EXECUTED | |
-| Recovery `<=3s` | PASS FOR STOP | After test cleanup, the VPN service was absent and `www.cloudflare.com` resolved/replied in the first immediate probe. Revoke/failure recovery remains open. |
-| Other VPN conflict behavior | NOT YET EXECUTED | |
-| Wi-Fi/mobile coverage | PARTIAL | Wi-Fi only; mobile remains open. |
-| IPv4/IPv6 coverage | PARTIAL PASS | Direct DNS query/response assertions passed through both virtual IP paths. IPv6 Hop-by-Hop and ICMPv6 control traffic no longer terminates the VPN. Additional network cells and browser behavior remain open. |
+| Exact/subdomain blocking | PASS FOR SUPPORTED SYSTEM-DNS ROWS | Galaxy S21 Android 15: direct IPv4/IPv6 checks, Chrome, and Samsung Internet passed exact/subdomain blocking when DNS used the supported system path. Strict Private DNS and explicit Chrome DoH bypassed as expected. |
+| Similar-domain allow behavior | PASS (automated) | `DomainNamePolicyTest` and `DnsMessageCodecTest` verify that `notexample.com` and `example.com.evil.test` do not match a blocked `example.com`. |
+| Allowed-site 500/0 reliability | FAIL (not repeatable) | Galaxy S21 completed one 500/0 run, but later verification runs stopped after upstream DNS timeouts. The final 50ms-paced run failed on attempt 243 after 242 successes. Browser spot checks passed, but the required 500/0 result is not repeatable. |
+| Local p95 latency `<=20ms` | PASS | Galaxy S21: repeated runs with 20 warmups plus 200 local blocked DNS samples produced p95 between `0ms` and `2ms`. |
+| Recovery `<=3s` | PASS FOR EXECUTABLE PATHS | Stop recovered immediately; airplane-mode fail-open restored IP and DNS access in 2s. Active settings revoke was blocked by device security policy. |
+| Other VPN conflict behavior | BLOCKED | Installed third-party VPN state was not changed; Samsung required a screen lock for the relevant VPN settings path. |
+| Wi-Fi/mobile coverage | BLOCKED FOR MOBILE | Wi-Fi passed. Mobile was disabled and out of service, so mobile transition rows could not be executed safely. |
+| IPv4/IPv6 coverage | PASS FOR VIRTUAL DNS PATHS | Direct DNS query/response assertions passed through both virtual IP paths. Underlying carrier IPv6 coverage was not available. |
 
 ### 2026-07-24 Galaxy S21 checkpoint
 
@@ -200,9 +185,12 @@ For every network cell, test:
 - Initial failure: the VPN stopped immediately on a valid IPv6 Hop-by-Hop Options packet carrying ICMPv6.
 - Second failure: the TUN client address and virtual DNS endpoint used the same address, so DNS traffic was locally consumed instead of reaching the packet processor.
 - Fix checkpoint: ICMP/ICMPv6 control traffic is ignored, unsupported TCP connections to the virtual DNS endpoints receive an immediate RST instead of being blackholed, the IPv6 Hop-by-Hop header is parsed safely, and client/DNS addresses are distinct.
-- Automated physical-device result: 1/1 explicit device test passed exact block, subdomain block, and allowed upstream forwarding through both virtual IPv4 and IPv6 DNS paths.
+- Automated physical-device result: exact block, subdomain block, and p95 `2ms` local blocking passed through the virtual IPv4 and IPv6 DNS paths. One 500/0 allowed-query run passed, but two final repetitions failed after upstream resolver timeouts, so reliability remains a failed gate.
 - Browser follow-up after unlock: Android Private DNS and Chrome Secure DNS were both `Automatic`; exact `example.org` and subdomain `www.example.org` showed `DNS_PROBE_FINISHED_NXDOMAIN`; allowed `www.cloudflare.com` loaded; the VPN service remained active after all three checks.
-- Samsung Internet, Firefox, and Edge were not installed on the device, so their rows remain unexecuted.
+- Chrome follow-up: Secure DNS Off passed; explicit Cloudflare DoH bypassed; the original Automatic setting was restored.
+- Samsung Internet follow-up: Automatic and Private DNS Off system-resolver rows passed; strict Private DNS bypassed. The browser exposed no separate Secure DNS setting in settings search.
+- Lifecycle follow-up: consent denial, repeated start/stop, reboot without stale restart, and airplane-mode fail-open passed. Mobile transitions, active settings revoke, and third-party VPN conflict remain blocked by device/service-state constraints.
+- Firefox and Edge were not installed on the device.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -245,7 +233,9 @@ For every network cell, test:
 
 ## Next Decision Gate
 
-- Proceed with v1 DNS-filter implementation only if all gate criteria pass in the supported system-DNS rows.
+- Core system-DNS blocking mechanics are supported by browser and latency results, but the production gate is not complete.
+- Do not proceed with the current forwarding design as website blocking v1 until the non-repeatable 500/0 reliability failure is resolved and the physical-device gate passes repeatedly.
+- Do not call the production gate complete until active-revoke and other-VPN conflict behavior are verified on a QA device with an appropriate screen lock, and mobile transitions are verified on an active test SIM/network.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.
 - If other-VPN conflicts are common in target QA devices, add explicit degraded-state UX to the v1 plan before implementation.

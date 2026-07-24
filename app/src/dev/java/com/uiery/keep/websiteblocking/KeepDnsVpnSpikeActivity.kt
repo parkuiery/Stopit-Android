@@ -22,16 +22,25 @@ class KeepDnsVpnSpikeActivity : Activity() {
             textSize = 16f
         }
         setContentView(statusView)
+        handleLaunchIntent(intent)
+    }
 
-        if (intent.action == KeepDnsVpnSpikeService.ACTION_STOP ||
-            intent.getBooleanExtra(KeepDnsVpnSpikeService.EXTRA_STOP, false)
+    public override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLaunchIntent(intent)
+    }
+
+    private fun handleLaunchIntent(launchIntent: Intent) {
+        if (launchIntent.action == KeepDnsVpnSpikeService.ACTION_STOP ||
+            launchIntent.getBooleanExtra(KeepDnsVpnSpikeService.EXTRA_STOP, false)
         ) {
             stopSpikeService()
             return
         }
 
         val domainResult = DomainNamePolicy.normalize(
-            intent.getStringExtra(KeepDnsVpnSpikeService.EXTRA_DOMAIN).orEmpty()
+            launchIntent.getStringExtra(KeepDnsVpnSpikeService.EXTRA_DOMAIN).orEmpty()
                 .ifBlank { DEFAULT_DOMAIN.value },
         )
         val normalizedDomain = (domainResult as? DomainNameNormalizationResult.Valid)?.domain
