@@ -100,7 +100,7 @@ The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and v
 
 - The activity normalizes the `domain` extra and rejects invalid domains.
 - The VPN TUN captures DNS only by installing virtual DNS addresses/routes.
-- The service forwards allowed UDP DNS payloads to the active network DNS servers through protected sockets.
+- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network.
 - Exact domain and true subdomain matches return NXDOMAIN.
 - Similar suffixes must remain allowed. Example: blocking `youtube.com` blocks `youtube.com` and `m.youtube.com`, but not `notyoutube.com` or `youtube.com.evil.test`.
 - Parser, upstream, and response-build failures stop the VPN to fail open.
@@ -140,6 +140,7 @@ For every network cell, test:
 
 | Browser | Android Private DNS | Browser Secure DNS | Status | Evidence |
 | --- | --- | --- | --- | --- |
+| Chrome | Automatic | Automatic | PARTIAL PASS (EMULATOR) | Android 16 emulator: `example.net` and `www.example.net` showed `DNS_PROBE_FINISHED_NXDOMAIN`; `www.cloudflare.com` loaded while the VPN service remained active. Wi-Fi only; physical-device and reliability matrix remain open. |
 | Chrome | Off | Off | NOT YET EXECUTED | |
 | Chrome | Off | On | NOT YET EXECUTED | |
 | Chrome | Automatic | Off | NOT YET EXECUTED | |
@@ -184,7 +185,7 @@ For every network cell, test:
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Browser/settings matrix remains open. |
+| Exact/subdomain blocking | PARTIAL PASS | Galaxy S21 Android 15, Wi-Fi, virtual IPv4 and IPv6 DNS: `example.com` and `www.example.com` returned NXDOMAIN in `WebsiteBlockingSpikeDeviceTest`. Android 16 emulator Chrome with Automatic Private DNS and Automatic Secure DNS also showed NXDOMAIN for `example.net` and `www.example.net`. Other browser/settings rows remain open. |
 | Similar-domain allow behavior | NOT YET EXECUTED | |
 | Allowed-site 500/0 reliability | PARTIAL (2/2) | The same device test received successful upstream responses for `www.cloudflare.com` through both virtual IP paths; 498 samples remain. |
 | Local p95 latency `<=20ms` | NOT YET EXECUTED | |
@@ -201,6 +202,15 @@ For every network cell, test:
 - Fix checkpoint: ICMP/ICMPv6 control traffic is ignored, unsupported TCP connections to the virtual DNS endpoints receive an immediate RST instead of being blackholed, the IPv6 Hop-by-Hop header is parsed safely, and client/DNS addresses are distinct.
 - Automated physical-device result: 1/1 explicit device test passed exact block, subdomain block, and allowed upstream forwarding through both virtual IPv4 and IPv6 DNS paths.
 - Browser result: not executed in this checkpoint because the device was PIN-locked. No Chrome, Samsung Internet, Firefox, Edge, Secure DNS, or Private DNS row should be inferred from the direct DNS-path pass.
+
+### 2026-07-24 Android 16 emulator Chrome checkpoint
+
+- Device: `sdk_gphone64_arm64`, Android 16 / API 36, emulator Wi-Fi.
+- Settings inspected in UI: Android Private DNS `Automatic`; Chrome `Use secure DNS` `Automatic`.
+- Initial allowed-site failure: a protected UDP socket was not pinned to the active underlying network. The emulator DNS server timed out, the fail-open policy stopped the VPN, and the requested page then loaded outside the filter.
+- Fix checkpoint: the service captures the active `Network`, declares it through `Builder.setUnderlyingNetworks`, and binds every protected upstream DNS socket to it before connecting.
+- Browser result: exact `example.net` and subdomain `www.example.net` both showed `DNS_PROBE_FINISHED_NXDOMAIN`; allowed `www.cloudflare.com` loaded; the VPN service remained active after all three checks.
+- The physical-device-only DNS instrumentation test is not counted as emulator evidence. Its same-UID first query timed out on this emulator, while the separate Chrome process exercised the user-facing browser path successfully.
 
 ## Expected Limitations
 

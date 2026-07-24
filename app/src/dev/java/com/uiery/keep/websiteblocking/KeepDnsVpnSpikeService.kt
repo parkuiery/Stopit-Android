@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -98,15 +99,15 @@ class KeepDnsVpnSpikeService : VpnService() {
     }
 
     private fun runVpn(session: DnsVpnSession, blockedDomains: Set<DomainName>) {
-        val upstreamDnsServers = activeUpstreamDnsServers()
-        if (upstreamDnsServers.isEmpty()) {
+        val upstream = activeUpstreamDnsNetwork()
+        if (upstream == null || upstream.dnsServers.isEmpty()) {
             Log.d(DIAGNOSTIC_TAG, "stop_reason=no_upstream_dns")
             stopFromWorker(session)
             return
         }
 
         val descriptor = try {
-            establishDnsOnlyTun()
+            establishDnsOnlyTun(upstream.network)
         } catch (_: RuntimeException) {
             null
         }
@@ -131,7 +132,7 @@ class KeepDnsVpnSpikeService : VpnService() {
                 FileOutputStream(descriptor.fileDescriptor).use { output ->
                     val processor = DnsVpnDatagramProcessor(
                         blockedDomains = blockedDomains,
-                        upstreamExchange = { payload -> exchangeWithUpstream(payload, upstreamDnsServers) },
+                        upstreamExchange = { payload -> exchangeWithUpstream(payload, upstream) },
                     )
                     val buffer = ByteArray(TUN_BUFFER_SIZE)
                     while (!sessionOwner.shouldWorkerExit(session)) {
@@ -163,10 +164,11 @@ class KeepDnsVpnSpikeService : VpnService() {
         }
     }
 
-    private fun establishDnsOnlyTun(): ParcelFileDescriptor? =
+    private fun establishDnsOnlyTun(upstreamNetwork: Network): ParcelFileDescriptor? =
         Builder()
             .setSession(getString(R.string.website_blocking_spike_vpn_session))
             .setMtu(TUN_MTU)
+            .setUnderlyingNetworks(arrayOf(upstreamNetwork))
             .addAddress(VIRTUAL_IPV4_CLIENT, 32)
             .addAddress(VIRTUAL_IPV6_CLIENT, 128)
             .addDnsServer(VIRTUAL_IPV4_DNS)
@@ -175,17 +177,20 @@ class KeepDnsVpnSpikeService : VpnService() {
             .addRoute(VIRTUAL_IPV6_DNS, 128)
             .establish()
 
-    private fun activeUpstreamDnsServers(): List<InetAddress> {
+    private fun activeUpstreamDnsNetwork(): UpstreamDnsNetwork? {
         val connectivityManager = getSystemService(ConnectivityManager::class.java)
-        val network = connectivityManager.activeNetwork ?: return emptyList()
-        return connectivityManager.getLinkProperties(network)?.dnsServers.orEmpty()
+        val network = connectivityManager.activeNetwork ?: return null
+        return UpstreamDnsNetwork(
+            network = network,
+            dnsServers = connectivityManager.getLinkProperties(network)?.dnsServers.orEmpty(),
+        )
     }
 
-    private fun exchangeWithUpstream(payload: ByteArray, upstreamDnsServers: List<InetAddress>): ByteArray? {
-        upstreamDnsServers.forEach { dnsServer ->
+    private fun exchangeWithUpstream(payload: ByteArray, upstream: UpstreamDnsNetwork): ByteArray? {
+        upstream.dnsServers.forEach { dnsServer ->
             try {
                 DatagramSocket().use { socket ->
-                    if (!protect(socket)) return@forEach
+                    if (!prepareUpstreamSocket(socket, upstream.network, ::protect)) return@forEach
                     socket.soTimeout = DNS_TIMEOUT_MILLIS
                     socket.connect(InetSocketAddress(dnsServer, DNS_PORT))
                     val outbound = DatagramPacket(payload.copyOf(), payload.size)
@@ -196,7 +201,13 @@ class KeepDnsVpnSpikeService : VpnService() {
                     socket.receive(inbound)
                     return responseBuffer.copyOf(inbound.length)
                 }
-            } catch (_: IOException) {
+            } catch (error: IOException) {
+                Log.d(
+                    DIAGNOSTIC_TAG,
+                    "upstream_attempt=failed" +
+                        " address_family=${if (dnsServer.address.size == 4) 4 else 6}" +
+                        " error_type=${error.javaClass.simpleName}",
+                )
                 // Try the next DNS server; if all fail, the processor restores fail-open behavior.
             } catch (_: RuntimeException) {
                 return null
@@ -298,6 +309,11 @@ class KeepDnsVpnSpikeService : VpnService() {
         val descriptor: ParcelFileDescriptor,
     )
 
+    private data class UpstreamDnsNetwork(
+        val network: Network,
+        val dnsServers: List<InetAddress>,
+    )
+
     companion object {
         const val ACTION_START = "com.uiery.keep.websiteblocking.START_DNS_VPN_SPIKE"
         const val ACTION_STOP = "com.uiery.keep.websiteblocking.STOP_DNS_VPN_SPIKE"
@@ -329,4 +345,14 @@ class KeepDnsVpnSpikeService : VpnService() {
                 .setAction(ACTION_STOP)
                 .putExtra(EXTRA_STOP, true)
     }
+}
+
+internal fun prepareUpstreamSocket(
+    socket: DatagramSocket,
+    network: Network,
+    protectSocket: (DatagramSocket) -> Boolean,
+): Boolean {
+    if (!protectSocket(socket)) return false
+    network.bindSocket(socket)
+    return true
 }
