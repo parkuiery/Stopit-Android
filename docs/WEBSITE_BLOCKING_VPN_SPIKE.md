@@ -100,7 +100,7 @@ The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and v
 
 - The activity normalizes the `domain` extra and rejects invalid domains.
 - The VPN TUN captures DNS only by installing virtual DNS addresses/routes.
-- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network.
+- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network. It reuses one socket per upstream server for the VPN session, discards a socket after an I/O failure, and retries through the next configured server.
 - Exact domain and true subdomain matches return NXDOMAIN.
 - Similar suffixes must remain allowed. Example: blocking `youtube.com` blocks `youtube.com` and `m.youtube.com`, but not `notyoutube.com` or `youtube.com.evil.test`.
 - Parser, upstream, and response-build failures stop the VPN to fail open.
@@ -172,7 +172,7 @@ For every network cell, test:
 | --- | --- | --- |
 | Exact/subdomain blocking | PASS FOR SUPPORTED SYSTEM-DNS ROWS | Galaxy S21 Android 15: direct IPv4/IPv6 checks, Chrome, and Samsung Internet passed exact/subdomain blocking when DNS used the supported system path. Strict Private DNS and explicit Chrome DoH bypassed as expected. |
 | Similar-domain allow behavior | PASS (automated) | `DomainNamePolicyTest` and `DnsMessageCodecTest` verify that `notexample.com` and `example.com.evil.test` do not match a blocked `example.com`. |
-| Allowed-site 500/0 reliability | FAIL (not repeatable) | Galaxy S21 completed one 500/0 run, but later verification runs stopped after upstream DNS timeouts. The final 50ms-paced run failed on attempt 243 after 242 successes. Browser spot checks passed, but the required 500/0 result is not repeatable. |
+| Allowed-site 500/0 reliability | PASS (repeated) | Galaxy S21 completed three consecutive 500/0 runs after upstream sockets were reused per VPN session and failed endpoints were discarded before fallback. The runs observed 2, 3, and 6 transient IPv4 upstream timeouts respectively, but all completed with zero client-visible failures. |
 | Local p95 latency `<=20ms` | PASS | Galaxy S21: repeated runs with 20 warmups plus 200 local blocked DNS samples produced p95 between `0ms` and `2ms`. |
 | Recovery `<=3s` | PASS FOR EXECUTABLE PATHS | Stop recovered immediately; airplane-mode fail-open restored IP and DNS access in 2s. Active settings revoke was blocked by device security policy. |
 | Other VPN conflict behavior | BLOCKED | Installed third-party VPN state was not changed; Samsung required a screen lock for the relevant VPN settings path. |
@@ -191,6 +191,17 @@ For every network cell, test:
 - Samsung Internet follow-up: Automatic and Private DNS Off system-resolver rows passed; strict Private DNS bypassed. The browser exposed no separate Secure DNS setting in settings search.
 - Lifecycle follow-up: consent denial, repeated start/stop, reboot without stale restart, and airplane-mode fail-open passed. Mobile transitions, active settings revoke, and third-party VPN conflict remain blocked by device/service-state constraints.
 - Firefox and Edge were not installed on the device.
+
+### 2026-07-25 Galaxy S21 reliability follow-up
+
+- Opal was removed before the final rerun, eliminating its accessibility overlay as a source of unrelated device-test interference.
+- Forwarding weakness identified: every allowed DNS query opened, protected, bound, connected, and closed a new UDP socket. Earlier repeated runs accumulated upstream timeouts and eventually exhausted the configured DNS servers for a query.
+- Fix checkpoint: the VPN session now reuses one protected and underlying-network-bound UDP endpoint per configured DNS server. Any endpoint that throws an I/O error is closed and removed, the query falls back to the next server, and a later query recreates the failed endpoint.
+- Automated physical-device result, run 1: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `0ms`, and allowed DNS completed `500/500`. Two transient IPv4 upstream socket timeouts were recovered without a client-visible failure.
+- Automated physical-device result, run 2: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `0ms`, and allowed DNS completed `500/500`. Three transient IPv4 upstream socket timeouts were recovered without a client-visible failure.
+- Automated physical-device result, run 3: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `1ms`, and allowed DNS completed `500/500`. Six transient IPv4 upstream socket timeouts were recovered without a client-visible failure; fallback delays increased total test time from about 43s to 73s.
+- The reliability gate is now repeatable on the tested Wi-Fi device. Mobile-network transitions, active settings revoke, and another-VPN ownership changes remain unverified constraints and are not promoted to passes.
+- The 1.5s timeout before fallback can still surface as intermittent allowed-site lookup latency. Production work should measure allowed-query tail latency and consider adaptive upstream ordering or a shorter evidence-based timeout before treating UX latency as closed.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -233,8 +244,8 @@ For every network cell, test:
 
 ## Next Decision Gate
 
-- Core system-DNS blocking mechanics are supported by browser and latency results, but the production gate is not complete.
-- Do not proceed with the current forwarding design as website blocking v1 until the non-repeatable 500/0 reliability failure is resolved and the physical-device gate passes repeatedly.
+- Core system-DNS blocking mechanics, local latency, and repeatable 500/0 allowed-DNS reliability are supported on the tested Galaxy S21 Wi-Fi path, but the production gate is not complete.
+- The socket-churn reliability blocker is resolved for the tested path by session-scoped endpoint reuse plus failure invalidation and fallback.
 - Do not call the production gate complete until active-revoke and other-VPN conflict behavior are verified on a QA device with an appropriate screen lock, and mobile transitions are verified on an active test SIM/network.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.

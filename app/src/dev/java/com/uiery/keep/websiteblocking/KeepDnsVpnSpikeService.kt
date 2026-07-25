@@ -128,29 +128,31 @@ class KeepDnsVpnSpikeService : VpnService() {
             tunHandle = TunHandle(session, descriptor)
         }
         try {
-            FileInputStream(descriptor.fileDescriptor).use { input ->
-                FileOutputStream(descriptor.fileDescriptor).use { output ->
-                    val processor = DnsVpnDatagramProcessor(
-                        blockedDomains = blockedDomains,
-                        upstreamExchange = { payload -> exchangeWithUpstream(payload, upstream) },
-                    )
-                    val buffer = ByteArray(TUN_BUFFER_SIZE)
-                    while (!sessionOwner.shouldWorkerExit(session)) {
-                        val length = input.read(buffer)
-                        if (length <= 0) continue
-                        when (val result = processor.process(buffer.copyOf(length))) {
-                            is DnsVpnDatagramProcessResult.SendToTun -> output.write(result.packet)
-                            is DnsVpnDatagramProcessResult.IgnorePacket -> Unit
-                            is DnsVpnDatagramProcessResult.FailOpenStopVpn -> {
-                                Log.d(
-                                    DIAGNOSTIC_TAG,
-                                    "stop_reason=${result.reason.name}" +
-                                        " tun_reason=${result.tunFailureReason?.name ?: "none"}" +
-                                        " ip_version=${result.tunIpVersion ?: -1}" +
-                                        " protocol=${result.tunProtocol ?: -1}",
-                                )
-                                stopFromWorker(session)
-                                return
+            createUpstreamEndpointPool(upstream).use { upstreamPool ->
+                FileInputStream(descriptor.fileDescriptor).use { input ->
+                    FileOutputStream(descriptor.fileDescriptor).use { output ->
+                        val processor = DnsVpnDatagramProcessor(
+                            blockedDomains = blockedDomains,
+                            upstreamExchange = upstreamPool::exchange,
+                        )
+                        val buffer = ByteArray(TUN_BUFFER_SIZE)
+                        while (!sessionOwner.shouldWorkerExit(session)) {
+                            val length = input.read(buffer)
+                            if (length <= 0) continue
+                            when (val result = processor.process(buffer.copyOf(length))) {
+                                is DnsVpnDatagramProcessResult.SendToTun -> output.write(result.packet)
+                                is DnsVpnDatagramProcessResult.IgnorePacket -> Unit
+                                is DnsVpnDatagramProcessResult.FailOpenStopVpn -> {
+                                    Log.d(
+                                        DIAGNOSTIC_TAG,
+                                        "stop_reason=${result.reason.name}" +
+                                            " tun_reason=${result.tunFailureReason?.name ?: "none"}" +
+                                            " ip_version=${result.tunIpVersion ?: -1}" +
+                                            " protocol=${result.tunProtocol ?: -1}",
+                                    )
+                                    stopFromWorker(session)
+                                    return
+                                }
                             }
                         }
                     }
@@ -186,34 +188,74 @@ class KeepDnsVpnSpikeService : VpnService() {
         )
     }
 
-    private fun exchangeWithUpstream(payload: ByteArray, upstream: UpstreamDnsNetwork): ByteArray? {
-        upstream.dnsServers.forEach { dnsServer ->
-            try {
-                DatagramSocket().use { socket ->
-                    if (!prepareUpstreamSocket(socket, upstream.network, ::protect)) return@forEach
-                    socket.soTimeout = DNS_TIMEOUT_MILLIS
-                    socket.connect(InetSocketAddress(dnsServer, DNS_PORT))
-                    val outbound = DatagramPacket(payload.copyOf(), payload.size)
-                    socket.send(outbound)
-
-                    val responseBuffer = ByteArray(MAX_UPSTREAM_DNS_RECEIVE_SIZE)
-                    val inbound = DatagramPacket(responseBuffer, responseBuffer.size)
-                    socket.receive(inbound)
-                    return responseBuffer.copyOf(inbound.length)
-                }
-            } catch (error: IOException) {
+    private fun createUpstreamEndpointPool(
+        upstream: UpstreamDnsNetwork,
+    ): DnsUpstreamEndpointPool<InetAddress, DnsUpstreamDatagramEndpoint> =
+        DnsUpstreamEndpointPool(
+            addresses = upstream.dnsServers,
+            endpointFactory = { dnsServer ->
+                openUpstreamEndpoint(dnsServer, upstream.network)
+            },
+            exchange = DnsUpstreamDatagramEndpoint::exchange,
+            onFailure = { dnsServer, error ->
                 Log.d(
                     DIAGNOSTIC_TAG,
                     "upstream_attempt=failed" +
                         " address_family=${if (dnsServer.address.size == 4) 4 else 6}" +
                         " error_type=${error.javaClass.simpleName}",
                 )
-                // Try the next DNS server; if all fail, the processor restores fail-open behavior.
+            },
+        )
+
+    private fun openUpstreamEndpoint(
+        dnsServer: InetAddress,
+        network: Network,
+    ): DnsUpstreamDatagramEndpoint? {
+        val socket = DatagramSocket()
+        return try {
+            if (!prepareUpstreamSocket(socket, network, ::protect)) {
+                socket.close()
+                null
+            } else {
+                socket.soTimeout = DNS_TIMEOUT_MILLIS
+                socket.connect(InetSocketAddress(dnsServer, DNS_PORT))
+                DnsUpstreamDatagramEndpoint(socket)
+            }
+        } catch (error: IOException) {
+            socket.close()
+            Log.d(
+                DIAGNOSTIC_TAG,
+                "upstream_open=failed" +
+                    " address_family=${if (dnsServer.address.size == 4) 4 else 6}" +
+                    " error_type=${error.javaClass.simpleName}",
+            )
+            null
+        } catch (_: RuntimeException) {
+            socket.close()
+            null
+        }
+    }
+
+    private class DnsUpstreamDatagramEndpoint(
+        private val socket: DatagramSocket,
+    ) : AutoCloseable {
+        fun exchange(payload: ByteArray): ByteArray {
+            val outbound = DatagramPacket(payload.copyOf(), payload.size)
+            socket.send(outbound)
+
+            val responseBuffer = ByteArray(MAX_UPSTREAM_DNS_RECEIVE_SIZE)
+            val inbound = DatagramPacket(responseBuffer, responseBuffer.size)
+            socket.receive(inbound)
+            return responseBuffer.copyOf(inbound.length)
+        }
+
+        override fun close() {
+            try {
+                socket.close()
             } catch (_: RuntimeException) {
-                return null
+                // Idempotent cleanup only.
             }
         }
-        return null
     }
 
     private fun buildNotification(blockedDomainCount: Int): Notification =
