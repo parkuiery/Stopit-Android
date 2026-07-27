@@ -10,6 +10,7 @@ import android.net.Network
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -205,6 +206,8 @@ class KeepDnsVpnSpikeService : VpnService() {
                         " error_type=${error.javaClass.simpleName}",
                 )
             },
+            failureCooldownMillis = UPSTREAM_FAILURE_COOLDOWN_MILLIS,
+            nowMillis = SystemClock::elapsedRealtime,
         )
 
     private fun openUpstreamEndpoint(
@@ -374,6 +377,7 @@ class KeepDnsVpnSpikeService : VpnService() {
         private const val TUN_BUFFER_SIZE = 65_535
         private const val DNS_PORT = 53
         private const val DNS_TIMEOUT_MILLIS = 1_500
+        private const val UPSTREAM_FAILURE_COOLDOWN_MILLIS = 30_000L
         private val MAX_UPSTREAM_DNS_RECEIVE_SIZE =
             DnsVpnUpstreamResponsePolicy.receiveBufferSize(DnsTunIpVersion.IPv4)
 

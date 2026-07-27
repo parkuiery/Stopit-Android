@@ -67,10 +67,12 @@ class WebsiteBlockingSpikeDeviceTest {
 
     private fun verifyAllowedDnsReliability() {
         val probes = listOf(DnsProbe(VIRTUAL_IPV4_DNS), DnsProbe(VIRTUAL_IPV6_DNS))
+        val latencySamplesMillis = mutableListOf<Long>()
         var successfulAttempts = 0
         try {
             repeat(ALLOWED_RELIABILITY_ATTEMPTS) { index ->
                 try {
+                    val startedAtNanos = SystemClock.elapsedRealtimeNanos()
                     assertEquals(
                         "Allowed DNS attempt ${index + 1} must succeed",
                         NO_ERROR_RCODE,
@@ -78,6 +80,8 @@ class WebsiteBlockingSpikeDeviceTest {
                             .exchange(ALLOWED_DOMAIN, RELIABILITY_TRANSACTION_BASE + index)
                             .rcode(),
                     )
+                    latencySamplesMillis +=
+                        (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / NANOS_PER_MILLI
                     successfulAttempts += 1
                 } catch (error: IOException) {
                     Log.i(
@@ -97,7 +101,14 @@ class WebsiteBlockingSpikeDeviceTest {
         } finally {
             probes.forEach(DnsProbe::close)
         }
-        Log.i(DIAGNOSTIC_TAG, "allowed_dns_attempts=$ALLOWED_RELIABILITY_ATTEMPTS failures=0")
+        val sortedLatencyMillis = latencySamplesMillis.sorted()
+        Log.i(
+            DIAGNOSTIC_TAG,
+            "allowed_dns_attempts=$ALLOWED_RELIABILITY_ATTEMPTS failures=0" +
+                " p95_ms=${sortedLatencyMillis.percentile(95)}" +
+                " p99_ms=${sortedLatencyMillis.percentile(99)}" +
+                " max_ms=${sortedLatencyMillis.last()}",
+        )
     }
 
     private fun verifyLocalBlockLatency() {
@@ -176,6 +187,9 @@ class WebsiteBlockingSpikeDeviceTest {
     }
 
     private fun ByteArray.rcode(): Int = (this[3].toInt() and 0x0F)
+
+    private fun List<Long>.percentile(percent: Int): Long =
+        this[((size * percent) / 100).coerceAtMost(lastIndex)]
 
     private companion object {
         const val RUN_DEVICE_TEST_ARGUMENT = "runVpnDeviceTest"

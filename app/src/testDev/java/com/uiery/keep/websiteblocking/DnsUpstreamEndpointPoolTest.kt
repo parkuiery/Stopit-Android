@@ -45,9 +45,9 @@ class DnsUpstreamEndpointPoolTest {
     }
 
     @Test
-    fun failedEndpointIsRecreatedOnNextQuery() {
+    fun failedEndpointRemainsInCooldownWhileFallbackIsHealthy() {
         val primaryEndpoints = mutableListOf<FakeEndpoint>()
-        var primaryAttempt = 0
+        val exchangeOrder = mutableListOf<String>()
         val pool = DnsUpstreamEndpointPool(
             addresses = listOf("primary", "secondary"),
             endpointFactory = { address ->
@@ -56,17 +56,114 @@ class DnsUpstreamEndpointPoolTest {
                 }
             },
             exchange = { endpoint, payload ->
-                if (endpoint.address == "primary" && primaryAttempt++ == 0) {
+                exchangeOrder += endpoint.address
+                if (endpoint.address == "primary") {
                     throw IOException("timeout")
                 }
                 payload
             },
+            failureCooldownMillis = 30_000,
+            nowMillis = { 1_000 },
         )
 
         assertArrayEquals(byteArrayOf(1), pool.exchange(byteArrayOf(1)))
         assertArrayEquals(byteArrayOf(2), pool.exchange(byteArrayOf(2)))
-        assertEquals(2, primaryEndpoints.size)
+        assertEquals(listOf("primary", "secondary", "secondary"), exchangeOrder)
+        assertEquals(1, primaryEndpoints.size)
         assertTrue(primaryEndpoints.first().closed)
+    }
+
+    @Test
+    fun coolingEndpointIsSkippedWhenPreferredFallbackFails() {
+        val exchangeOrder = mutableListOf<String>()
+        var secondaryAttempts = 0
+        val pool = DnsUpstreamEndpointPool(
+            addresses = listOf("primary", "secondary", "tertiary"),
+            endpointFactory = ::FakeEndpoint,
+            exchange = { endpoint, payload ->
+                exchangeOrder += endpoint.address
+                when {
+                    endpoint.address == "primary" -> throw IOException("primary timeout")
+                    endpoint.address == "secondary" && secondaryAttempts++ > 0 ->
+                        throw IOException("secondary timeout")
+                    else -> payload
+                }
+            },
+            failureCooldownMillis = 30_000,
+            nowMillis = { 1_000 },
+        )
+
+        assertArrayEquals(byteArrayOf(1), pool.exchange(byteArrayOf(1)))
+        assertArrayEquals(byteArrayOf(2), pool.exchange(byteArrayOf(2)))
+
+        assertEquals(
+            listOf("primary", "secondary", "secondary", "tertiary"),
+            exchangeOrder,
+        )
+    }
+
+    @Test
+    fun cooledEndpointCanBeRetriedAfterCooldownExpires() {
+        var nowMillis = 1_000L
+        var primaryAttempts = 0
+        var secondaryAttempts = 0
+        val exchangeOrder = mutableListOf<String>()
+        val pool = DnsUpstreamEndpointPool(
+            addresses = listOf("primary", "secondary"),
+            endpointFactory = ::FakeEndpoint,
+            exchange = { endpoint, payload ->
+                exchangeOrder += endpoint.address
+                when {
+                    endpoint.address == "primary" && primaryAttempts++ == 0 ->
+                        throw IOException("primary timeout")
+                    endpoint.address == "secondary" && secondaryAttempts++ > 0 ->
+                        throw IOException("secondary timeout")
+                    else -> payload
+                }
+            },
+            failureCooldownMillis = 30_000,
+            nowMillis = { nowMillis },
+        )
+
+        assertArrayEquals(byteArrayOf(1), pool.exchange(byteArrayOf(1)))
+        nowMillis += 30_001
+        assertArrayEquals(byteArrayOf(2), pool.exchange(byteArrayOf(2)))
+
+        assertEquals(
+            listOf("primary", "secondary", "secondary", "primary"),
+            exchangeOrder,
+        )
+    }
+
+    @Test
+    fun coolingEndpointIsUsedAsLastResortWhenFallbackFails() {
+        var primaryAttempts = 0
+        var secondaryAttempts = 0
+        val exchangeOrder = mutableListOf<String>()
+        val pool = DnsUpstreamEndpointPool(
+            addresses = listOf("primary", "secondary"),
+            endpointFactory = ::FakeEndpoint,
+            exchange = { endpoint, payload ->
+                exchangeOrder += endpoint.address
+                when {
+                    endpoint.address == "primary" && primaryAttempts++ == 0 ->
+                        throw IOException("primary timeout")
+                    endpoint.address == "secondary" && secondaryAttempts++ > 0 ->
+                        throw IOException("secondary timeout")
+                    else -> payload
+                }
+            },
+            failureCooldownMillis = 30_000,
+            nowMillis = { 1_000 },
+        )
+
+        assertArrayEquals(byteArrayOf(1), pool.exchange(byteArrayOf(1)))
+        assertArrayEquals(byteArrayOf(2), pool.exchange(byteArrayOf(2)))
+
+        assertEquals(
+            listOf("primary", "secondary", "secondary", "primary"),
+            exchangeOrder,
+        )
     }
 
     @Test

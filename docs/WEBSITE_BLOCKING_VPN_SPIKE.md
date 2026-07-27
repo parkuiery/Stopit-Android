@@ -100,7 +100,7 @@ The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and v
 
 - The activity normalizes the `domain` extra and rejects invalid domains.
 - The VPN TUN captures DNS only by installing virtual DNS addresses/routes.
-- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network. It reuses one socket per upstream server for the VPN session, discards a socket after an I/O failure, and retries through the next configured server.
+- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network. It reuses one socket per upstream server for the VPN session, discards a socket after an I/O failure, and retries through the next configured server. A successful fallback becomes preferred, while a failed server is deprioritized for 30s but remains available as a last resort if every ready server fails.
 - Exact domain and true subdomain matches return NXDOMAIN.
 - Similar suffixes must remain allowed. Example: blocking `youtube.com` blocks `youtube.com` and `m.youtube.com`, but not `notyoutube.com` or `youtube.com.evil.test`.
 - Parser, upstream, and response-build failures stop the VPN to fail open.
@@ -201,7 +201,14 @@ For every network cell, test:
 - Automated physical-device result, run 2: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `0ms`, and allowed DNS completed `500/500`. Three transient IPv4 upstream socket timeouts were recovered without a client-visible failure.
 - Automated physical-device result, run 3: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `1ms`, and allowed DNS completed `500/500`. Six transient IPv4 upstream socket timeouts were recovered without a client-visible failure; fallback delays increased total test time from about 43s to 73s.
 - The reliability gate is now repeatable on the tested Wi-Fi device. Mobile-network transitions, active settings revoke, and another-VPN ownership changes remain unverified constraints and are not promoted to passes.
-- The 1.5s timeout before fallback can still surface as intermittent allowed-site lookup latency. Production work should measure allowed-query tail latency and consider adaptive upstream ordering or a shorter evidence-based timeout before treating UX latency as closed.
+- The 1.5s timeout before the first fallback can still surface as intermittent allowed-site lookup latency. Adaptive upstream ordering and a 30s failure cooldown are implemented; physical-device p95/p99/max remeasurement is still required before treating UX latency as closed.
+
+### 2026-07-27 adaptive upstream checkpoint
+
+- Unit coverage verifies that a failed endpoint is closed, a successful fallback is reused first, cooling endpoints are skipped while another ready endpoint succeeds, expired endpoints can be retried, and a cooling endpoint remains a last-resort recovery path.
+- The physical-device test now records allowed-query p95, p99, and maximum latency alongside the 500/0 reliability count.
+- The connected Galaxy S21 had no active Wi-Fi or mobile upstream during this checkpoint. Two explicit runs failed before the first virtual-DNS probe with `no_upstream_dns` and `ENETUNREACH`; these are environment failures and are not counted as optimization evidence.
+- Rerun the 500-query physical-device test after the device has an active network, then compare p95/p99/max and total runtime against the 2026-07-25 runs.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -246,6 +253,7 @@ For every network cell, test:
 
 - Core system-DNS blocking mechanics, local latency, and repeatable 500/0 allowed-DNS reliability are supported on the tested Galaxy S21 Wi-Fi path, but the production gate is not complete.
 - The socket-churn reliability blocker is resolved for the tested path by session-scoped endpoint reuse plus failure invalidation and fallback.
+- Adaptive upstream ordering is implemented, but its physical-device tail-latency result remains pending an active device network.
 - Do not call the production gate complete until active-revoke and other-VPN conflict behavior are verified on a QA device with an appropriate screen lock, and mobile transitions are verified on an active test SIM/network.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.
