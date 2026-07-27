@@ -201,14 +201,16 @@ For every network cell, test:
 - Automated physical-device result, run 2: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `0ms`, and allowed DNS completed `500/500`. Three transient IPv4 upstream socket timeouts were recovered without a client-visible failure.
 - Automated physical-device result, run 3: exact/subdomain IPv4 and IPv6 checks passed, local blocked-query p95 was `1ms`, and allowed DNS completed `500/500`. Six transient IPv4 upstream socket timeouts were recovered without a client-visible failure; fallback delays increased total test time from about 43s to 73s.
 - The reliability gate is now repeatable on the tested Wi-Fi device. Mobile-network transitions, active settings revoke, and another-VPN ownership changes remain unverified constraints and are not promoted to passes.
-- The 1.5s timeout before the first fallback can still surface as intermittent allowed-site lookup latency. Adaptive upstream ordering and a 30s failure cooldown are implemented; physical-device p95/p99/max remeasurement is still required before treating UX latency as closed.
+- The 1.5s timeout before the first fallback can still surface as intermittent allowed-site lookup latency. Adaptive upstream ordering and a 30s failure cooldown are implemented; the current Galaxy S21 Wi-Fi checkpoint has low p95/p99 latency, while cross-network tail-latency evidence is still required before treating UX latency as closed.
 
 ### 2026-07-27 adaptive upstream checkpoint
 
 - Unit coverage verifies that a failed endpoint is closed, a successful fallback is reused first, cooling endpoints are skipped while another ready endpoint succeeds, expired endpoints can be retried, and a cooling endpoint remains a last-resort recovery path.
 - The physical-device test now records allowed-query p95, p99, and maximum latency alongside the 500/0 reliability count.
-- The connected Galaxy S21 had no active Wi-Fi or mobile upstream during this checkpoint. Two explicit runs failed before the first virtual-DNS probe with `no_upstream_dns` and `ENETUNREACH`; these are environment failures and are not counted as optimization evidence.
-- Rerun the 500-query physical-device test after the device has an active network, then compare p95/p99/max and total runtime against the 2026-07-25 runs.
+- After Wi-Fi was connected, three consecutive Galaxy S21 runs completed `500/500` allowed queries with no upstream timeout diagnostics. Allowed-query p95 was `13ms`, `14ms`, and `13ms`; p99 was `15ms`, `16ms`, and `15ms`; maximum was `16ms`, `128ms`, and `17ms`.
+- Local blocked-query p95 was `0ms`, `1ms`, and `1ms`. Total instrumentation time was about `31.3s`, `31.6s`, and `31.4s`.
+- The earlier `no_upstream_dns` and `ENETUNREACH` runs occurred while both Wi-Fi and mobile upstreams were absent and are not counted as product evidence.
+- The 2026-07-25 runs used a different Wi-Fi network, so their 43s/43s/73s runtimes and 2/3/6 upstream timeouts are contextual comparison only, not a controlled before/after result.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -253,7 +255,7 @@ For every network cell, test:
 
 - Core system-DNS blocking mechanics, local latency, and repeatable 500/0 allowed-DNS reliability are supported on the tested Galaxy S21 Wi-Fi path, but the production gate is not complete.
 - The socket-churn reliability blocker is resolved for the tested path by session-scoped endpoint reuse plus failure invalidation and fallback.
-- Adaptive upstream ordering is implemented, but its physical-device tail-latency result remains pending an active device network.
+- Adaptive upstream ordering has three low-tail-latency physical-device results on the current Wi-Fi network; another network and mobile-path evidence remain pending.
 - Do not call the production gate complete until active-revoke and other-VPN conflict behavior are verified on a QA device with an appropriate screen lock, and mobile transitions are verified on an active test SIM/network.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.
