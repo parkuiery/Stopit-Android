@@ -394,6 +394,7 @@ private class FakeTimedStarter(
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant?,
+        hasWebTargets: Boolean,
     ): TimedLockStartResult {
         startCalls++
         this.packages = packages

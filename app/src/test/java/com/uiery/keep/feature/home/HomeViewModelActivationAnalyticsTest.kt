@@ -428,6 +428,81 @@ class HomeViewModelActivationAnalyticsTest {
     }
 
     @Test
+    fun homeLoadsWebLockListSeparatelyFromAppSelection() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.SELECTED_WEB_DOMAINS to setOf("example.com"),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+
+        assertEquals(setOf("com.example.one"), viewModel.container.stateFlow.value.selectedAppPackage)
+        assertEquals(setOf("example.com"), viewModel.container.stateFlow.value.selectedWebDomains)
+    }
+
+    @Test
+    fun newlySelectedAppOffersWebLockRecommendationWithoutAutoAddingIt() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+        viewModel.selectLockTargetsComplete(
+            selectedAppPackages = setOf("com.google.android.youtube"),
+            selectedWebDomains = emptySet(),
+        )
+        delay(50)
+
+        assertEquals(
+            setOf("youtube.com", "youtu.be"),
+            viewModel.container.stateFlow.value.pendingWebsiteRecommendations
+                .flatMap { it.domains }
+                .map { it.value }
+                .toSet(),
+        )
+        assertEquals(emptySet<String>(), dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS])
+    }
+
+    @Test
+    fun acceptingWebLockRecommendationAddsDomainsToSeparateWebList() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+        viewModel.selectLockTargetsComplete(
+            selectedAppPackages = setOf("com.instagram.android"),
+            selectedWebDomains = emptySet(),
+        )
+        delay(50)
+        viewModel.acceptWebsiteLockRecommendations()
+        delay(50)
+
+        assertEquals(
+            setOf("instagram.com"),
+            viewModel.container.stateFlow.value.selectedWebDomains,
+        )
+        assertEquals(
+            setOf("instagram.com"),
+            dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS],
+        )
+        assertEquals(
+            emptyList<Any>(),
+            viewModel.container.stateFlow.value.pendingWebsiteRecommendations,
+        )
+    }
+
+    @Test
     fun activeTimedLockPreventsOpeningOrApplyingAppSelection() = runBlocking {
         val originalPackages = setOf("com.example.practice")
         val dataStore = FakeDataStore(

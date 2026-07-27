@@ -1,18 +1,18 @@
 # Website Blocking VPN Feasibility Spike Runbook
 
-This runbook is for the dev-only DNS VPN spike on branch `feature/website-blocking-spike`.
-Use it to decide whether website blocking v1 can continue with Android `VpnService` DNS filtering.
+This runbook records the DNS VPN feasibility spike and the product integration that followed on
+branch `feature/website-blocking-spike`.
 
 ## Scope
 
-- Validate DNS-only local VPN feasibility before product implementation.
+- Validate DNS-only local VPN feasibility and preserve its physical-device evidence.
 - Test one normalized blocked domain at a time through the dev-only activity and service.
 - Measure browser behavior, DNS-only coverage, allowed-site reliability, local filter latency, recovery, and lifecycle failure modes.
 - Keep all results local unless summarized without raw browsing history or DNS query logs.
 
 ## Non-goals
 
-- Production UX, routine integration, emergency-unlock UI, analytics, or release policy.
+- Per-routine web lists, emergency-unlock UI, analytics, or release policy.
 - URL path, search term, content category, page, IP, or full HTTPS traffic blocking.
 - HTTPS interception, certificate installation, MITM proxying, remote VPN, or remote DNS logging.
 - Bypassing every DoH, Android Private DNS, ECH, or browser-private resolver configuration.
@@ -24,17 +24,31 @@ Use it to decide whether website blocking v1 can continue with Android `VpnServi
 | --- | --- |
 | Dev application ID | `com.uiery.keep.dev` |
 | Activity component | `com.uiery.keep.dev/com.uiery.keep.websiteblocking.KeepDnsVpnSpikeActivity` |
-| Service class | `com.uiery.keep.websiteblocking.KeepDnsVpnSpikeService` |
+| Service class | `com.uiery.keep.websiteblocking.KeepDnsVpnService` |
 | Service exported | `false` |
 | VPN service permission | `android.permission.BIND_VPN_SERVICE` |
 | Always-on VPN support | `false` |
 | Start action | `com.uiery.keep.websiteblocking.START_DNS_VPN_SPIKE` |
 | Stop action | `com.uiery.keep.websiteblocking.STOP_DNS_VPN_SPIKE` |
 | Domain extra | `domain` |
+| Product domain-set extra | `domains` |
 | Stop extra | `stop` |
 | Default blocked domain | `example.com` |
 
 The service is non-exported, so start and stop the spike through the exported activity. The activity requests `VpnService.prepare()` consent, then starts the foreground VPN service inside the app process.
+
+## Product Integration Status
+
+- Home manages app and website targets as separate tabs and persists them under separate DataStore keys.
+- Selecting a supported app can produce a curated website recommendation; domains are added only
+  after explicit user confirmation.
+- Manual Keep mode and timed locks accept app targets, website targets, or both.
+- Home requests system VPN consent when a lock with website targets becomes active, then sends the
+  complete normalized domain set to `KeepDnsVpnService`.
+- A timed lock passes its deadline to the service so the VPN stops even if Home is not visible.
+- The service uses `START_REDELIVER_INTENT` so Android can restore the active domain set after a
+  process restart.
+- Routines and goal locks still retain their existing app-only target models.
 
 ## Build, Install, Start, Stop
 

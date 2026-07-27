@@ -10,7 +10,7 @@ import android.net.VpnService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.websiteblocking.KeepDnsVpnSpikeActivity
-import com.uiery.keep.websiteblocking.KeepDnsVpnSpikeService
+import com.uiery.keep.websiteblocking.KeepDnsVpnService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -45,7 +45,7 @@ class WebsiteBlockingSpikeManifestTest {
 
     @Test
     fun vpnSpikeServiceIsNonExportedAndBoundAsVpnService() {
-        val info = serviceInfo(KeepDnsVpnSpikeService::class.java)
+        val info = serviceInfo(KeepDnsVpnService::class.java)
 
         assertFalse(info.exported)
         assertEquals(Manifest.permission.BIND_VPN_SERVICE, info.permission)
@@ -54,7 +54,7 @@ class WebsiteBlockingSpikeManifestTest {
 
     @Test
     fun vpnSpikeServiceDeclaresSpecialUseForegroundTypeAndVpnMetadata() {
-        val info = serviceInfo(KeepDnsVpnSpikeService::class.java)
+        val info = serviceInfo(KeepDnsVpnService::class.java)
 
         assertTrue((info.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) != 0)
         assertEquals(
@@ -64,9 +64,9 @@ class WebsiteBlockingSpikeManifestTest {
         assertTrue(
             context.packageManager.getProperty(
                 "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE",
-                ComponentName(context, KeepDnsVpnSpikeService::class.java),
+                ComponentName(context, KeepDnsVpnService::class.java),
             ).string
-                ?.contains("local DNS website blocking spike", ignoreCase = true) == true,
+                ?.contains("local DNS filtering", ignoreCase = true) == true,
         )
     }
 

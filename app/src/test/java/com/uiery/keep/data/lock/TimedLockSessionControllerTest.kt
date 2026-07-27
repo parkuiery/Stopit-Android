@@ -105,6 +105,25 @@ class TimedLockSessionControllerTest {
     }
 
     @Test
+    fun allowsWebOnlyTimedLockWhenWebTargetsArePresent() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val controller = TimedLockSessionController(
+            BlockingStateStore(dataStore),
+            RecordingAnalytics(),
+            clock,
+        )
+
+        val result = controller.start(
+            packages = emptySet(),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.Home(TimedLockHomeScheduleType.Countdown),
+            hasWebTargets = true,
+        )
+
+        assertTrue(result is TimedLockStartResult.Started)
+    }
+
+    @Test
     fun practiceUsesTimedLockAnalyticsButNeverClaimsFirstLockConfigured() = runBlocking {
         val dataStore = FakeDataStore()
         val analytics = RecordingAnalytics()

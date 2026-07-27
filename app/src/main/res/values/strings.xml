@@ -534,4 +534,19 @@
     <string name="first_promise_resume_schedule_summary">%1$s · 30 min · %2$s</string>
     <string name="first_promise_resume_retry_message">It is still saved but off. Try turning it on again.</string>
     <string name="first_promise_resume_waiting">Waiting for permission…</string>
+    <string name="lock_target_selection" tools:ignore="MissingTranslation">Choose what to block</string>
+    <string name="lock_target_apps" tools:ignore="MissingTranslation">Apps</string>
+    <string name="lock_target_websites" tools:ignore="MissingTranslation">Websites</string>
+    <string name="website_lock_description" tools:ignore="MissingTranslation">Websites are managed separately from apps and blocked in supported browsers during a lock.</string>
+    <string name="website_domain_hint" tools:ignore="MissingTranslation">example.com</string>
+    <string name="website_domain_invalid" tools:ignore="MissingTranslation">Enter a valid website domain.</string>
+    <string name="website_lock_empty" tools:ignore="MissingTranslation">No websites selected.</string>
+    <string name="website_lock_recommendation_title" tools:ignore="MissingTranslation">Block the website too?</string>
+    <string name="website_lock_recommendation_message" tools:ignore="MissingTranslation">You selected %1$s. Add its website to your web lock list?</string>
+    <string name="website_lock_recommendation_accept" tools:ignore="MissingTranslation">Add websites</string>
+    <string name="website_lock_recommendation_skip" tools:ignore="MissingTranslation">Not now</string>
+    <string name="add" tools:ignore="MissingTranslation">Add</string>
+    <string name="delete" tools:ignore="MissingTranslation">Delete</string>
+    <string name="lock_targets_selected" tools:ignore="MissingTranslation">%1$d apps · %2$d websites selected</string>
+    <string name="select_targets_to_lock" tools:ignore="MissingTranslation">Select an app or website to block.</string>
 </resources>

@@ -529,4 +529,23 @@
     <string name="first_promise_resume_schedule_summary">%1$s · 30분 · %2$s</string>
     <string name="first_promise_resume_retry_message">약속은 저장되어 있지만 꺼져 있어요. 다시 켜보세요.</string>
     <string name="first_promise_resume_waiting">권한 확인을 기다리는 중…</string>
+    <string name="lock_target_selection">차단 대상 선택</string>
+    <string name="lock_target_apps">앱</string>
+    <string name="lock_target_websites">웹사이트</string>
+    <string name="website_lock_description">웹사이트는 앱과 별도 목록으로 관리되며 잠금 중 지원되는 브라우저에서 차단돼요.</string>
+    <string name="website_domain_hint">example.com</string>
+    <string name="website_domain_invalid">올바른 웹사이트 도메인을 입력해 주세요.</string>
+    <string name="website_lock_empty">선택한 웹사이트가 없어요.</string>
+    <string name="website_lock_recommendation_title">웹사이트도 함께 막을까요?</string>
+    <string name="website_lock_recommendation_message">%1$s 앱을 선택했어요. 해당 웹사이트도 웹 잠금 목록에 추가할까요?</string>
+    <string name="website_lock_recommendation_accept">웹사이트 추가</string>
+    <string name="website_lock_recommendation_skip">나중에</string>
+    <string name="add">추가</string>
+    <string name="delete">삭제</string>
+    <string name="lock_targets_selected">앱 %1$d개 · 웹사이트 %2$d개 선택</string>
+    <string name="select_targets_to_lock">차단할 앱이나 웹사이트를 선택해 주세요.</string>
+    <string name="website_blocking_spike_channel_name">웹사이트 차단</string>
+    <string name="website_blocking_spike_channel_description">로컬 웹사이트 차단이 활성화되면 표시돼요.</string>
+    <string name="website_blocking_spike_notification_title">웹사이트 차단 중</string>
+    <string name="website_blocking_spike_notification_text">설정된 웹사이트 %1$d개를 차단하고 있어요.</string>
 </resources>

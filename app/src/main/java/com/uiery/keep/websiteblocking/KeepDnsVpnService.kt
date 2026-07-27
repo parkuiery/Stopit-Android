@@ -22,8 +22,7 @@ import androidx.core.app.ServiceCompat
 import com.uiery.keep.R
 import com.uiery.keep.domain.websiteblocking.DnsTunIpVersion
 import com.uiery.keep.domain.websiteblocking.DomainName
-import com.uiery.keep.domain.websiteblocking.DomainNameNormalizationResult
-import com.uiery.keep.domain.websiteblocking.DomainNamePolicy
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingDomainSetPolicy
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
@@ -34,7 +33,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class KeepDnsVpnSpikeService : VpnService() {
+class KeepDnsVpnService : VpnService() {
     private val lifecycleLock = Any()
     private val sessionOwner = DnsVpnSessionOwner<ExecutorService>()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -63,6 +62,7 @@ class KeepDnsVpnSpikeService : VpnService() {
     private var retryCount = 0
     @Volatile
     private var tunHandle: TunHandle? = null
+    private var deadlineStop: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -76,7 +76,16 @@ class KeepDnsVpnSpikeService : VpnService() {
             return START_NOT_STICKY
         }
 
-        val blockedDomains = setOf(normalizeDomain(intent?.getStringExtra(EXTRA_DOMAIN)))
+        val configuredDomains = intent
+            ?.getStringArrayListExtra(EXTRA_DOMAINS)
+            ?.toSet()
+            ?: setOfNotNull(intent?.getStringExtra(EXTRA_DOMAIN))
+        val blockedDomains = WebsiteBlockingDomainSetPolicy.normalize(configuredDomains)
+        if (blockedDomains.isEmpty()) {
+            shutdown()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val request = ActiveVpnRequest(
             blockedDomains = blockedDomains,
             blockedDomainCount = blockedDomains.size,
@@ -84,7 +93,8 @@ class KeepDnsVpnSpikeService : VpnService() {
         )
         startForegroundForSpike(request.blockedDomainCount)
         handleBindingCommand(bindingCoordinator.updateRequest(request))
-        return START_NOT_STICKY
+        scheduleDeadlineStop(intent?.getLongExtra(EXTRA_STOP_AT_EPOCH_MILLIS, 0L) ?: 0L)
+        return START_REDELIVER_INTENT
     }
 
     override fun onRevoke() {
@@ -312,12 +322,6 @@ class KeepDnsVpnSpikeService : VpnService() {
         manager.createNotificationChannel(channel)
     }
 
-    private fun normalizeDomain(rawDomain: String?): DomainName {
-        val input = rawDomain.orEmpty().ifBlank { DEFAULT_DOMAIN }
-        val result = DomainNamePolicy.normalize(input)
-        return (result as? DomainNameNormalizationResult.Valid)?.domain ?: DomainName(DEFAULT_DOMAIN)
-    }
-
     private fun stopFromWorker(session: DnsVpnSession) {
         val startIdToStop = synchronized(lifecycleLock) {
             val stopResult = sessionOwner.stopIfOwner(session)
@@ -337,6 +341,8 @@ class KeepDnsVpnSpikeService : VpnService() {
 
     private fun shutdown() {
         synchronized(lifecycleLock) {
+            deadlineStop?.let(mainHandler::removeCallbacks)
+            deadlineStop = null
             bindingCoordinator.stop()
             unregisterUnderlyingNetworkCallback()
             val stopResult = sessionOwner.stopActive()
@@ -346,6 +352,22 @@ class KeepDnsVpnSpikeService : VpnService() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
             }
         }
+    }
+
+    private fun scheduleDeadlineStop(stopAtEpochMillis: Long) {
+        deadlineStop?.let(mainHandler::removeCallbacks)
+        deadlineStop = null
+        if (stopAtEpochMillis <= 0L) return
+
+        val stopAction = Runnable {
+            shutdown()
+            stopSelf()
+        }
+        deadlineStop = stopAction
+        mainHandler.postDelayed(
+            stopAction,
+            (stopAtEpochMillis - System.currentTimeMillis()).coerceAtLeast(0L),
+        )
     }
 
     private fun registerUnderlyingNetworkCallback() {
@@ -479,12 +501,13 @@ class KeepDnsVpnSpikeService : VpnService() {
         const val ACTION_START = "com.uiery.keep.websiteblocking.START_DNS_VPN_SPIKE"
         const val ACTION_STOP = "com.uiery.keep.websiteblocking.STOP_DNS_VPN_SPIKE"
         const val EXTRA_DOMAIN = "domain"
+        const val EXTRA_DOMAINS = "domains"
         const val EXTRA_STOP = "stop"
+        const val EXTRA_STOP_AT_EPOCH_MILLIS = "stop_at_epoch_millis"
 
         private const val CHANNEL_ID = "website_blocking_spike"
         private const val DIAGNOSTIC_TAG = "KeepDnsVpnSpike"
         private const val NOTIFICATION_ID = 53_053
-        private const val DEFAULT_DOMAIN = "example.com"
         private const val VIRTUAL_IPV4_CLIENT = "10.111.0.2"
         private const val VIRTUAL_IPV4_DNS = "10.111.0.1"
         private const val VIRTUAL_IPV6_CLIENT = "fd00:7579:6473::2"
@@ -500,12 +523,27 @@ class KeepDnsVpnSpikeService : VpnService() {
             DnsVpnUpstreamResponsePolicy.receiveBufferSize(DnsTunIpVersion.IPv4)
 
         fun startIntent(context: Context, domain: DomainName): Intent =
-            Intent(context, KeepDnsVpnSpikeService::class.java)
+            startIntent(context, setOf(domain))
+
+        fun startIntent(
+            context: Context,
+            domains: Set<DomainName>,
+            stopAtEpochMillis: Long? = null,
+        ): Intent =
+            Intent(context, KeepDnsVpnService::class.java)
                 .setAction(ACTION_START)
-                .putExtra(EXTRA_DOMAIN, domain.value)
+                .putStringArrayListExtra(
+                    EXTRA_DOMAINS,
+                    ArrayList(domains.map { it.value }.sorted()),
+                )
+                .apply {
+                    stopAtEpochMillis?.let {
+                        putExtra(EXTRA_STOP_AT_EPOCH_MILLIS, it)
+                    }
+                }
 
         fun stopIntent(context: Context): Intent =
-            Intent(context, KeepDnsVpnSpikeService::class.java)
+            Intent(context, KeepDnsVpnService::class.java)
                 .setAction(ACTION_STOP)
                 .putExtra(EXTRA_STOP, true)
     }

@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.Preferences
 object BackupRestoreDataStoreKeyPolicy {
     val resetOnlyKeys: Set<Preferences.Key<*>> = setOf(
         PreferencesKey.SELECTED_APP_PACKAGES,
+        PreferencesKey.SELECTED_WEB_DOMAINS,
         PreferencesKey.IS_KEEP,
         PreferencesKey.FCM_TOKEN,
         PreferencesKey.START_TIME,

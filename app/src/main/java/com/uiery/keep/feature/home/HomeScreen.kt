@@ -306,6 +306,7 @@ fun HomeScreen(
             onClick = viewModel::showCategoryBottomSheet,
             enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
             categorySize = uiState.selectedAppPackage.size,
+            websiteSize = uiState.selectedWebDomains.size,
         )
         // 카드는 한 번에 한 장만 노출한다. 선택되지 않은 후보는 조건이 유지되는 한 다음
         // 방문에서 다시 올라온다.

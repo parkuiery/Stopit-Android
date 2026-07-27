@@ -28,6 +28,7 @@ fun CategoryButton(
     onClick: () -> Unit,
     enabled: Boolean,
     categorySize: Int,
+    websiteSize: Int = 0,
 ) {
     val moveIcon =
         if (enabled) R.drawable.round_arrow_forward_ios_24 else R.drawable.baseline_edit_off_24
@@ -54,7 +55,15 @@ fun CategoryButton(
                 contentDescription = null,
             )
             Text(
-                text = stringResource(id = R.string.category_selected, categorySize),
+                text = if (websiteSize > 0) {
+                    stringResource(
+                        id = R.string.lock_targets_selected,
+                        categorySize,
+                        websiteSize,
+                    )
+                } else {
+                    stringResource(id = R.string.category_selected, categorySize)
+                },
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(modifier = Modifier.weight(1f))

@@ -17,9 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepButtonSize
 import com.uiery.kds.KeepCircularProgressIndicator
 import com.uiery.kds.KeepRadioButton
+import com.uiery.kds.KeepSegmentedControl
 import androidx.compose.material3.Text
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +54,8 @@ import com.uiery.keep.R
 import com.uiery.keep.appselection.AndroidBlockExemptPackageProvider
 import com.uiery.keep.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
+import com.uiery.keep.domain.websiteblocking.DomainNameNormalizationResult
+import com.uiery.keep.domain.websiteblocking.DomainNamePolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -60,6 +66,9 @@ fun CategoryBottomSheetContent(
     onComplete: (Set<String>) -> Unit,
     selectionMode: AppSelectionMode = AppSelectionMode.Multiple,
     onSingleComplete: ((packageName: String, appLabel: String) -> Unit)? = null,
+    websiteSelectionEnabled: Boolean = false,
+    storeSelectedWebDomains: Set<String> = emptySet(),
+    onCompleteTargets: ((selectedApps: Set<String>, selectedWebDomains: Set<String>) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val installedAppRepository = remember(context) {
@@ -86,6 +95,9 @@ fun CategoryBottomSheetContent(
         onComplete = onComplete,
         selectionMode = selectionMode,
         onSingleComplete = onSingleComplete,
+        websiteSelectionEnabled = websiteSelectionEnabled,
+        storeSelectedWebDomains = storeSelectedWebDomains,
+        onCompleteTargets = onCompleteTargets,
     )
 }
 
@@ -98,6 +110,9 @@ fun CategoryBottomSheetLoadedContent(
     onComplete: (Set<String>) -> Unit,
     selectionMode: AppSelectionMode = AppSelectionMode.Multiple,
     onSingleComplete: ((packageName: String, appLabel: String) -> Unit)? = null,
+    websiteSelectionEnabled: Boolean = false,
+    storeSelectedWebDomains: Set<String> = emptySet(),
+    onCompleteTargets: ((selectedApps: Set<String>, selectedWebDomains: Set<String>) -> Unit)? = null,
 ) {
     val initialSelectedAppPackages = remember(apps, selectionMode) {
         when (selectionMode) {
@@ -110,6 +125,10 @@ fun CategoryBottomSheetLoadedContent(
         }
     }
     var selectedAppPackages by remember(apps, selectionMode) { mutableStateOf(initialSelectedAppPackages) }
+    var selectedWebDomains by remember(storeSelectedWebDomains) {
+        mutableStateOf(storeSelectedWebDomains.toSet())
+    }
+    var selectedTargetType by remember { mutableStateOf(LockTargetType.Apps) }
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
     val orderedApps = remember(apps) {
         val appsByPackage = apps.associateBy { it.packageName }
@@ -131,19 +150,50 @@ fun CategoryBottomSheetLoadedContent(
     ) {
         Spacer(modifier = Modifier.padding(top = 40.dp))
         Text(
-            text = stringResource(R.string.activity_selection),
+            text = stringResource(
+                if (websiteSelectionEnabled) R.string.lock_target_selection else R.string.activity_selection,
+            ),
             fontWeight = FontWeight.Bold,
             fontSize = 32.sp,
             color = KeepTheme.colors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(12.dp))
-        SearchTextField(
-            value = { searchContent },
-            hint = stringResource(R.string.search),
-            onValueChange = { searchContent = it }
-        )
+        if (websiteSelectionEnabled) {
+            KeepSegmentedControl(
+                modifier = Modifier.fillMaxWidth(),
+                items = LockTargetType.entries.map { targetType ->
+                    stringResource(
+                        if (targetType == LockTargetType.Apps) {
+                            R.string.lock_target_apps
+                        } else {
+                            R.string.lock_target_websites
+                        },
+                    )
+                },
+                selectedIndex = LockTargetType.entries.indexOf(selectedTargetType),
+                onItemSelected = { index ->
+                    selectedTargetType = LockTargetType.entries[index]
+                },
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        if (selectedTargetType == LockTargetType.Apps) {
+            SearchTextField(
+                value = { searchContent },
+                hint = stringResource(R.string.search),
+                onValueChange = { searchContent = it },
+            )
+        }
         Spacer(modifier = Modifier.height(12.dp))
-        if (isLoading) {
+        if (selectedTargetType == LockTargetType.Websites) {
+            WebsiteLockListEditor(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                selectedDomains = selectedWebDomains,
+                onSelectedDomainsChange = { selectedWebDomains = it },
+            )
+        } else if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
@@ -256,11 +306,110 @@ fun CategoryBottomSheetLoadedContent(
                 }
                 if (selectedApp != null && onSingleComplete != null) {
                     onSingleComplete(selectedApp.packageName, selectedApp.appName)
+                } else if (websiteSelectionEnabled && onCompleteTargets != null) {
+                    onCompleteTargets(selectedAppPackages, selectedWebDomains)
                 } else {
                     onComplete(selectedAppPackages)
                 }
             },
         )
+    }
+}
+
+private enum class LockTargetType {
+    Apps,
+    Websites,
+}
+
+@Composable
+private fun WebsiteLockListEditor(
+    selectedDomains: Set<String>,
+    onSelectedDomainsChange: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var input by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.website_lock_description),
+            color = KeepTheme.colors.onSurface,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SearchTextField(
+                modifier = Modifier.weight(1f),
+                value = { input },
+                hint = stringResource(R.string.website_domain_hint),
+                onValueChange = {
+                    input = it
+                    validationError = false
+                },
+            )
+            KeepButton(
+                text = stringResource(R.string.add),
+                size = KeepButtonSize.Small,
+                bottomSpacing = false,
+                onClick = {
+                    when (val result = DomainNamePolicy.normalize(input)) {
+                        is DomainNameNormalizationResult.Valid -> {
+                            onSelectedDomainsChange(selectedDomains + result.domain.value)
+                            input = ""
+                            validationError = false
+                        }
+                        is DomainNameNormalizationResult.Invalid -> validationError = true
+                    }
+                },
+            )
+        }
+        if (validationError) {
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = stringResource(R.string.website_domain_invalid),
+                color = KeepTheme.colors.error,
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        if (selectedDomains.isEmpty()) {
+            Text(
+                text = stringResource(R.string.website_lock_empty),
+                color = KeepTheme.colors.onSurface,
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        shape = RoundedCornerShape(12.dp),
+                        color = KeepTheme.colors.secondary,
+                    ),
+            ) {
+                items(selectedDomains.sorted(), key = { it }) { domain ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = domain,
+                            color = KeepTheme.colors.onSurfaceVariant,
+                        )
+                        KeepTextButton(
+                            onClick = { onSelectedDomainsChange(selectedDomains - domain) },
+                        ) {
+                            Text(stringResource(R.string.delete))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

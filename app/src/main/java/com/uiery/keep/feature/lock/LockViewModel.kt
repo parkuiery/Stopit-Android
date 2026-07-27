@@ -109,7 +109,17 @@ class LockViewModel
         private fun getSelectedApp() =
             intent {
                 val selectedAppPackages = blockingStateStore.readSelectedAppPackages()
-                reduce { state.copy(selectedAppPackage = selectedAppPackages) }
+                val selectedWebDomains = if (lockScreenEntry.isRoutine) {
+                    emptySet()
+                } else {
+                    blockingStateStore.readSelectedWebDomains()
+                }
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackages,
+                        selectedWebDomains = selectedWebDomains,
+                    )
+                }
             }
 
         private fun getRoutines() =
@@ -324,6 +334,7 @@ class LockViewModel
 data class LockUiState(
     val lockTime: LocalDateTime = LocalDateTime.now(),
     val selectedAppPackage: Set<String> = emptySet(),
+    val selectedWebDomains: Set<String> = emptySet(),
     val isRoutine: Boolean = false,
     val routines: List<RoutineModel> = emptyList(),
     val routineStartTime: Long = 0L,

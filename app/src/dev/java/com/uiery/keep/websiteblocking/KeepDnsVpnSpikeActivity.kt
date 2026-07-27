@@ -32,15 +32,15 @@ class KeepDnsVpnSpikeActivity : Activity() {
     }
 
     private fun handleLaunchIntent(launchIntent: Intent) {
-        if (launchIntent.action == KeepDnsVpnSpikeService.ACTION_STOP ||
-            launchIntent.getBooleanExtra(KeepDnsVpnSpikeService.EXTRA_STOP, false)
+        if (launchIntent.action == KeepDnsVpnService.ACTION_STOP ||
+            launchIntent.getBooleanExtra(KeepDnsVpnService.EXTRA_STOP, false)
         ) {
             stopSpikeService()
             return
         }
 
         val domainResult = DomainNamePolicy.normalize(
-            launchIntent.getStringExtra(KeepDnsVpnSpikeService.EXTRA_DOMAIN).orEmpty()
+            launchIntent.getStringExtra(KeepDnsVpnService.EXTRA_DOMAIN).orEmpty()
                 .ifBlank { DEFAULT_DOMAIN.value },
         )
         val normalizedDomain = (domainResult as? DomainNameNormalizationResult.Valid)?.domain
@@ -80,12 +80,12 @@ class KeepDnsVpnSpikeActivity : Activity() {
     private fun startSpikeService(domain: DomainName) {
         ContextCompat.startForegroundService(
             this,
-            KeepDnsVpnSpikeService.startIntent(this, domain),
+            KeepDnsVpnService.startIntent(this, domain),
         )
     }
 
     private fun stopSpikeService() {
-        startService(KeepDnsVpnSpikeService.stopIntent(this))
+        startService(KeepDnsVpnService.stopIntent(this))
         statusView.setText(R.string.website_blocking_spike_stopped)
     }
 
