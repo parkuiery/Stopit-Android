@@ -35,6 +35,28 @@ class BlockingStateStoreTest {
     }
 
     @Test
+    fun selectedWebDomainsRoundTripIndependentlyFromApps() = runBlocking {
+        val dataStore = BlockingFakePreferencesDataStore()
+        val store = BlockingStateStore(dataStore)
+        val selectedPackages = setOf("com.example.video")
+        val selectedWebDomains = setOf("example.com", "video.example")
+
+        store.saveSelectedAppPackages(selectedPackages)
+        store.saveSelectedWebDomains(selectedWebDomains)
+
+        assertEquals(selectedPackages, store.readSelectedAppPackages())
+        assertEquals(selectedWebDomains, store.readSelectedWebDomains())
+        assertEquals(
+            BlockingSelectionState(
+                selectedAppPackages = selectedPackages,
+                selectedWebDomains = selectedWebDomains,
+            ),
+            store.readSelectionState(),
+        )
+        assertEquals(selectedWebDomains, dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS])
+    }
+
+    @Test
     fun firstLockDeliveryReservationPersistsPendingThenTransitionsToDeliveredOnce() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
         val store = BlockingStateStore(dataStore)

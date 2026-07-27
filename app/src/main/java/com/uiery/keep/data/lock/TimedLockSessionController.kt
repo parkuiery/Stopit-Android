@@ -56,8 +56,9 @@ class TimedLockSessionController @Inject constructor(
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant?,
+        hasWebTargets: Boolean,
     ): TimedLockStartResult = startMutex.withLock {
-        if (packages.isEmpty()) return TimedLockStartResult.EmptyApps
+        if (packages.isEmpty() && !hasWebTargets) return TimedLockStartResult.EmptyApps
         if (targetDeadline == null && durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration
         val now = clock.instant()
         if (ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime(), now, clock.zone)) {
@@ -139,6 +140,7 @@ interface TimedLockStarter {
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant? = null,
+        hasWebTargets: Boolean = false,
     ): TimedLockStartResult
 
     suspend fun commit(started: TimedLockStartResult.Started)

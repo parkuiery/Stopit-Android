@@ -35,10 +35,14 @@ class BlockingStateStore @Inject constructor(
     suspend fun readSelectedAppPackages(): Set<String> =
         dataStore.data.first()[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
 
+    suspend fun readSelectedWebDomains(): Set<String> =
+        dataStore.data.first()[PreferencesKey.SELECTED_WEB_DOMAINS].orEmpty()
+
     suspend fun readSelectionState(): BlockingSelectionState {
         val preferences = dataStore.data.first()
         return BlockingSelectionState(
             selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty(),
+            selectedWebDomains = preferences[PreferencesKey.SELECTED_WEB_DOMAINS].orEmpty(),
             hasTrackedFirstLockConfigured =
                 preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true ||
                     preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null,
@@ -48,6 +52,12 @@ class BlockingStateStore @Inject constructor(
     suspend fun saveSelectedAppPackages(packages: Set<String>) {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
+        }
+    }
+
+    suspend fun saveSelectedWebDomains(domains: Set<String>) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.SELECTED_WEB_DOMAINS] = domains
         }
     }
 
@@ -288,6 +298,7 @@ data class AccessibilityBlockingSnapshot(
 
 data class BlockingSelectionState(
     val selectedAppPackages: Set<String> = emptySet(),
+    val selectedWebDomains: Set<String> = emptySet(),
     val hasTrackedFirstLockConfigured: Boolean = false,
 )
 

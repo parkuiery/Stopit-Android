@@ -35,7 +35,7 @@ class WebsiteBlockingSpikeDeviceTest {
 
         ContextCompat.startForegroundService(
             context,
-            KeepDnsVpnSpikeService.startIntent(context, DomainName(BLOCKED_DOMAIN)),
+            KeepDnsVpnService.startIntent(context, DomainName(BLOCKED_DOMAIN)),
         )
         SystemClock.sleep(VPN_STARTUP_DELAY_MILLIS)
 
@@ -61,7 +61,7 @@ class WebsiteBlockingSpikeDeviceTest {
             verifyLocalBlockLatency()
             verifyAllowedDnsReliability()
         } finally {
-            context.startService(KeepDnsVpnSpikeService.stopIntent(context))
+            context.startService(KeepDnsVpnService.stopIntent(context))
         }
     }
 

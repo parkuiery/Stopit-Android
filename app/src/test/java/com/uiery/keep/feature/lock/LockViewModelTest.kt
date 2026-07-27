@@ -103,6 +103,22 @@ class LockViewModelTest {
         assertEquals(3, state.dailyUnlockRemaining)
     }
 
+    @Test
+    fun manualLockLoadsWebsiteTargetsSeparatelyForItsSummary() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.app"),
+                PreferencesKey.SELECTED_WEB_DOMAINS to setOf("example.com"),
+            ),
+        )
+
+        val viewModel = createViewModel(dataStore = dataStore)
+        delay(50)
+
+        assertEquals(setOf("com.example.app"), viewModel.container.stateFlow.value.selectedAppPackage)
+        assertEquals(setOf("example.com"), viewModel.container.stateFlow.value.selectedWebDomains)
+    }
+
     private fun createViewModel(
         analytics: LockRecordingKeepAnalytics = LockRecordingKeepAnalytics(),
         dataStore: FakeDataStore = FakeDataStore(),

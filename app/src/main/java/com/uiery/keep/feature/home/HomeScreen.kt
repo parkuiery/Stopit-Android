@@ -19,12 +19,14 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.uiery.kds.KeepAlertDialog
 import com.uiery.kds.KeepCard
 import androidx.compose.material3.Icon
 import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import com.uiery.kds.KeepTextButton
 import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -65,8 +67,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import android.app.Activity
 import android.content.Intent
+import android.net.VpnService
 import android.provider.Settings
 import androidx.annotation.DrawableRes
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -97,6 +103,8 @@ import com.uiery.kds.KeepSwitch
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 import com.uiery.keep.util.toPx
+import com.uiery.keep.domain.websiteblocking.DomainName
+import com.uiery.keep.websiteblocking.KeepDnsVpnService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
@@ -115,6 +123,25 @@ fun HomeScreen(
     onNavigateRoutineWithUsageInsightPrefill: (UsageInsightRoutinePrefill) -> Unit = {},
 ) {
     val uiState by viewModel.collectAsState()
+    val context = LocalContext.current
+    val websiteVpnConsentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK &&
+            uiState.selectedWebDomains.isNotEmpty() &&
+            (uiState.isKeep || uiState.hasActiveTimedLock)
+        ) {
+            ContextCompat.startForegroundService(
+                context,
+                KeepDnsVpnService.startIntent(
+                    context,
+                    uiState.selectedWebDomains.map(::DomainName).toSet(),
+                    stopAtEpochMillis = uiState.activeTimedLockDeadlineMillis
+                        .takeUnless { uiState.isKeep },
+                ),
+            )
+        }
+    }
     val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val categoryBottomSheetState =
@@ -125,7 +152,6 @@ fun HomeScreen(
         rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
         )
-    val context = LocalContext.current
     val composition by rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.home_prevent),
     )
@@ -134,7 +160,7 @@ fun HomeScreen(
     val syncAccessibilityPermissionDialogState = {
         openAlertDialog = !hasAccessibilityPermission(context)
     }
-    val noSelectedAppsMessage = stringResource(R.string.select_apps_to_lock)
+    val noSelectedAppsMessage = stringResource(R.string.select_targets_to_lock)
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
@@ -201,12 +227,75 @@ fun HomeScreen(
         onDispose { observedLifecycle.removeObserver(observer) }
     }
 
+    LaunchedEffect(
+        uiState.isKeep,
+        uiState.hasActiveTimedLock,
+        uiState.selectedWebDomains,
+        uiState.blockingTargetsLoaded,
+        uiState.isKeepStateLoaded,
+        uiState.activeTimedLockStateLoaded,
+    ) {
+        if (!uiState.websiteBlockingRuntimeStateLoaded()) return@LaunchedEffect
+        val shouldBlockWebsites =
+            (uiState.isKeep || uiState.hasActiveTimedLock) && uiState.selectedWebDomains.isNotEmpty()
+        if (!shouldBlockWebsites) {
+            context.stopService(Intent(context, KeepDnsVpnService::class.java))
+            return@LaunchedEffect
+        }
+
+        val consentIntent = VpnService.prepare(context)
+        if (consentIntent == null) {
+            ContextCompat.startForegroundService(
+                context,
+                KeepDnsVpnService.startIntent(
+                    context,
+                    uiState.selectedWebDomains.map(::DomainName).toSet(),
+                    stopAtEpochMillis = uiState.activeTimedLockDeadlineMillis
+                        .takeUnless { uiState.isKeep },
+                ),
+            )
+        } else {
+            websiteVpnConsentLauncher.launch(consentIntent)
+        }
+    }
+
     if (openAlertDialog) {
         PermissionSettingDialog(
             onDismissRequest = { openAlertDialog = false },
             onConfirmation = {
                 openAlertDialog = false
                 requestAccessibilityPermission(context)
+            },
+        )
+    }
+
+    if (uiState.pendingWebsiteRecommendations.isNotEmpty()) {
+        val serviceNames = uiState.pendingWebsiteRecommendations
+            .map { it.serviceName }
+            .distinct()
+            .joinToString()
+        KeepAlertDialog(
+            onDismissRequest = viewModel::dismissWebsiteLockRecommendations,
+            title = {
+                Text(stringResource(R.string.website_lock_recommendation_title))
+            },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.website_lock_recommendation_message,
+                        serviceNames,
+                    ),
+                )
+            },
+            confirmButton = {
+                KeepTextButton(onClick = viewModel::acceptWebsiteLockRecommendations) {
+                    Text(stringResource(R.string.website_lock_recommendation_accept))
+                }
+            },
+            dismissButton = {
+                KeepTextButton(onClick = viewModel::dismissWebsiteLockRecommendations) {
+                    Text(stringResource(R.string.website_lock_recommendation_skip))
+                }
             },
         )
     }
@@ -218,8 +307,16 @@ fun HomeScreen(
         ) {
             CategoryBottomSheetContent(
                 storeSelectApps = uiState.selectedAppPackage,
+                websiteSelectionEnabled = true,
+                storeSelectedWebDomains = uiState.selectedWebDomains,
                 onComplete = { selectPackages ->
                     viewModel.selectCategoryComplete(selectPackages)
+                },
+                onCompleteTargets = { selectPackages, selectDomains ->
+                    viewModel.selectLockTargetsComplete(
+                        selectedAppPackages = selectPackages,
+                        selectedWebDomains = selectDomains,
+                    )
                     coroutineScope
                         .launch {
                             categoryBottomSheetState.hide()
@@ -245,7 +342,7 @@ fun HomeScreen(
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
-                    if (uiState.selectedAppPackage.isEmpty()) {
+                    if (!uiState.hasSelectedLockTargets()) {
                         viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
                     } else {
                         viewModel.lockTime()
@@ -328,6 +425,7 @@ fun HomeScreen(
                 onClick = viewModel::showCategoryBottomSheet,
                 enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
                 categorySize = uiState.selectedAppPackage.size,
+                websiteSize = uiState.selectedWebDomains.size,
             )
             if (uiState.showFirstLockActivationCta) {
                 FirstLockActivationCta(
@@ -380,7 +478,7 @@ fun HomeScreen(
                                 .clearAndSetSemantics { }
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                    if (!uiState.isKeep && !uiState.hasSelectedLockTargets()) {
                                         viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                     } else {
                                         viewModel.showSnackBar(message)
@@ -404,7 +502,7 @@ fun HomeScreen(
                                 },
                                 checked = uiState.isKeep,
                                 onCheckedChange = {
-                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                    if (!uiState.isKeep && !uiState.hasSelectedLockTargets()) {
                                         viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
                                     } else {
                                         viewModel.showSnackBar(message)

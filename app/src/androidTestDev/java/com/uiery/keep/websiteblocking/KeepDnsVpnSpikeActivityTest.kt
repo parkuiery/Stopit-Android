@@ -17,11 +17,11 @@ class KeepDnsVpnSpikeActivityTest {
     @Test
     fun existingActivityHandlesAReplacementLaunchIntent() {
         val stopIntent = Intent(
-            KeepDnsVpnSpikeService.ACTION_STOP,
+            KeepDnsVpnService.ACTION_STOP,
         ).setClassName(
             "com.uiery.keep.dev",
             KeepDnsVpnSpikeActivity::class.java.name,
-        ).putExtra(KeepDnsVpnSpikeService.EXTRA_STOP, true)
+        ).putExtra(KeepDnsVpnService.EXTRA_STOP, true)
 
         val scenario = ActivityScenario.launch<KeepDnsVpnSpikeActivity>(stopIntent)
         scenario.onActivity { activity ->
@@ -37,9 +37,9 @@ class KeepDnsVpnSpikeActivityTest {
             )
             assertEquals(ActivityInfo.LAUNCH_SINGLE_TOP, activityInfo.launchMode)
 
-            val invalidStartIntent = Intent(KeepDnsVpnSpikeService.ACTION_START)
+            val invalidStartIntent = Intent(KeepDnsVpnService.ACTION_START)
                 .setClass(activity, KeepDnsVpnSpikeActivity::class.java)
-                .putExtra(KeepDnsVpnSpikeService.EXTRA_DOMAIN, "not a domain")
+                .putExtra(KeepDnsVpnService.EXTRA_DOMAIN, "not a domain")
             activity.onNewIntent(invalidStartIntent)
             assertEquals(
                 activity.getString(R.string.website_blocking_spike_invalid_domain),

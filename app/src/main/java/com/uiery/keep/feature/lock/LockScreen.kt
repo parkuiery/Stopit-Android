@@ -140,6 +140,7 @@ fun LockScreen(
                 onClick = { },
                 enabled = false,
                 categorySize = uiState.selectedAppPackage.size,
+                websiteSize = uiState.selectedWebDomains.size,
             )
             AnimatedVisibility(
                 visible = uiState.isEmergencyUnlockActive,

@@ -26,11 +26,14 @@ object ManualLockTimePolicy {
     fun toLocalDateTime(
         storedDeadline: String?,
         zone: ZoneId = ZoneId.systemDefault(),
-    ): LocalDateTime? = parseDeadline(storedDeadline = storedDeadline, zone = zone)
+    ): LocalDateTime? = toInstant(storedDeadline = storedDeadline, zone = zone)
         ?.atZone(zone)
         ?.toLocalDateTime()
 
-    private fun parseDeadline(storedDeadline: String?, zone: ZoneId): Instant? {
+    fun toInstant(
+        storedDeadline: String?,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Instant? {
         if (storedDeadline.isNullOrBlank()) return null
         return runCatching { Instant.parse(storedDeadline) }
             .getOrElse {
@@ -39,4 +42,7 @@ object ManualLockTimePolicy {
                 }.getOrNull()
             }
     }
+
+    private fun parseDeadline(storedDeadline: String?, zone: ZoneId): Instant? =
+        toInstant(storedDeadline = storedDeadline, zone = zone)
 }

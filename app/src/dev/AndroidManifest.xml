@@ -12,20 +12,5 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Keep" />
 
-        <service
-            android:name=".websiteblocking.KeepDnsVpnSpikeService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:permission="android.permission.BIND_VPN_SERVICE">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
-                android:value="false" />
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Dev-only local DNS website blocking spike; foreground is required while the user-consented VpnService owns the local TUN." />
-        </service>
     </application>
 </manifest>
