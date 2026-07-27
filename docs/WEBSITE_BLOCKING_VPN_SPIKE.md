@@ -100,7 +100,8 @@ The test sends DNS packets through the virtual IPv4 and IPv6 DNS endpoints and v
 
 - The activity normalizes the `domain` extra and rejects invalid domains.
 - The VPN TUN captures DNS only by installing virtual DNS addresses/routes.
-- The service forwards allowed UDP DNS payloads to the captured active network's DNS servers through protected sockets explicitly bound to that underlying network. It reuses one socket per upstream server for the VPN session, discards a socket after an I/O failure, and retries through the next configured server. A successful fallback becomes preferred, while a failed server is deprioritized for 30s but remains available as a last resort if every ready server fails.
+- The service follows Android's best matching non-VPN internet network and re-establishes the DNS-only TUN when the physical underlying network changes. It forwards allowed UDP DNS payloads to that network's DNS servers through protected sockets explicitly bound to the same network.
+- The service reuses one socket per upstream server for the VPN session, discards a socket after an I/O failure, and retries through the next configured server. A successful fallback becomes preferred, while a failed server is deprioritized for 30s but remains available as a last resort if every ready server fails. One bounded 250ms session retry covers a transient upstream failure immediately after a physical-network transition.
 - Exact domain and true subdomain matches return NXDOMAIN.
 - Similar suffixes must remain allowed. Example: blocking `youtube.com` blocks `youtube.com` and `m.youtube.com`, but not `notyoutube.com` or `youtube.com.evil.test`.
 - Parser, upstream, and response-build failures stop the VPN to fail open.
@@ -158,12 +159,12 @@ For every network cell, test:
 | Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | PASS | Galaxy S21 Android 15: consent was approved, the service remained active, direct DNS checks passed, and Chrome/Samsung Internet loaded allowed pages. |
 | Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21: service stopped and allowed DNS/internet was available on the first probe. Repeated start/stop commands were also verified without force-stopping the app. |
 | VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | PASS | Galaxy S21: tapping Cancel left the service absent and the activity reported that consent was not granted. |
-| VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | BLOCKED | ADB AppOps changes do not revoke an already-established VPN. Samsung VPN settings required configuring a device screen lock before changing VPN ownership, so the active-revoke path was not changed on the user's device. |
+| VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | FAIL (in-flight DNS tail) | Galaxy S20+ Android 13: system disconnect began at `16:31:33.685`, the service unregistered its network callback at `16:31:33.702`, and the VPN network closed by `16:31:33.753` (68ms). A DNS lookup started concurrently still waited for the resolver timeout; the second probe succeeded, but end-to-end recovery measured `3.88s`, above the strict 3s gate. |
 | Other VPN active before start | Activate another VPN, start Keep spike | Keep does not become active or displace expected VPN behavior silently | BLOCKED | A third-party VPN profile is installed, but activating or reconfiguring it would change that app's privacy/network state and the system requires a screen lock. |
 | Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | BLOCKED | Same device-policy and third-party state boundary as the previous row. |
 | Reboot while active | Start spike, reboot device | Spike does not auto-enable; no stale active success state | PASS | Galaxy S21: service was active before reboot, absent after boot, and general internet succeeded immediately. |
-| Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | BLOCKED | Mobile data was disabled and telephony reported out-of-service/data registration denied. It was not enabled due charge and service-state risk. |
-| Mobile to Wi-Fi | Start on mobile data, switch to Wi-Fi | Allowed DNS/browser traffic recovers within 3s | BLOCKED | No usable mobile starting network. Re-enabling Wi-Fi after the attempted observation restored validated internet in about 5.1s. |
+| Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | PASS | Galaxy S20+ Android 13: the callback suspended Wi-Fi network `633`, and the replacement VPN over LTE network `613` was created `0.36s` later. Exact blocking and allowed DNS both remained functional. The host command took `3.60s` because Samsung's `svc wifi disable` blocked before the actual network-loss event; this command latency is recorded separately from app recovery. |
+| Mobile to Wi-Fi | Start on mobile data, switch to Wi-Fi | Allowed DNS/browser traffic recovers within 3s | PASS | Galaxy S20+ Android 13: allowed traffic continued over LTE while Wi-Fi connected, then the VPN moved from LTE network `613` to Wi-Fi network `633`. The resulting VPN reported `WIFI|VPN` with underlying network `633`; exact blocking and allowed DNS both passed after the handoff. |
 | Airplane mode recovery | Start spike, enable/disable airplane mode | Service fails open or resumes without breaking allowed browsing | PASS (fail open) | Galaxy S21: airplane mode stopped the spike service; after disabling airplane mode, IP and DNS browsing recovered in 2s. The spike did not auto-resume. |
 
 ## Results Summary
@@ -174,9 +175,9 @@ For every network cell, test:
 | Similar-domain allow behavior | PASS (automated) | `DomainNamePolicyTest` and `DnsMessageCodecTest` verify that `notexample.com` and `example.com.evil.test` do not match a blocked `example.com`. |
 | Allowed-site 500/0 reliability | PASS (repeated) | Galaxy S21 completed three consecutive 500/0 runs after upstream sockets were reused per VPN session and failed endpoints were discarded before fallback. The runs observed 2, 3, and 6 transient IPv4 upstream timeouts respectively, but all completed with zero client-visible failures. |
 | Local p95 latency `<=20ms` | PASS | Galaxy S21: repeated runs with 20 warmups plus 200 local blocked DNS samples produced p95 between `0ms` and `2ms`. |
-| Recovery `<=3s` | PASS FOR EXECUTABLE PATHS | Stop recovered immediately; airplane-mode fail-open restored IP and DNS access in 2s. Active settings revoke was blocked by device security policy. |
+| Recovery `<=3s` | PARTIAL / ACTIVE-REVOKE FAIL | Wi-Fi/mobile rebinding completed within 0.36s of the actual network-loss callback. Active settings revoke tore down the VPN in 68ms, but one concurrently started DNS lookup timed out and made the end-to-end probe `3.88s`. |
 | Other VPN conflict behavior | BLOCKED | Installed third-party VPN state was not changed; Samsung required a screen lock for the relevant VPN settings path. |
-| Wi-Fi/mobile coverage | BLOCKED FOR MOBILE | Wi-Fi passed. Mobile was disabled and out of service, so mobile transition rows could not be executed safely. |
+| Wi-Fi/mobile coverage | PASS ON GALAXY S20+ | Wi-Fi and LTE each passed 500/0 allowed DNS reliability, exact/subdomain blocking, and local latency. Both transition directions moved the VPN to the expected underlying network. |
 | IPv4/IPv6 coverage | PASS FOR VIRTUAL DNS PATHS | Direct DNS query/response assertions passed through both virtual IP paths. Underlying carrier IPv6 coverage was not available. |
 
 ### 2026-07-24 Galaxy S21 checkpoint
@@ -211,6 +212,20 @@ For every network cell, test:
 - Local blocked-query p95 was `0ms`, `1ms`, and `1ms`. Total instrumentation time was about `31.3s`, `31.6s`, and `31.4s`.
 - The earlier `no_upstream_dns` and `ENETUNREACH` runs occurred while both Wi-Fi and mobile upstreams were absent and are not counted as product evidence.
 - The 2026-07-25 runs used a different Wi-Fi network, so their 43s/43s/73s runtimes and 2/3/6 upstream timeouts are contextual comparison only, not a controlled before/after result.
+
+### 2026-07-27 Galaxy S20+ mobile and transition checkpoint
+
+- Device: Samsung Galaxy S20+ (`SM-G986N`), Android 13 / API 33, active SK Telecom LTE and Wi-Fi.
+- Baseline Wi-Fi result before transition handling: exact/subdomain checks passed, local block p95 was `0ms`, and allowed DNS completed `500/500` with p95 `9ms`, p99 `11ms`, and maximum `13ms`.
+- Baseline LTE result before transition handling: exact/subdomain checks passed, local block p95 was `0ms`, and allowed DNS completed `500/500` with p95 `39ms`, p99 `51ms`, and maximum `116ms`.
+- Initial transition failure: the service captured one underlying `Network` at startup and never listened for changes. Wi-Fi loss caused an upstream timeout and fail-open stop, while LTE-to-Wi-Fi left the VPN pinned to LTE.
+- Fix checkpoint: the API 33 best-matching callback now tracks `INTERNET + NOT_VPN`, waits for callback-provided `LinkProperties`, and replaces the session when the selected physical network changes. `VALIDATED` is intentionally not part of the request because Samsung Android 13 rejects it as a non-requestable mutable capability.
+- Post-fix Wi-Fi regression: exact/subdomain checks passed, local block p95 was `0ms`, and allowed DNS completed `500/500` with p95 `9ms`, p99 `13ms`, and maximum `34ms`.
+- Post-fix LTE regression: exact/subdomain checks passed, local block p95 was `0ms`, and allowed DNS completed `500/500` with p95 `39ms`, p99 `50ms`, and maximum `60ms`.
+- LTE-to-Wi-Fi moved the VPN from LTE `613` to Wi-Fi `633`; the resulting VPN exposed `WIFI|VPN` and underlying network `633`.
+- Wi-Fi-to-LTE suspended Wi-Fi `633` and created the replacement LTE VPN over `613` in about `0.36s`. The whole host-side `svc wifi disable` command plus first probe measured `3.60s`, mostly before Android emitted the network-loss callback.
+- Active settings revoke removed the VPN network in `68ms`, but a DNS query launched concurrently with the disconnect waited for the resolver timeout. The second probe succeeded; total first-success measurement was `3.88s`, so the strict recovery gate remains failed for this edge case.
+- A third-party `유니콘 HTTPS` profile is installed but was not activated. Other-VPN ownership behavior remains unverified because changing that profile would alter third-party privacy/network state.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -253,10 +268,10 @@ For every network cell, test:
 
 ## Next Decision Gate
 
-- Core system-DNS blocking mechanics, local latency, and repeatable 500/0 allowed-DNS reliability are supported on the tested Galaxy S21 Wi-Fi path, but the production gate is not complete.
+- Core system-DNS blocking mechanics, local latency, repeatable 500/0 allowed-DNS reliability, and Wi-Fi/LTE rebinding are supported on the tested Galaxy devices, but the production gate is not complete.
 - The socket-churn reliability blocker is resolved for the tested path by session-scoped endpoint reuse plus failure invalidation and fallback.
-- Adaptive upstream ordering has three low-tail-latency physical-device results on the current Wi-Fi network; another network and mobile-path evidence remain pending.
-- Do not call the production gate complete until active-revoke and other-VPN conflict behavior are verified on a QA device with an appropriate screen lock, and mobile transitions are verified on an active test SIM/network.
+- Adaptive upstream ordering has three low-tail-latency Galaxy S21 Wi-Fi results plus post-fix Wi-Fi and LTE results on the Galaxy S20+.
+- Do not call the production gate complete until the active-revoke in-flight DNS tail is resolved or explicitly accepted, and other-VPN conflict behavior is verified with an authorized test VPN profile.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.
 - If other-VPN conflicts are common in target QA devices, add explicit degraded-state UX to the v1 plan before implementation.
