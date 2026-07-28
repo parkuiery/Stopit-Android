@@ -536,6 +536,8 @@
     <string name="website_domain_hint">example.com</string>
     <string name="website_domain_invalid">올바른 웹사이트 도메인을 입력해 주세요.</string>
     <string name="website_lock_empty">선택한 웹사이트가 없어요.</string>
+    <string name="website_lock_recommended">추천 웹사이트</string>
+    <string name="website_lock_selected">선택한 웹사이트</string>
     <string name="website_lock_recommendation_title">웹사이트도 함께 막을까요?</string>
     <string name="website_lock_recommendation_message">%1$s 앱을 선택했어요. 해당 웹사이트도 웹 잠금 목록에 추가할까요?</string>
     <string name="website_lock_recommendation_accept">웹사이트 추가</string>

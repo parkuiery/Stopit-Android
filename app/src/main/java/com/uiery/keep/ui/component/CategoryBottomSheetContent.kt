@@ -55,6 +55,8 @@ import com.uiery.keep.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
 import com.uiery.keep.domain.websiteblocking.DomainNameNormalizationResult
 import com.uiery.keep.domain.websiteblocking.DomainNamePolicy
+import com.uiery.keep.domain.websiteblocking.WebsiteLockPresetCatalog
+import com.uiery.keep.domain.websiteblocking.WebsiteLockPresetSelectionPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -370,21 +372,96 @@ private fun WebsiteLockListEditor(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        if (selectedDomains.isEmpty()) {
-            Text(
-                text = stringResource(R.string.website_lock_empty),
-                color = KeepTheme.colors.onSurface,
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(
-                        shape = RoundedCornerShape(12.dp),
-                        color = KeepTheme.colors.secondary,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(
+                    shape = RoundedCornerShape(12.dp),
+                    color = KeepTheme.colors.secondary,
+                ),
+        ) {
+            item {
+                Text(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    text = stringResource(R.string.website_lock_recommended),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            items(
+                items = WebsiteLockPresetCatalog.popular,
+                key = { preset -> "preset_${preset.id}" },
+            ) { preset ->
+                val presetDomains = preset.domains.map { it.value }.toSet()
+                val checked = WebsiteLockPresetSelectionPolicy.isSelected(
+                    selectedDomains = selectedDomains,
+                    preset = preset,
+                )
+                val selectionStateDescription = stringResource(
+                    id = if (checked) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = checked,
+                            role = Role.Checkbox,
+                            onValueChange = { selected ->
+                                onSelectedDomainsChange(
+                                    WebsiteLockPresetSelectionPolicy.updateSelection(
+                                        selectedDomains = selectedDomains,
+                                        preset = preset,
+                                        selected = selected,
+                                    ),
+                                )
+                            },
+                        )
+                        .semantics { stateDescription = selectionStateDescription }
+                        .testTag("website_preset_${preset.id}")
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    KeepCheckbox(
+                        checked = checked,
+                        onCheckedChange = null,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = preset.serviceName,
+                            color = KeepTheme.colors.onSurfaceVariant,
+                        )
+                        Text(
+                            text = presetDomains.sorted().joinToString(),
+                            color = KeepTheme.colors.onSurface,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
+            }
+            item {
+                Text(
+                    modifier = Modifier.padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 18.dp,
+                        bottom = 10.dp,
                     ),
-            ) {
+                    text = stringResource(R.string.website_lock_selected),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (selectedDomains.isEmpty()) {
+                item {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = stringResource(R.string.website_lock_empty),
+                        color = KeepTheme.colors.onSurface,
+                    )
+                }
+            } else {
                 items(selectedDomains.sorted(), key = { it }) { domain ->
                     Row(
                         modifier = Modifier

@@ -253,6 +253,40 @@ class CategoryBottomSheetContentIntegrationTest {
             .assert(hasStateDescription(context.getString(R.string.cd_tab_selected)))
     }
 
+    @Test
+    fun recommendedWebsiteCanBeAddedAndRemovedWithoutSelectingItByDefault() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedTargets = mutableListOf<Pair<Set<String>, Set<String>>>()
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { apps, domains ->
+                        completedTargets += apps to domains
+                    },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("website_preset_youtube")
+            .assertIsOff()
+            .performClick()
+            .assertIsOn()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        assertEquals(
+            listOf(emptySet<String>() to setOf("youtube.com", "youtu.be")),
+            completedTargets,
+        )
+
+        composeRule.onNodeWithTag("website_preset_youtube").performClick().assertIsOff()
+    }
+
     private fun hasCheckboxRole(): SemanticsMatcher =
         SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
 

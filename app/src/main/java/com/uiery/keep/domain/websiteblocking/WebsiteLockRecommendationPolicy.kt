@@ -7,19 +7,18 @@ data class WebsiteLockRecommendation(
 )
 
 object WebsiteLockRecommendationPolicy {
+    private val presetsById = WebsiteLockPresetCatalog.popular.associateBy { it.id }
+
     private val recommendationsByPackage = mapOf(
         "com.google.android.youtube" to WebsiteLockRecommendation(
             serviceName = "YouTube",
             sourcePackage = "com.google.android.youtube",
-            domains = setOf(
-                DomainName("youtube.com"),
-                DomainName("youtu.be"),
-            ),
+            domains = presetsById.getValue("youtube").domains,
         ),
         "com.instagram.android" to WebsiteLockRecommendation(
             serviceName = "Instagram",
             sourcePackage = "com.instagram.android",
-            domains = setOf(DomainName("instagram.com")),
+            domains = presetsById.getValue("instagram").domains,
         ),
     )
 
