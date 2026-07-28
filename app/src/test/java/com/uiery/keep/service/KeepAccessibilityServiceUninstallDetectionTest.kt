@@ -53,6 +53,32 @@ class KeepAccessibilityServiceUninstallDetectionTest {
     }
 
     @Test
+    fun runtimePermissionGrantSurface_withProtectedAppName_returnsFalse() {
+        assertFalse(
+            shouldInterceptUninstallAttempt(
+                eventPackageName = "com.google.android.permissioncontroller",
+                surfaceClassName =
+                    "com.android.permissioncontroller.permission.ui.GrantPermissionsActivity",
+                hasApplicationIdMatch = false,
+                hasAppNameMatch = true,
+                hasEventTextMatch = true,
+            ),
+        )
+    }
+
+    @Test
+    fun uninstallSurface_withProtectedAppName_stillReturnsTrue() {
+        assertTrue(
+            shouldInterceptUninstallAttempt(
+                eventPackageName = "com.google.android.packageinstaller",
+                surfaceClassName = "com.android.packageinstaller.UninstallerActivity",
+                hasApplicationIdMatch = false,
+                hasAppNameMatch = true,
+            ),
+        )
+    }
+
+    @Test
     fun knownInstallerPackage_withoutProtectedAppMarkers_returnsFalse() {
         assertFalse(
             shouldInterceptUninstallAttempt(

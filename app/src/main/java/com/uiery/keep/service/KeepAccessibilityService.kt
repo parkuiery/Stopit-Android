@@ -77,6 +77,8 @@ class KeepAccessibilityService :
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
     private var timeBasedStartReevaluationRunnable: Runnable? = null
+    private var lastWindowStateChangedPackageName: String? = null
+    private var lastWindowStateChangedClassName: String? = null
     private val runtimeCollectorBootstrap = AccessibilityRuntimeCollectorBootstrap()
 
     companion object {
@@ -163,6 +165,8 @@ class KeepAccessibilityService :
 
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
+        lastWindowStateChangedPackageName = packageName
+        lastWindowStateChangedClassName = event.className?.toString()
         KeepAccessibilityServiceDebugState.update(applicationContext) {
             it.copy(lastWindowStateChangedPackage = packageName)
         }
@@ -329,6 +333,10 @@ class KeepAccessibilityService :
         eventPackageName: String,
     ): Boolean {
         if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
+        val surfaceClassName = event?.className?.toString()
+            ?: lastWindowStateChangedClassName.takeIf {
+                lastWindowStateChangedPackageName == eventPackageName
+            }
         val appName = getString(R.string.app_name)
         val hasEventTextMatch = event?.text.orEmpty().any { text ->
             val value = text?.toString().orEmpty()
@@ -337,6 +345,7 @@ class KeepAccessibilityService :
         }
         val rootNode = rootInActiveWindow ?: return shouldInterceptUninstallAttempt(
             eventPackageName = eventPackageName,
+            surfaceClassName = surfaceClassName,
             hasApplicationIdMatch = false,
             hasAppNameMatch = false,
             hasEventTextMatch = hasEventTextMatch,
@@ -352,6 +361,7 @@ class KeepAccessibilityService :
             nameNodes?.forEach { it.recycle() }
             return shouldInterceptUninstallAttempt(
                 eventPackageName = eventPackageName,
+                surfaceClassName = surfaceClassName,
                 hasApplicationIdMatch = hasApplicationIdMatch,
                 hasAppNameMatch = hasAppNameMatch,
                 hasEventTextMatch = hasEventTextMatch,
