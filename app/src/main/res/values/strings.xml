@@ -541,6 +541,8 @@
     <string name="website_domain_hint" tools:ignore="MissingTranslation">example.com</string>
     <string name="website_domain_invalid" tools:ignore="MissingTranslation">Enter a valid website domain.</string>
     <string name="website_lock_empty" tools:ignore="MissingTranslation">No websites selected.</string>
+    <string name="website_lock_recommended" tools:ignore="MissingTranslation">Recommended websites</string>
+    <string name="website_lock_selected" tools:ignore="MissingTranslation">Selected websites</string>
     <string name="website_lock_recommendation_title" tools:ignore="MissingTranslation">Block the website too?</string>
     <string name="website_lock_recommendation_message" tools:ignore="MissingTranslation">You selected %1$s. Add its website to your web lock list?</string>
     <string name="website_lock_recommendation_accept" tools:ignore="MissingTranslation">Add websites</string>
