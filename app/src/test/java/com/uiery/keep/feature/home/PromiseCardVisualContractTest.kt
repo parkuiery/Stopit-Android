@@ -9,13 +9,13 @@ import org.junit.Test
 
 class PromiseCardVisualContractTest {
     @Test
-    fun promiseCardsUseEstablishedHighContrastCardTokens() {
+    fun promiseCardsUseKdsCardInsteadOfScreenOwnedMaterialColors() {
         val result = source("feature/onboarding/result/PromiseResultScreen.kt")
         val resume = source("feature/home/component/FirstPromiseResumeCard.kt")
 
         listOf(result, resume).forEach { cardSource ->
-            assertTrue(cardSource.contains("containerColor = KeepTheme.colors.onSecondary"))
-            assertFalse(cardSource.contains("containerColor = KeepTheme.colors.surface)"))
+            assertTrue(cardSource.contains("KeepCard("))
+            assertFalse(cardSource.contains("CardDefaults"))
             assertTrue(cardSource.contains("color = KeepTheme.colors.onSurfaceVariant"))
             assertTrue(cardSource.contains("color = KeepTheme.colors.surfaceVariant"))
         }
@@ -23,12 +23,12 @@ class PromiseCardVisualContractTest {
 
     @Test
     fun establishedCardTextTokensMeetNormalTextContrastInLightAndDark() {
-        val lightCard = 0xF2F4F6
-        val lightBody = 0x333D4B
-        val lightTitle = 0x191F28
-        val darkCard = 0x2C2C35
-        val darkBody = 0xE4E4E5
-        val darkTitle = 0xFFFFFF
+        val lightCard = 0xFFFFFF
+        val lightBody = 0x1A1C20
+        val lightTitle = 0x1A1C20
+        val darkCard = 0x16171B
+        val darkBody = 0xF3F4F5
+        val darkTitle = 0xF3F4F5
 
         assertTrue(contrast(lightCard, lightBody) >= 4.5)
         assertTrue(contrast(lightCard, lightTitle) >= 4.5)

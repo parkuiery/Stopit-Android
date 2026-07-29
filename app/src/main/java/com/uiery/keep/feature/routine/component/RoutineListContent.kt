@@ -1,7 +1,5 @@
 package com.uiery.keep.feature.routine.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,15 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -29,6 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uiery.kds.KeepBadge
+import com.uiery.kds.KeepBadgeTone
+import com.uiery.kds.KeepBadgeVariant
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
+import com.uiery.kds.KeepIconButton
 import com.uiery.kds.KeepSwitch
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -146,147 +146,111 @@ private fun RoutineItem(
     onShareClick: () -> Unit,
 ) {
     val isBlocked = isRunning || isLocked
-    val cardColor = if (status == RoutineCardStatus.Disabled) {
-        KeepTheme.colors.tertiaryContainer
-    } else {
-        KeepTheme.colors.tertiary
-    }
     val statusLabel = when (status) {
         RoutineCardStatus.Running -> stringResource(R.string.routine_running_tag)
         RoutineCardStatus.Enabled -> stringResource(R.string.routine_enabled_tag)
         RoutineCardStatus.Disabled -> stringResource(R.string.routine_disabled_tag)
     }
-    Row(
+    KeepCard(
+        onClick = onClick,
         modifier =
             modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onClick() }
-                .background(
-                    color = cardColor,
-                    shape = RoundedCornerShape(12.dp),
-                ).padding(horizontal = 12.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
+                .fillMaxWidth(),
+        variant = KeepCardVariant.LayerDefault,
+        bordered = true,
     ) {
-        val amPmText = if (startTime.hour < 12) R.string.am else R.string.pm
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            val amPmText = if (startTime.hour < 12) R.string.am else R.string.pm
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = stringResource(amPmText),
-                    color = KeepTheme.colors.onSurfaceVariant,
-                )
-                Text(
-                    text = formatTwelveHourTime(
-                        hour24 = startTime.hour,
-                        minute = startTime.minute,
-                    ),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    color = KeepTheme.colors.onSurfaceVariant,
-                )
-                RoutineStatusBadge(
-                    text = statusLabel,
-                    containerColor = if (status == RoutineCardStatus.Running) {
-                        KeepTheme.colors.primary
-                    } else {
-                        KeepTheme.colors.onSurfaceVariant
-                    },
-                    contentColor = if (status == RoutineCardStatus.Running) {
-                        KeepTheme.colors.onPrimary
-                    } else {
-                        KeepTheme.colors.tertiary
-                    },
-                )
-                if (isLocked && changeLockHours != null) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(KeepTheme.colors.onSurfaceVariant)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_shield),
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = KeepTheme.colors.tertiary,
-                        )
-                        Text(
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(amPmText),
+                        color = KeepTheme.semanticColors.foreground.muted,
+                    )
+                    Text(
+                        text = formatTwelveHourTime(
+                            hour24 = startTime.hour,
+                            minute = startTime.minute,
+                        ),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = KeepTheme.semanticColors.foreground.neutral,
+                    )
+                    KeepBadge(
+                        text = statusLabel,
+                        tone = if (status == RoutineCardStatus.Running) {
+                            KeepBadgeTone.Brand
+                        } else {
+                            KeepBadgeTone.Neutral
+                        },
+                        variant = KeepBadgeVariant.Solid,
+                    )
+                    if (isLocked && changeLockHours != null) {
+                        KeepBadge(
                             text = stringResource(R.string.change_lock_hours, changeLockHours),
-                            color = KeepTheme.colors.tertiary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            tone = KeepBadgeTone.Neutral,
+                            variant = KeepBadgeVariant.Solid,
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_shield),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            },
                         )
                     }
                 }
-            }
-            Text(
-                text = name,
-                color = KeepTheme.colors.surfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = repeatDaysLabel,
-                color = KeepTheme.colors.surfaceVariant,
-                fontSize = 13.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (nextRunLabel != null) {
                 Text(
-                    text = nextRunLabel,
-                    color = KeepTheme.colors.onSurfaceVariant,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                    text = name,
+                    color = KeepTheme.semanticColors.foreground.neutral,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Text(
+                    text = repeatDaysLabel,
+                    color = KeepTheme.semanticColors.foreground.muted,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (nextRunLabel != null) {
+                    Text(
+                        text = nextRunLabel,
+                        color = KeepTheme.semanticColors.foreground.subtle,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
-        IconButton(
-            enabled = !isBlocked,
-            onClick = onShareClick,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_share),
-                contentDescription = stringResource(R.string.cd_share_routine_template),
-                tint = KeepTheme.colors.surfaceVariant,
+            KeepIconButton(
+                enabled = !isBlocked,
+                onClick = onShareClick,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_share),
+                    contentDescription = stringResource(R.string.cd_share_routine_template),
+                    tint = KeepTheme.semanticColors.foreground.muted,
+                )
+            }
+            KeepSwitch(
+                checked = isEnabled,
+                modifier = Modifier.testTag("routine-enabled-switch-$routineId"),
+                enabled = true,
+                onCheckedChange = onEnabledChange,
             )
         }
-        KeepSwitch(
-            checked = isEnabled,
-            modifier = Modifier.testTag("routine-enabled-switch-$routineId"),
-            enabled = true,
-            onCheckedChange = onEnabledChange,
-        )
     }
-}
-
-@Composable
-private fun RoutineStatusBadge(
-    text: String,
-    containerColor: Color,
-    contentColor: Color,
-) {
-    Text(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(containerColor)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-        text = text,
-        color = contentColor,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-    )
 }
 
 @Composable

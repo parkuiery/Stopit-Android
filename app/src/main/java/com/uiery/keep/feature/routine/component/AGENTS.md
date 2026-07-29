@@ -9,15 +9,9 @@ Routine-specific Compose controls for names, days, times, selected apps, empty s
 ## Key Files
 | File | Description |
 |------|-------------|
-| `AppSelectButton.kt` | Kotlin source for app select button. |
 | `RoutineBottomSheetContent.kt` | Kotlin source for routine bottom sheet content. |
-| `RoutineDayContent.kt` | Kotlin source for routine day content. |
 | `RoutineListContent.kt` | Kotlin source for routine list content. |
-| `RoutineNameContent.kt` | Kotlin source for routine name content. |
 | `RoutineNoContent.kt` | Kotlin source for routine no content. |
-| `RoutineSettingCard.kt` | Kotlin source for routine setting card. |
-| `RoutineTimeButton.kt` | Kotlin source for routine time button. |
-| `RoutineTimeContent.kt` | Kotlin source for routine time content. |
 
 ## Subdirectories
 No documented child directories.

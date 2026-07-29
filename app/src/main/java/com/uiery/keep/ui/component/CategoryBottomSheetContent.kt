@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,10 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.RadioButton
+import com.uiery.kds.KeepCircularProgressIndicator
+import com.uiery.kds.KeepRadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -147,7 +144,7 @@ fun CategoryBottomSheetLoadedContent(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(
+                KeepCircularProgressIndicator(
                     color = KeepTheme.colors.primary
                 )
             }
@@ -158,7 +155,7 @@ fun CategoryBottomSheetLoadedContent(
                     .weight(1f)
                     .background(
                         shape = RoundedCornerShape(12.dp),
-                        color = KeepTheme.colors.secondary
+                        color = KeepTheme.semanticColors.background.neutralWeak,
                     ),
             ) {
                 if (selectionMode.showsSelectAll && searchContent.isEmpty()) {
@@ -241,11 +238,12 @@ fun CategoryBottomSheetLoadedContent(
                 }
             }
         }
-        Button(
+        KeepButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("category_selection_complete")
-                .padding(top = 18.dp, bottom = 24.dp),
+                .padding(top = 18.dp),
+            text = stringResource(R.string.selection_complete),
             onClick = {
                 val selectedApp = if (selectionMode == AppSelectionMode.Single) {
                     apps.firstOrNull { it.packageName in selectedAppPackages }
@@ -258,19 +256,7 @@ fun CategoryBottomSheetLoadedContent(
                     onComplete(selectedAppPackages)
                 }
             },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = KeepTheme.colors.primary,
-                contentColor = Color.White,
-            ),
-            contentPadding = PaddingValues(vertical = 18.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.selection_complete),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-            )
-        }
+        )
     }
 }
 
@@ -304,7 +290,7 @@ private fun SingleSelectionAppItem(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = null)
+        KeepRadioButton(selected = selected, onClick = null)
         Image(
             modifier = Modifier.size(30.dp),
             bitmap = image,

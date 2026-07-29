@@ -1,23 +1,23 @@
 package com.uiery.keep.feature.lockhistory.component
 
 import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.model.LockHistoryModel
@@ -30,22 +30,24 @@ internal fun LockHistorySessionItem(
 ) {
     val context = LocalContext.current
 
-    Row(
+    KeepCard(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(KeepTheme.colors.tertiary)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        variant = KeepCardVariant.NeutralWeak,
+        shape = RoundedCornerShape(8.dp),
     ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = "${formatTwentyFourHourTime(session.startDateTime.toLocalTime())} - ${formatTwentyFourHourTime(session.endDateTime.toLocalTime())}",
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp,
+                color = KeepTheme.semanticColors.foreground.neutral,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
             Text(
@@ -54,16 +56,16 @@ internal fun LockHistorySessionItem(
                 } else {
                     stringResource(R.string.lock_history_manual_session)
                 },
-                color = KeepTheme.colors.onTertiaryContainer,
-                fontSize = 12.sp,
+                color = KeepTheme.semanticColors.foreground.muted,
+                style = MaterialTheme.typography.bodySmall,
             )
         }
         Text(
             text = formatSessionDuration(context, session.durationMillis),
-            color = KeepTheme.colors.primary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
+            color = KeepTheme.semanticColors.foreground.brand,
+            style = MaterialTheme.typography.labelLarge,
         )
+        }
     }
 }
 

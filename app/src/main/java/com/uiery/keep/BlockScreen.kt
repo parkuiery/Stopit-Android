@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -289,7 +289,7 @@ internal fun BlockScreenContent(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
                 val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
-                TextButton(
+                KeepTextButton(
                     modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
                     onClick = onShowEmergencyUnlock,
                     enabled = emergencyUnlockAction.enabled,

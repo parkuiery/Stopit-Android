@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,16 +15,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import com.uiery.kds.KeepDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,9 +83,9 @@ fun MenuScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = { onNavigateBack() }) {
+                    KeepIconButton(onClick = { onNavigateBack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
@@ -96,9 +94,6 @@ fun MenuScreen(
                     }
                 },
                 title = { },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KeepTheme.colors.background,
-                )
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -108,39 +103,6 @@ fun MenuScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-//            if (isTestMode()) {
-//                MenuItem(
-//                    icon = R.drawable.laptop,
-//                    title = "Developer Options",
-//                    onClick = onNavigateDevTool,
-//                )
-//            }
-            /*if(isKorean) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .clickable(onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, "https://forms.gle/MsKwrgFr7fYQQYW1A".toUri())
-                            context.startActivity(intent)
-                        }),
-                    colors = CardDefaults.cardColors(
-                        containerColor = KeepTheme.colors.onTertiary,
-                    ),
-                    border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                         text = stringResource(id = R.string.feature_request_message),
-                        color = KeepTheme.colors.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }*/
             MenuItem(
                 icon = R.drawable.ic_routine,
                 title = stringResource(id = R.string.routine),
@@ -201,7 +163,7 @@ fun MenuScreen(
                     )
                 }
             )
-            Card(
+            KeepCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 8.dp)
@@ -217,10 +179,8 @@ fun MenuScreen(
                             onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
                         )
                     }),
-                colors = CardDefaults.cardColors(
-                    containerColor = KeepTheme.colors.onTertiary,
-                ),
-                border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
+                variant = KeepCardVariant.NeutralWeak,
+                bordered = true,
                 shape = RoundedCornerShape(8.dp),
             ) {
                 Text(
@@ -240,10 +200,9 @@ fun MenuScreen(
                     textAlign = TextAlign.Start,
                 )
             }
-            HorizontalDivider(
+            KeepDivider(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                 thickness = 1.dp,
-                color = KeepTheme.colors.onTertiaryContainer,
             )
             MenuToggleItem(
                 icon = R.drawable.ic_shield,

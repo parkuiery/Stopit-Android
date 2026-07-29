@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -254,7 +254,7 @@ fun LockScreen(
                 )
                 if (!uiState.isEmergencyUnlockActive) {
                     val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
-                    TextButton(
+                    KeepTextButton(
                         onClick = viewModel::showEmergencyUnlockSheet,
                         enabled = emergencyUnlockAction.enabled,
                     ) {

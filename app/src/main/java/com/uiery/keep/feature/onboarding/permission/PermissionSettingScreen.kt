@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
+import com.uiery.kds.KeepCircularProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -137,7 +137,7 @@ fun PermissionSettingScreen(
             Spacer(modifier = Modifier.height(12.dp))
             if (!isReady) {
                 val loadingDescription = stringResource(R.string.first_promise_accessibility_loading)
-                CircularProgressIndicator(
+                KeepCircularProgressIndicator(
                     modifier = Modifier.semantics {
                         contentDescription = loadingDescription
                         stateDescription = loadingDescription

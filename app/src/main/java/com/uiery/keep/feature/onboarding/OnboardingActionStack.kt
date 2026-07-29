@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,7 @@ internal fun OnboardingActionStack(
     bottomSpacing: Boolean = true,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TextButton(
+        KeepTextButton(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             enabled = secondaryEnabled,
             onClick = onSecondaryClick,

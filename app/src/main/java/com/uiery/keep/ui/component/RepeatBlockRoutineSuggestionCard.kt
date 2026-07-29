@@ -6,10 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepButtonSize
+import com.uiery.kds.KeepButtonVariant
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
@@ -39,10 +40,9 @@ fun RepeatBlockRoutineSuggestionCard(
     applyActionTestTag: String? = null,
     dismissActionTestTag: String? = null,
 ) {
-    Card(
+    KeepCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -71,9 +71,12 @@ fun RepeatBlockRoutineSuggestionCard(
                 KeepButton(
                     modifier = applyActionTestTag?.let { Modifier.testTag(it) } ?: Modifier,
                     text = androidx.compose.ui.res.stringResource(R.string.repeat_block_suggestion_apply_button),
+                    variant = KeepButtonVariant.NeutralSolid,
+                    size = KeepButtonSize.Medium,
+                    bottomSpacing = false,
                     onClick = onApplyClick,
                 )
-                TextButton(
+                KeepTextButton(
                     modifier = dismissActionTestTag?.let { Modifier.testTag(it) } ?: Modifier,
                     onClick = onDismissClick,
                 ) {

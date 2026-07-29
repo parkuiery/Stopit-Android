@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CenterAlignedTopAppBar
+import com.uiery.kds.KeepCenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -27,9 +27,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
@@ -89,27 +87,23 @@ internal fun LockHistoryScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = KeepTheme.colors.background,
         topBar = {
-            CenterAlignedTopAppBar(
+            KeepCenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.lock_history_title),
-                        color = KeepTheme.colors.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
+                        color = KeepTheme.semanticColors.foreground.neutral,
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = KeepTheme.colors.onSurfaceVariant,
+                            tint = KeepTheme.semanticColors.foreground.neutral,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KeepTheme.colors.background,
-                )
             )
         }
     ) { paddingValues ->
@@ -196,8 +190,8 @@ internal fun LockHistoryScreen(
             if (displayReport.sessionsToShow.isEmpty()) {
                 Text(
                     text = stringResource(displayReport.performanceReport.topAppsSupportingResId),
-                    color = KeepTheme.colors.onTertiaryContainer,
-                    fontSize = 14.sp,
+                    color = KeepTheme.semanticColors.foreground.muted,
+                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             } else {
@@ -238,11 +232,11 @@ private fun PeriodSelector(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onPreviousPeriod) {
+        KeepIconButton(onClick = onPreviousPeriod) {
             Icon(
                 painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                 contentDescription = stringResource(R.string.cd_previous_period),
-                tint = KeepTheme.colors.onSurfaceVariant,
+                tint = KeepTheme.semanticColors.foreground.neutral,
             )
         }
         Text(
@@ -250,15 +244,14 @@ private fun PeriodSelector(
                 PeriodType.WEEK -> "${formatMonthDay(startDate)} - ${formatMonthDay(endDate)}"
                 PeriodType.MONTH -> formatYearMonth(startDate)
             },
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            color = KeepTheme.semanticColors.foreground.neutral,
+            style = MaterialTheme.typography.titleSmall,
         )
-        IconButton(onClick = onNextPeriod) {
+        KeepIconButton(onClick = onNextPeriod) {
             Icon(
                 painter = painterResource(R.drawable.round_arrow_forward_ios_24),
                 contentDescription = stringResource(R.string.cd_next_period),
-                tint = KeepTheme.colors.onSurfaceVariant,
+                tint = KeepTheme.semanticColors.foreground.neutral,
             )
         }
     }
@@ -273,8 +266,7 @@ private fun DateHeader(
     Text(
         modifier = modifier.padding(vertical = 4.dp),
         text = formatLockHistoryDateHeader(date = date, locale = locale),
-        color = KeepTheme.colors.onTertiaryContainer,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
+        color = KeepTheme.semanticColors.foreground.muted,
+        style = MaterialTheme.typography.labelMedium,
     )
 }

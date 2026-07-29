@@ -19,16 +19,13 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -75,8 +72,8 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.uiery.kds.KeepModalBottomSheet
-import com.uiery.kds.KeepSnackBar
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepSnackbarHost
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
@@ -270,10 +267,10 @@ fun HomeScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 title = { },
                 actions = {
-                    IconButton(onClick = onNavigateMenu) {
+                    KeepIconButton(onClick = onNavigateMenu) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_format_list_bulleted_24),
                             contentDescription = stringResource(R.string.cd_open_menu),
@@ -281,23 +278,16 @@ fun HomeScreen(
                         )
                     }
                 },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = KeepTheme.colors.background,
-                    ),
             )
         },
         snackbarHost = {
             Box(modifier = Modifier.fillMaxSize()) {
-                SnackbarHost(
+                KeepSnackbarHost(
                     modifier =
                         Modifier
                             .align(Alignment.TopCenter)
                             .statusBarsPadding(),
                     hostState = snackBarHostState,
-                    snackbar = {
-                        KeepSnackBar(snackbarData = it)
-                    },
                 )
             }
         },
@@ -499,15 +489,16 @@ private fun FirstLockActivationCta(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(KeepTheme.colors.onSecondary)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    KeepCard(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -530,6 +521,7 @@ private fun FirstLockActivationCta(
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
         )
+        }
     }
 }
 
@@ -553,14 +545,13 @@ internal fun GoalLockProgressCard(
         cardState.goalName,
         summary,
     ).joinToString(", ")
-    Card(
+    KeepCard(
+        onClick = onClick,
         modifier = modifier
             .semantics(mergeDescendants = true) {
                 contentDescription = talkBackSummary
-            }
-            .clickable(onClick = onClick),
+            },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -627,10 +618,9 @@ internal fun HomeStatusCtaCard(
     onLockHistoryClick: () -> Unit,
     onRoutineCreationClick: () -> Unit,
 ) {
-    Card(
+    KeepCard(
         modifier = modifier.testTag("home_status_cta_card"),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),

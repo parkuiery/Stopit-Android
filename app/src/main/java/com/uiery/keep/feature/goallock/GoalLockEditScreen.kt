@@ -11,17 +11,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.uiery.kds.KeepConfirmationDialog
+import com.uiery.kds.KeepConfirmationTone
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepSnackbarHost
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -109,31 +108,21 @@ internal fun GoalLockEditScreen(
     }
 
     if (state.showDiscardConfirmation) {
-        AlertDialog(
-            onDismissRequest = viewModel::cancelDiscard,
-            title = { Text(stringResource(id = R.string.goal_lock_edit_discard_title)) },
-            text = { Text(stringResource(id = R.string.goal_lock_edit_discard_body)) },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmDiscard) {
-                    Text(
-                        text = stringResource(id = R.string.goal_lock_edit_discard),
-                        color = KeepTheme.colors.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::cancelDiscard) {
-                    Text(stringResource(id = R.string.goal_lock_edit_keep_editing))
-                }
-            },
-            containerColor = KeepTheme.colors.onSecondary,
+        KeepConfirmationDialog(
+            title = stringResource(id = R.string.goal_lock_edit_discard_title),
+            message = stringResource(id = R.string.goal_lock_edit_discard_body),
+            confirmLabel = stringResource(id = R.string.goal_lock_edit_discard),
+            dismissLabel = stringResource(id = R.string.goal_lock_edit_keep_editing),
+            confirmTone = KeepConfirmationTone.Critical,
+            onConfirm = viewModel::confirmDiscard,
+            onDismiss = viewModel::cancelDiscard,
         )
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 title = {
                     Text(
                         text = stringResource(id = R.string.goal_lock_edit_title),
@@ -143,7 +132,7 @@ internal fun GoalLockEditScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = viewModel::requestBack) {
+                    KeepIconButton(onClick = viewModel::requestBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(id = R.string.cd_navigate_back),
@@ -151,10 +140,9 @@ internal fun GoalLockEditScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { KeepSnackbarHost(hostState = snackbarHostState) },
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
         when {

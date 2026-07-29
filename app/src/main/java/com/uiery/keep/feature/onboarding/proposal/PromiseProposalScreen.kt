@@ -1,12 +1,10 @@
 package com.uiery.keep.feature.onboarding.proposal
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -19,16 +17,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
+import com.uiery.kds.KeepCircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -53,7 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepButtonSize
+import com.uiery.kds.KeepButtonVariant
 import com.uiery.kds.KeepModalBottomSheet
+import com.uiery.kds.KeepTimeInput
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.firstpromise.UsagePatternType
@@ -120,7 +118,7 @@ fun PromiseProposalScreen(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 72.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(
+                        KeepCircularProgressIndicator(
                             modifier = Modifier.semantics {
                                 contentDescription = loadingDescription
                                 stateDescription = loadingDescription
@@ -272,23 +270,14 @@ private fun RowScope.ProposalEditButton(
     text: String,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
-        modifier = Modifier.weight(1f).sizeIn(minHeight = 48.dp),
+    KeepButton(
+        modifier = Modifier.weight(1f),
+        text = text,
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = KeepTheme.colors.onSecondary,
-            contentColor = KeepTheme.colors.onSurfaceVariant,
-        ),
-        border = BorderStroke(1.dp, KeepTheme.colors.tertiary),
-        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp),
-    ) {
-        Text(
-            text = text,
-            maxLines = 1,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
+        variant = KeepButtonVariant.NeutralOutline,
+        size = KeepButtonSize.Large,
+        bottomSpacing = false,
+    )
 }
 
 internal enum class ProposalFactCopyVariant {
@@ -321,11 +310,10 @@ internal fun shouldShowUsageEstimateNote(factType: ProposalFactType): Boolean =
 
 @Composable
 private fun ProposalCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
+    KeepCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-        border = BorderStroke(1.dp, KeepTheme.colors.tertiary),
+        bordered = true,
     ) {
         Column(modifier = Modifier.padding(20.dp), content = content)
     }
@@ -358,7 +346,7 @@ private fun StartTimePicker(startMinutes: Int, onChange: (Int) -> Unit) {
             color = KeepTheme.colors.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
-        TimeInput(state = pickerState)
+        KeepTimeInput(state = pickerState)
         Spacer(Modifier.height(24.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
@@ -387,16 +375,15 @@ private fun RepeatDaysPicker(selected: Set<Int>, onConfirm: (Set<Int>) -> Unit) 
         ) {
             DayOfWeek.entries.forEach { day ->
                 val isSelected = day.value in pending
-                Card(
+                KeepCard(
                     modifier = Modifier
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .toggleable(isSelected, role = Role.Checkbox) {
                             val next = if (day.value in pending) pending - day.value else pending + day.value
                             if (next.isNotEmpty()) pending = next
                         },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) KeepTheme.colors.primary else KeepTheme.colors.onSecondary,
-                    ),
+                    variant = if (isSelected) KeepCardVariant.BrandSolid else KeepCardVariant.LayerDefault,
+                    bordered = !isSelected,
                 ) {
                     Column(
                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
@@ -405,7 +392,11 @@ private fun RepeatDaysPicker(selected: Set<Int>, onConfirm: (Set<Int>) -> Unit) 
                     ) {
                         Text(
                             text = formatWeekdayShort(day, Locale.getDefault()),
-                            color = if (isSelected) androidx.compose.ui.graphics.Color.White else KeepTheme.colors.onSurfaceVariant,
+                            color = if (isSelected) {
+                                KeepTheme.semanticColors.foreground.onBrand
+                            } else {
+                                KeepTheme.colors.onSurfaceVariant
+                            },
                         )
                     }
                 }

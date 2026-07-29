@@ -21,12 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import com.uiery.kds.KeepIconButton
+import com.uiery.kds.KeepLinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +51,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepButtonVariant
+import com.uiery.kds.KeepBadge
+import com.uiery.kds.KeepBadgeTone
+import com.uiery.kds.KeepBadgeVariant
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -104,9 +108,9 @@ internal fun ParentModeSetupScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(id = R.string.cd_navigate_back),
@@ -122,7 +126,6 @@ internal fun ParentModeSetupScreen(
                         fontSize = 18.sp,
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -419,7 +422,7 @@ internal fun ParentModeActiveControls(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.parent_mode_active_end_now),
                 enabled = canUseGuardianAction,
-                variant = KeepButtonVariant.Destructive,
+                variant = KeepButtonVariant.CriticalSolid,
                 bottomSpacing = false,
                 onClick = onEnd,
             )
@@ -459,71 +462,70 @@ private fun ParentModeStatusHeroCard(
     val fraction = (remainingMillis.toFloat() / totalMillis).coerceIn(0f, 1f)
     val animatedFraction by animateFloatAsState(targetValue = fraction, label = "parent_mode_progress")
 
-    Column(
+    KeepCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(accent.copy(alpha = 0.08f))
-            .padding(20.dp),
+            .fillMaxWidth(),
+        variant = when (session.state) {
+            ParentModeSessionState.Active -> KeepCardVariant.BrandWeak
+            ParentModeSessionState.Expired -> KeepCardVariant.CriticalWeak
+            else -> KeepCardVariant.NeutralWeak
+        },
+        shape = RoundedCornerShape(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(accent),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
+        Column(modifier = Modifier.padding(20.dp)) {
+            KeepBadge(
                 text = badgeText,
-                color = accent,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                tone = when (session.state) {
+                    ParentModeSessionState.Active -> KeepBadgeTone.Brand
+                    ParentModeSessionState.Expired -> KeepBadgeTone.Critical
+                    else -> KeepBadgeTone.Neutral
+                },
+                variant = KeepBadgeVariant.Weak,
             )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        if (isActive) {
+            Spacer(modifier = Modifier.height(16.dp))
+            if (isActive) {
+                Text(
+                    text = stringResource(id = R.string.parent_mode_active_remaining_label),
+                    color = KeepTheme.colors.onTertiaryContainer,
+                    fontSize = 13.sp,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatParentModeRemaining(remainingMillis),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                KeepLinearProgressIndicator(
+                    progress = { animatedFraction },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = accent,
+                    trackColor = accent.copy(alpha = 0.15f),
+                )
+            } else {
+                Text(
+                    text = statusText,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = stringResource(id = R.string.parent_mode_active_remaining_label),
+                text = stringResource(
+                    id = R.string.parent_mode_active_summary,
+                    session.durationMinutes,
+                    session.allowedApps.size,
+                ),
                 color = KeepTheme.colors.onTertiaryContainer,
                 fontSize = 13.sp,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formatParentModeRemaining(remainingMillis),
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Bold,
-                style = TextStyle(fontFeatureSettings = "tnum"),
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-            LinearProgressIndicator(
-                progress = { animatedFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = accent,
-                trackColor = accent.copy(alpha = 0.15f),
-            )
-        } else {
-            Text(
-                text = statusText,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-            )
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(
-                id = R.string.parent_mode_active_summary,
-                session.durationMinutes,
-                session.allowedApps.size,
-            ),
-            color = KeepTheme.colors.onTertiaryContainer,
-            fontSize = 13.sp,
-        )
     }
 }
 
