@@ -4,14 +4,13 @@
 # Compose components
 
 ## Purpose
-Home-specific Compose UI pieces such as timer pickers, home-only labels, and segmented controls. Cross-feature app-selection UI lives in `com.uiery.keep.ui.component`, and app-selection repository/policy ownership lives in `com.uiery.keep.appselection`.
+Home-specific Compose UI pieces such as timer pickers and home-only labels. Reusable segmented controls live in `core/kds`; cross-feature app-selection UI lives in `com.uiery.keep.ui.component`, and app-selection repository/policy ownership lives in `com.uiery.keep.appselection`.
 
 ## Key Files
 | File | Description |
 |------|-------------|
 | `ContentDescription.kt` | Kotlin source for content description. |
 | `CountDownPicker.kt` | Kotlin source for count down picker. |
-| `SegementedControl.kt` | Kotlin source for segemented control. |
 | `TimeBottomSheetContent.kt` | Kotlin source for time bottom sheet content. |
 | `TimerContent.kt` | Kotlin source for timer content. |
 
@@ -25,7 +24,7 @@ No documented child directories.
 - Follow the existing Orbit MVI pattern: immutable `UiState`, one-time `SideEffect`, and intent methods that reduce state or post effects.
 - Keep Composable screens stateless where practical; route user events into the feature ViewModel.
 - Place feature-private UI pieces in `component/` instead of expanding screen files indefinitely.
-- Do not reintroduce moved stubs or duplicates for `CategoryBottomSheetContent`, `CategoryButton`, `SearchTextField`, `AppItem`, `TimerPicker`, or `KeepSwitch`; use `com.uiery.keep.ui.component` / `core:kds` instead.
+- Do not reintroduce moved stubs or duplicates for `CategoryBottomSheetContent`, `CategoryButton`, `SearchTextField`, `AppItem`, `TimerPicker`, `KeepSwitch`, or segmented controls; use `com.uiery.keep.ui.component` / `core:kds` instead.
 
 ### Testing Requirements
 - ./gradlew :app:testDevDebugUnitTest

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,7 +27,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.util.formatMonthDayLabel
@@ -96,7 +96,7 @@ private fun DayItem(
                 if (isSelected) {
                     Modifier.border(
                         width = 1.5.dp,
-                        color = KeepTheme.colors.primary,
+                        color = KeepTheme.semanticColors.stroke.brandSolid,
                         shape = RoundedCornerShape(8.dp)
                     )
                 } else {
@@ -104,8 +104,8 @@ private fun DayItem(
                 }
             )
             .background(
-                if (isSelected) KeepTheme.colors.primary.copy(alpha = 0.1f)
-                else KeepTheme.colors.tertiary
+                if (isSelected) KeepTheme.semanticColors.background.brandWeak
+                else KeepTheme.semanticColors.background.neutralWeak
             )
             .semantics {
                 role = Role.Button
@@ -120,20 +120,31 @@ private fun DayItem(
     ) {
         Text(
             text = dayOfWeek,
-            color = if (isToday) KeepTheme.colors.error else KeepTheme.colors.onTertiaryContainer,
-            fontSize = 10.sp,
+            color = if (isToday) {
+                KeepTheme.semanticColors.foreground.critical
+            } else {
+                KeepTheme.semanticColors.foreground.muted
+            },
+            style = MaterialTheme.typography.bodySmall,
         )
         Text(
             text = date.dayOfMonth.toString(),
-            color = if (isToday) KeepTheme.colors.error else KeepTheme.colors.onSurfaceVariant,
-            fontSize = 14.sp,
+            color = if (isToday) {
+                KeepTheme.semanticColors.foreground.critical
+            } else {
+                KeepTheme.semanticColors.foreground.neutral
+            },
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
         )
         Text(
             text = durationText,
-            color = if (duration > 0) KeepTheme.colors.onSurfaceVariant else KeepTheme.colors.onTertiaryContainer,
-            fontSize = 9.sp,
-            fontWeight = if (duration > 0) FontWeight.Medium else FontWeight.Normal,
+            color = if (duration > 0) {
+                KeepTheme.semanticColors.foreground.neutral
+            } else {
+                KeepTheme.semanticColors.foreground.muted
+            },
+            style = MaterialTheme.typography.labelSmall,
         )
     }
 }

@@ -38,12 +38,13 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
     def test_cross_feature_switch_lives_in_kds(self):
         kds_sources = "\n".join(path.read_text() for path in self.kotlin_sources(KDS_MAIN))
         self.assertIn("fun KeepSwitch(", kds_sources)
-        self.assertIn("object KeepSwitchDefaults", kds_sources)
+        self.assertIn("enum class KeepSwitchSize", kds_sources)
+        self.assertIn("fun keepSwitchDimensions(", kds_sources)
 
         home_switch_files = [
             path.relative_to(REPO_ROOT)
             for path in self.kotlin_sources(APP_MAIN / "feature/home/component")
-            if "fun KeepSwitch(" in path.read_text() or "object KeepSwitchDefaults" in path.read_text()
+            if "fun KeepSwitch(" in path.read_text() or "enum class KeepSwitchSize" in path.read_text()
         ]
         self.assertEqual([], home_switch_files)
 
@@ -205,12 +206,14 @@ class SharedUiComponentBoundariesTest(unittest.TestCase):
         self.assertIn("app resources", doc)
         self.assertIn("feature.home.component", doc)
 
-    def test_emergency_unlock_selection_controls_stay_feature_private_for_now(self):
+    def test_emergency_unlock_selection_controls_use_kds_primitives(self):
         source = APP_MAIN / "feature/emergencyunlocksettings/EmergencyUnlockSettingsScreen.kt"
         text = source.read_text()
         self.assertNotIn("FilterChip", text)
         self.assertNotIn("RadioButton", text)
-        self.assertIn("private fun DurationChip", text)
+        self.assertNotIn("private fun DurationChip", text)
+        self.assertIn("KeepChip(", text)
+        self.assertIn("KeepSelectableCard(", text)
 
     def test_shared_ui_runbook_documents_issue_492_closed_baseline(self):
         runbook = SHARED_UI_RUNBOOK.read_text()

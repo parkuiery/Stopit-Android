@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CenterAlignedTopAppBar
+import com.uiery.kds.KeepCenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -31,7 +31,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.theme.KeepTheme
@@ -52,27 +51,23 @@ internal fun BlockedAppsScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = KeepTheme.colors.background,
         topBar = {
-            CenterAlignedTopAppBar(
+            KeepCenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.blocked_apps_title),
-                        color = KeepTheme.colors.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
+                        color = KeepTheme.semanticColors.foreground.neutral,
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
-                            tint = KeepTheme.colors.onSurfaceVariant,
+                            tint = KeepTheme.semanticColors.foreground.neutral,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KeepTheme.colors.background,
-                )
             )
         }
     ) { paddingValues ->
@@ -86,8 +81,8 @@ internal fun BlockedAppsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.lock_history_no_records),
-                    color = KeepTheme.colors.onTertiaryContainer,
-                    fontSize = 14.sp,
+                    color = KeepTheme.semanticColors.foreground.muted,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
         } else {
@@ -135,9 +130,8 @@ private fun BlockedAppItem(
     ) {
         Text(
             text = "#$rank",
-            color = KeepTheme.colors.primary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            color = KeepTheme.semanticColors.foreground.brand,
+            style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.size(32.dp),
         )
 
@@ -155,16 +149,16 @@ private fun BlockedAppItem(
         ) {
             Text(
                 text = appMetadata.label,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 15.sp,
+                color = KeepTheme.semanticColors.foreground.neutral,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = stringResource(R.string.lock_history_block_count, blockCount),
-                color = KeepTheme.colors.onTertiaryContainer,
-                fontSize = 13.sp,
+                color = KeepTheme.semanticColors.foreground.muted,
+                style = MaterialTheme.typography.bodySmall,
             )
         }
     }

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -34,9 +34,9 @@ fun DevToolScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = { onNavigateBack() }) {
+                    KeepIconButton(onClick = { onNavigateBack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),

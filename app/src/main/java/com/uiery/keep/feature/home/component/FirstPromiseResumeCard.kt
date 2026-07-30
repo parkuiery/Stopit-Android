@@ -11,9 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,9 +57,8 @@ fun FirstPromiseResumeCard(
         formattedTime,
         formattedDays,
     )
-    Card(
+    KeepCard(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier
@@ -127,7 +125,7 @@ fun FirstPromiseResumeCard(
                     KeepTheme.colors.primary
                 }
                 if (state.isBusy) {
-                    CircularProgressIndicator(
+                    KeepCircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         color = actionColor,
                         strokeWidth = 2.dp,

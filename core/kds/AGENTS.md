@@ -15,6 +15,7 @@ Keep Design System Android library module. It provides reusable Compose componen
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
+| `docs/` | SEED-linked KDS foundations, patterns, and per-component development guides. |
 | `src/` | KDS source-set container. Main source-set guidance starts at `src/main/AGENTS.md`. |
 
 ## For AI Agents
@@ -22,6 +23,8 @@ Keep Design System Android library module. It provides reusable Compose componen
 ### Working In This Directory
 - Keep components reusable and app-agnostic; do not introduce dependencies on `:app` packages.
 - Preserve KDS theme/token consistency and previewable Compose APIs where possible.
+- Read `docs/README.md` and the relevant component guide before changing KDS UI. New
+  `Keep*.kt` components require a guide linked to the official SEED source.
 
 ### Testing Requirements
 - ./gradlew :core:kds:testDebugUnitTest

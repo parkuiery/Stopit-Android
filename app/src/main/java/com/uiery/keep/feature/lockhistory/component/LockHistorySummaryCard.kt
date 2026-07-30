@@ -1,24 +1,23 @@
 package com.uiery.keep.feature.lockhistory.component
 
 import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
@@ -45,27 +44,28 @@ internal fun LockHistorySummaryCard(
         sessionCountLabel,
         sessionCountText,
     ).joinToString(separator = ". ")
-    Column(
+    KeepCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(KeepTheme.colors.tertiary)
             .semantics(mergeDescendants = true) {
                 contentDescription = accessibilityDescription
-            }
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            },
+        variant = KeepCardVariant.NeutralWeak,
+        shape = RoundedCornerShape(12.dp),
     ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         Text(
             text = headlineText,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
+            color = KeepTheme.semanticColors.foreground.neutral,
+            style = MaterialTheme.typography.titleMedium,
         )
         Text(
             text = supportingText,
-            color = KeepTheme.colors.surface,
-            fontSize = 13.sp,
+            color = KeepTheme.semanticColors.foreground.muted,
+            style = MaterialTheme.typography.bodySmall,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -73,14 +73,13 @@ internal fun LockHistorySummaryCard(
         ) {
             Text(
                 text = totalDurationLabel,
-                color = KeepTheme.colors.surface,
-                fontSize = 14.sp,
+                color = KeepTheme.semanticColors.foreground.muted,
+                style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 text = durationText,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = KeepTheme.semanticColors.foreground.neutral,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
         Row(
@@ -89,15 +88,15 @@ internal fun LockHistorySummaryCard(
         ) {
             Text(
                 text = sessionCountLabel,
-                color = KeepTheme.colors.surface,
-                fontSize = 14.sp,
+                color = KeepTheme.semanticColors.foreground.muted,
+                style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 text = sessionCountText,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = KeepTheme.semanticColors.foreground.neutral,
+                style = MaterialTheme.typography.labelLarge,
             )
+        }
         }
     }
 }

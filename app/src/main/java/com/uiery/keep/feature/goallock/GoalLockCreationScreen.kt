@@ -10,17 +10,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
+import com.uiery.kds.KeepDatePickerDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTextButton
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -106,7 +103,7 @@ internal fun GoalLockCreationScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 title = {
                     Text(
                         text = title,
@@ -116,7 +113,7 @@ internal fun GoalLockCreationScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = navigateBackLabel,
@@ -124,7 +121,6 @@ internal fun GoalLockCreationScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -399,10 +395,11 @@ internal fun GoalLockEndDatePickerDialog(
 ) {
     val initialMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-    DatePickerDialog(
+    KeepDatePickerDialog(
+        state = datePickerState,
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            KeepTextButton(
                 onClick = {
                     val millis = datePickerState.selectedDateMillis
                     if (millis != null) {
@@ -421,17 +418,14 @@ internal fun GoalLockEndDatePickerDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            KeepTextButton(onClick = onDismiss) {
                 Text(
                     text = stringResource(id = android.R.string.cancel),
-                    color = KeepTheme.colors.onTertiaryContainer,
+                    color = KeepTheme.semanticColors.foreground.neutral,
                 )
             }
         },
-        colors = DatePickerDefaults.colors(containerColor = KeepTheme.colors.onSecondary),
-    ) {
-        DatePicker(state = datePickerState)
-    }
+    )
 }
 
 data class GoalLockSelectedAppUiItem(

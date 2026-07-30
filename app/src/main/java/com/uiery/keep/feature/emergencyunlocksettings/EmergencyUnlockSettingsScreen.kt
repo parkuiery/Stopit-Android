@@ -3,7 +3,6 @@ package com.uiery.keep.feature.emergencyunlocksettings
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,13 +24,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.AlertDialog
+import com.uiery.kds.KeepIconButton
+import com.uiery.kds.KeepConfirmationDialog
+import com.uiery.kds.KeepChip
+import com.uiery.kds.KeepChipRole
+import com.uiery.kds.KeepChipVariant
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
+import com.uiery.kds.KeepBadge
+import com.uiery.kds.KeepBadgeTone
+import com.uiery.kds.KeepBadgeVariant
+import com.uiery.kds.KeepDivider
+import com.uiery.kds.KeepLabel
+import com.uiery.kds.KeepLabelSize
+import com.uiery.kds.KeepLabelTone
+import com.uiery.kds.KeepLabelWeight
+import com.uiery.kds.KeepSelectableCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -97,9 +107,9 @@ fun EmergencyUnlockSettingsScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
@@ -115,7 +125,6 @@ fun EmergencyUnlockSettingsScreen(
                         fontSize = 18.sp,
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -224,20 +233,13 @@ private fun ConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = { Text(text = message) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(text = confirmLabel)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = dismissLabel)
-            }
-        },
+    KeepConfirmationDialog(
+        title = title,
+        message = message,
+        confirmLabel = confirmLabel,
+        dismissLabel = dismissLabel,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 
@@ -247,14 +249,16 @@ private fun HeroIntro(
     dailyLimit: Int,
 ) {
     val accent = KeepTheme.colors.primary
-    Row(
+    KeepCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(accent.copy(alpha = 0.08f))
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        variant = KeepCardVariant.BrandWeak,
+        shape = RoundedCornerShape(20.dp),
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -284,29 +288,22 @@ private fun HeroIntro(
                 } else {
                     stringResource(R.string.emergency_unlock_settings_enabled_subtitle)
                 },
-                color = KeepTheme.colors.onTertiaryContainer,
+                color = KeepTheme.semanticColors.foreground.muted,
                 fontSize = 12.sp,
                 lineHeight = 18.sp,
             )
             if (enabled) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(KeepTheme.colors.background)
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.emergency_unlock_settings_limit_count,
-                            dailyLimit,
-                        ) + " / " + stringResource(R.string.emergency_unlock_settings_daily_limit),
-                        color = accent,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
-                    )
-                }
+                KeepBadge(
+                    text = stringResource(
+                        R.string.emergency_unlock_settings_limit_count,
+                        dailyLimit,
+                    ) + " / " + stringResource(R.string.emergency_unlock_settings_daily_limit),
+                    tone = KeepBadgeTone.Brand,
+                    variant = KeepBadgeVariant.Outline,
+                )
             }
+        }
         }
     }
 }
@@ -332,25 +329,25 @@ private fun SettingsGroupCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
+    KeepCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KeepTheme.colors.onSecondary)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
             .animateContentSize(),
-        content = content,
-    )
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            content = content,
+        )
+    }
 }
 
 @Composable
 private fun GroupDivider() {
-    Spacer(
+    KeepDivider(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .height(1.dp)
-            .background(KeepTheme.colors.tertiary.copy(alpha = 0.4f)),
+            .padding(vertical = 16.dp),
     )
 }
 
@@ -363,18 +360,17 @@ private fun SectionHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        KeepLabel(
             modifier = Modifier.weight(1f),
             text = title,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
+            size = KeepLabelSize.Large,
+            weight = KeepLabelWeight.Strong,
         )
-        Text(
+        KeepLabel(
             text = valueLabel,
-            color = KeepTheme.colors.primary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            tone = KeepLabelTone.Brand,
+            size = KeepLabelSize.Medium,
+            weight = KeepLabelWeight.Strong,
         )
     }
 }
@@ -413,7 +409,7 @@ private fun SwitchRow(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
-                color = KeepTheme.colors.onTertiaryContainer,
+                color = KeepTheme.semanticColors.foreground.muted,
                 fontSize = 12.sp,
                 lineHeight = 18.sp,
             )
@@ -441,7 +437,7 @@ private fun RefillModeSection(
     Spacer(modifier = Modifier.height(4.dp))
     Text(
         text = stringResource(R.string.emergency_unlock_settings_count_management_subtitle),
-        color = KeepTheme.colors.onTertiaryContainer,
+        color = KeepTheme.semanticColors.foreground.muted,
         fontSize = 12.sp,
         lineHeight = 18.sp,
     )
@@ -493,67 +489,25 @@ private fun RefillModeOption(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    val borderColor = if (selected) KeepTheme.colors.primary else KeepTheme.colors.tertiary.copy(alpha = 0.5f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(KeepTheme.colors.background)
-            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription }
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .border(width = 2.dp, color = borderColor, shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(KeepTheme.colors.primary),
+    KeepSelectableCard(
+        title = title,
+        description = subtitle,
+        selected = selected,
+        enabled = enabled,
+        contentDescription = contentDescription,
+        onClick = onClick,
+        supportingContent = if (badge != null) {
+            {
+                KeepBadge(
+                    text = badge,
+                    tone = KeepBadgeTone.Brand,
+                    variant = KeepBadgeVariant.Weak,
                 )
             }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                color = KeepTheme.colors.onTertiaryContainer,
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-            )
-            if (badge != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(KeepTheme.colors.primary.copy(alpha = 0.10f))
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        text = badge,
-                        color = KeepTheme.colors.primary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-        }
-    }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
@@ -613,7 +567,11 @@ private fun DailyLimitSelector(
             ) {
                 Text(
                     text = value.toString(),
-                    color = if (isSelected) Color.White else KeepTheme.colors.onSurfaceVariant,
+                    color = if (isSelected) {
+                        KeepTheme.semanticColors.foreground.onBrand
+                    } else {
+                        KeepTheme.colors.onSurfaceVariant
+                    },
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 14.sp,
                 )
@@ -654,7 +612,11 @@ private fun CountdownSecondsSelector(
             ) {
                 Text(
                     text = stringResource(R.string.emergency_unlock_countdown_seconds, seconds),
-                    color = if (isSelected) Color.White else KeepTheme.colors.onSurfaceVariant,
+                    color = if (isSelected) {
+                        KeepTheme.semanticColors.foreground.onBrand
+                    } else {
+                        KeepTheme.colors.onSurfaceVariant
+                    },
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 14.sp,
                 )
@@ -679,48 +641,15 @@ private fun DurationSelector(
         options.forEach { minutes ->
             val isSelected = minutes in selected
             val isLastSelected = isSelected && selected.size == 1
-            DurationChip(
-                label = stringResource(R.string.emergency_unlock_duration_minutes, minutes),
+            KeepChip(
+                text = stringResource(R.string.emergency_unlock_duration_minutes, minutes),
                 selected = isSelected,
                 enabled = enabled && !isLastSelected,
+                variant = KeepChipVariant.OutlineStrong,
+                role = KeepChipRole.Toggle,
                 onClick = { onToggle(minutes) },
             )
         }
-    }
-}
-
-@Composable
-private fun DurationChip(
-    label: String,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    val primary = KeepTheme.colors.primary
-    val containerColor = if (selected) primary.copy(alpha = 0.12f) else KeepTheme.colors.background
-    val borderColor = if (selected) primary else KeepTheme.colors.tertiary.copy(alpha = 0.6f)
-    val textColor = if (selected) primary else KeepTheme.colors.onSurfaceVariant
-
-    Box(
-        modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(containerColor)
-            .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(20.dp),
-            )
-            .clickable(enabled = enabled) { onClick() }
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = textColor,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-        )
     }
 }
 
