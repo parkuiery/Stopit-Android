@@ -33,4 +33,3 @@ SEED text role을 StopIt의 Compose typography와 semantic foreground에 매핑�
 ## Verification
 
 tone/size/weight, font scale, 긴 label wrapping, disabled/error context 대비를 검사합니다.
-

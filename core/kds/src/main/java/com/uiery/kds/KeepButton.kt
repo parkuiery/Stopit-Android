@@ -124,8 +124,8 @@ fun KeepButton(
     ) {
         if (loading) {
             CircularProgressIndicator(
-                color = KeepTheme.semanticColors.foreground.disabled,
-                trackColor = KeepTheme.semanticColors.background.disabled,
+                color = specification.contentColor,
+                trackColor = specification.loadingTrackColor,
                 strokeWidth = 2.dp,
                 modifier = Modifier.size(size.progressSize),
             )

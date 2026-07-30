@@ -31,4 +31,3 @@ SEED Select Box 구조를 StopIt의 12dp card와 KDS radio semantics로 조합�
 ## Verification
 
 selection role/state, 전체 터치 영역, disabled content, 긴 description과 font scale을 검사합니다.
-

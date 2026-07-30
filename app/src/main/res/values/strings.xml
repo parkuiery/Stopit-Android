@@ -71,7 +71,7 @@
     <string name="routine_delete_dialog_title" tools:ignore="MissingTranslation">Delete this routine?</string>
     <string name="routine_delete_dialog_message" tools:ignore="MissingTranslation">%1$s and its repeating schedule will be permanently deleted. This can’t be undone.</string>
     <string name="routine_delete_dialog_confirm" tools:ignore="MissingTranslation">Delete</string>
-    <string name="routine_delete_dialog_cancel" tools:ignore="MissingTranslation">Keep routine</string>
+    <string name="routine_delete_dialog_cancel" tools:ignore="MissingTranslation">Continue editing</string>
     <string name="cd_routine_more_options" tools:ignore="MissingTranslation">More routine options</string>
     <string name="select_apps_to_lock">Please select apps to lock.</string>
     <string name="repeat_days">Repeat days</string>

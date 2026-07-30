@@ -33,4 +33,3 @@ SEED Switchmark 규격을 유지합니다.
 ## Verification
 
 세 size의 치수 contract, 선택 애니메이션, disabled opacity, TalkBack state와 light/dark를 검사합니다.
-

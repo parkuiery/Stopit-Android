@@ -34,4 +34,3 @@ Container와 label로 구성합니다. 로딩 시 label 자리를 progress indic
 ## Verification
 
 모든 size/variant의 light/dark, pressed, disabled, loading 및 긴 label을 검사합니다.
-

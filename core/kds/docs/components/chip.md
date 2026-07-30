@@ -33,4 +33,3 @@ container, optional leading content, 한 줄 label로 구성합니다.
 ## Verification
 
 role별 semantics, 긴 label, leading content, selected/disabled 조합 및 그룹 간격 8dp를 검사합니다.
-

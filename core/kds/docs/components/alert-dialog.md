@@ -31,4 +31,3 @@ title과 description을 명확히 제공하고 초기 focus와 action 순서를 
 ## Verification
 
 한/두 action, 긴 번역 stack, critical tone, back/outside dismiss 및 TalkBack focus를 검사합니다.
-

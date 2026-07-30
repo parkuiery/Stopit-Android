@@ -33,4 +33,3 @@ SEED v3에는 범용 Card 항목이 없으므로 layer/color 역할로 구성한
 ## Verification
 
 basement와의 분리, content 대비, clickable/disabled semantics 및 중첩 여부를 검사합니다.
-

@@ -29,4 +29,3 @@ Scaffold의 적절한 위치에서 system navigation 및 bottom action을 가리
 ## Verification
 
 queue 순서, bottom inset, banner/bottom sheet와의 겹침 및 announcement를 검사합니다.
-

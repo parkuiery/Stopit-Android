@@ -29,4 +29,3 @@ selected indicator와 stroke는 StopIt brand semantic role을 사용합니다.
 ## Verification
 
 role/state, group 탐색, label target, disabled 대비 및 48dp interaction row를 검사합니다.
-

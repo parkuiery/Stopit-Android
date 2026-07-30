@@ -32,4 +32,3 @@ Brand tone은 StopIt amber 역할을 사용하고 잠금·루틴 상태는 label
 ## Verification
 
 tone/variant 대비, 한 줄 ellipsis, leading icon 색상 및 긴 현지화 label을 검사합니다.
-

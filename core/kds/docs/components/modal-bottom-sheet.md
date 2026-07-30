@@ -30,4 +30,3 @@ drag handle에 설명을 제공하고 동일한 닫기 동작을 back 또는 명
 ## Verification
 
 긴 content scrolling, IME, system inset, light/dark, dismiss 경로와 TalkBack focus를 검사합니다.
-

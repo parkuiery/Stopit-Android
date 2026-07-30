@@ -31,4 +31,3 @@ label과 하나의 target으로 묶고 checked state와 disabled reason을 TalkB
 ## Verification
 
 role/state, label click, disabled contrast, 48dp row target과 font scaling을 검사합니다.
-

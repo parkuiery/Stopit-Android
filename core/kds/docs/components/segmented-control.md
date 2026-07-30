@@ -31,4 +31,3 @@ selected index, labels, enabled/disabled segment 및 pressed state를 관리합�
 ## Verification
 
 2개 이상 segment, 긴 번역, selected state, keyboard/TalkBack 순서와 작은 화면 폭을 검사합니다.
-

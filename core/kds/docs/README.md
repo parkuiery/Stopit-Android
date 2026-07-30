@@ -45,4 +45,3 @@ UI를 새로 만들거나 수정할 때 다음 순서를 지킵니다.
 7. 단위 테스트, light/dark Preview, font scaling, TalkBack semantics 및 실제 화면을 검증합니다.
 
 새 `Keep*.kt` 파일은 대응하는 컴포넌트 문서 없이 추가할 수 없습니다.
-

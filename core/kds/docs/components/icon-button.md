@@ -31,4 +31,3 @@ navigation과 일반 utility icon은 neutral foreground를 사용하며 기본 a
 ## Verification
 
 터치 영역, ripple, TalkBack label, disabled tint 및 light/dark 대비를 검사합니다.
-

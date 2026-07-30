@@ -30,4 +30,3 @@ message가 자동으로 announcement되고 읽기 전에 사라지지 않도록 
 ## Verification
 
 긴 message wrap, 여러 snackbar queue, TalkBack announcement, light/dark 대비를 검사합니다.
-

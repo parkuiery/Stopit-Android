@@ -31,4 +31,3 @@ modal 밖 탐색을 차단하고 닫기 경로, title/label 및 예측 가능한
 ## Verification
 
 작은/큰 화면 폭, back/outside dismiss 정책, TalkBack modal focus와 dark surface를 검사합니다.
-

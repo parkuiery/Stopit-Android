@@ -105,7 +105,7 @@ fun KeepSwitch(
         modifier = modifier
             .then(interactionModifier)
             .size(
-                width = dimensions.trackWidth,
+                width = dimensions.touchTarget,
                 height = dimensions.touchTarget,
             ),
         contentAlignment = Alignment.Center,

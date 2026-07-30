@@ -30,4 +30,3 @@ determinate 값 또는 indeterminate semantics를 제공하고 진행률을 색�
 ## Verification
 
 0/중간/100%, indeterminate, reduced-motion context, TalkBack progress와 대비를 검사합니다.
-

@@ -31,4 +31,3 @@ SEED Ghost action 역할을 Compose `TextButton` 기반 KDS API로 제공합니�
 ## Verification
 
 variant별 대비, disabled 상태, 긴 label과 44dp 이상 터치 영역을 검사합니다.
-

@@ -62,4 +62,3 @@
 - 컴포넌트 변경: enabled/pressed/selected/disabled/loading Preview 또는 screenshot
 - 상호작용 변경: role, state, click label 및 focus order 검사
 - 텍스트 변경: font scale과 긴 현지화 문자열 검사
-

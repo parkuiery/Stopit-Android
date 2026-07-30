@@ -1,7 +1,9 @@
 package com.uiery.kds
 
 import androidx.compose.ui.unit.dp
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KeepSwitchContractTest {
@@ -31,5 +33,13 @@ class KeepSwitchContractTest {
         assertEquals(24.dp, medium.trackHeight)
         assertEquals(20.dp, medium.thumbSize)
         assertEquals(48.dp, medium.touchTarget)
+    }
+
+    @Test
+    fun `every visual switch size is centered in a 48dp touch target`() {
+        val source = File("src/main/java/com/uiery/kds/KeepSwitch.kt").readText()
+
+        assertTrue(source.contains("width = dimensions.touchTarget"))
+        assertTrue(source.contains("height = dimensions.touchTarget"))
     }
 }

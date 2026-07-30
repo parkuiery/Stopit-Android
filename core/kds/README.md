@@ -32,7 +32,7 @@ KeepTheme {
 | `background.layerDefault` | 기본 콘텐츠 표면 |
 | `background.layerFloating` | 다이얼로그, 스낵바 등 작은 임시 표면 |
 | `background.layerSheet` | 넓은 바텀시트 표면 |
-| `background.brandSolid` | 단일 핵심 CTA와 활성 상태 |
+| `background.brandSolid` | 주요 CTA, 선택/활성 상태 |
 | `background.brandWeak` | 낮은 강조도의 브랜드 컨테이너 |
 | `background.disabled` | 비활성 컨테이너 |
 | `stroke.neutralWeak` | 낮은 강조도의 경계 |
@@ -228,7 +228,8 @@ KeepSwitch(
 
 SEED Switchmark 규격에 맞춰 기본 트랙은 52×32dp, thumb는 26dp이며 테두리를 사용하지
 않습니다. 선택 여부와 관계없이 thumb는 흰색이고, 선택 트랙만 StopIt 브랜드 색상을
-사용합니다. 비활성 상태는 전체 컨트롤에 38% opacity를 적용합니다.
+사용합니다. Small/Medium/Large의 시각 크기와 관계없이 실제 터치 영역은 최소
+48×48dp를 보장하며, 비활성 상태는 전체 컨트롤에 38% opacity를 적용합니다.
 
 **소유권:** Home, Menu, Routine, Emergency Unlock Settings처럼 여러 feature에서 공유하는 switch는 home feature-private component가 아니라 KDS `com.uiery.kds.KeepSwitch`를 사용합니다.
 

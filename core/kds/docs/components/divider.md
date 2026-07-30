@@ -30,4 +30,3 @@ feature는 divider color를 재정의하지 않고 spacing과 placement만 결�
 ## Verification
 
 light/dark 대비, 인접 spacing과 불필요한 중복 divider를 검사합니다.
-

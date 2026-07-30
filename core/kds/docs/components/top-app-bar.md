@@ -29,4 +29,3 @@ navigation과 action icon에 localized description을 제공하고 title을 명�
 ## Verification
 
 뒤로가기/메뉴/닫기, 긴 title, action 0~2개, scrolled state, inset과 TalkBack 순서를 검사합니다.
-

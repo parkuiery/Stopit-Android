@@ -31,4 +31,3 @@ initial/selected value, validation error, enabled/disabled와 confirm/dismiss �
 ## Verification
 
 locale, 12/24시간, invalid value, font scale, dialog action과 TalkBack reading을 검사합니다.
-
