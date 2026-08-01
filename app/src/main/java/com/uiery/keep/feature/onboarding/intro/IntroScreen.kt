@@ -19,6 +19,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -51,10 +52,9 @@ fun IntroScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp)
         ) {
             Text(
-                modifier = Modifier.padding(top = 48.dp),
+                modifier = Modifier.padding(top = 48.dp).padding(horizontal = 24.dp),
                 text = stringResource(id = R.string.intro_text),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp,
@@ -63,15 +63,18 @@ fun IntroScreen(
             LottieAnimation(
                 modifier = Modifier
                     .fillMaxSize()
-                    .weight(1f),
+                    .weight(1f)
+                    .padding(horizontal = 24.dp),
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
             )
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.start_button),
-                onClick = viewModel::onContinue,
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.start_button),
+                    onClick = viewModel::onContinue,
+                )
+            }
         }
     }
 }

@@ -82,8 +82,13 @@ fun UsageAccessScreen(
     }
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
-        Column(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp)) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().padding(insets)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+            ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                     text = stringResource(R.string.first_promise_usage_title),

@@ -39,6 +39,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.onboarding.OnboardingActionStack
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.keep.feature.onboarding.proposal.formatTime
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLaunchResult
@@ -93,11 +94,13 @@ fun PromiseResultScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(insets)
-                .padding(horizontal = 24.dp),
+                .padding(insets),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -190,11 +193,13 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                     onSecondaryClick = viewModel::continueAtScheduledTime,
                 )
             } else {
-                KeepTextButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isBusy,
-                    onClick = viewModel::continueAtScheduledTime,
-                ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
+                OnboardingBottomActionBar {
+                    KeepTextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.isBusy,
+                        onClick = viewModel::continueAtScheduledTime,
+                    ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
+                }
             }
         }
         PromiseResultKind.PermissionRequired -> {
@@ -209,13 +214,15 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
             )
         }
         PromiseResultKind.Disabled -> {
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_home),
-                enabled = !state.isBusy,
-                bottomSpacing = false,
-                onClick = viewModel::continueHome,
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.first_promise_result_home),
+                    enabled = !state.isBusy,
+                    bottomSpacing = false,
+                    onClick = viewModel::continueHome,
+                )
+            }
         }
         PromiseResultKind.PersistFailed -> {
             OnboardingActionStack(
