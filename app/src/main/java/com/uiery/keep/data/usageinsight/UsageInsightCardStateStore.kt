@@ -11,6 +11,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 private const val SUPPRESSION_DAYS = 7L
+private const val MAX_PERMISSION_PROMPTS = 3
 private const val PERMISSION_CARD_KEY = "permission"
 private const val SEPARATOR = ","
 private const val FIELD_SEPARATOR = "|"
@@ -33,6 +34,26 @@ class UsageInsightCardStateStore @Inject constructor(
 
     suspend fun recordPermissionCardDismissed(dismissedOn: LocalDate) =
         record(PERMISSION_CARD_KEY, dismissedOn)
+
+    /**
+     * 권한 카드는 dismiss 해도 [SUPPRESSION_DAYS] 뒤 다시 올라온다. 무한히 반복하면 조르는 것이
+     * 되므로 누적 노출이 [MAX_PERMISSION_PROMPTS] 회에 이르면 더 권하지 않는다. 권한이 필요한
+     * 지점에서는 여전히 직접 요청할 수 있다.
+     */
+    suspend fun isPermissionCardExhausted(): Boolean =
+        permissionPromptCount() >= MAX_PERMISSION_PROMPTS
+
+    suspend fun recordPermissionCardShown() {
+        dataStore.edit { preferences ->
+            val shown = preferences[PreferencesKey.USAGE_INSIGHT_PERMISSION_PROMPTS] ?: 0
+            if (shown < MAX_PERMISSION_PROMPTS) {
+                preferences[PreferencesKey.USAGE_INSIGHT_PERMISSION_PROMPTS] = shown + 1
+            }
+        }
+    }
+
+    private suspend fun permissionPromptCount(): Int =
+        dataStore.data.first()[PreferencesKey.USAGE_INSIGHT_PERMISSION_PROMPTS] ?: 0
 
     private suspend fun readActive(today: LocalDate): Map<String, LocalDate> =
         decode(dataStore.data.first()[PreferencesKey.USAGE_INSIGHT_DISMISSED])

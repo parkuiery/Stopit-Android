@@ -163,21 +163,19 @@ class HomeViewModel
             }
 
         internal fun changeIsKeep(
-            noSelectedAppsMessage: String? = null,
             firstLockStartedMessage: String? = null,
         ) =
             intent {
                 val isKeep = !state.isKeep
                 if (isKeep && state.selectedAppPackage.isEmpty()) {
+                    // 차단 대상이 없는 것은 오류가 아니라 시작 과정의 한 단계다. 선택 시트를 바로
+                    // 열어 다음 단계로 잇는다. 시트 위에 스낵바를 겹쳐 띄우면 시트를 가리고
+                    // 사용자를 나무라는 인상만 남는다.
                     reduce {
                         state.copy(
                             isShowCategoryBottomSheet = true,
                             sheetVisible = true,
                         )
-                    }
-                    if (!noSelectedAppsMessage.isNullOrBlank()) {
-                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
-                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
                     }
                     return@intent
                 }
@@ -434,9 +432,19 @@ class HomeViewModel
             intent {
                 val previousCard = state.usageInsightCard
                 val result = usageInsightRepository.currentInsightCard(LocalDate.now())
+                // 사용 접근 권한은 홈 첫 진입에서 요구할 이유가 없다. 아직 한 번도 잠가보지 않은
+                // 사용자에게는 권한의 대가로 보여줄 인사이트도 없고, 정작 필요한 행동(차단 대상
+                // 고르기·첫 잠금)과 경쟁만 한다. 첫 잠금을 경험한 뒤에 묻는다.
+                val hasExperiencedFirstLock =
+                    blockingStateStore.readSelectionState().hasTrackedFirstLockConfigured
                 val cardState = when (result) {
                     is UsageInsightCardResult.Hidden -> UsageInsightCardUiState.Hidden
-                    is UsageInsightCardResult.PermissionNeeded -> UsageInsightCardUiState.PermissionNeeded
+                    is UsageInsightCardResult.PermissionNeeded ->
+                        if (hasExperiencedFirstLock) {
+                            UsageInsightCardUiState.PermissionNeeded
+                        } else {
+                            UsageInsightCardUiState.Hidden
+                        }
                     is UsageInsightCardResult.Ready ->
                         UsageInsightCardUiState.Insight(result.insight, result.appLabel)
                 }
@@ -460,6 +468,9 @@ class HomeViewModel
                         USAGE_INSIGHT_CARD_SHOWN,
                         mapOf(INSIGHT_TYPE to cardKey),
                     )
+                    if (cardState is UsageInsightCardUiState.PermissionNeeded) {
+                        usageInsightRepository.recordPermissionCardShown()
+                    }
                 }
                 lastShownCardKey = cardKey
             }
@@ -818,20 +829,16 @@ class HomeViewModel
             }
 
         internal fun lockTime(
-            noSelectedAppsMessage: String? = null,
             firstLockScheduledMessage: String? = null,
         ) =
             intent {
                 if (state.selectedAppPackage.isEmpty()) {
+                    // changeIsKeep 과 같은 이유로 시트만 연다. 스낵바는 시트를 가리는 잔소리다.
                     reduce {
                         state.copy(
                             isShowCategoryBottomSheet = true,
                             sheetVisible = true,
                         )
-                    }
-                    if (!noSelectedAppsMessage.isNullOrBlank()) {
-                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
-                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
                     }
                     return@intent
                 }

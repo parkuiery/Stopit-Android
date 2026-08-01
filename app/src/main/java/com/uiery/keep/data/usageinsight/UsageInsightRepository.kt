@@ -26,7 +26,9 @@ class UsageInsightRepository @Inject constructor(
 ) {
     suspend fun currentInsightCard(today: LocalDate): UsageInsightCardResult {
         if (!gateway.isPermissionGranted()) {
-            return if (cardStateStore.isPermissionCardSuppressed(today)) {
+            val backOff = cardStateStore.isPermissionCardSuppressed(today) ||
+                cardStateStore.isPermissionCardExhausted()
+            return if (backOff) {
                 UsageInsightCardResult.Hidden
             } else {
                 UsageInsightCardResult.PermissionNeeded
@@ -54,6 +56,10 @@ class UsageInsightRepository @Inject constructor(
 
     suspend fun dismissPermissionCard(today: LocalDate) =
         cardStateStore.recordPermissionCardDismissed(today)
+
+    /** 권한 카드가 실제로 화면에 올라갔을 때 호출한다. 누적 노출 상한 계산에 쓰인다. */
+    suspend fun recordPermissionCardShown() =
+        cardStateStore.recordPermissionCardShown()
 
     private suspend fun refreshCache(today: LocalDate) {
         val yesterday = today.minusDays(1)

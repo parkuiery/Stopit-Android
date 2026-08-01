@@ -50,6 +50,7 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.PARENT_MODE_STATE,
         PreferencesKey.HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION,
         PreferencesKey.USAGE_INSIGHT_DISMISSED,
+        PreferencesKey.USAGE_INSIGHT_PERMISSION_PROMPTS,
         PreferencesKey.FIRST_PROMISE_ONBOARDING_STATE,
         PreferencesKey.FIRST_PROMISE_PRACTICE_TOKEN,
         PreferencesKey.FIRST_PROMISE_PRACTICE_DECISION,
