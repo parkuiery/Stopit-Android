@@ -7,14 +7,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,12 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -56,7 +55,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -96,7 +94,6 @@ import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
-import com.uiery.keep.util.toPx
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
@@ -134,7 +131,6 @@ fun HomeScreen(
     val syncAccessibilityPermissionDialogState = {
         openAlertDialog = !hasAccessibilityPermission(context)
     }
-    val noSelectedAppsMessage = stringResource(R.string.select_apps_to_lock)
 
     viewModel.collectSideEffect { effect ->
         when (effect) {
@@ -246,7 +242,7 @@ fun HomeScreen(
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
                     if (uiState.selectedAppPackage.isEmpty()) {
-                        viewModel.lockTime(noSelectedAppsMessage = noSelectedAppsMessage)
+                        viewModel.lockTime()
                     } else {
                         viewModel.lockTime()
                         coroutineScope
@@ -294,94 +290,76 @@ fun HomeScreen(
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
         val hasFirstPromiseResumeCard = uiState.firstPromiseResumeCard != null
-        Column(
-            modifier = if (hasFirstPromiseResumeCard) {
+        val homeCard = decideHomeCard(
+            isKeep = uiState.isKeep,
+            hasActiveTimedLock = uiState.hasActiveTimedLock,
+            hasFirstPromiseResumeCard = hasFirstPromiseResumeCard,
+            showFirstLockActivationCta = uiState.showFirstLockActivationCta,
+            usageInsightCard = uiState.usageInsightCard,
+        )
+        val topContent: @Composable ColumnScope.() -> Unit = {
+        CategoryButton(
+            modifier =
                 Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-            } else {
-                Modifier.padding(paddingValues)
-            },
-        ) {
-            val configuration = LocalConfiguration.current
-            var lottieOffset by remember { mutableStateOf(IntOffset.Zero) }
-            var parentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-            val calculateLottieOffset: (LayoutCoordinates) -> Unit = { coordinates ->
-                val boundsInParent = coordinates.boundsInParent().size
-                parentCoordinates?.let {
-                    val positionInRoot = it.localPositionOf(coordinates, Offset.Zero)
-                    val lottieWidthCenter = (configuration.screenWidthDp.dp / 2).toPx(context)
-                    val lottieHeightCenter = (positionInRoot.y.dp / 2).toPx(context)
-                    lottieOffset =
-                        IntOffset(
-                            x = (positionInRoot.x + boundsInParent.width / 2 - lottieWidthCenter).toInt(),
-                            y = (positionInRoot.y + boundsInParent.height / 2 - lottieHeightCenter).toInt(),
-                        )
-                }
-            }
-            CategoryButton(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                onClick = viewModel::showCategoryBottomSheet,
-                enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
-                categorySize = uiState.selectedAppPackage.size,
-            )
-            if (uiState.showFirstLockActivationCta) {
-                FirstLockActivationCta(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                    onClick = { viewModel.changeIsKeep() },
-                )
-            }
-            FirstPromiseResumeCard(
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            onClick = viewModel::showCategoryBottomSheet,
+            enabled = !uiState.isKeep && !uiState.hasActiveTimedLock,
+            categorySize = uiState.selectedAppPackage.size,
+        )
+        // 카드는 한 번에 한 장만 노출한다. 선택되지 않은 후보는 조건이 유지되는 한 다음
+        // 방문에서 다시 올라온다.
+        val cardModifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+        when (homeCard) {
+            HomeCard.FirstPromiseResume -> FirstPromiseResumeCard(
                 state = uiState.firstPromiseResumeCard,
                 onActivate = viewModel::activateFirstPromiseResumeCard,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                modifier = cardModifier,
             )
-            UsageInsightCard(
+            HomeCard.FirstLockActivation -> FirstLockActivationCta(
+                modifier = cardModifier,
+                onClick = { viewModel.changeIsKeep() },
+            )
+            HomeCard.UsageInsight -> UsageInsightCard(
                 state = uiState.usageInsightCard,
                 onCtaClick = viewModel::onUsageInsightCtaClick,
                 onDismiss = viewModel::onUsageInsightDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                modifier = cardModifier,
             )
-            val mainControls: @Composable (Modifier) -> Unit = { modifier ->
-                Box(
-                    modifier = modifier.onGloballyPositioned { parentCoordinates = it },
-                    contentAlignment = Alignment.Center,
+            HomeCard.None -> Unit
+        }
+        }
+        val mainControls: @Composable (Modifier) -> Unit = { modifier ->
+            Box(
+                modifier = modifier,
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(
+                        space = 20.dp,
+                        alignment = Alignment.CenterVertically,
+                    ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(
-                            space = 20.dp,
-                            alignment = Alignment.CenterVertically,
-                        ),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        val (image, message) = if (uiState.isKeep) {
-                            R.drawable.kepp_icon to stringResource(R.string.keep_turned_off)
-                        } else {
-                            R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
-                        }
+                    val (image, message) = if (uiState.isKeep) {
+                        R.drawable.kepp_icon to stringResource(R.string.keep_turned_off)
+                    } else {
+                        R.drawable.disable_logo to stringResource(R.string.keep_turned_on)
+                    }
+                    Box(contentAlignment = Alignment.Center) {
                         Image(
                             modifier = Modifier
                                 .sizeIn(minHeight = 100.dp, minWidth = 100.dp)
-                                .onGloballyPositioned(calculateLottieOffset)
                                 .clip(RoundedCornerShape(12.dp))
                                 .testTag(HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG)
                                 .clearAndSetSemantics { }
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
-                                        viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
+                                        viewModel.changeIsKeep()
                                     } else {
                                         viewModel.showSnackBar(message)
                                         viewModel.changeIsKeep()
@@ -390,96 +368,125 @@ fun HomeScreen(
                             painter = painterResource(id = image),
                             contentDescription = null,
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(18.dp),
-                        ) {
-                            val keepSwitchDescription = stringResource(
-                                if (uiState.isKeep) R.string.keep_on_status
-                                else R.string.keep_off_status,
-                            )
-                            KeepSwitch(
-                                modifier = Modifier.semantics {
-                                    contentDescription = keepSwitchDescription
-                                },
-                                checked = uiState.isKeep,
-                                onCheckedChange = {
-                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
-                                        viewModel.changeIsKeep(noSelectedAppsMessage = noSelectedAppsMessage)
-                                    } else {
-                                        viewModel.showSnackBar(message)
-                                        viewModel.changeIsKeep()
-                                    }
-                                },
-                            )
-                            Image(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = KeepTheme.colors.onSecondary,
-                                    )
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable(
-                                        onClick = viewModel::showTimeBottomSheet,
-                                        enabled = !uiState.isKeep,
+                        if (uiState.isKeep) {
+                            // 아이콘 중심에서 바깥으로 펼쳐지는 장식. matchParentSize 로 아이콘
+                            // 크기를 따라가 측정에는 관여하지 않고, requiredSize 로 아이콘보다
+                            // 크게 그려 중심을 공유한 채 밖으로 번진다. 아이콘보다 나중에 두어
+                            // 위에 얹히며, 터치는 잡지 않으므로 아이콘 클릭은 그대로 동작한다.
+                            Box(modifier = Modifier.matchParentSize()) {
+                                LottieAnimation(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .requiredSize(LOTTIE_BURST_SIZE),
+                                    composition = composition,
+                                    iterations = LottieConstants.IterateForever,
                                 )
-                                    .padding(4.dp),
-                                painter = painterResource(id = R.drawable.timer_outline),
-                                contentDescription = stringResource(R.string.cd_open_timer),
-                            )
+                            }
                         }
                     }
-                    if (uiState.isKeep) {
-                        LottieAnimation(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
+                        val keepSwitchDescription = stringResource(
+                            if (uiState.isKeep) R.string.keep_on_status
+                            else R.string.keep_off_status,
+                        )
+                        KeepSwitch(
+                            modifier = Modifier.semantics {
+                                contentDescription = keepSwitchDescription
+                            },
+                            checked = uiState.isKeep,
+                            onCheckedChange = {
+                                if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                    viewModel.changeIsKeep()
+                                } else {
+                                    viewModel.showSnackBar(message)
+                                    viewModel.changeIsKeep()
+                                }
+                            },
+                        )
+                        Image(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .absoluteOffset { lottieOffset },
-                            composition = composition,
-                            iterations = LottieConstants.IterateForever,
+                                .size(40.dp)
+                                .background(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = KeepTheme.colors.onSecondary,
+                                )
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(
+                                    onClick = viewModel::showTimeBottomSheet,
+                                    enabled = !uiState.isKeep,
+                            )
+                                .padding(4.dp),
+                            painter = painterResource(id = R.drawable.timer_outline),
+                            contentDescription = stringResource(R.string.cd_open_timer),
                         )
                     }
                 }
             }
-            val bottomContent: @Composable () -> Unit = {
-                Column {
-                    ContentDescription(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 20.dp),
-                        isKeep = uiState.isKeep,
-                        startTime = uiState.startTime,
-                    )
-                    TrackedBannerAd(
-                        metadata = AdPlacementMetadata(
-                            screenName = KeepAnalyticsScreen.HOME,
-                            screenContext = "main",
-                            placement = AdPlacement.HomeBottom.analyticsPlacement,
-                            adUnitId = AdPlacement.HomeBottom.adUnitId,
-                        ),
-                    )
-                }
-            }
-            if (hasFirstPromiseResumeCard) {
-                mainControls(
-                    Modifier
+        }
+        val bottomContent: @Composable () -> Unit = {
+            Column {
+                ContentDescription(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp)
-                        .testTag(HOME_MAIN_CONTROLS_TEST_TAG),
+                        .padding(bottom = 20.dp),
+                    isKeep = uiState.isKeep,
+                    startTime = uiState.startTime,
                 )
-                bottomContent()
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomCenter,
+                TrackedBannerAd(
+                    metadata = AdPlacementMetadata(
+                        screenName = KeepAnalyticsScreen.HOME,
+                        screenContext = "main",
+                        placement = AdPlacement.HomeBottom.analyticsPlacement,
+                        adUnitId = AdPlacement.HomeBottom.adUnitId,
+                    ),
+                )
+            }
+        }
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            // 위쪽 카드는 개수(재개 카드·사용 인사이트)와 글꼴 크기에 따라 높이가 크게 달라진다.
+            // 항상 스크롤 가능한 표면으로 두어 넘칠 때 잘리는 대신 스크롤되게 하고, 하단 문구와
+            // 배너는 그 바깥에 형제로 두어 바닥에 고정한다.
+            BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                val viewportHeight = maxHeight
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        // 카드가 적어 콘텐츠가 짧아도 표면이 화면을 채우게 해, 메인 컨트롤이
+                        // 위로 딸려 올라오지 않고 하단 묶음 바로 위에 남는다.
+                        .heightIn(min = viewportHeight),
+                    verticalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    mainControls(Modifier.fillMaxSize())
-                    bottomContent()
+                    Column { topContent() }
+                    mainControls(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 260.dp)
+                            .testTag(HOME_MAIN_CONTROLS_TEST_TAG),
+                    )
+                    // 바닥에 붙는 0높이 앵커. SpaceBetween 은 첫 자식을 맨 위, 마지막 자식을 맨
+                    // 아래에 붙이고 남은 높이를 자식 사이에 균등 배분한다. 앵커가 없으면 남는
+                    // 높이가 카드와 컨트롤 사이 한 곳에 몰려 컨트롤이 바닥에 붙는다. 앵커를 두면
+                    // 간격이 둘로 나뉘어 컨트롤 위아래 공백이 1:1이 된다.
+                    Spacer(Modifier)
                 }
             }
+            bottomContent()
         }
     }
 }
+
+/**
+ * 아이콘(최소 100dp) 중심에서 바깥으로 번지는 크기.
+ *
+ * 컨트롤 영역 안에 온전히 담기는 한계는 `영역 높이 - 60dp`다. 아이콘·간격·스위치 행(100+20+40)이
+ * 세로 중앙에 놓여 아이콘 중심이 영역 중앙보다 30dp 위에 오기 때문이다. 지금은 260dp 영역에
+ * 280dp를 그리므로 위로 40dp가 넘쳐 카드 쪽으로 번진다. Box는 클리핑하지 않으므로 잘리지 않고,
+ * 장식이 아이콘 위에 얹히는 연출이라 의도된 범위다.
+ */
+private val LOTTIE_BURST_SIZE = 280.dp
 
 private const val HOME_MAIN_CONTROLS_TEST_TAG = "home_main_controls"
 private const val HOME_KEEP_TOGGLE_TOUCH_SHORTCUT_TEST_TAG = "home_keep_toggle_touch_shortcut"
