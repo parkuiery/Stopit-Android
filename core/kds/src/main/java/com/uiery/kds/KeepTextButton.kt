@@ -15,6 +15,7 @@ import com.uiery.kds.theme.KeepTheme
 
 enum class KeepTextButtonVariant {
     Neutral,
+    Muted,
     Brand,
     Critical,
 }
@@ -31,6 +32,7 @@ fun KeepTextButton(
 ) {
     val contentColor = when (variant) {
         KeepTextButtonVariant.Neutral -> KeepTheme.semanticColors.foreground.neutral
+        KeepTextButtonVariant.Muted -> KeepTheme.semanticColors.foreground.muted
         KeepTextButtonVariant.Brand -> KeepTheme.semanticColors.foreground.brand
         KeepTextButtonVariant.Critical -> KeepTheme.semanticColors.foreground.critical
     }

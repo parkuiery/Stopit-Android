@@ -16,7 +16,9 @@ toolbar, inline, 저강조 보조 동작에 사용합니다. 화면의 primary C
 
 ## Properties and states
 
-- Variants: `Neutral`, `Brand`, `Critical`
+- Variants: `Neutral`, `Muted`, `Brand`, `Critical`
+- `Muted`는 primary CTA와 나란히 놓이는 보조 동작에 사용합니다. `foreground.muted`로 위계를
+  낮추되 본문 대비를 유지합니다.
 - States: enabled, pressed, disabled
 - 최소 높이 44dp와 수평 12dp padding을 유지합니다.
 
