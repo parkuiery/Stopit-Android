@@ -34,7 +34,10 @@ fun CategoryButton(
     KeepCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        enabled = enabled,
+        // 잠금 중에도 무엇을 차단하고 있는지는 계속 읽혀야 한다. disabled 로 두면 면이
+        // background.disabled(gray200)가 되어 화면 캔버스와 같은 색이 되고 카드가 사라진다.
+        // 조작 불가는 edit-off 아이콘이 전달한다.
+        readOnly = !enabled,
         variant = KeepCardVariant.NeutralMuted,
         shape = RoundedCornerShape(12.dp),
     ) {
@@ -61,7 +64,7 @@ fun CategoryButton(
                 tint = if (enabled) {
                     KeepTheme.semanticColors.foreground.subtle
                 } else {
-                    KeepTheme.semanticColors.foreground.disabled
+                    KeepTheme.semanticColors.foreground.muted
                 },
             )
         }

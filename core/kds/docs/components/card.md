@@ -19,6 +19,10 @@ semantic container, optional stroke, content column으로 구성합니다. click
 
 ## Properties and states
 
+- `readOnly`는 누를 수 없지만 내용은 계속 읽혀야 하는 카드에 사용합니다. variant container를 유지해
+  카드가 화면 캔버스에 묻히지 않게 하고, 조작 불가는 `foreground.muted`와 주변 아이콘으로 전달합니다.
+  `disabled`는 카드가 담은 정보까지 물러나도 되는 경우에만 사용합니다.
+
 Variants: `LayerDefault`, `NeutralWeak`, `NeutralMuted`, `BrandWeak`, `BrandSolid`,
 `CriticalWeak`. 기본 radius 12dp, elevation 0dp, optional neutral stroke입니다.
 
