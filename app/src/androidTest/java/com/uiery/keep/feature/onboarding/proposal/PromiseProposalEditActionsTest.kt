@@ -18,8 +18,12 @@ class PromiseProposalEditActionsTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val timeValue = "오후 11:00"
+    private val daysValue = "월 · 화 · 수 · 목 · 금"
+    private val appValue = "Instagram"
+
     @Test
-    fun editActionsShareOneRowAndKeepTheirDestinations() {
+    fun editActionsStackFullWidthAndKeepTheirDestinations() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val clicks = mutableListOf<ProposalPicker>()
         val timeText = context.getString(R.string.first_promise_change_time)
@@ -28,7 +32,12 @@ class PromiseProposalEditActionsTest {
 
         composeRule.setContent {
             KeepTheme {
-                ProposalEditActions(onEdit = { picker: ProposalPicker -> clicks += picker })
+                ProposalEditActions(
+                    timeValue = timeValue,
+                    daysValue = daysValue,
+                    appValue = appValue,
+                    onEdit = { picker: ProposalPicker -> clicks += picker },
+                )
             }
         }
 
@@ -36,10 +45,11 @@ class PromiseProposalEditActionsTest {
         val daysBounds = composeRule.onNodeWithText(daysText).fetchSemanticsNode().boundsInRoot
         val appBounds = composeRule.onNodeWithText(appText).fetchSemanticsNode().boundsInRoot
 
-        assertEquals(timeBounds.center.y, daysBounds.center.y, 1f)
-        assertEquals(daysBounds.center.y, appBounds.center.y, 1f)
-        assertTrue(timeBounds.center.x < daysBounds.center.x)
-        assertTrue(daysBounds.center.x < appBounds.center.x)
+        // 3분할 가로 배치는 칸 폭이 라벨보다 좁아 글자가 잘렸다. 세로로 세워 각 행이 전폭을 쓴다.
+        assertTrue(timeBounds.center.y < daysBounds.center.y)
+        assertTrue(daysBounds.center.y < appBounds.center.y)
+        assertEquals(timeBounds.left, daysBounds.left, 1f)
+        assertEquals(daysBounds.left, appBounds.left, 1f)
 
         composeRule.onNodeWithText(timeText).performClick()
         composeRule.onNodeWithText(daysText).performClick()
@@ -49,5 +59,23 @@ class PromiseProposalEditActionsTest {
             listOf(ProposalPicker.StartTime, ProposalPicker.RepeatDays, ProposalPicker.App),
             clicks,
         )
+    }
+
+    @Test
+    fun eachActionShowsTheValueItChanges() {
+        composeRule.setContent {
+            KeepTheme {
+                ProposalEditActions(
+                    timeValue = timeValue,
+                    daysValue = daysValue,
+                    appValue = appValue,
+                    onEdit = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(timeValue).assertExists()
+        composeRule.onNodeWithText(daysValue).assertExists()
+        composeRule.onNodeWithText(appValue).assertExists()
     }
 }
