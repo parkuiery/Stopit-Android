@@ -31,6 +31,8 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import kotlinx.coroutines.launch
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,32 +107,40 @@ fun SelectAppScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
+                .padding(paddingValues.withoutBottomInset()),
         ) {
-            Text(
-                modifier = Modifier.padding(top = 36.dp),
-                text = stringResource(id = R.string.select_apps_prompt),
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 28.sp,
-                fontSize = 22.sp,
-                color = KeepTheme.colors.onSurfaceVariant,
-            )
-            Text(
-                modifier = Modifier.padding(top = 14.dp),
-                text = stringResource(id = R.string.app_lock_info),
-                color = KeepTheme.colors.surfaceVariant,
-            )
-            LottieAnimation(
-                modifier = modifier.weight(1f),
-                composition = composition,
-                iterations = LottieConstants.IterateForever,
-            )
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.select_apps_button),
-                onClick = viewModel::showCategoryBottomSheet,
-            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 24.dp),
+            ) {
+                Text(
+                    modifier = Modifier.padding(top = 36.dp),
+                    text = stringResource(id = R.string.select_apps_prompt),
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 28.sp,
+                    fontSize = 22.sp,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+                Text(
+                    modifier = Modifier.padding(top = 14.dp),
+                    text = stringResource(id = R.string.app_lock_info),
+                    color = KeepTheme.colors.surfaceVariant,
+                )
+                LottieAnimation(
+                    modifier = Modifier.weight(1f),
+                    composition = composition,
+                    iterations = LottieConstants.IterateForever,
+                )
+            }
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.select_apps_button),
+                    bottomSpacing = false,
+                    onClick = viewModel::showCategoryBottomSheet,
+                )
+            }
         }
     }
 }

@@ -24,6 +24,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun IntroScreen(
@@ -51,7 +52,7 @@ fun IntroScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues.withoutBottomInset())
         ) {
             Text(
                 modifier = Modifier.padding(top = 48.dp).padding(horizontal = 24.dp),
@@ -72,6 +73,7 @@ fun IntroScreen(
                 KeepButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(id = R.string.start_button),
+                    bottomSpacing = false,
                     onClick = viewModel::onContinue,
                 )
             }

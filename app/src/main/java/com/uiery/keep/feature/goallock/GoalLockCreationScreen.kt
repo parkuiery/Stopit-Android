@@ -59,6 +59,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,7 +130,7 @@ internal fun GoalLockCreationScreen(
         GoalLockCreationContent(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues.withoutBottomInset()),
             state = uiState,
             onGoalNameChange = viewModel::setGoalName,
             onPresetExam = { viewModel.setPresetGoalName(GoalLockPresetGoal.Exam, presetExamGoalName) },
@@ -388,6 +389,7 @@ internal fun GoalLockCreationContent(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.goal_lock_creation_submit),
                 enabled = state.isCreateEnabled,
+                bottomSpacing = false,
                 onClick = onCreate,
             )
         }

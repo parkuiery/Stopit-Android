@@ -72,6 +72,7 @@ import com.uiery.keep.ui.component.SetupSectionCaption
 import com.uiery.keep.ui.component.SetupSectionHeader
 import com.uiery.keep.ui.component.SetupTextField
 import kotlinx.coroutines.delay
+import com.uiery.keep.ui.component.withoutBottomInset
 
 private val PARENT_MODE_DURATION_OPTIONS = listOf(10, 20, 30, 60)
 
@@ -132,7 +133,9 @@ internal fun ParentModeSetupScreen(
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
         val activeSession = state.activeSession
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        // 활성 세션 분기에는 액션 바가 없다. 그때는 하단 인셋을 컨테이너가 그대로 소비해야 한다.
+        val contentPadding = if (activeSession == null) paddingValues.withoutBottomInset() else paddingValues
+        Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -172,6 +175,7 @@ internal fun ParentModeSetupScreen(
                         modifier = Modifier.fillMaxWidth(),
                         text = stringResource(id = R.string.parent_mode_setup_start),
                         enabled = state.canAttemptStart,
+                        bottomSpacing = false,
                         onClick = viewModel::startParentModeFromSetupInput,
                     )
                 }

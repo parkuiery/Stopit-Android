@@ -59,6 +59,7 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -168,10 +169,11 @@ internal fun GoalLockEditScreen(
                     )
                 }
             }
+            // 위 두 분기는 액션 바가 없어 하단 인셋을 그대로 소비한다. 아래만 바가 처리한다.
             else -> GoalLockEditContent(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues.withoutBottomInset()),
                 state = state,
                 onGoalNameChange = viewModel::setGoalName,
                 onDurationDaysChange = viewModel::setDurationDays,
@@ -338,6 +340,7 @@ internal fun GoalLockEditContent(
                     id = if (state.isSaving) R.string.goal_lock_edit_saving else R.string.goal_lock_edit_save,
                 ),
                 enabled = state.canSave,
+                bottomSpacing = false,
                 onClick = onSave,
             )
         }

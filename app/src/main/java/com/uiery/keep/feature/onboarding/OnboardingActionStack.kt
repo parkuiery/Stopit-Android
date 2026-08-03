@@ -29,11 +29,10 @@ internal fun OnboardingActionStack(
     onSecondaryClick: () -> Unit,
     primaryEnabled: Boolean = true,
     secondaryEnabled: Boolean = true,
-    bottomSpacing: Boolean = true,
 ) {
     OnboardingBottomActionBar {
         KeepTextButton(
-            // 위 여백은 액션 바가 소유한다. 여기서는 primary CTA와의 간격만 책임진다.
+            // 위아래 여백은 액션 바가 소유한다. 여기서는 primary CTA와의 간격만 책임진다.
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             enabled = secondaryEnabled,
             variant = KeepTextButtonVariant.Muted,
@@ -45,7 +44,7 @@ internal fun OnboardingActionStack(
             modifier = Modifier.fillMaxWidth(),
             text = primaryText,
             enabled = primaryEnabled,
-            bottomSpacing = bottomSpacing,
+            bottomSpacing = false,
             onClick = onPrimaryClick,
         )
     }

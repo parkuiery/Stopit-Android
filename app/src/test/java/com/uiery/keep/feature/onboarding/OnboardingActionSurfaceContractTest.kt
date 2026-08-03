@@ -32,21 +32,63 @@ class OnboardingActionSurfaceContractTest {
     }
 
     @Test
-    fun bottomActionBarOwnsItsTopPadding() {
+    fun bottomActionBarOwnsItsOwnPadding() {
         // CTA가 하나뿐인 화면(목표 잠금, 부모 모드)은 바 안에 여백을 만들어 줄 보조 버튼이 없다.
-        // 위 여백을 콘텐츠에 맡기면 그런 화면에서 버튼이 layerDefault 경계에 그대로 붙는다.
-        // 아래 여백은 KeepButton의 bottomSpacing(24dp)이 이미 소유하므로 바가 더하지 않는다.
+        // 여백을 콘텐츠에 맡기면 그런 화면에서 버튼이 layerDefault 경계에 그대로 붙는다.
         val sharedBar = File(
             "src/main/java/com/uiery/keep/ui/component/BottomActionBar.kt",
         ).readText()
 
         assertTrue(
-            "하단 액션 바는 자기 위 여백을 소유해야 한다",
-            sharedBar.contains("padding(top = BOTTOM_ACTION_BAR_TOP_PADDING)"),
+            "하단 액션 바는 자기 위아래 여백을 소유해야 한다",
+            sharedBar.contains("padding(top = 16.dp, bottom = 24.dp)"),
         )
-        assertFalse(
-            "아래 여백은 KeepButton.bottomSpacing이 소유한다. 바가 겹쳐 주면 두 배가 된다",
-            Regex("""padding\((?:vertical|bottom)\s*=""").containsMatchIn(sharedBar),
+    }
+
+    @Test
+    fun bottomActionBarPaintsBehindTheNavigationBar() {
+        // 표면이 제스처 바 위에서 끊기면 흰 띠 아래로 basement 색 띠가 남아 두 덩어리로 읽힌다.
+        // background를 navigationBarsPadding보다 먼저 걸어야 표면이 인셋 뒤까지 칠해진다.
+        val sharedBar = File(
+            "src/main/java/com/uiery/keep/ui/component/BottomActionBar.kt",
+        ).readText()
+
+        val background = sharedBar.indexOf(".background(")
+        val navigationBars = sharedBar.indexOf(".navigationBarsPadding()")
+
+        assertTrue("하단 액션 바는 내비게이션 바 인셋을 직접 처리해야 한다", navigationBars > 0)
+        assertTrue(
+            "background가 navigationBarsPadding보다 먼저 와야 표면이 인셋 뒤까지 칠해진다",
+            background in 1 until navigationBars,
+        )
+    }
+
+    @Test
+    fun everyActionBarScreenLeavesTheBottomInsetToTheBar() {
+        // 컨테이너가 Scaffold padding을 통째로 소비하면 내비게이션 바 자리가 여백으로 잡혀
+        // 액션 바 표면이 그 위에서 끊긴다. 하단 인셋만 빼고 넘겨야 한다.
+        val appRoot = File("src/main/java/com/uiery/keep")
+        val screensWithBar = listOf(
+            "feature/onboarding/goal/GoalSelectScreen.kt",
+            "feature/onboarding/intro/IntroScreen.kt",
+            "feature/onboarding/notification/NotificationSettingScreen.kt",
+            "feature/onboarding/permission/PermissionSettingScreen.kt",
+            "feature/onboarding/proposal/PromiseProposalScreen.kt",
+            "feature/onboarding/result/PromiseResultScreen.kt",
+            "feature/onboarding/select/SelectAppScreen.kt",
+            "feature/onboarding/usageaccess/UsageAccessScreen.kt",
+            "feature/goallock/GoalLockCreationScreen.kt",
+            "feature/goallock/GoalLockEditScreen.kt",
+            "feature/parentmode/ParentModeSetupScreen.kt",
+        )
+
+        val violations = screensWithBar.filterNot { relativePath ->
+            File(appRoot, relativePath).readText().contains("withoutBottomInset()")
+        }
+
+        assertTrue(
+            "하단 인셋을 통째로 소비해 액션 바 표면이 끊기는 화면:\n${violations.joinToString("\n")}",
+            violations.isEmpty(),
         )
     }
 
@@ -71,9 +113,11 @@ class OnboardingActionSurfaceContractTest {
     fun everyOnboardingCtaSitsOnTheActionBar() {
         val screensWithCta = listOf(
             "intro/IntroScreen.kt",
+            "notification/NotificationSettingScreen.kt",
             "permission/PermissionSettingScreen.kt",
             "proposal/PromiseProposalScreen.kt",
             "result/PromiseResultScreen.kt",
+            "select/SelectAppScreen.kt",
         )
 
         val violations = screensWithCta.filterNot { relativePath ->
@@ -94,9 +138,11 @@ class OnboardingActionSurfaceContractTest {
         val screens = listOf(
             "goal/GoalSelectScreen.kt",
             "intro/IntroScreen.kt",
+            "notification/NotificationSettingScreen.kt",
             "permission/PermissionSettingScreen.kt",
             "proposal/PromiseProposalScreen.kt",
             "result/PromiseResultScreen.kt",
+            "select/SelectAppScreen.kt",
             "usageaccess/UsageAccessScreen.kt",
         )
 

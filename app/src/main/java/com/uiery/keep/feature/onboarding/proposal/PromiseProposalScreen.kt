@@ -65,6 +65,7 @@ import java.util.Locale
 import java.util.Calendar
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,7 +102,7 @@ fun PromiseProposalScreen(
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets),
+            modifier = Modifier.fillMaxSize().padding(insets.withoutBottomInset()),
         ) {
             Column(
                 modifier = Modifier
@@ -212,6 +213,7 @@ fun PromiseProposalScreen(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(R.string.first_promise_start),
                     enabled = state.canStart,
+                    bottomSpacing = false,
                     onClick = viewModel::startFirstPromise,
                 )
             }

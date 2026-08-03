@@ -50,6 +50,7 @@ import java.time.DayOfWeek
 import java.util.Locale
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun PromiseResultScreen(
@@ -90,11 +91,13 @@ fun PromiseResultScreen(
         onDispose { observedLifecycle.removeObserver(observer) }
     }
 
+    // Loading에는 액션 바가 없다. 그때는 하단 인셋을 컨테이너가 그대로 소비해야 한다.
+    val hasActionBar = state.kind != PromiseResultKind.Loading
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(insets),
+                .padding(if (hasActionBar) insets.withoutBottomInset() else insets),
         ) {
             Column(
                 modifier = Modifier
@@ -138,7 +141,6 @@ fun PromiseResultScreen(
                 }
             }
             ResultActions(state, viewModel)
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -188,7 +190,6 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                     secondaryText = stringResource(R.string.first_promise_result_scheduled),
                     primaryEnabled = !state.isBusy,
                     secondaryEnabled = !state.isBusy,
-                    bottomSpacing = false,
                     onPrimaryClick = viewModel::startPractice,
                     onSecondaryClick = viewModel::continueAtScheduledTime,
                 )
@@ -208,7 +209,6 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                 secondaryText = stringResource(R.string.first_promise_result_later),
                 primaryEnabled = !state.isBusy,
                 secondaryEnabled = !state.isBusy,
-                bottomSpacing = false,
                 onPrimaryClick = viewModel::requestExactAlarm,
                 onSecondaryClick = viewModel::continueLater,
             )
@@ -230,7 +230,6 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                 secondaryText = stringResource(R.string.first_promise_result_edit),
                 primaryEnabled = state.canRetry && !state.isBusy,
                 secondaryEnabled = state.canEdit && !state.isBusy,
-                bottomSpacing = false,
                 onPrimaryClick = viewModel::retryPersistence,
                 onSecondaryClick = viewModel::editPromise,
             )

@@ -34,6 +34,8 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
+import com.uiery.keep.ui.component.withoutBottomInset
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 
 private fun ManagedActivityResultLauncher<String, Boolean>.requestNotificationPermission() {
     launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -86,11 +88,13 @@ fun NotificationSettingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
+                .padding(paddingValues.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
             Text(
                 modifier = Modifier.padding(top = 36.dp).semantics { heading() },
@@ -127,13 +131,16 @@ fun NotificationSettingScreen(
                 iterations = LottieConstants.IterateForever,
             )
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.allow_notification_permission),
-                onClick = {
-                    requestPermissionLauncher.requestNotificationPermission()
-                },
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.allow_notification_permission),
+                    bottomSpacing = false,
+                    onClick = {
+                        requestPermissionLauncher.requestNotificationPermission()
+                    },
+                )
+            }
         }
     }
 }

@@ -49,6 +49,7 @@ import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun PermissionSettingScreen(
@@ -112,7 +113,7 @@ fun PermissionSettingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues.withoutBottomInset())
         ) {
             val isReady = flowContext == OnboardingPermissionContext.Control || promiseStartMinutes != null
             Column(
@@ -185,6 +186,7 @@ fun PermissionSettingScreen(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(id = R.string.allow_permission),
                     enabled = isReady,
+                    bottomSpacing = false,
                     onClick = {
                         if (hasAccessibilityPermission(androidContext)) {
                             if (flowContext == OnboardingPermissionContext.Control) {
