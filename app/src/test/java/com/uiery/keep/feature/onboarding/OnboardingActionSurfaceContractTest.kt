@@ -32,6 +32,25 @@ class OnboardingActionSurfaceContractTest {
     }
 
     @Test
+    fun bottomActionBarOwnsItsTopPadding() {
+        // CTA가 하나뿐인 화면(목표 잠금, 부모 모드)은 바 안에 여백을 만들어 줄 보조 버튼이 없다.
+        // 위 여백을 콘텐츠에 맡기면 그런 화면에서 버튼이 layerDefault 경계에 그대로 붙는다.
+        // 아래 여백은 KeepButton의 bottomSpacing(24dp)이 이미 소유하므로 바가 더하지 않는다.
+        val sharedBar = File(
+            "src/main/java/com/uiery/keep/ui/component/BottomActionBar.kt",
+        ).readText()
+
+        assertTrue(
+            "하단 액션 바는 자기 위 여백을 소유해야 한다",
+            sharedBar.contains("padding(top = BOTTOM_ACTION_BAR_TOP_PADDING)"),
+        )
+        assertFalse(
+            "아래 여백은 KeepButton.bottomSpacing이 소유한다. 바가 겹쳐 주면 두 배가 된다",
+            Regex("""padding\((?:vertical|bottom)\s*=""").containsMatchIn(sharedBar),
+        )
+    }
+
+    @Test
     fun secondaryActionDelegatesItsColorToKds() {
         // 보조 동작은 primary CTA보다 위계가 낮아야 한다. 색은 KDS variant가 소유하며, 화면이
         // legacy Material 슬롯으로 덮어쓰지 않는다. `colors.onSurfaceVariant`는 legacy light에서

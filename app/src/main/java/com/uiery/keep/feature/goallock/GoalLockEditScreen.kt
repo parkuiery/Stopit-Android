@@ -225,13 +225,14 @@ internal fun GoalLockEditContent(
     }
 
     Column(modifier = modifier) {
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
         Spacer(modifier = Modifier.height(4.dp))
         SetupHero(
             modifier = Modifier.clearAndSetSemantics { contentDescription = summary },
@@ -329,7 +330,7 @@ internal fun GoalLockEditContent(
             }
         }
 
-    }
+        }
         BottomActionBar {
             KeepButton(
                 modifier = Modifier.fillMaxWidth(),

@@ -19,6 +19,10 @@ import com.uiery.kds.theme.KeepTheme
  *
  * 전폭을 채워야 배경과 구분되는 띠로 읽히므로 좌우 여백은 이 바가 직접 소유한다. 호출하는 화면은
  * 바깥 캔버스에 horizontal padding을 걸지 말고 스크롤 콘텐츠 쪽에 준다.
+ *
+ * 위 여백도 같은 이유로 바가 소유한다. 콘텐츠가 알아서 주도록 두면 CTA가 하나뿐인 화면에서 버튼이
+ * 표면 경계에 그대로 붙는다. 아래 여백은 [com.uiery.kds.KeepButton]의 `bottomSpacing`이 이미 24dp를
+ * 갖고 있으므로 여기서 더하지 않는다.
  */
 @Composable
 fun BottomActionBar(
@@ -29,7 +33,10 @@ fun BottomActionBar(
         modifier = modifier
             .fillMaxWidth()
             .background(KeepTheme.semanticColors.background.layerDefault)
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp)
+            .padding(top = BOTTOM_ACTION_BAR_TOP_PADDING),
         content = content,
     )
 }
+
+internal val BOTTOM_ACTION_BAR_TOP_PADDING = 16.dp
