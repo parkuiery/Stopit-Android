@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.ui.component.BottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
@@ -128,8 +129,7 @@ internal fun GoalLockCreationScreen(
         GoalLockCreationContent(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
+                .padding(paddingValues),
             state = uiState,
             onGoalNameChange = viewModel::setGoalName,
             onPresetExam = { viewModel.setPresetGoalName(GoalLockPresetGoal.Exam, presetExamGoalName) },
@@ -232,8 +232,12 @@ internal fun GoalLockCreationContent(
         )
     }
 
+    Column(modifier = modifier) {
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .weight(1f)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(modifier = Modifier.height(4.dp))
@@ -377,12 +381,15 @@ internal fun GoalLockCreationContent(
             }
         }
 
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(id = R.string.goal_lock_creation_submit),
-            enabled = state.isCreateEnabled,
-            onClick = onCreate,
-        )
+    }
+        BottomActionBar {
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(id = R.string.goal_lock_creation_submit),
+                enabled = state.isCreateEnabled,
+                onClick = onCreate,
+            )
+        }
     }
 }
 

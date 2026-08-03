@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.ui.component.BottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepSnackbarHost
 import com.uiery.kds.KeepModalBottomSheet
@@ -170,8 +171,7 @@ internal fun GoalLockEditScreen(
             else -> GoalLockEditContent(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 20.dp),
+                    .padding(paddingValues),
                 state = state,
                 onGoalNameChange = viewModel::setGoalName,
                 onDurationDaysChange = viewModel::setDurationDays,
@@ -224,8 +224,12 @@ internal fun GoalLockEditContent(
         )
     }
 
+    Column(modifier = modifier) {
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .weight(1f)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(modifier = Modifier.height(4.dp))
@@ -325,14 +329,17 @@ internal fun GoalLockEditContent(
             }
         }
 
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(
-                id = if (state.isSaving) R.string.goal_lock_edit_saving else R.string.goal_lock_edit_save,
-            ),
-            enabled = state.canSave,
-            onClick = onSave,
-        )
+    }
+        BottomActionBar {
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(
+                    id = if (state.isSaving) R.string.goal_lock_edit_saving else R.string.goal_lock_edit_save,
+                ),
+                enabled = state.canSave,
+                onClick = onSave,
+            )
+        }
     }
 }
 

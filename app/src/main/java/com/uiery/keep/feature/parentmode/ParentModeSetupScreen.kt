@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.uiery.keep.ui.component.BottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepButtonVariant
 import com.uiery.kds.KeepBadge
@@ -130,16 +131,16 @@ internal fun ParentModeSetupScreen(
         },
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
+        val activeSession = state.activeSession
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            val activeSession = state.activeSession
             if (activeSession == null) {
                 ParentModeSetupForm(
                     state = state,
@@ -150,7 +151,6 @@ internal fun ParentModeSetupScreen(
                     onAdjustApps = { isAppSelectionSheetVisible = true },
                     onGuardianPinChanged = viewModel::updateGuardianPin,
                     onGuardianPinConfirmationChanged = viewModel::updateGuardianPinConfirmation,
-                    onStart = viewModel::startParentModeFromSetupInput,
                 )
             } else {
                 ParentModeActiveControls(
@@ -164,6 +164,17 @@ internal fun ParentModeSetupScreen(
                     onEnd = viewModel::endActiveSessionFromSetupInput,
                     onPrepareAnother = viewModel::prepareAnotherParentModeSession,
                 )
+            }
+        }
+            if (activeSession == null) {
+                BottomActionBar {
+                    KeepButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(id = R.string.parent_mode_setup_start),
+                        enabled = state.canAttemptStart,
+                        onClick = viewModel::startParentModeFromSetupInput,
+                    )
+                }
             }
         }
     }
@@ -180,7 +191,6 @@ internal fun ParentModeSetupForm(
     onAdjustApps: () -> Unit,
     onGuardianPinChanged: (String) -> Unit,
     onGuardianPinConfirmationChanged: (String) -> Unit,
-    onStart: () -> Unit,
 ) {
     val setupAccessibilitySummary = stringResource(
         id = R.string.parent_mode_setup_accessibility_summary,
@@ -308,13 +318,6 @@ internal fun ParentModeSetupForm(
         }
     }
 
-    KeepButton(
-        modifier = Modifier.fillMaxWidth(),
-        text = stringResource(id = R.string.parent_mode_setup_start),
-        enabled = state.canAttemptStart,
-        onClick = onStart,
-    )
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable

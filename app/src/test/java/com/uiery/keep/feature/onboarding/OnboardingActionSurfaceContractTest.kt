@@ -17,10 +17,13 @@ class OnboardingActionSurfaceContractTest {
     @Test
     fun bottomActionBarOwnsLayerDefaultSurface() {
         val source = File(onboardingRoot, "OnboardingActionStack.kt").readText()
+        val sharedBar = File(
+            "src/main/java/com/uiery/keep/ui/component/BottomActionBar.kt",
+        ).readText()
 
         assertTrue(
             "하단 액션 바는 layerDefault 표면을 소유해야 한다",
-            source.contains("background.layerDefault"),
+            sharedBar.contains("background.layerDefault"),
         )
         assertTrue(
             "OnboardingActionStack은 하단 액션 바를 통해 렌더링해야 한다",

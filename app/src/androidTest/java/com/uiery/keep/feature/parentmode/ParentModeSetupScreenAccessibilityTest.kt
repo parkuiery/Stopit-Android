@@ -42,7 +42,6 @@ class ParentModeSetupScreenAccessibilityTest {
                     onAdjustApps = {},
                     onGuardianPinChanged = {},
                     onGuardianPinConfirmationChanged = {},
-                    onStart = {},
                 )
             }
         }
@@ -52,10 +51,8 @@ class ParentModeSetupScreenAccessibilityTest {
             45,
             2,
         )
+        // 시작 버튼은 화면의 하단 액션 바가 소유한다. 폼은 입력만 담는다.
         composeRule.onNode(hasContentDescription(expectedSummary)).assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.parent_mode_setup_start))
-            .assertIsDisplayed()
-            .assertIsEnabled()
     }
 
     @Test
