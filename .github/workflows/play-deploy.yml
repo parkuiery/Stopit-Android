@@ -64,7 +64,7 @@ jobs:
           fetch-depth: 0
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@v6.2.0
 
       - name: Set up Node 22
         uses: actions/setup-node@v6
@@ -80,7 +80,7 @@ jobs:
 
       - name: Set up Gradle
         if: env.DEPLOY_TRACK != 'production'
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6.2.0
 
       - name: Make Gradle wrapper executable
         if: env.DEPLOY_TRACK != 'production'

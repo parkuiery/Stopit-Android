@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@v6.2.0
 
       - name: Run scripts regression tests
         run: |
@@ -94,7 +94,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6.2.0
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -223,7 +223,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@v6.2.0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -232,7 +232,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6.2.0
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
