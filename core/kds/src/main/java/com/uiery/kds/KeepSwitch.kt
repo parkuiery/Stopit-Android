@@ -105,8 +105,8 @@ fun KeepSwitch(
         modifier = modifier
             .then(interactionModifier)
             .size(
-                width = dimensions.touchTarget,
-                height = dimensions.touchTarget,
+                width = dimensions.containerWidth,
+                height = dimensions.containerHeight,
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -151,6 +151,19 @@ internal data class KeepSwitchDimensions(
     val thumbSize: Dp,
     val touchTarget: Dp = 48.dp,
 )
+
+/**
+ * 스위치를 감싸는 상자의 크기.
+ *
+ * `Modifier.size` 는 부모가 준 제약 안으로 맞춰지므로, 상자를 [KeepSwitchDimensions.touchTarget]
+ * 으로만 잡으면 그보다 넓은 트랙(Large 는 52dp)이 48dp 로 눌린다. 그런데 켜짐 상태의 썸 위치는
+ * 눌리기 전 트랙 폭으로 계산되어 썸이 오른쪽 끝에 붙고 여백이 사라진다.
+ *
+ * 접근성 최소 크기는 지키되 트랙을 누르지 않도록 둘 중 큰 값을 쓴다.
+ */
+internal val KeepSwitchDimensions.containerWidth: Dp get() = maxOf(touchTarget, trackWidth)
+
+internal val KeepSwitchDimensions.containerHeight: Dp get() = maxOf(touchTarget, trackHeight)
 
 internal fun keepSwitchDimensions(size: KeepSwitchSize): KeepSwitchDimensions = when (size) {
     KeepSwitchSize.Small -> KeepSwitchDimensions(
