@@ -38,6 +38,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
 import com.uiery.keep.feature.onboarding.OnboardingActionStack
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun GoalSelectScreen(
@@ -57,10 +58,13 @@ fun GoalSelectScreen(
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxSize().padding(insets.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },

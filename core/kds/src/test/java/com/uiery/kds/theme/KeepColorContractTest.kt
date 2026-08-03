@@ -62,4 +62,25 @@ class KeepColorContractTest {
         assertEquals(Color(0xFF1D2025), dark.background.layerSheet)
         assertEquals(Color(0xFF1D2025), dark.background.layerFloating)
     }
+
+    /**
+     * SEED `packages/rootage/color.yaml` 기준값이다.
+     *
+     * light 모드에서 `bg.disabled`와 `bg.layer-basement`가 같은 `gray-200`인 것은 SEED의 의도이며,
+     * 컨트롤이 basement가 아니라 `layer-default` 위에 놓인다는 전제 위에 성립한다. 화면에서 disabled
+     * 컨트롤이 사라져 보인다면 이 값을 바꾸는 대신 컨트롤을 `layerDefault` 표면으로 올려야 한다.
+     */
+    @Test
+    fun `disabled roles keep the SEED palette mapping`() {
+        val light = keepLightSemanticColors()
+        val dark = keepDarkSemanticColors()
+
+        assertEquals(Color(0xFFF3F4F5), light.background.disabled)
+        assertEquals(Color(0xFFD1D3D8), light.foreground.disabled)
+        assertEquals(Color(0xFF2B2E35), dark.background.disabled)
+        assertEquals(Color(0xFF5B606A), dark.foreground.disabled)
+
+        assertEquals(light.background.layerBasement, light.background.disabled)
+        assertEquals(Color(0xFFFFFFFF), light.background.layerDefault)
+    }
 }

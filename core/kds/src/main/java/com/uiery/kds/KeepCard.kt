@@ -48,11 +48,20 @@ fun KeepCard(
     )
 }
 
+/**
+ * @param readOnly 지금은 누를 수 없지만 내용은 계속 읽혀야 할 때 사용한다.
+ *
+ * SEED의 `bg.disabled`는 컨트롤이 `layer-default` 위에 놓인다는 전제에서 정해졌고, light 모드에서
+ * `layer-basement`와 같은 `gray-200`이다. 화면 캔버스 위의 카드에 그대로 쓰면 면과 글자가 함께
+ * 배경에 묻혀 담고 있던 정보까지 사라진다. read-only는 variant container를 유지해 카드를 남기고,
+ * 조작 불가는 `foreground.muted`와 주변 아이콘으로 전달한다.
+ */
 @Composable
 fun KeepCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    readOnly: Boolean = false,
     variant: KeepCardVariant = KeepCardVariant.LayerDefault,
     bordered: Boolean = false,
     shape: Shape = RoundedCornerShape(12.dp),
@@ -62,13 +71,21 @@ fun KeepCard(
     Card(
         onClick = onClick,
         modifier = modifier,
-        enabled = enabled,
+        enabled = enabled && !readOnly,
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = keepCardContainerColor(variant),
             contentColor = keepCardContentColor(variant),
-            disabledContainerColor = KeepTheme.semanticColors.background.disabled,
-            disabledContentColor = KeepTheme.semanticColors.foreground.disabled,
+            disabledContainerColor = if (readOnly) {
+                keepCardContainerColor(variant)
+            } else {
+                KeepTheme.semanticColors.background.disabled
+            },
+            disabledContentColor = if (readOnly) {
+                KeepTheme.semanticColors.foreground.muted
+            } else {
+                KeepTheme.semanticColors.foreground.disabled
+            },
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = if (bordered) {

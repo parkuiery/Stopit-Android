@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -47,9 +47,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.kds.KeepButton
-import com.uiery.kds.KeepButtonSize
-import com.uiery.kds.KeepButtonVariant
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import com.uiery.kds.KeepInputButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepTimeInput
 import com.uiery.kds.theme.KeepTheme
@@ -63,6 +65,7 @@ import java.util.Locale
 import java.util.Calendar
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,10 +102,13 @@ fun PromiseProposalScreen(
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxSize().padding(insets.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },
@@ -189,25 +195,28 @@ fun PromiseProposalScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = state.repeatDays.sorted().joinToString(" · ") {
-                            formatWeekdayShort(DayOfWeek.of(it), Locale.getDefault())
-                        },
-                        color = KeepTheme.colors.surfaceVariant,
-                    )
                 }
                 Spacer(Modifier.height(12.dp))
-                ProposalEditActions(onEdit = viewModel::showPicker)
+                ProposalEditActions(
+                    timeValue = formatTime(state.startMinutes),
+                    daysValue = state.repeatDays.sorted().joinToString(" · ") {
+                        formatWeekdayShort(DayOfWeek.of(it), Locale.getDefault())
+                    },
+                    appValue = state.appLabel,
+                    onEdit = viewModel::showPicker,
+                )
                 Spacer(Modifier.height(20.dp))
                 }
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_start),
-                enabled = state.canStart,
-                onClick = viewModel::startFirstPromise,
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.first_promise_start),
+                    enabled = state.canStart,
+                    bottomSpacing = false,
+                    onClick = viewModel::startFirstPromise,
+                )
+            }
         }
     }
 }
@@ -244,39 +253,65 @@ private fun formatAverageUsageDuration(totalMinutes: Long): String {
     }
 }
 
+/**
+ * 제안된 약속의 각 항목을 그 값 위에서 직접 고치게 한다.
+ *
+ * 3분할 가로 배치는 한 칸이 약 98dp까지 좁아져 "시간 바꾸기" 같은 라벨이 접히고, 고정 높이
+ * 버튼 안에서 잘렸다. 전폭 행으로 세우면 잘림이 구조적으로 사라지고, 현재 값을 같은 행에서
+ * 보여줄 수 있어 무엇을 바꾸는지 대조 없이 알 수 있다.
+ */
 @Composable
-internal fun ProposalEditActions(onEdit: (ProposalPicker) -> Unit) {
-    Row(
+internal fun ProposalEditActions(
+    timeValue: String,
+    daysValue: String,
+    appValue: String,
+    onEdit: (ProposalPicker) -> Unit,
+) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_time),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_time),
+            value = timeValue,
             onClick = { onEdit(ProposalPicker.StartTime) },
         )
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_days),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_days),
+            value = daysValue,
             onClick = { onEdit(ProposalPicker.RepeatDays) },
         )
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_app),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_app),
+            value = appValue,
             onClick = { onEdit(ProposalPicker.App) },
         )
     }
 }
 
 @Composable
-private fun RowScope.ProposalEditButton(
-    text: String,
+private fun ProposalEditRow(
+    label: String,
+    value: String,
     onClick: () -> Unit,
 ) {
-    KeepButton(
-        modifier = Modifier.weight(1f),
-        text = text,
+    KeepInputButton(
+        placeholder = label,
+        value = value,
         onClick = onClick,
-        variant = KeepButtonVariant.NeutralOutline,
-        size = KeepButtonSize.Large,
-        bottomSpacing = false,
+        leadingContent = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        trailingContent = {
+            Icon(
+                painter = painterResource(R.drawable.round_arrow_forward_ios_24),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+        },
     )
 }
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.ui.component.BottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepSnackbarHost
 import com.uiery.kds.KeepModalBottomSheet
@@ -58,6 +59,7 @@ import org.orbitmvi.orbit.compose.collectSideEffect
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,11 +169,11 @@ internal fun GoalLockEditScreen(
                     )
                 }
             }
+            // 위 두 분기는 액션 바가 없어 하단 인셋을 그대로 소비한다. 아래만 바가 처리한다.
             else -> GoalLockEditContent(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 20.dp),
+                    .padding(paddingValues.withoutBottomInset()),
                 state = state,
                 onGoalNameChange = viewModel::setGoalName,
                 onDurationDaysChange = viewModel::setDurationDays,
@@ -224,115 +226,124 @@ internal fun GoalLockEditContent(
         )
     }
 
-    Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(modifier = Modifier.height(4.dp))
-        SetupHero(
-            modifier = Modifier.clearAndSetSemantics { contentDescription = summary },
-            iconResId = R.drawable.ic_goal_lock,
-            title = stringResource(id = R.string.goal_lock_edit_title),
-            subtitle = stringResource(id = R.string.goal_lock_edit_hero_subtitle),
-        )
+    Column(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
+            SetupHero(
+                modifier = Modifier.clearAndSetSemantics { contentDescription = summary },
+                iconResId = R.drawable.ic_goal_lock,
+                title = stringResource(id = R.string.goal_lock_edit_title),
+                subtitle = stringResource(id = R.string.goal_lock_edit_hero_subtitle),
+            )
 
-        SetupGroupCard {
-            SetupSectionHeader(title = stringResource(id = R.string.goal_lock_detail_goal_name_label))
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupTextField(
-                value = state.goalName,
-                onValueChange = onGoalNameChange,
-                placeholder = stringResource(id = R.string.goal_lock_creation_goal_name_placeholder),
-                isError = state.goalName.isBlank(),
-            )
-        }
-
-        SetupGroupCard {
-            SetupSectionHeader(
-                title = stringResource(id = R.string.goal_lock_detail_duration_label),
-                valueLabel = dateRange,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(7, 14, 30).forEach { days ->
-                    SetupChip(
-                        label = stringResource(id = R.string.goal_lock_edit_duration_days, days),
-                        selected = state.totalDurationDays == days,
-                        onClick = { onDurationDaysChange(days) },
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupStepper(
-                valueLabel = stringResource(id = R.string.goal_lock_edit_duration_days, state.totalDurationDays),
-                onDecrement = { onDurationDaysChange((state.totalDurationDays - 1).coerceAtLeast(1)) },
-                onIncrement = { onDurationDaysChange(state.totalDurationDays + 1) },
-                decrementEnabled = state.totalDurationDays > 1,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            SetupSecondaryButton(
-                text = stringResource(id = R.string.goal_lock_creation_pick_end_date),
-                onClick = { showDatePicker = true },
-            )
-        }
-
-        SetupGroupCard {
-            SetupSectionHeader(title = stringResource(id = R.string.goal_lock_detail_lock_mode_label))
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupSelectableCard(
-                title = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day),
-                subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day_desc),
-                selected = lockMode == GoalLockMode.AllDay,
-                onClick = onSetAllDay,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            SetupSelectableCard(
-                title = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening),
-                subtitle = if (lockMode is GoalLockMode.Scheduled) {
-                    goalLockEditModeLabel(lockMode)
-                } else {
-                    stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening_desc)
-                },
-                selected = lockMode is GoalLockMode.Scheduled,
-                onClick = onSetWeekdayEvening,
-            )
-        }
-
-        SetupGroupCard {
-            SetupSectionHeader(
-                title = stringResource(id = R.string.goal_lock_creation_apps_label),
-                valueLabel = state.selectedPackages.size.toString(),
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            SetupSectionCaption(text = appsText)
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupSecondaryButton(
-                text = stringResource(id = R.string.goal_lock_edit_select_apps),
-                onClick = onSelectApps,
-            )
-            if (state.selectedPackages.isNotEmpty()) {
+            SetupGroupCard {
+                SetupSectionHeader(title = stringResource(id = R.string.goal_lock_detail_goal_name_label))
                 Spacer(modifier = Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.selectedPackages.sorted().forEach { packageName ->
-                        SetupAppRow(
-                            packageName = packageName,
-                            fallbackLabel = packageName,
-                            removeLabel = stringResource(id = R.string.goal_lock_creation_remove_app),
-                            onRemove = { onRemoveApp(packageName) },
+                SetupTextField(
+                    value = state.goalName,
+                    onValueChange = onGoalNameChange,
+                    placeholder = stringResource(id = R.string.goal_lock_creation_goal_name_placeholder),
+                    isError = state.goalName.isBlank(),
+                )
+            }
+
+            SetupGroupCard {
+                SetupSectionHeader(
+                    title = stringResource(id = R.string.goal_lock_detail_duration_label),
+                    valueLabel = dateRange,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(7, 14, 30).forEach { days ->
+                        SetupChip(
+                            label = stringResource(id = R.string.goal_lock_edit_duration_days, days),
+                            selected = state.totalDurationDays == days,
+                            onClick = { onDurationDaysChange(days) },
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupStepper(
+                    valueLabel = stringResource(id = R.string.goal_lock_edit_duration_days, state.totalDurationDays),
+                    onDecrement = { onDurationDaysChange((state.totalDurationDays - 1).coerceAtLeast(1)) },
+                    onIncrement = { onDurationDaysChange(state.totalDurationDays + 1) },
+                    decrementEnabled = state.totalDurationDays > 1,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                SetupSecondaryButton(
+                    text = stringResource(id = R.string.goal_lock_creation_pick_end_date),
+                    onClick = { showDatePicker = true },
+                )
             }
-        }
 
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(
-                id = if (state.isSaving) R.string.goal_lock_edit_saving else R.string.goal_lock_edit_save,
-            ),
-            enabled = state.canSave,
-            onClick = onSave,
-        )
+            SetupGroupCard {
+                SetupSectionHeader(title = stringResource(id = R.string.goal_lock_detail_lock_mode_label))
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupSelectableCard(
+                    title = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day),
+                    subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day_desc),
+                    selected = lockMode == GoalLockMode.AllDay,
+                    onClick = onSetAllDay,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                SetupSelectableCard(
+                    title = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening),
+                    subtitle = if (lockMode is GoalLockMode.Scheduled) {
+                        goalLockEditModeLabel(lockMode)
+                    } else {
+                        stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening_desc)
+                    },
+                    selected = lockMode is GoalLockMode.Scheduled,
+                    onClick = onSetWeekdayEvening,
+                )
+            }
+
+            SetupGroupCard {
+                SetupSectionHeader(
+                    title = stringResource(id = R.string.goal_lock_creation_apps_label),
+                    valueLabel = state.selectedPackages.size.toString(),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                SetupSectionCaption(text = appsText)
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupSecondaryButton(
+                    text = stringResource(id = R.string.goal_lock_edit_select_apps),
+                    onClick = onSelectApps,
+                )
+                if (state.selectedPackages.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.selectedPackages.sorted().forEach { packageName ->
+                            SetupAppRow(
+                                packageName = packageName,
+                                fallbackLabel = packageName,
+                                removeLabel = stringResource(id = R.string.goal_lock_creation_remove_app),
+                                onRemove = { onRemoveApp(packageName) },
+                            )
+                        }
+                    }
+                }
+            }
+
+        }
+        BottomActionBar {
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(
+                    id = if (state.isSaving) R.string.goal_lock_edit_saving else R.string.goal_lock_edit_save,
+                ),
+                enabled = state.canSave,
+                bottomSpacing = false,
+                onClick = onSave,
+            )
+        }
     }
 }
 

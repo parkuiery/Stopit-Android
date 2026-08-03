@@ -47,6 +47,7 @@ import com.uiery.keep.ui.component.SetupGroupCard
 import com.uiery.keep.ui.component.SetupGroupDivider
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -82,8 +83,13 @@ fun UsageAccessScreen(
     }
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
-        Column(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp)) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().padding(insets.withoutBottomInset())) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+            ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },
                     text = stringResource(R.string.first_promise_usage_title),

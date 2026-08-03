@@ -184,6 +184,9 @@ internal fun BlockScreenContent(
         if (showBannerAd) {
             TrackedBannerAd(
                 modifier = Modifier.align(Alignment.TopCenter),
+                // 이 배너만 화면 위쪽에 놓인다. 위 여백은 콘텐츠와의 간격이 아니라 화면 끝과의
+                // 간격이 되어 배너가 아래로 밀린다.
+                contentSeparation = 0.dp,
                 metadata = AdPlacement.BlockTop.toMetadata(
                     screenName = KeepAnalyticsScreen.BLOCK,
                     screenContext = "blocked_app",

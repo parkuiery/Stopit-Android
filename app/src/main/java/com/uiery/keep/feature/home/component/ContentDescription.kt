@@ -1,8 +1,10 @@
 package com.uiery.keep.feature.home.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,15 +28,23 @@ fun ContentDescription(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         val description = if(isKeep) R.string.keep_on_message else R.string.keep_off_message
-        if(isKeep) {
-            TimerContent(startTime = startTime)
-        } else {
-            Text(
-                text = stringResource(R.string.keep_off_status),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = KeepTheme.colors.error,
-            )
+        // 켜짐은 32sp 타이머, 꺼짐은 18sp 문구라 높이가 다르다. 이 영역은 화면 하단에 고정돼
+        // 있어 높이가 변하면 그 위의 토글 위치가 함께 움직인다. 두 상태가 같은 자리를 쓰도록
+        // 최소 높이를 잡아 둔다.
+        Box(
+            modifier = Modifier.heightIn(min = 44.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if(isKeep) {
+                TimerContent(startTime = startTime)
+            } else {
+                Text(
+                    text = stringResource(R.string.keep_off_status),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeepTheme.colors.error,
+                )
+            }
         }
         Text(
             text = stringResource(description),

@@ -13,13 +13,18 @@ Source: `KeepSwitch.kt`
 
 ## Anatomy
 
-48dp interaction root 안의 capsule track과 animated thumb로 구성합니다.
+capsule track과 animated thumb로 구성하며, interaction root는 48dp 이상이면서 track보다
+좁지 않습니다. root를 48dp로 고정하면 그보다 넓은 `Large` track(52dp)이 눌리는데, thumb
+위치는 눌리기 전 track 폭으로 계산되어 선택 상태에서 thumb가 오른쪽 끝에 붙습니다.
 
 ## Properties and states
 
 - Sizes: `Small` 26×16, `Medium` 38×24, `Large` 52×32
 - selected/unselected, enabled/disabled, pressed/focused 상태
 - thumb 이동 150ms, track color 전환 50ms와 20ms delay
+- thumb는 SEED Switchmark의 `scale` 토큰을 따라 unselected에서 0.8배로 그립니다. 크기가
+  아니라 배율만 바뀌므로 track과의 시각 여백은 unselected가 selected보다 넓습니다
+  (`Large` 기준 약 5.6dp 대 3dp).
 
 ## StopIt adaptation
 

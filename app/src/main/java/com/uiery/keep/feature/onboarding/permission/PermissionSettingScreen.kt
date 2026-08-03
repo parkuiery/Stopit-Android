@@ -44,10 +44,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun PermissionSettingScreen(
@@ -111,12 +113,14 @@ fun PermissionSettingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
+                .padding(paddingValues.withoutBottomInset())
         ) {
             val isReady = flowContext == OnboardingPermissionContext.Control || promiseStartMinutes != null
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
             Text(
                 modifier = Modifier.padding(top = 36.dp).semantics { heading() },
@@ -177,22 +181,25 @@ fun PermissionSettingScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.allow_permission),
-                enabled = isReady,
-                onClick = {
-                    if (hasAccessibilityPermission(androidContext)) {
-                        if (flowContext == OnboardingPermissionContext.Control) {
-                            viewModel.onControlPermissionGranted(onNavigateNotificationSetting)
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.allow_permission),
+                    enabled = isReady,
+                    bottomSpacing = false,
+                    onClick = {
+                        if (hasAccessibilityPermission(androidContext)) {
+                            if (flowContext == OnboardingPermissionContext.Control) {
+                                viewModel.onControlPermissionGranted(onNavigateNotificationSetting)
+                            } else {
+                                viewModel.onFirstPromisePermissionGranted(onNavigateNotificationSetting)
+                            }
                         } else {
-                            viewModel.onFirstPromisePermissionGranted(onNavigateNotificationSetting)
+                            openAlertDialog = true
                         }
-                    } else {
-                        openAlertDialog = true
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
     }
 }
