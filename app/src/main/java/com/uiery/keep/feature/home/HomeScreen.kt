@@ -428,10 +428,9 @@ fun HomeScreen(
         }
         val bottomContent: @Composable () -> Unit = {
             Column {
+                // 배너와의 간격은 배너가 소유한다. 여기서 또 주면 두 번 들어간다.
                 ContentDescription(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     isKeep = uiState.isKeep,
                     startTime = uiState.startTime,
                 )

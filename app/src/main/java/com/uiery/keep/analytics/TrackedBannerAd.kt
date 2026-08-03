@@ -6,6 +6,7 @@ import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,10 +59,20 @@ internal data class MonetizationEvent(
     val longParams: Map<String, Long> = emptyMap(),
 )
 
+/**
+ * 배너와 바로 위 콘텐츠 사이의 여백.
+ *
+ * 하단 고정 배너는 앱 콘텐츠와 맞닿아 두 영역이 한 덩어리로 읽힌다. 여백은 배너가 소유해서
+ * 화면마다 값이 갈리지 않게 한다. 호출부에서 따로 여백을 주면 두 번 들어간다.
+ */
+internal val BannerAdContentSeparation = 16.dp
+
 @Composable
 internal fun TrackedBannerAd(
     modifier: Modifier = Modifier,
     metadata: AdPlacementMetadata,
+    /** 배너가 화면 위쪽에 놓이는 자리(BlockScreen)는 위 여백이 필요 없으므로 0으로 끈다. */
+    contentSeparation: Dp = BannerAdContentSeparation,
 ) {
     val context = LocalContext.current
     val analyticsBackend = remember(context) { context.findAnalyticsBackend() }
@@ -74,6 +86,7 @@ internal fun TrackedBannerAd(
 
     AppBannerAd(
         modifier = modifier,
+        contentSeparation = contentSeparation,
         adUnitId = metadata.adUnitId,
         onAdImpression = tracker::logImpression,
         onAdClick = tracker::logClick,
@@ -85,6 +98,7 @@ internal fun TrackedBannerAd(
 @RequiresPermission("android.permission.INTERNET")
 private fun AppBannerAd(
     modifier: Modifier = Modifier,
+    contentSeparation: Dp = BannerAdContentSeparation,
     adUnitId: String,
     onAdImpression: (() -> Unit)? = null,
     onAdClick: (() -> Unit)? = null,
@@ -96,8 +110,11 @@ private fun AppBannerAd(
     val isMobileAdsInitialized by MobileAdsInitialization.isInitialized.collectAsStateWithLifecycle()
 
     Box(
+        // 여백을 height 앞에 걸어야 배너 자체는 규격 높이를 그대로 쓴다. 순서를 바꾸면
+        // 배너가 여백만큼 눌려 광고 뷰 크기가 어긋난다.
         modifier = modifier
             .fillMaxWidth()
+            .padding(top = contentSeparation)
             .height(MetaCompatibleBannerAdSize.height.dp),
         contentAlignment = Alignment.Center,
     ) {
