@@ -241,10 +241,10 @@ fun HomeScreen(
                 onChangeCountdownDuration = viewModel::updateCountdownDuration,
                 onChangeTimerTIme = viewModel::updateTimerTime,
                 onLockClick = {
-                    if (uiState.selectedAppPackage.isEmpty()) {
-                        viewModel.lockTime()
-                    } else {
-                        viewModel.lockTime()
+                    viewModel.lockTime()
+                    // 차단 대상이 없으면 lockTime 이 선택 시트를 연다. 그 위에서 시간 시트를 닫고
+                    // 잠금 화면으로 넘기면 방금 연 시트를 덮어버린다.
+                    if (uiState.selectedAppPackage.isNotEmpty()) {
                         coroutineScope
                             .launch {
                                 timeBottomSheetState.hide()

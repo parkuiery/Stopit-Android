@@ -96,40 +96,40 @@ fun NotificationSettingScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp),
             ) {
-            Text(
-                modifier = Modifier.padding(top = 36.dp).semantics { heading() },
-                text = stringResource(
-                    id = if (context == OnboardingPermissionContext.Control) {
-                        R.string.notification_permission_request
-                    } else {
-                        R.string.first_promise_notification_title
-                    },
-                ),
-                fontWeight = FontWeight.Bold,
-                lineHeight = 28.sp,
-                fontSize = 22.sp,
-                color = KeepTheme.colors.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(
-                    id = if (context == OnboardingPermissionContext.Control) {
-                        R.string.notification_habit_message
-                    } else {
-                        R.string.first_promise_notification_description
-                    },
-                ),
-                color = KeepTheme.colors.surfaceVariant,
-            )
-            LottieAnimation(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .padding(horizontal = 100.dp),
-                composition = composition,
-                speed = 0.8f,
-                iterations = LottieConstants.IterateForever,
-            )
+                Text(
+                    modifier = Modifier.padding(top = 36.dp).semantics { heading() },
+                    text = stringResource(
+                        id = if (context == OnboardingPermissionContext.Control) {
+                            R.string.notification_permission_request
+                        } else {
+                            R.string.first_promise_notification_title
+                        },
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 28.sp,
+                    fontSize = 22.sp,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(
+                        id = if (context == OnboardingPermissionContext.Control) {
+                            R.string.notification_habit_message
+                        } else {
+                            R.string.first_promise_notification_description
+                        },
+                    ),
+                    color = KeepTheme.colors.surfaceVariant,
+                )
+                LottieAnimation(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                        .padding(horizontal = 100.dp),
+                    composition = composition,
+                    speed = 0.8f,
+                    iterations = LottieConstants.IterateForever,
+                )
             }
             OnboardingBottomActionBar {
                 KeepButton(
