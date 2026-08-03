@@ -1,5 +1,7 @@
 package com.uiery.keep.datastore
 
+import com.uiery.keep.appselection.BlockExemptPackages
+
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -40,7 +42,7 @@ class BlockingStateStoreTest {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.SELECTED_APP_PACKAGES] = setOf(LAUNCHER, WALLET, INSTAGRAM)
         }
-        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER, WALLET) }
+        val store = BlockingStateStore(dataStore) { BlockExemptPackages(homePackages = setOf(LAUNCHER), essentialPackages = setOf(WALLET)) }
 
         assertEquals(setOf(INSTAGRAM), store.readSelectedAppPackages())
         assertEquals(
@@ -53,7 +55,7 @@ class BlockingStateStoreTest {
     @Test
     fun savingSelectedAppPackagesNeverPersistsBlockExemptPackages() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
-        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER) }
+        val store = BlockingStateStore(dataStore) { BlockExemptPackages(homePackages = setOf(LAUNCHER)) }
 
         store.saveSelectedAppPackages(setOf(LAUNCHER, INSTAGRAM))
 
@@ -63,7 +65,7 @@ class BlockingStateStoreTest {
     @Test
     fun timedLockSessionNeverLocksBlockExemptPackages() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
-        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER) }
+        val store = BlockingStateStore(dataStore) { BlockExemptPackages(homePackages = setOf(LAUNCHER)) }
 
         store.startTimedLockSession(
             packages = setOf(LAUNCHER, INSTAGRAM),

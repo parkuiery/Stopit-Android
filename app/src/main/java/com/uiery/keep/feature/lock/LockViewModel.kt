@@ -119,7 +119,7 @@ class LockViewModel
                 val activeRoutineLockState = resolveActiveRoutineLockState(
                     routines = routines,
                     nowDateTime = nowDateTime,
-                    exemptPackages = blockExemptPackageProvider.exemptPackages(),
+                    exemptPackages = blockExemptPackageProvider.exemptPackages().all,
                 )
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {

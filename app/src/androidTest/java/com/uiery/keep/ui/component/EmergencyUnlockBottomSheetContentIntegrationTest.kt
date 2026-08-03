@@ -244,20 +244,21 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
             }
         }
 
-        // Labels fall back to package names here, so sorted order puts blocked7 ninth — far enough
-        // down that LazyColumn has not composed it yet. Search is what has to surface it.
+        // Labels fall back to package names, so sorted order is lexicographic and blocked1 comes
+        // first. Asserting on what search leaves behind keeps this independent of how many rows the
+        // viewport composes.
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithTag("emergency_unlock_app_com.example.blocked1")
                 .fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("emergency_unlock_app_search").assertExists()
-        composeRule.onNodeWithTag("emergency_unlock_app_$target").assertDoesNotExist()
 
         composeRule.onNode(hasSetTextAction()).performTextInput("blocked7")
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithTag("emergency_unlock_app_$target").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("emergency_unlock_app_com.example.blocked1").assertDoesNotExist()
+        composeRule.onNodeWithTag("emergency_unlock_app_com.example.blocked12").assertDoesNotExist()
 
         composeRule.onNodeWithTag("emergency_unlock_app_$target").performClick()
         composeRule.onNodeWithText(context().getString(R.string.emergency_unlock_next)).performClick()

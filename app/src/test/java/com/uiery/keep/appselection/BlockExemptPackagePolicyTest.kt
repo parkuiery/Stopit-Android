@@ -17,7 +17,26 @@ class BlockExemptPackagePolicyTest {
             nfcPaymentPackage = SAMSUNG_WALLET,
         )
 
-        assertTrue(exempt.containsAll(listOf(ONE_UI_HOME, PIXEL_LAUNCHER, SETTINGS, DIALER, SMS, SAMSUNG_WALLET)))
+        assertTrue(exempt.all.containsAll(listOf(ONE_UI_HOME, PIXEL_LAUNCHER, SETTINGS, DIALER, SMS, SAMSUNG_WALLET)))
+    }
+
+    /**
+     * The split is what lets parent mode keep authority over settings while still guaranteeing the
+     * supervised user can reach the home screen.
+     */
+    @Test
+    fun onlyLaunchersAreHomePackagesAndTheRestAreEssentials() {
+        val exempt = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = setOf(ONE_UI_HOME),
+            settingsPackage = SETTINGS,
+            dialerPackage = DIALER,
+            smsPackage = SMS,
+            nfcPaymentPackage = SAMSUNG_WALLET,
+        )
+
+        assertEquals(setOf(ONE_UI_HOME), exempt.homePackages)
+        assertFalse(exempt.essentialPackages.contains(ONE_UI_HOME))
+        assertTrue(exempt.essentialPackages.containsAll(listOf(SETTINGS, DIALER, SMS, SAMSUNG_WALLET)))
     }
 
     @Test
@@ -30,7 +49,8 @@ class BlockExemptPackagePolicyTest {
             nfcPaymentPackage = null,
         )
 
-        assertTrue(exempt.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+        assertTrue(exempt.essentialPackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+        assertEquals(emptySet<String>(), exempt.homePackages)
     }
 
     @Test
@@ -43,8 +63,8 @@ class BlockExemptPackagePolicyTest {
             nfcPaymentPackage = null,
         )
 
-        assertFalse(exempt.contains(ANDROID_RESOLVER))
-        assertTrue(exempt.contains(ONE_UI_HOME))
+        assertFalse(exempt.all.contains(ANDROID_RESOLVER))
+        assertTrue(exempt.homePackages.contains(ONE_UI_HOME))
     }
 
     @Test
@@ -57,7 +77,8 @@ class BlockExemptPackagePolicyTest {
             nfcPaymentPackage = null,
         )
 
-        assertEquals(BlockExemptPackagePolicy.PAYMENT_PACKAGES, exempt)
+        assertEquals(BlockExemptPackagePolicy.PAYMENT_PACKAGES, exempt.all)
+        assertEquals(emptySet<String>(), exempt.homePackages)
     }
 
     @Test

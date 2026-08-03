@@ -2,6 +2,7 @@ package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.appselection.BlockExemptPackagePolicy
+import com.uiery.keep.appselection.BlockExemptPackages
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockPolicy
@@ -18,11 +19,7 @@ data class AccessibilityBlockingPreferences(
     val isKeep: Boolean = false,
     val lockTime: String? = null,
     val selectedAppPackages: Set<String> = emptySet(),
-    /**
-     * Device essentials that stay reachable no matter which lock is running. Blocking the home
-     * launcher in particular would trap the user in a home -> block screen -> home loop.
-     */
-    val exemptPackages: Set<String> = emptySet(),
+    val exemptPackages: BlockExemptPackages = BlockExemptPackages(),
 )
 
 data class ForegroundBlockRequest(
@@ -69,7 +66,8 @@ internal fun resolveForegroundBlockRequest(
     isDuplicateBlock: Boolean,
 ): ForegroundBlockRequest? {
     if (isEmergencyUnlocked) return null
-    if (BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages)) return null
+    // Unconditional: a blocked home launcher leaves no way back to the device.
+    if (BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.homePackages)) return null
     if (parentModeSession != null && packageName in parentControlPackages) return null
 
     val isLockTime = ManualLockTimePolicy.isActiveAt(
@@ -110,6 +108,13 @@ internal fun resolveForegroundBlockRequest(
         isShouldGoalLockBlock ||
         isShouldParentModeBlock
     if (!isBlocking) return null
+    // Settings, dialer, messaging and wallet stay reachable for locks the user imposed on
+    // themselves. Parent mode is a supervisor's allowlist, so it keeps authority over them —
+    // otherwise the supervised user could open Settings and disable the accessibility service.
+    if (
+        !isShouldParentModeBlock &&
+        BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.essentialPackages)
+    ) return null
     if (
         !prefs.selectedAppPackages.contains(packageName) &&
         !isShouldRoutineBlock &&

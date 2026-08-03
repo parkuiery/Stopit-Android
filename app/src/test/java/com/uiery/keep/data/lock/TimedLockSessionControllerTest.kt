@@ -3,6 +3,7 @@ package com.uiery.keep.data.lock
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.appselection.BlockExemptPackages
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
@@ -22,6 +23,51 @@ import org.junit.Test
 class TimedLockSessionControllerTest {
     private val now = Instant.parse("2026-07-16T09:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
+
+    /**
+     * The store drops exempt packages on write, so an all-exempt request must be rejected up front
+     * rather than persisting an empty selection and reporting a lock that blocks nothing.
+     */
+    @Test
+    fun allExemptRequestIsRejectedInsteadOfStartingALockThatBlocksNothing() = runBlocking {
+        val dataStore = FakeDataStore()
+        val controller = TimedLockSessionController(
+            BlockingStateStore(dataStore),
+            RecordingAnalytics(),
+            clock,
+            { BlockExemptPackages(essentialPackages = setOf("com.samsung.android.messaging")) },
+        )
+
+        val result = controller.start(
+            packages = setOf("com.samsung.android.messaging"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.FirstPromisePractice,
+        )
+
+        assertEquals(TimedLockStartResult.EmptyApps, result)
+        assertNull(dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertNull(dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    @Test
+    fun partiallyExemptRequestLocksOnlyTheBlockablePackages() = runBlocking {
+        val dataStore = FakeDataStore()
+        val controller = TimedLockSessionController(
+            BlockingStateStore(dataStore),
+            RecordingAnalytics(),
+            clock,
+            { BlockExemptPackages(homePackages = setOf("com.sec.android.app.launcher")) },
+        )
+
+        val result = controller.start(
+            packages = setOf("com.sec.android.app.launcher", "com.example.focus"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.Home(TimedLockHomeScheduleType.Timer),
+        )
+
+        assertTrue(result is TimedLockStartResult.Started)
+        assertEquals(setOf("com.example.focus"), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
 
     @Test
     fun successAtomicallyPersistsSelectionStartAndDeadlineAndTracksHomeBoundary() = runBlocking {

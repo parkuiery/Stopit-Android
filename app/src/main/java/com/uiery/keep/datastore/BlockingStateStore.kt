@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.appselection.BlockExemptPackagePolicy
 import com.uiery.keep.appselection.BlockExemptPackageProvider
+import com.uiery.keep.appselection.BlockExemptPackages
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -64,7 +65,7 @@ class BlockingStateStore @Inject constructor(
         this[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty().blockable()
 
     private fun Set<String>.blockable(): Set<String> =
-        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages())
+        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages().all)
 
     suspend fun setIsNew(isNew: Boolean) {
         dataStore.edit { preferences ->
@@ -299,7 +300,7 @@ data class AccessibilityBlockingSnapshot(
     val preventUninstall: Boolean = true,
     val emergencyUnlockApps: Set<String> = emptySet(),
     val emergencyUnlockExpireTimeMillis: Long = 0L,
-    val exemptPackages: Set<String> = emptySet(),
+    val exemptPackages: BlockExemptPackages = BlockExemptPackages(),
 )
 
 data class BlockingSelectionState(

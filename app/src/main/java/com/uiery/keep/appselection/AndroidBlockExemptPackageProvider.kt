@@ -22,11 +22,11 @@ class AndroidBlockExemptPackageProvider @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : BlockExemptPackageProvider {
 
-    private val resolvedPackages: Set<String> by lazy { resolvePackages() }
+    private val resolvedPackages: BlockExemptPackages by lazy { resolvePackages() }
 
-    override fun exemptPackages(): Set<String> = resolvedPackages
+    override fun exemptPackages(): BlockExemptPackages = resolvedPackages
 
-    private fun resolvePackages(): Set<String> {
+    private fun resolvePackages(): BlockExemptPackages {
         val packageManager = context.packageManager
         return BlockExemptPackagePolicy.exemptPackages(
             homePackages = homePackages(packageManager),

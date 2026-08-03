@@ -118,6 +118,9 @@ fun EmergencyUnlockBottomSheetContent(
         blockedApps,
         appDisplayMetadataResolver,
     ) {
+        // produceState keeps the previous value across a key change, which would render rows for
+        // the old blocked set — and accept a tap on one — until the new resolution lands.
+        value = emptyMap()
         value = withContext(Dispatchers.IO) {
             blockedApps.associateWith(appDisplayMetadataResolver::resolve)
         }
