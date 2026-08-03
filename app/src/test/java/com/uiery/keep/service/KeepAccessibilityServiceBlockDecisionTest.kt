@@ -112,6 +112,38 @@ class KeepAccessibilityServiceBlockDecisionTest {
     }
 
     @Test
+    fun blockExemptPackageIsNeverBlockedByManualKeep() {
+        val request = resolveForegroundBlockRequest(
+            packageName = HOME_LAUNCHER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(HOME_LAUNCHER),
+                exemptPackages = setOf(HOME_LAUNCHER),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun blockExemptPackageIsNeverBlockedByAnActiveRoutine() {
+        val request = resolveForegroundBlockRequest(
+            packageName = HOME_LAUNCHER,
+            prefs = AccessibilityBlockingPreferences(exemptPackages = setOf(HOME_LAUNCHER)),
+            cachedRoutines = listOf(activeRoutine(id = 42L, targetPackage = HOME_LAUNCHER)),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
     fun manualKeepSelectedPackageDoesNotAttachRoutineId() {
         val request = resolveForegroundBlockRequest(
             packageName = "com.uiery.keep",
@@ -392,5 +424,9 @@ class KeepAccessibilityServiceBlockDecisionTest {
         DayOfWeek.entries.forEach { day ->
             append(if (day == dayOfWeek) '1' else '0')
         }
+    }
+
+    private companion object {
+        const val HOME_LAUNCHER = "com.sec.android.app.launcher"
     }
 }

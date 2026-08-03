@@ -35,6 +35,46 @@ class BlockingStateStoreTest {
     }
 
     @Test
+    fun selectedAppPackagesDropBlockExemptPackagesAlreadyPersistedByOlderVersions() = runBlocking {
+        val dataStore = BlockingFakePreferencesDataStore()
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = setOf(LAUNCHER, WALLET, INSTAGRAM)
+        }
+        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER, WALLET) }
+
+        assertEquals(setOf(INSTAGRAM), store.readSelectedAppPackages())
+        assertEquals(
+            BlockingSelectionState(selectedAppPackages = setOf(INSTAGRAM)),
+            store.readSelectionState(),
+        )
+        assertEquals(setOf(INSTAGRAM), store.accessibilitySnapshot.first().selectedAppPackages)
+    }
+
+    @Test
+    fun savingSelectedAppPackagesNeverPersistsBlockExemptPackages() = runBlocking {
+        val dataStore = BlockingFakePreferencesDataStore()
+        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER) }
+
+        store.saveSelectedAppPackages(setOf(LAUNCHER, INSTAGRAM))
+
+        assertEquals(setOf(INSTAGRAM), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    @Test
+    fun timedLockSessionNeverLocksBlockExemptPackages() = runBlocking {
+        val dataStore = BlockingFakePreferencesDataStore()
+        val store = BlockingStateStore(dataStore) { setOf(LAUNCHER) }
+
+        store.startTimedLockSession(
+            packages = setOf(LAUNCHER, INSTAGRAM),
+            startTimeMillis = 1_000L,
+            encodedDeadline = "2026-08-03T10:00:00",
+        )
+
+        assertEquals(setOf(INSTAGRAM), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    @Test
     fun firstLockDeliveryReservationPersistsPendingThenTransitionsToDeliveredOnce() = runBlocking {
         val dataStore = BlockingFakePreferencesDataStore()
         val store = BlockingStateStore(dataStore)
@@ -175,6 +215,10 @@ class BlockingStateStoreTest {
         assertFalse(store.accessibilitySnapshot.first().preventUninstall)
     }
 }
+
+private const val LAUNCHER = "com.sec.android.app.launcher"
+private const val WALLET = "com.samsung.android.spay"
+private const val INSTAGRAM = "com.instagram.android"
 
 private class BlockingFakePreferencesDataStore(
     initial: Preferences = emptyPreferences(),

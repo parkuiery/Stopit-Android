@@ -1,6 +1,7 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockPolicy
@@ -17,6 +18,11 @@ data class AccessibilityBlockingPreferences(
     val isKeep: Boolean = false,
     val lockTime: String? = null,
     val selectedAppPackages: Set<String> = emptySet(),
+    /**
+     * Device essentials that stay reachable no matter which lock is running. Blocking the home
+     * launcher in particular would trap the user in a home -> block screen -> home loop.
+     */
+    val exemptPackages: Set<String> = emptySet(),
 )
 
 data class ForegroundBlockRequest(
@@ -63,6 +69,7 @@ internal fun resolveForegroundBlockRequest(
     isDuplicateBlock: Boolean,
 ): ForegroundBlockRequest? {
     if (isEmergencyUnlocked) return null
+    if (BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages)) return null
     if (parentModeSession != null && packageName in parentControlPackages) return null
 
     val isLockTime = ManualLockTimePolicy.isActiveAt(

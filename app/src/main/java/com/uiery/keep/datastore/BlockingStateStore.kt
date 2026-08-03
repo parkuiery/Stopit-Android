@@ -4,6 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -15,30 +17,36 @@ import javax.inject.Singleton
  *
  * Preference keys stay unchanged for backwards compatibility; feature and service code should use
  * this store instead of reading/writing raw [PreferencesKey] lock/session keys directly.
+ *
+ * Selected packages are filtered through [BlockExemptPackagePolicy] on the way in and out, so
+ * device essentials an older build persisted via "select all" stop being blocked and stop crowding
+ * the emergency unlock picker without needing a one-off data migration.
  */
 @Singleton
 class BlockingStateStore @Inject constructor(
     @KeepDataSource private val dataStore: DataStore<Preferences>,
+    private val blockExemptPackageProvider: BlockExemptPackageProvider = BlockExemptPackageProvider.None,
 ) {
     val accessibilitySnapshot: Flow<AccessibilityBlockingSnapshot> =
         dataStore.data.map { preferences ->
             AccessibilityBlockingSnapshot(
                 isKeep = preferences[PreferencesKey.IS_KEEP] ?: false,
                 lockTime = preferences[PreferencesKey.LOCK_TIME],
-                selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty(),
+                selectedAppPackages = preferences.blockablePackages(),
                 preventUninstall = preferences[PreferencesKey.PREVENT_UNINSTALL] ?: true,
                 emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS].orEmpty(),
                 emergencyUnlockExpireTimeMillis = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
+                exemptPackages = blockExemptPackageProvider.exemptPackages(),
             )
         }
 
     suspend fun readSelectedAppPackages(): Set<String> =
-        dataStore.data.first()[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty()
+        dataStore.data.first().blockablePackages()
 
     suspend fun readSelectionState(): BlockingSelectionState {
         val preferences = dataStore.data.first()
         return BlockingSelectionState(
-            selectedAppPackages = preferences[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty(),
+            selectedAppPackages = preferences.blockablePackages(),
             hasTrackedFirstLockConfigured =
                 preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true ||
                     preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null,
@@ -46,10 +54,17 @@ class BlockingStateStore @Inject constructor(
     }
 
     suspend fun saveSelectedAppPackages(packages: Set<String>) {
+        val blockablePackages = packages.blockable()
         dataStore.edit { preferences ->
-            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
+            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = blockablePackages
         }
     }
+
+    private fun Preferences.blockablePackages(): Set<String> =
+        this[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty().blockable()
+
+    private fun Set<String>.blockable(): Set<String> =
+        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages())
 
     suspend fun setIsNew(isNew: Boolean) {
         dataStore.edit { preferences ->
@@ -218,7 +233,7 @@ class BlockingStateStore @Inject constructor(
                     encodedDeadline = preferences[PreferencesKey.LOCK_TIME],
                 ),
             )
-            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages
+            preferences[PreferencesKey.SELECTED_APP_PACKAGES] = packages.blockable()
             preferences[PreferencesKey.START_TIME] = startTimeMillis
             preferences[PreferencesKey.LOCK_TIME] = encodedDeadline
         }
@@ -284,6 +299,7 @@ data class AccessibilityBlockingSnapshot(
     val preventUninstall: Boolean = true,
     val emergencyUnlockApps: Set<String> = emptySet(),
     val emergencyUnlockExpireTimeMillis: Long = 0L,
+    val exemptPackages: Set<String> = emptySet(),
 )
 
 data class BlockingSelectionState(

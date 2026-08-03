@@ -17,10 +17,12 @@ object SelectableAppPolicy {
     fun filterSelectableApps(
         candidates: List<SelectableAppCandidate>,
         ownPackageName: String = "com.uiery.keep",
+        exemptPackages: Set<String> = emptySet(),
     ): List<SelectableAppCandidate> = candidates
         .asSequence()
         .filter { candidate -> candidate.hasLaunchIntent }
         .filterNot { candidate -> candidate.packageName == ownPackageName }
+        .filterNot { candidate -> BlockExemptPackagePolicy.isExempt(candidate.packageName, exemptPackages) }
         .sortedWith(
             compareBy(String.CASE_INSENSITIVE_ORDER, SelectableAppCandidate::appName)
                 .thenBy { it.packageName },
