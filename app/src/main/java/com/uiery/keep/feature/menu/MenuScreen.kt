@@ -8,8 +8,9 @@ import android.os.Build
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -103,6 +104,14 @@ fun MenuScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
+            // 메뉴 항목 수는 고정이 아니다. 광고 개인정보 항목이 동의 상태에 따라 붙고, 글자 크기
+            // 설정이 커지면 행 높이도 자란다. 스크롤 표면이 없으면 넘친 부분에 닿을 방법이 없다.
+            // 배너는 지금처럼 하단에 고정되도록 스크롤 밖에 둔다.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
             MenuItem(
                 icon = R.drawable.ic_routine,
                 title = stringResource(id = R.string.routine),
@@ -221,7 +230,7 @@ fun MenuScreen(
                     }
                 },
             )
-            Spacer(modifier = Modifier.weight(1f))
+            }
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
                 metadata = AdPlacement.MenuBottom.toMetadata(
