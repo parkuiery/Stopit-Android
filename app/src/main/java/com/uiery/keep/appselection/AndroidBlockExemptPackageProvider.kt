@@ -39,15 +39,14 @@ class AndroidBlockExemptPackageProvider @Inject constructor(
     }
 
     /**
-     * Every installed launcher, not just the active one, so switching launchers mid-lock cannot
-     * strand the user on a blocked home screen.
+     * The active home launcher only. Enumerating every installed launcher would mean a broad
+     * package query, which `docs/QUERY_ALL_PACKAGES_POLICY.md` keeps confined to
+     * [InstalledAppRepository], so this resolves the single current holder instead.
      */
-    private fun homePackages(packageManager: PackageManager): Set<String> = runCatching {
+    private fun homePackages(packageManager: PackageManager): Set<String> {
         val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        packageManager
-            .queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
-            .mapNotNullTo(linkedSetOf()) { it.activityInfo?.packageName }
-    }.getOrDefault(emptySet())
+        return setOfNotNull(resolvePackage(packageManager, homeIntent))
+    }
 
     private fun resolvePackage(packageManager: PackageManager, intent: Intent): String? = runCatching {
         intent.resolveActivity(packageManager)?.packageName

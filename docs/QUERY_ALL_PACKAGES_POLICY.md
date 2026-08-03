@@ -9,6 +9,7 @@
 - 코드 소유권: broad package visibility query는 `app/src/main/java/com/uiery/keep/appselection/InstalledAppRepository.kt`만 소유한다.
 - 정책 소유권: filtering/sorting/자기 앱 제외/launch intent 없는 앱 제외는 `SelectableAppPolicy`가 소유하고 JVM 테스트로 고정한다.
 - UI 경계: onboarding/Home/Routine picker UI는 `InstalledAppRepository`/`SelectableAppPolicy` 경계를 소비할 수 있지만 `PackageManager.getInstalledApplications(...)`, `queryIntentActivities(...)`, raw package scan을 직접 소유하지 않는다.
+- 차단 면제 경계: `AndroidBlockExemptPackageProvider`는 홈 런처/설정/전화/문자/기본 결제 앱을 `resolveActivity(...)`와 role API로 **단건 조회**만 하고 설치 앱을 열거하지 않는다. 결과는 `BlockExemptPackagePolicy`가 차단 대상에서 제외하는 데만 쓰이며 picker 후보를 만드는 데 쓰이지 않는다.
 
 ## 왜 필요한가
 
