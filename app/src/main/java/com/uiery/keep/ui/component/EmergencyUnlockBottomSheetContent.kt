@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -62,8 +63,11 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
+import com.uiery.keep.util.AppDisplayMetadata
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 private data class UnlockReason(val stringRes: Int, val key: String)
 
@@ -104,6 +108,26 @@ fun EmergencyUnlockBottomSheetContent(
 
     LaunchedEffect(state.analyticsStepName) {
         onStepViewed(state.analyticsStepName)
+    }
+
+    // Resolved when the sheet opens rather than when the app step appears, so the reason step
+    // covers the PackageManager work and the list is ready by the time the user gets there.
+    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
+    val appMetadataByPackage by produceState(
+        initialValue = emptyMap<String, AppDisplayMetadata>(),
+        blockedApps,
+        appDisplayMetadataResolver,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            blockedApps.associateWith(appDisplayMetadataResolver::resolve)
+        }
+    }
+    val orderedApps = remember(appMetadataByPackage) {
+        EmergencyUnlockAppListPolicy.orderApps(
+            appMetadataByPackage.map { (packageName, metadata) ->
+                EmergencyUnlockSelectableApp(packageName = packageName, label = metadata.label)
+            },
+        )
     }
 
     fun submitUnlock() {
@@ -165,7 +189,9 @@ fun EmergencyUnlockBottomSheetContent(
                     onNext = { advanceOrReportValidation() },
                 )
                 EmergencyUnlockBottomSheetStep.APPS -> AppSelectionStep(
-                    blockedApps = state.blockedApps,
+                    apps = orderedApps,
+                    metadataByPackage = appMetadataByPackage,
+                    isLoading = state.blockedApps.isNotEmpty() && appMetadataByPackage.isEmpty(),
                     selectedApps = state.selectedApps,
                     stepHelperTextRes = state.stepHelperTextRes,
                     validationHelperTextRes = state.validationHelperTextRes,
@@ -334,7 +360,9 @@ private fun ReasonStep(
 
 @Composable
 private fun AppSelectionStep(
-    blockedApps: Set<String>,
+    apps: List<EmergencyUnlockSelectableApp>,
+    metadataByPackage: Map<String, AppDisplayMetadata>,
+    isLoading: Boolean,
     selectedApps: Set<String>,
     stepHelperTextRes: Int?,
     validationHelperTextRes: Int?,
@@ -342,9 +370,12 @@ private fun AppSelectionStep(
     onNext: () -> Unit,
 ) {
     val context = LocalContext.current
-    val appDisplayMetadataResolver = rememberAppDisplayMetadataResolver()
     val density = context.resources.displayMetrics.density
     val iconSizePx = (40 * density).toInt()
+    var searchQuery by remember(apps) { mutableStateOf("") }
+    val visibleApps = remember(apps, searchQuery) {
+        EmergencyUnlockAppListPolicy.filterApps(apps, searchQuery)
+    }
 
     Column {
         Text(
@@ -355,14 +386,32 @@ private fun AppSelectionStep(
         )
         StepHelperText(stepHelperTextRes)
         Spacer(modifier = Modifier.height(20.dp))
+        if (EmergencyUnlockAppListPolicy.showsSearch(apps.size)) {
+            SearchTextField(
+                modifier = Modifier.testTag("emergency_unlock_app_search"),
+                value = { searchQuery },
+                hint = stringResource(R.string.search),
+                onValueChange = { searchQuery = it },
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 40.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = KeepTheme.colors.primary)
+            }
+        }
         LazyColumn(
             modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(blockedApps.toList()) { packageName ->
-                val appMetadata = remember(packageName, appDisplayMetadataResolver) {
-                    appDisplayMetadataResolver.resolve(packageName)
-                }
+            items(visibleApps, key = { it.packageName }) { app ->
+                val packageName = app.packageName
+                val appIcon = metadataByPackage[packageName]?.icon
                 val isSelected = selectedApps.contains(packageName)
                 Row(
                     modifier = Modifier
@@ -387,16 +436,18 @@ private fun AppSelectionStep(
                         onCheckedChange = null,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Image(
-                        bitmap = appMetadata.icon.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
-                        contentDescription = appMetadata.contentDescription,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    if (appIcon != null) {
+                        Image(
+                            bitmap = appIcon.toBitmap(iconSizePx, iconSizePx).asImageBitmap(),
+                            contentDescription = app.label,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
                     Text(
-                        text = appMetadata.label,
+                        text = app.label,
                         color = KeepTheme.colors.onSurfaceVariant,
                         fontSize = 15.sp,
                         fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
