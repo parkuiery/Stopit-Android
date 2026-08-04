@@ -537,7 +537,7 @@
     <string name="lock_target_selection" tools:ignore="MissingTranslation">Choose what to block</string>
     <string name="lock_target_apps" tools:ignore="MissingTranslation">Apps</string>
     <string name="lock_target_websites" tools:ignore="MissingTranslation">Websites</string>
-    <string name="website_lock_description" tools:ignore="MissingTranslation">Websites are managed separately from apps and blocked in supported browsers during a lock.</string>
+    <string name="website_lock_description" tools:ignore="MissingTranslation">Websites are managed separately from apps and blocked in supported browsers during a lock. Browser or device secure DNS settings can bypass this blocking.</string>
     <string name="website_domain_hint" tools:ignore="MissingTranslation">example.com</string>
     <string name="website_domain_invalid" tools:ignore="MissingTranslation">Enter a valid website domain.</string>
     <string name="website_lock_empty" tools:ignore="MissingTranslation">No websites selected.</string>
@@ -545,8 +545,22 @@
     <string name="website_lock_selected" tools:ignore="MissingTranslation">Selected websites</string>
     <string name="website_lock_recommendation_title" tools:ignore="MissingTranslation">Block the website too?</string>
     <string name="website_lock_recommendation_message" tools:ignore="MissingTranslation">You selected %1$s. Add its website to your web lock list?</string>
+    <string name="website_lock_recommendation_domains" tools:ignore="MissingTranslation">Websites to add: %1$s</string>
     <string name="website_lock_recommendation_accept" tools:ignore="MissingTranslation">Add websites</string>
     <string name="website_lock_recommendation_skip" tools:ignore="MissingTranslation">Not now</string>
+    <string name="website_blocking_consent_denied" tools:ignore="MissingTranslation">Without VPN permission websites are not blocked. The lock still runs.</string>
+    <string name="website_blocking_other_vpn_title" tools:ignore="MissingTranslation">Disconnect the other VPN?</string>
+    <string name="website_blocking_other_vpn_message" tools:ignore="MissingTranslation">Another VPN is active. Website blocking uses a VPN and Android allows only one at a time, so continuing disconnects that VPN, and it will not come back on its own when the lock ends.</string>
+    <string name="website_blocking_other_vpn_confirm" tools:ignore="MissingTranslation">Disconnect and block</string>
+    <string name="website_blocking_other_vpn_skip" tools:ignore="MissingTranslation">Lock without web blocking</string>
+    <string name="website_blocking_unavailable_consent" tools:ignore="MissingTranslation">Websites are not being blocked because VPN permission was declined</string>
+    <string name="website_blocking_unavailable_conflict" tools:ignore="MissingTranslation">Websites are not being blocked because another VPN is active</string>
+    <string name="keep_on_message_websites" tools:ignore="MissingTranslation">Selected websites cannot be used while StopIt is on</string>
+    <string name="keep_on_message_apps_and_websites" tools:ignore="MissingTranslation">Selected apps and websites cannot be used while StopIt is on</string>
+    <string name="lock_screen_unavailable_message_websites" tools:ignore="MissingTranslation">Selected websites are unavailable until %1$s</string>
+    <string name="lock_screen_unavailable_message_websites_with_date" tools:ignore="MissingTranslation">Selected websites are unavailable until %1$s</string>
+    <string name="lock_screen_unavailable_message_apps_and_websites" tools:ignore="MissingTranslation">Selected apps and websites are unavailable until %1$s</string>
+    <string name="lock_screen_unavailable_message_apps_and_websites_with_date" tools:ignore="MissingTranslation">Selected apps and websites are unavailable until %1$s</string>
     <string name="add" tools:ignore="MissingTranslation">Add</string>
     <string name="delete" tools:ignore="MissingTranslation">Delete</string>
     <string name="lock_targets_selected" tools:ignore="MissingTranslation">%1$d apps · %2$d websites selected</string>

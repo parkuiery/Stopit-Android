@@ -72,6 +72,8 @@ class KeepDnsVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP || intent?.getBooleanExtra(EXTRA_STOP, false) == true) {
             shutdown()
+            // 요청에 의한 종료다. 지난 실패 경고까지 여기서 함께 걷어낸다.
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -99,12 +101,15 @@ class KeepDnsVpnService : VpnService() {
 
     override fun onRevoke() {
         shutdown()
+        // 잠금은 그대로인데 차단만 사라진 상태다. 조용히 끝내면 막히고 있다고 오해한다.
+        WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Unavailable)
         stopSelf()
         super.onRevoke()
     }
 
     override fun onDestroy() {
         shutdown()
+        WebsiteBlockingRuntimeState.clearActive()
         super.onDestroy()
     }
 
@@ -159,6 +164,9 @@ class KeepDnsVpnService : VpnService() {
         }
         if (descriptor == null) {
             AppLogger.debug(DIAGNOSTIC_TAG, "stop_reason=tun_establish_failed")
+            // 동의는 받았는데 TUN 을 세우지 못했다. 다른 VPN 이 슬롯을 쥐고 있는 경우가
+            // 대표적이다. 잠금은 유지되지만 웹사이트는 막히지 않으므로 화면이 알려야 한다.
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Unavailable)
             stopFromWorker(session)
             return
         }
@@ -173,6 +181,7 @@ class KeepDnsVpnService : VpnService() {
             }
             tunHandle = TunHandle(session, descriptor)
         }
+        WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Active)
         try {
             createUpstreamEndpointPool(upstream).use { upstreamPool ->
                 FileInputStream(descriptor.fileDescriptor).use { input ->
