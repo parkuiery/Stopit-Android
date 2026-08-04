@@ -73,6 +73,7 @@ import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepSnackbarHost
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
 import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.AdPlacementMetadata
@@ -91,7 +92,10 @@ import com.uiery.keep.feature.routine.createExactAlarmSettingsIntent
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
+import com.uiery.keep.ui.component.WebsiteBlockingUnavailableBanner
+import com.uiery.keep.ui.component.WebsiteLockRecommendationDialog
 import com.uiery.kds.KeepSwitch
+import com.uiery.keep.websiteblocking.WebsiteBlockingVpnController
 import com.uiery.keep.util.hasAccessibilityPermission
 import com.uiery.keep.util.requestAccessibilityPermission
 import kotlinx.coroutines.delay
@@ -207,23 +211,50 @@ fun HomeScreen(
         )
     }
 
+    // 잠금이 켜지고 꺼지는 것을 따라 웹 차단 VPN 도 서고 내린다. 시스템 동의는 액티비티
+    // 결과로만 받을 수 있어 이 판단이 화면에 붙어 있다.
+    val websiteBlockingConsentDeniedMessage = stringResource(R.string.website_blocking_consent_denied)
+    WebsiteBlockingVpnController(
+        decision = uiState.websiteBlockingRuntimeDecision(),
+        onConsentDenied = { viewModel.showSnackBar(websiteBlockingConsentDeniedMessage) },
+    )
+
+    // 웹사이트 탭이 닫혀 있는 빌드에서는 추천도 꺼낼 자리가 없다.
+    if (BuildConfig.WEBSITE_BLOCKING_ENABLED) {
+        WebsiteLockRecommendationDialog(
+            recommendations = uiState.pendingWebsiteRecommendations,
+            onConfirm = viewModel::acceptWebsiteLockRecommendations,
+            onDismiss = viewModel::dismissWebsiteLockRecommendations,
+        )
+    }
+
     if (uiState.isShowCategoryBottomSheet) {
+        val closeCategoryBottomSheet = {
+            coroutineScope
+                .launch {
+                    categoryBottomSheetState.hide()
+                }.invokeOnCompletion {
+                    if (!categoryBottomSheetState.isVisible) {
+                        viewModel.hideCategoryBottomSheet()
+                    }
+                }
+            Unit
+        }
         KeepModalBottomSheet(
             sheetState = categoryBottomSheetState,
             onDismissRequest = viewModel::hideCategoryBottomSheet,
         ) {
             CategoryBottomSheetContent(
                 storeSelectApps = uiState.selectedAppPackage,
+                websiteSelectionEnabled = BuildConfig.WEBSITE_BLOCKING_ENABLED,
+                storeSelectedWebDomains = uiState.selectedWebDomains,
+                onCompleteTargets = { selectPackages, selectWebDomains ->
+                    viewModel.selectLockTargetsComplete(selectPackages, selectWebDomains)
+                    closeCategoryBottomSheet()
+                },
                 onComplete = { selectPackages ->
                     viewModel.selectCategoryComplete(selectPackages)
-                    coroutineScope
-                        .launch {
-                            categoryBottomSheetState.hide()
-                        }.invokeOnCompletion {
-                            if (!categoryBottomSheetState.isVisible) {
-                                viewModel.hideCategoryBottomSheet()
-                            }
-                        }
+                    closeCategoryBottomSheet()
                 },
             )
         }
@@ -243,8 +274,9 @@ fun HomeScreen(
                 onLockClick = {
                     viewModel.lockTime()
                     // 차단 대상이 없으면 lockTime 이 선택 시트를 연다. 그 위에서 시간 시트를 닫고
-                    // 잠금 화면으로 넘기면 방금 연 시트를 덮어버린다.
-                    if (uiState.selectedAppPackage.isNotEmpty()) {
+                    // 잠금 화면으로 넘기면 방금 연 시트를 덮어버린다. 웹사이트만 고른 잠금도
+                    // 대상이 있는 잠금이므로 같은 경로를 탄다.
+                    if (uiState.hasSelectedLockTargets()) {
                         coroutineScope
                             .launch {
                                 timeBottomSheetState.hide()
@@ -308,6 +340,11 @@ fun HomeScreen(
             categorySize = uiState.selectedAppPackage.size,
             websiteSize = uiState.selectedWebDomains.size,
         )
+        // 수동 잠금은 잠금 화면으로 넘어가지 않는다. 홈에 머무는 사용자도 웹 차단이
+        // 서지 못했다는 사실을 같은 방식으로 알아야 한다.
+        WebsiteBlockingUnavailableBanner(
+            hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+        )
         // 카드는 한 번에 한 장만 노출한다. 선택되지 않은 후보는 조건이 유지되는 한 다음
         // 방문에서 다시 올라온다.
         val cardModifier = Modifier
@@ -359,7 +396,7 @@ fun HomeScreen(
                                 .clearAndSetSemantics { }
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                    if (!uiState.isKeep && !uiState.hasSelectedLockTargets()) {
                                         viewModel.changeIsKeep()
                                     } else {
                                         viewModel.showSnackBar(message)
@@ -399,7 +436,7 @@ fun HomeScreen(
                             },
                             checked = uiState.isKeep,
                             onCheckedChange = {
-                                if (!uiState.isKeep && uiState.selectedAppPackage.isEmpty()) {
+                                if (!uiState.isKeep && !uiState.hasSelectedLockTargets()) {
                                     viewModel.changeIsKeep()
                                 } else {
                                     viewModel.showSnackBar(message)
@@ -434,6 +471,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     isKeep = uiState.isKeep,
                     startTime = uiState.startTime,
+                    lockTargetKind = uiState.lockTargetKind(),
                 )
                 TrackedBannerAd(
                     metadata = AdPlacementMetadata(

@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.lock
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +52,9 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.domain.lock.LockTargetKind
 import com.uiery.keep.ui.component.CategoryButton
+import com.uiery.keep.ui.component.WebsiteBlockingUnavailableBanner
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
@@ -177,6 +181,9 @@ fun LockScreen(
                     )
                 }
             }
+            WebsiteBlockingUnavailableBanner(
+                hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,11 +251,16 @@ fun LockScreen(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = if (isMultiDay) {
-                        stringResource(R.string.lock_screen_unavailable_message_with_date, formattedTime)
-                    } else {
-                        stringResource(R.string.lock_screen_unavailable_message, formattedTime)
-                    },
+                    text = stringResource(
+                        lockUnavailableMessageRes(
+                            lockTargetKind = LockTargetKind.of(
+                                hasApps = uiState.selectedAppPackage.isNotEmpty(),
+                                hasWebsites = uiState.selectedWebDomains.isNotEmpty(),
+                            ),
+                            isMultiDay = isMultiDay,
+                        ),
+                        formattedTime,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                     color = KeepTheme.colors.surfaceVariant,
                     textAlign = TextAlign.Center,
@@ -279,6 +291,28 @@ fun LockScreen(
                     }
                 }
             }
+    }
+}
+
+@StringRes
+internal fun lockUnavailableMessageRes(
+    lockTargetKind: LockTargetKind,
+    isMultiDay: Boolean,
+): Int = when (lockTargetKind) {
+    LockTargetKind.Apps -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_with_date
+    } else {
+        R.string.lock_screen_unavailable_message
+    }
+    LockTargetKind.Websites -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_websites_with_date
+    } else {
+        R.string.lock_screen_unavailable_message_websites
+    }
+    LockTargetKind.AppsAndWebsites -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_apps_and_websites_with_date
+    } else {
+        R.string.lock_screen_unavailable_message_apps_and_websites
     }
 }
 

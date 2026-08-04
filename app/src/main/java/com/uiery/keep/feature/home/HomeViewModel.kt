@@ -43,7 +43,10 @@ import com.uiery.keep.data.usageinsight.UsageInsightCardResult
 import com.uiery.keep.data.usageinsight.UsageInsightRepository
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.domain.usageinsight.toRoutinePrefill
+import com.uiery.keep.domain.lock.LockTargetKind
 import com.uiery.keep.domain.websiteblocking.DomainName
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimePolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendation
 import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendationPolicy
 import com.uiery.keep.feature.home.component.UsageInsightCardUiState
@@ -1037,6 +1040,21 @@ data class HomeUiState(
 ) {
     fun hasSelectedLockTargets(): Boolean =
         selectedAppPackage.isNotEmpty() || selectedWebDomains.isNotEmpty()
+
+    fun websiteBlockingRuntimeDecision(): WebsiteBlockingRuntimeDecision =
+        WebsiteBlockingRuntimePolicy.decide(
+            runtimeStateLoaded = websiteBlockingRuntimeStateLoaded(),
+            isKeep = isKeep,
+            hasActiveTimedLock = hasActiveTimedLock,
+            timedLockDeadlineMillis = activeTimedLockDeadlineMillis,
+            selectedWebDomains = selectedWebDomains,
+        )
+
+    fun lockTargetKind(): LockTargetKind =
+        LockTargetKind.of(
+            hasApps = selectedAppPackage.isNotEmpty(),
+            hasWebsites = selectedWebDomains.isNotEmpty(),
+        )
 
     fun websiteBlockingRuntimeStateLoaded(): Boolean =
         blockingTargetsLoaded && isKeepStateLoaded && activeTimedLockStateLoaded
