@@ -1,7 +1,10 @@
 package com.uiery.keep.ui.component
 
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -66,7 +69,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_step_purpose)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_helper)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_required_helper)).assertExists()
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
 
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_duration_step_purpose)).assertExists()
@@ -121,7 +124,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         }
 
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_apps)).assertExists()
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
 
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
@@ -160,7 +163,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
@@ -209,12 +212,86 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
         assertEquals(listOf("app_selection" to "missing_app_selection"), validationEvents)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_apps)).assertExists()
 
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
 
         assertEquals(listOf("app_selection" to "missing_app_selection"), validationEvents)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
     }
+
+    @Test
+    fun longAppListOffersSearchThatNarrowsDownToTheAppBeingUnlocked() {
+        val blockedApps = (1..12).map { "com.example.blocked$it" }.toSet()
+        val target = "com.example.blocked7"
+        val unlockedRequests = mutableListOf<EmergencyUnlockBottomSheetRequest>()
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = blockedApps,
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onUnlock = { reason, customReason, apps, durationMinutes ->
+                        unlockedRequests += EmergencyUnlockBottomSheetRequest(
+                            reason = reason,
+                            customReason = customReason,
+                            apps = apps,
+                            durationMinutes = durationMinutes,
+                        )
+                    },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        // Labels fall back to package names, so sorted order is lexicographic and blocked1 comes
+        // first. Asserting on what search leaves behind keeps this independent of how many rows the
+        // viewport composes.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("emergency_unlock_app_com.example.blocked1")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("emergency_unlock_app_search").assertExists()
+
+        composeRule.onNode(hasSetTextAction()).performTextInput("blocked7")
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("emergency_unlock_app_$target").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("emergency_unlock_app_com.example.blocked1").assertDoesNotExist()
+        composeRule.onNodeWithTag("emergency_unlock_app_com.example.blocked12").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("emergency_unlock_app_$target").performClick()
+        composeRule.onNodeWithText(context().getString(R.string.emergency_unlock_next)).performClick()
+        composeRule.onNodeWithText(context().getString(R.string.emergency_unlock_request)).performClick()
+        composeRule.mainClock.autoAdvance = false
+        repeat(30) { composeRule.mainClock.advanceTimeBy(1_000) }
+
+        assertEquals(setOf(target), unlockedRequests.single().apps)
+    }
+
+    @Test
+    fun shortAppListHidesSearchSoTheListKeepsTheSpace() {
+        val packageName = context().packageName
+
+        composeRule.setContent {
+            KeepTheme {
+                EmergencyUnlockBottomSheetContent(
+                    blockedApps = setOf(packageName),
+                    durationOptions = listOf(5, 10),
+                    reasonStepEnabled = false,
+                    onUnlock = { _, _, _, _ -> },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("emergency_unlock_app_$packageName").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("emergency_unlock_app_search").assertDoesNotExist()
+    }
+
+    private fun context() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
     fun countdownStepExposesTalkBackDescriptionWithRemainingSecondsAndCancelHint() {
@@ -233,7 +310,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
 
@@ -271,7 +348,7 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithTag("emergency_unlock_app_$packageName").performClick()
+        composeRule.clickEmergencyUnlockApp(packageName)
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_select_duration)).assertExists()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_request)).performClick()
@@ -295,4 +372,16 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
             unlockedRequests,
         )
     }
+}
+
+/**
+ * The app step resolves labels and icons off the main thread, which Compose's idling machinery
+ * does not track, so the row has to be awaited rather than assumed present.
+ */
+private fun ComposeContentTestRule.clickEmergencyUnlockApp(packageName: String) {
+    val tag = "emergency_unlock_app_$packageName"
+    waitUntil(timeoutMillis = 5_000) {
+        onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+    }
+    onNodeWithTag(tag).performClick()
 }

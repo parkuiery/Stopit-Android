@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import com.uiery.keep.BuildConfig
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.domain.usageinsight.AppUsageDay
 import com.uiery.keep.util.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,13 +20,19 @@ import javax.inject.Inject
 
 class AndroidUsageStatsGateway @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val blockExemptPackageProvider: BlockExemptPackageProvider,
 ) : UsageStatsGateway {
 
+    /**
+     * Insight and onboarding recommendations feed straight into blocking targets, so anything the
+     * blocker refuses to act on must never be recommended. Without this a user whose most-used app
+     * is the dialer or the messaging app gets a first promise that can never fire.
+     */
     private val excludedPackages: Set<String> by lazy {
         val settingsPackage = Intent(Settings.ACTION_SETTINGS)
             .resolveActivity(context.packageManager)
             ?.packageName
-        setOfNotNull(settingsPackage)
+        setOfNotNull(settingsPackage) + blockExemptPackageProvider.exemptPackages().all
     }
 
     override fun insightExcludedPackages(): Set<String> = excludedPackages

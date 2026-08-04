@@ -1,6 +1,7 @@
 package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.appselection.BlockExemptPackages
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
@@ -109,6 +110,105 @@ class KeepAccessibilityServiceBlockDecisionTest {
             ),
             request,
         )
+    }
+
+    @Test
+    fun blockExemptPackageIsNeverBlockedByManualKeep() {
+        val request = resolveForegroundBlockRequest(
+            packageName = HOME_LAUNCHER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(HOME_LAUNCHER),
+                exemptPackages = BlockExemptPackages(homePackages = setOf(HOME_LAUNCHER)),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun blockExemptPackageIsNeverBlockedByAnActiveRoutine() {
+        val request = resolveForegroundBlockRequest(
+            packageName = HOME_LAUNCHER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(homePackages = setOf(HOME_LAUNCHER)),
+            ),
+            cachedRoutines = listOf(activeRoutine(id = 42L, targetPackage = HOME_LAUNCHER)),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    @Test
+    fun essentialAppStaysReachableUnderASelfImposedLock() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(SETTINGS),
+                exemptPackages = BlockExemptPackages(essentialPackages = setOf(SETTINGS)),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
+    }
+
+    /**
+     * Parent mode is a supervisor's allowlist. If the essential exemption applied here too, the
+     * supervised user could open Settings and turn the accessibility service off.
+     */
+    @Test
+    fun parentModeKeepsBlockingEssentialAppsItDidNotAllow() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(
+                    homePackages = setOf(HOME_LAUNCHER),
+                    essentialPackages = setOf(SETTINGS),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = SETTINGS,
+                blockSource = AnalyticsBlockSource.PARENT_MODE,
+            ),
+            request,
+        )
+    }
+
+    @Test
+    fun parentModeStillCannotBlockTheHomeLauncher() {
+        val request = resolveForegroundBlockRequest(
+            packageName = HOME_LAUNCHER,
+            prefs = AccessibilityBlockingPreferences(
+                exemptPackages = BlockExemptPackages(homePackages = setOf(HOME_LAUNCHER)),
+            ),
+            cachedRoutines = emptyList(),
+            parentModeSession = activeParentModeSession(allowedApps = emptySet()),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertNull(request)
     }
 
     @Test
@@ -347,7 +447,9 @@ class KeepAccessibilityServiceBlockDecisionTest {
         )
     }
 
-    private fun activeParentModeSession(): ParentModeSession = ParentModeSession(
+    private fun activeParentModeSession(
+        allowedApps: Set<String> = setOf("com.video.app"),
+    ): ParentModeSession = ParentModeSession(
         startedAtMillis = LocalDateTime.of(2026, 5, 27, 10, 0)
             .atZone(ZoneId.systemDefault())
             .toInstant()
@@ -357,7 +459,7 @@ class KeepAccessibilityServiceBlockDecisionTest {
             .toInstant()
             .toEpochMilli(),
         durationMinutes = 1,
-        allowedApps = setOf("com.video.app"),
+        allowedApps = allowedApps,
         state = ParentModeSessionState.Active,
     )
 
@@ -392,5 +494,10 @@ class KeepAccessibilityServiceBlockDecisionTest {
         DayOfWeek.entries.forEach { day ->
             append(if (day == dayOfWeek) '1' else '0')
         }
+    }
+
+    private companion object {
+        const val HOME_LAUNCHER = "com.sec.android.app.launcher"
+        const val SETTINGS = "com.android.settings"
     }
 }

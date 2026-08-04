@@ -4,6 +4,8 @@ import com.uiery.keep.analytics.AnalyticsScheduleType
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.TimedLockSessionOwnership
@@ -46,6 +48,7 @@ class TimedLockSessionController @Inject constructor(
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
     private val clock: Clock,
+    private val blockExemptPackageProvider: BlockExemptPackageProvider = BlockExemptPackageProvider.None,
     private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
         FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : TimedLockStarter {
@@ -57,7 +60,14 @@ class TimedLockSessionController @Inject constructor(
         origin: TimedLockStartOrigin,
         targetDeadline: Instant?,
     ): TimedLockStartResult = startMutex.withLock {
-        if (packages.isEmpty()) return TimedLockStartResult.EmptyApps
+        // Filter before the empty check. The store drops exempt packages on write, so checking the
+        // raw input would let an all-exempt request persist an empty set and still report Started —
+        // a full lock screen and countdown that blocks nothing.
+        val blockablePackages = BlockExemptPackagePolicy.filterBlockable(
+            packages = packages,
+            exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+        )
+        if (blockablePackages.isEmpty()) return TimedLockStartResult.EmptyApps
         if (targetDeadline == null && durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration
         val now = clock.instant()
         if (ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime(), now, clock.zone)) {
@@ -68,7 +78,7 @@ class TimedLockSessionController @Inject constructor(
         if (!deadline.isAfter(now)) return TimedLockStartResult.InvalidDuration
         val encodedDeadline = ManualLockTimePolicy.encodeDeadline(deadline)
         val ownership = blockingStateStore.startTimedLockSession(
-            packages = packages,
+            packages = blockablePackages,
             startTimeMillis = now.toEpochMilli(),
             encodedDeadline = encodedDeadline,
         )
@@ -80,7 +90,7 @@ class TimedLockSessionController @Inject constructor(
         val firstLockConfigured = origin is TimedLockStartOrigin.Home &&
             firstLockDelivery.reserveIfNeeded(
                 source = AnalyticsSource.HOME_TIMER,
-                selectedAppCount = packages.size,
+                selectedAppCount = blockablePackages.size,
             )
         TimedLockStartResult.Started(
             encodedDeadline = encodedDeadline,
@@ -88,7 +98,8 @@ class TimedLockSessionController @Inject constructor(
             ownership = ownership,
             analyticsScheduleType = scheduleType,
             analyticsDurationMinutes = durationMinutes,
-            firstLockSelectedAppCount = packages.size.takeIf { firstLockConfigured },
+            // Must match the count reserved above, or rollback cannot release the pending delivery.
+            firstLockSelectedAppCount = blockablePackages.size.takeIf { firstLockConfigured },
         )
     }
 

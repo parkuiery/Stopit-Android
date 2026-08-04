@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.lock
 
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.currentRoutineWindowStartDateTime
 import com.uiery.keep.util.currentRoutineWindowEndDateTime
@@ -17,6 +18,7 @@ internal data class ActiveRoutineLockState(
 internal fun resolveActiveRoutineLockState(
     routines: List<RoutineModel>,
     nowDateTime: LocalDateTime = LocalDateTime.now(),
+    exemptPackages: Set<String> = emptySet(),
 ): ActiveRoutineLockState {
     val activeRoutines =
         routines.filter { routine ->
@@ -39,9 +41,12 @@ internal fun resolveActiveRoutineLockState(
     }
 
     val blockedApps =
-        activeRoutines
-            .flatMap { it.lockApplications.orEmpty() }
-            .toCollection(linkedSetOf())
+        BlockExemptPackagePolicy.filterBlockable(
+            packages = activeRoutines
+                .flatMap { it.lockApplications.orEmpty() }
+                .toCollection(linkedSetOf()),
+            exemptPackages = exemptPackages,
+        )
     val startTime =
         activeRoutines.minOf { routine ->
             currentRoutineWindowStartDateTime(

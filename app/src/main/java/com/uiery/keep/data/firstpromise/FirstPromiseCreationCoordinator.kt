@@ -3,6 +3,8 @@ package com.uiery.keep.data.firstpromise
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.FirstLockConfiguredDeliveryCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.FirstPromiseDraftStore
 import com.uiery.keep.domain.firstpromise.FirstPromiseDraft
@@ -35,6 +37,7 @@ class FirstPromiseCreationCoordinator @Inject constructor(
     private val draftStore: FirstPromiseDraftStore,
     private val blockingStateStore: BlockingStateStore,
     private val analytics: KeepAnalytics,
+    private val blockExemptPackageProvider: BlockExemptPackageProvider = BlockExemptPackageProvider.None,
     private val firstLockDelivery: FirstLockConfiguredDeliveryCoordinator =
         FirstLockConfiguredDeliveryCoordinator(blockingStateStore, analytics),
 ) : FirstPromisePersistenceCoordinator {
@@ -86,6 +89,14 @@ class FirstPromiseCreationCoordinator @Inject constructor(
 
     override suspend fun persistCurrentDraft(): FirstPromisePersistenceResult {
         val draft = draftStore.readState().draft ?: return FirstPromisePersistenceResult.MissingDraft
+        // Routine lockApplications never passes through BlockingStateStore, so an exempt package
+        // would persist a routine that looks enabled and can never fire. Drafts recommended before
+        // 1.7.12 can still name one.
+        if (BlockExemptPackagePolicy.isExempt(draft.packageName, blockExemptPackageProvider.exemptPackages().all)) {
+            return FirstPromisePersistenceResult.Failed(
+                IllegalStateException("First promise target ${draft.packageName} is exempt from blocking"),
+            )
+        }
         val creation = try {
             creator.createFirstPromise(draft, draft.toRoutine())
         } catch (cancellation: CancellationException) {
