@@ -40,12 +40,21 @@ The service is non-exported, so start and stop the spike through the exported ac
 ## Product Integration Status
 
 - Home manages app and website targets as separate tabs and persists them under separate DataStore keys.
-- Selecting a supported app can produce a curated website recommendation; domains are added only
-  after explicit user confirmation.
+  The website tab is gated by `BuildConfig.WEBSITE_BLOCKING_ENABLED`: `true` in the `dev` flavor,
+  `false` in `prod` until the runtime wiring below exists.
+- Selecting a supported app can produce a curated website recommendation; the recommendation state is
+  computed and stored, but the confirmation UI that surfaces it is not implemented yet.
 - Manual Keep mode and timed locks accept app targets, website targets, or both.
-- Home requests system VPN consent when a lock with website targets becomes active, then sends the
-  complete normalized domain set to `KeepDnsVpnService`.
-- A timed lock passes its deadline to the service so the VPN stops even if Home is not visible.
+- Home requests system VPN consent when a lock with website targets becomes active, then starts
+  `KeepDnsVpnService` with the normalized domain set. A timed lock also passes its deadline, so the
+  service stops on time even when no Keep screen is composed.
+- Declining consent does not cancel the lock. The app-blocking side of the lock keeps running and the
+  user is told that websites are not blocked (snackbar plus a persistent banner on Home and the lock
+  screen). The consent prompt is not raised again until that lock ends.
+- `WebsiteBlockingRuntimeState` carries the difference between "lock is on" and "websites are actually
+  blocked". The service publishes `Unavailable` when the TUN cannot be established (another VPN owns
+  the slot) or when consent is revoked mid-lock, and the same banner explains it.
+- The website selection sheet discloses that browser or device secure DNS settings can bypass blocking.
 - The service uses `START_REDELIVER_INTENT` so Android can restore the active domain set after a
   process restart.
 - Routines and goal locks still retain their existing app-only target models.
@@ -174,7 +183,7 @@ For every network cell, test:
 | Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21: service stopped and allowed DNS/internet was available on the first probe. Repeated start/stop commands were also verified without force-stopping the app. |
 | VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | PASS | Galaxy S21: tapping Cancel left the service absent and the activity reported that consent was not granted. |
 | VPN revoked while active | Start spike, revoke Keep VPN in Android settings | Service stops; internet recovers within 3s | FAIL (in-flight DNS tail) | Galaxy S20+ Android 13: system disconnect began at `16:31:33.685`, the service unregistered its network callback at `16:31:33.702`, and the VPN network closed by `16:31:33.753` (68ms). A DNS lookup started concurrently still waited for the resolver timeout; the second probe succeeded, but end-to-end recovery measured `3.88s`, above the strict 3s gate. |
-| Other VPN active before start | Activate another VPN, start Keep spike | Keep does not become active or displace expected VPN behavior silently | BLOCKED | A third-party VPN profile is installed, but activating or reconfiguring it would change that app's privacy/network state and the system requires a screen lock. |
+| Other VPN active before start | Activate another VPN, start a website lock | Keep does not become active or displace expected VPN behavior silently | PASS AFTER FIX | Galaxy S21 Android 15 with `유니콘 HTTPS` (`kr.co.lylstudio.httpsguard`) owning the slot. Before the fix Android transferred VPN ownership to Keep with no prompt at all (Keep already held consent), blocking worked, and the third-party VPN did not return when the lock ended. Keep now asks before displacing: declining keeps the other VPN (`dumpsys connectivity` still showed `VPN:kr.co.lylstudio.httpsguard`, `KeepDnsVpnService` absent, `example.org` still resolving) and the lock continues with the "다른 VPN이 켜져 있어" banner. |
 | Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | BLOCKED | Same device-policy and third-party state boundary as the previous row. |
 | Reboot while active | Start spike, reboot device | Spike does not auto-enable; no stale active success state | PASS | Galaxy S21: service was active before reboot, absent after boot, and general internet succeeded immediately. |
 | Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | PASS | Galaxy S20+ Android 13: the callback suspended Wi-Fi network `633`, and the replacement VPN over LTE network `613` was created `0.36s` later. Exact blocking and allowed DNS both remained functional. The host command took `3.60s` because Samsung's `svc wifi disable` blocked before the actual network-loss event; this command latency is recorded separately from app recovery. |
@@ -190,7 +199,7 @@ For every network cell, test:
 | Allowed-site 500/0 reliability | PASS (repeated) | Galaxy S21 completed three consecutive 500/0 runs after upstream sockets were reused per VPN session and failed endpoints were discarded before fallback. The runs observed 2, 3, and 6 transient IPv4 upstream timeouts respectively, but all completed with zero client-visible failures. |
 | Local p95 latency `<=20ms` | PASS | Galaxy S21: repeated runs with 20 warmups plus 200 local blocked DNS samples produced p95 between `0ms` and `2ms`. |
 | Recovery `<=3s` | PARTIAL / ACTIVE-REVOKE FAIL | Wi-Fi/mobile rebinding completed within 0.36s of the actual network-loss callback. Active settings revoke tore down the VPN in 68ms, but one concurrently started DNS lookup timed out and made the end-to-end probe `3.88s`. |
-| Other VPN conflict behavior | BLOCKED | Installed third-party VPN state was not changed; Samsung required a screen lock for the relevant VPN settings path. |
+| Other VPN conflict behavior | PASS AFTER FIX | Android hands the VPN slot to whoever asks last and does not prompt when consent already exists, so the failure mode is not "Keep cannot block" but "Keep silently disconnects the VPN the user was relying on, permanently". Keep now asks first and can run the lock without web blocking. Confirmed on a Galaxy S21 against `유니콘 HTTPS`. |
 | Wi-Fi/mobile coverage | PASS ON GALAXY S20+ | Wi-Fi and LTE each passed 500/0 allowed DNS reliability, exact/subdomain blocking, and local latency. Both transition directions moved the VPN to the expected underlying network. |
 | IPv4/IPv6 coverage | PASS FOR VIRTUAL DNS PATHS | Direct DNS query/response assertions passed through both virtual IP paths. Underlying carrier IPv6 coverage was not available. |
 
