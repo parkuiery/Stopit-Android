@@ -74,6 +74,7 @@ class BlockingStateStoreTest {
         )
 
         assertEquals(setOf(INSTAGRAM), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
 
     @Test
     fun selectedWebDomainsRoundTripIndependentlyFromApps() = runBlocking {

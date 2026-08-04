@@ -16,13 +16,13 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.uiery.keep.R
 import com.uiery.keep.domain.websiteblocking.DnsTunIpVersion
 import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingDomainSetPolicy
+import com.uiery.keep.util.AppLogger
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
@@ -158,7 +158,7 @@ class KeepDnsVpnService : VpnService() {
             null
         }
         if (descriptor == null) {
-            Log.d(DIAGNOSTIC_TAG, "stop_reason=tun_establish_failed")
+            AppLogger.debug(DIAGNOSTIC_TAG, "stop_reason=tun_establish_failed")
             stopFromWorker(session)
             return
         }
@@ -189,7 +189,7 @@ class KeepDnsVpnService : VpnService() {
                                 is DnsVpnDatagramProcessResult.SendToTun -> output.write(result.packet)
                                 is DnsVpnDatagramProcessResult.IgnorePacket -> Unit
                                 is DnsVpnDatagramProcessResult.FailOpenStopVpn -> {
-                                    Log.d(
+                                    AppLogger.debug(
                                         DIAGNOSTIC_TAG,
                                         "stop_reason=${result.reason.name}" +
                                             " tun_reason=${result.tunFailureReason?.name ?: "none"}" +
@@ -209,7 +209,7 @@ class KeepDnsVpnService : VpnService() {
                 }
             }
         } catch (_: IOException) {
-            Log.d(DIAGNOSTIC_TAG, "stop_reason=tun_io_failed")
+            AppLogger.debug(DIAGNOSTIC_TAG, "stop_reason=tun_io_failed")
             stopFromWorker(session)
         } finally {
             closeTun(session)
@@ -239,7 +239,7 @@ class KeepDnsVpnService : VpnService() {
             },
             exchange = DnsUpstreamDatagramEndpoint::exchange,
             onFailure = { dnsServer, error ->
-                Log.d(
+                AppLogger.debug(
                     DIAGNOSTIC_TAG,
                     "upstream_attempt=failed" +
                         " address_family=${if (dnsServer.address.size == 4) 4 else 6}" +
@@ -266,7 +266,7 @@ class KeepDnsVpnService : VpnService() {
             }
         } catch (error: IOException) {
             socket.close()
-            Log.d(
+            AppLogger.debug(
                 DIAGNOSTIC_TAG,
                 "upstream_open=failed" +
                     " address_family=${if (dnsServer.address.size == 4) 4 else 6}" +
@@ -395,7 +395,7 @@ class KeepDnsVpnService : VpnService() {
     ) {
         when (command) {
             is DnsVpnNetworkBindingCommand.Bind -> {
-                Log.d(
+                AppLogger.debug(
                     DIAGNOSTIC_TAG,
                     "upstream_rebind network=${command.upstream.network}" +
                         " dns_count=${command.upstream.dnsServers.size}",
@@ -412,7 +412,7 @@ class KeepDnsVpnService : VpnService() {
             val stopResult = sessionOwner.stopActive()
             shutdownWorkerLocked(stopResult.workerToShutdown)
             tunHandle?.let { closeTunLocked(it.session) }
-            Log.d(DIAGNOSTIC_TAG, "upstream_suspended network=$network")
+            AppLogger.debug(DIAGNOSTIC_TAG, "upstream_suspended network=$network")
         }
     }
 
@@ -434,7 +434,7 @@ class KeepDnsVpnService : VpnService() {
             return
         }
 
-        Log.d(
+        AppLogger.debug(
             DIAGNOSTIC_TAG,
             "upstream_retry_scheduled network=$network" +
                 " delay_ms=$UPSTREAM_TRANSITION_RETRY_DELAY_MILLIS",
@@ -443,7 +443,7 @@ class KeepDnsVpnService : VpnService() {
             {
                 val command = bindingCoordinator.retryBinding(network)
                 if (command is DnsVpnNetworkBindingCommand.Bind) {
-                    Log.d(DIAGNOSTIC_TAG, "upstream_retry network=$network")
+                    AppLogger.debug(DIAGNOSTIC_TAG, "upstream_retry network=$network")
                     startVpnWorker(command.request, command.upstream, isRetry = true)
                 }
             },
