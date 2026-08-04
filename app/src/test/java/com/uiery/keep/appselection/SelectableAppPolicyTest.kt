@@ -57,4 +57,32 @@ class SelectableAppPolicyTest {
             result.map { it.packageName },
         )
     }
+
+    @Test
+    fun selectableAppsExcludeBlockExemptDeviceApps() {
+        val candidates = listOf(
+            SelectableAppCandidate(
+                packageName = "com.sec.android.app.launcher",
+                appName = "One UI Home",
+                hasLaunchIntent = true,
+            ),
+            SelectableAppCandidate(
+                packageName = "com.samsung.android.spay",
+                appName = "Samsung Wallet",
+                hasLaunchIntent = true,
+            ),
+            SelectableAppCandidate(
+                packageName = "com.instagram.android",
+                appName = "Instagram",
+                hasLaunchIntent = true,
+            ),
+        )
+
+        val result = SelectableAppPolicy.filterSelectableApps(
+            candidates = candidates,
+            exemptPackages = setOf("com.sec.android.app.launcher", "com.samsung.android.spay"),
+        )
+
+        assertEquals(listOf("com.instagram.android"), result.map { it.packageName })
+    }
 }

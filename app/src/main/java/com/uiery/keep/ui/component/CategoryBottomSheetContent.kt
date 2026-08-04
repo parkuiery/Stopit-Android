@@ -47,6 +47,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.appselection.AndroidBlockExemptPackageProvider
 import com.uiery.keep.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
 import kotlinx.coroutines.Dispatchers
@@ -61,8 +62,11 @@ fun CategoryBottomSheetContent(
     onSingleComplete: ((packageName: String, appLabel: String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val installedAppRepository = remember(context.packageManager) {
-        InstalledAppRepository(context.packageManager)
+    val installedAppRepository = remember(context) {
+        InstalledAppRepository(
+            packageManager = context.packageManager,
+            blockExemptPackageProvider = AndroidBlockExemptPackageProvider(context.applicationContext),
+        )
     }
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }

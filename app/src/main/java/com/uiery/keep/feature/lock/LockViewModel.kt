@@ -11,6 +11,7 @@ import com.uiery.keep.analytics.AnalyticsEmergencyUnlockCancelSource
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.ReviewPromptStateStore
@@ -57,6 +58,7 @@ class LockViewModel
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val clock: Clock,
         private val firstPromisePracticeStore: FirstPromisePracticeStore,
+        private val blockExemptPackageProvider: BlockExemptPackageProvider = BlockExemptPackageProvider.None,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
         private val route = LockRoute(
@@ -114,7 +116,11 @@ class LockViewModel
             intent {
                 val nowDateTime = LocalDateTime.now(clock)
                 val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
-                val activeRoutineLockState = resolveActiveRoutineLockState(routines = routines, nowDateTime = nowDateTime)
+                val activeRoutineLockState = resolveActiveRoutineLockState(
+                    routines = routines,
+                    nowDateTime = nowDateTime,
+                    exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+                )
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
                     state.copy(
