@@ -11,6 +11,7 @@ import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import com.uiery.keep.analytics.AnalyticsBlockSource
+import com.uiery.keep.appselection.AndroidBlockExemptPackageProvider
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
@@ -717,11 +718,16 @@ class KeepAccessibilityServiceIntegrationTest {
     }
 
     private fun resolveLaunchablePackages(): List<String> {
+        // Exempt packages can never become blocking targets, so seeding one would wait forever for
+        // a foreground block the service is designed not to produce.
+        val exemptPackages = AndroidBlockExemptPackageProvider(context).exemptPackages().all
         val packages = LAUNCHABLE_PACKAGE_CANDIDATES.filter { candidate ->
-            context.packageManager.getLaunchIntentForPackage(candidate) != null
+            context.packageManager.getLaunchIntentForPackage(candidate) != null &&
+                candidate !in exemptPackages
         }
         assertTrue(
-            "Expected at least two launchable system packages for Accessibility runtime tests, found $packages",
+            "Expected at least two launchable non-exempt system packages for Accessibility runtime " +
+                "tests, found $packages (exempt=$exemptPackages)",
             packages.size >= 2,
         )
         return packages.take(2)
@@ -1180,6 +1186,11 @@ class KeepAccessibilityServiceIntegrationTest {
             "com.google.android.calculator",
             "com.android.calculator2",
             "com.android.settings",
+            "com.android.chrome",
+            "com.google.android.youtube",
+            "com.google.android.apps.photos",
+            "com.google.android.calendar",
+            "com.google.android.gm",
         )
     }
 }
