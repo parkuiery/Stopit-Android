@@ -287,6 +287,39 @@ class CategoryBottomSheetContentIntegrationTest {
         composeRule.onNodeWithTag("website_preset_youtube").performClick().assertIsOff()
     }
 
+    @Test
+    fun addedDomainAppearsAboveTheRecommendationsSoTheInputHasVisibleFeedback() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.website_lock_empty)).assertExists()
+
+        // 입력창 힌트가 example.com 이라 그 문구로는 입력창과 추가된 행을 구분할 수 없다.
+        composeRule.onNodeWithText(context.getString(R.string.website_domain_hint))
+            .performTextInput("blocked.example.org")
+        composeRule.onNodeWithText(context.getString(R.string.add)).performClick()
+        composeRule.waitForIdle()
+
+        // 추가한 도메인이 추천 목록 아래로 밀리면 입력한 결과를 스크롤해야만 볼 수 있다.
+        val addedTop = composeRule.onNodeWithText("blocked.example.org")
+            .fetchSemanticsNode().boundsInRoot.top
+        val recommendedTop = composeRule.onNodeWithText(context.getString(R.string.website_lock_recommended))
+            .fetchSemanticsNode().boundsInRoot.top
+        assertTrue("추가한 도메인이 추천 목록보다 위에 있어야 한다", addedTop < recommendedTop)
+    }
+
     private fun hasCheckboxRole(): SemanticsMatcher =
         SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
 

@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +64,7 @@ import com.uiery.keep.domain.websiteblocking.DomainNamePolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteLockPresetCatalog
 import com.uiery.keep.domain.websiteblocking.WebsiteLockPresetSelectionPolicy
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -145,20 +151,29 @@ fun CategoryBottomSheetLoadedContent(
     )
     var searchContent by remember { mutableStateOf("") }
 
+    // 키보드가 올라오면 시트가 그만큼 짧아진다. 목록은 남은 높이를 쓰는 유일한 요소라
+    // 모든 축소를 혼자 떠안고 0이 된다. 입력하는 동안 무엇이 담겼는지 볼 수 없으면
+    // 입력 자체가 불안해지므로, 그때는 큰 제목을 접어 목록에 높이를 돌려준다.
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(modifier = Modifier.padding(top = 40.dp))
-        Text(
-            text = stringResource(
-                if (websiteSelectionEnabled) R.string.lock_target_selection else R.string.activity_selection,
-            ),
-            fontWeight = FontWeight.Bold,
-            fontSize = 32.sp,
-            color = KeepTheme.colors.onSurfaceVariant,
-        )
+        if (!imeVisible) {
+            Spacer(modifier = Modifier.padding(top = 40.dp))
+            Text(
+                text = stringResource(
+                    if (websiteSelectionEnabled) R.string.lock_target_selection else R.string.activity_selection,
+                ),
+                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
+                color = KeepTheme.colors.onSurfaceVariant,
+            )
+        } else {
+            Spacer(modifier = Modifier.padding(top = 20.dp))
+        }
         Spacer(modifier = Modifier.height(12.dp))
         if (websiteSelectionEnabled) {
             KeepSegmentedControl(
@@ -194,6 +209,7 @@ fun CategoryBottomSheetLoadedContent(
                     .weight(1f),
                 selectedDomains = selectedWebDomains,
                 onSelectedDomainsChange = { selectedWebDomains = it },
+                compact = imeVisible,
             )
         } else if (isLoading) {
             Box(
@@ -328,16 +344,21 @@ private fun WebsiteLockListEditor(
     selectedDomains: Set<String>,
     onSelectedDomainsChange: (Set<String>) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     var input by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.website_lock_description),
-            color = KeepTheme.colors.onSurface,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+        if (!compact) {
+            Text(
+                text = stringResource(R.string.website_lock_description),
+                color = KeepTheme.colors.onSurface,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -362,6 +383,9 @@ private fun WebsiteLockListEditor(
                             onSelectedDomainsChange(selectedDomains + result.domain.value)
                             input = ""
                             validationError = false
+                            // 방금 담은 도메인은 목록 맨 위에 있다. 스크롤이 아래에 머물러
+                            // 있으면 추가된 것을 확인할 방법이 없다.
+                            coroutineScope.launch { listState.animateScrollToItem(0) }
                         }
                         is DomainNameNormalizationResult.Invalid -> validationError = true
                     }
@@ -377,6 +401,7 @@ private fun WebsiteLockListEditor(
         }
         Spacer(modifier = Modifier.height(12.dp))
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -385,9 +410,53 @@ private fun WebsiteLockListEditor(
                     color = KeepTheme.colors.secondary,
                 ),
         ) {
+            // 선택한 목록이 먼저다. 추가·삭제의 결과가 입력창 바로 아래에서 보여야
+            // 방금 한 조작이 반영됐는지 알 수 있다.
             item {
                 Text(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    text = stringResource(R.string.website_lock_selected),
+                    color = KeepTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (selectedDomains.isEmpty()) {
+                item {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = stringResource(R.string.website_lock_empty),
+                        color = KeepTheme.colors.onSurface,
+                    )
+                }
+            } else {
+                items(selectedDomains.sorted(), key = { it }) { domain ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = domain,
+                            color = KeepTheme.colors.onSurfaceVariant,
+                        )
+                        KeepTextButton(
+                            onClick = { onSelectedDomainsChange(selectedDomains - domain) },
+                        ) {
+                            Text(stringResource(R.string.delete))
+                        }
+                    }
+                }
+            }
+            item {
+                Text(
+                    modifier = Modifier.padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 18.dp,
+                        bottom = 10.dp,
+                    ),
                     text = stringResource(R.string.website_lock_recommended),
                     color = KeepTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
@@ -441,48 +510,6 @@ private fun WebsiteLockListEditor(
                             color = KeepTheme.colors.onSurface,
                             fontSize = 12.sp,
                         )
-                    }
-                }
-            }
-            item {
-                Text(
-                    modifier = Modifier.padding(
-                        start = 12.dp,
-                        end = 12.dp,
-                        top = 18.dp,
-                        bottom = 10.dp,
-                    ),
-                    text = stringResource(R.string.website_lock_selected),
-                    color = KeepTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            if (selectedDomains.isEmpty()) {
-                item {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        text = stringResource(R.string.website_lock_empty),
-                        color = KeepTheme.colors.onSurface,
-                    )
-                }
-            } else {
-                items(selectedDomains.sorted(), key = { it }) { domain ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            modifier = Modifier.weight(1f),
-                            text = domain,
-                            color = KeepTheme.colors.onSurfaceVariant,
-                        )
-                        KeepTextButton(
-                            onClick = { onSelectedDomainsChange(selectedDomains - domain) },
-                        ) {
-                            Text(stringResource(R.string.delete))
-                        }
                     }
                 }
             }
