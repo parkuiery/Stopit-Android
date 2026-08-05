@@ -55,6 +55,9 @@ The service is non-exported, so start and stop the spike through the exported ac
   blocked". The service publishes `Unavailable` when the TUN cannot be established (another VPN owns
   the slot) or when consent is revoked mid-lock, and the same banner explains it.
 - The website selection sheet discloses that browser or device secure DNS settings can bypass blocking.
+- Routines carry their own website list and start blocking from their start alarm. When that single
+  trigger is missed the window stays unprotected; the open cases and how to close them are recorded in
+  `docs/ROUTINE_WEBSITE_BLOCKING_TRIGGER_CONTRACT.md`.
 - The service uses `START_REDELIVER_INTENT` so Android can restore the active domain set after a
   process restart.
 - Routines and goal locks still retain their existing app-only target models.
