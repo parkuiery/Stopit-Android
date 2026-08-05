@@ -284,8 +284,15 @@ re-checked. **It was not reproduced end to end** — see the constraint below.
 
 - Same Galaxy S21 and clean Wi-Fi as the run above.
 - The **abrupt-teardown proxy** — a DNS lookup in flight, then the VPN removed without an orderly
-  shutdown (`am force-stop`) — recovered in `381ms`, `411ms`, `290ms`, `298ms`. A fifth sample was
-  discarded: `date +%s%N` returned a negative delta.
+  shutdown (`am force-stop`) — recovered on the **first probe after teardown** in all four attempts.
+  ~~`381ms`, `411ms`, `290ms`, `298ms`~~ **Those millisecond figures were wrong and are withdrawn.**
+  Android's `/system/bin/sh` evaluates `$(( ))` in 32 bits (`9223372036854775807` evaluates to `-1`),
+  so subtracting nanosecond `date +%s%N` values overflowed and the printed durations were artifacts.
+  What survives is the ordering, not the number: the probe immediately following the teardown
+  resolved successfully every time.
+- Harness note for anyone repeating this: time from `/proc/uptime` (centiseconds, small enough for
+  32-bit shell arithmetic), and do not use `ping` exit status as a DNS check — a name that resolves
+  but does not answer ICMP exits non-zero and reads as a DNS failure.
 - Why the timeout is unlikely to be implicated: `DNS_TIMEOUT_MILLIS` bounds *our* upstream socket
   inside the service. Once the VPN is gone that socket is gone too, so it cannot extend the tail. It
   can only extend how long a query sits parked inside the service *before* teardown, and on a clean
