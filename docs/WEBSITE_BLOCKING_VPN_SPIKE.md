@@ -276,6 +276,30 @@ re-measured against the new value rather than cited from the 1.5s runs.
   only, not a controlled before/after — the same caveat already applied to the 2026-07-25 runs. The
   gate itself is local filter latency, which stayed at `0-1ms`.
 
+### 2026-08-06 active-revoke tail re-check (partial)
+
+The active-revoke row failed at `3.88s` because a concurrently started DNS lookup waited for the
+resolver. Raising the upstream timeout to `5s` looked like it could make that worse, so it was
+re-checked. **It was not reproduced end to end** — see the constraint below.
+
+- Same Galaxy S21 and clean Wi-Fi as the run above.
+- The **abrupt-teardown proxy** — a DNS lookup in flight, then the VPN removed without an orderly
+  shutdown (`am force-stop`) — recovered in `381ms`, `411ms`, `290ms`, `298ms`. A fifth sample was
+  discarded: `date +%s%N` returned a negative delta.
+- Why the timeout is unlikely to be implicated: `DNS_TIMEOUT_MILLIS` bounds *our* upstream socket
+  inside the service. Once the VPN is gone that socket is gone too, so it cannot extend the tail. It
+  can only extend how long a query sits parked inside the service *before* teardown, and on a clean
+  line the observed upstream round trip was well under `300ms`.
+
+Constraint: revoking an app-based VPN could not be driven from adb on this device. Samsung's VPN
+settings screen lists configured profiles only and does not show `KeepDnsVpnService`;
+`appops set ACTIVATE_VPN deny|default` removes consent for the *next* `prepare()` but leaves a
+running VPN established (`dumpsys vpn_management` still showed the active session and no `onRevoke`
+reached the service); and there is no `cmd vpn_management` shell interface.
+
+**The active-revoke gate therefore stays FAIL/unverified.** Closing it needs a human to disconnect
+Keep's VPN from the device UI while a lookup is in flight, then re-run the `3s` probe.
+
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
 - Device: `sdk_gphone64_arm64`, Android 16 / API 36, emulator Wi-Fi.
