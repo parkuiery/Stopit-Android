@@ -80,6 +80,7 @@ internal fun websiteBlockingUnavailableMessageRes(
     return when (status) {
         WebsiteBlockingStatus.ConsentDenied -> R.string.website_blocking_unavailable_consent
         WebsiteBlockingStatus.Unavailable -> R.string.website_blocking_unavailable_conflict
+        WebsiteBlockingStatus.NetworkUnavailable -> R.string.website_blocking_unavailable_network
         WebsiteBlockingStatus.Active, WebsiteBlockingStatus.Inactive -> null
     }
 }

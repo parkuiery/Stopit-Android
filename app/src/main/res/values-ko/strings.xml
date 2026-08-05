@@ -549,6 +549,7 @@
     <string name="website_blocking_other_vpn_confirm">끊고 차단하기</string>
     <string name="website_blocking_other_vpn_skip">웹 차단 없이 잠그기</string>
     <string name="website_blocking_unavailable_consent">VPN 권한을 허용하지 않아 웹사이트는 차단되고 있지 않아요</string>
+    <string name="website_blocking_unavailable_network">네트워크 상태 때문에 웹사이트 차단이 잠시 꺼졌어요</string>
     <string name="website_blocking_unavailable_conflict">다른 VPN이 켜져 있어 웹사이트는 차단되고 있지 않아요</string>
     <string name="keep_on_message_websites">스탑잇이 켜져 있는 동안 선택한 웹사이트는 사용할 수 없어요</string>
     <string name="keep_on_message_apps_and_websites">스탑잇이 켜져 있는 동안 선택한 앱과 웹사이트는 사용할 수 없어요</string>

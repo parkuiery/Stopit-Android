@@ -21,6 +21,13 @@ enum class WebsiteBlockingStatus {
 
     /** 동의는 있으나 VPN 을 세우지 못했다. 다른 VPN 이 슬롯을 쥔 경우가 대표적이다. */
     Unavailable,
+
+    /**
+     * 네트워크 사정으로 필터가 스스로 물러났다. 업스트림 DNS 가 응답하지 않을 때 차단을
+     * 유지하면 인터넷 전체가 막히므로 fail-open 이 맞지만, 조용히 물러나면 사용자는
+     * 막히고 있다고 믿은 채로 남는다.
+     */
+    NetworkUnavailable,
 }
 
 /**

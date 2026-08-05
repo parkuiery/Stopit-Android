@@ -554,6 +554,7 @@
     <string name="website_blocking_other_vpn_confirm" tools:ignore="MissingTranslation">Disconnect and block</string>
     <string name="website_blocking_other_vpn_skip" tools:ignore="MissingTranslation">Lock without web blocking</string>
     <string name="website_blocking_unavailable_consent" tools:ignore="MissingTranslation">Websites are not being blocked because VPN permission was declined</string>
+    <string name="website_blocking_unavailable_network" tools:ignore="MissingTranslation">Website blocking paused because the network is not responding</string>
     <string name="website_blocking_unavailable_conflict" tools:ignore="MissingTranslation">Websites are not being blocked because another VPN is active</string>
     <string name="keep_on_message_websites" tools:ignore="MissingTranslation">Selected websites cannot be used while StopIt is on</string>
     <string name="keep_on_message_apps_and_websites" tools:ignore="MissingTranslation">Selected apps and websites cannot be used while StopIt is on</string>

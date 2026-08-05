@@ -23,6 +23,14 @@ class WebsiteBlockingUnavailableBannerTest {
                 status = WebsiteBlockingStatus.Unavailable,
             ),
         )
+        // 필터가 네트워크 때문에 물러난 것도 "지금 막히지 않는다"는 같은 사실이다.
+        assertEquals(
+            R.string.website_blocking_unavailable_network,
+            websiteBlockingUnavailableMessageRes(
+                hasWebsiteTargets = true,
+                status = WebsiteBlockingStatus.NetworkUnavailable,
+            ),
+        )
     }
 
     @Test

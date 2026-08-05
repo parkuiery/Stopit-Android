@@ -205,6 +205,11 @@ class KeepDnsVpnService : VpnService() {
                                             " ip_version=${result.tunIpVersion ?: -1}" +
                                             " protocol=${result.tunProtocol ?: -1}",
                                     )
+                                    // 필터가 물러나면 그 순간부터 웹사이트는 열려 있다.
+                                    // 조용히 끝내면 사용자는 막히고 있다고 믿은 채로 남는다.
+                                    WebsiteBlockingRuntimeState.update(
+                                        WebsiteBlockingStatus.NetworkUnavailable,
+                                    )
                                     if (result.reason == DnsVpnDatagramProcessStopReason.UpstreamUnavailable) {
                                         retryOrStopFromWorker(session, upstream.network)
                                     } else {
@@ -219,6 +224,7 @@ class KeepDnsVpnService : VpnService() {
             }
         } catch (_: IOException) {
             AppLogger.debug(DIAGNOSTIC_TAG, "stop_reason=tun_io_failed")
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.NetworkUnavailable)
             stopFromWorker(session)
         } finally {
             closeTun(session)
