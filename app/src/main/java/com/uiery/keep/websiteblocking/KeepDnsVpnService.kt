@@ -20,6 +20,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.uiery.keep.R
 import com.uiery.keep.domain.websiteblocking.DnsTunIpVersion
+import com.uiery.keep.domain.websiteblocking.DnsVpnUpstreamRecovery
+import com.uiery.keep.domain.websiteblocking.DnsVpnUpstreamRecoveryPolicy
 import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingDomainSetPolicy
 import com.uiery.keep.util.AppLogger
@@ -60,6 +62,11 @@ class KeepDnsVpnService : VpnService() {
     private var networkCallbackRegistered = false
     private var retryNetwork: Network? = null
     private var retryCount = 0
+    // 업스트림이 죽어 필터가 물러난 뒤 몇 번째 복귀 시도인지. 다시 서면 0 으로 돌아간다.
+    private var recoveryAttempt = 0
+    private var recoveryRetry: Runnable? = null
+    // 창의 마감. 이걸 들고 있어야 복구를 언제까지 시도할지 스스로 판단할 수 있다.
+    private var stopAtEpochMillis = 0L
     @Volatile
     private var tunHandle: TunHandle? = null
     private var deadlineStop: Runnable? = null
@@ -188,7 +195,12 @@ class KeepDnsVpnService : VpnService() {
                     FileOutputStream(descriptor.fileDescriptor).use { output ->
                         val processor = DnsVpnDatagramProcessor(
                             blockedDomains = blockedDomains,
-                            upstreamExchange = upstreamPool::exchange,
+                            // TUN 이 섰다는 것만으로는 회복이 아니다. 업스트림 왕복이 실제로
+                            // 성공해야 재시도 예산을 되돌린다. 그러지 않으면 손실이 큰 회선에서
+                            // 빠른 재시도만 무한히 반복되고 백오프가 걸리지 않는다.
+                            upstreamExchange = { payload ->
+                                upstreamPool.exchange(payload)?.also { markUpstreamHealthy() }
+                            },
                         )
                         val buffer = ByteArray(TUN_BUFFER_SIZE)
                         while (!sessionOwner.shouldWorkerExit(session)) {
@@ -358,6 +370,8 @@ class KeepDnsVpnService : VpnService() {
         synchronized(lifecycleLock) {
             deadlineStop?.let(mainHandler::removeCallbacks)
             deadlineStop = null
+            recoveryRetry?.let(mainHandler::removeCallbacks)
+            recoveryRetry = null
             bindingCoordinator.stop()
             unregisterUnderlyingNetworkCallback()
             val stopResult = sessionOwner.stopActive()
@@ -372,6 +386,8 @@ class KeepDnsVpnService : VpnService() {
     private fun scheduleDeadlineStop(stopAtEpochMillis: Long) {
         deadlineStop?.let(mainHandler::removeCallbacks)
         deadlineStop = null
+        // 복구 판단이 "언제까지 기다릴 값어치가 있는가"를 알려면 마감을 들고 있어야 한다.
+        this.stopAtEpochMillis = stopAtEpochMillis
         if (stopAtEpochMillis <= 0L) return
 
         val stopAction = Runnable {
@@ -431,6 +447,15 @@ class KeepDnsVpnService : VpnService() {
         }
     }
 
+    /** 업스트림이 실제로 답을 준 순간. 여기서만 재시도 예산이 되돌아온다. */
+    private fun markUpstreamHealthy() {
+        if (recoveryAttempt == 0 && retryCount == 0) return
+        synchronized(lifecycleLock) {
+            recoveryAttempt = 0
+            retryCount = 0
+        }
+    }
+
     private fun retryOrStopFromWorker(session: DnsVpnSession, network: Network) {
         val shouldRetry = synchronized(lifecycleLock) {
             if (!sessionOwner.isActive(session)) return
@@ -445,7 +470,7 @@ class KeepDnsVpnService : VpnService() {
             }
         }
         if (!shouldRetry) {
-            stopFromWorker(session)
+            recoverOrStopFromWorker(session, network)
             return
         }
 
@@ -464,6 +489,55 @@ class KeepDnsVpnService : VpnService() {
             },
             UPSTREAM_TRANSITION_RETRY_DELAY_MILLIS,
         )
+    }
+
+    /**
+     * 전환용 빠른 재시도까지 소진된 뒤의 자리.
+     *
+     * 여기서 서비스를 끝내면 네트워크 콜백도 함께 해제되어, 회선이 돌아와도 다시 세울 주체가
+     * 없다. 창이 남아 있는 동안에는 살아서 기다린다. 필터가 물러나 있는 것은 지금과 같지만
+     * (도메인은 열려 있다), 적어도 돌아올 수는 있다.
+     */
+    private fun recoverOrStopFromWorker(session: DnsVpnSession, network: Network) {
+        val delayMillis = when (
+            val recovery = DnsVpnUpstreamRecoveryPolicy.decide(
+                attempt = recoveryAttempt,
+                nowEpochMillis = System.currentTimeMillis(),
+                stopAtEpochMillis = stopAtEpochMillis,
+            )
+        ) {
+            DnsVpnUpstreamRecovery.GiveUp -> {
+                AppLogger.debug(DIAGNOSTIC_TAG, "upstream_recovery=given_up network=$network")
+                stopFromWorker(session)
+                return
+            }
+
+            is DnsVpnUpstreamRecovery.RetryAfter -> recovery.delayMillis
+        }
+
+        synchronized(lifecycleLock) {
+            if (!sessionOwner.isActive(session)) return
+            recoveryAttempt += 1
+            val stopResult = sessionOwner.stopIfOwner(session)
+            shutdownWorkerLocked(stopResult.workerToShutdown)
+            closeTunLocked(session)
+        }
+        AppLogger.debug(
+            DIAGNOSTIC_TAG,
+            "upstream_recovery_scheduled network=$network" +
+                " attempt=$recoveryAttempt delay_ms=$delayMillis",
+        )
+
+        val retry = Runnable {
+            val command = bindingCoordinator.retryBinding(network)
+            if (command is DnsVpnNetworkBindingCommand.Bind) {
+                AppLogger.debug(DIAGNOSTIC_TAG, "upstream_recovery_retry network=$network")
+                startVpnWorker(command.request, command.upstream, isRetry = true)
+            }
+        }
+        recoveryRetry?.let(mainHandler::removeCallbacks)
+        recoveryRetry = retry
+        mainHandler.postDelayed(retry, delayMillis)
     }
 
     private fun shutdownWorkerLocked(workerToShutdown: ExecutorService?) {
@@ -530,7 +604,10 @@ class KeepDnsVpnService : VpnService() {
         private const val TUN_MTU = 1500
         private const val TUN_BUFFER_SIZE = 65_535
         private const val DNS_PORT = 53
-        private const val DNS_TIMEOUT_MILLIS = 1_500
+        // 실기기 회선에서 1.1.1.1 왕복이 약 1.7초였다. 1.5초로는 모든 질의가 시간 초과로
+        // 떨어져 느린 회선이 상시 fail-open 으로 수렴한다. 이 값을 늘려도 차단 대상은
+        // 로컬에서 NXDOMAIN 을 만들므로 느려지는 것은 통과 도메인뿐이다.
+        private const val DNS_TIMEOUT_MILLIS = 5_000
         private const val UPSTREAM_FAILURE_COOLDOWN_MILLIS = 30_000L
         private const val UPSTREAM_TRANSITION_RETRY_LIMIT = 1
         private const val UPSTREAM_TRANSITION_RETRY_DELAY_MILLIS = 250L
