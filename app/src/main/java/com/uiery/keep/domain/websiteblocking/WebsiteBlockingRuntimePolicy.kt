@@ -51,16 +51,40 @@ object WebsiteBlockingRuntimePolicy {
         hasActiveTimedLock: Boolean,
         timedLockDeadlineMillis: Long?,
         selectedWebDomains: Set<String>,
+        routineSession: RoutineWebsiteBlockingSession? = null,
     ): WebsiteBlockingRuntimeDecision {
         if (!runtimeStateLoaded) return WebsiteBlockingRuntimeDecision.Undecided
-        val domains = WebsiteBlockingDomainSetPolicy.normalize(selectedWebDomains)
+
+        val lockDomains = if (isKeep || hasActiveTimedLock) {
+            WebsiteBlockingDomainSetPolicy.normalize(selectedWebDomains)
+        } else {
+            emptySet()
+        }
+        val domains = lockDomains + routineSession?.domains.orEmpty()
         if (domains.isEmpty()) return WebsiteBlockingRuntimeDecision.Stopped
-        if (!isKeep && !hasActiveTimedLock) return WebsiteBlockingRuntimeDecision.Stopped
+
         return WebsiteBlockingRuntimeDecision.Running(
             domains = domains,
-            // 수동 잠금은 사용자가 끌 때까지다. 마감이 있는 것은 시간 잠금뿐이고, 그 마감을
-            // 서비스에 넘겨야 홈이 떠 있지 않아도 제때 멈춘다.
-            stopAtEpochMillis = timedLockDeadlineMillis.takeIf { hasActiveTimedLock },
+            stopAtEpochMillis = resolveStopAt(
+                hasIndefiniteLock = lockDomains.isNotEmpty() && !hasActiveTimedLock,
+                // 마감이 있는 것은 시간 잠금뿐이다. 그 마감을 서비스에 넘겨야 홈이 떠 있지
+                // 않아도 제때 멈춘다.
+                timedLockDeadlineMillis = timedLockDeadlineMillis
+                    ?.takeIf { hasActiveTimedLock && lockDomains.isNotEmpty() },
+                routineStopAtEpochMillis = routineSession?.stopAtEpochMillis,
+            ),
         )
+    }
+
+    private fun resolveStopAt(
+        hasIndefiniteLock: Boolean,
+        timedLockDeadlineMillis: Long?,
+        routineStopAtEpochMillis: Long?,
+    ): Long? {
+        // 수동 잠금은 사용자가 끌 때까지다. 여기에 루틴 마감을 물려주면 잠금이 제풀에 풀린다.
+        if (hasIndefiniteLock) return null
+        // 겹치는 약속은 가장 늦게 끝나는 쪽까지 유지한다. 먼저 끝나는 쪽에 맞추면 아직
+        // 진행 중인 약속이 조용히 깨진다.
+        return listOfNotNull(timedLockDeadlineMillis, routineStopAtEpochMillis).maxOrNull()
     }
 }

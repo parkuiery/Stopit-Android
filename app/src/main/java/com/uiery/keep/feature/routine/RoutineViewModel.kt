@@ -16,6 +16,7 @@ import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.isChangeLocked
 import com.uiery.keep.util.isRunningNow
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
@@ -33,6 +34,7 @@ class RoutineViewModel
         private val exactAlarmOrchestrator: RoutineExactAlarmOrchestrator,
         private val routineNoticeStore: RoutineNoticeStore,
         private val routineRestoreAftercare: RoutineRestoreAftercare,
+        private val routineWebsiteBlockingLauncher: RoutineWebsiteBlockingLauncher,
     ) : ViewModel(),
         ContainerHost<RoutineUiState, RoutineSideEffect> {
         override val container: Container<RoutineUiState, RoutineSideEffect> = container(RoutineUiState())
@@ -90,6 +92,9 @@ class RoutineViewModel
                     val restoreResult = routineRestoreAftercare.rescheduleRestoredEnabledRoutines(routinesModel)
                     reduce { state.copy(routines = restoreResult.routines) }
                     storeRoutine(restoreResult.routines)
+                    // 창이 이미 진행 중인데 루틴을 새로 만들거나 켰다면, 다음 시작 알람까지
+                    // 기다릴 이유가 없다. 생성·수정·삭제·토글이 모두 이 흐름으로 돌아온다.
+                    routineWebsiteBlockingLauncher.apply(restoreResult.routines)
                     if (restoreResult.shouldShowAlarmPermissionPrompt) {
                         postSideEffect(RoutineSideEffect.ShowAlarmPermission)
                     }

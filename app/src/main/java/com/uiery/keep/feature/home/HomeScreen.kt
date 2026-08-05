@@ -195,6 +195,8 @@ fun HomeScreen(
                 // Usage Access 설정 딥링크에서 복귀했을 때 인사이트 카드를 재평가한다(권한 전환 감지).
                 viewModel.loadUsageInsightCard()
                 viewModel.onFirstPromiseExactAlarmResume()
+                // 알람이 지연·누락되었거나 창 도중 재부팅한 회차는 여기서 되살아난다.
+                viewModel.refreshRoutineWebsiteSession()
             }
         }
         observedLifecycle.addObserver(observer)

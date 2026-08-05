@@ -44,7 +44,11 @@ import com.uiery.keep.data.usageinsight.UsageInsightRepository
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.domain.usageinsight.toRoutinePrefill
 import com.uiery.keep.domain.lock.LockTargetKind
+import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.domain.websiteblocking.DomainName
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingPolicy
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingSession
+import com.uiery.keep.domain.websiteblocking.toRoutineWebsiteWindows
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimePolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendation
@@ -617,10 +621,30 @@ class HomeViewModel
                         state.copy(
                             routineCount = routines.size,
                             showRoutineCreationCta = showRoutineCreationCta,
+                            routineWebsiteSession = routines.toRoutineWebsiteSession(),
+                            routineWebsiteSessionLoaded = true,
                         )
                     }
                 }
             }
+
+        /**
+         * 창은 시간이 지나면서 시작되고 끝난다. 목록이 바뀔 때만 읽으면, 화면을 열어둔 채
+         * 시작 시각을 넘긴 루틴이나 알람이 누락된 회차를 놓친다.
+         */
+        internal fun refreshRoutineWebsiteSession() =
+            intent {
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
+                reduce {
+                    state.copy(
+                        routineWebsiteSession = routines.toRoutineWebsiteSession(),
+                        routineWebsiteSessionLoaded = true,
+                    )
+                }
+            }
+
+        private fun List<RoutineModel>.toRoutineWebsiteSession(): RoutineWebsiteBlockingSession? =
+            RoutineWebsiteBlockingPolicy.resolveSession(toRoutineWebsiteWindows())
 
         private fun syncRoutinesCount() =
             intent {
@@ -1033,6 +1057,10 @@ data class HomeUiState(
     val blockingTargetsLoaded: Boolean = false,
     val isKeepStateLoaded: Boolean = false,
     val activeTimedLockStateLoaded: Boolean = false,
+    // 지금 서 있어야 할 루틴 창. 알람이 지연·누락되었거나 창 도중 재부팅한 회차는
+    // 이 값으로만 되살아난다.
+    val routineWebsiteSession: RoutineWebsiteBlockingSession? = null,
+    val routineWebsiteSessionLoaded: Boolean = false,
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
     val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
@@ -1048,6 +1076,7 @@ data class HomeUiState(
             hasActiveTimedLock = hasActiveTimedLock,
             timedLockDeadlineMillis = activeTimedLockDeadlineMillis,
             selectedWebDomains = selectedWebDomains,
+            routineSession = routineWebsiteSession,
         )
 
     fun lockTargetKind(): LockTargetKind =
@@ -1057,7 +1086,10 @@ data class HomeUiState(
         )
 
     fun websiteBlockingRuntimeStateLoaded(): Boolean =
-        blockingTargetsLoaded && isKeepStateLoaded && activeTimedLockStateLoaded
+        blockingTargetsLoaded &&
+            isKeepStateLoaded &&
+            activeTimedLockStateLoaded &&
+            routineWebsiteSessionLoaded
 
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L

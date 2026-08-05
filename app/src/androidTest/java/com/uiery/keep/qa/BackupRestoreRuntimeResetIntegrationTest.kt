@@ -165,6 +165,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
             ),
+            routineWebsiteBlockingLauncher = { },
         )
 
         waitUntil("Routine screen app-open path should persist restored routines into DataStore") {
