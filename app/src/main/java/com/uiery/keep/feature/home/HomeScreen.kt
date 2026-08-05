@@ -35,7 +35,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -186,6 +188,9 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
     val observedLifecycle = (activity as? LifecycleOwner)?.lifecycle ?: lifecycleOwner.lifecycle
+    // 돌아온 횟수. 웹 차단 판정은 값이 바뀔 때만 도는데, 창 안에서 서비스만 죽으면 판정은
+    // 그대로라 아무도 다시 세우지 않는다. 돌아온 사실 자체가 재확인 계기가 되어야 한다.
+    var resumeCount by rememberSaveable { mutableIntStateOf(0) }
     DisposableEffect(observedLifecycle, activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -197,6 +202,7 @@ fun HomeScreen(
                 viewModel.onFirstPromiseExactAlarmResume()
                 // 알람이 지연·누락되었거나 창 도중 재부팅한 회차는 여기서 되살아난다.
                 viewModel.refreshRoutineWebsiteSession()
+                resumeCount += 1
             }
         }
         observedLifecycle.addObserver(observer)
@@ -218,6 +224,7 @@ fun HomeScreen(
     val websiteBlockingConsentDeniedMessage = stringResource(R.string.website_blocking_consent_denied)
     WebsiteBlockingVpnController(
         decision = uiState.websiteBlockingRuntimeDecision(),
+        resumeCount = resumeCount,
         onConsentDenied = { viewModel.showSnackBar(websiteBlockingConsentDeniedMessage) },
     )
 

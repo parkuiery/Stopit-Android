@@ -24,6 +24,7 @@ import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingConflictPolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingOwnership
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
+import com.uiery.keep.util.AppLogger
 
 /**
  * 잠금 상태가 바뀔 때 DNS 차단 VPN 을 따라 세우고 내린다.
@@ -37,10 +38,12 @@ import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
 @Composable
 fun WebsiteBlockingVpnController(
     decision: WebsiteBlockingRuntimeDecision,
+    resumeCount: Int,
     onConsentDenied: () -> Unit,
 ) {
     val context = LocalContext.current
     val currentOnConsentDenied by rememberUpdatedState(onConsentDenied)
+    val currentDecision by rememberUpdatedState(decision)
     var pendingStart by remember { mutableStateOf<WebsiteBlockingRuntimeDecision.Running?>(null) }
     // 다른 VPN 을 끊어도 되는지 사용자가 답한 결과. 잠금이 끝나면 다시 물어본다.
     var displacementApproved by remember { mutableStateOf(false) }
@@ -100,6 +103,32 @@ fun WebsiteBlockingVpnController(
         }
     }
 
+    /*
+     * 위 효과는 판정값이 바뀔 때만 돈다. 창 안에서 서비스만 죽으면 판정은 계속 Running 이라
+     * 아무 일도 일어나지 않고, 그 창은 끝날 때까지 열린 채 남는다. 사용자가 돌아온 순간
+     * 한 번만 다시 확인한다.
+     *
+     * 여기서는 동의창을 띄우지 않는다. 동의는 사용자가 잠금을 시작할 때 묻는 것이고,
+     * 홈에 올 때마다 시스템 창을 다시 들이밀면 거부가 아니라 괴롭힘이 된다.
+     */
+    LaunchedEffect(resumeCount) {
+        val decisionNow = currentDecision
+        val status = WebsiteBlockingRuntimeState.status.value
+        val hasConsent = VpnService.prepare(context) == null
+        AppLogger.debug(
+            DIAGNOSTIC_TAG,
+            "resume_reassert count=$resumeCount" +
+                " decision=${decisionNow::class.simpleName}" +
+                " status=$status" +
+                " consent=$hasConsent",
+        )
+        val running = decisionNow as? WebsiteBlockingRuntimeDecision.Running
+            ?: return@LaunchedEffect
+        if (!WebsiteBlockingReassertPolicy.shouldReassertOnResume(status)) return@LaunchedEffect
+        if (!hasConsent) return@LaunchedEffect
+        context.startWebsiteBlocking(running.domains, running.stopAtEpochMillis)
+    }
+
     pendingDisplacement?.let {
         KeepConfirmationDialog(
             title = stringResource(R.string.website_blocking_other_vpn_title),
@@ -154,3 +183,5 @@ private fun Context.startWebsiteBlocking(
         ),
     )
 }
+
+private const val DIAGNOSTIC_TAG = "KeepRoutineWeb"
