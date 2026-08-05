@@ -109,6 +109,8 @@ class LockViewModel
         private fun getSelectedApp() =
             intent {
                 val selectedAppPackages = blockingStateStore.readSelectedAppPackages()
+                // 루틴 잠금의 웹 대상은 루틴 자신이 들고 있다. 수동 잠금 목록을 섞으면
+                // 이 루틴이 막지 않는 사이트까지 막고 있다고 말하게 된다.
                 val selectedWebDomains = if (lockScreenEntry.isRoutine) {
                     emptySet()
                 } else {
@@ -136,6 +138,7 @@ class LockViewModel
                     state.copy(
                         routines = activeRoutineLockState.routines,
                         selectedAppPackage = activeRoutineLockState.blockedApps,
+                        selectedWebDomains = activeRoutineLockState.blockedWebDomains,
                         lockTime = activeRoutineLockState.endTime,
                         routineStartTime = routineStartTime,
                     )
