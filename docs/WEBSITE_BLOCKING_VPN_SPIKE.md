@@ -55,9 +55,13 @@ The service is non-exported, so start and stop the spike through the exported ac
   blocked". The service publishes `Unavailable` when the TUN cannot be established (another VPN owns
   the slot) or when consent is revoked mid-lock, and the same banner explains it.
 - The website selection sheet discloses that browser or device secure DNS settings can bypass blocking.
-- Routines carry their own website list and start blocking from their start alarm. When that single
-  trigger is missed the window stays unprotected; the open cases and how to close them are recorded in
-  `docs/ROUTINE_WEBSITE_BLOCKING_TRIGGER_CONTRACT.md`.
+- Routines carry their own website list. Four triggers run the same judgement — the start alarm,
+  saving or toggling a routine, boot, and opening Home — so a missed alarm no longer costs the whole
+  window. Opening the app is still required for the alarm-missed case; a user who never opens Keep
+  during that window still gets nothing. See `docs/ROUTINE_WEBSITE_BLOCKING_TRIGGER_CONTRACT.md`.
+- When upstream DNS stops answering the filter still steps aside, but the service now stays alive and
+  retries on a `5s`/`15s`/`60s` backoff until the window ends, so a recovered network is picked up
+  without waiting for the next trigger.
 - The service uses `START_REDELIVER_INTENT` so Android can restore the active domain set after a
   process restart.
 - Routines and goal locks still retain their existing app-only target models.
@@ -252,6 +256,25 @@ For every network cell, test:
 - Wi-Fi-to-LTE suspended Wi-Fi `633` and created the replacement LTE VPN over `613` in about `0.36s`. The whole host-side `svc wifi disable` command plus first probe measured `3.60s`, mostly before Android emitted the network-loss callback.
 - Active settings revoke removed the VPN network in `68ms`, but a DNS query launched concurrently with the disconnect waited for the resolver timeout. The second probe succeeded; total first-success measurement was `3.88s`, so the strict recovery gate remains failed for this edge case.
 - A third-party `유니콘 HTTPS` profile is installed but was not activated. Other-VPN ownership behavior remains unverified because changing that profile would alter third-party privacy/network state.
+
+### 2026-08-05 Galaxy S21 re-run after the 5s upstream timeout
+
+The upstream timeout moved from `1.5s` to `5s`, so the reliability and latency gates were
+re-measured against the new value rather than cited from the 1.5s runs.
+
+- Device: Galaxy S21 (`SM-G991N`), Android 15. Wi-Fi `U+Net09B3`, RSSI `-42`, link `144Mbps`,
+  upstream DNS `1.214.68.2` / `61.41.153.2`, `0%` ICMP loss over 20 packets.
+- Three consecutive runs completed `500/500` allowed queries with `0` failures. Local blocked-query
+  p95 was `0ms`, `1ms`, `0ms`. Instrumentation time was `42.3s`, `38.4s`, `38.8s`.
+- Allowed-query p95 was `95ms`, `92ms`, `131ms`; p99 `120ms`, `195ms`, `196ms`; maximum `191ms`,
+  `203ms`, `277ms`.
+- **`upstream_attempt=failed` and `stop_reason` diagnostics were zero across all three runs.** No
+  query reached even the old 1.5s timeout, let alone the new 5s one, so the timeout change did not
+  participate in these numbers.
+- The allowed-query latency is roughly 7x the `13ms`/`14ms`/`13ms` recorded on 2026-07-27. That run
+  used a different Wi-Fi network and a different upstream resolver, so this is contextual comparison
+  only, not a controlled before/after — the same caveat already applied to the 2026-07-25 runs. The
+  gate itself is local filter latency, which stayed at `0-1ms`.
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
