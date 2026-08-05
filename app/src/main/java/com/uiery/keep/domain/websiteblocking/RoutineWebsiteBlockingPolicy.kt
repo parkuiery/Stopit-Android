@@ -19,6 +19,39 @@ data class RoutineWebsiteWindow(
     val websites: Set<String>,
 )
 
+/** 판정 결과를 옮길 행동 한 가지. */
+sealed interface RoutineWebsiteBlockingApplyAction {
+    /** 막을 것도 없고 서 있는 것도 없다. 수동 잠금이 세운 차단을 건드리지 않으려면 여기서 멈춰야 한다. */
+    data object DoNothing : RoutineWebsiteBlockingApplyAction
+
+    data object StopBlocking : RoutineWebsiteBlockingApplyAction
+
+    /** 막을 것은 있는데 VPN 동의가 없다. 화면이 이 사실을 설명해야 한다. */
+    data object ReportConsentMissing : RoutineWebsiteBlockingApplyAction
+
+    data class StartBlocking(
+        val session: RoutineWebsiteBlockingSession,
+    ) : RoutineWebsiteBlockingApplyAction
+}
+
+object RoutineWebsiteBlockingApplyPolicy {
+    fun decide(
+        session: RoutineWebsiteBlockingSession?,
+        hasVpnConsent: Boolean,
+        isBlockingStanding: Boolean,
+    ): RoutineWebsiteBlockingApplyAction {
+        if (session == null) {
+            return if (isBlockingStanding) {
+                RoutineWebsiteBlockingApplyAction.StopBlocking
+            } else {
+                RoutineWebsiteBlockingApplyAction.DoNothing
+            }
+        }
+        if (!hasVpnConsent) return RoutineWebsiteBlockingApplyAction.ReportConsentMissing
+        return RoutineWebsiteBlockingApplyAction.StartBlocking(session)
+    }
+}
+
 object RoutineWebsiteBlockingPolicy {
     fun resolveSession(windows: List<RoutineWebsiteWindow>): RoutineWebsiteBlockingSession? {
         val active = windows.filter { it.isEnabled && it.isActiveNow && it.websites.isNotEmpty() }
