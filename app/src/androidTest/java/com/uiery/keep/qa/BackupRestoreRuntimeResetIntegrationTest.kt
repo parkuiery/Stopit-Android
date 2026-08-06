@@ -1,6 +1,5 @@
 package com.uiery.keep.qa
 
-import com.uiery.keep.data.routine.RoutineRepository
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -15,14 +14,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.RoutineCountAnalyticsSync
+import com.uiery.keep.data.routine.RoomRoutineRepository
+import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
+import com.uiery.keep.data.routine.RoutineRepository
+import com.uiery.keep.data.routine.RoutineRestoreAftercare
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.BackupRestoreDataStoreKeyPolicy
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.data.routine.RoomRoutineRepository
-import com.uiery.keep.data.routine.RoutineExactAlarmOrchestrator
-import com.uiery.keep.data.routine.RoutineRestoreAftercare
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
 import com.uiery.keep.feature.routine.RoutineViewModel
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.notification.NotificationHelper
@@ -30,6 +31,9 @@ import com.uiery.keep.notification.RoutineIdentifierPolicy
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.receiver.BootReceiver
 import com.uiery.keep.receiver.RoutineAlarmReceiver
+import com.uiery.keep.testing.AndroidTestConditionWaiter
+import java.io.File
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
@@ -45,9 +49,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
-import java.time.DayOfWeek
-import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Emulates the intended backup/restore contract for a transferred device:
@@ -96,6 +97,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -121,6 +123,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
             appContext = context
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
         }
 
         receiver.handleRoutineAlarm(
