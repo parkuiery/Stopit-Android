@@ -31,6 +31,7 @@ import com.uiery.kds.KeepField
 import com.uiery.kds.KeepRadioButton
 import com.uiery.kds.KeepSegmentedControl
 import com.uiery.kds.KeepTextInput
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
@@ -350,7 +351,7 @@ fun CategoryBottomSheetLoadedContent(
                     selectedWebDomains.size,
                 ),
                 color = KeepTheme.colors.onSurface,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
         KeepButton(
@@ -493,6 +494,7 @@ private fun WebsiteLockListEditor(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .testTag("website_lock_list")
                 .nestedScroll(rememberSheetDragGuard())
                 .background(
                     shape = RoundedCornerShape(12.dp),
@@ -601,7 +603,7 @@ private fun WebsiteLockListEditor(
                         Text(
                             text = preset.domains.joinToString { it.value },
                             color = KeepTheme.colors.onSurface,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                     Text(
@@ -613,8 +615,9 @@ private fun WebsiteLockListEditor(
                         } else {
                             KeepTheme.semanticColors.foreground.brand
                         },
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                        ),
                     )
                 }
             }
@@ -630,7 +633,7 @@ private fun WebsiteLockListEditor(
                     ),
                     text = stringResource(R.string.website_lock_dns_caveat),
                     color = KeepTheme.semanticColors.foreground.muted,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
