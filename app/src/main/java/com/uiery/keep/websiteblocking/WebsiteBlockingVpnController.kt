@@ -54,11 +54,20 @@ fun WebsiteBlockingVpnController(
     ) { result ->
         val start = pendingStart
         pendingStart = null
-        if (result.resultCode == Activity.RESULT_OK && start != null) {
-            context.startWebsiteBlocking(start.domains, start.stopAtEpochMillis)
-        } else {
-            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.ConsentDenied)
-            currentOnConsentDenied()
+        val outcome = WebsiteBlockingConsentResultPolicy.outcome(
+            granted = result.resultCode == Activity.RESULT_OK,
+            hasPendingStart = start != null,
+        )
+        when (outcome) {
+            WebsiteBlockingConsentOutcome.StartPending ->
+                start?.let { context.startWebsiteBlocking(it.domains, it.stopAtEpochMillis) }
+
+            WebsiteBlockingConsentOutcome.RecordDenied -> {
+                WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.ConsentDenied)
+                currentOnConsentDenied()
+            }
+
+            WebsiteBlockingConsentOutcome.Ignore -> Unit
         }
     }
 
@@ -152,6 +161,12 @@ fun WebsiteBlockingVpnController(
 /**
  * 다른 앱이 VPN 슬롯을 쥐고 있는지. 소유자 UID 는 시스템 권한 없이 읽을 수 없으므로,
  * 우리 서비스가 서 있지 않은데 VPN 이 존재하면 남의 것으로 본다.
+ *
+ * `allNetworks` 는 API 31 부터 deprecated 지만 아직 그대로 둔다. 대체 경로인 NetworkCallback
+ * 은 등록·해제 수명주기를 들고 다녀야 해서 이 자리의 동기 판정으로 바꿔 끼울 수 없고,
+ * `activeNetwork` 하나만 보면 VPN 이 활성 네트워크가 아닐 때를 놓친다. 이 판정은 실기기에서
+ * 확인한 충돌 처리(`유니콘 HTTPS`, 스파이크 문서의 "PASS AFTER FIX")가 딛고 선 자리라,
+ * 기기 재검증 없이 바꾸면 그 결과를 잃는다.
  */
 private fun Context.otherVpnActive(): Boolean {
     if (websiteBlockingOwnership() == WebsiteBlockingOwnership.OwnedByKeep) return false
