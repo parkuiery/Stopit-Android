@@ -151,10 +151,13 @@ fun CategoryBottomSheetLoadedContent(
     }
     var selectedAppPackages by remember(apps, selectionMode) { mutableStateOf(initialSelectedAppPackages) }
     // 담긴 순서를 지키는 목록이다. 정렬해 두면 방금 담은 도메인이 어디로 갔는지 알 수 없어
-    // 추가가 반영됐는지 확인할 방법이 사라진다. 회전이나 프로세스 재생성으로 편집 중이던
-    // 선택이 통째로 날아가지 않도록 저장한다.
+    // 추가가 반영됐는지 확인할 방법이 사라진다.
+    //
+    // 부모 값을 키로 걸지 않는다. 걸어 두면 시트가 열려 있는 동안 부모 상태가 갱신될 때
+    // 편집 중이던 선택이 통째로 지워진다. 앱 선택도 같은 이유로 storeSelectApps 를 키에서
+    // 빼고 apps 만 본다(parentSelectionUpdatesWhileSheetIsOpenDoNotResortOrResetCurrentEdits).
+    // 같은 시트 안의 두 선택이 같은 사건에 다르게 반응하면 안 된다.
     var selectedWebDomains by rememberSaveable(
-        storeSelectedWebDomains,
         stateSaver = listSaver<List<String>, String>(save = { it }, restore = { it }),
     ) { mutableStateOf(storeSelectedWebDomains.sorted()) }
     var selectedTargetIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -392,14 +395,16 @@ private enum class LockTargetType {
 @Composable
 private fun rememberSheetDragGuard(): NestedScrollConnection = remember {
     object : NestedScrollConnection {
+        // 시트는 세로로만 움직인다. 가로 델타까지 삼키면 나중에 목록 안에 가로로 스크롤되는
+        // 것이 생겼을 때 이 가드가 조용히 그것을 막는다.
         override fun onPostScroll(
             consumed: Offset,
             available: Offset,
             source: NestedScrollSource,
-        ): Offset = available
+        ): Offset = Offset(0f, available.y)
 
         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
-            available
+            Velocity(0f, available.y)
     }
 }
 
@@ -478,11 +483,14 @@ private fun WebsiteLockListEditor(
                     ),
                     keyboardActions = KeyboardActions(onDone = { addTypedDomain() }),
                 )
+                // 빈 칸으로 누르면 "형식이 맞지 않는다"고 말하게 되는데, 사용자는 잘못된
+                // 주소를 넣은 것이 아니라 아무것도 넣지 않았다. 담을 것이 없으면 끈다.
                 KeepButton(
                     modifier = Modifier.testTag("website_domain_add"),
                     text = stringResource(R.string.add),
                     size = KeepButtonSize.Large,
                     bottomSpacing = false,
+                    enabled = input.isNotBlank(),
                     onClick = addTypedDomain,
                 )
             }

@@ -19,6 +19,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -325,6 +330,143 @@ class CategoryBottomSheetContentIntegrationTest {
         assertEquals(
             listOf(emptySet<String>() to setOf("youtube.com")),
             completedTargets,
+        )
+    }
+
+    @Test
+    fun parentWebDomainUpdatesWhileSheetIsOpenDoNotResetCurrentEdits() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val parentDomains = mutableStateOf(setOf("stored.example.org"))
+        val completedTargets = mutableListOf<Pair<Set<String>, Set<String>>>()
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    storeSelectedWebDomains = parentDomains.value,
+                    onCompleteTargets = { apps, domains -> completedTargets += apps to domains },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("typed.example.org")
+        composeRule.onNodeWithTag("website_domain_add").performClick()
+        composeRule.waitForIdle()
+
+        // 앱 선택은 부모 갱신에 편집이 지워지지 않는다. 웹사이트만 다르게 굴면 같은 시트
+        // 안에서 두 선택이 같은 사건에 다르게 반응하게 된다.
+        composeRule.runOnIdle { parentDomains.value = setOf("stored.example.org", "other.example.org") }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+        assertEquals(
+            listOf(emptySet<String>() to setOf("typed.example.org", "stored.example.org")),
+            completedTargets,
+        )
+    }
+
+    @Test
+    fun reopeningTheSheetSeedsFromTheStoreAndDropsAbandonedEdits() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val showSheet = mutableStateOf(true)
+        val completedTargets = mutableListOf<Pair<Set<String>, Set<String>>>()
+
+        composeRule.setContent {
+            KeepTheme {
+                if (showSheet.value) {
+                    CategoryBottomSheetLoadedContent(
+                        apps = emptyList(),
+                        storeSelectApps = emptySet(),
+                        onComplete = { },
+                        websiteSelectionEnabled = true,
+                        storeSelectedWebDomains = setOf("stored.example.org"),
+                        onCompleteTargets = { apps, domains -> completedTargets += apps to domains },
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("abandoned.example.org")
+        composeRule.onNodeWithTag("website_domain_add").performClick()
+        composeRule.waitForIdle()
+
+        // 루틴 선택 화면은 저장하지 않고 뒤로 갈 수 있다. 그때 버린 편집이 되살아나면
+        // 사용자가 취소한 선택이 조용히 저장된다.
+        composeRule.runOnIdle { showSheet.value = false }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { showSheet.value = true }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        assertEquals(
+            listOf(emptySet<String>() to setOf("stored.example.org")),
+            completedTargets,
+        )
+    }
+
+    @Test
+    fun addButtonIsDisabledUntilSomethingIsTyped() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.waitForIdle()
+
+        // 빈 칸으로 누를 수 있으면 "형식이 맞지 않는다"는 엉뚱한 오류를 보게 된다.
+        composeRule.onNodeWithTag("website_domain_add").assertIsNotEnabled()
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("typed.example.org")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("website_domain_add").assertIsEnabled()
+    }
+
+    @Test
+    fun theDnsCaveatUsesTheSmallTextLineHeightNotTheInheritedBodyOne() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        val caveat = context.getString(R.string.website_lock_dns_caveat)
+        composeRule.onNodeWithTag("website_lock_list").performScrollToNode(hasText(caveat))
+        composeRule.waitForIdle()
+
+        // fontSize 만 지정하면 주변에서 상속된 bodyLarge 행간(22sp)이 12sp 글자에 그대로
+        // 남아 줄당 22dp 가 된다. bodySmall(12/16) 이면 줄당 16dp 다.
+        val density = context.resources.displayMetrics.density
+        val heightDp = composeRule.onNodeWithText(caveat)
+            .fetchSemanticsNode().size.height / density
+        val lineCount = (heightDp / 16f).roundToInt()
+        assertTrue(
+            "주의 문구 행간이 스케일을 벗어났다: ${heightDp}dp / ${lineCount}줄",
+            lineCount >= 1 && kotlin.math.abs(heightDp - lineCount * 16f) <= 2f,
         )
     }
 
