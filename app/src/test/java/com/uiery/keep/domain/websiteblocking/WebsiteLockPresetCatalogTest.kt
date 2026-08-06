@@ -86,36 +86,64 @@ class WebsiteLockPresetCatalogTest {
     }
 
     @Test
-    fun presetSelectionAddsAndRemovesEveryDomainInItsBundle() {
+    fun presetAddsEveryDomainInItsBundleInFrontOfWhatIsAlreadyThere() {
         val youtube = WebsiteLockPresetCatalog.popular.first { it.id == "youtube" }
-        val initial = setOf("example.com")
+        val initial = listOf("example.com")
 
         assertTrue(
             !WebsiteLockPresetSelectionPolicy.isSelected(
-                selectedDomains = initial,
+                selectedDomains = initial.toSet(),
                 preset = youtube,
             ),
         )
 
-        val selected = WebsiteLockPresetSelectionPolicy.updateSelection(
+        val selected = WebsiteLockPresetSelectionPolicy.add(
             selectedDomains = initial,
             preset = youtube,
-            selected = true,
         )
 
-        assertEquals(setOf("example.com", "youtube.com", "youtu.be"), selected)
+        assertEquals(listOf("youtube.com", "youtu.be", "example.com"), selected)
         assertTrue(
             WebsiteLockPresetSelectionPolicy.isSelected(
-                selectedDomains = selected,
+                selectedDomains = selected.toSet(),
+                preset = youtube,
+            ),
+        )
+    }
+
+    @Test
+    fun partlyRemovedPresetOnlyFillsBackTheMissingDomain() {
+        val youtube = WebsiteLockPresetCatalog.popular.first { it.id == "youtube" }
+        // 사용자가 youtu.be 만 지운 상태. 남은 youtube.com 은 사용자가 직접 넣었을 수도
+        // 있으므로 프리셋이 건드리면 안 된다.
+        val partial = listOf("youtube.com", "example.com")
+
+        assertEquals(
+            listOf("youtu.be"),
+            WebsiteLockPresetSelectionPolicy.missingDomains(
+                selectedDomains = partial.toSet(),
                 preset = youtube,
             ),
         )
         assertEquals(
-            initial,
-            WebsiteLockPresetSelectionPolicy.updateSelection(
-                selectedDomains = selected,
+            listOf("youtu.be", "youtube.com", "example.com"),
+            WebsiteLockPresetSelectionPolicy.add(
+                selectedDomains = partial,
                 preset = youtube,
-                selected = false,
+            ),
+        )
+    }
+
+    @Test
+    fun addingAnAlreadyCompletePresetChangesNothing() {
+        val instagram = WebsiteLockPresetCatalog.popular.first { it.id == "instagram" }
+        val selected = listOf("instagram.com", "example.com")
+
+        assertEquals(
+            selected,
+            WebsiteLockPresetSelectionPolicy.add(
+                selectedDomains = selected,
+                preset = instagram,
             ),
         )
     }

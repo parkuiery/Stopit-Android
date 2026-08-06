@@ -12,7 +12,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -254,7 +256,7 @@ class CategoryBottomSheetContentIntegrationTest {
     }
 
     @Test
-    fun recommendedWebsiteCanBeAddedAndRemovedWithoutSelectingItByDefault() {
+    fun recommendedWebsiteAddsItsDomainsAndThenReportsItselfAsAdded() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val completedTargets = mutableListOf<Pair<Set<String>, Set<String>>>()
 
@@ -273,18 +275,57 @@ class CategoryBottomSheetContentIntegrationTest {
         }
 
         composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
-        composeRule.onNodeWithTag("website_preset_youtube")
-            .assertIsOff()
-            .performClick()
-            .assertIsOn()
-        composeRule.onNodeWithTag("category_selection_complete").performClick()
+        composeRule.onNodeWithTag("website_preset_youtube").performClick()
+        composeRule.waitForIdle()
 
+        // 담긴 뒤에는 담을 것이 남지 않았다고 말해야 한다. 체크박스였을 때는 도메인 하나만
+        // 지워도 체크가 풀려 실제로 막히고 있는 것과 표시가 어긋났다.
+        composeRule.onNodeWithTag("website_preset_youtube")
+            .assertTextContains(context.getString(R.string.website_lock_preset_added))
+
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
         assertEquals(
             listOf(emptySet<String>() to setOf("youtube.com", "youtu.be")),
             completedTargets,
         )
+    }
 
-        composeRule.onNodeWithTag("website_preset_youtube").performClick().assertIsOff()
+    @Test
+    fun removingOneDomainOfAPresetKeepsTheOtherAndLetsThePresetRefillIt() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedTargets = mutableListOf<Pair<Set<String>, Set<String>>>()
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { apps, domains ->
+                        completedTargets += apps to domains
+                    },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("website_preset_youtube").performClick()
+        composeRule.waitForIdle()
+
+        // 삭제 버튼은 행마다 같은 글자라 도메인이 붙은 설명으로만 구분된다.
+        composeRule
+            .onNodeWithContentDescription(
+                context.getString(R.string.website_lock_delete_domain, "youtu.be"),
+            )
+            .performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+        assertEquals(
+            listOf(emptySet<String>() to setOf("youtube.com")),
+            completedTargets,
+        )
     }
 
     @Test
@@ -306,10 +347,8 @@ class CategoryBottomSheetContentIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.website_lock_empty)).assertExists()
 
-        // 입력창 힌트가 example.com 이라 그 문구로는 입력창과 추가된 행을 구분할 수 없다.
-        composeRule.onNodeWithText(context.getString(R.string.website_domain_hint))
-            .performTextInput("blocked.example.org")
-        composeRule.onNodeWithText(context.getString(R.string.add)).performClick()
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("blocked.example.org")
+        composeRule.onNodeWithTag("website_domain_add").performClick()
         composeRule.waitForIdle()
 
         // 추가한 도메인이 추천 목록 아래로 밀리면 입력한 결과를 스크롤해야만 볼 수 있다.
@@ -318,6 +357,38 @@ class CategoryBottomSheetContentIntegrationTest {
         val recommendedTop = composeRule.onNodeWithText(context.getString(R.string.website_lock_recommended))
             .fetchSemanticsNode().boundsInRoot.top
         assertTrue("추가한 도메인이 추천 목록보다 위에 있어야 한다", addedTop < recommendedTop)
+    }
+
+    @Test
+    fun newestDomainStaysAtTheTopInsteadOfBeingSortedOutOfSight() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = emptyList(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { },
+                    websiteSelectionEnabled = true,
+                    onCompleteTargets = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.lock_target_websites)).performClick()
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("aaa.example.org")
+        composeRule.onNodeWithTag("website_domain_add").performClick()
+        composeRule.waitForIdle()
+        // 알파벳순이라면 zzz 는 aaa 아래로 가서 방금 담은 것이 보이지 않는다.
+        composeRule.onNodeWithTag("website_domain_input").performTextInput("zzz.example.org")
+        composeRule.onNodeWithTag("website_domain_add").performClick()
+        composeRule.waitForIdle()
+
+        val newestTop = composeRule.onNodeWithText("zzz.example.org")
+            .fetchSemanticsNode().boundsInRoot.top
+        val previousTop = composeRule.onNodeWithText("aaa.example.org")
+            .fetchSemanticsNode().boundsInRoot.top
+        assertTrue("방금 담은 도메인이 맨 위에 있어야 한다", newestTop < previousTop)
     }
 
     private fun hasCheckboxRole(): SemanticsMatcher =

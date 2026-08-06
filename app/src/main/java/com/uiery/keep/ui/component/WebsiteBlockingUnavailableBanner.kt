@@ -44,15 +44,31 @@ fun WebsiteBlockingUnavailableBanner(
         status = status,
     ) ?: return
 
+    WebsiteBlockingWarningRow(
+        message = stringResource(messageRes),
+        modifier = modifier.padding(top = 16.dp),
+    )
+}
+
+/**
+ * 웹 차단이 서지 못했다는 경고의 공통 생김새. 화면마다 다른 모양으로 말하면 같은 사실인지
+ * 알아보기 어렵다. [action] 은 그 자리에서 바로 복구할 수 있을 때만 붙인다.
+ */
+@Composable
+internal fun WebsiteBlockingWarningRow(
+    message: String,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 16.dp)
             .background(
                 color = KeepTheme.colors.error.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(12.dp),
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(start = 16.dp, end = if (action == null) 16.dp else 8.dp)
+            .padding(vertical = if (action == null) 14.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -62,11 +78,16 @@ fun WebsiteBlockingUnavailableBanner(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = stringResource(messageRes),
+            modifier = Modifier.weight(1f),
+            text = message,
             color = KeepTheme.colors.error,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
         )
+        if (action != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            action()
+        }
     }
 }
 

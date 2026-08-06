@@ -2,6 +2,7 @@ package com.uiery.keep.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,19 +22,26 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepButtonSize
 import com.uiery.kds.KeepCircularProgressIndicator
+import com.uiery.kds.KeepField
 import com.uiery.kds.KeepRadioButton
 import com.uiery.kds.KeepSegmentedControl
+import com.uiery.kds.KeepTextInput
 import androidx.compose.material3.Text
 import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,14 +54,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
-import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
@@ -133,10 +145,15 @@ fun CategoryBottomSheetLoadedContent(
         }
     }
     var selectedAppPackages by remember(apps, selectionMode) { mutableStateOf(initialSelectedAppPackages) }
-    var selectedWebDomains by remember(storeSelectedWebDomains) {
-        mutableStateOf(storeSelectedWebDomains.toSet())
-    }
-    var selectedTargetType by remember { mutableStateOf(LockTargetType.Apps) }
+    // 담긴 순서를 지키는 목록이다. 정렬해 두면 방금 담은 도메인이 어디로 갔는지 알 수 없어
+    // 추가가 반영됐는지 확인할 방법이 사라진다. 회전이나 프로세스 재생성으로 편집 중이던
+    // 선택이 통째로 날아가지 않도록 저장한다.
+    var selectedWebDomains by rememberSaveable(
+        storeSelectedWebDomains,
+        stateSaver = listSaver<List<String>, String>(save = { it }, restore = { it }),
+    ) { mutableStateOf(storeSelectedWebDomains.sorted()) }
+    var selectedTargetIndex by rememberSaveable { mutableIntStateOf(0) }
+    val selectedTargetType = LockTargetType.entries[selectedTargetIndex]
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
     val orderedApps = remember(apps) {
         val appsByPackage = apps.associateBy { it.packageName }
@@ -187,10 +204,8 @@ fun CategoryBottomSheetLoadedContent(
                         },
                     )
                 },
-                selectedIndex = LockTargetType.entries.indexOf(selectedTargetType),
-                onItemSelected = { index ->
-                    selectedTargetType = LockTargetType.entries[index]
-                },
+                selectedIndex = selectedTargetIndex,
+                onItemSelected = { index -> selectedTargetIndex = index },
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -310,6 +325,22 @@ fun CategoryBottomSheetLoadedContent(
                 }
             }
         }
+        // 탭을 넘어가면 반대편 탭의 선택은 화면에서 사라진다. 무엇을 저장하는지는
+        // 두 탭 어디에서나 보여야 한다.
+        if (websiteSelectionEnabled) {
+            Text(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .testTag("lock_targets_summary"),
+                text = stringResource(
+                    R.string.lock_targets_selected,
+                    selectedAppPackages.size,
+                    selectedWebDomains.size,
+                ),
+                color = KeepTheme.colors.onSurface,
+                fontSize = 14.sp,
+            )
+        }
         KeepButton(
             modifier = Modifier
                 .fillMaxWidth()
@@ -325,7 +356,7 @@ fun CategoryBottomSheetLoadedContent(
                 if (selectedApp != null && onSingleComplete != null) {
                     onSingleComplete(selectedApp.packageName, selectedApp.appName)
                 } else if (websiteSelectionEnabled && onCompleteTargets != null) {
-                    onCompleteTargets(selectedAppPackages, selectedWebDomains)
+                    onCompleteTargets(selectedAppPackages, selectedWebDomains.toSet())
                 } else {
                     onComplete(selectedAppPackages)
                 }
@@ -341,15 +372,35 @@ private enum class LockTargetType {
 
 @Composable
 private fun WebsiteLockListEditor(
-    selectedDomains: Set<String>,
-    onSelectedDomainsChange: (Set<String>) -> Unit,
+    selectedDomains: List<String>,
+    onSelectedDomainsChange: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
-    var input by remember { mutableStateOf("") }
-    var validationError by remember { mutableStateOf(false) }
+    var input by rememberSaveable { mutableStateOf("") }
+    var validationError by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val invalidMessage = stringResource(R.string.website_domain_invalid)
+
+    // 방금 담은 것을 보여주는 일은 담는 경로마다 따로 붙일 수 없다. 버튼과 키보드 완료가
+    // 갈라지면 한쪽 경로에서만 확인이 되는 상태가 생긴다.
+    val showTopOfList = { coroutineScope.launch { listState.animateScrollToItem(0) } }
+    val addTypedDomain = {
+        when (val result = DomainNamePolicy.normalize(input)) {
+            is DomainNameNormalizationResult.Valid -> {
+                val domain = result.domain.value
+                // 이미 담긴 도메인을 다시 입력해도 맨 앞으로 올린다. 아무 일도 일어나지
+                // 않으면 입력이 삼켜진 것과 구분되지 않는다.
+                onSelectedDomainsChange(listOf(domain) + selectedDomains.filterNot { it == domain })
+                input = ""
+                validationError = false
+                showTopOfList()
+            }
+            is DomainNameNormalizationResult.Invalid -> validationError = true
+        }
+        Unit
+    }
 
     Column(modifier = modifier) {
         if (!compact) {
@@ -359,45 +410,49 @@ private fun WebsiteLockListEditor(
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
-        Row(
+        // 라벨과 오류가 입력창에 붙어 있어야 무엇을 넣는 칸인지, 무엇이 틀렸는지가
+        // 입력하는 자리에서 읽힌다.
+        KeepField(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SearchTextField(
-                modifier = Modifier.weight(1f),
-                value = { input },
-                hint = stringResource(R.string.website_domain_hint),
-                onValueChange = {
-                    input = it
-                    validationError = false
-                },
-            )
-            KeepButton(
-                text = stringResource(R.string.add),
-                size = KeepButtonSize.Small,
-                bottomSpacing = false,
-                onClick = {
-                    when (val result = DomainNamePolicy.normalize(input)) {
-                        is DomainNameNormalizationResult.Valid -> {
-                            onSelectedDomainsChange(selectedDomains + result.domain.value)
-                            input = ""
-                            validationError = false
-                            // 방금 담은 도메인은 목록 맨 위에 있다. 스크롤이 아래에 머물러
-                            // 있으면 추가된 것을 확인할 방법이 없다.
-                            coroutineScope.launch { listState.animateScrollToItem(0) }
-                        }
-                        is DomainNameNormalizationResult.Invalid -> validationError = true
-                    }
-                },
-            )
-        }
-        if (validationError) {
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text = stringResource(R.string.website_domain_invalid),
-                color = KeepTheme.colors.error,
-            )
+            label = stringResource(R.string.website_domain_label),
+            errorMessage = invalidMessage.takeIf { validationError },
+        ) { fieldHasError ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                KeepTextInput(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("website_domain_input"),
+                    value = input,
+                    onValueChange = {
+                        input = it
+                        validationError = false
+                    },
+                    placeholder = { Text(text = stringResource(R.string.website_domain_hint)) },
+                    isError = fieldHasError,
+                    errorMessage = invalidMessage.takeIf { validationError },
+                    singleLine = true,
+                    // 도메인은 문장이 아니다. 자동 대문자·자동수정이 끼면 입력한 것과
+                    // 다른 값이 담긴다. 완료 키로도 담을 수 있어야 한 개 넣을 때마다
+                    // 키보드와 버튼을 왕복하지 않는다.
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Uri,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { addTypedDomain() }),
+                )
+                KeepButton(
+                    modifier = Modifier.testTag("website_domain_add"),
+                    text = stringResource(R.string.add),
+                    size = KeepButtonSize.Large,
+                    bottomSpacing = false,
+                    onClick = addTypedDomain,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
         LazyColumn(
@@ -407,7 +462,7 @@ private fun WebsiteLockListEditor(
                 .weight(1f)
                 .background(
                     shape = RoundedCornerShape(12.dp),
-                    color = KeepTheme.colors.secondary,
+                    color = KeepTheme.semanticColors.background.neutralWeak,
                 ),
         ) {
             // 선택한 목록이 먼저다. 추가·삭제의 결과가 입력창 바로 아래에서 보여야
@@ -429,11 +484,14 @@ private fun WebsiteLockListEditor(
                     )
                 }
             } else {
-                items(selectedDomains.sorted(), key = { it }) { domain ->
+                items(selectedDomains, key = { it }) { domain ->
+                    val deleteLabel = stringResource(R.string.website_lock_delete_domain, domain)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            .heightIn(min = 48.dp)
+                            .padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -441,7 +499,11 @@ private fun WebsiteLockListEditor(
                             text = domain,
                             color = KeepTheme.colors.onSurfaceVariant,
                         )
+                        // 행마다 "삭제"만 읽히면 어느 도메인을 지우는 버튼인지 알 수 없다.
                         KeepTextButton(
+                            modifier = Modifier
+                                .heightIn(min = 48.dp)
+                                .semantics { contentDescription = deleteLabel },
                             onClick = { onSelectedDomainsChange(selectedDomains - domain) },
                         ) {
                             Text(stringResource(R.string.delete))
@@ -466,52 +528,76 @@ private fun WebsiteLockListEditor(
                 items = WebsiteLockPresetCatalog.popular,
                 key = { preset -> "preset_${preset.id}" },
             ) { preset ->
-                val presetDomains = preset.domains.map { it.value }.toSet()
-                val checked = WebsiteLockPresetSelectionPolicy.isSelected(
-                    selectedDomains = selectedDomains,
+                // 프리셋은 담기만 한다. 빼는 일은 위 선택 목록이 소유한다.
+                val added = WebsiteLockPresetSelectionPolicy.isSelected(
+                    selectedDomains = selectedDomains.toSet(),
                     preset = preset,
-                )
-                val selectionStateDescription = stringResource(
-                    id = if (checked) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
                 )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .toggleable(
-                            value = checked,
-                            role = Role.Checkbox,
-                            onValueChange = { selected ->
-                                onSelectedDomainsChange(
-                                    WebsiteLockPresetSelectionPolicy.updateSelection(
-                                        selectedDomains = selectedDomains,
-                                        preset = preset,
-                                        selected = selected,
-                                    ),
-                                )
+                        .then(
+                            if (added) {
+                                // 담긴 행은 누를 수 없어 시맨틱이 저절로 묶이지 않는다.
+                                // 묶어 주지 않으면 한 줄짜리 항목을 세 번 끊어 읽는다.
+                                Modifier.semantics(mergeDescendants = true) { }
+                            } else {
+                                Modifier.clickable(role = Role.Button) {
+                                    onSelectedDomainsChange(
+                                        WebsiteLockPresetSelectionPolicy.add(
+                                            selectedDomains = selectedDomains,
+                                            preset = preset,
+                                        ),
+                                    )
+                                    showTopOfList()
+                                }
                             },
                         )
-                        .semantics { stateDescription = selectionStateDescription }
                         .testTag("website_preset_${preset.id}")
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    KeepCheckbox(
-                        checked = checked,
-                        onCheckedChange = null,
-                    )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = preset.serviceName,
                             color = KeepTheme.colors.onSurfaceVariant,
                         )
                         Text(
-                            text = presetDomains.sorted().joinToString(),
+                            text = preset.domains.joinToString { it.value },
                             color = KeepTheme.colors.onSurface,
                             fontSize = 12.sp,
                         )
                     }
+                    Text(
+                        text = stringResource(
+                            if (added) R.string.website_lock_preset_added else R.string.add,
+                        ),
+                        color = if (added) {
+                            KeepTheme.semanticColors.foreground.muted
+                        } else {
+                            KeepTheme.semanticColors.foreground.brand
+                        },
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                    )
                 }
+            }
+            // 차단이 완전하지 않을 수 있다는 사실은 목록 맨 위를 차지할 만큼 자주 읽을
+            // 내용은 아니지만, 목록을 끝까지 본 사람은 반드시 만나야 한다.
+            item {
+                Text(
+                    modifier = Modifier.padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 18.dp,
+                        bottom = 14.dp,
+                    ),
+                    text = stringResource(R.string.website_lock_dns_caveat),
+                    color = KeepTheme.semanticColors.foreground.muted,
+                    fontSize = 12.sp,
+                )
             }
         }
     }

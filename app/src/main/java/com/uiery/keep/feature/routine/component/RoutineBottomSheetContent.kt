@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +72,7 @@ import com.uiery.kds.KeepLabelWeight
 import com.uiery.kds.KeepMenu
 import com.uiery.kds.KeepMenuItem
 import com.uiery.kds.KeepMenuItemTone
+import com.uiery.kds.KeepTextButton
 import com.uiery.kds.KeepTextField
 import com.uiery.kds.KeepTextFieldVariant
 import com.uiery.kds.theme.KeepTheme
@@ -85,6 +87,7 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.rememberPickerState
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.TimerPicker
+import com.uiery.keep.ui.component.WebsiteBlockingWarningRow
 import com.uiery.keep.util.formatWeekdayShort
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.toTimeString
@@ -267,6 +270,7 @@ private fun RoutineInputContent(
                 selectWebDomains = selectWebDomains,
                 onClick = onAppSelect,
             )
+            RoutineWebsiteConsentWarning(hasWebsiteTargets = selectWebDomains.isNotEmpty())
             KeepTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = name,
@@ -440,6 +444,48 @@ private fun RoutineSheetFooter(
             )
         }
     }
+}
+
+/**
+ * 동의를 거부한 채로 루틴을 저장하면, 잠금이 시작되는 몇 시간 뒤까지 사용자는 웹사이트가
+ * 막힐 것이라고 믿는다. 거부한 자리에서 바로 말해주고 그 자리에서 다시 받을 수 있어야 한다.
+ */
+@Composable
+private fun RoutineWebsiteConsentWarning(
+    hasWebsiteTargets: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val status by WebsiteBlockingRuntimeState.status.collectAsState()
+    if (!hasWebsiteTargets || status != WebsiteBlockingStatus.ConsentDenied) return
+
+    val context = LocalContext.current
+    val consentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
+        }
+    }
+
+    WebsiteBlockingWarningRow(
+        modifier = modifier,
+        message = stringResource(R.string.routine_website_consent_denied),
+        action = {
+            // 경고 자체는 붉은 톤이지만 이 버튼은 되돌리는 행동이지 파괴적인 행동이 아니다.
+            KeepTextButton(
+                onClick = {
+                    val consentIntent = VpnService.prepare(context)
+                    if (consentIntent == null) {
+                        WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
+                    } else {
+                        consentLauncher.launch(consentIntent)
+                    }
+                },
+            ) {
+                Text(text = stringResource(R.string.website_blocking_consent_retry))
+            }
+        },
+    )
 }
 
 @Composable
