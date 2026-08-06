@@ -31,7 +31,6 @@ import com.uiery.kds.KeepField
 import com.uiery.kds.KeepRadioButton
 import com.uiery.kds.KeepSegmentedControl
 import com.uiery.kds.KeepTextInput
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
@@ -351,7 +350,7 @@ fun CategoryBottomSheetLoadedContent(
                     selectedWebDomains.size,
                 ),
                 color = KeepTheme.colors.onSurface,
-                style = MaterialTheme.typography.bodyMedium,
+                style = KeepTheme.typography.bodyMedium,
             )
         }
         KeepButton(
@@ -603,7 +602,7 @@ private fun WebsiteLockListEditor(
                         Text(
                             text = preset.domains.joinToString { it.value },
                             color = KeepTheme.colors.onSurface,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KeepTheme.typography.bodySmall,
                         )
                     }
                     Text(
@@ -615,7 +614,7 @@ private fun WebsiteLockListEditor(
                         } else {
                             KeepTheme.semanticColors.foreground.brand
                         },
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = KeepTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                         ),
                     )
@@ -633,7 +632,7 @@ private fun WebsiteLockListEditor(
                     ),
                     text = stringResource(R.string.website_lock_dns_caveat),
                     color = KeepTheme.semanticColors.foreground.muted,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KeepTheme.typography.bodySmall,
                 )
             }
         }
