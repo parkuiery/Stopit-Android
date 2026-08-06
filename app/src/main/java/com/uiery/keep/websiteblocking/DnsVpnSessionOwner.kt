@@ -3,6 +3,17 @@ package com.uiery.keep.websiteblocking
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
+/**
+ * 어느 VPN 세션이 살아 있는 주인인지 가린다.
+ *
+ * 원자 참조를 쓰지만 그것만으로 안전하지는 않다. [startSession] 과 [publishWorkerHandle] 은
+ * 각각은 원자적이어도 그 사이에 다른 세션이 끼어들 수 있어, 뒤늦게 도착한 게시가 새 세션의
+ * 핸들을 덮어쓸 수 있다. 그러면 새 워커는 아무도 종료시키지 못한 채 남는다.
+ *
+ * 그래서 **한 세션의 시작과 워커 게시는 호출부가 같은 락 안에서 이어 붙여야 한다.**
+ * `KeepDnsVpnService.startVpnWorker` 가 `lifecycleLock` 으로 그 구간을 감싼다. 락 밖에서
+ * 게시하지 말 것.
+ */
 class DnsVpnSessionOwner<Worker> {
     private val nextGeneration = AtomicInteger(0)
     private val activeSession = AtomicReference<DnsVpnSession?>(null)
