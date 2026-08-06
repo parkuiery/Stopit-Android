@@ -167,6 +167,19 @@ object KeepTheme {
 
     val semanticColors
         @Composable get() = LocalSemanticColors.current
+
+    /**
+     * SEED t1–t14 scale, as defined in [Typography].
+     *
+     * 색과 달리 타이포그래피는 KDS 전용 CompositionLocal 이 아니라 Material 슬롯에 주입된다
+     * ([KeepTheme] 컴포저블 참고). 그래서 읽는 통로가 `MaterialTheme` 인데, 호출부에서는
+     * 디자인 시스템을 우회하는 것처럼 보인다. 색과 같은 이름으로 읽을 수 있게 열어 둔다.
+     *
+     * 크기만 필요하더라도 `fontSize` 를 직접 쓰지 말 것. 스케일은 크기와 행간이 짝지어져
+     * 있고, 크기만 덮어쓰면 주변에서 상속된 행간이 그대로 남는다.
+     */
+    val typography
+        @Composable get() = MaterialTheme.typography
 }
 
 val LocalColors = staticCompositionLocalOf { LegacyLightColorScheme }

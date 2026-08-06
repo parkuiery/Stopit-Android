@@ -70,6 +70,7 @@ class RoutineBottomSheetViewModel
                             endTime = routineModel.endTime,
                             selectDays = routineModel.repeatDays.toDayOfWeekList(),
                             selectApps = routineModel.lockApplications?.toSet() ?: emptySet(),
+                            selectWebDomains = routineModel.lockWebsites?.toSet() ?: emptySet(),
                             isEnabled = routineModel.isEnabled,
                             changeLockHours = routineModel.changeLockHours,
                             repeatBlockSuggestionPrefill = null,
@@ -155,6 +156,20 @@ class RoutineBottomSheetViewModel
         internal fun setSelectApps(selectApps: Set<String>) =
             intent {
                 reduce { state.copy(selectApps = selectApps) }
+                setButtonEnabled()
+            }
+
+        internal fun setSelectTargets(
+            selectApps: Set<String>,
+            selectWebDomains: Set<String>,
+        ) =
+            intent {
+                reduce {
+                    state.copy(
+                        selectApps = selectApps,
+                        selectWebDomains = selectWebDomains,
+                    )
+                }
                 setButtonEnabled()
             }
 
@@ -260,6 +275,7 @@ data class RoutineBottomSheetUiState(
     val selectDays: List<DayOfWeek> = emptyList(),
     val isButtonEnable: Boolean = false,
     val selectApps: Set<String> = emptySet(),
+    val selectWebDomains: Set<String> = emptySet(),
     val isEnabled: Boolean = true,
     val changeLockHours: Int? = null,
     val repeatBlockSuggestionPrefill: RepeatBlockRoutineSuggestion? = null,
@@ -286,7 +302,9 @@ private fun RoutineBottomSheetUiState.isValidForSave(): Boolean {
     val isNameValid = name.isNotEmpty()
     val isTimeValid = startTime != endTime && routineDurationMinutes(startTime, endTime) >= 15
     val isDaySelected = selectDays.isNotEmpty()
-    return isNameValid && isTimeValid && isDaySelected && selectApps.isNotEmpty()
+    // 웹사이트만 막는 루틴도 대상이 있는 루틴이다.
+    val hasTargets = selectApps.isNotEmpty() || selectWebDomains.isNotEmpty()
+    return isNameValid && isTimeValid && isDaySelected && hasTargets
 }
 
 private fun RepeatBlockRoutineSuggestion.toAnalyticsPayload() = RepeatBlockRoutineSuggestionAnalyticsPayload(
@@ -306,6 +324,7 @@ private fun RoutineBottomSheetUiState.toRoutineModel(id: Long = 0) =
         endTime = endTime,
         repeatDays = selectDays.toRepeatDaysBinary(),
         lockApplications = selectApps.toList(),
+        lockWebsites = selectWebDomains.toList(),
         isEnabled = isEnabled,
         changeLockHours = changeLockHours,
     )

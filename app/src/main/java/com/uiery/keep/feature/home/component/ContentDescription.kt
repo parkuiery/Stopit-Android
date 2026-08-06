@@ -13,21 +13,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.domain.lock.LockTargetKind
 
 @Composable
 fun ContentDescription(
     modifier: Modifier = Modifier,
     isKeep: Boolean,
     startTime: Long,
+    lockTargetKind: LockTargetKind = LockTargetKind.Apps,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        val description = if(isKeep) R.string.keep_on_message else R.string.keep_off_message
+        val description = if (isKeep) keepOnMessageRes(lockTargetKind) else R.string.keep_off_message
         // 켜짐은 32sp 타이머, 꺼짐은 18sp 문구라 높이가 다르다. 이 영역은 화면 하단에 고정돼
         // 있어 높이가 변하면 그 위의 토글 위치가 함께 움직인다. 두 상태가 같은 자리를 쓰도록
         // 최소 높이를 잡아 둔다.
@@ -51,4 +54,11 @@ fun ContentDescription(
             color = KeepTheme.colors.onSurface,
         )
     }
+}
+
+@StringRes
+internal fun keepOnMessageRes(lockTargetKind: LockTargetKind): Int = when (lockTargetKind) {
+    LockTargetKind.Apps -> R.string.keep_on_message
+    LockTargetKind.Websites -> R.string.keep_on_message_websites
+    LockTargetKind.AppsAndWebsites -> R.string.keep_on_message_apps_and_websites
 }

@@ -1,5 +1,9 @@
 package com.uiery.keep.feature.routine.component
 
+import android.app.Activity
+import android.net.VpnService
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -29,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,9 +72,11 @@ import com.uiery.kds.KeepLabelWeight
 import com.uiery.kds.KeepMenu
 import com.uiery.kds.KeepMenuItem
 import com.uiery.kds.KeepMenuItemTone
+import com.uiery.kds.KeepTextButton
 import com.uiery.kds.KeepTextField
 import com.uiery.kds.KeepTextFieldVariant
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.keep.BuildConfig
 import com.uiery.keep.Picker
 import com.uiery.keep.R
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
@@ -80,9 +87,12 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.rememberPickerState
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.TimerPicker
+import com.uiery.keep.ui.component.WebsiteBlockingWarningRow
 import com.uiery.keep.util.formatWeekdayShort
 import com.uiery.keep.util.routineDurationMinutes
 import com.uiery.keep.util.toTimeString
+import com.uiery.keep.websiteblocking.WebsiteBlockingRuntimeState
+import com.uiery.keep.websiteblocking.WebsiteBlockingStatus
 import java.time.DayOfWeek
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -184,6 +194,7 @@ fun RoutineBottomSheetContent(
                 selectDays = state.selectDays,
                 isButtonEnabled = state.isButtonEnable,
                 selectApps = state.selectApps,
+                selectWebDomains = state.selectWebDomains,
                 changeLockHours = state.changeLockHours,
                 onAppSelect = moveAppSelect,
                 setName = viewModel::setName,
@@ -200,7 +211,9 @@ fun RoutineBottomSheetContent(
             1 -> RoutineAppSelectionContent(
                 onBackClick = moveRoutineSetting,
                 selectApps = state.selectApps,
+                selectWebDomains = state.selectWebDomains,
                 setSelectApps = viewModel::setSelectApps,
+                setSelectTargets = viewModel::setSelectTargets,
             )
         }
     }
@@ -216,6 +229,7 @@ private fun RoutineInputContent(
     selectDays: List<DayOfWeek>,
     isButtonEnabled: Boolean,
     selectApps: Set<String>,
+    selectWebDomains: Set<String>,
     changeLockHours: Int?,
     onAppSelect: () -> Unit,
     setName: (String) -> Unit,
@@ -253,8 +267,10 @@ private fun RoutineInputContent(
         ) {
             RoutineAppField(
                 selectApps = selectApps,
+                selectWebDomains = selectWebDomains,
                 onClick = onAppSelect,
             )
+            RoutineWebsiteConsentWarning(hasWebsiteTargets = selectWebDomains.isNotEmpty())
             KeepTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = name,
@@ -430,14 +446,61 @@ private fun RoutineSheetFooter(
     }
 }
 
+/**
+ * 동의를 거부한 채로 루틴을 저장하면, 잠금이 시작되는 몇 시간 뒤까지 사용자는 웹사이트가
+ * 막힐 것이라고 믿는다. 거부한 자리에서 바로 말해주고 그 자리에서 다시 받을 수 있어야 한다.
+ */
+@Composable
+private fun RoutineWebsiteConsentWarning(
+    hasWebsiteTargets: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val status by WebsiteBlockingRuntimeState.status.collectAsState()
+    if (!hasWebsiteTargets || status != WebsiteBlockingStatus.ConsentDenied) return
+
+    val context = LocalContext.current
+    val consentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
+        }
+    }
+
+    WebsiteBlockingWarningRow(
+        modifier = modifier,
+        message = stringResource(R.string.routine_website_consent_denied),
+        action = {
+            // 경고 자체는 붉은 톤이지만 이 버튼은 되돌리는 행동이지 파괴적인 행동이 아니다.
+            KeepTextButton(
+                onClick = {
+                    val consentIntent = VpnService.prepare(context)
+                    if (consentIntent == null) {
+                        WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
+                    } else {
+                        consentLauncher.launch(consentIntent)
+                    }
+                },
+            ) {
+                Text(text = stringResource(R.string.website_blocking_consent_retry))
+            }
+        },
+    )
+}
+
 @Composable
 private fun RoutineAppField(
     selectApps: Set<String>,
+    selectWebDomains: Set<String>,
     onClick: () -> Unit,
 ) {
-    val value = selectApps
-        .takeIf { it.isNotEmpty() }
-        ?.let { stringResource(R.string.category_selected, it.size) }
+    val hasTargets = selectApps.isNotEmpty() || selectWebDomains.isNotEmpty()
+    val value = when {
+        !hasTargets -> null
+        // 웹사이트가 없으면 지금까지의 표기를 그대로 둔다.
+        selectWebDomains.isEmpty() -> stringResource(R.string.category_selected, selectApps.size)
+        else -> stringResource(R.string.lock_targets_selected, selectApps.size, selectWebDomains.size)
+    }
 
     KeepField(
         label = stringResource(R.string.routine_apps_label),
@@ -451,10 +514,10 @@ private fun RoutineAppField(
                 Image(
                     modifier = Modifier.size(20.dp),
                     painter = painterResource(
-                        if (selectApps.isEmpty()) {
-                            R.drawable.ic_question_face
-                        } else {
+                        if (hasTargets) {
                             R.drawable.shield
+                        } else {
+                            R.drawable.ic_question_face
                         },
                     ),
                     contentDescription = null,
@@ -742,9 +805,29 @@ private fun RoutineInputTrailingIcon() {
 private fun RoutineAppSelectionContent(
     modifier: Modifier = Modifier,
     selectApps: Set<String>,
+    selectWebDomains: Set<String>,
     setSelectApps: (Set<String>) -> Unit,
+    setSelectTargets: (Set<String>, Set<String>) -> Unit,
     onBackClick: () -> Unit,
 ) {
+    // 루틴은 화면 없이 시작되므로 그때는 시스템 동의창을 띄울 수 없다. 사용자가 웹사이트를
+    // 고르는 지금이 동의를 받을 수 있는 마지막 지점이다.
+    val context = LocalContext.current
+    var pendingTargets by remember { mutableStateOf<Pair<Set<String>, Set<String>>?>(null) }
+    val consentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val targets = pendingTargets ?: return@rememberLauncherForActivityResult
+        pendingTargets = null
+        if (result.resultCode != Activity.RESULT_OK) {
+            // 거부해도 선택은 지운다. 다시 켤 수 있는 상태로 남기고, 왜 막히지 않는지는
+            // 잠금이 시작될 때 배너가 설명한다.
+            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.ConsentDenied)
+        }
+        setSelectTargets(targets.first, targets.second)
+        onBackClick()
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         KeepIconButton(onClick = onBackClick) {
             Icon(
@@ -755,6 +838,18 @@ private fun RoutineAppSelectionContent(
         }
         CategoryBottomSheetContent(
             storeSelectApps = selectApps,
+            websiteSelectionEnabled = BuildConfig.WEBSITE_BLOCKING_ENABLED,
+            storeSelectedWebDomains = selectWebDomains,
+            onCompleteTargets = { apps, domains ->
+                val consentIntent = if (domains.isEmpty()) null else VpnService.prepare(context)
+                if (consentIntent == null) {
+                    setSelectTargets(apps, domains)
+                    onBackClick()
+                } else {
+                    pendingTargets = apps to domains
+                    consentLauncher.launch(consentIntent)
+                }
+            },
             onComplete = {
                 setSelectApps(it)
                 onBackClick()

@@ -33,7 +33,7 @@ import com.uiery.keep.database.entity.RoutineEntity
         FirstPromiseEntity::class,
         FirstPromiseAnalyticsOutboxEntity::class,
     ],
-    version = 7,
+    version = 8,
 )
 @TypeConverters(
     value = [
@@ -167,6 +167,16 @@ abstract class KeepDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_first_promise_analytics_outbox_draft_id_sequence " +
                         "ON first_promise_analytics_outbox(draft_id, sequence)",
+                )
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 기존 루틴은 앱만 잠근다. 빈 문자열은 ListStringTypeConverter 에서 빈 목록으로
+                // 읽히므로, 마이그레이션만으로 차단 대상이 늘어나지 않는다.
+                db.execSQL(
+                    "ALTER TABLE routine ADD COLUMN lockWebsites TEXT NOT NULL DEFAULT ''",
                 )
             }
         }

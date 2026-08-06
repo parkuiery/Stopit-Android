@@ -53,6 +53,7 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.appselection.AndroidBlockExemptPackageProviderIntegrationTest",
         "com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContentIntegrationTest",
         "com.uiery.keep.ui.component.CategoryBottomSheetContentIntegrationTest",
+        "com.uiery.keep.ui.component.CategorySheetScrollBehaviorTest",
         "com.uiery.keep.ui.component.TimerPickerIntegrationTest",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#bootReceiverRehydratesStoredRoutinesFromRoomAndSchedulesAlarm",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#manifestRegistersBootReceiverForPackageAndClockChangeActions",

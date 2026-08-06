@@ -150,6 +150,7 @@ class RoutineViewModelActiveRoutineGuardTest {
                 exactAlarmOrchestrator = exactAlarmOrchestrator,
                 routineNoticeStore = RoutineNoticeStore(dataStore),
             ),
+            routineWebsiteBlockingLauncher = { },
         )
     }
 

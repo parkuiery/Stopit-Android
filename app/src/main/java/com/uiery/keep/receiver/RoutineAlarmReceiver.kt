@@ -11,6 +11,7 @@ import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.notification.NotificationHelper
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.notification.RoutineStartNotificationResult
@@ -37,6 +38,9 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     @Inject
     @ApplicationContext
     lateinit var appContext: Context
+
+    @Inject
+    lateinit var routineWebsiteBlockingLauncher: RoutineWebsiteBlockingLauncher
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
@@ -138,6 +142,8 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         if (shouldResetAlarmPermissionPrompt) {
             RoutineNoticeStore(dataStore).resetAlarmPermissionPrompt()
         }
+
+        routineWebsiteBlockingLauncher.apply(updatedRoutines)
     }
 
     private fun dataStoreFallbackMessage(
@@ -156,6 +162,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
     )
 
     companion object {
+        private const val DIAGNOSTIC_TAG = "KeepRoutineWeb"
         const val EXTRA_ROUTINE_NAME = "extra_routine_name"
         const val EXTRA_ROUTINE_ID = "extra_routine_id"
         const val ACTION_ROUTINE_ALARM = "com.uiery.keep.ACTION_ROUTINE_ALARM"

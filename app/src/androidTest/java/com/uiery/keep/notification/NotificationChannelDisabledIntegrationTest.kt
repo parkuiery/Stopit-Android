@@ -11,29 +11,30 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.data.routine.RoomRoutineRepository
 import com.uiery.keep.database.KeepDatabase
 import com.uiery.keep.database.entity.RoutineEntity
 import com.uiery.keep.datastore.RoutineNoticeStore
-import com.uiery.keep.data.routine.RoomRoutineRepository
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
 import com.uiery.keep.receiver.RoutineAlarmReceiver
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockNotificationPostResult
+import com.uiery.keep.testing.AndroidTestConditionWaiter
+import java.io.File
+import java.time.DayOfWeek
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.junit.After
-import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
-import java.time.DayOfWeek
-import com.uiery.keep.testing.AndroidTestConditionWaiter
 
 /**
  * Android restores a deleted channel when the same id is recreated, including IMPORTANCE_NONE.
@@ -103,6 +104,7 @@ class NotificationChannelDisabledIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@NotificationChannelDisabledIntegrationTest.dataStore
             appContext = context
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
         }
 
         receiver.handleRoutineAlarm(

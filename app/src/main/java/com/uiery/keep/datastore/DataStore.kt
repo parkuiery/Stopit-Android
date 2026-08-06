@@ -14,6 +14,7 @@ internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(n
 
 object PreferencesKey {
     val SELECTED_APP_PACKAGES = stringSetPreferencesKey("selected_app_packages")
+    val SELECTED_WEB_DOMAINS = stringSetPreferencesKey("selected_web_domains")
     val IS_KEEP = booleanPreferencesKey("is_keep")
     val FCM_TOKEN = stringPreferencesKey("fcm_token")
     val START_TIME = longPreferencesKey("start_time")
