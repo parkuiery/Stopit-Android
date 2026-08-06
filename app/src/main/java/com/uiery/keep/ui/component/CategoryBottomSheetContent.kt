@@ -46,8 +46,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -62,6 +66,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -167,6 +172,7 @@ fun CategoryBottomSheetLoadedContent(
         id = if (isSelectAll) R.string.cd_tab_selected else R.string.cd_tab_not_selected,
     )
     var searchContent by remember { mutableStateOf("") }
+    val sheetDragGuard = rememberSheetDragGuard()
 
     // 키보드가 올라오면 시트가 그만큼 짧아진다. 목록은 남은 높이를 쓰는 유일한 요소라
     // 모든 축소를 혼자 떠안고 0이 된다. 입력하는 동안 무엇이 담겼는지 볼 수 없으면
@@ -227,8 +233,12 @@ fun CategoryBottomSheetLoadedContent(
                 compact = imeVisible,
             )
         } else if (isLoading) {
+            // 형제 가지들과 달리 weight 없이 fillMaxSize 였다. Column 에서 그러면 남은
+            // 높이를 전부 삼켜, 아래에 있는 요약 줄과 완료 버튼을 화면 밖으로 밀어냈다.
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
                 KeepCircularProgressIndicator(
@@ -240,6 +250,8 @@ fun CategoryBottomSheetLoadedContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .testTag("category_app_list")
+                    .nestedScroll(sheetDragGuard)
                     .background(
                         shape = RoundedCornerShape(12.dp),
                         color = KeepTheme.semanticColors.background.neutralWeak,
@@ -370,6 +382,27 @@ private enum class LockTargetType {
     Websites,
 }
 
+/**
+ * 리스트가 다 쓰지 못한 스크롤과 속도를 시트에게 넘기지 않는다.
+ *
+ * 이 시트의 목록은 항상 맨 위에서 시작하므로, 그대로 두면 처음 아래로 쓸어내리는 동작이
+ * 언제나 시트를 끌어내린다. 목록을 읽으려던 손짓이 닫으려는 손짓으로 읽히는 셈이다.
+ * 드래그 핸들과 제목 영역은 이 목록 바깥이라 거기서 끌어 닫는 길은 그대로 남는다.
+ */
+@Composable
+private fun rememberSheetDragGuard(): NestedScrollConnection = remember {
+    object : NestedScrollConnection {
+        override fun onPostScroll(
+            consumed: Offset,
+            available: Offset,
+            source: NestedScrollSource,
+        ): Offset = available
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+            available
+    }
+}
+
 @Composable
 private fun WebsiteLockListEditor(
     selectedDomains: List<String>,
@@ -460,6 +493,7 @@ private fun WebsiteLockListEditor(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .nestedScroll(rememberSheetDragGuard())
                 .background(
                     shape = RoundedCornerShape(12.dp),
                     color = KeepTheme.semanticColors.background.neutralWeak,
