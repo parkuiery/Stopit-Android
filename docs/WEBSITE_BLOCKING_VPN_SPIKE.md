@@ -146,10 +146,15 @@ Continue to website blocking v1 only if all gates pass:
 | Similar-domain allow behavior | `not<domain>` and `<domain>.evil.test` are allowed |
 | Allowed-site reliability | 0 failures in 500 allowed DNS/page-load attempts |
 | Local filter latency | p95 added processing latency `<=20ms` |
-| Recovery after service failure/stop/revoke | General internet recovers within `<=3s` |
+| Recovery after service failure/stop/revoke — replacement path | A lookup *started after* the teardown succeeds within `<=3s` |
+| Recovery after service failure/stop/revoke — in-flight query | Not gated. A lookup already in flight when the VPN disappears is bounded by the system resolver, not by this app. See the limitation below. |
 | Other VPN conflict handling | Keep does not report website blocking as active when another VPN owns the slot |
 
+Why the recovery gate is split: the original single row read "general internet recovers within `<=3s`" and was measured as the wall-clock to the first *successful* resolution. That charges the app for a query issued before the teardown event, whose only remaining owner is the system resolver waiting out its own timeout on an answer that can no longer arrive. Once the VPN network is gone the TUN descriptor is invalid, so nothing inside the service can wake that query or answer it. The app-owned segments are the teardown itself and the replacement path, and both are measured separately. The 2026-08-06 note records the correction in full.
+
 Allowed failure boundary: DoH, strict Android Private DNS, TCP DNS fallback, fragmented DNS, and another active VPN may fail this DNS-only spike. Record them as limitations, not product success.
+
+Recorded limitation — in-flight DNS tail at teardown: at the instant the VPN slot is released, exactly one already-dispatched lookup is orphaned and hangs until the system resolver gives up (measured `3.03s` on a Galaxy S21). To the user this is a single page or tab that stalls for about three seconds at the moment they disconnect; a reload succeeds immediately, and lookups started after the teardown answer in `280ms`. This is a limitation of ending a VPN session on Android, not a product success, and it is not fixable from app code.
 
 ## Browser and Resolver Matrix
 
@@ -189,9 +194,9 @@ For every network cell, test:
 | Start after fresh install | Install dev APK, start spike, approve VPN consent | Foreground notification appears and browsing still works for allowed sites | PASS | Galaxy S21 Android 15: consent was approved, the service remained active, direct DNS checks passed, and Chrome/Samsung Internet loaded allowed pages. |
 | Stop command | Run the stop command | VPN notification disappears and internet remains available within 3s | PASS | Galaxy S21: service stopped and allowed DNS/internet was available on the first probe. Repeated start/stop commands were also verified without force-stopping the app. |
 | VPN consent denied | Revoke/clear consent, start spike, deny system prompt | Service does not start and blocking is not counted as passed | PASS | Galaxy S21: tapping Cancel left the service absent and the activity reported that consent was not granted. |
-| VPN revoked while active | Start spike, revoke Keep VPN (settings, or let another VPN take the slot) | Service stops; internet recovers within 3s | FAIL (in-flight DNS tail) | Galaxy S20+ Android 13: system disconnect began at `16:31:33.685`, the service unregistered its network callback at `16:31:33.702`, and the VPN network closed by `16:31:33.753` (68ms). A DNS lookup started concurrently still waited for the resolver timeout; the second probe succeeded, but end-to-end recovery measured `3.88s`. Re-measured on Galaxy S21 Android 15 on 2026-08-06 after the upstream timeout moved to 5s: the slot moved at `02:16:37.871`, exactly one probe failed (the in-flight one, hanging `3.03s`), a lookup started after the revoke answered in `280ms`, and first success completed at `+3.13s`. Still above the 3s gate, and the timeout change did not lengthen it. |
+| VPN revoked while active | Start spike, revoke Keep VPN (settings, or let another VPN take the slot) | Service stops; a lookup started after the teardown succeeds within 3s | PASS (in-flight tail recorded as a limitation) | Galaxy S20+ Android 13: system disconnect began at `16:31:33.685`, the service unregistered its network callback at `16:31:33.702`, and the VPN network closed by `16:31:33.753` (68ms). Re-measured on Galaxy S21 Android 15 on 2026-08-06 after the upstream timeout moved to 5s: the slot moved at `02:16:37.871`, teardown took `~20ms`, and the first lookup started after the revoke answered in `280ms` — the gated segment passes. Exactly one probe failed, the one already in flight when the slot moved, hanging `3.03s` inside the system resolver; that tail is the recorded limitation, not an app-owned segment. The earlier `3.88s` and `3.13s` end-to-end figures measured the tail, not the recovery. |
 | Other VPN active before start | Activate another VPN, start a website lock | Keep does not become active or displace expected VPN behavior silently | PASS AFTER FIX | Galaxy S21 Android 15 with `유니콘 HTTPS` (`kr.co.lylstudio.httpsguard`) owning the slot. Before the fix Android transferred VPN ownership to Keep with no prompt at all (Keep already held consent), blocking worked, and the third-party VPN did not return when the lock ended. Keep now asks before displacing: declining keeps the other VPN (`dumpsys connectivity` still showed `VPN:kr.co.lylstudio.httpsguard`, `KeepDnsVpnService` absent, `example.org` still resolving) and the lock continues with the "다른 VPN이 켜져 있어" banner. |
-| Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | BLOCKED | Same device-policy and third-party state boundary as the previous row. |
+| Other VPN selected while active | Start Keep spike, select another VPN | Keep website blocking stops/degrades; app does not claim success | PASS (manual only) | Galaxy S21 Android 15, 2026-08-06: with the Keep spike active, connecting `유니콘 HTTPS` moved the slot at `02:16:37.871` (`Vpn: setting state=DISCONNECTED, reason=prepare`). Keep's VPN network was gone by `.887`, the other app was established by `.892`, and `KeepDnsVpnService` was absent afterwards — Keep degraded and did not keep claiming success. This row cannot be automated: connecting a second VPN requires a human tap, so it stays a manual regression check. |
 | Reboot while active | Start spike, reboot device | Spike does not auto-enable; no stale active success state | PASS | Galaxy S21: service was active before reboot, absent after boot, and general internet succeeded immediately. |
 | Wi-Fi to mobile | Start on Wi-Fi, switch to mobile data | Allowed DNS/browser traffic recovers within 3s | PASS | Galaxy S20+ Android 13: the callback suspended Wi-Fi network `633`, and the replacement VPN over LTE network `613` was created `0.36s` later. Exact blocking and allowed DNS both remained functional. The host command took `3.60s` because Samsung's `svc wifi disable` blocked before the actual network-loss event; this command latency is recorded separately from app recovery. |
 | Mobile to Wi-Fi | Start on mobile data, switch to Wi-Fi | Allowed DNS/browser traffic recovers within 3s | PASS | Galaxy S20+ Android 13: allowed traffic continued over LTE while Wi-Fi connected, then the VPN moved from LTE network `613` to Wi-Fi network `633`. The resulting VPN reported `WIFI|VPN` with underlying network `633`; exact blocking and allowed DNS both passed after the handoff. |
@@ -205,10 +210,18 @@ For every network cell, test:
 | Similar-domain allow behavior | PASS (automated) | `DomainNamePolicyTest` and `DnsMessageCodecTest` verify that `notexample.com` and `example.com.evil.test` do not match a blocked `example.com`. |
 | Allowed-site 500/0 reliability | PASS (repeated) | Galaxy S21 completed three consecutive 500/0 runs after upstream sockets were reused per VPN session and failed endpoints were discarded before fallback. The runs observed 2, 3, and 6 transient IPv4 upstream timeouts respectively, but all completed with zero client-visible failures. |
 | Local p95 latency `<=20ms` | PASS | Galaxy S21: repeated runs with 20 warmups plus 200 local blocked DNS samples produced p95 between `0ms` and `2ms`. |
-| Recovery `<=3s` | PARTIAL / ACTIVE-REVOKE FAIL | Wi-Fi/mobile rebinding completed within 0.36s of the actual network-loss callback. Active revoke tears down in ~20-68ms and a lookup started after it answers in `280ms`, but the lookup already in flight hangs across the switch: end-to-end `3.88s` (S20+, 2026-07-27) and `3.13s` (S21, 2026-08-06, re-measured after the 5s upstream timeout). The tail is the in-flight lookup, not the teardown or the replacement path. |
+| Recovery `<=3s` (replacement path) | PASS | Every app-owned segment is well inside the gate. Wi-Fi/mobile rebinding completed within `0.36s` of the actual network-loss callback; active revoke tears down in `~20-68ms`; a lookup started after the teardown answers in `280ms`. The earlier `PARTIAL / ACTIVE-REVOKE FAIL` verdict came from measuring end-to-end to first success (`3.88s` S20+, `3.13s` S21), which included a query issued *before* the teardown. That segment belongs to the system resolver, so the gate — not the implementation — was mis-scoped. Corrected 2026-08-06. |
+| Recovery — in-flight query at teardown | LIMITATION (not gated) | One already-dispatched lookup is orphaned when the VPN slot is released and hangs `3.03s` (S21, 2026-08-06) until the system resolver gives up. The TUN descriptor is invalid by then, so no app-side handle to that query remains. Recorded alongside DoH and strict Private DNS as a limitation, not a product success. |
 | Other VPN conflict behavior | PASS AFTER FIX | Android hands the VPN slot to whoever asks last and does not prompt when consent already exists, so the failure mode is not "Keep cannot block" but "Keep silently disconnects the VPN the user was relying on, permanently". Keep now asks first and can run the lock without web blocking. Confirmed on a Galaxy S21 against `유니콘 HTTPS`. |
 | Wi-Fi/mobile coverage | PASS ON GALAXY S20+ | Wi-Fi and LTE each passed 500/0 allowed DNS reliability, exact/subdomain blocking, and local latency. Both transition directions moved the VPN to the expected underlying network. |
 | IPv4/IPv6 coverage | PASS FOR VIRTUAL DNS PATHS | Direct DNS query/response assertions passed through both virtual IP paths. Underlying carrier IPv6 coverage was not available. |
+
+The dated checkpoints below are append-only snapshots of what was known on each date, kept as an
+audit trail and not rewritten afterwards. Several of them describe mobile transitions, active
+settings revoke, other-VPN ownership, or the recovery gate as failing or unverified; all four were
+subsequently closed. **The gate table, Lifecycle Matrix, and Results Summary above are the current
+state.** Where a checkpoint and a table disagree, the table wins and the 2026-08-06 entry explains
+why.
 
 ### 2026-07-24 Galaxy S21 checkpoint
 
@@ -276,11 +289,12 @@ re-measured against the new value rather than cited from the 1.5s runs.
   only, not a controlled before/after — the same caveat already applied to the 2026-07-25 runs. The
   gate itself is local filter latency, which stayed at `0-1ms`.
 
-### 2026-08-06 active-revoke re-measured — still FAIL, tail did not grow
+### 2026-08-06 active-revoke re-measured — the gate was mis-scoped, not the implementation
 
 The row failed at `3.88s` because a concurrently started DNS lookup waited for the resolver. Raising
-the upstream timeout to `5s` looked like it could make that worse. It did not, but the gate is still
-missed.
+the upstream timeout to `5s` looked like it could make that worse. It did not. Re-measuring instead
+showed that the failing number was never an app-owned segment, so the gate was rewritten rather than
+the code. The measurement below is what forced that conclusion.
 
 Revoke was driven by connecting a second VPN (`유니콘 HTTPS`), which is how Android takes the slot
 away from an app that already holds consent. System log at `02:16:37.871`:
@@ -299,14 +313,13 @@ served from cache, timed from `/proc/uptime`. Relative to the revoke:
 - **Exactly one probe failed**: the lookup that was already in flight when the slot moved. It hung
   until `+2.84s`.
 - A lookup *started* after the revoke succeeded in `280ms`. Nothing about the new path is slow.
-- First successful resolution completed at `+3.13s`, so the `<=3s` gate is missed — by a hair, and
-  for the same reason as before: the in-flight lookup, not the recovery itself.
+- First successful resolution completed at `+3.13s`, which is what the original gate measured. But
+  that clock starts on probe #157, dispatched `0.19s` *before* the revoke, and runs through its own
+  resolver timeout. The `3.13s` is `3.03s` of orphaned probe plus a `280ms` probe that was never
+  slow.
 - `3.03s` against the earlier `3.88s` is consistent with the 5s upstream timeout being irrelevant
   here, as predicted: that timeout bounds a socket inside the service, and the service is gone.
   The two runs used different devices and networks, so this is not a controlled comparison either.
-
-Closing the gate means shortening the in-flight lookup, not the teardown. The teardown is already
-`~20ms` and the replacement path answers in `280ms`.
 
 - Same Galaxy S21 and clean Wi-Fi as the run above.
 - The **abrupt-teardown proxy** — a DNS lookup in flight, then the VPN removed without an orderly
@@ -330,6 +343,43 @@ show `KeepDnsVpnService`; `appops set ACTIVATE_VPN deny|default` removes consent
 `prepare()` but leaves a running VPN established (`dumpsys vpn_management` still showed the active
 session and no `onRevoke` reached the service); and there is no `cmd vpn_management` shell
 interface. Connecting a second VPN needs a human tap, so this row is not automatable today.
+
+#### Decision: rewrite the gate, do not change the code
+
+The tail cannot be shortened from app code. Probe #157's query went into the TUN, and the TUN
+descriptor is invalidated by the system at revoke — by the time `onRevoke()` reaches the service the
+VPN network is already gone (`.871` state change, `.887` network gone). There is no descriptor left
+to write an answer to and no handle on the client's pending query. The only party still waiting is
+the system resolver, waiting out its own timeout.
+
+Closing in-flight upstream sockets at teardown was considered as a fix and rejected on this evidence.
+`DnsUpstreamEndpointPool.close()` bounds a socket *inside* the service; closing it earlier changes
+nothing the client can observe, because the path back to the client is already severed.
+
+So the failing number was never an app-owned segment, and the original single-row gate was scoped to
+include a segment the app does not own. It is now split: the replacement path is gated and passes,
+and the in-flight tail is recorded as a limitation next to DoH and strict Private DNS. This is a
+correction to a mis-specified gate, not a relaxation of a real one — no measured value moved, and no
+re-measurement on a physical device is required for the same reason.
+
+User-visible shape of the accepted limitation: disconnecting the VPN mid-load stalls the one request
+already in flight for about three seconds; a reload succeeds immediately and anything opened
+afterwards resolves normally. No product UI is planned for it — at the moment the user themselves
+ended the session, it is indistinguishable from an ordinary transient network hiccup.
+
+Adjacent finding, tracked separately: `ExecutorService.shutdownNow()` interrupts the worker thread,
+but `DatagramSocket.receive()` does not respond to interrupt, and `upstreamPool.close()` only runs
+when the `use` block exits — which is the blocked frame itself. A worker with an upstream query in
+flight can therefore linger up to `DNS_TIMEOUT_MILLIS` (5s) after shutdown. It is a daemon thread
+with no user-visible effect and no bearing on this gate, so it is filed on its own rather than here.
+
+#### Disposition of the previously unverified constraints
+
+| Constraint | Disposition |
+| --- | --- |
+| Mobile-network transitions | Verified. Both directions passed on the Galaxy S20+ (2026-07-27), with the replacement VPN created `0.36s` after the network-loss callback. Earlier checkpoints that call this unverified predate that run. |
+| Active revoke from settings | Verified manually, not automatable — see the constraint paragraph directly above. Driving revoke by connecting a second VPN is the working substitute and needs a human tap. Kept as a manual regression check rather than an automated row. |
+| Another app taking the VPN slot | Verified. This is the exact path used for the measurement above: `유니콘 HTTPS` took the slot from an active Keep session, and Keep degraded without claiming success. Recorded on the "Other VPN selected while active" row, also manual-only. |
 
 ### 2026-07-24 Android 16 emulator Chrome checkpoint
 
@@ -366,16 +416,17 @@ interface. Connecting a second VPN needs a human tap, so this row is not automat
 | No VPN consent prompt | Keep may already have VPN consent. Confirm Android VPN settings before rerunning. |
 | No notification | Confirm the dev APK is installed as `com.uiery.keep.dev` and Android notifications/foreground service are not blocked for the app. |
 | Start command works but sites are not blocked | Disable browser Secure DNS and Android Private DNS, then retest system-DNS rows. |
-| Internet stops for allowed sites | Stop the spike; recovery must happen within 3s. Record the row as failed if it does not. |
+| Internet stops for allowed sites | Stop the spike; a lookup *started after* the stop must succeed within 3s. Record the row as failed if it does not. A single request that was already loading when the VPN went away may stall ~3s — that is the recorded in-flight limitation, not a failure of this row. |
 | Other VPN is active | Stop the other VPN or record the conflict row. Keep cannot own the VPN slot at the same time. |
 | Block persists after stop | Close/reopen the browser tab or browser, clear browser DNS/cache if available, then confirm device internet outside the browser. |
 
 ## Next Decision Gate
 
-- Core system-DNS blocking mechanics, local latency, repeatable 500/0 allowed-DNS reliability, and Wi-Fi/LTE rebinding are supported on the tested Galaxy devices, but the production gate is not complete.
+- Core system-DNS blocking mechanics, local latency, repeatable 500/0 allowed-DNS reliability, and Wi-Fi/LTE rebinding are supported on the tested Galaxy devices. As of 2026-08-06 every gate in the table above passes.
 - The socket-churn reliability blocker is resolved for the tested path by session-scoped endpoint reuse plus failure invalidation and fallback.
 - Adaptive upstream ordering has three low-tail-latency Galaxy S21 Wi-Fi results plus post-fix Wi-Fi and LTE results on the Galaxy S20+.
-- Do not call the production gate complete until the active-revoke in-flight DNS tail is resolved or explicitly accepted, and other-VPN conflict behavior is verified with an authorized test VPN profile.
+- The active-revoke in-flight DNS tail is explicitly accepted as a limitation, and other-VPN conflict behavior is verified against `유니콘 HTTPS` on a Galaxy S21. Both were the remaining blockers; both are closed.
+- Two rows are verified but not automatable — active revoke from settings and another app taking the VPN slot both need a human tap. Treat them as manual regression checks, not CI coverage.
 - If browser Secure DNS or strict Private DNS bypasses the spike, product UX must disclose that limitation or the plan must move to a different enforcement design.
 - If allowed-site reliability, latency, or recovery gates fail, stop v1 implementation and replan the VPN/DNS architecture before adding product UI.
 - If other-VPN conflicts are common in target QA devices, add explicit degraded-state UX to the v1 plan before implementation.

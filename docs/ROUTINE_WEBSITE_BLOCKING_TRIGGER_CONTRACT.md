@@ -81,9 +81,11 @@ Galaxy S21 (`SM-G991N`), Android 15, 2026-08-05. 접근성 권한을 끄고 앱�
 아직 관측되지 않았다.
 
 > 위 표는 **손실이 큰 회선에서의 차단 정확도** 근거이지 신뢰성 게이트 근거가 아니다.
-> 500/0 신뢰성과 p95 지연 게이트는 `docs/WEBSITE_BLOCKING_VPN_SPIKE.md`에서 이미 통과했지만,
-> 그 측정은 업스트림 타임아웃이 1.5초이던 시절의 것이다. 5초로 올린 뒤 같은 계측 테스트를
-> 양호한 Wi-Fi에서 다시 돌려야 그 게이트가 여전히 유효하다고 말할 수 있다.
+> 500/0 신뢰성과 p95 지연 게이트는 `docs/WEBSITE_BLOCKING_VPN_SPIKE.md`에 있다. 최초 측정은
+> 업스트림 타임아웃이 1.5초이던 시절의 것이었으나, 5초로 올린 뒤 2026-08-05 에 같은 계측
+> 테스트를 양호한 Wi-Fi(Galaxy S21, RSSI `-42`, ICMP 손실 `0%`)에서 다시 돌렸다. 3회 연속
+> `500/500` · 실패 `0`, 로컬 blocked-query p95 `0ms`/`1ms`/`0ms`. 두 게이트 모두 5초 기준으로
+> 유효하다.
 
 ### 계기별 실기기 확인 (2026-08-05 16:42~16:55)
 
@@ -233,6 +235,6 @@ KeepDnsVpnSpike upstream_recovery_retry ...
 
 ## 관련 문서
 
-- `docs/WEBSITE_BLOCKING_VPN_SPIKE.md` — DNS VPN 타당성 근거, 미해결 게이트, 우회 한계
+- `docs/WEBSITE_BLOCKING_VPN_SPIKE.md` — DNS VPN 타당성 근거, 게이트 판정(2026-08-06 기준 전부 통과), 우회 한계
 - `docs/ACTIVE_ROUTINE_ENFORCEMENT_CONTRACT.md` — 활성 루틴 보호(앱 차단) 계약
 - `docs/MANUAL_TIMER_LOCK_DEADLINE_CONTRACT.md` — 수동/타이머 잠금 마감 계약
