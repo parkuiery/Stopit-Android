@@ -39,6 +39,7 @@ internal fun resolveServiceConnectionForegroundBlockRequest(
     now: LocalDateTime = LocalDateTime.now(),
     isEmergencyUnlocked: Boolean,
     isDuplicateBlock: Boolean,
+    isCallInProgress: Boolean = false,
 ): ForegroundBlockRequest? {
     val packageName = currentForegroundPackage ?: return null
     return resolveForegroundBlockRequest(
@@ -51,6 +52,7 @@ internal fun resolveServiceConnectionForegroundBlockRequest(
         now = now,
         isEmergencyUnlocked = isEmergencyUnlocked,
         isDuplicateBlock = isDuplicateBlock,
+        isCallInProgress = isCallInProgress,
     )
 }
 
@@ -64,10 +66,18 @@ internal fun resolveForegroundBlockRequest(
     now: LocalDateTime = LocalDateTime.now(),
     isEmergencyUnlocked: Boolean,
     isDuplicateBlock: Boolean,
+    isCallInProgress: Boolean = false,
 ): ForegroundBlockRequest? {
     if (isEmergencyUnlocked) return null
     // Unconditional: a blocked home launcher leaves no way back to the device.
     if (BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.homePackages)) return null
+    // The user chose to block the dialer, but they did not choose to receive this call. With the
+    // screen off the in-call activity comes to the front like any other window, so without this the
+    // block screen would land on top of a ringing phone. Placing a call is still blocked — this
+    // only steps aside while a call is actually live.
+    if (isCallInProgress && BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.dialerPackages)) {
+        return null
+    }
     if (parentModeSession != null && packageName in parentControlPackages) return null
 
     val isLockTime = ManualLockTimePolicy.isActiveAt(
@@ -108,13 +118,6 @@ internal fun resolveForegroundBlockRequest(
         isShouldGoalLockBlock ||
         isShouldParentModeBlock
     if (!isBlocking) return null
-    // Settings, dialer, messaging and wallet stay reachable for locks the user imposed on
-    // themselves. Parent mode is a supervisor's allowlist, so it keeps authority over them —
-    // otherwise the supervised user could open Settings and disable the accessibility service.
-    if (
-        !isShouldParentModeBlock &&
-        BlockExemptPackagePolicy.isExempt(packageName, prefs.exemptPackages.essentialPackages)
-    ) return null
     if (
         !prefs.selectedAppPackages.contains(packageName) &&
         !isShouldRoutineBlock &&

@@ -2,6 +2,7 @@ package com.uiery.keep.service
 
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.appselection.BlockExemptPackages
+import com.uiery.keep.appselection.SensitiveAppRole
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.domain.goallock.GoalLock
 import com.uiery.keep.domain.goallock.GoalLockMode
@@ -146,14 +147,43 @@ class KeepAccessibilityServiceBlockDecisionTest {
         assertNull(request)
     }
 
+    /**
+     * Sensitive packages are blockable. The user picked Settings deliberately and was warned before
+     * saving, so the lock has to honour it.
+     */
     @Test
-    fun essentialAppStaysReachableUnderASelfImposedLock() {
+    fun sensitiveAppIsBlockedUnderASelfImposedLockWhenTheUserPickedIt() {
         val request = resolveForegroundBlockRequest(
             packageName = SETTINGS,
             prefs = AccessibilityBlockingPreferences(
                 isKeep = true,
                 selectedAppPackages = setOf(SETTINGS),
-                exemptPackages = BlockExemptPackages(essentialPackages = setOf(SETTINGS)),
+                exemptPackages = BlockExemptPackages(sensitiveRoles = mapOf(SETTINGS to SensitiveAppRole.SETTINGS)),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = SETTINGS,
+                blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            ),
+            request,
+        )
+    }
+
+    /** A sensitive package the user never picked is still not blocked. */
+    @Test
+    fun sensitiveAppStaysReachableWhenTheUserDidNotPickIt() {
+        val request = resolveForegroundBlockRequest(
+            packageName = SETTINGS,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(INSTAGRAM),
+                exemptPackages = BlockExemptPackages(sensitiveRoles = mapOf(SETTINGS to SensitiveAppRole.SETTINGS)),
             ),
             cachedRoutines = emptyList(),
             now = LocalDateTime.of(2026, 5, 27, 10, 0),
@@ -165,8 +195,88 @@ class KeepAccessibilityServiceBlockDecisionTest {
     }
 
     /**
-     * Parent mode is a supervisor's allowlist. If the essential exemption applied here too, the
-     * supervised user could open Settings and turn the accessibility service off.
+     * With the screen off Android brings the dialer's in-call activity to the front, which is a
+     * window change like any other. Without this exemption a blocked dialer would put the block
+     * screen over a ringing phone.
+     */
+    @Test
+    fun blockedDialerIsNotBlockedWhileACallIsLive() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(DIALER),
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = true,
+        )
+
+        assertNull(request)
+    }
+
+    /** Opening the dialer to place a call is the blocking the user asked for. */
+    @Test
+    fun blockedDialerIsStillBlockedWithNoCallInProgress() {
+        val request = resolveForegroundBlockRequest(
+            packageName = DIALER,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(DIALER),
+                exemptPackages = BlockExemptPackages(
+                    sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER),
+                ),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = false,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = DIALER,
+                blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            ),
+            request,
+        )
+    }
+
+    /** A live call excuses the dialer, not everything else the user blocked. */
+    @Test
+    fun aLiveCallDoesNotUnblockOtherApps() {
+        val request = resolveForegroundBlockRequest(
+            packageName = INSTAGRAM,
+            prefs = AccessibilityBlockingPreferences(
+                isKeep = true,
+                selectedAppPackages = setOf(INSTAGRAM),
+                exemptPackages = BlockExemptPackages(sensitiveRoles = mapOf(DIALER to SensitiveAppRole.DIALER)),
+            ),
+            cachedRoutines = emptyList(),
+            now = LocalDateTime.of(2026, 5, 27, 10, 0),
+            isEmergencyUnlocked = false,
+            isDuplicateBlock = false,
+            isCallInProgress = true,
+        )
+
+        assertEquals(
+            ForegroundBlockRequest(
+                packageName = INSTAGRAM,
+                blockSource = AnalyticsBlockSource.MANUAL_KEEP,
+            ),
+            request,
+        )
+    }
+
+    /**
+     * Parent mode is a supervisor's allowlist, and sensitive packages are blockable for everyone,
+     * so Settings the supervisor did not allow stays blocked.
      */
     @Test
     fun parentModeKeepsBlockingEssentialAppsItDidNotAllow() {
@@ -175,7 +285,7 @@ class KeepAccessibilityServiceBlockDecisionTest {
             prefs = AccessibilityBlockingPreferences(
                 exemptPackages = BlockExemptPackages(
                     homePackages = setOf(HOME_LAUNCHER),
-                    essentialPackages = setOf(SETTINGS),
+                    sensitiveRoles = mapOf(SETTINGS to SensitiveAppRole.SETTINGS),
                 ),
             ),
             cachedRoutines = emptyList(),
@@ -499,5 +609,7 @@ class KeepAccessibilityServiceBlockDecisionTest {
     private companion object {
         const val HOME_LAUNCHER = "com.sec.android.app.launcher"
         const val SETTINGS = "com.android.settings"
+        const val DIALER = "com.samsung.android.dialer"
+        const val INSTAGRAM = "com.instagram.android"
     }
 }

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.media.AudioManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
@@ -244,6 +245,7 @@ class KeepAccessibilityService :
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
+            isCallInProgress = isCallInProgress(),
         ) ?: return
 
         if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
@@ -305,6 +307,7 @@ class KeepAccessibilityService :
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
+            isCallInProgress = isCallInProgress(),
         ) ?: return
 
         if (isDuplicateBlock(packageName = blockRequest.packageName, blockSource = blockRequest.blockSource)) return
@@ -537,6 +540,24 @@ class KeepAccessibilityService :
                 blockIfNeeded(packageName = packageName, prefs = cachedPrefs)
             }
         }
+    }
+
+    private val audioManager by lazy { getSystemService(AudioManager::class.java) }
+
+    /**
+     * Whether a call is ringing or connected.
+     *
+     * `TelephonyManager.getCallState` answers this more directly but needs `READ_PHONE_STATE`, and a
+     * screen-time app asking for phone permission is a steep price for one exemption. Audio mode
+     * needs no permission and covers the same window.
+     */
+    private fun isCallInProgress(): Boolean = when (audioManager?.mode) {
+        AudioManager.MODE_RINGTONE,
+        AudioManager.MODE_IN_CALL,
+        AudioManager.MODE_IN_COMMUNICATION,
+        -> true
+
+        else -> false
     }
 
     private fun currentForegroundPackage(): String? {
