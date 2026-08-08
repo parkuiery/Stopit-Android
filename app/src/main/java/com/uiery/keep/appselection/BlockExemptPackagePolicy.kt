@@ -7,10 +7,13 @@ package com.uiery.keep.appselection
  * "this is a system app" does not.
  */
 enum class SensitiveAppRole {
-    SETTINGS,
-    DIALER,
+    // Declaration order is the order the confirmation lists them, so it runs from the cost most
+    // people will accept to the one that is hardest to undo. Blocking Settings means the user
+    // cannot turn the accessibility service off, so it reads last.
     MESSAGING,
+    DIALER,
     WALLET,
+    SETTINGS,
 }
 
 /**

@@ -74,6 +74,9 @@ import com.uiery.kds.KeepCheckbox
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.appselection.AndroidBlockExemptPackageProvider
+import com.uiery.keep.appselection.BlockExemptPackagePolicy
+import com.uiery.keep.appselection.BlockExemptPackages
+import com.uiery.keep.appselection.SensitiveAppSelectionPolicy
 import com.uiery.keep.appselection.InstalledAppRepository
 import com.uiery.keep.model.AppInfo
 import com.uiery.keep.domain.websiteblocking.DomainNameNormalizationResult
@@ -96,25 +99,33 @@ fun CategoryBottomSheetContent(
     onCompleteTargets: ((selectedApps: Set<String>, selectedWebDomains: Set<String>) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val installedAppRepository = remember(context) {
+    val blockExemptPackageProvider = remember(context) {
+        AndroidBlockExemptPackageProvider(context.applicationContext)
+    }
+    val installedAppRepository = remember(context, blockExemptPackageProvider) {
         InstalledAppRepository(
             packageManager = context.packageManager,
-            blockExemptPackageProvider = AndroidBlockExemptPackageProvider(context.applicationContext),
+            blockExemptPackageProvider = blockExemptPackageProvider,
         )
     }
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
+    var exemptPackages by remember { mutableStateOf(BlockExemptPackages()) }
     var isLoading by remember { mutableStateOf(true) }
     LaunchedEffect(installedAppRepository) {
-        val loadedApps = withContext(Dispatchers.IO) {
-            installedAppRepository.loadSelectableApps()
+        // Resolving device roles is the same binder work the picker already waits on, so it rides
+        // along here rather than blocking the frame that shows the confirmation.
+        val loaded = withContext(Dispatchers.IO) {
+            installedAppRepository.loadSelectableApps() to blockExemptPackageProvider.exemptPackages()
         }
-        apps = loadedApps
+        apps = loaded.first
+        exemptPackages = loaded.second
         isLoading = false
     }
 
     CategoryBottomSheetLoadedContent(
         modifier = modifier,
         apps = apps,
+        exemptPackages = exemptPackages,
         storeSelectApps = storeSelectApps,
         isLoading = isLoading,
         onComplete = onComplete,
@@ -130,6 +141,7 @@ fun CategoryBottomSheetContent(
 fun CategoryBottomSheetLoadedContent(
     modifier: Modifier = Modifier,
     apps: List<AppInfo>,
+    exemptPackages: BlockExemptPackages = BlockExemptPackages(),
     storeSelectApps: Set<String>,
     isLoading: Boolean = false,
     onComplete: (Set<String>) -> Unit,
@@ -160,6 +172,9 @@ fun CategoryBottomSheetLoadedContent(
     var selectedWebDomains by rememberSaveable(
         stateSaver = listSaver<List<String>, String>(save = { it }, restore = { it }),
     ) { mutableStateOf(storeSelectedWebDomains.sorted()) }
+    // Held as the pending selection rather than a boolean so the confirmation always describes the
+    // set that is actually about to be saved, not whatever the sheet drifted to behind it.
+    var pendingSensitiveCompletion by remember { mutableStateOf<Set<String>?>(null) }
     var selectedTargetIndex by rememberSaveable { mutableIntStateOf(0) }
     val selectedTargetType = LockTargetType.entries[selectedTargetIndex]
     val allAppPackages = remember(apps) { apps.map { it.packageName } }
@@ -356,6 +371,32 @@ fun CategoryBottomSheetLoadedContent(
                 style = KeepTheme.typography.bodyMedium,
             )
         }
+        val completeSelection: (Set<String>) -> Unit = { packages ->
+            if (websiteSelectionEnabled && onCompleteTargets != null) {
+                onCompleteTargets(packages, selectedWebDomains.toSet())
+            } else {
+                onComplete(packages)
+            }
+        }
+        pendingSensitiveCompletion?.let { pendingPackages ->
+            SensitiveAppBlockingDialog(
+                selections = SensitiveAppSelectionPolicy.pendingConfirmations(
+                    selectedPackages = pendingPackages,
+                    appNamesByPackage = apps.associate { it.packageName to it.appName },
+                    exemptPackages = exemptPackages,
+                ),
+                onBlockAll = {
+                    pendingSensitiveCompletion = null
+                    completeSelection(pendingPackages)
+                },
+                onExcludeSensitiveApps = {
+                    pendingSensitiveCompletion = null
+                    completeSelection(
+                        SensitiveAppSelectionPolicy.withoutSensitiveApps(pendingPackages, exemptPackages),
+                    )
+                },
+            )
+        }
         KeepButton(
             modifier = Modifier
                 .fillMaxWidth()
@@ -370,10 +411,18 @@ fun CategoryBottomSheetLoadedContent(
                 }
                 if (selectedApp != null && onSingleComplete != null) {
                     onSingleComplete(selectedApp.packageName, selectedApp.appName)
-                } else if (websiteSelectionEnabled && onCompleteTargets != null) {
-                    onCompleteTargets(selectedAppPackages, selectedWebDomains.toSet())
+                    return@KeepButton
+                }
+                // Single selection is one deliberate tap on a named app, so it carries its own
+                // disclosure. Everything else can arrive through select all and has to be confirmed.
+                val hasSensitiveSelections = BlockExemptPackagePolicy.sensitiveSelections(
+                    selectedPackages = selectedAppPackages,
+                    exemptPackages = exemptPackages,
+                ).isNotEmpty()
+                if (hasSensitiveSelections) {
+                    pendingSensitiveCompletion = selectedAppPackages
                 } else {
-                    onComplete(selectedAppPackages)
+                    completeSelection(selectedAppPackages)
                 }
             },
         )

@@ -529,4 +529,12 @@
     <string name="lock_screen_unavailable_message_apps_and_websites">Les applications et sites web sélectionnés ne sont pas disponibles jusqu\'à %1$s</string>
     <string name="lock_screen_unavailable_message_apps_and_websites_with_date">Les applications et sites web sélectionnés ne sont pas disponibles jusqu\'à %1$s</string>
     <string name="lock_targets_selected">%1$d applications · %2$d sites web sélectionnés</string>
+    <string name="sensitive_block_line">%1$s · %2$s</string>
+    <string name="sensitive_block_confirm_title">Ces applications seront aussi bloquées</string>
+    <string name="sensitive_block_confirm_include">Tout bloquer</string>
+    <string name="sensitive_block_confirm_exclude">Continuer sans elles</string>
+    <string name="sensitive_block_reason_messaging">Vous pourriez manquer des codes de vérification</string>
+    <string name="sensitive_block_reason_dialer">Vous ne pourrez pas passer d\'appels. Les appels entrants arrivent toujours.</string>
+    <string name="sensitive_block_reason_wallet">Vous ne pourrez pas payer en magasin</string>
+    <string name="sensitive_block_reason_settings">Vous ne pourrez pas désactiver StopIt vous-même</string>
 </resources>

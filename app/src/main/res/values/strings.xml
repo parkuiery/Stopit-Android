@@ -572,4 +572,12 @@
     <string name="delete" tools:ignore="MissingTranslation">Delete</string>
     <string name="lock_targets_selected" tools:ignore="MissingTranslation">%1$d apps · %2$d websites selected</string>
     <string name="select_targets_to_lock" tools:ignore="MissingTranslation">Select an app or website to block.</string>
+    <string name="sensitive_block_confirm_title" tools:ignore="MissingTranslation">These apps will be blocked too</string>
+    <string name="sensitive_block_confirm_include" tools:ignore="MissingTranslation">Block all</string>
+    <string name="sensitive_block_confirm_exclude" tools:ignore="MissingTranslation">Continue without them</string>
+    <string name="sensitive_block_line" tools:ignore="MissingTranslation">%1$s · %2$s</string>
+    <string name="sensitive_block_reason_messaging" tools:ignore="MissingTranslation">You may miss verification codes</string>
+    <string name="sensitive_block_reason_dialer" tools:ignore="MissingTranslation">You cannot place calls. Incoming calls still come through.</string>
+    <string name="sensitive_block_reason_wallet" tools:ignore="MissingTranslation">You cannot pay in stores</string>
+    <string name="sensitive_block_reason_settings" tools:ignore="MissingTranslation">You cannot turn off StopIt yourself</string>
 </resources>

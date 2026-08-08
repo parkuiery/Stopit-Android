@@ -32,14 +32,14 @@ class AndroidBlockExemptPackageProviderIntegrationTest {
     }
 
     @Test
-    fun resolvesSettingsAsAnEssentialRatherThanAHomePackage() {
+    fun resolvesSettingsAsASensitiveRatherThanAHomePackage() {
         val settingsPackage = Intent(Settings.ACTION_SETTINGS)
             .resolveActivity(context.packageManager)
             ?.packageName ?: return
 
         val exempt = provider.exemptPackages()
 
-        assertTrue(exempt.essentialPackages.contains(settingsPackage))
+        assertTrue(exempt.sensitivePackages.contains(settingsPackage))
         assertFalse(exempt.homePackages.contains(settingsPackage))
     }
 
@@ -53,7 +53,7 @@ class AndroidBlockExemptPackageProviderIntegrationTest {
 
     @Test
     fun curatedWalletPackagesSurviveResolutionOnEveryDevice() {
-        assertTrue(provider.exemptPackages().essentialPackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+        assertTrue(provider.exemptPackages().sensitivePackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
     }
 
     private companion object {
