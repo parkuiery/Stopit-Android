@@ -27,6 +27,7 @@ import com.uiery.keep.data.lockhistory.LockHistoryRepository
 import com.uiery.keep.feature.review.FakeDataStore
 import com.uiery.keep.feature.review.FakeEmergencyUnlockDao
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.domain.repeatblock.AppCategoryResolver
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
@@ -517,6 +518,7 @@ class BlockViewModelTest {
             lockHistoryRepository = lockHistoryRepository,
             routineRepository = routineRepository,
             repeatBlockSuggestionStore = repeatBlockSuggestionStore,
+            appCategoryResolver = AppCategoryResolver.FromPackageName,
         )
 
     private fun ordinaryBlockAnalyticsCoordinator(

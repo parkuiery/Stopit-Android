@@ -15,6 +15,7 @@ import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.data.repeatblock.RepeatBlockRoutineSuggestionStore
+import com.uiery.keep.domain.repeatblock.AppCategoryResolver
 import com.uiery.keep.domain.repeatblock.RepeatBlockHistorySample
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestion
 import com.uiery.keep.domain.repeatblock.RepeatBlockRoutineSuggestionPolicy
@@ -49,6 +50,7 @@ class BlockViewModel
         private val lockHistoryRepository: LockHistoryRepository,
         private val routineRepository: RoutineRepository,
         private val repeatBlockSuggestionStore: RepeatBlockRoutineSuggestionStore,
+        private val appCategoryResolver: AppCategoryResolver,
     ) : ViewModel(),
         ContainerHost<BlockUiState, BlockSideEffect> {
         override val container: Container<BlockUiState, BlockSideEffect> = container(BlockUiState())
@@ -178,6 +180,7 @@ class BlockViewModel
                 histories = histories,
                 activeRoutines = routineRepository.fetchAll().firstOrNull().orEmpty(),
                 dismissedSuggestions = repeatBlockSuggestionStore.readDismissedSuggestions(),
+                categoryOf = appCategoryResolver::categoryOf,
                 now = now,
             )
         }
