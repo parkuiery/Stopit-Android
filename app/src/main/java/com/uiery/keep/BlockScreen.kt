@@ -3,15 +3,17 @@ package com.uiery.keep
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -175,15 +177,17 @@ internal fun BlockScreenContent(
         // allowed way to leave the blocked app by sending the user Home.
     }
 
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(KeepTheme.colors.background),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (showBannerAd) {
+            // 배너는 흐름 안의 형제로 둔다. 겹쳐 놓으면 아래 콘텐츠가 배너 위에 그려져,
+            // 세로 가운데 정렬된 아이콘이 배너를 뚫고 올라간다.
             TrackedBannerAd(
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.fillMaxWidth(),
                 // 이 배너만 화면 위쪽에 놓인다. 위 여백은 콘텐츠와의 간격이 아니라 화면 끝과의
                 // 간격이 되어 배너가 아래로 밀린다.
                 contentSeparation = 0.dp,
@@ -193,14 +197,21 @@ internal fun BlockScreenContent(
                 ),
             )
         }
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // 첫 차단 안내·카운트다운·루틴 사유가 함께 붙으면 문구 영역이 화면을 넘긴다. 넘칠 때
+        // 잘리면 사용자는 왜 막혔는지 읽지 못한다. 넘치는 쪽은 문구고, 아래 행동 묶음은 어떤
+        // 경우에도 남아야 한다. 시스템 뒤로가기가 막혀 있어 그 버튼이 유일한 출구다.
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
         ) {
+            val viewportHeight = maxHeight
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    // 짧을 때는 화면을 채워 세로 가운데 정렬이 살아 있고, 길어지면 그만큼
+                    // 늘어나 스크롤된다.
+                    .heightIn(min = viewportHeight)
                     .padding(horizontal = 20.dp)
                     .testTag("block_screen_copy_area"),
                 verticalArrangement = Arrangement.Center,
@@ -218,7 +229,7 @@ internal fun BlockScreenContent(
                     painter = painterResource(id = R.drawable.kepp_icon),
                     contentDescription = null,
                 )
-                Spacer(modifier = Modifier.padding(top = 8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(id = R.string.block_screen_title),
                     fontWeight = FontWeight.Bold,
@@ -227,7 +238,7 @@ internal fun BlockScreenContent(
                     fontSize = 32.sp,
                     color = KeepTheme.colors.onSurfaceVariant,
                 )
-                Spacer(modifier = Modifier.padding(top = 20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     text = stringResource(id = R.string.block_screen_message, appName),
                     textAlign = TextAlign.Center,
@@ -269,72 +280,73 @@ internal fun BlockScreenContent(
                     )
                 }
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
-                    RepeatBlockRoutineSuggestionCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("block_screen_repeat_block_suggestion_card"),
-                        suggestion = suggestion,
-                        titleResId = R.string.repeat_block_suggestion_post_block_success_title,
-                        messageResId = R.string.repeat_block_suggestion_post_block_success_message,
-                        onApplyClick = onOpenRoutineSuggestion,
-                        onDismissClick = onDismissRoutineSuggestion,
-                        applyActionTestTag = "block_screen_repeat_block_suggestion_apply_action",
-                        dismissActionTestTag = "block_screen_repeat_block_suggestion_dismiss_action",
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-                val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
-                KeepTextButton(
-                    modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
-                    onClick = onShowEmergencyUnlock,
-                    enabled = emergencyUnlockAction.enabled,
-                ) {
-                    Text(
-                        text = if (emergencyUnlockAction.enabled) {
-                            stringResource(
-                                emergencyUnlockAction.textRes,
-                                uiState.dailyUnlockRemaining,
-                                uiState.emergencyUnlockDailyLimit,
-                            )
-                        } else {
-                            stringResource(emergencyUnlockAction.textRes)
-                        },
-                        color = if (emergencyUnlockAction.enabled) {
-                            KeepTheme.colors.primary
-                        } else {
-                            KeepTheme.colors.surfaceVariant
-                        },
-                        fontSize = 13.sp,
-                    )
-                }
-                Text(
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // 시스템 바 여백은 이 화면을 감싼 Scaffold 가 이미 넣어 준다. 여기서 또 주면
+                // 두 번 들어가 버튼 아래가 손가락 두 마디만큼 비어 버린다.
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
+                RepeatBlockRoutineSuggestionCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .testTag("block_screen_emergency_unlock_helper"),
-                    text = stringResource(emergencyUnlockAction.helperTextRes),
-                    textAlign = TextAlign.Center,
-                    color = KeepTheme.colors.surfaceVariant,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
+                        .testTag("block_screen_repeat_block_suggestion_card"),
+                    suggestion = suggestion,
+                    titleResId = R.string.repeat_block_suggestion_post_block_success_title,
+                    messageResId = R.string.repeat_block_suggestion_post_block_success_message,
+                    onApplyClick = onOpenRoutineSuggestion,
+                    onDismissClick = onDismissRoutineSuggestion,
+                    applyActionTestTag = "block_screen_repeat_block_suggestion_apply_action",
+                    dismissActionTestTag = "block_screen_repeat_block_suggestion_dismiss_action",
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                KeepButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("block_screen_close_cta"),
-                    text = stringResource(id = R.string.block_screen_close),
-                    onClick = onClose,
+            }
+            val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
+            KeepTextButton(
+                modifier = Modifier.testTag("block_screen_emergency_unlock_action"),
+                onClick = onShowEmergencyUnlock,
+                enabled = emergencyUnlockAction.enabled,
+            ) {
+                Text(
+                    text = if (emergencyUnlockAction.enabled) {
+                        stringResource(
+                            emergencyUnlockAction.textRes,
+                            uiState.dailyUnlockRemaining,
+                            uiState.emergencyUnlockDailyLimit,
+                        )
+                    } else {
+                        stringResource(emergencyUnlockAction.textRes)
+                    },
+                    color = if (emergencyUnlockAction.enabled) {
+                        KeepTheme.colors.primary
+                    } else {
+                        KeepTheme.colors.surfaceVariant
+                    },
+                    fontSize = 13.sp,
                 )
             }
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .testTag("block_screen_emergency_unlock_helper"),
+                text = stringResource(emergencyUnlockAction.helperTextRes),
+                textAlign = TextAlign.Center,
+                color = KeepTheme.colors.surfaceVariant,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            KeepButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("block_screen_close_cta"),
+                text = stringResource(id = R.string.block_screen_close),
+                onClick = onClose,
+            )
         }
     }
 }
