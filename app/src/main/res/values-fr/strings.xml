@@ -535,6 +535,6 @@
     <string name="sensitive_block_confirm_exclude">Continuer sans elles</string>
     <string name="sensitive_block_reason_messaging">Vous ne pourrez pas envoyer ni consulter vos SMS</string>
     <string name="sensitive_block_reason_dialer">Vous ne pourrez pas passer d\'appels. Les appels entrants arrivent toujours.</string>
-    <string name="sensitive_block_reason_wallet">Vous ne pourrez pas payer en magasin</string>
-    <string name="sensitive_block_reason_settings">Vous ne pourrez pas désactiver StopIt vous-même</string>
+    <string name="sensitive_block_reason_wallet">Le paiement risque de ne pas fonctionner</string>
+    <string name="sensitive_block_reason_settings">Vous ne pourrez pas modifier les paramètres de l\'appareil</string>
 </resources>

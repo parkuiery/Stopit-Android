@@ -535,6 +535,6 @@
     <string name="sensitive_block_confirm_exclude">Continuar sem eles</string>
     <string name="sensitive_block_reason_messaging">Você não poderá enviar nem consultar mensagens</string>
     <string name="sensitive_block_reason_dialer">Você não poderá fazer chamadas. As chamadas recebidas continuam chegando.</string>
-    <string name="sensitive_block_reason_wallet">Você não poderá pagar em lojas</string>
-    <string name="sensitive_block_reason_settings">Você não poderá desativar o StopIt sozinho</string>
+    <string name="sensitive_block_reason_wallet">Você pode não conseguir pagar</string>
+    <string name="sensitive_block_reason_settings">Você não poderá alterar as configurações do dispositivo</string>
 </resources>
