@@ -72,7 +72,6 @@ import com.uiery.kds.KeepLabelWeight
 import com.uiery.kds.KeepMenu
 import com.uiery.kds.KeepMenuItem
 import com.uiery.kds.KeepMenuItemTone
-import com.uiery.kds.KeepTextButton
 import com.uiery.kds.KeepTextField
 import com.uiery.kds.KeepTextFieldVariant
 import com.uiery.kds.theme.KeepTheme
@@ -87,6 +86,7 @@ import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.rememberPickerState
 import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.TimerPicker
+import com.uiery.keep.ui.component.WebsiteBlockingConsentRetryButton
 import com.uiery.keep.ui.component.WebsiteBlockingWarningRow
 import com.uiery.keep.util.formatWeekdayShort
 import com.uiery.keep.util.routineDurationMinutes
@@ -458,32 +458,13 @@ private fun RoutineWebsiteConsentWarning(
     val status by WebsiteBlockingRuntimeState.status.collectAsState()
     if (!hasWebsiteTargets || status != WebsiteBlockingStatus.ConsentDenied) return
 
-    val context = LocalContext.current
-    val consentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
-        }
-    }
-
     WebsiteBlockingWarningRow(
         modifier = modifier,
         message = stringResource(R.string.routine_website_consent_denied),
         action = {
-            // 경고 자체는 붉은 톤이지만 이 버튼은 되돌리는 행동이지 파괴적인 행동이 아니다.
-            KeepTextButton(
-                onClick = {
-                    val consentIntent = VpnService.prepare(context)
-                    if (consentIntent == null) {
-                        WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
-                    } else {
-                        consentLauncher.launch(consentIntent)
-                    }
-                },
-            ) {
-                Text(text = stringResource(R.string.website_blocking_consent_retry))
-            }
+            // 루틴은 몇 시간 뒤에 시작한다. 권한만 되돌려 두면 그때 시작 경로가 필터를
+            // 세우므로, 여기서 따로 세울 것은 없다.
+            WebsiteBlockingConsentRetryButton(onConsentGranted = {})
         },
     )
 }

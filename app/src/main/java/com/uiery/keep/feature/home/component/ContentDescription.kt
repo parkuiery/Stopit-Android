@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
@@ -26,7 +29,11 @@ fun ContentDescription(
     lockTargetKind: LockTargetKind = LockTargetKind.Apps,
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            // 홈의 다른 요소(카테고리 버튼·카드)와 같은 좌우 여백. 문구가 한 줄에 담기지
+            // 못하는 순간부터 여백이 없으면 글자가 화면 끝에 닿는다.
+            .padding(horizontal = HORIZONTAL_GUTTER),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -49,12 +56,25 @@ fun ContentDescription(
                 )
             }
         }
+        // 앱만 잠글 때는 한 줄, 웹사이트가 끼면 두 줄이 된다. 줄 수가 오가면 이 묶음은
+        // 화면 바닥에 고정돼 있어 그 위의 토글이 함께 움직인다. 두 줄 자리를 늘 잡아
+        // 두고, 넘칠 때는 자르지 않고 더 늘어나게 둔다.
         Text(
+            modifier = Modifier.fillMaxWidth(),
             text = stringResource(description),
             color = KeepTheme.colors.onSurface,
+            // 가운데 정렬 화면인데 감싼 둘째 줄만 왼쪽에 붙으면 문구가 기울어 보인다.
+            textAlign = TextAlign.Center,
+            minLines = 2,
+            // 기본 줄바꿈은 폭이 차는 지점에서 끊어 "없어요" 같은 꼬리 한 마디만 둘째
+            // 줄에 남긴다. Paragraph 는 문단 전체를 보고 두 줄 길이를 고르게 나눈다.
+            style = KeepTheme.typography.bodyLarge.copy(lineBreak = LineBreak.Paragraph),
         )
     }
 }
+
+/** 홈 본문이 공유하는 좌우 여백. */
+private val HORIZONTAL_GUTTER = 20.dp
 
 @StringRes
 internal fun keepOnMessageRes(lockTargetKind: LockTargetKind): Int = when (lockTargetKind) {
