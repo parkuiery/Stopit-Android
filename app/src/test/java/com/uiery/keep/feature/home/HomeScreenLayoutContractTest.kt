@@ -48,7 +48,9 @@ class HomeScreenLayoutContractTest {
         )
         assertTrue(
             "메인 컨트롤은 고정 높이가 아니라 최소 높이를 가져야 넘칠 때 잘리지 않는다",
-            Regex("""\.heightIn\(min = 260\.dp\)""").containsMatchIn(source),
+            source.contains(".heightIn(min = MAIN_CONTROLS_MIN_HEIGHT)") &&
+                Regex("""private val MAIN_CONTROLS_MIN_HEIGHT = \d+\.dp""")
+                    .containsMatchIn(source),
         )
         assertTrue(
             "짧은 콘텐츠에서도 표면이 화면을 채워야 메인 컨트롤이 위로 딸려 올라가지 않는다",
@@ -101,6 +103,74 @@ class HomeScreenLayoutContractTest {
         assertTrue(
             "하단 상태 문구는 타이머(32sp)와 꺼짐 문구(18sp)가 같은 높이를 쓰도록 자리를 잡아야 한다",
             Regex("""heightIn\(min = \d+\.dp\)""").containsMatchIn(statusSlot),
+        )
+    }
+
+    @Test
+    fun bottomCopyKeepsTheGutterAndStaysCenteredWhenItWraps() {
+        // 웹사이트를 함께 잠그면 하단 문구가 길어져 두 줄이 된다. 여백이 없으면 글자가
+        // 화면 끝에 닿고, 가운데 정렬이 없으면 감싼 둘째 줄만 왼쪽에 붙어 기울어 보인다.
+        val statusSlot = File(
+            "src/main/java/com/uiery/keep/feature/home/component/ContentDescription.kt",
+        ).readText()
+
+        assertTrue(
+            "하단 문구는 홈의 다른 요소와 같은 좌우 여백을 가져야 한다",
+            statusSlot.contains(".padding(horizontal = HORIZONTAL_GUTTER)"),
+        )
+        assertTrue(
+            "감싼 줄까지 가운데로 모이려면 문구가 폭을 채우고 가운데 정렬해야 한다",
+            statusSlot.contains("textAlign = TextAlign.Center"),
+        )
+        assertTrue(
+            "줄 수가 오가면 바닥에 고정된 이 묶음이 위의 토글을 밀어 올린다. 두 줄 자리를 늘 잡아야 한다",
+            statusSlot.contains("minLines = 2"),
+        )
+    }
+
+    @Test
+    fun homeWebBlockingWarningKeepsTheGutter() {
+        // 잠금 화면에서는 20dp 여백을 가진 부모가 감싸지만 홈에는 그런 부모가 없다.
+        val source = File("src/main/java/com/uiery/keep/feature/home/HomeScreen.kt").readText()
+
+        val banner = source.indexOf("WebsiteBlockingUnavailableBanner(")
+        assertTrue("홈에도 웹 차단 경고 배너가 있어야 한다", banner >= 0)
+        val bannerCall = source.substring(banner, source.indexOf("hasWebsiteTargets", banner))
+        assertTrue(
+            "여백 없는 배너는 둥근 배경이 화면 끝에 닿는다",
+            bannerCall.contains("Modifier.padding(horizontal = 20.dp)"),
+        )
+    }
+
+    @Test
+    fun theResumeCardSpendsNoRowOnItsActionAlone() {
+        // 카드와 잠금 컨트롤이 한 스크롤 표면을 나눠 쓰므로, 카드가 높아지면 그만큼 컨트롤이
+        // 아래로 밀린다. 액션이 자기 줄(최소 48dp)을 통째로 쓰던 것을 제목 줄로 올려 줄인다.
+        val card = File(
+            "src/main/java/com/uiery/keep/feature/home/component/FirstPromiseResumeCard.kt",
+        ).readText()
+
+        assertTrue(
+            "액션은 제목과 같은 줄에 놓여야 한다",
+            card.contains("ResumeAction(state = state, onActivate = onActivate)"),
+        )
+        assertTrue(
+            "제목이 남은 폭을 가져가야 액션이 자기 크기만 쓴다",
+            Regex("""\.weight\(1f\)\s*\n\s*\.semantics \{ heading\(\) \}""")
+                .containsMatchIn(card),
+        )
+        assertTrue(
+            "줄이 좁아져도 손가락이 닿는 최소치는 지켜야 한다",
+            card.contains(".heightIn(min = 48.dp)"),
+        )
+        assertTrue(
+            "긴 대기 문구는 아래 상태 줄이 맡아야 한다. 액션 자리에 두면 로케일에 따라 " +
+                "제목을 밀어 제목이 여러 줄로 접히고, 줄인 높이가 도로 늘어난다.",
+            card.contains("state.isBusy -> stringResource(R.string.first_promise_resume_waiting)"),
+        )
+        assertTrue(
+            "화면을 못 보는 사용자에게는 회전자가 무엇을 기다리는지 이름으로 남아야 한다",
+            card.contains(".semantics { contentDescription = waitingLabel }"),
         )
     }
 

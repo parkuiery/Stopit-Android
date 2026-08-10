@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.requiredSize
@@ -95,6 +94,7 @@ import com.uiery.keep.ui.component.CategoryBottomSheetContent
 import com.uiery.keep.ui.component.CategoryButton
 import com.uiery.keep.ui.component.PermissionSettingDialog
 import com.uiery.keep.ui.component.WebsiteBlockingUnavailableBanner
+import com.uiery.keep.ui.component.currentWebsiteBlockingWarning
 import com.uiery.keep.ui.component.WebsiteLockRecommendationDialog
 import com.uiery.kds.KeepSwitch
 import com.uiery.keep.websiteblocking.WebsiteBlockingVpnController
@@ -331,12 +331,16 @@ fun HomeScreen(
         containerColor = KeepTheme.colors.background,
     ) { paddingValues ->
         val hasFirstPromiseResumeCard = uiState.firstPromiseResumeCard != null
+        val hasWebBlockingWarning = currentWebsiteBlockingWarning(
+            hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+        ) != null
         val homeCard = decideHomeCard(
             isKeep = uiState.isKeep,
             hasActiveTimedLock = uiState.hasActiveTimedLock,
             hasFirstPromiseResumeCard = hasFirstPromiseResumeCard,
             showFirstLockActivationCta = uiState.showFirstLockActivationCta,
             usageInsightCard = uiState.usageInsightCard,
+            hasWebBlockingWarning = hasWebBlockingWarning,
         )
         val topContent: @Composable ColumnScope.() -> Unit = {
         CategoryButton(
@@ -351,8 +355,15 @@ fun HomeScreen(
         )
         // 수동 잠금은 잠금 화면으로 넘어가지 않는다. 홈에 머무는 사용자도 웹 차단이
         // 서지 못했다는 사실을 같은 방식으로 알아야 한다.
+        // 잠금 화면에서는 20dp 여백을 가진 부모가 감싸주지만 홈에는 그런 부모가 없다.
+        // 여기서 직접 주지 않으면 둥근 경고 배경이 화면 끝에 닿는다.
         WebsiteBlockingUnavailableBanner(
+            modifier = Modifier.padding(horizontal = 20.dp),
             hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+            // 권한을 다시 받아도 필터가 저절로 서지는 않는다. 판정 효과는 판정값이 바뀔 때만
+            // 도는데 잠금은 그대로이므로 아무 일도 일어나지 않는다. 아무것도 서 있지 않을 때
+            // 다시 세우는 길이 이미 있으니(재개 재확인) 그 길을 여기서 한 번 두드린다.
+            onConsentGranted = { resumeCount += 1 },
         )
         // 카드는 한 번에 한 장만 노출한다. 선택되지 않은 후보는 조건이 유지되는 한 다음
         // 방문에서 다시 올라온다.
@@ -496,6 +507,10 @@ fun HomeScreen(
             // 위쪽 카드는 개수(재개 카드·사용 인사이트)와 글꼴 크기에 따라 높이가 크게 달라진다.
             // 항상 스크롤 가능한 표면으로 두어 넘칠 때 잘리는 대신 스크롤되게 하고, 하단 문구와
             // 배너는 그 바깥에 형제로 두어 바닥에 고정한다.
+            //
+            // 넘치면 잠금 컨트롤도 함께 밀려 스크롤해야 나온다. 상단이 한 덩어리(경고 배너 또는
+            // 카드 한 장)로 제한되어 있어 기본 글꼴에서는 넘치지 않는다는 전제 위에 서 있다.
+            // 제스처를 화면 하나로 통일하기 위해 그 전제를 택했다.
             BoxWithConstraints(modifier = Modifier.weight(1f)) {
                 val viewportHeight = maxHeight
                 Column(
@@ -510,7 +525,7 @@ fun HomeScreen(
                     mainControls(
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 260.dp)
+                            .heightIn(min = MAIN_CONTROLS_MIN_HEIGHT)
                             .testTag(HOME_MAIN_CONTROLS_TEST_TAG),
                     )
                     // 바닥에 붙는 0높이 앵커. SpaceBetween 은 첫 자식을 맨 위, 마지막 자식을 맨
@@ -524,6 +539,14 @@ fun HomeScreen(
         }
     }
 }
+
+/**
+ * 잠금 컨트롤이 지키는 최소 높이.
+ *
+ * 아이콘·간격·스위치 행(100+20+40)이 실제로 쓰는 높이는 160dp 이고 글자가 없어 글꼴 크기를
+ * 키워도 자라지 않는다. 나머지 100dp 는 컨트롤이 화면 중앙에 놓이도록 하는 숨 쉴 자리다.
+ */
+private val MAIN_CONTROLS_MIN_HEIGHT = 260.dp
 
 /**
  * 아이콘(최소 100dp) 중심에서 바깥으로 번지는 크기.
