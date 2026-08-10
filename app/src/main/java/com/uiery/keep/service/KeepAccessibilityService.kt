@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.data.parentmode.ParentModeSessionStore
@@ -54,7 +55,19 @@ class KeepAccessibilityService :
 
         fun blockingStateStore(): BlockingStateStore
 
+        fun blockExemptPackageProvider(): BlockExemptPackageProvider
+
         fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
+    }
+
+    /**
+     * Resolved on first block decision rather than injected, because a service is constructed by the
+     * framework and has no application context until it is created.
+     */
+    private val blockExemptPackageProvider: BlockExemptPackageProvider by lazy {
+        EntryPointAccessors
+            .fromApplication(applicationContext, RoutineRuntimeEntryPoint::class.java)
+            .blockExemptPackageProvider()
     }
 
     @Volatile
@@ -227,18 +240,29 @@ class KeepAccessibilityService :
         }
     }
 
+    /**
+     * Pairs the stored lock state with the device roles as they are *right now*.
+     *
+     * The exemptions are read here rather than carried in [AccessibilityBlockingSnapshot] because
+     * the snapshot only re-derives when DataStore emits. A user who changes their default launcher
+     * or dialer changes nothing in DataStore, so a snapshot-carried exemption would keep naming the
+     * app they replaced until the next unrelated preference write.
+     */
+    private fun AccessibilityBlockingSnapshot.withCurrentExemptPackages() =
+        AccessibilityBlockingPreferences(
+            isKeep = isKeep,
+            lockTime = lockTime,
+            selectedAppPackages = selectedAppPackages,
+            exemptPackages = blockExemptPackageProvider.exemptPackages(),
+        )
+
     private fun blockIfNeeded(
         packageName: String,
         prefs: AccessibilityBlockingSnapshot,
     ) {
         val blockRequest = resolveForegroundBlockRequest(
             packageName = packageName,
-            prefs = AccessibilityBlockingPreferences(
-                isKeep = prefs.isKeep,
-                lockTime = prefs.lockTime,
-                selectedAppPackages = prefs.selectedAppPackages,
-                exemptPackages = prefs.exemptPackages,
-            ),
+            prefs = prefs.withCurrentExemptPackages(),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,
@@ -295,12 +319,7 @@ class KeepAccessibilityService :
 
         val blockRequest = resolveServiceConnectionForegroundBlockRequest(
             currentForegroundPackage = packageName,
-            prefs = AccessibilityBlockingPreferences(
-                isKeep = prefs.isKeep,
-                lockTime = prefs.lockTime,
-                selectedAppPackages = prefs.selectedAppPackages,
-                exemptPackages = prefs.exemptPackages,
-            ),
+            prefs = prefs.withCurrentExemptPackages(),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,

@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.appselection.BlockExemptPackagePolicy
 import com.uiery.keep.appselection.BlockExemptPackageProvider
-import com.uiery.keep.appselection.BlockExemptPackages
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -37,7 +36,6 @@ class BlockingStateStore @Inject constructor(
                 preventUninstall = preferences[PreferencesKey.PREVENT_UNINSTALL] ?: true,
                 emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS].orEmpty(),
                 emergencyUnlockExpireTimeMillis = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
-                exemptPackages = blockExemptPackageProvider.exemptPackages(),
             )
         }
 
@@ -306,6 +304,14 @@ data class TimedLockSessionOwnership(
     val previous: TimedLockSessionSnapshot,
 )
 
+/**
+ * The stored lock state the accessibility service reacts to.
+ *
+ * Device-role exemptions deliberately do not live here. This snapshot is re-derived only when
+ * DataStore emits, so anything carried in it is frozen until the user next changes a preference —
+ * fine for stored state, wrong for the default launcher or dialer, which the user can change at any
+ * time without touching Stopit. The service resolves those at decision time instead.
+ */
 data class AccessibilityBlockingSnapshot(
     val isKeep: Boolean = false,
     val lockTime: String? = null,
@@ -313,7 +319,6 @@ data class AccessibilityBlockingSnapshot(
     val preventUninstall: Boolean = true,
     val emergencyUnlockApps: Set<String> = emptySet(),
     val emergencyUnlockExpireTimeMillis: Long = 0L,
-    val exemptPackages: BlockExemptPackages = BlockExemptPackages(),
 )
 
 data class BlockingSelectionState(
