@@ -575,7 +575,6 @@
     <string name="sensitive_block_confirm_title" tools:ignore="MissingTranslation">These apps will be blocked too</string>
     <string name="sensitive_block_confirm_include" tools:ignore="MissingTranslation">Block all</string>
     <string name="sensitive_block_confirm_exclude" tools:ignore="MissingTranslation">Continue without them</string>
-    <string name="sensitive_block_line" tools:ignore="MissingTranslation">%1$s · %2$s</string>
     <string name="sensitive_block_reason_messaging" tools:ignore="MissingTranslation">You cannot send or check texts</string>
     <string name="sensitive_block_reason_dialer" tools:ignore="MissingTranslation">You cannot place calls. Incoming calls still come through.</string>
     <string name="sensitive_block_reason_wallet" tools:ignore="MissingTranslation">Paying may not work</string>

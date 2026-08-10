@@ -109,6 +109,50 @@ fun KeepConfirmationDialog(
     )
 }
 
+/**
+ * Confirmation dialog whose body is composed rather than a single string.
+ *
+ * A paragraph is the wrong shape for a list. Once several items share one text block, wrapping
+ * decides where the lines break and the reader loses track of where one item ends — so anything
+ * enumerable needs rows and spacing, not newline characters. The actions stay identical to the
+ * string overload so the two cannot drift apart.
+ */
+@Composable
+fun KeepConfirmationDialog(
+    title: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmTone: KeepConfirmationTone = KeepConfirmationTone.Neutral,
+    properties: DialogProperties = DialogProperties(dismissOnClickOutside = false),
+    content: @Composable () -> Unit,
+) {
+    KeepAlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = title,
+                color = KeepTheme.semanticColors.foreground.neutral,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        text = content,
+        confirmButton = {
+            KeepDialogActionPair(
+                dismissLabel = dismissLabel,
+                confirmLabel = confirmLabel,
+                confirmTone = confirmTone,
+                onDismiss = onDismiss,
+                onConfirm = onConfirm,
+            )
+        },
+        properties = properties,
+    )
+}
+
 @Composable
 private fun KeepDialogActionPair(
     dismissLabel: String,
