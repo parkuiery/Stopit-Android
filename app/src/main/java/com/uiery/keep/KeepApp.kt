@@ -75,6 +75,23 @@ internal fun KeepApp(
         isDebug = BuildConfig.DEBUG,
     )
 
+    /**
+     * 위로 올라갈 곳이 없을 때 홈을 부모로 삼는다.
+     *
+     * 알림 탭이나 차단 화면의 루틴 제안으로 들어오면 그 화면이 그래프의 **시작 지점**이 되어
+     * 되돌아갈 항목이 없다. 그때 `navigateUp()` 은 조용히 false 를 돌려주고 아무 일도 하지
+     * 않아서, 사용자에게는 뒤로가기 버튼이 죽은 것으로 보인다.
+     *
+     * 앱 안에서 들어왔든 밖에서 곧바로 들어왔든 같은 버튼이 같은 뜻이어야 하므로, 올라갈 곳이
+     * 없으면 홈으로 보낸다. 앱 안에서 들어온 경우에는 `navigateUp()` 이 성공하므로 이 대체
+     * 경로는 타지 않는다.
+     */
+    val navigateUpOrHome: () -> Unit = {
+        if (!navController.navigateUp()) {
+            navController.navigateToHome()
+        }
+    }
+
     NavHost(
         modifier = modifier
             .fillMaxSize()
@@ -151,8 +168,10 @@ internal fun KeepApp(
         if (isDevToolEnabled) {
             devToolScreen(onNavigateBack = navController::navigateUp)
         }
+        // 루틴 화면은 그래프의 시작 지점이 될 수 있는 유일한 화면이다(알림 탭·차단 화면의
+        // 루틴 제안). 그래서 여기만 대체 경로가 필요하다.
         routineScreen(
-            onNavigateBack = navController::navigateUp,
+            onNavigateBack = navigateUpOrHome,
             onNavigateLock = navController::navigateToLock,
         )
         lockHistoryScreen(
