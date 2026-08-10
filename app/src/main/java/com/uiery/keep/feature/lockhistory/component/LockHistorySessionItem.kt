@@ -37,34 +37,42 @@ internal fun LockHistorySessionItem(
         shape = RoundedCornerShape(8.dp),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                // 폭을 채우지 않으면 Row 가 내용 크기로 줄어든다. 그러면 나눠 줄 남는 폭이
+                // 없어 SpaceBetween 이 아무 일도 하지 않고, 시간과 지속 시간이 서로 맞붙는다.
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+            // 남는 폭은 왼쪽이 가져간다. 지속 시간은 짧고 먼저 자리를 잡으므로, 시간 범위가
+            // 길어져도 지속 시간을 밀어내지 않는다.
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "${formatTwentyFourHourTime(session.startDateTime.toLocalTime())} - ${formatTwentyFourHourTime(session.endDateTime.toLocalTime())}",
+                    color = KeepTheme.semanticColors.foreground.neutral,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = if (session.isRoutine) {
+                        stringResource(R.string.lock_history_routine_session)
+                    } else {
+                        stringResource(R.string.lock_history_manual_session)
+                    },
+                    color = KeepTheme.semanticColors.foreground.muted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
-                text = "${formatTwentyFourHourTime(session.startDateTime.toLocalTime())} - ${formatTwentyFourHourTime(session.endDateTime.toLocalTime())}",
-                color = KeepTheme.semanticColors.foreground.neutral,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
+                text = formatSessionDuration(context, session.durationMillis),
+                color = KeepTheme.semanticColors.foreground.brand,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
             )
-            Text(
-                text = if (session.isRoutine) {
-                    stringResource(R.string.lock_history_routine_session)
-                } else {
-                    stringResource(R.string.lock_history_manual_session)
-                },
-                color = KeepTheme.semanticColors.foreground.muted,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Text(
-            text = formatSessionDuration(context, session.durationMillis),
-            color = KeepTheme.semanticColors.foreground.brand,
-            style = MaterialTheme.typography.labelLarge,
-        )
         }
     }
 }
