@@ -10,6 +10,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
@@ -29,6 +30,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import com.uiery.keep.appselection.BlockExemptPackages
+import com.uiery.keep.appselection.SensitiveAppRole
 import com.uiery.keep.model.AppInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -72,6 +75,127 @@ class CategoryBottomSheetContentIntegrationTest {
 
         assertEquals(listOf(setOf("com.example.alpha", "com.example.beta")), completedSelections)
     }
+
+    /**
+     * The confirmation exists because 1.7.12 found "select all" sweeping device-role apps in with no
+     * warning. Removing them from the picker fixed the silence and broke deliberate blocking, so the
+     * guard has to be the dialog — and it has to hold on the select-all path specifically.
+     */
+    @Test
+    fun selectAllRoutesSensitiveAppsThroughTheConfirmationInsteadOfSavingSilently() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedSelections = mutableListOf<Set<String>>()
+        val apps = listOf(
+            testApp(packageName = "com.example.alpha", appName = "Alpha Focus"),
+            testApp(packageName = SMS_PACKAGE, appName = "Messages"),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = apps,
+                    exemptPackages = sensitiveMessagingExemptPackages(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { completedSelections += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_select_all_row").performClick()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        composeRule.onNodeWithText(context.getString(R.string.sensitive_block_confirm_title))
+            .assertIsDisplayed()
+        assertEquals(emptyList<Set<String>>(), completedSelections)
+
+        composeRule.onNodeWithText(context.getString(R.string.sensitive_block_confirm_include)).performClick()
+
+        assertEquals(listOf(setOf("com.example.alpha", SMS_PACKAGE)), completedSelections)
+    }
+
+    /** Tapping one sensitive app directly must reach the same confirmation as select all. */
+    @Test
+    fun individuallyTappingASensitiveAppAlsoRoutesThroughTheConfirmation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedSelections = mutableListOf<Set<String>>()
+        val apps = listOf(
+            testApp(packageName = "com.example.alpha", appName = "Alpha Focus"),
+            testApp(packageName = SMS_PACKAGE, appName = "Messages"),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = apps,
+                    exemptPackages = sensitiveMessagingExemptPackages(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { completedSelections += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_app_row_$SMS_PACKAGE").performClick()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        composeRule.onNodeWithText(context.getString(R.string.sensitive_block_confirm_title))
+            .assertIsDisplayed()
+        assertEquals(emptyList<Set<String>>(), completedSelections)
+    }
+
+    /** Declining still saves — the user asked to save, they only declined the sensitive apps. */
+    @Test
+    fun decliningTheConfirmationSavesEverythingExceptTheSensitiveApps() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completedSelections = mutableListOf<Set<String>>()
+        val apps = listOf(
+            testApp(packageName = "com.example.alpha", appName = "Alpha Focus"),
+            testApp(packageName = SMS_PACKAGE, appName = "Messages"),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = apps,
+                    exemptPackages = sensitiveMessagingExemptPackages(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { completedSelections += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_select_all_row").performClick()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.sensitive_block_confirm_exclude)).performClick()
+
+        assertEquals(listOf(setOf("com.example.alpha")), completedSelections)
+    }
+
+    /** An ordinary selection saves straight through; a dialog on every save gets dismissed unread. */
+    @Test
+    fun ordinaryAppsSaveWithoutAConfirmation() {
+        val completedSelections = mutableListOf<Set<String>>()
+        val apps = listOf(testApp(packageName = "com.example.alpha", appName = "Alpha Focus"))
+
+        composeRule.setContent {
+            KeepTheme {
+                CategoryBottomSheetLoadedContent(
+                    apps = apps,
+                    exemptPackages = sensitiveMessagingExemptPackages(),
+                    storeSelectApps = emptySet(),
+                    onComplete = { completedSelections += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("category_app_row_com.example.alpha").performClick()
+        composeRule.onNodeWithTag("category_selection_complete").performClick()
+
+        assertEquals(listOf(setOf("com.example.alpha")), completedSelections)
+    }
+
+    private fun sensitiveMessagingExemptPackages() = BlockExemptPackages(
+        sensitiveRoles = mapOf(SMS_PACKAGE to SensitiveAppRole.MESSAGING),
+    )
 
     @Test
     fun selectingAnotherAppDoesNotMoveItAboveInitiallyUnselectedRows() {
@@ -546,6 +670,10 @@ class CategoryBottomSheetContentIntegrationTest {
         val firstTop = composeRule.onNodeWithTag(firstTag).fetchSemanticsNode().boundsInRoot.top
         val secondTop = composeRule.onNodeWithTag(secondTag).fetchSemanticsNode().boundsInRoot.top
         assertTrue("$firstTag should appear before $secondTag", firstTop < secondTop)
+    }
+
+    private companion object {
+        const val SMS_PACKAGE = "com.samsung.android.messaging"
     }
 
     private fun testApp(

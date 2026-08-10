@@ -78,7 +78,7 @@ class BlockingStateStore @Inject constructor(
         this[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty().blockable()
 
     private fun Set<String>.blockable(): Set<String> =
-        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages().all)
+        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages().homePackages)
 
     suspend fun setIsNew(isNew: Boolean) {
         dataStore.edit { preferences ->

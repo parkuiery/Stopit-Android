@@ -529,4 +529,11 @@
     <string name="lock_screen_unavailable_message_apps_and_websites">Geselecteerde apps en websites zijn niet beschikbaar tot %1$s</string>
     <string name="lock_screen_unavailable_message_apps_and_websites_with_date">Geselecteerde apps en websites zijn niet beschikbaar tot %1$s</string>
     <string name="lock_targets_selected">%1$d apps · %2$d websites geselecteerd</string>
+    <string name="sensitive_block_confirm_title">Deze apps worden ook geblokkeerd</string>
+    <string name="sensitive_block_confirm_include">Alles blokkeren</string>
+    <string name="sensitive_block_confirm_exclude">Doorgaan zonder deze</string>
+    <string name="sensitive_block_reason_messaging">Je kunt geen berichten sturen of bekijken</string>
+    <string name="sensitive_block_reason_dialer">Je kunt niet bellen. Inkomende oproepen komen binnen.</string>
+    <string name="sensitive_block_reason_wallet">Betalen werkt mogelijk niet</string>
+    <string name="sensitive_block_reason_settings">Je kunt de apparaatinstellingen niet wijzigen</string>
 </resources>

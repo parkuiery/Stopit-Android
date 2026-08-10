@@ -527,4 +527,11 @@
     <string name="lock_screen_unavailable_message_apps_and_websites">选中的应用和网站在%1$s之前不可用</string>
     <string name="lock_screen_unavailable_message_apps_and_websites_with_date">选中的应用和网站在%1$s之前不可用</string>
     <string name="lock_targets_selected">已选应用%1$d个 · 网站%2$d个</string>
+    <string name="sensitive_block_confirm_title">这些应用也会被屏蔽</string>
+    <string name="sensitive_block_confirm_include">全部屏蔽</string>
+    <string name="sensitive_block_confirm_exclude">不包含它们并继续</string>
+    <string name="sensitive_block_reason_messaging">无法发送或查看短信</string>
+    <string name="sensitive_block_reason_dialer">无法拨打电话。来电仍可接听</string>
+    <string name="sensitive_block_reason_wallet">可能无法支付</string>
+    <string name="sensitive_block_reason_settings">无法更改设备设置</string>
 </resources>

@@ -1,21 +1,58 @@
 package com.uiery.keep.appselection
 
 /**
- * Packages exempt from blocking, split by how much authority they yield to.
+ * A device role whose app can be blocked, but not without telling the user what it costs.
  *
- * [homePackages] is unconditional. Blocking the home launcher traps the user in a
- * home -> block screen -> home loop, and no lock is worth making the device unusable.
+ * The role is what makes the warning specific: "you will not receive verification codes" lands,
+ * "this is a system app" does not.
+ */
+enum class SensitiveAppRole {
+    // Declaration order is the order the confirmation lists them, so it runs from the cost most
+    // people will accept to the one that is hardest to undo. Blocking Settings means the user
+    // cannot turn the accessibility service off, so it reads last.
+    MESSAGING,
+    DIALER,
+    WALLET,
+    SETTINGS,
+}
+
+/**
+ * Device-role packages, split by whether the user is allowed to block them.
  *
- * [essentialPackages] only applies to self-imposed locks. Parent mode is an allowlist a supervisor
- * configured deliberately, so it keeps authority over settings and wallet apps — otherwise the
- * supervised user could walk into Settings and turn the accessibility service off.
+ * [homePackages] is the only unconditional exemption. Blocking the home launcher traps the user in
+ * a home -> block screen -> home loop, and no lock is worth making the device unusable. It is never
+ * selectable and never blockable.
+ *
+ * [sensitiveRoles] — settings, dialer, messaging, wallet — *are* blockable. Blocking a messaging app
+ * is a core reason people install a focus app, and 1.7.12 made it impossible by hiding these from
+ * the picker entirely. What that release actually needed to fix was that "select all" pulled them in
+ * *silently*, so the fix is disclosure, not removal: they stay in the picker and in select all, and
+ * the caller confirms them before saving.
  */
 data class BlockExemptPackages(
     val homePackages: Set<String> = emptySet(),
-    val essentialPackages: Set<String> = emptySet(),
+    val sensitiveRoles: Map<String, SensitiveAppRole> = emptyMap(),
 ) {
-    /** Everything a user must never be able to pick as a blocking target. */
-    val all: Set<String> = homePackages + essentialPackages
+    val sensitivePackages: Set<String> = sensitiveRoles.keys
+
+    /**
+     * The dialer, reachable on its own because an incoming call is not something the user chose to
+     * do. With the screen off Android brings the dialer's in-call activity to the front, which is a
+     * window change like any other, so a blocked dialer would put the block screen over a ringing
+     * phone. Blocking decisions step aside for this package while a call is live; placing a call is
+     * still blocked.
+     */
+    val dialerPackages: Set<String> = packagesFor(SensitiveAppRole.DIALER)
+
+    private fun packagesFor(role: SensitiveAppRole): Set<String> =
+        sensitiveRoles.filterValues { it == role }.keys
+
+    /**
+     * Every resolved device role. Blocking decisions must not use this — they only exempt
+     * [homePackages]. This is for surfaces that describe the device rather than restrict it, such
+     * as leaving system roles out of usage insight.
+     */
+    val all: Set<String> = homePackages + sensitivePackages
 }
 
 /**
@@ -34,10 +71,10 @@ fun interface BlockExemptPackageProvider {
 }
 
 /**
- * Pure policy for packages that must stay reachable even while a lock is active.
+ * Pure policy for resolving the device roles a lock has to reason about.
  *
- * Users never pick these deliberately; they reach the blocked set through the "all apps"
- * select-all, and then crowd out the real target in the emergency unlock picker.
+ * Only the home launcher must stay reachable. The rest are blockable but consequential enough that
+ * the user should be told what they are giving up before the selection is saved.
  */
 object BlockExemptPackagePolicy {
     /**
@@ -65,12 +102,41 @@ object BlockExemptPackagePolicy {
         dialerPackage: String?,
         smsPackage: String?,
         nfcPaymentPackage: String?,
-    ): BlockExemptPackages = BlockExemptPackages(
-        homePackages = realPackages(homePackages),
-        essentialPackages = realPackages(
-            PAYMENT_PACKAGES + listOfNotNull(settingsPackage, dialerPackage, smsPackage, nfcPaymentPackage),
-        ),
-    )
+    ): BlockExemptPackages {
+        val resolvedHomePackages = realPackages(homePackages)
+        // Later entries win, so the resolved default dialer/messenger overrides a preinstalled
+        // wallet entry if a device ever ships one package in both roles.
+        val roles = buildMap {
+            PAYMENT_PACKAGES.forEach { put(it, SensitiveAppRole.WALLET) }
+            nfcPaymentPackage?.let { put(it, SensitiveAppRole.WALLET) }
+            smsPackage?.let { put(it, SensitiveAppRole.MESSAGING) }
+            dialerPackage?.let { put(it, SensitiveAppRole.DIALER) }
+            settingsPackage?.let { put(it, SensitiveAppRole.SETTINGS) }
+        }
+        val realSensitivePackages = realPackages(roles.keys)
+        return BlockExemptPackages(
+            homePackages = resolvedHomePackages,
+            // The home launcher is unconditional, so it must never also appear as sensitive —
+            // otherwise the alert would offer to block something that cannot be blocked.
+            sensitiveRoles = roles.filterKeys {
+                it in realSensitivePackages && it !in resolvedHomePackages
+            },
+        )
+    }
+
+    /**
+     * The sensitive roles a selection is about to block, keyed by package.
+     *
+     * This drives the confirmation shown before the selection is saved. It is deliberately blind to
+     * how the packages got selected — "select all" and an individual tap both land here — because a
+     * dialog that only guards one path leaves the other silent, which is the failure 1.7.12 tried to
+     * fix by removing the apps entirely. Empty means there is nothing to confirm.
+     */
+    fun sensitiveSelections(
+        selectedPackages: Set<String>,
+        exemptPackages: BlockExemptPackages,
+    ): Map<String, SensitiveAppRole> =
+        exemptPackages.sensitiveRoles.filterKeys { it in selectedPackages }
 
     fun isExempt(packageName: String, exemptPackages: Set<String>): Boolean =
         packageName in exemptPackages

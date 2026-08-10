@@ -38,7 +38,7 @@ class InstalledAppRepository(
             .filterSelectableApps(
                 candidates = candidatesByPackage.values.toList(),
                 ownPackageName = ownPackageName,
-                exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+                exemptPackages = blockExemptPackageProvider.exemptPackages().homePackages,
             )
             .map { candidate ->
                 val metadata = metadataByPackage.getValue(candidate.packageName)

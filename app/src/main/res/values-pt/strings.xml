@@ -529,4 +529,11 @@
     <string name="lock_screen_unavailable_message_apps_and_websites">As aplicações e os sites selecionados não estão disponíveis até %1$s</string>
     <string name="lock_screen_unavailable_message_apps_and_websites_with_date">As aplicações e os sites selecionados não estão disponíveis até %1$s</string>
     <string name="lock_targets_selected">%1$d aplicações · %2$d sites selecionados</string>
+    <string name="sensitive_block_confirm_title">Estas apps também vão ser bloqueadas</string>
+    <string name="sensitive_block_confirm_include">Bloquear tudo</string>
+    <string name="sensitive_block_confirm_exclude">Continuar sem elas</string>
+    <string name="sensitive_block_reason_messaging">Não podes enviar nem consultar mensagens</string>
+    <string name="sensitive_block_reason_dialer">Não podes ligar. As chamadas recebidas continuam a chegar.</string>
+    <string name="sensitive_block_reason_wallet">Podes não conseguir pagar</string>
+    <string name="sensitive_block_reason_settings">Não podes alterar as definições do dispositivo</string>
 </resources>

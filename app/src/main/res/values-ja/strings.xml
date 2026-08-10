@@ -527,4 +527,11 @@
     <string name="lock_screen_unavailable_message_apps_and_websites">選択したアプリとウェブサイトは%1$sまで使用できません</string>
     <string name="lock_screen_unavailable_message_apps_and_websites_with_date">選択したアプリとウェブサイトは%1$sまで使用できません</string>
     <string name="lock_targets_selected">アプリ%1$d件 · ウェブサイト%2$d件を選択</string>
+    <string name="sensitive_block_confirm_title">これらのアプリもブロックされます</string>
+    <string name="sensitive_block_confirm_include">すべてブロック</string>
+    <string name="sensitive_block_confirm_exclude">除いて続ける</string>
+    <string name="sensitive_block_reason_messaging">メッセージを送ったり確認したりできません</string>
+    <string name="sensitive_block_reason_dialer">電話をかけられません。着信はそのまま受けられます</string>
+    <string name="sensitive_block_reason_wallet">支払いができないことがあります</string>
+    <string name="sensitive_block_reason_settings">端末の設定を変更できません</string>
 </resources>

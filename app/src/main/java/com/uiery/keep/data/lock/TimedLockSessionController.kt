@@ -66,7 +66,7 @@ class TimedLockSessionController @Inject constructor(
         // a full lock screen and countdown that blocks nothing. A web-only lock is still valid.
         val blockablePackages = BlockExemptPackagePolicy.filterBlockable(
             packages = packages,
-            exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+            exemptPackages = blockExemptPackageProvider.exemptPackages().homePackages,
         )
         if (blockablePackages.isEmpty() && !hasWebTargets) return TimedLockStartResult.EmptyApps
         if (targetDeadline == null && durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration

@@ -35,8 +35,8 @@ class BlockExemptPackagePolicyTest {
         )
 
         assertEquals(setOf(ONE_UI_HOME), exempt.homePackages)
-        assertFalse(exempt.essentialPackages.contains(ONE_UI_HOME))
-        assertTrue(exempt.essentialPackages.containsAll(listOf(SETTINGS, DIALER, SMS, SAMSUNG_WALLET)))
+        assertFalse(exempt.sensitivePackages.contains(ONE_UI_HOME))
+        assertTrue(exempt.sensitivePackages.containsAll(listOf(SETTINGS, DIALER, SMS, SAMSUNG_WALLET)))
     }
 
     @Test
@@ -49,7 +49,7 @@ class BlockExemptPackagePolicyTest {
             nfcPaymentPackage = null,
         )
 
-        assertTrue(exempt.essentialPackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+        assertTrue(exempt.sensitivePackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
         assertEquals(emptySet<String>(), exempt.homePackages)
     }
 
@@ -79,6 +79,81 @@ class BlockExemptPackagePolicyTest {
 
         assertEquals(BlockExemptPackagePolicy.PAYMENT_PACKAGES, exempt.all)
         assertEquals(emptySet<String>(), exempt.homePackages)
+    }
+
+    @Test
+    fun exemptPackagesLabelsEachSensitiveRoleSoTheAlertCanBeSpecific() {
+        val exempt = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = setOf(ONE_UI_HOME),
+            settingsPackage = SETTINGS,
+            dialerPackage = DIALER,
+            smsPackage = SMS,
+            nfcPaymentPackage = SAMSUNG_WALLET,
+        )
+
+        assertEquals(SensitiveAppRole.SETTINGS, exempt.sensitiveRoles[SETTINGS])
+        assertEquals(SensitiveAppRole.DIALER, exempt.sensitiveRoles[DIALER])
+        assertEquals(SensitiveAppRole.MESSAGING, exempt.sensitiveRoles[SMS])
+        assertEquals(SensitiveAppRole.WALLET, exempt.sensitiveRoles[SAMSUNG_WALLET])
+        assertEquals(setOf(DIALER), exempt.dialerPackages)
+    }
+
+    /**
+     * A launcher that also resolves a sensitive role must not reach the alert — offering to block
+     * something the blocking decision unconditionally exempts would be a dialog that does nothing.
+     */
+    @Test
+    fun homeLauncherNeverAppearsAsSensitiveEvenWhenItResolvesAnotherRole() {
+        val exempt = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = setOf(ONE_UI_HOME),
+            settingsPackage = ONE_UI_HOME,
+            dialerPackage = DIALER,
+            smsPackage = null,
+            nfcPaymentPackage = null,
+        )
+
+        assertFalse(exempt.sensitivePackages.contains(ONE_UI_HOME))
+        assertTrue(exempt.homePackages.contains(ONE_UI_HOME))
+        assertTrue(exempt.sensitivePackages.contains(DIALER))
+    }
+
+    @Test
+    fun sensitiveSelectionsReportsOnlyTheSensitiveAppsActuallySelected() {
+        val exempt = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = setOf(ONE_UI_HOME),
+            settingsPackage = SETTINGS,
+            dialerPackage = DIALER,
+            smsPackage = SMS,
+            nfcPaymentPackage = null,
+        )
+
+        val selections = BlockExemptPackagePolicy.sensitiveSelections(
+            selectedPackages = setOf(INSTAGRAM, SMS, DIALER),
+            exemptPackages = exempt,
+        )
+
+        assertEquals(
+            mapOf(SMS to SensitiveAppRole.MESSAGING, DIALER to SensitiveAppRole.DIALER),
+            selections,
+        )
+    }
+
+    @Test
+    fun sensitiveSelectionsIsEmptyWhenNothingSensitiveWasSelected() {
+        val exempt = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = setOf(ONE_UI_HOME),
+            settingsPackage = SETTINGS,
+            dialerPackage = DIALER,
+            smsPackage = SMS,
+            nfcPaymentPackage = null,
+        )
+
+        assertTrue(
+            BlockExemptPackagePolicy.sensitiveSelections(
+                selectedPackages = setOf(INSTAGRAM, YOUTUBE),
+                exemptPackages = exempt,
+            ).isEmpty(),
+        )
     }
 
     @Test
