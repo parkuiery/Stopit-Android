@@ -231,8 +231,9 @@ internal fun LockHistoryScreen(
                         items = sessions,
                         key = { it.id }
                     ) { session ->
+                        // 행이 스스로 상하 여백을 갖는다. 여기서 또 띄우면 로그가 헐거워져
+                        // 훑어보기 어려워진다.
                         LockHistorySessionItem(session = session)
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
