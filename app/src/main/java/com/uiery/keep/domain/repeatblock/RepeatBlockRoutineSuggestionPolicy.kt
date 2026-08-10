@@ -77,12 +77,60 @@ enum class RepeatBlockSuggestionReason(val analyticsValue: String) {
     RapidRetry("rapid_retry"),
 }
 
+/**
+ * 이름만 보고 부류를 짐작하는 마지막 수단.
+ *
+ * 시스템이 밝힌 카테고리가 없을 때만 쓴다. 영문 키워드를 담지 않은 이름은 알아볼 수 없으므로
+ * 여기서 못 맞히는 앱이 있는 것은 정상이고, 그런 앱은 Unknown 으로 남아 패키지별로 따로
+ * 세어진다. 그래서 이 목록은 넓히기보다 **틀리지 않는 것**이 중요하다. 어림짐작으로 잘못
+ * 분류하면 서로 무관한 앱이 한 제안으로 묶여 나간다.
+ *
+ * 겹치는 이름이 있을 수 있어 순서가 곧 우선순위다. 예를 들어 `coupangplay` 는 쇼핑이 아니라
+ * 영상이므로 영상 판정이 앞에 온다.
+ */
+fun repeatBlockCategoryFromPackageName(packageName: String): RepeatBlockCategoryBucket {
+    val name = packageName.lowercase()
+    fun matches(vararg needles: String) = needles.any { needle -> needle in name }
+
+    return when {
+        matches(
+            "instagram", "twitter", "facebook", "tiktok", "snapchat", "threads",
+            "kakao.talk", "discord", "reddit", "pinterest", "android.band",
+        ) -> RepeatBlockCategoryBucket.Social
+
+        matches(
+            "youtube", "netflix", "video", "twitch", "disney", "wavve", "watcha",
+            "tving", "chzzk", "afreeca", "sooplive", "laftel", "coupangplay",
+        ) -> RepeatBlockCategoryBucket.Video
+
+        matches(
+            "game", "games", "roblox", "minecraft", "supercell",
+            "netmarble", "nexon", "ncsoft", "krafton", "com2us",
+        ) -> RepeatBlockCategoryBucket.Game
+
+        matches(
+            "shop", "store", "commerce", "amazon", "coupang", "gmarket",
+            "11st", "musinsa", "aliexpress", "temu", "danawa",
+        ) -> RepeatBlockCategoryBucket.Shopping
+
+        matches("browser", "chrome", "safari", "firefox", "whale", "duckduckgo") ->
+            RepeatBlockCategoryBucket.Browser
+
+        else -> RepeatBlockCategoryBucket.Unknown
+    }
+}
+
 object RepeatBlockRoutineSuggestionPolicy {
+    /**
+     * [categoryOf] 는 앱이 어떤 부류인지 답한다. 기본값은 이름으로 짐작하는 마지막 수단이고,
+     * 설치된 앱의 시스템 카테고리를 읽을 수 있는 호출자는 더 정확한 판단을 넘긴다.
+     */
     fun resolveSuggestion(
         histories: List<RepeatBlockHistorySample>,
         activeRoutines: List<RoutineModel>,
         dismissedSuggestions: List<RepeatBlockDismissedSuggestion>,
         now: LocalDateTime,
+        categoryOf: (String) -> RepeatBlockCategoryBucket = ::repeatBlockCategoryFromPackageName,
     ): RepeatBlockRoutineSuggestion? {
         val recentSamples = histories
             .filter { sample -> Duration.between(sample.startDateTime, now).toDays() in 0..13 }
@@ -92,13 +140,13 @@ object RepeatBlockRoutineSuggestionPolicy {
                         packageName = packageName,
                         time = sample.startDateTime,
                         timeBucket = sample.startDateTime.toRepeatBlockTimeBucket(),
-                        categoryBucket = packageName.toRepeatBlockCategoryBucket(),
+                        categoryBucket = categoryOf(packageName),
                     )
                 }
             }
 
         return recentSamples
-            .groupBy { signal -> signal.timeBucket to signal.categoryBucket }
+            .groupBy(RepeatBlockSignal::groupKey)
             .asSequence()
             .mapNotNull { (_, signals) -> signals.toCandidateOrNull(activeRoutines, dismissedSuggestions, now) }
             .sortedWith(
@@ -215,25 +263,6 @@ object RepeatBlockRoutineSuggestionPolicy {
         else -> RepeatBlockTimeBucket.Night
     }
 
-    private fun String.toRepeatBlockCategoryBucket(): RepeatBlockCategoryBucket = when {
-        containsAny("instagram", "twitter", "facebook", "tiktok", "snapchat", "threads") ->
-            RepeatBlockCategoryBucket.Social
-        containsAny("youtube", "netflix", "video", "twitch", "disney", "wavve", "watcha") ->
-            RepeatBlockCategoryBucket.Video
-        containsAny("game", "games", "roblox", "minecraft", "supercell") ->
-            RepeatBlockCategoryBucket.Game
-        containsAny("shop", "store", "commerce", "amazon", "coupang", "gmarket") ->
-            RepeatBlockCategoryBucket.Shopping
-        containsAny("browser", "chrome", "safari", "firefox", "whale") ->
-            RepeatBlockCategoryBucket.Browser
-        else -> RepeatBlockCategoryBucket.Unknown
-    }
-
-    private fun String.containsAny(vararg needles: String): Boolean {
-        val lower = lowercase()
-        return needles.any { needle -> needle in lower }
-    }
-
     private fun Int.toRepeatCountBucket(): RepeatBlockCountBucket = when {
         this <= 5 -> RepeatBlockCountBucket.ThreeToFive
         this <= 10 -> RepeatBlockCountBucket.SixToTen
@@ -273,7 +302,24 @@ object RepeatBlockRoutineSuggestionPolicy {
         val time: LocalDateTime,
         val timeBucket: RepeatBlockTimeBucket,
         val categoryBucket: RepeatBlockCategoryBucket,
-    )
+    ) {
+        /**
+         * 무엇을 "같은 반복"으로 볼지.
+         *
+         * 부류를 아는 앱끼리는 부류로 묶는다. 저녁마다 다른 영상 앱을 열었다면 그건 하나의
+         * 습관이고, 제안도 하나여야 한다.
+         *
+         * 부류를 모르는 앱은 패키지로 따로 센다. Unknown 은 "같은 부류"가 아니라 "모른다"는
+         * 뜻이라, 시간대가 같다는 이유로 묶으면 서로 아무 관계없는 앱 수십 개가 한 제안이
+         * 되어 사용자는 자기가 만들 리 없는 루틴을 권유받는다. 따로 세면 같은 앱을 그
+         * 시간대에 세 번 이상 잠근 경우만 남아, 원래 의도한 "반복"이 된다.
+         */
+        val groupKey: Pair<RepeatBlockTimeBucket, String>
+            get() = timeBucket to when (categoryBucket) {
+                RepeatBlockCategoryBucket.Unknown -> "package:$packageName"
+                else -> categoryBucket.analyticsValue
+            }
+    }
 
     private data class RoutineCoverage(
         val state: RoutineCoverageState,

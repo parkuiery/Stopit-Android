@@ -17,7 +17,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.uiery.kds.KeepCard
-import com.uiery.kds.KeepCardVariant
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
@@ -50,7 +49,6 @@ internal fun LockHistorySummaryCard(
             .semantics(mergeDescendants = true) {
                 contentDescription = accessibilityDescription
             },
-        variant = KeepCardVariant.NeutralWeak,
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(

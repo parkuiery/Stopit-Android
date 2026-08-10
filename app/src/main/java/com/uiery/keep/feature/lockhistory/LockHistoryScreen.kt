@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.uiery.kds.KeepButton
@@ -114,105 +115,131 @@ internal fun LockHistoryScreen(
             fallbackReport = uiState.performanceReport,
         )
 
-        Column(
+        // 화면 전체가 하나의 스크롤 표면이다.
+        //
+        // 예전에는 바깥이 스크롤되지 않는 Column 이고 세션 목록만 LazyColumn 이었다. 그러면
+        // 위쪽 묶음(탭·기간·요약·공유 버튼·추천 카드·주간 달력·상위 앱)이 남은 높이를 모두
+        // 가져가고 목록은 높이 0으로 눌린다. 실기기에서 "잠금 횟수 5회"인데 세션이 한 건도
+        // 보이지 않았고, 달력은 화면 끝에서 잘린 채 스크롤조차 되지 않았다.
+        //
+        // 위쪽 묶음은 기간 종류와 데이터 유무에 따라 늘고 줄기 때문에, 어느 하나를 고정으로
+        // 두면 같은 문제가 다시 생긴다. 전부 같은 목록의 항목으로 두어 함께 스크롤시키고,
+        // 세션은 항목으로 남겨 개수가 늘어도 지연 생성되게 한다.
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 20.dp),
         ) {
-            LockHistoryTab(
-                selectedPeriod = uiState.periodType,
-                onSelectPeriod = viewModel::selectPeriodType,
-            )
+            item(key = "period_tab") {
+                LockHistoryTab(
+                    selectedPeriod = uiState.periodType,
+                    onSelectPeriod = viewModel::selectPeriodType,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item(key = "period_selector") {
+                PeriodSelector(
+                    periodType = uiState.periodType,
+                    startDate = uiState.startDate,
+                    endDate = uiState.endDate,
+                    onPreviousPeriod = viewModel::moveToPreviousPeriod,
+                    onNextPeriod = viewModel::moveToNextPeriod,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-            PeriodSelector(
-                periodType = uiState.periodType,
-                startDate = uiState.startDate,
-                endDate = uiState.endDate,
-                onPreviousPeriod = viewModel::moveToPreviousPeriod,
-                onNextPeriod = viewModel::moveToNextPeriod,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LockHistorySummaryCard(
-                totalDuration = displayReport.totalDurationMillis,
-                sessionCount = displayReport.sessionCount,
-                report = displayReport.performanceReport,
-            )
+            item(key = "summary") {
+                LockHistorySummaryCard(
+                    totalDuration = displayReport.totalDurationMillis,
+                    sessionCount = displayReport.sessionCount,
+                    report = displayReport.performanceReport,
+                )
+            }
 
             uiState.focusSummarySharePayload?.let {
-                Spacer(modifier = Modifier.height(12.dp))
-                KeepButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(R.string.lock_history_focus_share_button),
-                    onClick = viewModel::shareFocusSummary,
-                )
+                item(key = "focus_share") {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    KeepButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(R.string.lock_history_focus_share_button),
+                        onClick = viewModel::shareFocusSummary,
+                    )
+                }
             }
 
             uiState.repeatBlockRoutineSuggestion?.let { suggestion ->
-                Spacer(modifier = Modifier.height(12.dp))
-                RepeatBlockRoutineSuggestionCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    suggestion = suggestion,
-                    titleResId = R.string.repeat_block_suggestion_lock_history_title,
-                    messageResId = R.string.repeat_block_suggestion_lock_history_message,
-                    onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
-                    onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
-                )
+                item(key = "repeat_block_suggestion") {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    RepeatBlockRoutineSuggestionCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        suggestion = suggestion,
+                        titleResId = R.string.repeat_block_suggestion_lock_history_title,
+                        messageResId = R.string.repeat_block_suggestion_lock_history_message,
+                        onApplyClick = viewModel::openRepeatBlockRoutineSuggestion,
+                        onDismissClick = viewModel::dismissRepeatBlockRoutineSuggestion,
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item(key = "summary_spacing") {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             if (uiState.periodType == PeriodType.WEEK) {
-                LockHistoryWeekCalendar(
-                    startDate = uiState.startDate,
-                    endDate = uiState.endDate,
-                    durationByDate = uiState.durationByDate,
-                    selectedDate = uiState.selectedDate,
-                    onSelectDate = viewModel::selectDate,
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
+                item(key = "week_calendar") {
+                    LockHistoryWeekCalendar(
+                        startDate = uiState.startDate,
+                        endDate = uiState.endDate,
+                        durationByDate = uiState.durationByDate,
+                        selectedDate = uiState.selectedDate,
+                        onSelectDate = viewModel::selectDate,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             if (displayReport.performanceReport.shouldShowTopApps) {
-                LockHistoryTopApps(
-                    topApps = displayReport.topApps,
-                    report = displayReport.performanceReport,
-                    onClick = onNavigateBlockedApps,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                item(key = "top_apps") {
+                    LockHistoryTopApps(
+                        topApps = displayReport.topApps,
+                        report = displayReport.performanceReport,
+                        onClick = onNavigateBlockedApps,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             if (displayReport.sessionsToShow.isEmpty()) {
-                Text(
-                    text = stringResource(displayReport.performanceReport.topAppsSupportingResId),
-                    color = KeepTheme.semanticColors.foreground.muted,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
+                item(key = "empty_sessions") {
+                    Text(
+                        text = stringResource(displayReport.performanceReport.topAppsSupportingResId),
+                        color = KeepTheme.semanticColors.foreground.muted,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    displayReport.sessionsToShow.toSortedMap(compareByDescending { it }).forEach { (date, sessions) ->
-                        item(key = date.toString()) {
-                            DateHeader(date = date)
-                        }
-                        items(
-                            items = sessions,
-                            key = { it.id }
-                        ) { session ->
-                            LockHistorySessionItem(session = session)
-                        }
+                displayReport.sessionsToShow.toSortedMap(compareByDescending { it }).forEach { (date, sessions) ->
+                    item(key = date.toString()) {
+                        DateHeader(date = date)
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
+                    items(
+                        items = sessions,
+                        key = { it.id }
+                    ) { session ->
+                        // 행이 스스로 상하 여백을 갖는다. 여기서 또 띄우면 로그가 헐거워져
+                        // 훑어보기 어려워진다.
+                        LockHistorySessionItem(session = session)
                     }
                 }
+            }
+
+            item(key = "bottom_spacing") {
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

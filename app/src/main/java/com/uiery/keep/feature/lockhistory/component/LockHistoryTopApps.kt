@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.kds.KeepCard
-import com.uiery.kds.KeepCardVariant
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
 import com.uiery.keep.util.AppDisplayMetadata
@@ -63,7 +62,6 @@ internal fun LockHistoryTopApps(
             .semantics(mergeDescendants = true) {
                 contentDescription = accessibilityDescription
             },
-        variant = KeepCardVariant.NeutralWeak,
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(
