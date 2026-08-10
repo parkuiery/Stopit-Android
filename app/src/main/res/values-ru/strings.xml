@@ -543,7 +543,7 @@
     <string name="sensitive_block_confirm_title">Эти приложения тоже будут заблокированы</string>
     <string name="sensitive_block_confirm_include">Заблокировать все</string>
     <string name="sensitive_block_confirm_exclude">Продолжить без них</string>
-    <string name="sensitive_block_reason_messaging">Вы можете не получить коды подтверждения</string>
+    <string name="sensitive_block_reason_messaging">Вы не сможете отправлять и читать сообщения</string>
     <string name="sensitive_block_reason_dialer">Вы не сможете звонить. Входящие звонки будут поступать.</string>
     <string name="sensitive_block_reason_wallet">Вы не сможете платить в магазинах</string>
     <string name="sensitive_block_reason_settings">Вы не сможете сами отключить StopIt</string>

@@ -531,7 +531,7 @@
     <string name="sensitive_block_confirm_title">これらのアプリもブロックされます</string>
     <string name="sensitive_block_confirm_include">すべてブロック</string>
     <string name="sensitive_block_confirm_exclude">除いて続ける</string>
-    <string name="sensitive_block_reason_messaging">認証コードを受け取れないことがあります</string>
+    <string name="sensitive_block_reason_messaging">メッセージを送ったり確認したりできません</string>
     <string name="sensitive_block_reason_dialer">電話をかけられません。かかってきた電話は受けられます。</string>
     <string name="sensitive_block_reason_wallet">店舗で決済できません</string>
     <string name="sensitive_block_reason_settings">StopIt を自分でオフにできません</string>

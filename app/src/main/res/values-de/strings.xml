@@ -533,7 +533,7 @@
     <string name="sensitive_block_confirm_title">Diese Apps werden ebenfalls blockiert</string>
     <string name="sensitive_block_confirm_include">Alle blockieren</string>
     <string name="sensitive_block_confirm_exclude">Ohne sie fortfahren</string>
-    <string name="sensitive_block_reason_messaging">Du verpasst möglicherweise Bestätigungscodes</string>
+    <string name="sensitive_block_reason_messaging">Du kannst keine SMS senden oder lesen</string>
     <string name="sensitive_block_reason_dialer">Du kannst keine Anrufe tätigen. Eingehende Anrufe kommen weiterhin an.</string>
     <string name="sensitive_block_reason_wallet">Du kannst nicht im Geschäft bezahlen</string>
     <string name="sensitive_block_reason_settings">Du kannst StopIt nicht selbst ausschalten</string>

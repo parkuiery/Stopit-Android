@@ -533,7 +533,7 @@
     <string name="sensitive_block_confirm_title">Deze apps worden ook geblokkeerd</string>
     <string name="sensitive_block_confirm_include">Alles blokkeren</string>
     <string name="sensitive_block_confirm_exclude">Doorgaan zonder deze</string>
-    <string name="sensitive_block_reason_messaging">Je mist mogelijk verificatiecodes</string>
+    <string name="sensitive_block_reason_messaging">Je kunt geen berichten sturen of bekijken</string>
     <string name="sensitive_block_reason_dialer">Je kunt niet bellen. Inkomende oproepen komen nog steeds binnen.</string>
     <string name="sensitive_block_reason_wallet">Je kunt niet betalen in winkels</string>
     <string name="sensitive_block_reason_settings">Je kunt StopIt niet zelf uitschakelen</string>

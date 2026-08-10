@@ -533,7 +533,7 @@
     <string name="sensitive_block_confirm_title">Estes apps também serão bloqueados</string>
     <string name="sensitive_block_confirm_include">Bloquear tudo</string>
     <string name="sensitive_block_confirm_exclude">Continuar sem eles</string>
-    <string name="sensitive_block_reason_messaging">Você pode não receber códigos de verificação</string>
+    <string name="sensitive_block_reason_messaging">Você não poderá enviar nem consultar mensagens</string>
     <string name="sensitive_block_reason_dialer">Você não poderá fazer chamadas. As chamadas recebidas continuam chegando.</string>
     <string name="sensitive_block_reason_wallet">Você não poderá pagar em lojas</string>
     <string name="sensitive_block_reason_settings">Você não poderá desativar o StopIt sozinho</string>
