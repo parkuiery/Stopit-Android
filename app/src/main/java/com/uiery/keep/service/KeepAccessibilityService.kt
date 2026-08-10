@@ -109,6 +109,12 @@ class KeepAccessibilityService :
                 RoutineRuntimeEntryPoint::class.java,
             )
             launch {
+                // Block decisions run on the main thread and resolve device roles themselves, so
+                // the first one would otherwise pay for a handful of binder calls inline. Warming
+                // the cache here spends them on IO before any window change arrives.
+                blockExemptPackageProvider.exemptPackages()
+            }
+            launch {
                 entryPoint.blockingStateStore().accessibilitySnapshot
                     .withAccessibilityRuntimeRecovery(
                         source = AccessibilityRuntimeFlowSource.BlockingState,
