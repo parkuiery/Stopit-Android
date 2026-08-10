@@ -4,10 +4,8 @@ import android.app.AppOpsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Process
-import android.provider.Settings
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.domain.usageinsight.AppUsageDay
@@ -27,15 +25,13 @@ class AndroidUsageStatsGateway @Inject constructor(
      * Insight and onboarding recommendations feed straight into blocking targets, so anything the
      * blocker refuses to act on must never be recommended. Without this a user whose most-used app
      * is the dialer or the messaging app gets a first promise that can never fire.
+     *
+     * Not cached here. The provider already bounds how often it re-resolves, and a second cache on
+     * top of it would pin the very first answer for the life of the process — which is what made a
+     * user who changed their default dialer keep getting it recommended as a blocking target.
      */
-    private val excludedPackages: Set<String> by lazy {
-        val settingsPackage = Intent(Settings.ACTION_SETTINGS)
-            .resolveActivity(context.packageManager)
-            ?.packageName
-        setOfNotNull(settingsPackage) + blockExemptPackageProvider.exemptPackages().all
-    }
-
-    override fun insightExcludedPackages(): Set<String> = excludedPackages
+    override fun insightExcludedPackages(): Set<String> =
+        blockExemptPackageProvider.exemptPackages().all
 
     override fun isPermissionGranted(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -143,7 +139,7 @@ class AndroidUsageStatsGateway @Inject constructor(
                 dailyStats
             },
             ownPackageName = context.packageName,
-            excludedPackages = excludedPackages,
+            excludedPackages = insightExcludedPackages(),
             isLaunchable = { packageName ->
                 context.packageManager.getLaunchIntentForPackage(packageName) != null
             },
@@ -174,7 +170,7 @@ class AndroidUsageStatsGateway @Inject constructor(
         val launchableCache = mutableMapOf<String, Boolean>()
         val pairer = UsageEventIntervalPairer(
             ownPackageName = context.packageName,
-            excludedPackages = excludedPackages,
+            excludedPackages = insightExcludedPackages(),
             isLaunchable = { packageName ->
                 launchableCache.getOrPut(packageName) {
                     context.packageManager.getLaunchIntentForPackage(packageName) != null

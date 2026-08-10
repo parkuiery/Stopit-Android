@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.TelecomManager
@@ -16,20 +17,71 @@ import javax.inject.Singleton
  *
  * Every lookup here is best-effort: a device without a dialer, a wallet or a resolvable settings
  * activity simply contributes no exemption instead of failing the blocking pipeline.
+ *
+ * The reassignable roles are re-resolved on the schedule in [BlockExemptRoleCachePolicy], because a
+ * user can change their default dialer or wallet at any time and no broadcast tells us. The home
+ * launcher is not — see [homePackages].
  */
 @Singleton
-class AndroidBlockExemptPackageProvider @Inject constructor(
-    @ApplicationContext private val context: Context,
+class AndroidBlockExemptPackageProvider(
+    private val context: Context,
+    private val elapsedRealtimeMillis: () -> Long,
 ) : BlockExemptPackageProvider {
 
-    private val resolvedPackages: BlockExemptPackages by lazy { resolvePackages() }
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(context, SystemClock::elapsedRealtime)
 
-    override fun exemptPackages(): BlockExemptPackages = resolvedPackages
+    /**
+     * The home launcher, resolved once per process and then frozen.
+     *
+     * Re-resolving it would be the more honest answer — the user can change launchers too — but a
+     * failed re-resolution reads as "this device has no launcher", and an empty home set makes the
+     * launcher blockable, which traps the user in a home -> block screen -> home loop. Freezing the
+     * first answer means a launcher change is not picked up until the process restarts. That is the
+     * lesser of the two failures and is tracked separately.
+     */
+    private val homePackages: Set<String> by lazy { resolveHomePackages(context.packageManager) }
 
-    private fun resolvePackages(): BlockExemptPackages {
+    /**
+     * The last resolution, held as one object so a reader never pairs fresh packages with a stale
+     * timestamp.
+     */
+    private class Resolution(
+        val packages: BlockExemptPackages,
+        val roles: ReassignableDeviceRoles,
+        val atElapsedRealtime: Long,
+    )
+
+    @Volatile
+    private var resolution: Resolution? = null
+
+    override fun exemptPackages(): BlockExemptPackages {
+        val now = elapsedRealtimeMillis()
+        val current = resolution
+        if (current != null && BlockExemptRoleCachePolicy.isFresh(current.atElapsedRealtime, now)) {
+            return current.packages
+        }
+        // Two callers arriving together may both resolve. The lookups are idempotent and the loser
+        // just overwrites with an equally fresh answer, which is cheaper than holding a lock across
+        // binder calls on the path a block decision waits on.
+        val roles = BlockExemptRoleCachePolicy.keepingResolvedRoles(
+            resolved = resolveReassignableRoles(),
+            previous = current?.roles,
+        )
+        val packages = BlockExemptPackagePolicy.exemptPackages(
+            homePackages = homePackages,
+            settingsPackage = roles.settingsPackage,
+            dialerPackage = roles.dialerPackage,
+            smsPackage = roles.smsPackage,
+            nfcPaymentPackage = roles.nfcPaymentPackage,
+        )
+        resolution = Resolution(packages = packages, roles = roles, atElapsedRealtime = now)
+        return packages
+    }
+
+    private fun resolveReassignableRoles(): ReassignableDeviceRoles {
         val packageManager = context.packageManager
-        return BlockExemptPackagePolicy.exemptPackages(
-            homePackages = homePackages(packageManager),
+        return ReassignableDeviceRoles(
             settingsPackage = resolvePackage(packageManager, Intent(Settings.ACTION_SETTINGS)),
             dialerPackage = defaultDialerPackage()
                 ?: resolvePackage(packageManager, Intent(Intent.ACTION_DIAL)),
@@ -43,7 +95,7 @@ class AndroidBlockExemptPackageProvider @Inject constructor(
      * package query, which `docs/QUERY_ALL_PACKAGES_POLICY.md` keeps confined to
      * [InstalledAppRepository], so this resolves the single current holder instead.
      */
-    private fun homePackages(packageManager: PackageManager): Set<String> {
+    private fun resolveHomePackages(packageManager: PackageManager): Set<String> {
         val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         return setOfNotNull(resolvePackage(packageManager, homeIntent))
     }

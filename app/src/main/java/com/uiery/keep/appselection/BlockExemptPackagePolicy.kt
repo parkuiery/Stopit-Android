@@ -153,3 +153,64 @@ object BlockExemptPackagePolicy {
             packageName.isBlank() || packageName == SYSTEM_RESOLVER_PACKAGE
         }
 }
+
+/**
+ * The device roles the user can reassign at any time without Stopit hearing about it.
+ *
+ * None of these have a public change broadcast — the dialer and SMS roles do, but the wallet and
+ * settings roles do not, and the home launcher, the only one that can make a device unusable, has
+ * none either. So they are polled rather than observed, and [BlockExemptRoleCachePolicy] decides
+ * how often. The home launcher is deliberately absent: it is resolved once and frozen.
+ */
+data class ReassignableDeviceRoles(
+    val settingsPackage: String? = null,
+    val dialerPackage: String? = null,
+    val smsPackage: String? = null,
+    val nfcPaymentPackage: String? = null,
+)
+
+/**
+ * How long a resolved device role may be reused, and what an empty lookup means.
+ *
+ * Split out from [AndroidBlockExemptPackageProvider] so the rules are JVM-testable without a
+ * device; the provider keeps only the framework calls.
+ */
+object BlockExemptRoleCachePolicy {
+    /**
+     * How stale a reassignable role may get.
+     *
+     * Long enough that a device sitting in a lock does no repeated binder work, short enough that a
+     * user who switches their default dialer and then takes a call is not stuck with the old
+     * answer. Nothing depends on the exact figure; shorten it if a case turns up that this misses.
+     */
+    const val TTL_MS: Long = 5 * 60 * 1000L
+
+    /**
+     * Both bounds matter. A negative age means the clock moved backwards, which should not happen
+     * on a monotonic timer but must re-resolve rather than pin the cache forever if it ever does.
+     */
+    fun isFresh(resolvedAtElapsedRealtime: Long, nowElapsedRealtime: Long): Boolean =
+        (nowElapsedRealtime - resolvedAtElapsedRealtime) in 0 until TTL_MS
+
+    /**
+     * Keeps the previous holder for any role that came back empty.
+     *
+     * A role resolving to a *different* package is a real reassignment and replaces the old value —
+     * that is the point of re-resolving at all. A role resolving to nothing is almost always a
+     * transient lookup failure, and taking it at face value would mean "this device has no dialer",
+     * dropping the in-call exemption and landing the block screen on a ringing phone. Keeping the
+     * last known holder can leave a replaced app named for a while, which costs far less.
+     */
+    fun keepingResolvedRoles(
+        resolved: ReassignableDeviceRoles,
+        previous: ReassignableDeviceRoles?,
+    ): ReassignableDeviceRoles {
+        if (previous == null) return resolved
+        return ReassignableDeviceRoles(
+            settingsPackage = resolved.settingsPackage ?: previous.settingsPackage,
+            dialerPackage = resolved.dialerPackage ?: previous.dialerPackage,
+            smsPackage = resolved.smsPackage ?: previous.smsPackage,
+            nfcPaymentPackage = resolved.nfcPaymentPackage ?: previous.nfcPaymentPackage,
+        )
+    }
+}
