@@ -536,4 +536,5 @@
     <string name="sensitive_block_reason_dialer">Je kunt niet bellen. Inkomende oproepen komen binnen.</string>
     <string name="sensitive_block_reason_wallet">Betalen werkt mogelijk niet</string>
     <string name="sensitive_block_reason_settings">Je kunt de apparaatinstellingen niet wijzigen</string>
+    <string name="emergency_unlock_websites_stay_blocked">Noodontgrendeling opent alleen apps. Websites blijven geblokkeerd tot deze vergrendeling eindigt.</string>
 </resources>

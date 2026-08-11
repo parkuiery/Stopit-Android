@@ -536,4 +536,5 @@
     <string name="sensitive_block_reason_dialer">Vous ne pourrez pas appeler. Les appels entrants arrivent.</string>
     <string name="sensitive_block_reason_wallet">Le paiement risque de ne pas fonctionner</string>
     <string name="sensitive_block_reason_settings">Vous ne pourrez pas modifier les paramètres de l\'appareil</string>
+    <string name="emergency_unlock_websites_stay_blocked">Le déblocage d\'urgence n\'ouvre que les applications. Les sites web restent bloqués jusqu\'à la fin de ce verrouillage.</string>
 </resources>

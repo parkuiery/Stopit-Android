@@ -65,7 +65,18 @@ The service is non-exported, so start and stop the spike through the exported ac
   without waiting for the next trigger.
 - The service uses `START_REDELIVER_INTENT` so Android can restore the active domain set after a
   process restart.
-- Routines and goal locks still retain their existing app-only target models.
+- Goal locks retain their existing app-only target model. Website targets are out of scope for
+  goal locks in this release.
+- **Emergency unlock opens apps only; websites stay blocked.** `KeepAccessibilityService` exempts
+  per package, and `WebsiteBlockingRuntimePolicy.decide` does not take emergency unlock as an input
+  at all. This is deliberate: emergency-unlocking the YouTube app means "open that app for a
+  moment", not "browse YouTube in Chrome". Letting one app exemption open the web side would turn
+  emergency unlock into a way to defeat the whole lock. `WebsiteBlockingEmergencyUnlockNotice` says
+  so on the app-selection step *before* the user requests the unlock — only while the filter is
+  actually standing, so it never contradicts the "websites are not being blocked" banner.
+  `WebsiteBlockingRuntimePolicyTest.emergencyUnlockIsNotAnInputToThisDecision` pins the contract.
+  A user whose lock is website-only therefore has no emergency path to a site; that is the accepted
+  cost of the design, not an oversight.
 
 ## Manifest and Play Declaration Boundary
 
