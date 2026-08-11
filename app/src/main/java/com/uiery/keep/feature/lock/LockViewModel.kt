@@ -109,7 +109,19 @@ class LockViewModel
         private fun getSelectedApp() =
             intent {
                 val selectedAppPackages = blockingStateStore.readSelectedAppPackages()
-                reduce { state.copy(selectedAppPackage = selectedAppPackages) }
+                // 루틴 잠금의 웹 대상은 루틴 자신이 들고 있다. 수동 잠금 목록을 섞으면
+                // 이 루틴이 막지 않는 사이트까지 막고 있다고 말하게 된다.
+                val selectedWebDomains = if (lockScreenEntry.isRoutine) {
+                    emptySet()
+                } else {
+                    blockingStateStore.readSelectedWebDomains()
+                }
+                reduce {
+                    state.copy(
+                        selectedAppPackage = selectedAppPackages,
+                        selectedWebDomains = selectedWebDomains,
+                    )
+                }
             }
 
         private fun getRoutines() =
@@ -119,13 +131,14 @@ class LockViewModel
                 val activeRoutineLockState = resolveActiveRoutineLockState(
                     routines = routines,
                     nowDateTime = nowDateTime,
-                    exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+                    exemptPackages = blockExemptPackageProvider.exemptPackages().homePackages,
                 )
                 val routineStartTime = activeRoutineLockState.startTime.atZone(clock.zone).toInstant().toEpochMilli()
                 reduce {
                     state.copy(
                         routines = activeRoutineLockState.routines,
                         selectedAppPackage = activeRoutineLockState.blockedApps,
+                        selectedWebDomains = activeRoutineLockState.blockedWebDomains,
                         lockTime = activeRoutineLockState.endTime,
                         routineStartTime = routineStartTime,
                     )
@@ -324,6 +337,7 @@ class LockViewModel
 data class LockUiState(
     val lockTime: LocalDateTime = LocalDateTime.now(),
     val selectedAppPackage: Set<String> = emptySet(),
+    val selectedWebDomains: Set<String> = emptySet(),
     val isRoutine: Boolean = false,
     val routines: List<RoutineModel> = emptyList(),
     val routineStartTime: Long = 0L,

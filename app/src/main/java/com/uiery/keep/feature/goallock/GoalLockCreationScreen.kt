@@ -10,17 +10,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
+import com.uiery.kds.KeepDatePickerDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTextButton
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -38,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.ui.component.BottomActionBar
 import com.uiery.kds.KeepButton
 import com.uiery.kds.KeepModalBottomSheet
 import com.uiery.kds.theme.KeepTheme
@@ -61,6 +59,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +105,7 @@ internal fun GoalLockCreationScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 title = {
                     Text(
                         text = title,
@@ -116,7 +115,7 @@ internal fun GoalLockCreationScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = navigateBackLabel,
@@ -124,7 +123,6 @@ internal fun GoalLockCreationScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -132,8 +130,7 @@ internal fun GoalLockCreationScreen(
         GoalLockCreationContent(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
+                .padding(paddingValues.withoutBottomInset()),
             state = uiState,
             onGoalNameChange = viewModel::setGoalName,
             onPresetExam = { viewModel.setPresetGoalName(GoalLockPresetGoal.Exam, presetExamGoalName) },
@@ -236,157 +233,166 @@ internal fun GoalLockCreationContent(
         )
     }
 
-    Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(modifier = Modifier.height(4.dp))
-
-        SetupHero(
-            iconResId = R.drawable.ic_goal_lock,
-            title = stringResource(id = R.string.goal_lock_creation_title),
-            subtitle = stringResource(id = R.string.goal_lock_creation_hero_subtitle),
-        )
-
-        // Goal name
-        SetupGroupCard(
-            modifier = Modifier.semantics { contentDescription = creationAccessibilityDescription },
+    Column(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SetupSectionHeader(title = stringResource(id = R.string.goal_lock_creation_goal_name_label))
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupTextField(
-                value = state.goalName,
-                onValueChange = onGoalNameChange,
-                placeholder = stringResource(id = R.string.goal_lock_creation_goal_name_placeholder),
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SetupChip(
-                    label = stringResource(id = R.string.goal_lock_creation_preset_exam),
-                    selected = state.goalName == stringResource(id = R.string.goal_lock_creation_preset_exam),
-                    onClick = onPresetExam,
-                )
-                SetupChip(
-                    label = stringResource(id = R.string.goal_lock_creation_preset_sns),
-                    selected = state.goalName == stringResource(id = R.string.goal_lock_creation_preset_sns),
-                    onClick = onPresetSns,
-                )
-            }
-        }
+            Spacer(modifier = Modifier.height(4.dp))
 
-        // Duration
-        SetupGroupCard {
-            SetupSectionHeader(
-                title = stringResource(id = R.string.goal_lock_creation_duration_label),
-                valueLabel = durationRangeText,
+            SetupHero(
+                iconResId = R.drawable.ic_goal_lock,
+                title = stringResource(id = R.string.goal_lock_creation_title),
+                subtitle = stringResource(id = R.string.goal_lock_creation_hero_subtitle),
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SetupChip(
-                    label = stringResource(id = R.string.goal_lock_creation_duration_7_days),
-                    selected = totalDays == 7,
-                    onClick = onSelectSevenDays,
-                )
-                SetupChip(
-                    label = stringResource(id = R.string.goal_lock_creation_duration_14_days),
-                    selected = totalDays == 14,
-                    onClick = onSelectFourteenDays,
-                )
-                SetupChip(
-                    label = stringResource(id = R.string.goal_lock_creation_duration_30_days),
-                    selected = totalDays == 30,
-                    onClick = onSelectThirtyDays,
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupSectionCaption(text = stringResource(id = R.string.goal_lock_creation_custom_days_label))
-            Spacer(modifier = Modifier.height(8.dp))
-            SetupStepper(
-                valueLabel = stringResource(id = R.string.goal_lock_creation_custom_days_value, totalDays),
-                onDecrement = { onCustomDaysChange((totalDays - 1).coerceAtLeast(1)) },
-                onIncrement = { onCustomDaysChange(totalDays + 1) },
-                decrementEnabled = totalDays > 1,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            SetupSecondaryButton(
-                text = stringResource(id = R.string.goal_lock_creation_pick_end_date),
-                onClick = { showEndDatePicker = true },
-            )
-        }
 
-        // Lock mode
-        SetupGroupCard {
-            SetupSectionHeader(title = stringResource(id = R.string.goal_lock_creation_lock_mode_label))
-            Spacer(modifier = Modifier.height(12.dp))
-            SetupSelectableCard(
-                title = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day),
-                subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day_desc),
-                selected = isAllDaySelected,
-                onClick = onSetAllDay,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            SetupSelectableCard(
-                title = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening),
-                subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening_desc),
-                selected = isScheduledSelected,
-                onClick = onSetWeekdayEvening,
-            )
-            if (state.hasInvalidScheduledTime) {
+            // Goal name
+            SetupGroupCard(
+                modifier = Modifier.semantics { contentDescription = creationAccessibilityDescription },
+            ) {
+                SetupSectionHeader(title = stringResource(id = R.string.goal_lock_creation_goal_name_label))
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupTextField(
+                    value = state.goalName,
+                    onValueChange = onGoalNameChange,
+                    placeholder = stringResource(id = R.string.goal_lock_creation_goal_name_placeholder),
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SetupChip(
+                        label = stringResource(id = R.string.goal_lock_creation_preset_exam),
+                        selected = state.goalName == stringResource(id = R.string.goal_lock_creation_preset_exam),
+                        onClick = onPresetExam,
+                    )
+                    SetupChip(
+                        label = stringResource(id = R.string.goal_lock_creation_preset_sns),
+                        selected = state.goalName == stringResource(id = R.string.goal_lock_creation_preset_sns),
+                        onClick = onPresetSns,
+                    )
+                }
+            }
+
+            // Duration
+            SetupGroupCard {
+                SetupSectionHeader(
+                    title = stringResource(id = R.string.goal_lock_creation_duration_label),
+                    valueLabel = durationRangeText,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SetupChip(
+                        label = stringResource(id = R.string.goal_lock_creation_duration_7_days),
+                        selected = totalDays == 7,
+                        onClick = onSelectSevenDays,
+                    )
+                    SetupChip(
+                        label = stringResource(id = R.string.goal_lock_creation_duration_14_days),
+                        selected = totalDays == 14,
+                        onClick = onSelectFourteenDays,
+                    )
+                    SetupChip(
+                        label = stringResource(id = R.string.goal_lock_creation_duration_30_days),
+                        selected = totalDays == 30,
+                        onClick = onSelectThirtyDays,
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupSectionCaption(text = stringResource(id = R.string.goal_lock_creation_custom_days_label))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(id = R.string.goal_lock_creation_invalid_scheduled_time),
-                    color = KeepTheme.colors.error,
-                    fontSize = 12.sp,
-                    lineHeight = 18.sp,
+                SetupStepper(
+                    valueLabel = stringResource(id = R.string.goal_lock_creation_custom_days_value, totalDays),
+                    onDecrement = { onCustomDaysChange((totalDays - 1).coerceAtLeast(1)) },
+                    onIncrement = { onCustomDaysChange(totalDays + 1) },
+                    decrementEnabled = totalDays > 1,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                SetupSecondaryButton(
+                    text = stringResource(id = R.string.goal_lock_creation_pick_end_date),
+                    onClick = { showEndDatePicker = true },
                 )
             }
-        }
 
-        // Apps
-        SetupGroupCard {
-            SetupSectionHeader(
-                title = stringResource(id = R.string.goal_lock_creation_apps_label),
-                valueLabel = state.selectedApps.size.toString(),
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            SetupSectionCaption(text = selectedAppsText)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SetupSecondaryButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(id = R.string.goal_lock_creation_reload_current_selection),
-                    onClick = onReloadCurrentSelection,
+            // Lock mode
+            SetupGroupCard {
+                SetupSectionHeader(title = stringResource(id = R.string.goal_lock_creation_lock_mode_label))
+                Spacer(modifier = Modifier.height(12.dp))
+                SetupSelectableCard(
+                    title = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day),
+                    subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_all_day_desc),
+                    selected = isAllDaySelected,
+                    onClick = onSetAllDay,
                 )
-                SetupSecondaryButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(id = R.string.goal_lock_creation_open_app_picker),
-                    onClick = onSelectApps,
+                Spacer(modifier = Modifier.height(10.dp))
+                SetupSelectableCard(
+                    title = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening),
+                    subtitle = stringResource(id = R.string.goal_lock_creation_lock_mode_weekday_evening_desc),
+                    selected = isScheduledSelected,
+                    onClick = onSetWeekdayEvening,
                 )
+                if (state.hasInvalidScheduledTime) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(id = R.string.goal_lock_creation_invalid_scheduled_time),
+                        color = KeepTheme.colors.error,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
             }
-            if (selectedAppItems.isEmpty()) {
+
+            // Apps
+            SetupGroupCard {
+                SetupSectionHeader(
+                    title = stringResource(id = R.string.goal_lock_creation_apps_label),
+                    valueLabel = state.selectedApps.size.toString(),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                SetupSectionCaption(text = selectedAppsText)
                 Spacer(modifier = Modifier.height(12.dp))
-                SetupSectionCaption(text = stringResource(id = R.string.goal_lock_creation_apps_empty))
-            } else {
-                Spacer(modifier = Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    selectedAppItems.forEach { appItem ->
-                        SetupAppRow(
-                            packageName = appItem.packageName,
-                            fallbackLabel = appItem.label,
-                            removeLabel = stringResource(id = R.string.goal_lock_creation_remove_app),
-                            onRemove = { onRemoveSelectedApp(appItem.packageName) },
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SetupSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(id = R.string.goal_lock_creation_reload_current_selection),
+                        onClick = onReloadCurrentSelection,
+                    )
+                    SetupSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(id = R.string.goal_lock_creation_open_app_picker),
+                        onClick = onSelectApps,
+                    )
+                }
+                if (selectedAppItems.isEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SetupSectionCaption(text = stringResource(id = R.string.goal_lock_creation_apps_empty))
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        selectedAppItems.forEach { appItem ->
+                            SetupAppRow(
+                                packageName = appItem.packageName,
+                                fallbackLabel = appItem.label,
+                                removeLabel = stringResource(id = R.string.goal_lock_creation_remove_app),
+                                onRemove = { onRemoveSelectedApp(appItem.packageName) },
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        KeepButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(id = R.string.goal_lock_creation_submit),
-            enabled = state.isCreateEnabled,
-            onClick = onCreate,
-        )
+        }
+        BottomActionBar {
+            KeepButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(id = R.string.goal_lock_creation_submit),
+                enabled = state.isCreateEnabled,
+                bottomSpacing = false,
+                onClick = onCreate,
+            )
+        }
     }
 }
 
@@ -399,10 +405,11 @@ internal fun GoalLockEndDatePickerDialog(
 ) {
     val initialMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-    DatePickerDialog(
+    KeepDatePickerDialog(
+        state = datePickerState,
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            KeepTextButton(
                 onClick = {
                     val millis = datePickerState.selectedDateMillis
                     if (millis != null) {
@@ -421,17 +428,14 @@ internal fun GoalLockEndDatePickerDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            KeepTextButton(onClick = onDismiss) {
                 Text(
                     text = stringResource(id = android.R.string.cancel),
-                    color = KeepTheme.colors.onTertiaryContainer,
+                    color = KeepTheme.semanticColors.foreground.neutral,
                 )
             }
         },
-        colors = DatePickerDefaults.colors(containerColor = KeepTheme.colors.onSecondary),
-    ) {
-        DatePicker(state = datePickerState)
-    }
+    )
 }
 
 data class GoalLockSelectedAppUiItem(

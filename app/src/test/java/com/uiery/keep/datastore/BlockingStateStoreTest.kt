@@ -1,6 +1,7 @@
 package com.uiery.keep.datastore
 
 import com.uiery.keep.appselection.BlockExemptPackages
+import com.uiery.keep.appselection.SensitiveAppRole
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -42,14 +43,16 @@ class BlockingStateStoreTest {
         dataStore.edit { preferences ->
             preferences[PreferencesKey.SELECTED_APP_PACKAGES] = setOf(LAUNCHER, WALLET, INSTAGRAM)
         }
-        val store = BlockingStateStore(dataStore) { BlockExemptPackages(homePackages = setOf(LAUNCHER), essentialPackages = setOf(WALLET)) }
+        val store = BlockingStateStore(dataStore) { BlockExemptPackages(homePackages = setOf(LAUNCHER), sensitiveRoles = mapOf(WALLET to SensitiveAppRole.WALLET)) }
 
-        assertEquals(setOf(INSTAGRAM), store.readSelectedAppPackages())
+        // Only the launcher is dropped. The wallet is sensitive, not exempt, so a user who
+        // deliberately picked it keeps it.
+        assertEquals(setOf(WALLET, INSTAGRAM), store.readSelectedAppPackages())
         assertEquals(
-            BlockingSelectionState(selectedAppPackages = setOf(INSTAGRAM)),
+            BlockingSelectionState(selectedAppPackages = setOf(WALLET, INSTAGRAM)),
             store.readSelectionState(),
         )
-        assertEquals(setOf(INSTAGRAM), store.accessibilitySnapshot.first().selectedAppPackages)
+        assertEquals(setOf(WALLET, INSTAGRAM), store.accessibilitySnapshot.first().selectedAppPackages)
     }
 
     @Test
@@ -74,6 +77,28 @@ class BlockingStateStoreTest {
         )
 
         assertEquals(setOf(INSTAGRAM), dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    @Test
+    fun selectedWebDomainsRoundTripIndependentlyFromApps() = runBlocking {
+        val dataStore = BlockingFakePreferencesDataStore()
+        val store = BlockingStateStore(dataStore)
+        val selectedPackages = setOf("com.example.video")
+        val selectedWebDomains = setOf("example.com", "video.example")
+
+        store.saveSelectedAppPackages(selectedPackages)
+        store.saveSelectedWebDomains(selectedWebDomains)
+
+        assertEquals(selectedPackages, store.readSelectedAppPackages())
+        assertEquals(selectedWebDomains, store.readSelectedWebDomains())
+        assertEquals(
+            BlockingSelectionState(
+                selectedAppPackages = selectedPackages,
+                selectedWebDomains = selectedWebDomains,
+            ),
+            store.readSelectionState(),
+        )
+        assertEquals(selectedWebDomains, dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS])
     }
 
     @Test

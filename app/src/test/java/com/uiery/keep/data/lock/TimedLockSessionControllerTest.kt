@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.appselection.BlockExemptPackages
+import com.uiery.keep.appselection.SensitiveAppRole
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.ManualLockTimePolicy
 import com.uiery.keep.datastore.PreferencesKey
@@ -35,7 +36,32 @@ class TimedLockSessionControllerTest {
             BlockingStateStore(dataStore),
             RecordingAnalytics(),
             clock,
-            { BlockExemptPackages(essentialPackages = setOf("com.samsung.android.messaging")) },
+            { BlockExemptPackages(homePackages = setOf("com.sec.android.app.launcher")) },
+        )
+
+        val result = controller.start(
+            packages = setOf("com.sec.android.app.launcher"),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.FirstPromisePractice,
+        )
+
+        assertEquals(TimedLockStartResult.EmptyApps, result)
+        assertNull(dataStore.snapshot()[PreferencesKey.LOCK_TIME])
+        assertNull(dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+    }
+
+    /**
+     * Messaging is sensitive, not exempt. Blocking it is a core reason people install a focus app,
+     * so a lock naming only the messaging app has to start.
+     */
+    @Test
+    fun sensitiveOnlyRequestStartsBecauseSensitivePackagesAreBlockable() = runBlocking {
+        val dataStore = FakeDataStore()
+        val controller = TimedLockSessionController(
+            BlockingStateStore(dataStore),
+            RecordingAnalytics(),
+            clock,
+            { BlockExemptPackages(sensitiveRoles = mapOf("com.samsung.android.messaging" to SensitiveAppRole.MESSAGING)) },
         )
 
         val result = controller.start(
@@ -44,9 +70,11 @@ class TimedLockSessionControllerTest {
             origin = TimedLockStartOrigin.FirstPromisePractice,
         )
 
-        assertEquals(TimedLockStartResult.EmptyApps, result)
-        assertNull(dataStore.snapshot()[PreferencesKey.LOCK_TIME])
-        assertNull(dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES])
+        assertTrue(result is TimedLockStartResult.Started)
+        assertEquals(
+            setOf("com.samsung.android.messaging"),
+            dataStore.snapshot()[PreferencesKey.SELECTED_APP_PACKAGES],
+        )
     }
 
     @Test
@@ -102,6 +130,25 @@ class TimedLockSessionControllerTest {
         assertEquals(TimedLockStartResult.InvalidDuration, controller.start(setOf("app"), 0, TimedLockStartOrigin.FirstPromisePractice))
         assertEquals(TimedLockStartResult.AlreadyActive, controller.start(setOf("app"), 10, TimedLockStartOrigin.FirstPromisePractice))
         assertNull(dataStore.snapshot()[PreferencesKey.START_TIME])
+    }
+
+    @Test
+    fun allowsWebOnlyTimedLockWhenWebTargetsArePresent() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val controller = TimedLockSessionController(
+            BlockingStateStore(dataStore),
+            RecordingAnalytics(),
+            clock,
+        )
+
+        val result = controller.start(
+            packages = emptySet(),
+            durationMinutes = 10,
+            origin = TimedLockStartOrigin.Home(TimedLockHomeScheduleType.Countdown),
+            hasWebTargets = true,
+        )
+
+        assertTrue(result is TimedLockStartResult.Started)
     }
 
     @Test

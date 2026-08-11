@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.edit
 import com.uiery.keep.KeepDataSource
 import com.uiery.keep.appselection.BlockExemptPackagePolicy
 import com.uiery.keep.appselection.BlockExemptPackageProvider
-import com.uiery.keep.appselection.BlockExemptPackages
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -37,17 +36,20 @@ class BlockingStateStore @Inject constructor(
                 preventUninstall = preferences[PreferencesKey.PREVENT_UNINSTALL] ?: true,
                 emergencyUnlockApps = preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS].orEmpty(),
                 emergencyUnlockExpireTimeMillis = preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] ?: 0L,
-                exemptPackages = blockExemptPackageProvider.exemptPackages(),
             )
         }
 
     suspend fun readSelectedAppPackages(): Set<String> =
         dataStore.data.first().blockablePackages()
 
+    suspend fun readSelectedWebDomains(): Set<String> =
+        dataStore.data.first()[PreferencesKey.SELECTED_WEB_DOMAINS].orEmpty()
+
     suspend fun readSelectionState(): BlockingSelectionState {
         val preferences = dataStore.data.first()
         return BlockingSelectionState(
             selectedAppPackages = preferences.blockablePackages(),
+            selectedWebDomains = preferences[PreferencesKey.SELECTED_WEB_DOMAINS].orEmpty(),
             hasTrackedFirstLockConfigured =
                 preferences[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED] == true ||
                     preferences[PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE] != null,
@@ -61,11 +63,20 @@ class BlockingStateStore @Inject constructor(
         }
     }
 
+    /**
+     * Domains are not packages, so the package exemption policy does not apply to them.
+     */
+    suspend fun saveSelectedWebDomains(domains: Set<String>) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.SELECTED_WEB_DOMAINS] = domains
+        }
+    }
+
     private fun Preferences.blockablePackages(): Set<String> =
         this[PreferencesKey.SELECTED_APP_PACKAGES].orEmpty().blockable()
 
     private fun Set<String>.blockable(): Set<String> =
-        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages().all)
+        BlockExemptPackagePolicy.filterBlockable(this, blockExemptPackageProvider.exemptPackages().homePackages)
 
     suspend fun setIsNew(isNew: Boolean) {
         dataStore.edit { preferences ->
@@ -293,6 +304,14 @@ data class TimedLockSessionOwnership(
     val previous: TimedLockSessionSnapshot,
 )
 
+/**
+ * The stored lock state the accessibility service reacts to.
+ *
+ * Device-role exemptions deliberately do not live here. This snapshot is re-derived only when
+ * DataStore emits, so anything carried in it is frozen until the user next changes a preference —
+ * fine for stored state, wrong for the default launcher or dialer, which the user can change at any
+ * time without touching Stopit. The service resolves those at decision time instead.
+ */
 data class AccessibilityBlockingSnapshot(
     val isKeep: Boolean = false,
     val lockTime: String? = null,
@@ -300,11 +319,11 @@ data class AccessibilityBlockingSnapshot(
     val preventUninstall: Boolean = true,
     val emergencyUnlockApps: Set<String> = emptySet(),
     val emergencyUnlockExpireTimeMillis: Long = 0L,
-    val exemptPackages: BlockExemptPackages = BlockExemptPackages(),
 )
 
 data class BlockingSelectionState(
     val selectedAppPackages: Set<String> = emptySet(),
+    val selectedWebDomains: Set<String> = emptySet(),
     val hasTrackedFirstLockConfigured: Boolean = false,
 )
 

@@ -92,7 +92,7 @@ class FirstPromiseCreationCoordinator @Inject constructor(
         // Routine lockApplications never passes through BlockingStateStore, so an exempt package
         // would persist a routine that looks enabled and can never fire. Drafts recommended before
         // 1.7.12 can still name one.
-        if (BlockExemptPackagePolicy.isExempt(draft.packageName, blockExemptPackageProvider.exemptPackages().all)) {
+        if (BlockExemptPackagePolicy.isExempt(draft.packageName, blockExemptPackageProvider.exemptPackages().homePackages)) {
             return FirstPromisePersistenceResult.Failed(
                 IllegalStateException("First promise target ${draft.packageName} is exempt from blocking"),
             )

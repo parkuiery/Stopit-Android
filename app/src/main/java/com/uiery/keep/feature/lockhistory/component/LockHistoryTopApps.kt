@@ -1,8 +1,6 @@
 package com.uiery.keep.feature.lockhistory.component
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -20,12 +19,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.theme.KeepTheme
+import com.uiery.kds.KeepCard
 import com.uiery.keep.R
 import com.uiery.keep.feature.lockhistory.LockHistoryPerformanceReportReadModel
 import com.uiery.keep.util.AppDisplayMetadata
@@ -57,28 +55,28 @@ internal fun LockHistoryTopApps(
         }
     }.joinToString(separator = ". ")
 
-    Column(
+    KeepCard(
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(KeepTheme.colors.tertiary)
             .semantics(mergeDescendants = true) {
                 contentDescription = accessibilityDescription
-            }
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            },
+        shape = RoundedCornerShape(12.dp),
     ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         Text(
             text = titleText,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
+            color = KeepTheme.semanticColors.foreground.neutral,
+            style = MaterialTheme.typography.labelLarge,
         )
         Text(
             text = supportingText,
-            color = KeepTheme.colors.onTertiaryContainer,
-            fontSize = 12.sp,
+            color = KeepTheme.semanticColors.foreground.muted,
+            style = MaterialTheme.typography.bodySmall,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -92,6 +90,7 @@ internal fun LockHistoryTopApps(
                     blockCount = blockCount,
                 )
             }
+        }
         }
     }
 }
@@ -110,9 +109,8 @@ private fun TopAppItem(
     ) {
         Text(
             text = "#$rank",
-            color = KeepTheme.colors.primary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
+            color = KeepTheme.semanticColors.foreground.brand,
+            style = MaterialTheme.typography.labelSmall,
         )
         Image(
             bitmap = appMetadata.icon.toBitmap().asImageBitmap(),
@@ -123,15 +121,15 @@ private fun TopAppItem(
         )
         Text(
             text = appMetadata.label,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 11.sp,
+            color = KeepTheme.semanticColors.foreground.neutral,
+            style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = stringResource(R.string.lock_history_block_count, blockCount),
-            color = KeepTheme.colors.onTertiaryContainer,
-            fontSize = 10.sp,
+            color = KeepTheme.semanticColors.foreground.muted,
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }

@@ -30,8 +30,8 @@ class RoutineViewModelContractTest(unittest.TestCase):
 
         self.assertRegex(bottom_sheet_source, r"internal\s+fun\s+addRoutine\s*\(\s*\)")
         self.assertRegex(bottom_sheet_source, r"internal\s+fun\s+editRoutine\s*\(\s*id\s*:\s*Long\?\s*\)")
-        self.assertIn("viewModel.addRoutine()", content_source)
-        self.assertIn("viewModel.editRoutine(routine?.id)", content_source)
+        self.assertIn("onAddRoutine = viewModel::addRoutine", content_source)
+        self.assertIn("onEditRoutine = { viewModel.editRoutine(routine?.id) }", content_source)
 
 
 if __name__ == "__main__":

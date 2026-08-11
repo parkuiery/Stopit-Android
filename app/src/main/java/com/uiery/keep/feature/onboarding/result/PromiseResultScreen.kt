@@ -10,13 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +39,7 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.onboarding.OnboardingActionStack
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.keep.feature.onboarding.proposal.formatTime
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLauncher
 import com.uiery.keep.feature.routine.RoutineAlarmPermissionSettingsLaunchResult
@@ -50,6 +50,7 @@ import java.time.DayOfWeek
 import java.util.Locale
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun PromiseResultScreen(
@@ -90,20 +91,24 @@ fun PromiseResultScreen(
         onDispose { observedLifecycle.removeObserver(observer) }
     }
 
+    // Loading에는 액션 바가 없다. 그때는 하단 인셋을 컨테이너가 그대로 소비해야 한다.
+    val hasActionBar = state.kind != PromiseResultKind.Loading
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(insets)
-                .padding(horizontal = 24.dp),
+                .padding(if (hasActionBar) insets.withoutBottomInset() else insets),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (state.kind == PromiseResultKind.Loading) {
-                    CircularProgressIndicator(color = KeepTheme.colors.primary)
+                    KeepCircularProgressIndicator(color = KeepTheme.colors.primary)
                 } else {
                     Text(
                         modifier = Modifier.fillMaxWidth().semantics { heading() },
@@ -136,16 +141,14 @@ fun PromiseResultScreen(
                 }
             }
             ResultActions(state, viewModel)
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
 private fun PromiseSummaryCard(state: PromiseResultUiState) {
-    Card(
+    KeepCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -187,16 +190,17 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                     secondaryText = stringResource(R.string.first_promise_result_scheduled),
                     primaryEnabled = !state.isBusy,
                     secondaryEnabled = !state.isBusy,
-                    bottomSpacing = false,
                     onPrimaryClick = viewModel::startPractice,
                     onSecondaryClick = viewModel::continueAtScheduledTime,
                 )
             } else {
-                TextButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isBusy,
-                    onClick = viewModel::continueAtScheduledTime,
-                ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
+                OnboardingBottomActionBar {
+                    KeepTextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.isBusy,
+                        onClick = viewModel::continueAtScheduledTime,
+                    ) { Text(stringResource(R.string.first_promise_result_scheduled)) }
+                }
             }
         }
         PromiseResultKind.PermissionRequired -> {
@@ -205,19 +209,20 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                 secondaryText = stringResource(R.string.first_promise_result_later),
                 primaryEnabled = !state.isBusy,
                 secondaryEnabled = !state.isBusy,
-                bottomSpacing = false,
                 onPrimaryClick = viewModel::requestExactAlarm,
                 onSecondaryClick = viewModel::continueLater,
             )
         }
         PromiseResultKind.Disabled -> {
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_result_home),
-                enabled = !state.isBusy,
-                bottomSpacing = false,
-                onClick = viewModel::continueHome,
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.first_promise_result_home),
+                    enabled = !state.isBusy,
+                    bottomSpacing = false,
+                    onClick = viewModel::continueHome,
+                )
+            }
         }
         PromiseResultKind.PersistFailed -> {
             OnboardingActionStack(
@@ -225,7 +230,6 @@ private fun ResultActions(state: PromiseResultUiState, viewModel: PromiseResultV
                 secondaryText = stringResource(R.string.first_promise_result_edit),
                 primaryEnabled = state.canRetry && !state.isBusy,
                 secondaryEnabled = state.canEdit && !state.isBusy,
-                bottomSpacing = false,
                 onPrimaryClick = viewModel::retryPersistence,
                 onSecondaryClick = viewModel::editPromise,
             )

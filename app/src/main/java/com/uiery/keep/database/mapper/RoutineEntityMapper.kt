@@ -12,6 +12,7 @@ fun RoutineEntity.toModel() = RoutineModel(
     endTime = endTime,
     repeatDays = repeatDays.toRepeatDaysBinary(),
     lockApplications = lockApplications,
+    lockWebsites = lockWebsites,
     isEnabled = isEnabled,
     changeLockHours = changeLockHours,
 )
@@ -23,6 +24,7 @@ fun RoutineModel.toEntity() = RoutineEntity(
     endTime = endTime,
     repeatDays = repeatDays.toDayOfWeekList(),
     lockApplications = lockApplications ?: emptyList(),
+    lockWebsites = lockWebsites ?: emptyList(),
     isEnabled = isEnabled,
     changeLockHours = changeLockHours,
 )

@@ -7,25 +7,24 @@ import android.content.Intent
 import android.os.Build
 import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import com.uiery.kds.KeepDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,9 +84,9 @@ fun MenuScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = { onNavigateBack() }) {
+                    KeepIconButton(onClick = { onNavigateBack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(R.string.cd_navigate_back),
@@ -96,9 +95,6 @@ fun MenuScreen(
                     }
                 },
                 title = { },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KeepTheme.colors.background,
-                )
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -108,161 +104,133 @@ fun MenuScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-//            if (isTestMode()) {
-//                MenuItem(
-//                    icon = R.drawable.laptop,
-//                    title = "Developer Options",
-//                    onClick = onNavigateDevTool,
-//                )
-//            }
-            /*if(isKorean) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .clickable(onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, "https://forms.gle/MsKwrgFr7fYQQYW1A".toUri())
-                            context.startActivity(intent)
-                        }),
-                    colors = CardDefaults.cardColors(
-                        containerColor = KeepTheme.colors.onTertiary,
-                    ),
-                    border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                         text = stringResource(id = R.string.feature_request_message),
-                        color = KeepTheme.colors.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }*/
-            MenuItem(
-                icon = R.drawable.ic_routine,
-                title = stringResource(id = R.string.routine),
-                onClick = onNavigateRoutine,
-            )
-            MenuItem(
-                icon = R.drawable.ic_goal_lock,
-                title = stringResource(id = R.string.goal_lock_menu_title),
-                onClick = {
-                    if (goalLockNavigationGate.tryEnter()) {
-                        coroutineScope.launch {
-                            val currentGoalLockId = menuViewModel.getCurrentGoalLockId()
-                            if (currentGoalLockId == null) {
-                                onNavigateGoalLockCreation()
-                            } else {
-                                onNavigateGoalLockDetail(currentGoalLockId)
-                            }
-                        }
-                    }
-                },
-            )
-            MenuItem(
-                icon = R.drawable.ic_parent_mode,
-                title = stringResource(id = R.string.parent_mode_menu_title),
-                onClick = onNavigateParentModeSetup,
-            )
-            MenuItem(
-                icon = R.drawable.ic_local_history,
-                title = stringResource(id = R.string.lock_history_menu_title),
-                onClick = onNavigateLockHistory,
-            )
-            MenuItem(
-                icon = R.drawable.ic_emergency,
-                title = stringResource(id = R.string.emergency_unlock_settings_title),
-                onClick = onNavigateEmergencyUnlockSettings,
-            )
-            if (isPrivacyOptionsRequired) {
+            // 메뉴 항목 수는 고정이 아니다. 광고 개인정보 항목이 동의 상태에 따라 붙고, 글자 크기
+            // 설정이 커지면 행 높이도 자란다. 스크롤 표면이 없으면 넘친 부분에 닿을 방법이 없다.
+            // 배너는 지금처럼 하단에 고정되도록 스크롤 밖에 둔다.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 MenuItem(
-                    icon = R.drawable.ic_shield,
-                    title = stringResource(id = R.string.ad_privacy_options),
+                    icon = R.drawable.ic_routine,
+                    title = stringResource(id = R.string.routine),
+                    onClick = onNavigateRoutine,
+                )
+                MenuItem(
+                    icon = R.drawable.ic_goal_lock,
+                    title = stringResource(id = R.string.goal_lock_menu_title),
                     onClick = {
-                        context.findActivity()?.let { activity ->
-                            showMobileAdsPrivacyOptions(activity) { errorMessage ->
-                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                        if (goalLockNavigationGate.tryEnter()) {
+                            coroutineScope.launch {
+                                val currentGoalLockId = menuViewModel.getCurrentGoalLockId()
+                                if (currentGoalLockId == null) {
+                                    onNavigateGoalLockCreation()
+                                } else {
+                                    onNavigateGoalLockDetail(currentGoalLockId)
+                                }
                             }
                         }
                     },
                 )
-            }
-            MenuItem(
-                icon = R.drawable.ic_letter,
-                title = stringResource(id = R.string.contact_us),
-                onClick = {
-                    menuViewModel.onSupportContactStarted()
-                    sendCustomerEmail(
-                        context = context,
-                        onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                MenuItem(
+                    icon = R.drawable.ic_parent_mode,
+                    title = stringResource(id = R.string.parent_mode_menu_title),
+                    onClick = onNavigateParentModeSetup,
+                )
+                MenuItem(
+                    icon = R.drawable.ic_local_history,
+                    title = stringResource(id = R.string.lock_history_menu_title),
+                    onClick = onNavigateLockHistory,
+                )
+                MenuItem(
+                    icon = R.drawable.ic_emergency,
+                    title = stringResource(id = R.string.emergency_unlock_settings_title),
+                    onClick = onNavigateEmergencyUnlockSettings,
+                )
+                if (isPrivacyOptionsRequired) {
+                    MenuItem(
+                        icon = R.drawable.ic_shield,
+                        title = stringResource(id = R.string.ad_privacy_options),
+                        onClick = {
+                            context.findActivity()?.let { activity ->
+                                showMobileAdsPrivacyOptions(activity) { errorMessage ->
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
                     )
                 }
-            )
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-                    .semantics {
-                        role = Role.Button
-                        contentDescription = "$monetizationInterestTitle, $monetizationInterestMessage"
-                    }
-                    .clickable(onClick = {
-                        menuViewModel.onMonetizationInterestCardClicked()
+                MenuItem(
+                    icon = R.drawable.ic_letter,
+                    title = stringResource(id = R.string.contact_us),
+                    onClick = {
                         menuViewModel.onSupportContactStarted()
                         sendCustomerEmail(
                             context = context,
                             onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
                         )
-                    }),
-                colors = CardDefaults.cardColors(
-                    containerColor = KeepTheme.colors.onTertiary,
-                ),
-                border = BorderStroke(1.dp, KeepTheme.colors.onTertiaryContainer),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 14.dp),
-                    text = monetizationInterestTitle,
-                    color = KeepTheme.colors.onSurface,
-                    textAlign = TextAlign.Start,
+                    }
                 )
-                Text(
+                KeepCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
-                    text = monetizationInterestMessage,
-                    color = KeepTheme.colors.onSurfaceVariant,
-                    textAlign = TextAlign.Start,
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "$monetizationInterestTitle, $monetizationInterestMessage"
+                        }
+                        .clickable(onClick = {
+                            menuViewModel.onMonetizationInterestCardClicked()
+                            menuViewModel.onSupportContactStarted()
+                            sendCustomerEmail(
+                                context = context,
+                                onFallbackUsed = { menuViewModel.onSupportContactClipboardFallbackUsed() },
+                            )
+                        }),
+                    variant = KeepCardVariant.NeutralWeak,
+                    bordered = true,
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 14.dp),
+                        text = monetizationInterestTitle,
+                        color = KeepTheme.colors.onSurface,
+                        textAlign = TextAlign.Start,
+                    )
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
+                        text = monetizationInterestMessage,
+                        color = KeepTheme.colors.onSurfaceVariant,
+                        textAlign = TextAlign.Start,
+                    )
+                }
+                KeepDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    thickness = 1.dp,
+                )
+                MenuToggleItem(
+                    icon = R.drawable.ic_shield,
+                    title = stringResource(id = R.string.prevent_uninstall),
+                    subtitle = stringResource(id = R.string.prevent_uninstall_subtitle),
+                    checked = preventUninstall,
+                    enabled = !isBlocking,
+                    onCheckedChange = { enabled ->
+                        menuViewModel.setPreventUninstall(enabled)
+                        if (enabled) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.prevent_uninstall_enabled),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
                 )
             }
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                thickness = 1.dp,
-                color = KeepTheme.colors.onTertiaryContainer,
-            )
-            MenuToggleItem(
-                icon = R.drawable.ic_shield,
-                title = stringResource(id = R.string.prevent_uninstall),
-                subtitle = stringResource(id = R.string.prevent_uninstall_subtitle),
-                checked = preventUninstall,
-                enabled = !isBlocking,
-                onCheckedChange = { enabled ->
-                    menuViewModel.setPreventUninstall(enabled)
-                    if (enabled) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.prevent_uninstall_enabled),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                },
-            )
-            Spacer(modifier = Modifier.weight(1f))
             TrackedBannerAd(
                 modifier = Modifier.fillMaxWidth(),
                 metadata = AdPlacement.MenuBottom.toMetadata(

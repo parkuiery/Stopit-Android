@@ -5,10 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -62,10 +61,9 @@ fun UsageInsightCard(
         }
         is UsageInsightCardUiState.Hidden -> return
     }
-    Card(
+    KeepCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -83,13 +81,13 @@ fun UsageInsightCard(
                 modifier = Modifier.padding(top = 4.dp),
             )
             Row(modifier = Modifier.padding(top = 8.dp)) {
-                TextButton(onClick = onDismiss) {
+                KeepTextButton(onClick = onDismiss) {
                     Text(
                         text = stringResource(R.string.usage_insight_dismiss),
                         color = KeepTheme.colors.surfaceVariant,
                     )
                 }
-                TextButton(onClick = onCtaClick) {
+                KeepTextButton(onClick = onCtaClick) {
                     Text(
                         text = cta,
                         color = KeepTheme.colors.primary,

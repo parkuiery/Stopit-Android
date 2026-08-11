@@ -43,6 +43,16 @@ import com.uiery.keep.data.usageinsight.UsageInsightCardResult
 import com.uiery.keep.data.usageinsight.UsageInsightRepository
 import com.uiery.keep.domain.usageinsight.UsageInsightRoutinePrefill
 import com.uiery.keep.domain.usageinsight.toRoutinePrefill
+import com.uiery.keep.domain.lock.LockTargetKind
+import com.uiery.keep.model.RoutineModel
+import com.uiery.keep.domain.websiteblocking.DomainName
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingPolicy
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingSession
+import com.uiery.keep.domain.websiteblocking.toRoutineWebsiteWindows
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimePolicy
+import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendation
+import com.uiery.keep.domain.websiteblocking.WebsiteLockRecommendationPolicy
 import com.uiery.keep.feature.home.component.UsageInsightCardUiState
 import com.uiery.keep.feature.review.InAppReviewManager
 import com.uiery.keep.feature.review.ReviewEligibilityDecision
@@ -163,21 +173,19 @@ class HomeViewModel
             }
 
         internal fun changeIsKeep(
-            noSelectedAppsMessage: String? = null,
             firstLockStartedMessage: String? = null,
         ) =
             intent {
                 val isKeep = !state.isKeep
-                if (isKeep && state.selectedAppPackage.isEmpty()) {
+                if (isKeep && !state.hasSelectedLockTargets()) {
+                    // 차단 대상이 없는 것은 오류가 아니라 시작 과정의 한 단계다. 선택 시트를 바로
+                    // 열어 다음 단계로 잇는다. 시트 위에 스낵바를 겹쳐 띄우면 시트를 가리고
+                    // 사용자를 나무라는 인상만 남는다.
                     reduce {
                         state.copy(
                             isShowCategoryBottomSheet = true,
                             sheetVisible = true,
                         )
-                    }
-                    if (!noSelectedAppsMessage.isNullOrBlank()) {
-                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
-                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
                     }
                     return@intent
                 }
@@ -434,9 +442,19 @@ class HomeViewModel
             intent {
                 val previousCard = state.usageInsightCard
                 val result = usageInsightRepository.currentInsightCard(LocalDate.now())
+                // 사용 접근 권한은 홈 첫 진입에서 요구할 이유가 없다. 아직 한 번도 잠가보지 않은
+                // 사용자에게는 권한의 대가로 보여줄 인사이트도 없고, 정작 필요한 행동(차단 대상
+                // 고르기·첫 잠금)과 경쟁만 한다. 첫 잠금을 경험한 뒤에 묻는다.
+                val hasExperiencedFirstLock =
+                    blockingStateStore.readSelectionState().hasTrackedFirstLockConfigured
                 val cardState = when (result) {
                     is UsageInsightCardResult.Hidden -> UsageInsightCardUiState.Hidden
-                    is UsageInsightCardResult.PermissionNeeded -> UsageInsightCardUiState.PermissionNeeded
+                    is UsageInsightCardResult.PermissionNeeded ->
+                        if (hasExperiencedFirstLock) {
+                            UsageInsightCardUiState.PermissionNeeded
+                        } else {
+                            UsageInsightCardUiState.Hidden
+                        }
                     is UsageInsightCardResult.Ready ->
                         UsageInsightCardUiState.Insight(result.insight, result.appLabel)
                 }
@@ -460,6 +478,9 @@ class HomeViewModel
                         USAGE_INSIGHT_CARD_SHOWN,
                         mapOf(INSIGHT_TYPE to cardKey),
                     )
+                    if (cardState is UsageInsightCardUiState.PermissionNeeded) {
+                        usageInsightRepository.recordPermissionCardShown()
+                    }
                 }
                 lastShownCardKey = cardKey
             }
@@ -566,6 +587,8 @@ class HomeViewModel
                 reduce {
                     state.copy(
                         selectedAppPackage = selectionState.selectedAppPackages,
+                        selectedWebDomains = selectionState.selectedWebDomains,
+                        blockingTargetsLoaded = true,
                         showFirstLockActivationCta = shouldShowFirstLockActivationCta(
                             selectedAppPackage = selectionState.selectedAppPackages,
                             hasTrackedFirstLock = selectionState.hasTrackedFirstLockConfigured,
@@ -598,10 +621,30 @@ class HomeViewModel
                         state.copy(
                             routineCount = routines.size,
                             showRoutineCreationCta = showRoutineCreationCta,
+                            routineWebsiteSession = routines.toRoutineWebsiteSession(),
+                            routineWebsiteSessionLoaded = true,
                         )
                     }
                 }
             }
+
+        /**
+         * 창은 시간이 지나면서 시작되고 끝난다. 목록이 바뀔 때만 읽으면, 화면을 열어둔 채
+         * 시작 시각을 넘긴 루틴이나 알람이 누락된 회차를 놓친다.
+         */
+        internal fun refreshRoutineWebsiteSession() =
+            intent {
+                val routines = routineRepository.fetchAll().firstOrNull().orEmpty()
+                reduce {
+                    state.copy(
+                        routineWebsiteSession = routines.toRoutineWebsiteSession(),
+                        routineWebsiteSessionLoaded = true,
+                    )
+                }
+            }
+
+        private fun List<RoutineModel>.toRoutineWebsiteSession(): RoutineWebsiteBlockingSession? =
+            RoutineWebsiteBlockingPolicy.resolveSession(toRoutineWebsiteWindows())
 
         private fun syncRoutinesCount() =
             intent {
@@ -677,11 +720,6 @@ class HomeViewModel
             return completed
         }
 
-        private fun storeSelectedApp(selectedAppPackage: Set<String>) =
-            intent {
-                blockingStateStore.saveSelectedAppPackages(selectedAppPackage)
-            }
-
         private fun storeBlockTime(
             lockedMillis: Long,
             isRoutine: Boolean = false,
@@ -697,19 +735,34 @@ class HomeViewModel
         }
 
         internal fun selectCategoryComplete(selectedAppPackage: Set<String>) =
+            selectLockTargetsComplete(
+                selectedAppPackages = selectedAppPackage,
+                selectedWebDomains = container.stateFlow.value.selectedWebDomains,
+            )
+
+        internal fun selectLockTargetsComplete(
+            selectedAppPackages: Set<String>,
+            selectedWebDomains: Set<String>,
+        ) =
             intent {
                 if (state.isKeep || activeTimedLockExists()) return@intent
                 analytics.trackAppSelectionCompleted(
-                    selectedAppCount = selectedAppPackage.size,
+                    selectedAppCount = selectedAppPackages.size,
                     isOnboarding = false,
                 )
-                storeSelectedApp(selectedAppPackage)
+                val newlySelectedPackages = selectedAppPackages - state.selectedAppPackage
+                val recommendations = WebsiteLockRecommendationPolicy.recommend(
+                    newlySelectedPackages = newlySelectedPackages,
+                    alreadyBlockedDomains = selectedWebDomains.map(::DomainName).toSet(),
+                )
+                blockingStateStore.saveSelectedAppPackages(selectedAppPackages)
+                blockingStateStore.saveSelectedWebDomains(selectedWebDomains)
                 val hasTrackedFirstLock = blockingStateStore.readSelectionState().hasTrackedFirstLockConfigured
                 val firstCoreActionState = blockingStateStore.readFirstCoreActionState(
                     fallbackFirstOpenTimestampMillis = System.currentTimeMillis(),
                 )
                 val showRoutineCreationCta = shouldShowRoutineCreationCta(
-                    selectedAppPackage = selectedAppPackage,
+                    selectedAppPackage = selectedAppPackages,
                     hasTrackedFirstCoreAction = firstCoreActionState.hasTrackedFirstCoreAction,
                     routineCount = state.routineCount,
                     isKeep = state.isKeep,
@@ -721,15 +774,39 @@ class HomeViewModel
                 )
                 reduce {
                     state.copy(
-                        selectedAppPackage = selectedAppPackage,
+                        selectedAppPackage = selectedAppPackages,
+                        selectedWebDomains = selectedWebDomains,
+                        pendingWebsiteRecommendations = recommendations,
                         showFirstLockActivationCta = shouldShowFirstLockActivationCta(
-                            selectedAppPackage = selectedAppPackage,
+                            selectedAppPackage = selectedAppPackages,
                             hasTrackedFirstLock = hasTrackedFirstLock,
                             isKeep = state.isKeep,
                         ),
                         showRoutineCreationCta = showRoutineCreationCta,
                     )
                 }
+            }
+
+        internal fun acceptWebsiteLockRecommendations() =
+            intent {
+                if (state.pendingWebsiteRecommendations.isEmpty()) return@intent
+                val recommendedDomains = state.pendingWebsiteRecommendations
+                    .flatMap { it.domains }
+                    .map { it.value }
+                    .toSet()
+                val selectedWebDomains = state.selectedWebDomains + recommendedDomains
+                blockingStateStore.saveSelectedWebDomains(selectedWebDomains)
+                reduce {
+                    state.copy(
+                        selectedWebDomains = selectedWebDomains,
+                        pendingWebsiteRecommendations = emptyList(),
+                    )
+                }
+            }
+
+        internal fun dismissWebsiteLockRecommendations() =
+            intent {
+                reduce { state.copy(pendingWebsiteRecommendations = emptyList()) }
             }
 
         private suspend fun activeTimedLockExists(): Boolean =
@@ -754,7 +831,7 @@ class HomeViewModel
         private fun getIsKeep() =
             intent {
                 val isKeep = blockingStateStore.readIsKeep()
-                reduce { state.copy(isKeep = isKeep) }
+                reduce { state.copy(isKeep = isKeep, isKeepStateLoaded = true) }
                 if (isKeep) {
                     getStartTime()
                 }
@@ -768,7 +845,17 @@ class HomeViewModel
                     now = java.time.Instant.now(),
                     zone = ZoneId.systemDefault(),
                 )
-                reduce { state.copy(hasActiveTimedLock = isActive) }
+                reduce {
+                    state.copy(
+                        hasActiveTimedLock = isActive,
+                        activeTimedLockStateLoaded = true,
+                        activeTimedLockDeadlineMillis = if (isActive) {
+                            ManualLockTimePolicy.toInstant(storedDeadline)?.toEpochMilli()
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
 
         internal fun updateCountdownDuration(duration: CountdownDuration) =
@@ -818,20 +905,16 @@ class HomeViewModel
             }
 
         internal fun lockTime(
-            noSelectedAppsMessage: String? = null,
             firstLockScheduledMessage: String? = null,
         ) =
             intent {
-                if (state.selectedAppPackage.isEmpty()) {
+                if (!state.hasSelectedLockTargets()) {
+                    // changeIsKeep 과 같은 이유로 시트만 연다. 스낵바는 시트를 가리는 잔소리다.
                     reduce {
                         state.copy(
                             isShowCategoryBottomSheet = true,
                             sheetVisible = true,
                         )
-                    }
-                    if (!noSelectedAppsMessage.isNullOrBlank()) {
-                        postSideEffect(HomeSideEffect.ShowSnackBar(noSelectedAppsMessage))
-                        reduce { state.copy(snackbarMessage = noSelectedAppsMessage) }
                     }
                     return@intent
                 }
@@ -862,6 +945,7 @@ class HomeViewModel
                     durationMinutes = lockedDurationMinutes,
                     origin = TimedLockStartOrigin.Home(scheduleType),
                     targetDeadline = targetLockInstant,
+                    hasWebTargets = state.selectedWebDomains.isNotEmpty(),
                 )
                 if (startResult !is TimedLockStartResult.Started) return@intent
                 timedLockStarter.commit(startResult)
@@ -869,6 +953,7 @@ class HomeViewModel
                     state.copy(
                         pendingManualLockRouteDeadline = startResult.encodedDeadline,
                         hasActiveTimedLock = true,
+                        activeTimedLockDeadlineMillis = targetLockInstant.toEpochMilli(),
                     )
                 }
                 if (startResult.firstLockConfigured) {
@@ -952,6 +1037,8 @@ data class HomeUiState(
     val isShowCategoryBottomSheet: Boolean = false,
     val isShowTimeBottomSheet: Boolean = false,
     val selectedAppPackage: Set<String> = emptySet(),
+    val selectedWebDomains: Set<String> = emptySet(),
+    val pendingWebsiteRecommendations: List<WebsiteLockRecommendation> = emptyList(),
     val startTime: Long = System.currentTimeMillis(),
     val searchContent: String = "",
     val isSelectAll: Boolean = true,
@@ -966,11 +1053,44 @@ data class HomeUiState(
     val routineCount: Int = 0,
     val pendingManualLockRouteDeadline: String? = null,
     val hasActiveTimedLock: Boolean = false,
+    val activeTimedLockDeadlineMillis: Long? = null,
+    val blockingTargetsLoaded: Boolean = false,
+    val isKeepStateLoaded: Boolean = false,
+    val activeTimedLockStateLoaded: Boolean = false,
+    // 지금 서 있어야 할 루틴 창. 알람이 지연·누락되었거나 창 도중 재부팅한 회차는
+    // 이 값으로만 되살아난다.
+    val routineWebsiteSession: RoutineWebsiteBlockingSession? = null,
+    val routineWebsiteSessionLoaded: Boolean = false,
     val goalLockCard: HomeGoalLockCardState? = null,
     val repeatBlockRoutineSuggestion: RepeatBlockRoutineSuggestion? = null,
     val usageInsightCard: UsageInsightCardUiState = UsageInsightCardUiState.Hidden,
     val firstPromiseResumeCard: FirstPromiseResumeCardState? = null,
 ) {
+    fun hasSelectedLockTargets(): Boolean =
+        selectedAppPackage.isNotEmpty() || selectedWebDomains.isNotEmpty()
+
+    fun websiteBlockingRuntimeDecision(): WebsiteBlockingRuntimeDecision =
+        WebsiteBlockingRuntimePolicy.decide(
+            runtimeStateLoaded = websiteBlockingRuntimeStateLoaded(),
+            isKeep = isKeep,
+            hasActiveTimedLock = hasActiveTimedLock,
+            timedLockDeadlineMillis = activeTimedLockDeadlineMillis,
+            selectedWebDomains = selectedWebDomains,
+            routineSession = routineWebsiteSession,
+        )
+
+    fun lockTargetKind(): LockTargetKind =
+        LockTargetKind.of(
+            hasApps = selectedAppPackage.isNotEmpty(),
+            hasWebsites = selectedWebDomains.isNotEmpty(),
+        )
+
+    fun websiteBlockingRuntimeStateLoaded(): Boolean =
+        blockingTargetsLoaded &&
+            isKeepStateLoaded &&
+            activeTimedLockStateLoaded &&
+            routineWebsiteSessionLoaded
+
     fun countdownDurationIsZero(): Boolean =
         countdownDurationMinutes() == 0L
 

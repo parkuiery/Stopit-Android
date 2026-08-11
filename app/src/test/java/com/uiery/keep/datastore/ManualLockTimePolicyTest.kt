@@ -65,4 +65,14 @@ class ManualLockTimePolicyTest {
             ManualLockTimePolicy.toLocalDateTime(storedDeadline, ZoneId.of("Asia/Seoul")),
         )
     }
+
+    @Test
+    fun deadlineInstantCanDriveExternalLockRuntimeShutdown() {
+        val deadline = Instant.parse("2026-06-02T10:00:00Z")
+
+        assertEquals(
+            deadline,
+            ManualLockTimePolicy.toInstant(ManualLockTimePolicy.encodeDeadline(deadline)),
+        )
+    }
 }

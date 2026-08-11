@@ -12,17 +12,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
+import com.uiery.kds.KeepConfirmationDialog
+import com.uiery.kds.KeepConfirmationTone
+import com.uiery.kds.KeepBadge
+import com.uiery.kds.KeepBadgeTone
+import com.uiery.kds.KeepBadgeVariant
+import com.uiery.kds.KeepLabel
+import com.uiery.kds.KeepLabelSize
+import com.uiery.kds.KeepLabelTone
+import com.uiery.kds.KeepLabelWeight
+import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepButtonVariant
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import com.uiery.kds.KeepIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.uiery.kds.KeepTextButton
+import com.uiery.kds.KeepTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -81,31 +88,21 @@ internal fun GoalLockDetailScreen(
     }
 
     if (state.showEndConfirmation) {
-        AlertDialog(
-            onDismissRequest = viewModel::cancelEndGoalLock,
-            title = { Text(stringResource(id = R.string.goal_lock_detail_end_cta)) },
-            text = { Text(stringResource(id = R.string.goal_lock_detail_end_confirmation)) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.confirmEndGoalLock() }) {
-                    Text(
-                        text = stringResource(id = R.string.goal_lock_detail_end_confirm),
-                        color = KeepTheme.colors.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::cancelEndGoalLock) {
-                    Text(stringResource(id = R.string.goal_lock_detail_end_cancel))
-                }
-            },
-            containerColor = KeepTheme.colors.onSecondary,
+        KeepConfirmationDialog(
+            title = stringResource(id = R.string.goal_lock_detail_end_cta),
+            message = stringResource(id = R.string.goal_lock_detail_end_confirmation),
+            confirmLabel = stringResource(id = R.string.goal_lock_detail_end_confirm),
+            dismissLabel = stringResource(id = R.string.goal_lock_detail_end_cancel),
+            confirmTone = KeepConfirmationTone.Critical,
+            onConfirm = viewModel::confirmEndGoalLock,
+            onDismiss = viewModel::cancelEndGoalLock,
         )
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            KeepTopAppBar(
                 title = {
                     Text(
                         text = stringResource(id = R.string.goal_lock_detail_title),
@@ -115,7 +112,7 @@ internal fun GoalLockDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    KeepIconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_arrow_back_ios_24),
                             contentDescription = stringResource(id = R.string.cd_navigate_back),
@@ -129,7 +126,7 @@ internal fun GoalLockDetailScreen(
                         goalLock != null &&
                         state.canEdit
                     ) {
-                        TextButton(onClick = { onNavigateEdit(goalLock.id) }) {
+                        KeepTextButton(onClick = { onNavigateEdit(goalLock.id) }) {
                             Text(
                                 text = stringResource(id = R.string.goal_lock_detail_edit),
                                 color = KeepTheme.colors.primary,
@@ -138,7 +135,6 @@ internal fun GoalLockDetailScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KeepTheme.colors.background),
             )
         },
         containerColor = KeepTheme.colors.background,
@@ -282,13 +278,13 @@ internal fun GoalLockDetailContent(
         }
 
         if (state.canEnd) {
-            OutlinedButton(
+            KeepButton(
                 modifier = Modifier.fillMaxWidth(),
+                text = stringResource(id = R.string.goal_lock_detail_end_cta),
                 onClick = onRequestEnd,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = KeepTheme.colors.error),
-            ) {
-                Text(stringResource(id = R.string.goal_lock_detail_end_cta))
-            }
+                variant = KeepButtonVariant.CriticalSolid,
+                bottomSpacing = false,
+            )
         }
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -299,41 +295,32 @@ private fun GoalLockStatusBadge(
     text: String,
     status: GoalLockRuntimeStatus,
 ) {
-    val color = when (status) {
-        GoalLockRuntimeStatus.Pending -> KeepTheme.colors.surface
-        GoalLockRuntimeStatus.Active -> KeepTheme.colors.primary
-        GoalLockRuntimeStatus.Completed -> KeepTheme.colors.onSurface
-        GoalLockRuntimeStatus.EndedEarly -> KeepTheme.colors.error
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Text(
-            text = text,
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
+    KeepBadge(
+        text = text,
+        tone = when (status) {
+            GoalLockRuntimeStatus.Pending,
+            GoalLockRuntimeStatus.Completed,
+            -> KeepBadgeTone.Neutral
+            GoalLockRuntimeStatus.Active -> KeepBadgeTone.Brand
+            GoalLockRuntimeStatus.EndedEarly -> KeepBadgeTone.Critical
+        },
+        variant = KeepBadgeVariant.Weak,
+    )
 }
 
 @Composable
 private fun GoalLockDetailRow(label: String, value: String) {
     Column {
-        Text(
+        KeepLabel(
             text = label,
-            color = KeepTheme.colors.onTertiaryContainer,
-            fontSize = 12.sp,
+            tone = KeepLabelTone.Muted,
+            size = KeepLabelSize.Small,
         )
         Spacer(modifier = Modifier.height(3.dp))
-        Text(
+        KeepLabel(
             text = value,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
+            size = KeepLabelSize.Large,
+            weight = KeepLabelWeight.Strong,
         )
     }
 }

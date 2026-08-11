@@ -6,7 +6,7 @@
 - **Package**: `com.uiery.keep`
 - **사용자 노출명**: StopIt / 스탑잇
 - **Platform**: Android (minSdk 33, targetSdk 35)
-- **현재 버전**: 1.7.12 (versionCode 34)
+- **현재 버전**: 1.8.0 (versionCode 35)
 
 ## 서비스 소개
 

@@ -59,15 +59,16 @@ class TimedLockSessionController @Inject constructor(
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant?,
+        hasWebTargets: Boolean,
     ): TimedLockStartResult = startMutex.withLock {
         // Filter before the empty check. The store drops exempt packages on write, so checking the
         // raw input would let an all-exempt request persist an empty set and still report Started —
-        // a full lock screen and countdown that blocks nothing.
+        // a full lock screen and countdown that blocks nothing. A web-only lock is still valid.
         val blockablePackages = BlockExemptPackagePolicy.filterBlockable(
             packages = packages,
-            exemptPackages = blockExemptPackageProvider.exemptPackages().all,
+            exemptPackages = blockExemptPackageProvider.exemptPackages().homePackages,
         )
-        if (blockablePackages.isEmpty()) return TimedLockStartResult.EmptyApps
+        if (blockablePackages.isEmpty() && !hasWebTargets) return TimedLockStartResult.EmptyApps
         if (targetDeadline == null && durationMinutes <= 0L) return TimedLockStartResult.InvalidDuration
         val now = clock.instant()
         if (ManualLockTimePolicy.isActiveAt(blockingStateStore.readLockTime(), now, clock.zone)) {
@@ -150,6 +151,7 @@ interface TimedLockStarter {
         durationMinutes: Long,
         origin: TimedLockStartOrigin,
         targetDeadline: Instant? = null,
+        hasWebTargets: Boolean = false,
     ): TimedLockStartResult
 
     suspend fun commit(started: TimedLockStartResult.Started)

@@ -40,6 +40,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM routine WHERE id = 1").use { cursor ->
@@ -72,6 +73,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM lock_history WHERE id = 10").use { cursor ->
@@ -101,6 +103,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM routine WHERE id = 3").use { cursor ->
@@ -127,6 +130,7 @@ class KeepDatabaseMigrationTest {
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM emergency_unlock WHERE id = 20").use { cursor ->
@@ -160,6 +164,7 @@ class KeepDatabaseMigrationTest {
             true,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM goal_lock WHERE id = 30").use { cursor ->
@@ -179,6 +184,31 @@ class KeepDatabaseMigrationTest {
     }
 
     @Test
+    fun migratesFromVersion7ToLatestLeavingExistingRoutinesAppOnly() {
+        helper.createDatabase(TEST_DB, 7).apply {
+            insertRoutineV3(id = 7, changeLockHours = 2)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            LATEST_VERSION,
+            true,
+            KeepDatabase.MIGRATION_7_8,
+        )
+
+        db.query("SELECT * FROM routine WHERE id = 7").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("com.chat,com.video", cursor.stringValue("lockApplications"))
+            // 마이그레이션만으로 차단 대상이 늘어나면 안 된다. 빈 문자열은
+            // ListStringTypeConverter 에서 빈 목록으로 읽힌다.
+            assertEquals("", cursor.stringValue("lockWebsites"))
+            assertEquals(2, cursor.intValue("change_lock_hours"))
+        }
+        db.close()
+    }
+
+    @Test
     fun migratesFromVersion6ToLatestPreservingDataAndAddingFirstPromiseTables() {
         helper.createDatabase(TEST_DB, 6).apply {
             insertRoutineV3(id = 6, changeLockHours = 5)
@@ -192,6 +222,7 @@ class KeepDatabaseMigrationTest {
             LATEST_VERSION,
             true,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
 
         db.query("SELECT * FROM routine WHERE id = 6").use { cursor ->
@@ -377,6 +408,6 @@ class KeepDatabaseMigrationTest {
 
     companion object {
         private const val TEST_DB = "keep-migration-test"
-        private const val LATEST_VERSION = 7
+        private const val LATEST_VERSION = 8
     }
 }

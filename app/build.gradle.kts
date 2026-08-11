@@ -88,8 +88,8 @@ android {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
         targetSdk = 35
-        versionCode = 34
-        versionName = "1.7.12"
+        versionCode = 35
+        versionName = "1.8.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -115,6 +115,8 @@ android {
             // dev never sends to Amplitude (no dedicated dev project needed). This is a hard
             // guard independent of any key: even if a key is present, dev stays a no-op.
             buildConfigField("boolean", "AMPLITUDE_ENABLED", "false")
+            // 웹사이트 잠금 대상 선택 UI. dev 에서만 열어 실기기 검증을 진행한다.
+            buildConfigField("boolean", "WEBSITE_BLOCKING_ENABLED", "true")
             setAdMobConfig(
                 applicationId = "ca-app-pub-3940256099942544~3347511713",
                 blockTop = "ca-app-pub-3940256099942544/6300978111",
@@ -129,6 +131,9 @@ android {
             dimension = "server"
             // prod is the only flavor that sends to Amplitude (when a key is present).
             buildConfigField("boolean", "AMPLITUDE_ENABLED", "true")
+            // 선택한 도메인을 실제로 막는 VPN 배선이 붙기 전까지 prod 에서는 웹사이트 탭을 닫아
+            // 둔다. 고를 수는 있는데 막히지는 않는 상태가 사용자에게 노출되면 안 된다.
+            buildConfigField("boolean", "WEBSITE_BLOCKING_ENABLED", "false")
             setAdMobConfig(
                 applicationId = "ca-app-pub-1537867411423705~6734784292",
                 blockTop = "ca-app-pub-1537867411423705/5467753282",

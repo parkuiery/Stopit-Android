@@ -39,6 +39,98 @@ class RepeatBlockRoutineSuggestionPolicyTest {
     }
 
     @Test
+    fun unclassifiedAppsDoNotBecomeOneCrowdJustBecauseTheTimeMatches() {
+        // 부류를 모르는 앱을 시간대만으로 묶으면, 저녁에 잠근 앱 수십 개가 통째로 한 제안이
+        // 되어 사용자는 자기가 만들 리 없는 루틴을 권유받는다. Unknown 은 "같은 부류"가
+        // 아니라 "모른다"는 뜻이다.
+        val histories = listOf(
+            history("2026-06-05T19:20:00", "com.example.alpha"),
+            history("2026-06-04T19:05:00", "com.example.beta"),
+            history("2026-06-03T19:45:00", "com.example.gamma"),
+        )
+
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = histories,
+            activeRoutines = emptyList(),
+            dismissedSuggestions = emptyList(),
+            now = LocalDateTime.of(2026, 6, 6, 12, 0),
+        )
+
+        assertNull(suggestion)
+    }
+
+    @Test
+    fun oneUnclassifiedAppRepeatedInTheSameHoursStillEarnsASuggestion() {
+        // 따로 세는 대신 같은 앱을 그 시간대에 세 번 이상 잠갔다면 그것이 원래 말하려던
+        // "반복"이다.
+        val histories = listOf(
+            history("2026-06-05T19:20:00", "com.example.alpha"),
+            history("2026-06-04T19:05:00", "com.example.alpha"),
+            history("2026-06-03T19:45:00", "com.example.alpha"),
+        )
+
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = histories,
+            activeRoutines = emptyList(),
+            dismissedSuggestions = emptyList(),
+            now = LocalDateTime.of(2026, 6, 6, 12, 0),
+        )
+
+        requireNotNull(suggestion)
+        assertEquals(RepeatBlockTimeBucket.Evening, suggestion.timeBucket)
+        assertEquals(RepeatBlockCategoryBucket.Unknown, suggestion.categoryBucket)
+        assertEquals(listOf("com.example.alpha"), suggestion.prefillPackages)
+    }
+
+    @Test
+    fun aResolverThatKnowsTheAppOutranksTheNameGuess() {
+        // 이름에 영문 키워드가 없어 이름만으로는 Unknown 인 앱들이다. 시스템이 부류를 알려
+        // 주면 서로 다른 앱이어도 하나의 습관으로 묶여 제안이 된다.
+        val histories = listOf(
+            history("2026-06-05T19:20:00", "com.example.alpha"),
+            history("2026-06-04T19:05:00", "com.example.beta"),
+            history("2026-06-03T19:45:00", "com.example.gamma"),
+        )
+
+        val suggestion = RepeatBlockRoutineSuggestionPolicy.resolveSuggestion(
+            histories = histories,
+            activeRoutines = emptyList(),
+            dismissedSuggestions = emptyList(),
+            now = LocalDateTime.of(2026, 6, 6, 12, 0),
+            categoryOf = { RepeatBlockCategoryBucket.Video },
+        )
+
+        requireNotNull(suggestion)
+        assertEquals(RepeatBlockCategoryBucket.Video, suggestion.categoryBucket)
+        assertEquals(
+            listOf("com.example.alpha", "com.example.beta", "com.example.gamma"),
+            suggestion.prefillPackages,
+        )
+    }
+
+    @Test
+    fun theNameGuessPrefersBeingRightOverBeingBroad() {
+        assertEquals(
+            RepeatBlockCategoryBucket.Social,
+            repeatBlockCategoryFromPackageName("com.kakao.talk"),
+        )
+        // 영상 판정이 쇼핑보다 앞이라 coupangplay 는 쿠팡이 아니라 영상으로 읽힌다.
+        assertEquals(
+            RepeatBlockCategoryBucket.Video,
+            repeatBlockCategoryFromPackageName("com.coupang.coupangplay"),
+        )
+        assertEquals(
+            RepeatBlockCategoryBucket.Shopping,
+            repeatBlockCategoryFromPackageName("com.coupang.mobile"),
+        )
+        // 짐작할 근거가 없으면 억지로 맞히지 않는다.
+        assertEquals(
+            RepeatBlockCategoryBucket.Unknown,
+            repeatBlockCategoryFromPackageName("com.nhn.android.search"),
+        )
+    }
+
+    @Test
     fun activeRoutineCoveringSameAppsAndTimeSuppressesSuggestion() {
         val histories = listOf(
             history("2026-06-05T23:20:00", "com.instagram.android"),

@@ -3,7 +3,6 @@ package com.uiery.keep.ui.component
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,15 +21,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -43,6 +39,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
+import com.uiery.kds.KeepChip
+import com.uiery.kds.KeepChipRole
+import com.uiery.kds.KeepChipVariant
+import com.uiery.kds.KeepDivider
+import com.uiery.kds.KeepLabel
+import com.uiery.kds.KeepLabelSize
+import com.uiery.kds.KeepLabelTone
+import com.uiery.kds.KeepLabelWeight
+import com.uiery.kds.KeepSelectableCard
+import com.uiery.kds.KeepTextField
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.util.rememberAppDisplayMetadataResolver
 
@@ -60,14 +68,16 @@ fun SetupHero(
     modifier: Modifier = Modifier,
 ) {
     val accent = KeepTheme.colors.primary
-    Row(
+    KeepCard(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(accent.copy(alpha = 0.08f))
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        variant = KeepCardVariant.BrandWeak,
+        shape = RoundedCornerShape(20.dp),
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -93,10 +103,11 @@ fun SetupHero(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
-                color = KeepTheme.colors.onTertiaryContainer,
+                color = KeepTheme.semanticColors.foreground.muted,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
             )
+        }
         }
     }
 }
@@ -106,15 +117,17 @@ fun SetupGroupCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
+    KeepCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KeepTheme.colors.onSecondary)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
             .animateContentSize(),
-        content = content,
-    )
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -127,19 +140,18 @@ fun SetupSectionHeader(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        KeepLabel(
             modifier = Modifier.weight(1f),
             text = title,
-            color = KeepTheme.colors.onSurfaceVariant,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
+            size = KeepLabelSize.Large,
+            weight = KeepLabelWeight.Strong,
         )
         if (valueLabel != null) {
-            Text(
+            KeepLabel(
                 text = valueLabel,
-                color = KeepTheme.colors.primary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                tone = KeepLabelTone.Brand,
+                size = KeepLabelSize.Medium,
+                weight = KeepLabelWeight.Strong,
             )
         }
     }
@@ -150,23 +162,20 @@ fun SetupSectionCaption(
     text: String,
     modifier: Modifier = Modifier,
 ) {
-    Text(
+    KeepLabel(
         modifier = modifier.fillMaxWidth(),
         text = text,
-        color = KeepTheme.colors.onTertiaryContainer,
-        fontSize = 12.sp,
-        lineHeight = 18.sp,
+        tone = KeepLabelTone.Muted,
+        size = KeepLabelSize.Small,
     )
 }
 
 @Composable
 fun SetupGroupDivider() {
-    Spacer(
+    KeepDivider(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .height(1.dp)
-            .background(KeepTheme.colors.tertiary.copy(alpha = 0.4f)),
+            .padding(vertical = 16.dp),
     )
 }
 
@@ -183,59 +192,15 @@ fun SetupSelectableCard(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentDescription: String? = null,
-) {
-    val borderColor = if (selected) KeepTheme.colors.primary else KeepTheme.colors.tertiary.copy(alpha = 0.5f)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(KeepTheme.colors.background)
-            .border(width = if (selected) 1.5.dp else 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .then(
-                if (contentDescription != null) {
-                    Modifier.semantics { this.contentDescription = contentDescription }
-                } else {
-                    Modifier
-                },
-            )
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .border(width = 2.dp, color = borderColor, shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(KeepTheme.colors.primary),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = KeepTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                color = KeepTheme.colors.onTertiaryContainer,
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-            )
-        }
-    }
-}
+) = KeepSelectableCard(
+    modifier = modifier,
+    title = title,
+    description = subtitle,
+    selected = selected,
+    enabled = enabled,
+    contentDescription = contentDescription,
+    onClick = onClick,
+)
 
 /** Pill-style chip for quick presets (e.g. durations). */
 @Composable
@@ -245,33 +210,15 @@ fun SetupChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-) {
-    val primary = KeepTheme.colors.primary
-    val containerColor = if (selected) primary.copy(alpha = 0.12f) else KeepTheme.colors.background
-    val borderColor = if (selected) primary else KeepTheme.colors.tertiary.copy(alpha = 0.6f)
-    val textColor = if (selected) primary else KeepTheme.colors.onSurfaceVariant
-    Box(
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(containerColor)
-            .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(20.dp),
-            )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 18.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = textColor,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-        )
-    }
-}
+) = KeepChip(
+    modifier = modifier,
+    text = label,
+    selected = selected,
+    enabled = enabled,
+    variant = KeepChipVariant.OutlineStrong,
+    role = KeepChipRole.Radio,
+    onClick = onClick,
+)
 
 /** A tonal secondary action button that stays subordinate to the primary KeepButton. */
 @Composable
@@ -444,33 +391,17 @@ fun SetupTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isError: Boolean = false,
 ) {
-    TextField(
+    KeepTextField(
         modifier = modifier.fillMaxWidth(),
         value = value,
         onValueChange = onValueChange,
         placeholder = {
-            Text(
-                text = placeholder,
-                color = KeepTheme.colors.onTertiaryContainer,
-            )
+            Text(text = placeholder)
         },
         singleLine = true,
         isError = isError,
-        shape = RoundedCornerShape(12.dp),
         visualTransformation = visualTransformation,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = KeepTheme.colors.background,
-            unfocusedContainerColor = KeepTheme.colors.background,
-            disabledContainerColor = KeepTheme.colors.background,
-            errorContainerColor = KeepTheme.colors.background,
-            focusedIndicatorColor = KeepTheme.colors.primary,
-            unfocusedIndicatorColor = Color.Transparent,
-            errorIndicatorColor = KeepTheme.colors.error,
-            cursorColor = KeepTheme.colors.primary,
-            focusedTextColor = KeepTheme.colors.onSurfaceVariant,
-            unfocusedTextColor = KeepTheme.colors.onSurfaceVariant,
-        ),
     )
 }
 

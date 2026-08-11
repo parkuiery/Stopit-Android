@@ -1,7 +1,9 @@
 package com.uiery.keep.ui.component
 
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -63,7 +65,10 @@ class EmergencyUnlockBottomSheetContentIntegrationTest {
 
         composeRule.onNodeWithTag("emergency_unlock_reason_other").performClick()
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_reason_other_required_helper)).assertExists()
-        composeRule.onNodeWithTag("emergency_unlock_reason_other_input").performTextInput("은행 인증")
+        composeRule.onNode(
+            hasSetTextAction() and
+                hasAnyAncestor(hasTestTag("emergency_unlock_reason_other_input")),
+        ).performTextInput("은행 인증")
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_next)).assertIsEnabled().performClick()
 
         composeRule.onNodeWithText(context.getString(R.string.emergency_unlock_apps_step_purpose)).assertExists()

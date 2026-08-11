@@ -1,9 +1,7 @@
 package com.uiery.keep.ui.component
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -27,14 +25,14 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
+import com.uiery.kds.KeepCircularProgressIndicator
+import com.uiery.kds.KeepChip
+import com.uiery.kds.KeepChipRole
+import com.uiery.kds.KeepChipSize
+import com.uiery.kds.KeepStepIndicator
+import com.uiery.kds.KeepRadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,6 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.uiery.kds.KeepButton
+import com.uiery.kds.KeepCheckbox
+import com.uiery.kds.KeepTextField
+import com.uiery.kds.KeepTextFieldVariant
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.service.DEFAULT_EMERGENCY_UNLOCK_COUNTDOWN_SECONDS
@@ -160,7 +161,7 @@ fun EmergencyUnlockBottomSheetContent(
     ) {
         // Step indicator
         if (state.step != EmergencyUnlockBottomSheetStep.COUNTDOWN) {
-            StepIndicator(
+            KeepStepIndicator(
                 currentStep = state.visibleSteps.indexOf(state.step).coerceAtLeast(0),
                 totalSteps = state.visibleSteps.size,
             )
@@ -239,37 +240,6 @@ fun EmergencyUnlockBottomSheetContent(
 }
 
 @Composable
-private fun StepIndicator(
-    currentStep: Int,
-    totalSteps: Int,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        repeat(totalSteps) { index ->
-            val isActive = index <= currentStep
-            val width by animateFloatAsState(
-                targetValue = if (index == currentStep) 24f else 8f,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "step_width",
-            )
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 3.dp)
-                    .size(width = width.dp, height = 8.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isActive) KeepTheme.colors.primary
-                        else KeepTheme.colors.primary.copy(alpha = 0.2f)
-                    ),
-            )
-        }
-    }
-}
-
-@Composable
 private fun StepPurposeText(textRes: Int?) {
     if (textRes == null) return
     Spacer(modifier = Modifier.height(10.dp))
@@ -323,7 +293,7 @@ private fun ReasonStep(
                     .padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(
+                KeepRadioButton(
                     selected = isSelected,
                     onClick = null,
                 )
@@ -337,7 +307,7 @@ private fun ReasonStep(
         }
         StepHelperText(selectedReasonReflectionTextRes)
         if (selectedReason == "other") {
-            OutlinedTextField(
+            KeepTextField(
                 value = customReason,
                 onValueChange = onCustomReasonChanged,
                 modifier = Modifier
@@ -348,7 +318,7 @@ private fun ReasonStep(
                     Text(text = stringResource(R.string.emergency_unlock_reason_other_hint))
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                variant = KeepTextFieldVariant.Outline,
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
@@ -405,7 +375,7 @@ private fun AppSelectionStep(
                     .padding(vertical = 40.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = KeepTheme.colors.primary)
+                KeepCircularProgressIndicator(color = KeepTheme.colors.primary)
             }
         }
         LazyColumn(
@@ -434,7 +404,7 @@ private fun AppSelectionStep(
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(
+                    KeepCheckbox(
                         checked = isSelected,
                         onCheckedChange = null,
                     )
@@ -493,26 +463,15 @@ private fun DurationStep(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             durationOptions.forEach { minutes ->
-                FilterChip(
+                KeepChip(
+                    text = stringResource(R.string.emergency_unlock_duration_minutes, minutes),
                     selected = selectedDuration == minutes,
                     onClick = { onDurationSelected(minutes) },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.emergency_unlock_duration_minutes, minutes),
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontWeight = if (selectedDuration == minutes) FontWeight.SemiBold else FontWeight.Normal,
-                        )
-                    },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
                         .testTag("emergency_unlock_duration_$minutes"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = KeepTheme.colors.primary.copy(alpha = 0.12f),
-                        selectedLabelColor = KeepTheme.colors.primary,
-                    ),
+                    size = KeepChipSize.Large,
+                    role = KeepChipRole.Radio,
                 )
             }
         }
@@ -580,7 +539,7 @@ private fun CountdownStep(
         )
         Spacer(modifier = Modifier.height(32.dp))
         Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
+            KeepCircularProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.size(140.dp),
                 strokeWidth = 10.dp,
@@ -603,7 +562,7 @@ private fun CountdownStep(
             }
         }
         Spacer(modifier = Modifier.height(32.dp))
-        TextButton(
+        KeepTextButton(
             onClick = onCancel,
         ) {
             Text(

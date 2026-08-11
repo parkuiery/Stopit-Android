@@ -1,6 +1,5 @@
 package com.uiery.keep.feature.onboarding.goal
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +13,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
+import com.uiery.kds.KeepRadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +38,7 @@ import com.uiery.keep.domain.firstpromise.FirstPromiseGoal
 import com.uiery.keep.feature.onboarding.OnboardingActionStack
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @Composable
 fun GoalSelectScreen(
@@ -59,10 +58,13 @@ fun GoalSelectScreen(
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxSize().padding(insets.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },
@@ -102,7 +104,7 @@ private fun GoalOption(
 ) {
     val selected = selectedGoal == goal
     val shape = RoundedCornerShape(12.dp)
-    Card(
+    KeepCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
@@ -112,20 +114,16 @@ private fun GoalOption(
                 onClick = { onSelect(goal) },
             ),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) KeepTheme.colors.primary else KeepTheme.colors.tertiary),
+        variant = if (selected) KeepCardVariant.BrandWeak else KeepCardVariant.LayerDefault,
+        bordered = true,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RadioButton(
+            KeepRadioButton(
                 selected = selected,
                 onClick = null,
-                colors = RadioButtonDefaults.colors(
-                    selectedColor = KeepTheme.colors.primary,
-                    unselectedColor = KeepTheme.colors.onSurfaceVariant,
-                ),
             )
             Text(
                 modifier = Modifier.padding(start = 12.dp),

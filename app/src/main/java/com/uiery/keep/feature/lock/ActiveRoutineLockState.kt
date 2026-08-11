@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 internal data class ActiveRoutineLockState(
     val routines: List<RoutineModel>,
     val blockedApps: Set<String>,
+    val blockedWebDomains: Set<String>,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
 )
@@ -35,6 +36,7 @@ internal fun resolveActiveRoutineLockState(
         return ActiveRoutineLockState(
             routines = emptyList(),
             blockedApps = emptySet(),
+            blockedWebDomains = emptySet(),
             startTime = nowDateTime,
             endTime = nowDateTime,
         )
@@ -47,6 +49,10 @@ internal fun resolveActiveRoutineLockState(
                 .toCollection(linkedSetOf()),
             exemptPackages = exemptPackages,
         )
+    // 도메인은 패키지가 아니므로 앱 면제 정책의 대상이 아니다.
+    val blockedWebDomains = activeRoutines
+        .flatMap { it.lockWebsites.orEmpty() }
+        .toCollection(linkedSetOf())
     val startTime =
         activeRoutines.minOf { routine ->
             currentRoutineWindowStartDateTime(
@@ -67,6 +73,7 @@ internal fun resolveActiveRoutineLockState(
     return ActiveRoutineLockState(
         routines = activeRoutines,
         blockedApps = blockedApps,
+        blockedWebDomains = blockedWebDomains,
         startTime = startTime,
         endTime = endTime,
     )

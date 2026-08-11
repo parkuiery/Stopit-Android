@@ -10,8 +10,16 @@ Reusable KDS Compose components such as buttons, checkboxes, snackbars, modal sh
 | File | Description |
 |------|-------------|
 | `KeepButton.kt` | Kotlin source for keep button. |
+| `KeepBadge.kt` | Status and property badge variants. |
+| `KeepCard.kt` | Semantic content surfaces. |
+| `KeepChip.kt` | Action, toggle, and radio chips. |
 | `KeepCheckbox.kt` | Kotlin source for keep checkbox. |
+| `KeepLabel.kt` | Reusable label and metadata text hierarchy. |
+| `KeepMenu.kt` | Floating action menu and semantic menu items. |
 | `KeepModalBottomSheet.kt` | Kotlin source for keep modal bottom sheet. |
+| `KeepProgressIndicator.kt` | Circular, linear, and step progress indicators. |
+| `KeepSegmentedControl.kt` | Compact mutually exclusive view switching. |
+| `KeepSelectableCard.kt` | Radio-style selectable surface. |
 | `KeepSnackBar.kt` | Kotlin source for keep snack bar. |
 | `RotatingCircleGradient.kt` | Kotlin source for rotating circle gradient. |
 
@@ -25,6 +33,10 @@ Reusable KDS Compose components such as buttons, checkboxes, snackbars, modal sh
 ### Working In This Directory
 - Keep components reusable and app-agnostic; do not introduce dependencies on `:app` packages.
 - Preserve KDS theme/token consistency and previewable Compose APIs where possible.
+- Before changing a `Keep*.kt` component, read `../../../../../../docs/components/README.md`,
+  its component guide, and the linked SEED source.
+- Keep component code and its local guide in the same change. Record intentional SEED
+  differences under `StopIt adaptation`.
 
 ### Testing Requirements
 - ./gradlew :core:kds:testDebugUnitTest

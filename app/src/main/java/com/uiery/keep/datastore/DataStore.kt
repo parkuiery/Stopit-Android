@@ -14,6 +14,7 @@ internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(n
 
 object PreferencesKey {
     val SELECTED_APP_PACKAGES = stringSetPreferencesKey("selected_app_packages")
+    val SELECTED_WEB_DOMAINS = stringSetPreferencesKey("selected_web_domains")
     val IS_KEEP = booleanPreferencesKey("is_keep")
     val FCM_TOKEN = stringPreferencesKey("fcm_token")
     val START_TIME = longPreferencesKey("start_time")
@@ -54,6 +55,7 @@ object PreferencesKey {
     val PARENT_MODE_STATE = stringPreferencesKey("parent_mode_state")
     val HAS_CHECKED_INSTALL_REFERRER_ATTRIBUTION = booleanPreferencesKey("has_checked_install_referrer_attribution")
     val USAGE_INSIGHT_DISMISSED = stringPreferencesKey("usage_insight_dismissed")
+    val USAGE_INSIGHT_PERMISSION_PROMPTS = intPreferencesKey("usage_insight_permission_prompts")
     val FIRST_PROMISE_ONBOARDING_STATE = stringPreferencesKey("first_promise_onboarding_state")
     val FIRST_PROMISE_PRACTICE_TOKEN = stringPreferencesKey("first_promise_practice_token")
     val FIRST_PROMISE_PRACTICE_DECISION = stringPreferencesKey("first_promise_practice_decision")

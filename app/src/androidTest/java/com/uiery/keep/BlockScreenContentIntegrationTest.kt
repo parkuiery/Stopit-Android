@@ -4,10 +4,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.uiery.kds.theme.KeepTheme
@@ -165,6 +167,56 @@ class BlockScreenContentIntegrationTest {
 
         assertEquals(1, applyClicks)
         assertEquals(1, dismissClicks)
+    }
+
+    @Test
+    fun theWayOutSurvivesTheFullestBlockScreen() {
+        // 첫 차단은 안내 문구·카운트다운·루틴 사유·반복 제안이 한꺼번에 붙는 회차다. 문구가
+        // 넘칠 때 아래 행동 묶음까지 밀려나면, 시스템 뒤로가기가 막혀 있어 사용자는 이 화면에
+        // 갇힌다. 넘치는 쪽은 문구여야 하고 나가는 길은 남아야 한다.
+        val suggestion = RepeatBlockRoutineSuggestion(
+            timeBucket = RepeatBlockTimeBucket.Night,
+            dayType = RepeatBlockDayType.Weekday,
+            categoryBucket = RepeatBlockCategoryBucket.Video,
+            repeatCountBucket = RepeatBlockCountBucket.ThreeToFive,
+            routineCoverageState = RoutineCoverageState.NotCovered,
+            reason = RepeatBlockSuggestionReason.RapidRetry,
+            prefillPackages = listOf("com.example.video", "com.example.shortvideo"),
+            prefillStartTime = LocalTime(hour = 22, minute = 0),
+            prefillEndTime = LocalTime(hour = 23, minute = 0),
+        )
+
+        composeRule.setContent {
+            KeepTheme {
+                BlockScreenContent(
+                    appName = "YouTube",
+                    blockMode = LockScreenMode.Routine,
+                    uiState = BlockUiState(
+                        dailyUnlockRemaining = 2,
+                        emergencyUnlockDailyLimit = 3,
+                        emergencyUnlockAvailabilityReason = EmergencyUnlockAvailabilityReason.Available,
+                        showFirstCoreActionFeedback = true,
+                        timedLockDeadline = java.time.LocalDateTime.now().plusHours(1),
+                        repeatBlockRoutineSuggestion = suggestion,
+                    ),
+                    showBannerAd = false,
+                    onShowEmergencyUnlock = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("block_screen_close_cta").assertIsDisplayed().assertIsEnabled()
+        composeRule.onNodeWithTag("block_screen_emergency_unlock_action").assertIsDisplayed()
+        composeRule.onNodeWithTag("block_screen_repeat_block_suggestion_card").assertIsDisplayed()
+
+        // 첫 차단 안내는 잘려서 사라지는 것이 아니라 스크롤로 닿을 수 있어야 한다.
+        composeRule.onNodeWithTag("block_screen_copy_area")
+            .performScrollToNode(
+                hasText(context.getString(R.string.block_screen_first_core_action_feedback)),
+            )
+        composeRule.onNodeWithText(context.getString(R.string.block_screen_first_core_action_feedback))
+            .assertIsDisplayed()
     }
 
     @Test

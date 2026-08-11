@@ -1,22 +1,33 @@
 package com.uiery.kds
 
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetDefaults
-import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.uiery.kds.theme.KeepTheme
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KeepBottomSheetDragHandle(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BottomSheetDefaults.DragHandle(
+            color = KeepTheme.semanticColors.stroke.neutralWeak,
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,30 +35,21 @@ fun KeepModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(),
-    sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
-    shape: Shape = BottomSheetDefaults.ExpandedShape,
-    containerColor: Color = KeepTheme.colors.onSecondary,
-    contentColor: Color = contentColorFor(containerColor),
-    tonalElevation: Dp = BottomSheetDefaults.Elevation,
-    scrimColor: Color = BottomSheetDefaults.ScrimColor,
-    dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle(color = KeepTheme.colors.tertiaryContainer) },
-    contentWindowInsets: @Composable () -> WindowInsets = { BottomSheetDefaults.windowInsets },
-    properties: ModalBottomSheetProperties = ModalBottomSheetProperties(),
+    dragHandle: @Composable (() -> Unit)? = { KeepBottomSheetDragHandle() },
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier.statusBarsPadding(),
         sheetState = sheetState,
-        sheetMaxWidth = sheetMaxWidth,
-        shape = shape,
-        containerColor = containerColor,
-        contentColor = contentColor,
-        tonalElevation = tonalElevation,
-        scrimColor = scrimColor,
+        sheetMaxWidth = BottomSheetDefaults.SheetMaxWidth,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = KeepTheme.semanticColors.background.layerSheet,
+        contentColor = KeepTheme.semanticColors.foreground.neutral,
+        tonalElevation = 0.dp,
+        scrimColor = KeepTheme.semanticColors.background.overlay,
         dragHandle = dragHandle,
-        contentWindowInsets = contentWindowInsets,
-        properties = properties,
+        contentWindowInsets = { BottomSheetDefaults.windowInsets },
         content = content,
     )
 }

@@ -339,14 +339,16 @@ class HomeViewModelActivationAnalyticsTest {
         val sideEffectJob = launchSideEffects(viewModel, sideEffects)
 
         delay(50)
-        viewModel.changeIsKeep(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        viewModel.changeIsKeep()
         delay(50)
 
         assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
         assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
         assertEquals(false, viewModel.container.stateFlow.value.isKeep)
         assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
-        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        // 차단 대상이 없는 것은 오류가 아니라 시작 과정의 한 단계다. 시트만 열고 스낵바로
+        // 나무라지 않는다.
+        assertEquals(emptyList<HomeSideEffect>(), sideEffects)
         sideEffectJob.cancel()
     }
 
@@ -359,14 +361,14 @@ class HomeViewModelActivationAnalyticsTest {
         val sideEffectJob = launchSideEffects(viewModel, sideEffects)
 
         delay(50)
-        viewModel.lockTime(noSelectedAppsMessage = "앱을 먼저 선택해 주세요")
+        viewModel.lockTime()
         delay(50)
 
         assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
         assertEquals(null, dataStore.snapshot()[PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED])
         assertEquals(null, dataStore.snapshot()[PreferencesKey.LOCK_TIME])
         assertEquals(true, viewModel.container.stateFlow.value.isShowCategoryBottomSheet)
-        assertEquals(HomeSideEffect.ShowSnackBar("앱을 먼저 선택해 주세요"), sideEffects.single())
+        assertEquals(emptyList<HomeSideEffect>(), sideEffects)
         sideEffectJob.cancel()
     }
 
@@ -423,6 +425,81 @@ class HomeViewModelActivationAnalyticsTest {
         delay(50)
 
         assertEquals(true, viewModel.container.stateFlow.value.showFirstLockActivationCta)
+    }
+
+    @Test
+    fun homeLoadsWebLockListSeparatelyFromAppSelection() = runBlocking {
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(
+                PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                PreferencesKey.SELECTED_WEB_DOMAINS to setOf("example.com"),
+            ),
+        )
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+
+        assertEquals(setOf("com.example.one"), viewModel.container.stateFlow.value.selectedAppPackage)
+        assertEquals(setOf("example.com"), viewModel.container.stateFlow.value.selectedWebDomains)
+    }
+
+    @Test
+    fun newlySelectedAppOffersWebLockRecommendationWithoutAutoAddingIt() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+        viewModel.selectLockTargetsComplete(
+            selectedAppPackages = setOf("com.google.android.youtube"),
+            selectedWebDomains = emptySet(),
+        )
+        delay(50)
+
+        assertEquals(
+            setOf("youtube.com", "youtu.be"),
+            viewModel.container.stateFlow.value.pendingWebsiteRecommendations
+                .flatMap { it.domains }
+                .map { it.value }
+                .toSet(),
+        )
+        assertEquals(emptySet<String>(), dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS])
+    }
+
+    @Test
+    fun acceptingWebLockRecommendationAddsDomainsToSeparateWebList() = runBlocking {
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+        )
+
+        delay(50)
+        viewModel.selectLockTargetsComplete(
+            selectedAppPackages = setOf("com.instagram.android"),
+            selectedWebDomains = emptySet(),
+        )
+        delay(50)
+        viewModel.acceptWebsiteLockRecommendations()
+        delay(50)
+
+        assertEquals(
+            setOf("instagram.com"),
+            viewModel.container.stateFlow.value.selectedWebDomains,
+        )
+        assertEquals(
+            setOf("instagram.com"),
+            dataStore.snapshot()[PreferencesKey.SELECTED_WEB_DOMAINS],
+        )
+        assertEquals(
+            emptyList<Any>(),
+            viewModel.container.stateFlow.value.pendingWebsiteRecommendations,
+        )
     }
 
     @Test
@@ -1170,7 +1247,10 @@ class HomeViewModelActivationAnalyticsTest {
     @Test
     fun loadUsageInsightCardOnResumeAfterPermissionGrantEmitsGrantedAndShownEvents() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
-        val dataStore = FakeDataStore(mutablePreferencesOf())
+        // 권한 카드는 첫 잠금을 경험한 뒤에만 노출되므로 그 상태를 전제로 둔다.
+        val dataStore = FakeDataStore(
+            mutablePreferencesOf(PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true),
+        )
         // 권한 미허용 상태로 시작하되, 허용 시 NightOwl 인사이트를 낼 데이터는 미리 심어둔다.
         val gateway = nightOwlUsageStatsGateway(permissionGranted = false)
         val viewModel = createViewModel(
@@ -1200,6 +1280,26 @@ class HomeViewModelActivationAnalyticsTest {
             analytics.loggedEvents.contains(
                 "usage_insight_card_shown" to mapOf<String, Any?>("insight_type" to "night_owl"),
             ),
+        )
+    }
+
+    @Test
+    fun usageAccessIsNotRequestedBeforeTheUserHasLockedAnythingOnce() = runBlocking {
+        // 아직 한 번도 잠가보지 않은 사용자에게는 권한의 대가로 보여줄 인사이트가 없다. 이 시점의
+        // 권한 요청은 정작 필요한 행동(차단 대상 고르기·첫 잠금)과 경쟁만 한다.
+        val dataStore = FakeDataStore(mutablePreferencesOf())
+        val gateway = nightOwlUsageStatsGateway(permissionGranted = false)
+        val viewModel = createViewModel(
+            dataStore = dataStore,
+            analytics = HomeRecordingKeepAnalytics(),
+            usageInsightRepository = homeUsageInsightRepository(dataStore, gateway),
+        )
+
+        delay(100)
+
+        assertEquals(
+            UsageInsightCardUiState.Hidden,
+            viewModel.container.stateFlow.value.usageInsightCard,
         )
     }
 

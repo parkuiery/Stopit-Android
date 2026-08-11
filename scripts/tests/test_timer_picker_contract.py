@@ -15,7 +15,10 @@ class TimerPickerContractDocsTest(unittest.TestCase):
         self.assertIn("time = blockTime", timer_case.group("args"))
 
     def test_routine_start_and_end_pickers_receive_distinct_external_times(self):
-        source = (ROOT / "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineTimeContent.kt").read_text()
+        source = (
+            ROOT
+            / "app/src/main/java/com/uiery/keep/feature/routine/component/RoutineBottomSheetContent.kt"
+        ).read_text()
         self.assertIn("time = startTime", source)
         self.assertIn("time = endTime", source)
 

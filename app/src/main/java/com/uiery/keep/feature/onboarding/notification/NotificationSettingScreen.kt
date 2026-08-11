@@ -34,6 +34,8 @@ import com.uiery.kds.KeepButton
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.feature.onboarding.OnboardingPermissionContext
+import com.uiery.keep.ui.component.withoutBottomInset
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 
 private fun ManagedActivityResultLauncher<String, Boolean>.requestNotificationPermission() {
     launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -86,54 +88,59 @@ fun NotificationSettingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
+                .padding(paddingValues.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            ) {
-            Text(
-                modifier = Modifier.padding(top = 36.dp).semantics { heading() },
-                text = stringResource(
-                    id = if (context == OnboardingPermissionContext.Control) {
-                        R.string.notification_permission_request
-                    } else {
-                        R.string.first_promise_notification_title
-                    },
-                ),
-                fontWeight = FontWeight.Bold,
-                lineHeight = 28.sp,
-                fontSize = 22.sp,
-                color = KeepTheme.colors.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(
-                    id = if (context == OnboardingPermissionContext.Control) {
-                        R.string.notification_habit_message
-                    } else {
-                        R.string.first_promise_notification_description
-                    },
-                ),
-                color = KeepTheme.colors.surfaceVariant,
-            )
-            LottieAnimation(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .padding(horizontal = 100.dp),
-                composition = composition,
-                speed = 0.8f,
-                iterations = LottieConstants.IterateForever,
-            )
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+            ) {
+                Text(
+                    modifier = Modifier.padding(top = 36.dp).semantics { heading() },
+                    text = stringResource(
+                        id = if (context == OnboardingPermissionContext.Control) {
+                            R.string.notification_permission_request
+                        } else {
+                            R.string.first_promise_notification_title
+                        },
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 28.sp,
+                    fontSize = 22.sp,
+                    color = KeepTheme.colors.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(
+                        id = if (context == OnboardingPermissionContext.Control) {
+                            R.string.notification_habit_message
+                        } else {
+                            R.string.first_promise_notification_description
+                        },
+                    ),
+                    color = KeepTheme.colors.surfaceVariant,
+                )
+                LottieAnimation(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                        .padding(horizontal = 100.dp),
+                    composition = composition,
+                    speed = 0.8f,
+                    iterations = LottieConstants.IterateForever,
+                )
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.allow_notification_permission),
-                onClick = {
-                    requestPermissionLauncher.requestNotificationPermission()
-                },
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.allow_notification_permission),
+                    bottomSpacing = false,
+                    onClick = {
+                        requestPermissionLauncher.requestNotificationPermission()
+                    },
+                )
+            }
         }
     }
 }

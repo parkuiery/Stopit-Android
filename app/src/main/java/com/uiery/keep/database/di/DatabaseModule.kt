@@ -37,6 +37,7 @@ internal object DatabaseModule {
             KeepDatabase.MIGRATION_4_5,
             KeepDatabase.MIGRATION_5_6,
             KeepDatabase.MIGRATION_6_7,
+            KeepDatabase.MIGRATION_7_8,
         )
         .build()
 

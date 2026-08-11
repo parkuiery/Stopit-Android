@@ -1,34 +1,29 @@
 package com.uiery.keep.feature.onboarding.proposal
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.uiery.kds.KeepCard
+import com.uiery.kds.KeepCardVariant
+import com.uiery.kds.KeepCircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -52,8 +47,13 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.uiery.keep.feature.onboarding.OnboardingBottomActionBar
 import com.uiery.kds.KeepButton
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import com.uiery.kds.KeepInputButton
 import com.uiery.kds.KeepModalBottomSheet
+import com.uiery.kds.KeepTimeInput
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
 import com.uiery.keep.domain.firstpromise.UsagePatternType
@@ -65,6 +65,7 @@ import java.util.Locale
 import java.util.Calendar
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
+import com.uiery.keep.ui.component.withoutBottomInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,10 +102,13 @@ fun PromiseProposalScreen(
 
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = KeepTheme.colors.background) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxSize().padding(insets.withoutBottomInset()),
         ) {
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
             ) {
                 Text(
                     modifier = Modifier.padding(top = 36.dp).semantics { heading() },
@@ -120,7 +124,7 @@ fun PromiseProposalScreen(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 72.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(
+                        KeepCircularProgressIndicator(
                             modifier = Modifier.semantics {
                                 contentDescription = loadingDescription
                                 stateDescription = loadingDescription
@@ -191,25 +195,28 @@ fun PromiseProposalScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = state.repeatDays.sorted().joinToString(" · ") {
-                            formatWeekdayShort(DayOfWeek.of(it), Locale.getDefault())
-                        },
-                        color = KeepTheme.colors.surfaceVariant,
-                    )
                 }
                 Spacer(Modifier.height(12.dp))
-                ProposalEditActions(onEdit = viewModel::showPicker)
+                ProposalEditActions(
+                    timeValue = formatTime(state.startMinutes),
+                    daysValue = state.repeatDays.sorted().joinToString(" · ") {
+                        formatWeekdayShort(DayOfWeek.of(it), Locale.getDefault())
+                    },
+                    appValue = state.appLabel,
+                    onEdit = viewModel::showPicker,
+                )
                 Spacer(Modifier.height(20.dp))
                 }
             }
-            KeepButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.first_promise_start),
-                enabled = state.canStart,
-                onClick = viewModel::startFirstPromise,
-            )
+            OnboardingBottomActionBar {
+                KeepButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.first_promise_start),
+                    enabled = state.canStart,
+                    bottomSpacing = false,
+                    onClick = viewModel::startFirstPromise,
+                )
+            }
         }
     }
 }
@@ -246,49 +253,66 @@ private fun formatAverageUsageDuration(totalMinutes: Long): String {
     }
 }
 
+/**
+ * 제안된 약속의 각 항목을 그 값 위에서 직접 고치게 한다.
+ *
+ * 3분할 가로 배치는 한 칸이 약 98dp까지 좁아져 "시간 바꾸기" 같은 라벨이 접히고, 고정 높이
+ * 버튼 안에서 잘렸다. 전폭 행으로 세우면 잘림이 구조적으로 사라지고, 현재 값을 같은 행에서
+ * 보여줄 수 있어 무엇을 바꾸는지 대조 없이 알 수 있다.
+ */
 @Composable
-internal fun ProposalEditActions(onEdit: (ProposalPicker) -> Unit) {
-    Row(
+internal fun ProposalEditActions(
+    timeValue: String,
+    daysValue: String,
+    appValue: String,
+    onEdit: (ProposalPicker) -> Unit,
+) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_time),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_time),
+            value = timeValue,
             onClick = { onEdit(ProposalPicker.StartTime) },
         )
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_days),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_days),
+            value = daysValue,
             onClick = { onEdit(ProposalPicker.RepeatDays) },
         )
-        ProposalEditButton(
-            text = stringResource(R.string.first_promise_change_app),
+        ProposalEditRow(
+            label = stringResource(R.string.first_promise_change_app),
+            value = appValue,
             onClick = { onEdit(ProposalPicker.App) },
         )
     }
 }
 
 @Composable
-private fun RowScope.ProposalEditButton(
-    text: String,
+private fun ProposalEditRow(
+    label: String,
+    value: String,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
-        modifier = Modifier.weight(1f).sizeIn(minHeight = 48.dp),
+    KeepInputButton(
+        placeholder = label,
+        value = value,
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = KeepTheme.colors.onSecondary,
-            contentColor = KeepTheme.colors.onSurfaceVariant,
-        ),
-        border = BorderStroke(1.dp, KeepTheme.colors.tertiary),
-        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp),
-    ) {
-        Text(
-            text = text,
-            maxLines = 1,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
+        leadingContent = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        trailingContent = {
+            Icon(
+                painter = painterResource(R.drawable.round_arrow_forward_ios_24),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+        },
+    )
 }
 
 internal enum class ProposalFactCopyVariant {
@@ -321,11 +345,10 @@ internal fun shouldShowUsageEstimateNote(factType: ProposalFactType): Boolean =
 
 @Composable
 private fun ProposalCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
+    KeepCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KeepTheme.colors.onSecondary),
-        border = BorderStroke(1.dp, KeepTheme.colors.tertiary),
+        bordered = true,
     ) {
         Column(modifier = Modifier.padding(20.dp), content = content)
     }
@@ -358,7 +381,7 @@ private fun StartTimePicker(startMinutes: Int, onChange: (Int) -> Unit) {
             color = KeepTheme.colors.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
-        TimeInput(state = pickerState)
+        KeepTimeInput(state = pickerState)
         Spacer(Modifier.height(24.dp))
         KeepButton(
             modifier = Modifier.fillMaxWidth(),
@@ -387,16 +410,15 @@ private fun RepeatDaysPicker(selected: Set<Int>, onConfirm: (Set<Int>) -> Unit) 
         ) {
             DayOfWeek.entries.forEach { day ->
                 val isSelected = day.value in pending
-                Card(
+                KeepCard(
                     modifier = Modifier
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .toggleable(isSelected, role = Role.Checkbox) {
                             val next = if (day.value in pending) pending - day.value else pending + day.value
                             if (next.isNotEmpty()) pending = next
                         },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) KeepTheme.colors.primary else KeepTheme.colors.onSecondary,
-                    ),
+                    variant = if (isSelected) KeepCardVariant.BrandSolid else KeepCardVariant.LayerDefault,
+                    bordered = !isSelected,
                 ) {
                     Column(
                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
@@ -405,7 +427,11 @@ private fun RepeatDaysPicker(selected: Set<Int>, onConfirm: (Set<Int>) -> Unit) 
                     ) {
                         Text(
                             text = formatWeekdayShort(day, Locale.getDefault()),
-                            color = if (isSelected) androidx.compose.ui.graphics.Color.White else KeepTheme.colors.onSurfaceVariant,
+                            color = if (isSelected) {
+                                KeepTheme.semanticColors.foreground.onBrand
+                            } else {
+                                KeepTheme.colors.onSurfaceVariant
+                            },
                         )
                     }
                 }

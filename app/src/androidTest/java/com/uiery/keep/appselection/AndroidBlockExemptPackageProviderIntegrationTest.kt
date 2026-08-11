@@ -6,6 +6,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,14 +34,14 @@ class AndroidBlockExemptPackageProviderIntegrationTest {
     }
 
     @Test
-    fun resolvesSettingsAsAnEssentialRatherThanAHomePackage() {
+    fun resolvesSettingsAsASensitiveRatherThanAHomePackage() {
         val settingsPackage = Intent(Settings.ACTION_SETTINGS)
             .resolveActivity(context.packageManager)
             ?.packageName ?: return
 
         val exempt = provider.exemptPackages()
 
-        assertTrue(exempt.essentialPackages.contains(settingsPackage))
+        assertTrue(exempt.sensitivePackages.contains(settingsPackage))
         assertFalse(exempt.homePackages.contains(settingsPackage))
     }
 
@@ -53,7 +55,51 @@ class AndroidBlockExemptPackageProviderIntegrationTest {
 
     @Test
     fun curatedWalletPackagesSurviveResolutionOnEveryDevice() {
-        assertTrue(provider.exemptPackages().essentialPackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+        assertTrue(provider.exemptPackages().sensitivePackages.containsAll(BlockExemptPackagePolicy.PAYMENT_PACKAGES))
+    }
+
+    @Test
+    fun lookupsWithinTheTtlReuseTheSameResolution() {
+        var now = 0L
+        val provider = AndroidBlockExemptPackageProvider(context) { now }
+
+        val first = provider.exemptPackages()
+        now += BlockExemptRoleCachePolicy.TTL_MS - 1
+
+        assertSame(first, provider.exemptPackages())
+    }
+
+    /**
+     * The identity check is the point: on an unchanged device the two results are equal either way,
+     * so only a distinct instance proves the roles were actually looked up again.
+     */
+    @Test
+    fun theTtlElapsingResolvesTheRolesAgain() {
+        var now = 0L
+        val provider = AndroidBlockExemptPackageProvider(context) { now }
+
+        val first = provider.exemptPackages()
+        now += BlockExemptRoleCachePolicy.TTL_MS
+        val second = provider.exemptPackages()
+
+        assertNotSame(first, second)
+        assertEquals(first, second)
+    }
+
+    /**
+     * Re-resolution must never cost the device its launcher exemption — an empty home set is what
+     * makes a home -> block screen -> home loop possible.
+     */
+    @Test
+    fun reResolvingNeverDropsTheHomeLauncher() {
+        var now = 0L
+        val provider = AndroidBlockExemptPackageProvider(context) { now }
+
+        val homePackages = provider.exemptPackages().homePackages
+        repeat(3) {
+            now += BlockExemptRoleCachePolicy.TTL_MS
+            assertEquals(homePackages, provider.exemptPackages().homePackages)
+        }
     }
 
     private companion object {

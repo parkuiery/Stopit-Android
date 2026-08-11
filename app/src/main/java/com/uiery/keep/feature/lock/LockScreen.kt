@@ -1,6 +1,7 @@
 package com.uiery.keep.feature.lock
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TextButton
+import com.uiery.kds.KeepTextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -50,7 +52,9 @@ import com.uiery.keep.analytics.AdPlacement
 import com.uiery.keep.analytics.toMetadata
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.TrackedBannerAd
+import com.uiery.keep.domain.lock.LockTargetKind
 import com.uiery.keep.ui.component.CategoryButton
+import com.uiery.keep.ui.component.WebsiteBlockingUnavailableBanner
 import com.uiery.keep.ui.component.CountDownContent
 import com.uiery.keep.ui.component.EmergencyUnlockBottomSheetContent
 import com.uiery.keep.service.emergencyUnlockActionUiState
@@ -140,6 +144,7 @@ fun LockScreen(
                 onClick = { },
                 enabled = false,
                 categorySize = uiState.selectedAppPackage.size,
+                websiteSize = uiState.selectedWebDomains.size,
             )
             AnimatedVisibility(
                 visible = uiState.isEmergencyUnlockActive,
@@ -176,6 +181,9 @@ fun LockScreen(
                     )
                 }
             }
+            WebsiteBlockingUnavailableBanner(
+                hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -243,18 +251,23 @@ fun LockScreen(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = if (isMultiDay) {
-                        stringResource(R.string.lock_screen_unavailable_message_with_date, formattedTime)
-                    } else {
-                        stringResource(R.string.lock_screen_unavailable_message, formattedTime)
-                    },
+                    text = stringResource(
+                        lockUnavailableMessageRes(
+                            lockTargetKind = LockTargetKind.of(
+                                hasApps = uiState.selectedAppPackage.isNotEmpty(),
+                                hasWebsites = uiState.selectedWebDomains.isNotEmpty(),
+                            ),
+                            isMultiDay = isMultiDay,
+                        ),
+                        formattedTime,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                     color = KeepTheme.colors.surfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 if (!uiState.isEmergencyUnlockActive) {
                     val emergencyUnlockAction = emergencyUnlockActionUiState(uiState.emergencyUnlockAvailabilityReason)
-                    TextButton(
+                    KeepTextButton(
                         onClick = viewModel::showEmergencyUnlockSheet,
                         enabled = emergencyUnlockAction.enabled,
                     ) {
@@ -278,6 +291,28 @@ fun LockScreen(
                     }
                 }
             }
+    }
+}
+
+@StringRes
+internal fun lockUnavailableMessageRes(
+    lockTargetKind: LockTargetKind,
+    isMultiDay: Boolean,
+): Int = when (lockTargetKind) {
+    LockTargetKind.Apps -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_with_date
+    } else {
+        R.string.lock_screen_unavailable_message
+    }
+    LockTargetKind.Websites -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_websites_with_date
+    } else {
+        R.string.lock_screen_unavailable_message_websites
+    }
+    LockTargetKind.AppsAndWebsites -> if (isMultiDay) {
+        R.string.lock_screen_unavailable_message_apps_and_websites_with_date
+    } else {
+        R.string.lock_screen_unavailable_message_apps_and_websites
     }
 }
 

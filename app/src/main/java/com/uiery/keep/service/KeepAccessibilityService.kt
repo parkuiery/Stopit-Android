@@ -5,11 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.media.AudioManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.data.goallock.GoalLockRepository
 import com.uiery.keep.data.parentmode.ParentModeSessionStore
@@ -53,7 +55,19 @@ class KeepAccessibilityService :
 
         fun blockingStateStore(): BlockingStateStore
 
+        fun blockExemptPackageProvider(): BlockExemptPackageProvider
+
         fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
+    }
+
+    /**
+     * Resolved on first block decision rather than injected, because a service is constructed by the
+     * framework and has no application context until it is created.
+     */
+    private val blockExemptPackageProvider: BlockExemptPackageProvider by lazy {
+        EntryPointAccessors
+            .fromApplication(applicationContext, RoutineRuntimeEntryPoint::class.java)
+            .blockExemptPackageProvider()
     }
 
     @Volatile
@@ -77,6 +91,8 @@ class KeepAccessibilityService :
     private var scheduledEmergencyUnlockCountdownExpireTime: Long = 0L
     private var emergencyUnlockCountdownRunnable: Runnable? = null
     private var timeBasedStartReevaluationRunnable: Runnable? = null
+    private var lastWindowStateChangedPackageName: String? = null
+    private var lastWindowStateChangedClassName: String? = null
     private val runtimeCollectorBootstrap = AccessibilityRuntimeCollectorBootstrap()
 
     companion object {
@@ -92,6 +108,12 @@ class KeepAccessibilityService :
                 applicationContext,
                 RoutineRuntimeEntryPoint::class.java,
             )
+            launch {
+                // Block decisions run on the main thread and resolve device roles themselves, so
+                // the first one would otherwise pay for a handful of binder calls inline. Warming
+                // the cache here spends them on IO before any window change arrives.
+                blockExemptPackageProvider.exemptPackages()
+            }
             launch {
                 entryPoint.blockingStateStore().accessibilitySnapshot
                     .withAccessibilityRuntimeRecovery(
@@ -163,6 +185,8 @@ class KeepAccessibilityService :
 
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
+        lastWindowStateChangedPackageName = packageName
+        lastWindowStateChangedClassName = event.className?.toString()
         KeepAccessibilityServiceDebugState.update(applicationContext) {
             it.copy(lastWindowStateChangedPackage = packageName)
         }
@@ -222,24 +246,36 @@ class KeepAccessibilityService :
         }
     }
 
+    /**
+     * Pairs the stored lock state with the device roles as they are *right now*.
+     *
+     * The exemptions are read here rather than carried in [AccessibilityBlockingSnapshot] because
+     * the snapshot only re-derives when DataStore emits. A user who changes their default launcher
+     * or dialer changes nothing in DataStore, so a snapshot-carried exemption would keep naming the
+     * app they replaced until the next unrelated preference write.
+     */
+    private fun AccessibilityBlockingSnapshot.withCurrentExemptPackages() =
+        AccessibilityBlockingPreferences(
+            isKeep = isKeep,
+            lockTime = lockTime,
+            selectedAppPackages = selectedAppPackages,
+            exemptPackages = blockExemptPackageProvider.exemptPackages(),
+        )
+
     private fun blockIfNeeded(
         packageName: String,
         prefs: AccessibilityBlockingSnapshot,
     ) {
         val blockRequest = resolveForegroundBlockRequest(
             packageName = packageName,
-            prefs = AccessibilityBlockingPreferences(
-                isKeep = prefs.isKeep,
-                lockTime = prefs.lockTime,
-                selectedAppPackages = prefs.selectedAppPackages,
-                exemptPackages = prefs.exemptPackages,
-            ),
+            prefs = prefs.withCurrentExemptPackages(),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
+            isCallInProgress = isCallInProgress(),
         ) ?: return
 
         if (isDuplicateBlock(packageName = packageName, blockSource = blockRequest.blockSource)) return
@@ -289,18 +325,14 @@ class KeepAccessibilityService :
 
         val blockRequest = resolveServiceConnectionForegroundBlockRequest(
             currentForegroundPackage = packageName,
-            prefs = AccessibilityBlockingPreferences(
-                isKeep = prefs.isKeep,
-                lockTime = prefs.lockTime,
-                selectedAppPackages = prefs.selectedAppPackages,
-                exemptPackages = prefs.exemptPackages,
-            ),
+            prefs = prefs.withCurrentExemptPackages(),
             cachedRoutines = cachedRoutines,
             cachedGoalLocks = cachedGoalLocks,
             parentModeSession = cachedParentModeSession,
             parentControlPackages = setOf(BuildConfig.APPLICATION_ID),
             isEmergencyUnlocked = false,
             isDuplicateBlock = false,
+            isCallInProgress = isCallInProgress(),
         ) ?: return
 
         if (isDuplicateBlock(packageName = blockRequest.packageName, blockSource = blockRequest.blockSource)) return
@@ -331,6 +363,10 @@ class KeepAccessibilityService :
         eventPackageName: String,
     ): Boolean {
         if (eventPackageName !in KNOWN_UNINSTALL_PACKAGES) return false
+        val surfaceClassName = event?.className?.toString()
+            ?: lastWindowStateChangedClassName.takeIf {
+                lastWindowStateChangedPackageName == eventPackageName
+            }
         val appName = getString(R.string.app_name)
         val hasEventTextMatch = event?.text.orEmpty().any { text ->
             val value = text?.toString().orEmpty()
@@ -339,6 +375,7 @@ class KeepAccessibilityService :
         }
         val rootNode = rootInActiveWindow ?: return shouldInterceptUninstallAttempt(
             eventPackageName = eventPackageName,
+            surfaceClassName = surfaceClassName,
             hasApplicationIdMatch = false,
             hasAppNameMatch = false,
             hasEventTextMatch = hasEventTextMatch,
@@ -354,6 +391,7 @@ class KeepAccessibilityService :
             nameNodes?.forEach { it.recycle() }
             return shouldInterceptUninstallAttempt(
                 eventPackageName = eventPackageName,
+                surfaceClassName = surfaceClassName,
                 hasApplicationIdMatch = hasApplicationIdMatch,
                 hasAppNameMatch = hasAppNameMatch,
                 hasEventTextMatch = hasEventTextMatch,
@@ -527,6 +565,24 @@ class KeepAccessibilityService :
                 blockIfNeeded(packageName = packageName, prefs = cachedPrefs)
             }
         }
+    }
+
+    private val audioManager by lazy { getSystemService(AudioManager::class.java) }
+
+    /**
+     * Whether a call is ringing or connected.
+     *
+     * `TelephonyManager.getCallState` answers this more directly but needs `READ_PHONE_STATE`, and a
+     * screen-time app asking for phone permission is a steep price for one exemption. Audio mode
+     * needs no permission and covers the same window.
+     */
+    private fun isCallInProgress(): Boolean = when (audioManager?.mode) {
+        AudioManager.MODE_RINGTONE,
+        AudioManager.MODE_IN_CALL,
+        AudioManager.MODE_IN_COMMUNICATION,
+        -> true
+
+        else -> false
     }
 
     private fun currentForegroundPackage(): String? {
