@@ -149,6 +149,25 @@ class WebsiteBlockingRuntimePolicyTest {
         )
     }
 
+    @Test
+    fun emergencyUnlockIsNotAnInputToThisDecision() {
+        // 의도된 설계다. 긴급 해제는 KeepAccessibilityService 가 패키지 단위로 주는 면제라
+        // "유튜브 앱을 잠깐 연다"는 뜻이지 "브라우저로 유튜브를 본다"는 뜻이 아니다. 웹까지
+        // 열어 주면 앱 하나를 해제하는 것만으로 잠금 전체가 무력화된다.
+        //
+        // 이 계약은 시그니처가 지킨다. decide 에 긴급 해제 입력이 없는 한 어떤 호출자도
+        // 실수로 웹 차단을 함께 풀 수 없다. 긴급 해제를 반영하려면 파라미터를 늘려야 하고,
+        // 그 순간 이 테스트와 아래 문서를 같이 마주하게 된다.
+        // 사용자에게 알리는 쪽은 WebsiteBlockingEmergencyUnlockNotice 다.
+        assertEquals(
+            WebsiteBlockingRuntimeDecision.Running(
+                domains = setOf(DomainName("example.com")),
+                stopAtEpochMillis = null,
+            ),
+            decide(isKeep = true, selectedWebDomains = setOf("example.com")),
+        )
+    }
+
     private fun session(domain: String, stopAtEpochMillis: Long) =
         RoutineWebsiteBlockingSession(
             domains = setOf(DomainName(domain)),

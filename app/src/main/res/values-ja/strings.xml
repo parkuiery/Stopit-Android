@@ -534,4 +534,5 @@
     <string name="sensitive_block_reason_dialer">電話をかけられません。着信はそのまま受けられます</string>
     <string name="sensitive_block_reason_wallet">支払いができないことがあります</string>
     <string name="sensitive_block_reason_settings">端末の設定を変更できません</string>
+    <string name="emergency_unlock_websites_stay_blocked">緊急解除で開くのはアプリだけです。ウェブサイトはこのロックが終わるまでブロックされたままです。</string>
 </resources>
