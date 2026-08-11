@@ -3,9 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+        Website blocking runs on a local DNS VpnService that is still dev-only
+        (WEBSITE_BLOCKING_ENABLED is false in prod). Its FOREGROUND_SERVICE and
+        FOREGROUND_SERVICE_SPECIAL_USE permissions and the KeepDnsVpnService declaration
+        live in app/src/dev/AndroidManifest.xml, so the production AAB does not request a
+        special-use foreground service users cannot reach. Google Play rejected the 1.8.0
+        upload for exactly that gap. Move them here in the release that ships website
+        blocking to prod, and complete the Play Console foreground service declaration in
+        that same release. See docs/WEBSITE_BLOCKING_VPN_SPIKE.md.
+
+        ACCESS_NETWORK_STATE is not listed here either, but it still reaches the merged
+        manifest through play-services-ads-api, as FOREGROUND_SERVICE does through
+        androidx.work. Both were already in the shipped 1.7.12 manifest and are not what
+        Play asked us to declare.
+    -->
     <!--
         Stopit uses broad package visibility only for the app-selection picker where
         users choose launchable apps to block. The policy-sensitive query is isolated
@@ -66,22 +78,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-        <service
-            android:name=".websiteblocking.KeepDnsVpnService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:permission="android.permission.BIND_VPN_SERVICE">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
-                android:value="false" />
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Local DNS filtering blocks user-selected websites while a StopIt lock is active." />
-        </service>
-
         <receiver
             android:name=".receiver.RoutineAlarmReceiver"
             android:exported="false" />
