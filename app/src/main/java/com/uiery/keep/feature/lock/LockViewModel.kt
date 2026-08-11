@@ -29,6 +29,7 @@ import com.uiery.keep.service.EmergencyUnlockAvailabilityReason
 import com.uiery.keep.service.EmergencyUnlockCoordinator
 import com.uiery.keep.service.EmergencyUnlockNotificationHelper
 import com.uiery.keep.service.EmergencyUnlockRequestResult
+import com.uiery.keep.domain.websiteblocking.WebsiteBlockingAsserter
 import com.uiery.keep.service.LockHistoryRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -58,6 +59,7 @@ class LockViewModel
         private val reviewEligibility: ReviewEligibilityEvaluator,
         private val clock: Clock,
         private val firstPromisePracticeStore: FirstPromisePracticeStore,
+        private val websiteBlockingAsserter: WebsiteBlockingAsserter = WebsiteBlockingAsserter.None,
         private val blockExemptPackageProvider: BlockExemptPackageProvider = BlockExemptPackageProvider.None,
     ) : ViewModel(),
         ContainerHost<LockUiState, LockSideEffect> {
@@ -105,6 +107,30 @@ class LockViewModel
             }
             return resolvedStartTime
         }
+
+        /**
+         * 잠금 화면의 웹 차단 경고에서 권한을 다시 받았을 때 필터를 그 자리에서 세운다.
+         *
+         * 자동 경로는 한 번 거부한 잠금에 동의창을 다시 띄우지 않으므로(의도된 괴롭힘 방지),
+         * 도는 잠금의 웹 차단을 되살릴 길은 이 경로뿐이다. 시간 잠금 사용자는 잠금 화면에
+         * 머무르기 때문에 홈의 복구 버튼에 닿지 못한다.
+         */
+        internal fun retryWebsiteBlocking() =
+            intent {
+                // 마감이 과거면 넘기지 않는다. 서비스가 서자마자 스스로 멈춘다. 수동 Keep 처럼
+                // 마감이 없는 잠금은 lockTime 이 현재값이라 여기서 자연히 걸러진다.
+                val nowMillis = clock.millis()
+                val deadlineMillis = state.lockTime
+                    .atZone(clock.zone)
+                    .toInstant()
+                    .toEpochMilli()
+                    .takeIf { it > nowMillis }
+
+                websiteBlockingAsserter.assertAfterConsent(
+                    selectedWebDomains = state.selectedWebDomains,
+                    stopAtEpochMillis = deadlineMillis,
+                )
+            }
 
         private fun getSelectedApp() =
             intent {
