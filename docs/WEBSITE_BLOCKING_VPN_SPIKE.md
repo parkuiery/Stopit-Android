@@ -66,6 +66,40 @@ The service is non-exported, so start and stop the spike through the exported ac
   process restart.
 - Routines and goal locks still retain their existing app-only target models.
 
+## Manifest and Play Declaration Boundary
+
+The runtime flag is not the only boundary. `FOREGROUND_SERVICE`,
+`FOREGROUND_SERVICE_SPECIAL_USE`, `ACCESS_NETWORK_STATE`, and the `KeepDnsVpnService`
+declaration live in `app/src/dev/AndroidManifest.xml`, not `app/src/main/AndroidManifest.xml`,
+so the production AAB does not request a special-use foreground service that
+`WEBSITE_BLOCKING_ENABLED=false` makes unreachable.
+
+`FOREGROUND_SERVICE_SPECIAL_USE` and `KeepDnsVpnService` disappear from the prodRelease
+merged manifest as a result. `FOREGROUND_SERVICE` and `ACCESS_NETWORK_STATE` do not — they
+still arrive transitively from `androidx.work:work-runtime` and
+`com.google.android.gms:play-services-ads-api`. Both were already in the manifest that
+`1.7.12` shipped to production, so neither is what Play asked us to declare. Verify with the
+prodRelease merge blame report rather than by reading source manifests alone:
+`app/build/intermediates/manifest_merge_blame_file/prodRelease/**`.
+
+This is not cosmetic. Release `1.8.0` (versionCode 35) shipped these entries in the main
+manifest, and Google Play rejected the edit commit at upload time with
+`You must let us know whether your app uses any Foreground Service permissions.` The AAB
+uploaded but the edit never committed, so nothing reached the internal track. `1.8.1`
+(versionCode 36) moved the entries to the dev flavor.
+
+When website blocking is promoted to prod, the same release must do all of this together:
+
+1. Move the permissions and the `KeepDnsVpnService` declaration back into
+   `app/src/main/AndroidManifest.xml`.
+2. Complete the Play Console **App content → Foreground service permissions** declaration,
+   including the special-use justification for local DNS filtering.
+3. Expect the extra Play policy review that VPN-based apps receive, and budget release time
+   for it rather than discovering it during a tag push.
+
+`app/src/androidTestDev/java/com/uiery/keep/manifest/WebsiteBlockingSpikeManifestTest.kt`
+verifies the dev-flavor merged manifest, so it keeps passing on either side of that move.
+
 ## Build, Install, Start, Stop
 
 Build and install the dev APK:
