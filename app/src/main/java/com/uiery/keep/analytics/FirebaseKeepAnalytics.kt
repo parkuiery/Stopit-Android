@@ -365,6 +365,45 @@ class FirebaseKeepAnalytics
             )
         }
 
+        override fun trackWebsiteBlockingConsentResult(
+            granted: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.WEBSITE_BLOCKING_CONSENT_RESULT,
+                params = mapOf(
+                    KeepAnalyticsParam.IS_GRANTED to granted,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackWebsiteBlockingVpnConflictResolved(
+            displacedOtherVpn: Boolean,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.WEBSITE_BLOCKING_VPN_CONFLICT_RESOLVED,
+                params = mapOf(
+                    KeepAnalyticsParam.DISPLACED_OTHER_VPN to displacedOtherVpn,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackWebsiteBlockingStatusChanged(
+            status: String,
+            source: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.WEBSITE_BLOCKING_STATUS_CHANGED,
+                params = mapOf(
+                    KeepAnalyticsParam.WEBSITE_BLOCKING_STATUS to status,
+                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
         override fun trackFirstCoreActionCompleted(
             elapsedSinceFirstOpenSeconds: Long,
             blockingMode: String,

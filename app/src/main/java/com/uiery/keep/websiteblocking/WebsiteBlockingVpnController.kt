@@ -25,6 +25,8 @@ import com.uiery.keep.domain.websiteblocking.WebsiteBlockingConflictPolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingOwnership
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
 import com.uiery.keep.util.AppLogger
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 
 /**
  * 잠금 상태가 바뀔 때 DNS 차단 VPN 을 따라 세우고 내린다.
@@ -34,15 +36,25 @@ import com.uiery.keep.util.AppLogger
  *
  * 동의를 거부해도 잠금 자체는 진행한다. 앱 차단까지 함께 취소하면 사용자가 방금 한
  * 약속을 통째로 잃는다. 대신 [onConsentDenied] 로 웹사이트는 막히지 않는다고 알린다.
+ *
+ * 계측 콜백([onConsentResult], [onVpnConflictResolved], [onStatusChanged])은 화면이 들고 있는
+ * ViewModel 로 넘긴다. 이 컴포저블에 analytics 를 직접 주입하면 Hilt 없이 못 쓰는 UI 가 되고,
+ * 두 호출 화면이 서로 다른 entry surface 를 실어야 하는 것도 여기서는 알 수 없다.
  */
 @Composable
 fun WebsiteBlockingVpnController(
     decision: WebsiteBlockingRuntimeDecision,
     resumeCount: Int,
     onConsentDenied: () -> Unit,
+    onConsentResult: (granted: Boolean) -> Unit = {},
+    onVpnConflictResolved: (displacedOtherVpn: Boolean) -> Unit = {},
+    onStatusChanged: (status: WebsiteBlockingStatus) -> Unit = {},
 ) {
     val context = LocalContext.current
     val currentOnConsentDenied by rememberUpdatedState(onConsentDenied)
+    val currentOnConsentResult by rememberUpdatedState(onConsentResult)
+    val currentOnVpnConflictResolved by rememberUpdatedState(onVpnConflictResolved)
+    val currentOnStatusChanged by rememberUpdatedState(onStatusChanged)
     val currentDecision by rememberUpdatedState(decision)
     var pendingStart by remember { mutableStateOf<WebsiteBlockingRuntimeDecision.Running?>(null) }
     // 다른 VPN 을 끊어도 되는지 사용자가 답한 결과. 잠금이 끝나면 다시 물어본다.
@@ -54,10 +66,16 @@ fun WebsiteBlockingVpnController(
     ) { result ->
         val start = pendingStart
         pendingStart = null
+        val granted = result.resultCode == Activity.RESULT_OK
         val outcome = WebsiteBlockingConsentResultPolicy.outcome(
-            granted = result.resultCode == Activity.RESULT_OK,
+            granted = granted,
             hasPendingStart = start != null,
         )
+        // Ignore 는 우리가 띄우지 않은 결과라 사용자의 답이 아니다. 그것까지 세면 거부율이
+        // 실제보다 커진다.
+        if (outcome != WebsiteBlockingConsentOutcome.Ignore) {
+            currentOnConsentResult(granted)
+        }
         when (outcome) {
             WebsiteBlockingConsentOutcome.StartPending ->
                 start?.let { context.startWebsiteBlocking(it.domains, it.stopAtEpochMillis) }
@@ -138,6 +156,21 @@ fun WebsiteBlockingVpnController(
         context.startWebsiteBlocking(running.domains, running.stopAtEpochMillis)
     }
 
+    /*
+     * 필터 상태는 잠금이 도는 도중에도 바뀐다. 다른 VPN 이 슬롯을 가져가거나, 사용자가 설정에서
+     * 동의를 회수하거나, 업스트림 DNS 가 응답하지 않으면 서비스가 스스로 물러난다. 시작 시점
+     * 이벤트만 보면 그 구간을 전부 "차단 중"으로 착각하게 된다.
+     *
+     * 첫 방출은 건너뛴다. 화면에 붙을 때마다 현재 상태를 한 번씩 다시 실으면 같은 상태가
+     * 화면 진입 횟수만큼 쌓여서 전환이 아니라 체류가 세어진다.
+     */
+    LaunchedEffect(Unit) {
+        WebsiteBlockingRuntimeState.status
+            .drop(1)
+            .distinctUntilChanged()
+            .collect { currentOnStatusChanged(it) }
+    }
+
     pendingDisplacement?.let {
         KeepConfirmationDialog(
             title = stringResource(R.string.website_blocking_other_vpn_title),
@@ -148,11 +181,13 @@ fun WebsiteBlockingVpnController(
             onConfirm = {
                 pendingDisplacement = null
                 displacementApproved = true
+                currentOnVpnConflictResolved(true)
             },
             onDismiss = {
                 pendingDisplacement = null
                 // 잠금은 그대로 두고 웹 차단만 포기한다. 왜 막히지 않는지는 배너가 말한다.
                 WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Unavailable)
+                currentOnVpnConflictResolved(false)
             },
         )
     }

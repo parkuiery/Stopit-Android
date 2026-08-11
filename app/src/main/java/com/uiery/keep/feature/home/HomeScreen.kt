@@ -226,6 +226,9 @@ fun HomeScreen(
         decision = uiState.websiteBlockingRuntimeDecision(),
         resumeCount = resumeCount,
         onConsentDenied = { viewModel.showSnackBar(websiteBlockingConsentDeniedMessage) },
+        onConsentResult = viewModel::trackWebsiteBlockingConsentResult,
+        onVpnConflictResolved = viewModel::trackWebsiteBlockingVpnConflictResolved,
+        onStatusChanged = viewModel::trackWebsiteBlockingStatusChanged,
     )
 
     // 웹사이트 탭이 닫혀 있는 빌드에서는 추천도 꺼낼 자리가 없다.
