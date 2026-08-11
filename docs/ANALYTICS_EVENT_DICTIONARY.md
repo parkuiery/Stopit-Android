@@ -174,6 +174,22 @@ Treatment의 `step_name`은 `goal_select`, `usage_access`, `promise_proposal`, `
 | `emergency_unlock_validation_blocked` | `step_name`, `validation_reason`, `reason_required_enabled`, `entry_surface` | reason/app/duration 단계의 필수 선택·입력 부족으로 다음 단계 진행이 막힌 시점. PR #1086 이후 passive invalid render가 아니라 사용자의 Next/Request blocked attempt에서만 기록한다. |
 | `emergency_unlock_cancelled` | `step_name`, `cancel_source`, `reason_required_enabled`, `entry_surface` | 실제 임시 해제 완료 전 sheet dismiss/back/cancel/system 중단. countdown cancel은 실패가 아니라 중립/긍정 자기통제 신호일 수 있다. |
 
+### 웹사이트 차단
+
+웹 차단은 사용자가 시스템 VPN 동의를 승인해야만 서고, 다른 VPN 앱 하나에 밀려 잠금 도중에 조용히 내려갈 수 있다. "잠금이 켜졌다"와 "웹사이트가 실제로 막혔다"는 서로 다른 사실이고, 그 차이를 출시 후에 판별할 수 있는 신호는 아래 셋뿐이다.
+
+| 이벤트명 | 주요 파라미터 | 설명 |
+| --- | --- | --- |
+| `website_blocking_consent_result` | `is_granted`, `entry_surface` | 시스템 VPN 동의창의 결과. 거부율이 곧 "웹 차단을 켰다고 믿지만 켜지지 않은" 사용자 비율이다. 우리가 띄우지 않은 결과(`Ignore`)는 사용자의 답이 아니므로 기록하지 않는다. |
+| `website_blocking_vpn_conflict_resolved` | `displaced_other_vpn`, `entry_surface` | 다른 VPN이 슬롯을 쥐고 있을 때 사용자의 선택. `false`면 잠금은 돌지만 웹사이트는 열려 있다. |
+| `website_blocking_status_changed` | `website_blocking_status`, `entry_surface` | 필터의 실제 상태 전환. `WebsiteBlockingStatus` enum 이름(`Active`/`Inactive`/`ConsentDenied`/`Unavailable`/`NetworkUnavailable`)만 싣는다. 화면 진입 시 현재 상태 재방출은 세지 않는다(체류가 아니라 전환을 센다). |
+
+금지 payload/query 축: **차단 도메인 원문, 도메인 목록, 도메인 개수, DNS 질의 내용, 브라우징 이력**. `docs/WEBSITE_BLOCKING_VPN_SPIKE.md`의 Privacy Rules가 이 경계의 source of truth다. 어떤 이벤트도 사용자가 무엇을 막았는지 알 수 있게 해서는 안 된다.
+
+GA4 Admin `customEvent:website_blocking_status`, `customEvent:is_granted`, `customEvent:displaced_other_vpn` 등록 전 live 0건은 병목 부재가 아니라 미관측 경계다. `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 따른다.
+
+이 셋은 **Firebase/GA4 전용이고 Amplitude allowlist에는 넣지 않았다.** `AllowlistFilteringBackend`는 opt-in이라 이름을 추가하지 않으면 Amplitude로 가지 않는다. `website_blocking_status_changed`는 네트워크가 불안정한 회선에서 잠금 한 건당 분당 1회까지 발생할 수 있어(업스트림 복구 backoff가 `5s`/`15s`/`60s`) `AMPLITUDE_MONTHLY_EVENT_CAP=180`을 한 사용자가 혼자 소진할 수 있다. Amplitude에서 이 지표를 보려면 cap 영향을 먼저 계산한다.
+
 긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline과 PR #675(`d2fab054`)의 step purpose copy baseline이 선택 사유/단계 목적 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 
 #467에서 별도 flow 실험 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. #779의 `docs/EMERGENCY_UNLOCK_STEP_ANALYTICS.md`는 이 후속 계측을 `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled`로 구체화한다. PR #783 이후 #779 Android analytics wiring 완료 상태이며, PR #1086 이후 validation-blocked는 passive invalid render가 아니라 action-driven blocked attempt로만 해석한다. GA4 Admin 등록·release/tag/Play deploy·D+14/D+30 readback 전 live 0건은 UX 병목 부재가 아니라 미관측 경계로 본다. 금지 payload/query 축: custom reason 원문, 앱 이름, package, raw selected app list, raw history, raw timestamp, raw duration option list, 설정 snapshot dump.
