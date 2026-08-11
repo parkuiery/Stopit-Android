@@ -131,9 +131,12 @@ android {
             dimension = "server"
             // prod is the only flavor that sends to Amplitude (when a key is present).
             buildConfigField("boolean", "AMPLITUDE_ENABLED", "true")
-            // 선택한 도메인을 실제로 막는 VPN 배선이 붙기 전까지 prod 에서는 웹사이트 탭을 닫아
-            // 둔다. 고를 수는 있는데 막히지는 않는 상태가 사용자에게 노출되면 안 된다.
-            buildConfigField("boolean", "WEBSITE_BLOCKING_ENABLED", "false")
+            // 웹사이트 잠금 대상 선택 UI. 도메인을 실제로 막는 DNS VPN 배선이 붙고 실기기
+            // 게이트가 모두 통과해 prod 에도 열었다. 이 값을 다시 false 로 내리려면
+            // app/src/main/AndroidManifest.xml 의 VpnService 선언과 포그라운드 서비스 권한도
+            // 같이 내려야 한다. 사용자가 도달할 수 없는 specialUse 포그라운드 서비스가 prod AAB
+            // 에 남아 있으면 Play 업로드가 막힌다(1.8.0 에서 실제로 막혔다).
+            buildConfigField("boolean", "WEBSITE_BLOCKING_ENABLED", "true")
             setAdMobConfig(
                 applicationId = "ca-app-pub-1537867411423705~6734784292",
                 blockTop = "ca-app-pub-1537867411423705/5467753282",

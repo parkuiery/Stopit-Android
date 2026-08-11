@@ -1,32 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+        KeepDnsVpnService and its FOREGROUND_SERVICE / FOREGROUND_SERVICE_SPECIAL_USE /
+        ACCESS_NETWORK_STATE permissions moved to app/src/main/AndroidManifest.xml when
+        website blocking shipped to prod. The dev flavor inherits them through manifest
+        merge, so redeclaring them here would only create drift.
 
+        What stays dev-only is the spike entry point: KeepDnsVpnSpikeActivity's source
+        lives in app/src/dev/java and drives the adb start/stop commands the runbook uses
+        for the two manual regression checks that cannot be automated (revoking VPN consent
+        from settings, and another app taking the VPN slot).
+        See docs/WEBSITE_BLOCKING_VPN_SPIKE.md.
+    -->
     <application>
         <activity
             android:name=".websiteblocking.KeepDnsVpnSpikeActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.Keep" />
-
-        <service
-            android:name=".websiteblocking.KeepDnsVpnService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:permission="android.permission.BIND_VPN_SERVICE">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
-                android:value="false" />
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Local DNS filtering blocks user-selected websites while a StopIt lock is active." />
-        </service>
-
     </application>
 </manifest>

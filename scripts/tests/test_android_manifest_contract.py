@@ -92,6 +92,10 @@ class AndroidManifestContractTest(unittest.TestCase):
             "android.permission.SCHEDULE_EXACT_ALARM",
             "android.permission.RECEIVE_BOOT_COMPLETED",
             "android.permission.PACKAGE_USAGE_STATS",
+            # Website blocking's local DNS VpnService. Play requires a matching App content
+            # foreground service declaration for as long as this ships; see
+            # scripts/tests/test_website_blocking_manifest_boundary.py.
+            "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
         ):
             with self.subTest(permission=permission):
                 self.uses_permission_named(permission)
