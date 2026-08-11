@@ -40,10 +40,11 @@ The service is non-exported, so start and stop the spike through the exported ac
 ## Product Integration Status
 
 - Home manages app and website targets as separate tabs and persists them under separate DataStore keys.
-  The website tab is gated by `BuildConfig.WEBSITE_BLOCKING_ENABLED`: `true` in the `dev` flavor,
-  `false` in `prod` until the runtime wiring below exists.
-- Selecting a supported app can produce a curated website recommendation; the recommendation state is
-  computed and stored, but the confirmation UI that surfaces it is not implemented yet.
+  The website tab is gated by `BuildConfig.WEBSITE_BLOCKING_ENABLED`, now `true` in both flavors.
+  The flag stays in place as the switch that must move together with the manifest declaration
+  described under "Manifest and Play Declaration Boundary".
+- Selecting a supported app can produce a curated website recommendation. `HomeViewModel` computes and
+  stores it, and `WebsiteLockRecommendationDialog` surfaces it for the user to accept or dismiss.
 - Manual Keep mode and timed locks accept app targets, website targets, or both.
 - Home requests system VPN consent when a lock with website targets becomes active, then starts
   `KeepDnsVpnService` with the normalized domain set. A timed lock also passes its deadline, so the
@@ -68,37 +69,50 @@ The service is non-exported, so start and stop the spike through the exported ac
 
 ## Manifest and Play Declaration Boundary
 
-The runtime flag is not the only boundary. `FOREGROUND_SERVICE`,
-`FOREGROUND_SERVICE_SPECIAL_USE`, `ACCESS_NETWORK_STATE`, and the `KeepDnsVpnService`
-declaration live in `app/src/dev/AndroidManifest.xml`, not `app/src/main/AndroidManifest.xml`,
-so the production AAB does not request a special-use foreground service that
-`WEBSITE_BLOCKING_ENABLED=false` makes unreachable.
+**Current state: website blocking ships to production.** `WEBSITE_BLOCKING_ENABLED` is
+`true` in both flavors, and `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`,
+`ACCESS_NETWORK_STATE`, and the `KeepDnsVpnService` declaration live in
+`app/src/main/AndroidManifest.xml`. The dev flavor inherits them through manifest merge and
+declares only `KeepDnsVpnSpikeActivity`, whose source is dev-only.
 
-`FOREGROUND_SERVICE_SPECIAL_USE` and `KeepDnsVpnService` disappear from the prodRelease
-merged manifest as a result. `FOREGROUND_SERVICE` and `ACCESS_NETWORK_STATE` do not — they
-still arrive transitively from `androidx.work:work-runtime` and
-`com.google.android.gms:play-services-ads-api`. Both were already in the manifest that
-`1.7.12` shipped to production, so neither is what Play asked us to declare. Verify with the
-prodRelease merge blame report rather than by reading source manifests alone:
-`app/build/intermediates/manifest_merge_blame_file/prodRelease/**`.
+`FOREGROUND_SERVICE` and `ACCESS_NETWORK_STATE` would also arrive transitively from
+`androidx.work:work-runtime` and `com.google.android.gms:play-services-ads-api`, so dropping
+those two lines would not fail the build. They are declared explicitly anyway so a
+dependency change cannot silently take the VPN's network callbacks away. Verify the shipped
+result with the prodRelease merge blame report rather than by reading source manifests
+alone: `app/build/intermediates/manifest_merge_blame_file/prodRelease/**`.
 
-This is not cosmetic. Release `1.8.0` (versionCode 35) shipped these entries in the main
-manifest, and Google Play rejected the edit commit at upload time with
-`You must let us know whether your app uses any Foreground Service permissions.` The AAB
-uploaded but the edit never committed, so nothing reached the internal track. `1.8.1`
-(versionCode 36) moved the entries to the dev flavor.
+### Why this boundary exists
 
-When website blocking is promoted to prod, the same release must do all of this together:
+Release `1.8.0` (versionCode 35) shipped these entries in the main manifest **while
+`WEBSITE_BLOCKING_ENABLED` was still `false` in prod**, and Google Play rejected the edit
+commit at upload time with `You must let us know whether your app uses any Foreground
+Service permissions.` The AAB uploaded but the edit never committed, so nothing reached the
+internal track. `1.8.1` (versionCode 36) moved the entries to the dev flavor and pinned them
+there with a contract test.
 
-1. Move the permissions and the `KeepDnsVpnService` declaration back into
-   `app/src/main/AndroidManifest.xml`.
-2. Complete the Play Console **App content → Foreground service permissions** declaration,
-   including the special-use justification for local DNS filtering.
-3. Expect the extra Play policy review that VPN-based apps receive, and budget release time
+The rule the rejection taught us: **a special-use foreground service may sit in the
+production AAB only while users can actually reach it, and only while the Play Console
+declaration is filled in.** Those three facts — the prod flag, the main manifest, and the
+Play Console declaration — move together or not at all.
+
+`scripts/tests/test_website_blocking_manifest_boundary.py` enforces the first two. If a
+future change turns `WEBSITE_BLOCKING_ENABLED` back off in prod, that test fails before the
+manifest can be left behind, and vice versa.
+
+### Play Console obligations while this ships
+
+1. **App content → Foreground service permissions** must stay declared, with the special-use
+   justification for local DNS filtering. Keep the wording aligned with the manifest's
+   `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` value; Play reviews the two against each other.
+2. Expect the extra Play policy review that VPN-based apps receive, and budget release time
    for it rather than discovering it during a tag push.
+3. The privacy policy and Data safety form must describe the local DNS filtering: domains are
+   matched on-device and no DNS query, browsing history, or domain list leaves the device.
 
 `app/src/androidTestDev/java/com/uiery/keep/manifest/WebsiteBlockingSpikeManifestTest.kt`
-verifies the dev-flavor merged manifest, so it keeps passing on either side of that move.
+verifies the dev-flavor merged manifest, so it kept passing across the move in both
+directions.
 
 ## Build, Install, Start, Stop
 
