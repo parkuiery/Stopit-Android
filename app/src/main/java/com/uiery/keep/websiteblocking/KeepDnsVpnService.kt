@@ -1,5 +1,6 @@
 package com.uiery.keep.websiteblocking
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -120,6 +121,20 @@ class KeepDnsVpnService : VpnService() {
         super.onDestroy()
     }
 
+    /*
+     * lint 는 prodRelease 변형에서 이 호출을 보고 <service> 의 foregroundServiceType 이 없다고
+     * 말한다. 맞는 말이고, 의도한 상태다. 이 서비스 선언과 FOREGROUND_SERVICE_SPECIAL_USE 는
+     * app/src/dev/AndroidManifest.xml 에만 있다. 사용자가 도달할 수 없는 기능 때문에 prod AAB
+     * 가 specialUse 포그라운드 서비스를 신고하면 Play 업로드가 막히기 때문이다(1.8.0 에서 실제로
+     * 막혔다). prod 에서는 웹사이트를 고를 수 없어 도메인 집합이 항상 비어 있고, 서비스를 세우는
+     * 두 경로 모두 비어 있으면 물러나므로 이 코드는 실행되지 않는다.
+     *
+     * 억제가 이 계약을 조용히 덮지 못하게 scripts/tests/test_website_blocking_manifest_boundary.py
+     * 가 prod 플래그와 두 매니페스트의 짝을 강제한다. 웹 차단을 prod 로 승격할 때는 그 테스트가
+     * 먼저 깨지므로, 매니페스트 복귀와 Play Console 포그라운드 서비스 선언을 같이 하게 된다.
+     * 자세한 경위는 docs/WEBSITE_BLOCKING_VPN_SPIKE.md 에 있다.
+     */
+    @SuppressLint("ForegroundServiceType")
     private fun startForegroundForSpike(blockedDomainCount: Int) {
         createNotificationChannel()
         ServiceCompat.startForeground(
