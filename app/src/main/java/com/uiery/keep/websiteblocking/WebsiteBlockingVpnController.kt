@@ -16,11 +16,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat
 import com.uiery.kds.KeepConfirmationDialog
 import com.uiery.kds.KeepConfirmationTone
 import com.uiery.keep.R
-import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingConflictPolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingOwnership
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
@@ -204,19 +202,5 @@ private fun Context.websiteBlockingOwnership(): WebsiteBlockingOwnership =
     } else {
         WebsiteBlockingOwnership.NotOwnedByKeep
     }
-
-private fun Context.startWebsiteBlocking(
-    domains: Set<DomainName>,
-    stopAtEpochMillis: Long?,
-) {
-    ContextCompat.startForegroundService(
-        this,
-        KeepDnsVpnService.startIntent(
-            context = this,
-            domains = domains,
-            stopAtEpochMillis = stopAtEpochMillis,
-        ),
-    )
-}
 
 private const val DIAGNOSTIC_TAG = "KeepRoutineWeb"

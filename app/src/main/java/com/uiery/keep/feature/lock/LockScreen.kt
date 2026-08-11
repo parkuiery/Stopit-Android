@@ -183,6 +183,7 @@ fun LockScreen(
             }
             WebsiteBlockingUnavailableBanner(
                 hasWebsiteTargets = uiState.selectedWebDomains.isNotEmpty(),
+                onConsentGranted = viewModel::retryWebsiteBlocking,
             )
             Box(
                 modifier = Modifier

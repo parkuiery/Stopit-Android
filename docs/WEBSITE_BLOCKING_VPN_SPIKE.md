@@ -52,6 +52,14 @@ The service is non-exported, so start and stop the spike through the exported ac
 - Declining consent does not cancel the lock. The app-blocking side of the lock keeps running and the
   user is told that websites are not blocked (snackbar plus a persistent banner on Home and the lock
   screen). The consent prompt is not raised again until that lock ends.
+- **Both banners can bring the filter back.** Granting permission alone does not raise the filter, so
+  the recovery button needs something that actually starts it. `WebsiteBlockingAsserter` is that
+  path, deliberately outside any screen: Home used to bump `resumeCount` to re-run its own effect,
+  which only works on the screen that owns `WebsiteBlockingVpnController`. A timed lock keeps the
+  user on the lock screen, where that trick is unavailable, so the warning there used to be visible
+  but unfixable for the rest of the lock (issue #1155). If the assert cannot stand the filter, it
+  restores the warning state instead of leaving the banner silently dismissed — a hidden warning over
+  an unblocked lock is worse than saying nothing.
 - `WebsiteBlockingRuntimeState` carries the difference between "lock is on" and "websites are actually
   blocked". The service publishes `Unavailable` when the TUN cannot be established (another VPN owns
   the slot) or when consent is revoked mid-lock, and the same banner explains it.
