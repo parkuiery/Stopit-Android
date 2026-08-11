@@ -88,8 +88,8 @@ android {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
         targetSdk = 35
-        versionCode = 34
-        versionName = "1.7.12"
+        versionCode = 35
+        versionName = "1.8.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
