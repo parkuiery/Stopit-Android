@@ -102,7 +102,7 @@ class RoutineViewModelRestoreSchedulingTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = routineNoticeStore,
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
     }
 

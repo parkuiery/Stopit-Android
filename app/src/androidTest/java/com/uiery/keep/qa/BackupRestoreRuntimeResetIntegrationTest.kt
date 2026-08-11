@@ -97,7 +97,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -123,7 +123,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@BackupRestoreRuntimeResetIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
@@ -168,7 +168,7 @@ class BackupRestoreRuntimeResetIntegrationTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
 
         waitUntil("Routine screen app-open path should persist restored routines into DataStore") {

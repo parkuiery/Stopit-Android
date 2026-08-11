@@ -182,13 +182,18 @@ Treatment의 `step_name`은 `goal_select`, `usage_access`, `promise_proposal`, `
 | --- | --- | --- |
 | `website_blocking_consent_result` | `is_granted`, `entry_surface` | 시스템 VPN 동의창의 결과. 거부율이 곧 "웹 차단을 켰다고 믿지만 켜지지 않은" 사용자 비율이다. 우리가 띄우지 않은 결과(`Ignore`)는 사용자의 답이 아니므로 기록하지 않는다. |
 | `website_blocking_vpn_conflict_resolved` | `displaced_other_vpn`, `entry_surface` | 다른 VPN이 슬롯을 쥐고 있을 때 사용자의 선택. `false`면 잠금은 돌지만 웹사이트는 열려 있다. |
-| `website_blocking_status_changed` | `website_blocking_status`, `entry_surface` | 필터의 실제 상태 전환. `WebsiteBlockingStatus` enum 이름(`Active`/`Inactive`/`ConsentDenied`/`Unavailable`/`NetworkUnavailable`)만 싣는다. 화면 진입 시 현재 상태 재방출은 세지 않는다(체류가 아니라 전환을 센다). |
+| `website_blocking_status_changed` | `website_blocking_status` | 필터의 실제 상태 전환. `WebsiteBlockingStatus` enum 이름(`Active`/`Inactive`/`ConsentDenied`/`Unavailable`/`NetworkUnavailable`)만 싣는다. `WebsiteBlockingStatusReporter`가 **프로세스 단위**로 관찰하므로 홈·루틴·잠금화면·서비스 어느 경로에서 바뀌든 잡힌다. 프로세스 기동 시 현재 상태 재방출은 세지 않는다(체류가 아니라 전환을 센다). `entry_surface`를 싣지 않는 이유: 이 전환은 화면과 무관하게 일어나고, 어떤 화면이 떠 있었는지는 사건의 성질이 아니다. |
+| `website_blocking_routine_session` | `outcome`, `website_blocking_trigger` | 루틴이 웹 차단을 세우거나 내린 회차. `outcome`은 `started`/`stopped`/`consent_missing`. `website_blocking_trigger`는 `routine_alarm`/`boot`/`routine_edit`. 아무것도 하지 않은 회차는 기록하지 않는다 — 알람과 부팅은 창 밖에서도 돌기 때문에 그것까지 세면 판정 횟수가 세션 신호를 덮는다. |
 
 금지 payload/query 축: **차단 도메인 원문, 도메인 목록, 도메인 개수, DNS 질의 내용, 브라우징 이력**. `docs/WEBSITE_BLOCKING_VPN_SPIKE.md`의 Privacy Rules가 이 경계의 source of truth다. 어떤 이벤트도 사용자가 무엇을 막았는지 알 수 있게 해서는 안 된다.
 
-GA4 Admin `customEvent:website_blocking_status`, `customEvent:is_granted`, `customEvent:displaced_other_vpn` 등록 전 live 0건은 병목 부재가 아니라 미관측 경계다. `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 따른다.
+`consent_missing`이 이 셋 중 가장 중요하다. 루틴 창은 열렸는데 VPN 동의가 없어 웹이 그대로 뚫려 있는 상태이고, 수신자에서는 시스템 동의창을 띄울 수조차 없다. 사용자가 앱을 열지 않으면 아무도 모른다. `website_blocking_trigger` 분포도 함께 읽는다 — 알람이 거의 세우지 못하고 `boot`/`routine_edit`이 계속 구제하고 있다면 이중화의 성공이 아니라 알람 경로가 고장 났다는 신호다(`docs/ROUTINE_WEBSITE_BLOCKING_TRIGGER_CONTRACT.md`).
 
-이 셋은 **Firebase/GA4 전용이고 Amplitude allowlist에는 넣지 않았다.** `AllowlistFilteringBackend`는 opt-in이라 이름을 추가하지 않으면 Amplitude로 가지 않는다. `website_blocking_status_changed`는 네트워크가 불안정한 회선에서 잠금 한 건당 분당 1회까지 발생할 수 있어(업스트림 복구 backoff가 `5s`/`15s`/`60s`) `AMPLITUDE_MONTHLY_EVENT_CAP=180`을 한 사용자가 혼자 소진할 수 있다. Amplitude에서 이 지표를 보려면 cap 영향을 먼저 계산한다.
+동의창 결과와 타 VPN 충돌은 홈에서만 발생한다. 시스템 동의창과 충돌 확인 대화상자는 화면에서만 뜰 수 있어서, 수신자 경로에는 대응하는 사건 자체가 없다. 그 경로의 동의 부재는 `consent_missing`으로 잡는다.
+
+GA4 Admin `customEvent:website_blocking_status`, `customEvent:website_blocking_trigger`, `customEvent:is_granted`, `customEvent:displaced_other_vpn` 등록 전 live 0건은 병목 부재가 아니라 미관측 경계다. `docs/GA4_CUSTOM_DIMENSION_REGISTRATION_RUNBOOK.md`를 따른다.
+
+이 넷은 **Firebase/GA4 전용이고 Amplitude allowlist에는 넣지 않았다.** `AllowlistFilteringBackend`는 opt-in이라 이름을 추가하지 않으면 Amplitude로 가지 않는다. `website_blocking_status_changed`는 네트워크가 불안정한 회선에서 잠금 한 건당 분당 1회까지 발생할 수 있어(업스트림 복구 backoff가 `5s`/`15s`/`60s`) `AMPLITUDE_MONTHLY_EVENT_CAP=180`을 한 사용자가 혼자 소진할 수 있다. Amplitude에서 이 지표를 보려면 cap 영향을 먼저 계산한다.
 
 긴급해제 flow copy/step 개선(#467)의 source of truth는 `docs/EMERGENCY_UNLOCK_FLOW_COPY.md`다. 이 계약은 새 이벤트를 요구하지 않는다. PR #575(`1a7c677`)의 Compose UI baseline이 reason-required ON/OFF flow를 자동 검증하고 PR #593(`79fdee8`)의 countdown TalkBack baseline이 waiting copy/remaining seconds/cancel affordance 접근성 노출을 고정하며 PR #604(`3e97f548`)의 selected reason reflection helper baseline과 PR #675(`d2fab054`)의 step purpose copy baseline이 선택 사유/단계 목적 확인 문구를 보강하더라도, Reason/app/duration/countdown copy 변경은 `emergency_unlock_completed.reason` existing enum key(`work`, `contact`, `info`, `habit`, `boredom`, `other`) 의미를 유지해야 하며 display label이나 custom reason 원문으로 대체하지 않는다. Reason-required-off 사용자는 reason 분포 해석에서 별도 confidence guardrail로 분리한다.
 

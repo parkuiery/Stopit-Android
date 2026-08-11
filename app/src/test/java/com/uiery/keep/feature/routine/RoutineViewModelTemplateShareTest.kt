@@ -104,7 +104,7 @@ class RoutineViewModelTemplateShareTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = RoutineNoticeStore(dataStore),
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
     }
 

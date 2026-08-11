@@ -12,6 +12,7 @@ import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.notification.NotificationHelper
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingTrigger
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import com.uiery.keep.notification.RoutineStartNotificationResult
@@ -143,7 +144,7 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             RoutineNoticeStore(dataStore).resetAlarmPermissionPrompt()
         }
 
-        routineWebsiteBlockingLauncher.apply(updatedRoutines)
+        routineWebsiteBlockingLauncher.apply(updatedRoutines, RoutineWebsiteBlockingTrigger.ROUTINE_ALARM)
     }
 
     private fun dataStoreFallbackMessage(
