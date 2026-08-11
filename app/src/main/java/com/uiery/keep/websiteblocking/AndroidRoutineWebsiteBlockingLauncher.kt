@@ -3,10 +3,13 @@ package com.uiery.keep.websiteblocking
 import android.content.Context
 import android.net.VpnService
 import androidx.core.content.ContextCompat
+import com.uiery.keep.analytics.AnalyticsWebsiteBlockingRoutineOutcome
+import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingApplyAction
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingApplyPolicy
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingPolicy
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingTrigger
 import com.uiery.keep.domain.websiteblocking.toRoutineWebsiteWindows
 import com.uiery.keep.model.RoutineModel
 import com.uiery.keep.util.AppLogger
@@ -28,8 +31,12 @@ class AndroidRoutineWebsiteBlockingLauncher
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val analytics: KeepAnalytics,
     ) : RoutineWebsiteBlockingLauncher {
-        override fun apply(routines: List<RoutineModel>) {
+        override fun apply(
+            routines: List<RoutineModel>,
+            trigger: RoutineWebsiteBlockingTrigger,
+        ) {
             val windows = routines.toRoutineWebsiteWindows()
             val session = RoutineWebsiteBlockingPolicy.resolveSession(windows)
             val hasVpnConsent = VpnService.prepare(context) == null
@@ -50,17 +57,25 @@ class AndroidRoutineWebsiteBlockingLauncher
                         WebsiteBlockingRuntimeState.status.value != WebsiteBlockingStatus.Inactive,
                 )
             ) {
+                // 아무것도 하지 않은 회차는 세지 않는다. 알람과 부팅은 창 밖에서도 돌기 때문에,
+                // 이걸 세면 "판정이 몇 번 돌았나"가 지표를 덮어 실제 세션 신호가 묻힌다.
                 RoutineWebsiteBlockingApplyAction.DoNothing -> Unit
 
                 RoutineWebsiteBlockingApplyAction.StopBlocking -> {
                     context.startService(KeepDnsVpnService.stopIntent(context))
                     WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Inactive)
+                    report(AnalyticsWebsiteBlockingRoutineOutcome.STOPPED, trigger)
                 }
 
-                RoutineWebsiteBlockingApplyAction.ReportConsentMissing ->
+                RoutineWebsiteBlockingApplyAction.ReportConsentMissing -> {
                     WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.ConsentDenied)
+                    // 가장 조용한 실패다. 루틴 창은 열렸는데 동의가 없어 웹은 그대로 뚫려 있고,
+                    // 수신자에서는 동의창을 띄울 수도 없다. 사용자가 앱을 열지 않으면 아무도
+                    // 모른다. 이 회차를 세지 않으면 우리도 모른다.
+                    report(AnalyticsWebsiteBlockingRoutineOutcome.CONSENT_MISSING, trigger)
+                }
 
-                is RoutineWebsiteBlockingApplyAction.StartBlocking ->
+                is RoutineWebsiteBlockingApplyAction.StartBlocking -> {
                     ContextCompat.startForegroundService(
                         context,
                         KeepDnsVpnService.startIntent(
@@ -69,7 +84,19 @@ class AndroidRoutineWebsiteBlockingLauncher
                             stopAtEpochMillis = action.session.stopAtEpochMillis,
                         ),
                     )
+                    report(AnalyticsWebsiteBlockingRoutineOutcome.STARTED, trigger)
+                }
             }
+        }
+
+        private fun report(
+            outcome: String,
+            trigger: RoutineWebsiteBlockingTrigger,
+        ) {
+            analytics.trackWebsiteBlockingRoutineSession(
+                outcome = outcome,
+                trigger = trigger.name.lowercase(),
+            )
         }
 
         private companion object {

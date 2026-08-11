@@ -60,7 +60,6 @@ import com.uiery.keep.feature.review.ReviewEligibilityEvaluator
 import com.uiery.keep.feature.review.SkipReason
 import com.uiery.keep.service.LockHistoryRecorder
 import com.uiery.keep.util.timeNow
-import com.uiery.keep.websiteblocking.WebsiteBlockingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -246,13 +245,6 @@ class HomeViewModel
         internal fun trackWebsiteBlockingVpnConflictResolved(displacedOtherVpn: Boolean) {
             analytics.trackWebsiteBlockingVpnConflictResolved(
                 displacedOtherVpn = displacedOtherVpn,
-                source = AnalyticsSource.HOME,
-            )
-        }
-
-        internal fun trackWebsiteBlockingStatusChanged(status: WebsiteBlockingStatus) {
-            analytics.trackWebsiteBlockingStatusChanged(
-                status = status.name,
                 source = AnalyticsSource.HOME,
             )
         }

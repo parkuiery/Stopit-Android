@@ -391,15 +391,24 @@ class FirebaseKeepAnalytics
             )
         }
 
-        override fun trackWebsiteBlockingStatusChanged(
-            status: String,
-            source: String,
-        ) {
+        override fun trackWebsiteBlockingStatusChanged(status: String) {
             backend.logEvent(
                 name = KeepAnalyticsEvent.WEBSITE_BLOCKING_STATUS_CHANGED,
                 params = mapOf(
                     KeepAnalyticsParam.WEBSITE_BLOCKING_STATUS to status,
-                    KeepAnalyticsParam.ENTRY_SURFACE to source,
+                ),
+            )
+        }
+
+        override fun trackWebsiteBlockingRoutineSession(
+            outcome: String,
+            trigger: String,
+        ) {
+            backend.logEvent(
+                name = KeepAnalyticsEvent.WEBSITE_BLOCKING_ROUTINE_SESSION,
+                params = mapOf(
+                    KeepAnalyticsParam.OUTCOME to outcome,
+                    KeepAnalyticsParam.WEBSITE_BLOCKING_TRIGGER to trigger,
                 ),
             )
         }

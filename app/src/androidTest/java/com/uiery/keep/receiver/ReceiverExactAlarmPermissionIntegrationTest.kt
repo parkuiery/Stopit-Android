@@ -89,7 +89,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -115,7 +115,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -151,7 +151,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
@@ -177,7 +177,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
         database.routineDao().insert(
             enabledRoutineEntity(
@@ -211,7 +211,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
@@ -240,7 +240,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
@@ -268,7 +268,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
@@ -313,7 +313,7 @@ class ReceiverExactAlarmPermissionIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverExactAlarmPermissionIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         seedRoutinePendingIntents(TEST_ROUTINE_ID, "Morning focus multi-day", repeatDays)

@@ -86,7 +86,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -117,7 +117,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -155,7 +155,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_TIME_CHANGED)
@@ -185,7 +185,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_TIMEZONE_CHANGED)
@@ -219,7 +219,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_TIMEZONE_CHANGED)
@@ -259,7 +259,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
@@ -281,7 +281,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
@@ -309,7 +309,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = scheduler
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_BOOT_COMPLETED)
@@ -338,7 +338,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = scheduler
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
@@ -370,7 +370,7 @@ class ReceiverRuntimeIntegrationTest {
             routineScheduler = RoutineScheduler(context)
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.restoreRoutinesForBoot(Intent.ACTION_MY_PACKAGE_REPLACED)
@@ -397,7 +397,7 @@ class ReceiverRuntimeIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
@@ -439,7 +439,7 @@ class ReceiverRuntimeIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
@@ -479,7 +479,7 @@ class ReceiverRuntimeIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
@@ -529,7 +529,7 @@ class ReceiverRuntimeIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@ReceiverRuntimeIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(
