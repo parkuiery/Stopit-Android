@@ -100,7 +100,7 @@ class KeepDnsVpnService : VpnService() {
             blockedDomainCount = blockedDomains.size,
             startId = startId,
         )
-        startForegroundForSpike(request.blockedDomainCount)
+        startForegroundNotice(request.blockedDomainCount)
         handleBindingCommand(bindingCoordinator.updateRequest(request))
         scheduleDeadlineStop(intent?.getLongExtra(EXTRA_STOP_AT_EPOCH_MILLIS, 0L) ?: 0L)
         return START_REDELIVER_INTENT
@@ -120,7 +120,7 @@ class KeepDnsVpnService : VpnService() {
         super.onDestroy()
     }
 
-    private fun startForegroundForSpike(blockedDomainCount: Int) {
+    private fun startForegroundNotice(blockedDomainCount: Int) {
         createNotificationChannel()
         ServiceCompat.startForeground(
             this,
@@ -149,7 +149,7 @@ class KeepDnsVpnService : VpnService() {
             shutdownWorkerLocked(previousWorker)
             closeInactiveTunLocked(session)
             val executor = Executors.newSingleThreadExecutor { runnable ->
-                Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
+                Thread(runnable, "keep-dns-vpn-worker").apply { isDaemon = true }
             }
             worker = executor
             sessionOwner.publishWorkerHandle(DnsVpnWorkerHandle(session, executor))
@@ -245,7 +245,7 @@ class KeepDnsVpnService : VpnService() {
 
     private fun establishDnsOnlyTun(upstreamNetwork: Network): ParcelFileDescriptor? =
         Builder()
-            .setSession(getString(R.string.website_blocking_spike_vpn_session))
+            .setSession(getString(R.string.website_blocking_service_vpn_session))
             .setMtu(TUN_MTU)
             .setUnderlyingNetworks(arrayOf(upstreamNetwork))
             .addAddress(VIRTUAL_IPV4_CLIENT, 32)
@@ -331,8 +331,8 @@ class KeepDnsVpnService : VpnService() {
     private fun buildNotification(blockedDomainCount: Int): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_stopit)
-            .setContentTitle(getString(R.string.website_blocking_spike_notification_title))
-            .setContentText(getString(R.string.website_blocking_spike_notification_text, blockedDomainCount))
+            .setContentTitle(getString(R.string.website_blocking_service_notification_title))
+            .setContentText(getString(R.string.website_blocking_service_notification_text, blockedDomainCount))
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -341,10 +341,10 @@ class KeepDnsVpnService : VpnService() {
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             CHANNEL_ID,
-            getString(R.string.website_blocking_spike_channel_name),
+            getString(R.string.website_blocking_service_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = getString(R.string.website_blocking_spike_channel_description)
+            description = getString(R.string.website_blocking_service_channel_description)
         }
         manager.createNotificationChannel(channel)
     }
@@ -594,8 +594,16 @@ class KeepDnsVpnService : VpnService() {
         const val EXTRA_STOP = "stop"
         const val EXTRA_STOP_AT_EPOCH_MILLIS = "stop_at_epoch_millis"
 
-        private const val CHANNEL_ID = "website_blocking_spike"
-        private const val DIAGNOSTIC_TAG = "KeepDnsVpnSpike"
+        /*
+         * 프로덕션 출시 이후에는 바꾸지 않는다. 채널 ID 를 바꾸면 Android 는 새 채널을 만들고,
+         * 사용자가 기존 채널에 해둔 설정(끄기·중요도·소리)은 아무도 보지 않는 채널에 남는다.
+         * 알림을 껐던 사용자에게 알림이 다시 뜨기 시작한다.
+         *
+         * 이 값은 스파이크 시절 `website_blocking_spike` 였고, prod 출시 직전에 마지막으로
+         * 정리했다. 그때가 바꿀 수 있는 마지막 시점이었다.
+         */
+        private const val CHANNEL_ID = "website_blocking"
+        private const val DIAGNOSTIC_TAG = "KeepWebsiteBlocking"
         private const val NOTIFICATION_ID = 53_053
         private const val VIRTUAL_IPV4_CLIENT = "10.111.0.2"
         private const val VIRTUAL_IPV4_DNS = "10.111.0.1"

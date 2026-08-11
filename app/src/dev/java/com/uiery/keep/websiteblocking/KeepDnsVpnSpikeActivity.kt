@@ -45,7 +45,7 @@ class KeepDnsVpnSpikeActivity : Activity() {
         )
         val normalizedDomain = (domainResult as? DomainNameNormalizationResult.Valid)?.domain
         if (normalizedDomain == null) {
-            statusView.setText(R.string.website_blocking_spike_invalid_domain)
+            statusView.setText(R.string.website_blocking_service_invalid_domain)
             return
         }
         pendingDomain = normalizedDomain
@@ -59,9 +59,9 @@ class KeepDnsVpnSpikeActivity : Activity() {
 
         if (resultCode == RESULT_OK) {
             startSpikeService(pendingDomain)
-            statusView.text = getString(R.string.website_blocking_spike_started, 1)
+            statusView.text = getString(R.string.website_blocking_service_started, 1)
         } else {
-            statusView.setText(R.string.website_blocking_spike_consent_denied)
+            statusView.setText(R.string.website_blocking_service_consent_denied)
         }
     }
 
@@ -69,9 +69,9 @@ class KeepDnsVpnSpikeActivity : Activity() {
         val consentIntent = VpnService.prepare(this)
         if (consentIntent == null) {
             startSpikeService(pendingDomain)
-            statusView.text = getString(R.string.website_blocking_spike_started, 1)
+            statusView.text = getString(R.string.website_blocking_service_started, 1)
         } else {
-            statusView.setText(R.string.website_blocking_spike_requesting_consent)
+            statusView.setText(R.string.website_blocking_service_requesting_consent)
             @Suppress("DEPRECATION")
             startActivityForResult(consentIntent, VPN_CONSENT_REQUEST_CODE)
         }
@@ -86,7 +86,7 @@ class KeepDnsVpnSpikeActivity : Activity() {
 
     private fun stopSpikeService() {
         startService(KeepDnsVpnService.stopIntent(this))
-        statusView.setText(R.string.website_blocking_spike_stopped)
+        statusView.setText(R.string.website_blocking_service_stopped)
     }
 
     private companion object {

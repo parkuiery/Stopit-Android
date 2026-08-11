@@ -43,9 +43,9 @@ Galaxy S21 (`SM-G991N`), Android 15, 2026-08-05. 접근성 권한을 끄고 앱�
 
 ```
 13:05:00.076 KeepRoutineWeb  routine_web total=5 active=3 withSites=4 session=true consent=true
-13:05:00.103 KeepDnsVpnSpike upstream_rebind network=133 dns_count=2
-13:05:01.745 KeepDnsVpnSpike upstream_attempt=failed address_family=4 error_type=SocketTimeoutException
-13:05:03.252 KeepDnsVpnSpike stop_reason=UpstreamUnavailable
+13:05:00.103 KeepWebsiteBlocking upstream_rebind network=133 dns_count=2
+13:05:01.745 KeepWebsiteBlocking upstream_attempt=failed address_family=4 error_type=SocketTimeoutException
+13:05:03.252 KeepWebsiteBlocking stop_reason=UpstreamUnavailable
 ```
 
 - 알람 → 정책 판정 → 동의 확인 → TUN 수립까지 화면 없이 동작한다.
@@ -204,7 +204,7 @@ adb shell appops set com.uiery.keep.dev SCHEDULE_EXACT_ALARM allow
 3. 알람 시각 이후 확인한다.
 
 ```bash
-adb logcat -d | grep -E "KeepRoutineWeb|KeepDnsVpnSpike"
+adb logcat -d | grep -E "KeepRoutineWeb|KeepWebsiteBlocking"
 adb shell dumpsys activity services com.uiery.keep.dev | grep -c KeepDnsVpnService
 adb shell "ping -c 1 <blocked-domain>"    # unknown host 여야 한다
 adb shell "ping -c 1 www.cloudflare.com"  # 정상 해석되어야 한다
@@ -225,9 +225,9 @@ adb shell "ping -c 1 www.cloudflare.com"  # 정상 해석되어야 한다
 복구(구멍 3)는 창 도중 기내 모드를 켰다 끄면 확인된다. 로그에서 다음 순서가 보여야 한다.
 
 ```
-KeepDnsVpnSpike stop_reason=UpstreamUnavailable
-KeepDnsVpnSpike upstream_recovery_scheduled ... attempt=1 delay_ms=5000
-KeepDnsVpnSpike upstream_recovery_retry ...
+KeepWebsiteBlocking stop_reason=UpstreamUnavailable
+KeepWebsiteBlocking upstream_recovery_scheduled ... attempt=1 delay_ms=5000
+KeepWebsiteBlocking upstream_recovery_retry ...
 ```
 
 이전 동작과의 차이는 첫 줄 뒤에 서비스가 **사라지지 않는다**는 점이다. 회복 전까지 배너는

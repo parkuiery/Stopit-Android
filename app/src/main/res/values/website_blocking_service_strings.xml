@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="website_blocking_spike_vpn_session" translatable="false">StopIt website blocking</string>
-    <string name="website_blocking_spike_channel_name" tools:ignore="MissingTranslation">Website blocking</string>
-    <string name="website_blocking_spike_channel_description" tools:ignore="MissingTranslation">Shows when local website blocking is active.</string>
-    <string name="website_blocking_spike_notification_title" tools:ignore="MissingTranslation">Website blocking active</string>
-    <string name="website_blocking_spike_notification_text" tools:ignore="MissingTranslation">Blocking %1$d configured website.</string>
-    <string name="website_blocking_spike_requesting_consent" translatable="false">Requesting local VPN consent for the dev DNS spike.</string>
-    <string name="website_blocking_spike_started" translatable="false">Dev DNS spike started. Blocking %1$d configured domain.</string>
-    <string name="website_blocking_spike_stopped" translatable="false">Dev DNS spike stopped.</string>
-    <string name="website_blocking_spike_consent_denied" translatable="false">VPN consent was not granted; dev DNS spike was not started.</string>
-    <string name="website_blocking_spike_invalid_domain" translatable="false">Domain extra is invalid; dev DNS spike was not started.</string>
+    <string name="website_blocking_service_vpn_session" translatable="false">StopIt website blocking</string>
+    <string name="website_blocking_service_channel_name" tools:ignore="MissingTranslation">Website blocking</string>
+    <string name="website_blocking_service_channel_description" tools:ignore="MissingTranslation">Shows when local website blocking is active.</string>
+    <string name="website_blocking_service_notification_title" tools:ignore="MissingTranslation">Website blocking active</string>
+    <string name="website_blocking_service_notification_text" tools:ignore="MissingTranslation">Blocking %1$d configured website.</string>
+    <string name="website_blocking_service_requesting_consent" translatable="false">Requesting local VPN consent for the dev DNS spike.</string>
+    <string name="website_blocking_service_started" translatable="false">Dev DNS spike started. Blocking %1$d configured domain.</string>
+    <string name="website_blocking_service_stopped" translatable="false">Dev DNS spike stopped.</string>
+    <string name="website_blocking_service_consent_denied" translatable="false">VPN consent was not granted; dev DNS spike was not started.</string>
+    <string name="website_blocking_service_invalid_domain" translatable="false">Domain extra is invalid; dev DNS spike was not started.</string>
 </resources>
