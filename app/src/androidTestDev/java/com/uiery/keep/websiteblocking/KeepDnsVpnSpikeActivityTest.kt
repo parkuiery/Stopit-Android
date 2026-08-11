@@ -28,7 +28,7 @@ class KeepDnsVpnSpikeActivityTest {
             val content = activity.findViewById<ViewGroup>(android.R.id.content)
             val statusView = content.getChildAt(0) as TextView
             assertEquals(
-                activity.getString(R.string.website_blocking_spike_stopped),
+                activity.getString(R.string.website_blocking_service_stopped),
                 statusView.text,
             )
             val activityInfo = activity.packageManager.getActivityInfo(
@@ -42,7 +42,7 @@ class KeepDnsVpnSpikeActivityTest {
                 .putExtra(KeepDnsVpnService.EXTRA_DOMAIN, "not a domain")
             activity.onNewIntent(invalidStartIntent)
             assertEquals(
-                activity.getString(R.string.website_blocking_spike_invalid_domain),
+                activity.getString(R.string.website_blocking_service_invalid_domain),
                 statusView.text,
             )
             activity.finish()

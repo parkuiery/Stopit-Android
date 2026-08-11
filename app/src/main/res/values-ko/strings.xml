@@ -567,10 +567,10 @@
     <string name="delete">삭제</string>
     <string name="lock_targets_selected">앱 %1$d개 · 웹사이트 %2$d개 선택</string>
     <string name="select_targets_to_lock">차단할 앱이나 웹사이트를 선택해 주세요.</string>
-    <string name="website_blocking_spike_channel_name">웹사이트 차단</string>
-    <string name="website_blocking_spike_channel_description">로컬 웹사이트 차단이 활성화되면 표시돼요.</string>
-    <string name="website_blocking_spike_notification_title">웹사이트 차단 중</string>
-    <string name="website_blocking_spike_notification_text">설정된 웹사이트 %1$d개를 차단하고 있어요.</string>
+    <string name="website_blocking_service_channel_name">웹사이트 차단</string>
+    <string name="website_blocking_service_channel_description">로컬 웹사이트 차단이 활성화되면 표시돼요.</string>
+    <string name="website_blocking_service_notification_title">웹사이트 차단 중</string>
+    <string name="website_blocking_service_notification_text">설정된 웹사이트 %1$d개를 차단하고 있어요.</string>
     <string name="sensitive_block_confirm_title">이 앱들도 함께 차단돼요</string>
     <string name="sensitive_block_confirm_include">모두 차단</string>
     <string name="sensitive_block_confirm_exclude">제외하고 계속</string>
