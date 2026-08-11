@@ -2249,6 +2249,71 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - Notes:
 ```
 
+### 웹사이트 차단(DNS VpnService) QA baseline
+
+Source of truth: `docs/WEBSITE_BLOCKING_VPN_SPIKE.md`
+
+웹 차단은 접근성 차단과 실패 모양이 다르다. 앱 차단은 foreground 전환마다 다시 판정하지만, 웹
+차단은 DNS VPN이 그 시간대 내내 떠 있어야 성립한다. 그래서 "잠금이 켜졌다"와 "웹사이트가 실제로
+막혔다"가 어긋날 수 있고, 그 어긋남이 사용자에게는 조용하다.
+
+**자동화할 수 없는 두 행이 이 문서에 있는 이유다.** 설정에서 VPN 권한을 회수하는 것과 다른 앱이
+VPN 슬롯을 가져가는 것은 사람 손이 필요하다(스파이크 문서 "Disposition of the previously
+unverified constraints"). 릴리즈마다 수동으로 돌아야 하는 회귀다.
+
+prod 병합 매니페스트의 `KeepDnsVpnService` 선언·비익스포트·`specialUse` 타입은
+`ManifestContractIntegrationTest`가 실기기에서 자동 검증한다. 아래는 그 게이트가 덮지 않는
+런타임 행동만 남긴다.
+
+```md
+## Website blocking runtime QA evidence
+- Build / variant (prodDebug 또는 내부 트랙 빌드):
+- Device / Android version / OEM:
+- 회선: Wi-Fi / 모바일 / 둘 다
+- 사전 상태:
+  - 다른 VPN 앱 설치 여부 / 이름:
+  - Android Private DNS 설정값:
+  - 브라우저 Secure DNS 설정값:
+- 동의 흐름:
+  - 웹사이트를 고른 잠금 시작 시 시스템 VPN 동의창이 뜬다: pass / fail
+  - 동의 승인 후 차단 도메인이 브라우저에서 막힌다: pass / fail
+  - 동의 거부 시 잠금은 계속되고 "웹사이트는 차단되지 않는다" 배너가 뜬다: pass / fail
+  - 거부한 잠금에서 동의창이 반복해서 뜨지 않는다: pass / fail
+  - 배너의 권한 재요청 버튼으로 그 자리에서 복구된다: pass / fail
+- 차단 정확도:
+  - 정확 도메인 차단: pass / fail
+  - 서브도메인 차단: pass / fail
+  - 유사 도메인(`not<domain>`, `<domain>.evil.test`)은 열린다: pass / fail
+  - 허용 사이트 로딩이 정상이다: pass / fail
+- 긴급 해제:
+  - 앱 선택 단계에 "웹사이트는 계속 차단된다" 고지가 보인다: pass / fail
+  - 해제 후에도 차단 도메인은 여전히 막힌다: pass / fail
+  - 웹 차단이 서 있지 않은 상태에서는 그 고지가 뜨지 않는다: pass / fail
+- 수동 회귀 (자동화 불가):
+  - 설정에서 VPN 권한 회수 → 서비스가 내려가고 배너가 상태를 설명한다: pass / fail
+  - 다른 VPN을 켤 때 확인 대화상자가 먼저 뜬다: pass / fail
+  - 거절하면 상대 VPN이 유지되고 잠금은 웹 차단 없이 계속된다: pass / fail
+  - 승인하면 웹 차단이 서고, 상대 VPN이 끊긴다는 사실을 미리 고지받았다: pass / fail
+- 생명주기:
+  - 잠금 종료 시 VPN이 내려가고 일반 인터넷이 3초 안에 돌아온다: pass / fail
+  - 재부팅 후 자동으로 되살아나지 않는다: pass / fail
+  - Wi-Fi ↔ 모바일 전환에서 허용 트래픽이 회복된다: pass / fail
+  - 비행기 모드에서 fail-open으로 물러나고 인터넷을 막지 않는다: pass / fail
+- 루틴 경로:
+  - 앱을 열지 않은 상태에서 루틴 알람만으로 웹 차단이 선다: pass / fail
+  - 창이 끝나면 스스로 멈춘다: pass / fail
+- 알려진 한계 (실패로 기록하지 않는다):
+  - 브라우저 명시 DoH / 엄격 Private DNS 우회: 확인함 / 미확인
+  - VPN 종료 순간 이미 날아간 조회 1건이 ~3초 지연: 확인함 / 미확인
+- 계측:
+  - 도메인이 어떤 이벤트에도 실리지 않는다: pass / fail
+- Verification:
+  - `python3 -m unittest scripts.tests.test_website_blocking_manifest_boundary`
+  - `./gradlew --console=plain :app:connectedProdDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.manifest.ManifestContractIntegrationTest`
+  - `./gradlew --console=plain :app:lintProdRelease`
+- Decision: pass / fail / needs follow-up
+```
+
 ## 9. 현재 한계
 
 - 이 문서는 수동/반수동 기준선이다.
@@ -2257,3 +2322,5 @@ release PR 또는 internal 배포 전에는 아래를 모두 체크한다.
 - 여전히 실제 cold boot와 더 넓은 device/OEM별 Accessibility surface는 수동 또는 추가 automation 전략이 필요하다. 다만 Android CI focused runtime smoke는 `KeepAccessibilityServiceIntegrationTest`로 대표적인 cross-app foreground 전환과 self-uninstall interception safety baseline을 이미 자동 검증한다.
 - 긴급해제 만료는 `app/src/androidTest/java/com/uiery/keep/service/EmergencyUnlockExpiryIntegrationTest.kt`로 state 정리와 재차단 대상 판정을 scriptable하게 검증하지만, 실제 third-party app foreground 전환까지 포함한 end-to-end evidence는 수동 시나리오를 함께 남기는 것이 안전하다.
 - issue #27이 완전히 닫히려면 위 통합 테스트와 수동 QA 기준이 함께 유지되어야 한다.
+- 웹 차단은 두 행이 구조적으로 자동화 불가다. 설정에서 VPN 권한을 회수하는 경로는 adb로 몰 수 없고(`appops set ACTIVATE_VPN deny`는 다음 `prepare()`만 막고 이미 선 세션은 그대로 둔다), 다른 VPN을 켜는 것은 사람의 탭이 필요하다. 릴리즈마다 수동 회귀로 남긴다.
+- 웹 차단 런타임은 minify된 빌드에서 실행된 이력이 없다. prodRelease는 R8이 걸리지만 `WEBSITE_BLOCKING_ENABLED`가 꺼져 있었고 계측 테스트는 devDebug에서 돈다. 코드에 리플렉션/직렬화가 없어 위험은 낮지만, 내부 트랙 빌드의 실기기 확인이 사실상 첫 minified 실행이므로 그 회차의 증거를 특히 신뢰한다.
