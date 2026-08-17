@@ -104,7 +104,7 @@ class NotificationChannelDisabledIntegrationTest {
             routineRepository = RoomRoutineRepository(database.routineDao())
             dataStore = this@NotificationChannelDisabledIntegrationTest.dataStore
             appContext = context
-            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { }
+            routineWebsiteBlockingLauncher = RoutineWebsiteBlockingLauncher { _, _ -> }
         }
 
         receiver.handleRoutineAlarm(

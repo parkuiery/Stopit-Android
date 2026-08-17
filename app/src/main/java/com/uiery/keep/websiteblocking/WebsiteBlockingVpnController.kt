@@ -16,11 +16,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat
 import com.uiery.kds.KeepConfirmationDialog
 import com.uiery.kds.KeepConfirmationTone
 import com.uiery.keep.R
-import com.uiery.keep.domain.websiteblocking.DomainName
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingConflictPolicy
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingOwnership
 import com.uiery.keep.domain.websiteblocking.WebsiteBlockingRuntimeDecision
@@ -34,15 +32,27 @@ import com.uiery.keep.util.AppLogger
  *
  * 동의를 거부해도 잠금 자체는 진행한다. 앱 차단까지 함께 취소하면 사용자가 방금 한
  * 약속을 통째로 잃는다. 대신 [onConsentDenied] 로 웹사이트는 막히지 않는다고 알린다.
+ *
+ * 계측 콜백([onConsentResult], [onVpnConflictResolved])은 화면이 들고 있는 ViewModel 로 넘긴다.
+ * 이 컴포저블에 analytics 를 직접 주입하면 Hilt 없이 못 쓰는 UI 가 되고, 두 호출 화면이 서로
+ * 다른 entry surface 를 실어야 하는 것도 여기서는 알 수 없다.
+ *
+ * 이 둘만 여기 있는 이유는 시스템 동의창과 충돌 확인 대화상자가 화면에서만 뜰 수 있어서다.
+ * 필터 **상태** 전환은 화면과 무관하게 일어나므로 [WebsiteBlockingStatusReporter] 가 프로세스
+ * 단위로 관찰한다. 그 관찰을 여기 두면 홈이 떠 있는 동안만 세게 된다.
  */
 @Composable
 fun WebsiteBlockingVpnController(
     decision: WebsiteBlockingRuntimeDecision,
     resumeCount: Int,
     onConsentDenied: () -> Unit,
+    onConsentResult: (granted: Boolean) -> Unit = {},
+    onVpnConflictResolved: (displacedOtherVpn: Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val currentOnConsentDenied by rememberUpdatedState(onConsentDenied)
+    val currentOnConsentResult by rememberUpdatedState(onConsentResult)
+    val currentOnVpnConflictResolved by rememberUpdatedState(onVpnConflictResolved)
     val currentDecision by rememberUpdatedState(decision)
     var pendingStart by remember { mutableStateOf<WebsiteBlockingRuntimeDecision.Running?>(null) }
     // 다른 VPN 을 끊어도 되는지 사용자가 답한 결과. 잠금이 끝나면 다시 물어본다.
@@ -54,10 +64,16 @@ fun WebsiteBlockingVpnController(
     ) { result ->
         val start = pendingStart
         pendingStart = null
+        val granted = result.resultCode == Activity.RESULT_OK
         val outcome = WebsiteBlockingConsentResultPolicy.outcome(
-            granted = result.resultCode == Activity.RESULT_OK,
+            granted = granted,
             hasPendingStart = start != null,
         )
+        // Ignore 는 우리가 띄우지 않은 결과라 사용자의 답이 아니다. 그것까지 세면 거부율이
+        // 실제보다 커진다.
+        if (outcome != WebsiteBlockingConsentOutcome.Ignore) {
+            currentOnConsentResult(granted)
+        }
         when (outcome) {
             WebsiteBlockingConsentOutcome.StartPending ->
                 start?.let { context.startWebsiteBlocking(it.domains, it.stopAtEpochMillis) }
@@ -148,11 +164,13 @@ fun WebsiteBlockingVpnController(
             onConfirm = {
                 pendingDisplacement = null
                 displacementApproved = true
+                currentOnVpnConflictResolved(true)
             },
             onDismiss = {
                 pendingDisplacement = null
                 // 잠금은 그대로 두고 웹 차단만 포기한다. 왜 막히지 않는지는 배너가 말한다.
                 WebsiteBlockingRuntimeState.update(WebsiteBlockingStatus.Unavailable)
+                currentOnVpnConflictResolved(false)
             },
         )
     }
@@ -184,19 +202,5 @@ private fun Context.websiteBlockingOwnership(): WebsiteBlockingOwnership =
     } else {
         WebsiteBlockingOwnership.NotOwnedByKeep
     }
-
-private fun Context.startWebsiteBlocking(
-    domains: Set<DomainName>,
-    stopAtEpochMillis: Long?,
-) {
-    ContextCompat.startForegroundService(
-        this,
-        KeepDnsVpnService.startIntent(
-            context = this,
-            domains = domains,
-            stopAtEpochMillis = stopAtEpochMillis,
-        ),
-    )
-}
 
 private const val DIAGNOSTIC_TAG = "KeepRoutineWeb"

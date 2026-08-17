@@ -154,6 +154,47 @@ interface KeepAnalytics {
         cancelSource: String = AnalyticsEmergencyUnlockCancelSource.UNKNOWN,
     ) = Unit
 
+    /**
+     * 시스템 VPN 동의창의 결과. 거부율이 곧 "웹 차단을 켰다고 믿지만 켜지지 않은" 사용자
+     * 비율이라, 이 값 없이는 기능이 도달했는지 자체를 알 수 없다.
+     */
+    fun trackWebsiteBlockingConsentResult(
+        granted: Boolean,
+        source: String,
+    ) = Unit
+
+    /**
+     * 다른 VPN 이 슬롯을 쥐고 있을 때 사용자가 무엇을 골랐는지. [displacedOtherVpn] 이 false 면
+     * 잠금은 돌지만 웹사이트는 열려 있다.
+     */
+    fun trackWebsiteBlockingVpnConflictResolved(
+        displacedOtherVpn: Boolean,
+        source: String,
+    ) = Unit
+
+    /**
+     * 웹 차단 필터가 실제로 어떤 상태인지. 잠금이 도는 도중에도 바뀔 수 있어서
+     * (동의 회수, 다른 VPN 이 슬롯을 가져감, 업스트림 DNS 무응답) 시작 시점 이벤트만으로는
+     * 잡히지 않는다. [status] 는 [com.uiery.keep.websiteblocking.WebsiteBlockingStatus] 이름이다.
+     *
+     * surface 를 싣지 않는다. 이 전환은 화면과 무관하게 일어나고
+     * [com.uiery.keep.websiteblocking.WebsiteBlockingStatusReporter] 가 프로세스 단위로 관찰한다.
+     */
+    fun trackWebsiteBlockingStatusChanged(status: String) = Unit
+
+    /**
+     * 루틴이 웹 차단을 세우거나 내린 회차. 이 경로는 화면 없이 돌기 때문에 사용자도 우리도
+     * 조용히 실패를 놓칠 수 있는 유일한 자리다. 특히 [AnalyticsWebsiteBlockingRoutineOutcome.CONSENT_MISSING]
+     * 은 창은 열렸는데 동의가 없어 웹이 뚫려 있는 상태이고, 수신자에서는 동의창을 띄울 수도 없다.
+     *
+     * [trigger] 는 네 계기 중 무엇이 이 세션을 세웠는지다. 알람이 거의 못 세우고 부팅·편집이
+     * 계속 구제하고 있다면 이중화의 성공이 아니라 알람 경로가 고장 났다는 신호다.
+     */
+    fun trackWebsiteBlockingRoutineSession(
+        outcome: String,
+        trigger: String,
+    ) = Unit
+
     fun trackFirstCoreActionCompleted(
         elapsedSinceFirstOpenSeconds: Long,
         blockingMode: String,
@@ -376,6 +417,17 @@ object KeepAnalyticsEvent {
     const val EMERGENCY_UNLOCK_STEP_VIEWED = "emergency_unlock_step_viewed"
     const val EMERGENCY_UNLOCK_VALIDATION_BLOCKED = "emergency_unlock_validation_blocked"
     const val EMERGENCY_UNLOCK_CANCELLED = "emergency_unlock_cancelled"
+
+    /*
+     * 웹 차단은 사용자가 승인해야만 서고, 다른 VPN 앱 하나에 밀려 조용히 내려갈 수 있다.
+     * "잠금은 켜졌다"와 "웹사이트가 실제로 막혔다"의 차이를 출시 후에 판별할 수 있는 신호는
+     * 이 셋뿐이다. 도메인은 어느 이벤트에도 싣지 않는다.
+     * docs/WEBSITE_BLOCKING_VPN_SPIKE.md 의 Privacy Rules 를 따른다.
+     */
+    const val WEBSITE_BLOCKING_CONSENT_RESULT = "website_blocking_consent_result"
+    const val WEBSITE_BLOCKING_VPN_CONFLICT_RESOLVED = "website_blocking_vpn_conflict_resolved"
+    const val WEBSITE_BLOCKING_STATUS_CHANGED = "website_blocking_status_changed"
+    const val WEBSITE_BLOCKING_ROUTINE_SESSION = "website_blocking_routine_session"
     const val FIRST_CORE_ACTION_COMPLETED = "first_core_action_completed"
     const val CORE_ACTION_COMPLETED = "core_action_completed"
     const val FCM_TOKEN_CAPTURED = "fcm_token_captured"
@@ -432,6 +484,10 @@ object KeepAnalyticsParam {
     const val PERMISSION_NAME = "permission_name"
     const val OUTCOME = "outcome"
     const val SOURCE = "source"
+    const val IS_GRANTED = "is_granted"
+    const val DISPLACED_OTHER_VPN = "displaced_other_vpn"
+    const val WEBSITE_BLOCKING_STATUS = "website_blocking_status"
+    const val WEBSITE_BLOCKING_TRIGGER = "website_blocking_trigger"
     const val IS_ROUTINE = "is_routine"
     const val END_REASON = "end_reason"
     const val UNLOCK_COUNT_REMAINING = "unlock_count_remaining"
@@ -558,6 +614,18 @@ object KeepAnalyticsScreen {
         BLOCK,
         LOCK,
     )
+}
+
+/**
+ * 루틴 웹 차단 판정이 실제로 한 일. 아무것도 하지 않은 회차(`DoNothing`)는 값이 없다 —
+ * 알람과 부팅은 창 밖에서도 돌기 때문에, 그것까지 세면 판정 횟수가 세션 신호를 덮는다.
+ */
+object AnalyticsWebsiteBlockingRoutineOutcome {
+    const val STARTED = "started"
+    const val STOPPED = "stopped"
+
+    /** 창은 열렸는데 VPN 동의가 없어 웹이 뚫려 있다. 수신자에서는 동의창을 띄울 수 없다. */
+    const val CONSENT_MISSING = "consent_missing"
 }
 
 object AnalyticsSource {

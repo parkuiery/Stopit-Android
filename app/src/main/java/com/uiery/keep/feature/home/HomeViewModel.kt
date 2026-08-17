@@ -235,6 +235,20 @@ class HomeViewModel
                 }
             }
 
+        internal fun trackWebsiteBlockingConsentResult(granted: Boolean) {
+            analytics.trackWebsiteBlockingConsentResult(
+                granted = granted,
+                source = AnalyticsSource.HOME,
+            )
+        }
+
+        internal fun trackWebsiteBlockingVpnConflictResolved(displacedOtherVpn: Boolean) {
+            analytics.trackWebsiteBlockingVpnConflictResolved(
+                displacedOtherVpn = displacedOtherVpn,
+                source = AnalyticsSource.HOME,
+            )
+        }
+
         internal fun showCategoryBottomSheet() =
             intent {
                 // 잠금 활성 중에는 차단 앱 선택을 변경할 수 없다 (우회 방지).

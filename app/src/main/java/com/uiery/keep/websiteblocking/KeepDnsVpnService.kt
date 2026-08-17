@@ -1,6 +1,5 @@
 package com.uiery.keep.websiteblocking
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -101,7 +100,7 @@ class KeepDnsVpnService : VpnService() {
             blockedDomainCount = blockedDomains.size,
             startId = startId,
         )
-        startForegroundForSpike(request.blockedDomainCount)
+        startForegroundNotice(request.blockedDomainCount)
         handleBindingCommand(bindingCoordinator.updateRequest(request))
         scheduleDeadlineStop(intent?.getLongExtra(EXTRA_STOP_AT_EPOCH_MILLIS, 0L) ?: 0L)
         return START_REDELIVER_INTENT
@@ -121,21 +120,7 @@ class KeepDnsVpnService : VpnService() {
         super.onDestroy()
     }
 
-    /*
-     * lint 는 prodRelease 변형에서 이 호출을 보고 <service> 의 foregroundServiceType 이 없다고
-     * 말한다. 맞는 말이고, 의도한 상태다. 이 서비스 선언과 FOREGROUND_SERVICE_SPECIAL_USE 는
-     * app/src/dev/AndroidManifest.xml 에만 있다. 사용자가 도달할 수 없는 기능 때문에 prod AAB
-     * 가 specialUse 포그라운드 서비스를 신고하면 Play 업로드가 막히기 때문이다(1.8.0 에서 실제로
-     * 막혔다). prod 에서는 웹사이트를 고를 수 없어 도메인 집합이 항상 비어 있고, 서비스를 세우는
-     * 두 경로 모두 비어 있으면 물러나므로 이 코드는 실행되지 않는다.
-     *
-     * 억제가 이 계약을 조용히 덮지 못하게 scripts/tests/test_website_blocking_manifest_boundary.py
-     * 가 prod 플래그와 두 매니페스트의 짝을 강제한다. 웹 차단을 prod 로 승격할 때는 그 테스트가
-     * 먼저 깨지므로, 매니페스트 복귀와 Play Console 포그라운드 서비스 선언을 같이 하게 된다.
-     * 자세한 경위는 docs/WEBSITE_BLOCKING_VPN_SPIKE.md 에 있다.
-     */
-    @SuppressLint("ForegroundServiceType")
-    private fun startForegroundForSpike(blockedDomainCount: Int) {
+    private fun startForegroundNotice(blockedDomainCount: Int) {
         createNotificationChannel()
         ServiceCompat.startForeground(
             this,
@@ -164,7 +149,7 @@ class KeepDnsVpnService : VpnService() {
             shutdownWorkerLocked(previousWorker)
             closeInactiveTunLocked(session)
             val executor = Executors.newSingleThreadExecutor { runnable ->
-                Thread(runnable, "keep-dns-vpn-spike").apply { isDaemon = true }
+                Thread(runnable, "keep-dns-vpn-worker").apply { isDaemon = true }
             }
             worker = executor
             sessionOwner.publishWorkerHandle(DnsVpnWorkerHandle(session, executor))
@@ -260,7 +245,7 @@ class KeepDnsVpnService : VpnService() {
 
     private fun establishDnsOnlyTun(upstreamNetwork: Network): ParcelFileDescriptor? =
         Builder()
-            .setSession(getString(R.string.website_blocking_spike_vpn_session))
+            .setSession(getString(R.string.website_blocking_service_vpn_session))
             .setMtu(TUN_MTU)
             .setUnderlyingNetworks(arrayOf(upstreamNetwork))
             .addAddress(VIRTUAL_IPV4_CLIENT, 32)
@@ -346,8 +331,8 @@ class KeepDnsVpnService : VpnService() {
     private fun buildNotification(blockedDomainCount: Int): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_stopit)
-            .setContentTitle(getString(R.string.website_blocking_spike_notification_title))
-            .setContentText(getString(R.string.website_blocking_spike_notification_text, blockedDomainCount))
+            .setContentTitle(getString(R.string.website_blocking_service_notification_title))
+            .setContentText(getString(R.string.website_blocking_service_notification_text, blockedDomainCount))
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -356,10 +341,10 @@ class KeepDnsVpnService : VpnService() {
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             CHANNEL_ID,
-            getString(R.string.website_blocking_spike_channel_name),
+            getString(R.string.website_blocking_service_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = getString(R.string.website_blocking_spike_channel_description)
+            description = getString(R.string.website_blocking_service_channel_description)
         }
         manager.createNotificationChannel(channel)
     }
@@ -609,8 +594,16 @@ class KeepDnsVpnService : VpnService() {
         const val EXTRA_STOP = "stop"
         const val EXTRA_STOP_AT_EPOCH_MILLIS = "stop_at_epoch_millis"
 
-        private const val CHANNEL_ID = "website_blocking_spike"
-        private const val DIAGNOSTIC_TAG = "KeepDnsVpnSpike"
+        /*
+         * 프로덕션 출시 이후에는 바꾸지 않는다. 채널 ID 를 바꾸면 Android 는 새 채널을 만들고,
+         * 사용자가 기존 채널에 해둔 설정(끄기·중요도·소리)은 아무도 보지 않는 채널에 남는다.
+         * 알림을 껐던 사용자에게 알림이 다시 뜨기 시작한다.
+         *
+         * 이 값은 스파이크 시절 `website_blocking_spike` 였고, prod 출시 직전에 마지막으로
+         * 정리했다. 그때가 바꿀 수 있는 마지막 시점이었다.
+         */
+        private const val CHANNEL_ID = "website_blocking"
+        private const val DIAGNOSTIC_TAG = "KeepWebsiteBlocking"
         private const val NOTIFICATION_ID = 53_053
         private const val VIRTUAL_IPV4_CLIENT = "10.111.0.2"
         private const val VIRTUAL_IPV4_DNS = "10.111.0.1"

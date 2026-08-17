@@ -536,4 +536,5 @@
     <string name="sensitive_block_reason_dialer">Você não poderá ligar. As chamadas recebidas continuam chegando.</string>
     <string name="sensitive_block_reason_wallet">Você pode não conseguir pagar</string>
     <string name="sensitive_block_reason_settings">Você não poderá alterar as configurações do dispositivo</string>
+    <string name="emergency_unlock_websites_stay_blocked">O desbloqueio de emergência abre apenas aplicativos. Os sites continuam bloqueados até este bloqueio terminar.</string>
 </resources>

@@ -4,20 +4,26 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <!--
-        Website blocking runs on a local DNS VpnService that is still dev-only
-        (WEBSITE_BLOCKING_ENABLED is false in prod). Its FOREGROUND_SERVICE and
-        FOREGROUND_SERVICE_SPECIAL_USE permissions and the KeepDnsVpnService declaration
-        live in app/src/dev/AndroidManifest.xml, so the production AAB does not request a
-        special-use foreground service users cannot reach. Google Play rejected the 1.8.0
-        upload for exactly that gap. Move them here in the release that ships website
-        blocking to prod, and complete the Play Console foreground service declaration in
-        that same release. See docs/WEBSITE_BLOCKING_VPN_SPIKE.md.
+        Website blocking runs a local DNS VpnService (KeepDnsVpnService, declared below)
+        while a lock is active. These three permissions belong to that feature.
 
-        ACCESS_NETWORK_STATE is not listed here either, but it still reaches the merged
-        manifest through play-services-ads-api, as FOREGROUND_SERVICE does through
-        androidx.work. Both were already in the shipped 1.7.12 manifest and are not what
-        Play asked us to declare.
+        They lived in app/src/dev/AndroidManifest.xml between 1.8.1 and this release,
+        because 1.8.0 shipped them to production while WEBSITE_BLOCKING_ENABLED was false
+        and Play rejected the upload edit: a special-use foreground service must not sit in
+        an AAB where users cannot reach it. The feature is enabled in prod now, so they
+        belong here — and the Play Console App content -> Foreground service permissions
+        declaration must stay filled in for as long as they do.
+
+        FOREGROUND_SERVICE and ACCESS_NETWORK_STATE also arrive transitively through
+        androidx.work and play-services-ads-api, so removing these lines would not fail the
+        build. They are declared explicitly anyway: a dependency change must not be able to
+        silently take the VPN's network callbacks away.
+
+        See docs/WEBSITE_BLOCKING_VPN_SPIKE.md.
     -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!--
         Stopit uses broad package visibility only for the app-selection picker where
         users choose launchable apps to block. The policy-sensitive query is isolated
@@ -78,6 +84,28 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        <!--
+            Non-exported: the system binds this through BIND_VPN_SERVICE after the user
+            approves the VpnService consent dialog. Nothing else may start it.
+            The specialUse subtype string below is what Play reviews; keep it in sync with
+            the Play Console foreground service declaration.
+        -->
+        <service
+            android:name=".websiteblocking.KeepDnsVpnService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
+                android:value="false" />
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Local DNS filtering blocks user-selected websites while a StopIt lock is active." />
+        </service>
+
         <receiver
             android:name=".receiver.RoutineAlarmReceiver"
             android:exported="false" />

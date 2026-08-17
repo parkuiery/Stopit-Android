@@ -10,6 +10,7 @@ import com.uiery.keep.datastore.RoutineNoticeStore
 import com.uiery.keep.datastore.RoutineStore
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingLauncher
+import com.uiery.keep.domain.websiteblocking.RoutineWebsiteBlockingTrigger
 import com.uiery.keep.notification.RoutineScheduleResult
 import com.uiery.keep.notification.RoutineScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,7 +65,7 @@ class BootReceiver : BroadcastReceiver() {
         // BOOT_COMPLETED 는 백그라운드 포그라운드-서비스 시작 제한의 면제 대상이지만 그
         // 면제는 방송을 처리하는 동안에만 열려 있다. 루틴이 많으면 아래 재예약 루프가
         // 길어지므로 그 전에 시작한다.
-        routineWebsiteBlockingLauncher.apply(routines)
+        routineWebsiteBlockingLauncher.apply(routines, RoutineWebsiteBlockingTrigger.BOOT)
 
         var updatedRoutines = routines
         val disabledRoutineIds = linkedSetOf<Long>()

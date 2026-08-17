@@ -536,4 +536,5 @@
     <string name="sensitive_block_reason_dialer">Du kannst nicht anrufen. Eingehende Anrufe kommen an.</string>
     <string name="sensitive_block_reason_wallet">Bezahlen funktioniert möglicherweise nicht</string>
     <string name="sensitive_block_reason_settings">Du kannst die Geräteeinstellungen nicht ändern</string>
+    <string name="emergency_unlock_websites_stay_blocked">Die Notfall-Entsperrung gibt nur Apps frei. Websites bleiben bis zum Ende dieser Sperre blockiert.</string>
 </resources>

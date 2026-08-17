@@ -358,6 +358,9 @@ private fun AppSelectionStep(
             color = KeepTheme.colors.onSurfaceVariant,
         )
         StepHelperText(stepHelperTextRes)
+        // 앱을 고르기 전에 알려야 한다. 해제한 뒤에 브라우저가 여전히 막히는 것을 보면
+        // 사용자는 그것을 고장으로 읽는다.
+        WebsiteBlockingEmergencyUnlockNotice(modifier = Modifier.padding(top = 12.dp))
         Spacer(modifier = Modifier.height(20.dp))
         if (EmergencyUnlockAppListPolicy.showsSearch(apps.size)) {
             SearchTextField(

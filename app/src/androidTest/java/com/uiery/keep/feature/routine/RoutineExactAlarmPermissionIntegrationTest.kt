@@ -188,7 +188,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
 
         waitUntil("Routine list should load from Room") {
@@ -236,7 +236,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
 
         waitUntil("Multi-day routine list should load from Room") {
@@ -284,7 +284,7 @@ class RoutineExactAlarmPermissionIntegrationTest {
                 exactAlarmOrchestrator = RoutineExactAlarmOrchestrator(scheduler),
                 routineNoticeStore = noticeStore,
             ),
-            routineWebsiteBlockingLauncher = { },
+            routineWebsiteBlockingLauncher = { _, _ -> },
         )
 
         waitUntil("Cleanup multi-day routine list should load from Room") {

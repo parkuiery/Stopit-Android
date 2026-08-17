@@ -546,4 +546,5 @@
     <string name="sensitive_block_reason_dialer">Вы не сможете звонить. Входящие будут поступать.</string>
     <string name="sensitive_block_reason_wallet">Оплата может не сработать</string>
     <string name="sensitive_block_reason_settings">Вы не сможете менять настройки устройства</string>
+    <string name="emergency_unlock_websites_stay_blocked">Экстренная разблокировка открывает только приложения. Сайты остаются заблокированными до конца этой блокировки.</string>
 </resources>

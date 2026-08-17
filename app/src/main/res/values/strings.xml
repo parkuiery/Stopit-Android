@@ -579,4 +579,5 @@
     <string name="sensitive_block_reason_dialer" tools:ignore="MissingTranslation">You cannot place calls. Incoming calls still come through.</string>
     <string name="sensitive_block_reason_wallet" tools:ignore="MissingTranslation">Paying may not work</string>
     <string name="sensitive_block_reason_settings" tools:ignore="MissingTranslation">You cannot change device settings</string>
+    <string name="emergency_unlock_websites_stay_blocked" tools:ignore="MissingTranslation">Emergency unlock opens apps only. Websites stay blocked until this lock ends.</string>
 </resources>
