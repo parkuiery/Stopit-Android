@@ -35,6 +35,17 @@ object PreferencesKey {
     val EMERGENCY_UNLOCK_MANUAL_RESET_AT = longPreferencesKey("emergency_unlock_manual_reset_at")
     val EMERGENCY_UNLOCK_COUNTDOWN_ENABLED = booleanPreferencesKey("emergency_unlock_countdown_enabled")
     val EMERGENCY_UNLOCK_COUNTDOWN_SECONDS = intPreferencesKey("emergency_unlock_countdown_seconds")
+
+    // emergency_unlock_completed 는 해제 승인이 아니라 해제 창이 실제로 끝났을 때 기록한다.
+    // 종료를 감지하는 쪽(AccessibilityService)은 승인 시점의 payload 를 모르고, 프로세스는
+    // 창이 열려 있는 동안 죽을 수 있다. 그래서 승인 시점에 payload 를 예약해두고 종료 시점에
+    // 꺼내 보낸다. reason 은 enum key 만 저장하며 custom reason 원문은 저장하지 않는다. (#1167)
+    val PENDING_EMERGENCY_UNLOCK_COMPLETION_REASON =
+        stringPreferencesKey("pending_emergency_unlock_completion_reason")
+    val PENDING_EMERGENCY_UNLOCK_COMPLETION_DURATION_MINUTES =
+        intPreferencesKey("pending_emergency_unlock_completion_duration_minutes")
+    val PENDING_EMERGENCY_UNLOCK_COMPLETION_REMAINING =
+        intPreferencesKey("pending_emergency_unlock_completion_remaining")
     val HAS_TRACKED_FIRST_OPEN = booleanPreferencesKey("has_tracked_first_open")
     val HAS_TRACKED_FIRST_LOCK_CONFIGURED = booleanPreferencesKey("has_tracked_first_lock_configured")
     val PENDING_FIRST_LOCK_CONFIGURED_SOURCE = stringPreferencesKey("pending_first_lock_configured_source")

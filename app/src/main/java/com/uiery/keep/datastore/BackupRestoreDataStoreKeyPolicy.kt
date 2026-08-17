@@ -36,6 +36,11 @@ object BackupRestoreDataStoreKeyPolicy {
         PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED,
         PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SOURCE,
         PreferencesKey.PENDING_FIRST_LOCK_CONFIGURED_SELECTED_APP_COUNT,
+        // 해제 창은 기기에 묶인 런타임 상태이고, 복원된 기기에서 끝나지도 않은 창의 완료를
+        // 보내면 안 된다. 예약 payload 도 함께 리셋한다. (#1167)
+        PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REASON,
+        PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_DURATION_MINUTES,
+        PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REMAINING,
         PreferencesKey.FIRST_OPEN_TIMESTAMP,
         PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION,
         PreferencesKey.REVIEW_PENDING,

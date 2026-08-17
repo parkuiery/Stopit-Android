@@ -174,18 +174,22 @@ capture가 이벤트 빈도와 **역상관**인지 먼저 본다. 저빈도 이�
 
 판독 전에 확인해야 하는 코드 레벨 사실이다. 코드가 바뀌면 이 절도 갱신한다.
 
-### `emergency_unlock_completed`는 완료가 아니라 승인 시점이다
+### `emergency_unlock_completed`는 이제 실제 종료 시점이다 (#1167)
 
-`EmergencyUnlockCoordinator.kt:119-127`이 `emergency_unlock_used`와 `emergency_unlock_completed`를
-해제 **승인 시점**에 조건 없이 연달아 호출한다. 두 이벤트는 항상 동일한 수치가 된다
-(실측으로 확인 가능하니 직접 재조회할 것).
+이전에는 `EmergencyUnlockCoordinator`가 `emergency_unlock_used`와 `emergency_unlock_completed`를
+해제 **승인 시점**에 조건 없이 연달아 호출해 두 이벤트가 항상 동일한 수치였다. 완료율 지표가
+승인율을 재고 있었고, allowlist 23종 중 2종이 같은 신호라 기기당 월 캡도 이중 소모했다.
 
-- `docs/ops/stopit/metrics-context.md`의 긴급해제 사용률 guardrail
-  (`emergency_unlock_completed` users / active blocked users)은 **완료율이 아니라 승인율**을
-  재고 있다. 해제 후 실제로 끝까지 갔는지는 현재 어느 도구로도 알 수 없다.
-- Amplitude allowlist 23종 중 2종이 같은 신호이며, 고빈도라 기기당 월 180건 캡을 이중 소모한다.
-- 처리 방향: (a) `completed`를 실제 만료/조기 종료 시점으로 이동, 또는 (b) 중복으로 판단해
-  allowlist에서 제거. 어느 쪽이든 과거 데이터의 의미가 바뀌므로 전후 기간을 분리해 해석한다.
+현재는 승인 시점에 payload만 예약하고(`EmergencyUnlockCompletionCoordinator`), 해제 창
+teardown 경로에서 1회 배달한다. **`completed / used`가 완료율**이 됐다.
+
+판독 시 주의:
+- 수정 포함 버전의 release/tag/Play deploy **이전 데이터는 승인율**이다. 전후 기간을 분리한다.
+- 프로세스가 죽은 채 창이 만료되면 서비스 재시작 시점에 배달된다. 이벤트 시각과 실제 종료
+  시각이 벌어질 수 있다(지연 기록 허용).
+- 복원된 기기에서는 예약이 리셋되므로, 열린 적 없는 창의 완료는 보고되지 않는다.
+- `scripts/tests/test_emergency_unlock_completed_contract.py`가 승인 시점 로깅 복귀와
+  teardown 경로 누락을 막는다.
 
 ### `*_shown` 이벤트는 "화면에 보였다"를 뜻하지 않을 수 있다
 
