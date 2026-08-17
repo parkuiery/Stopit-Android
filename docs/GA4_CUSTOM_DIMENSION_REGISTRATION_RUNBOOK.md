@@ -56,11 +56,21 @@
 
 EVENT 범위 26/50 사용, 여유 24.
 
-**아직 조회 가능 여부는 확인하지 못했다.** Data API(`analyticsdata.googleapis.com`)가
-`analytics.readonly` 스코프를 따로 요구하는데 등록에 쓴 토큰에는 `analytics.edit`만 있었다.
-이 런북이 요구하는 "등록했다 ≠ 조회된다" 분리에서 **뒤쪽이 남아 있다.** GA4 UI 탐색 보고서에서
-측정기준 목록을 확인하거나, readonly 스코프를 추가해 재로그인한 뒤 registrar 가 자동으로
-metadata 를 확인하게 하면 된다.
+**조회 가능 여부까지 확인 완료.** Data API metadata 에서 다섯 축 모두
+`customEvent:*` 로 조회 가능함을 확인했다. 이 런북이 요구하는 "등록했다 ≠ 조회된다" 분리에서
+양쪽이 모두 닫혔다.
+
+```
+조회가능  customEvent:website_blocking_status
+조회가능  customEvent:website_blocking_trigger
+조회가능  customEvent:is_granted
+조회가능  customEvent:displaced_other_vpn
+조회가능  customEvent:entry_surface
+```
+
+Data API 는 `analytics.readonly` 스코프를 따로 요구한다. ADC 에 그 스코프가 있으면
+registrar 가 등록 직후 이 확인을 자동으로 수행하고, 없으면 등록만 하고 확인을 건너뛴다는 사실을
+출력으로 알린다.
 
 **소급 적용은 없다.** 1.9.0 출시일부터 이 등록 시점까지의 구간은 영구 미관측이다. 그 구간의
 0건은 병목 부재가 아니라 관측 부재다.
@@ -73,7 +83,10 @@ metadata 를 확인하게 하면 된다.
 `block_source`, `end_reason`, `entry_surface`, `is_onboarding`, `is_routine`, `outcome`,
 `permission_name`, `selected_app_count`, `source`, `step_name`
 
-즉 이 문서를 근거로 "아직 등록 안 됐으니 지표 해석을 미룬다"고 판단해 온 구간이 있었다면 그
+즉 **그리고 열 개 모두 metadata 에서 조회까지 가능했다.** 등록만 되고 조회가 안 되는 상태가
+아니라, 처음부터 쓸 수 있는 축이었다.
+
+이 문서를 근거로 "아직 등록 안 됐으니 지표 해석을 미룬다"고 판단해 온 구간이 있었다면 그
 판단의 전제가 틀렸을 수 있다. 상태 열은 사람이 손으로 갱신해 온 값이라 실제 GA4 상태와 어긋난다.
 
 **앞으로는 표를 믿지 말고 조회해서 확인한다.**
@@ -415,10 +428,10 @@ python3 scripts/ga4_custom_dimension_registrar.py --set website-blocking --apply
 
 | 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
 | --- | --- | --- | --- | --- |
-| `website_blocking_status` | `website_blocking_status_changed` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:website_blocking_status` |
-| `website_blocking_trigger` | `website_blocking_routine_session` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:website_blocking_trigger` |
-| `is_granted` | `website_blocking_consent_result` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:is_granted` |
-| `displaced_other_vpn` | `website_blocking_vpn_conflict_resolved` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:displaced_other_vpn` |
+| `website_blocking_status` | `website_blocking_status_changed` | **2026-08-17 등록·조회 확인 완료** | 없음 | `customEvent:website_blocking_status` |
+| `website_blocking_trigger` | `website_blocking_routine_session` | **2026-08-17 등록·조회 확인 완료** | 없음 | `customEvent:website_blocking_trigger` |
+| `is_granted` | `website_blocking_consent_result` | **2026-08-17 등록·조회 확인 완료** | 없음 | `customEvent:is_granted` |
+| `displaced_other_vpn` | `website_blocking_vpn_conflict_resolved` | **2026-08-17 등록·조회 확인 완료** | 없음 | `customEvent:displaced_other_vpn` |
 
 해석 시 주의할 점이 둘 있다.
 
