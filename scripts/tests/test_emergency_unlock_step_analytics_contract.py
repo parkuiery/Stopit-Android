@@ -81,10 +81,14 @@ class EmergencyUnlockStepAnalyticsContractTest(unittest.TestCase):
         ]:
             self.assertIn(f"customEvent:{dimension}", ga4)
 
+        # 상태 열은 GA4 의 실제 등록 상태를 따라간다. 2026-08-17 웹 차단 계측 등록 회차에
+        # Admin API 로 조회했더니 `entry_surface` 는 이미 등록돼 있었고, 나머지 셋은 여전히
+        # 미등록이었다. 여기에 옛 상태를 박아두면 문서가 사실과 어긋나도 테스트가 통과하고,
+        # 오히려 정정을 막는다.
         ledger_rows = [
             "| `validation_reason` | Required dimension | 등록 필요 | #779 Android analytics wiring 포함 버전 배포 전후",
             "| `reason_required_enabled` | Required dimension | 등록 필요 | 동일",
-            "| `entry_surface` | Required dimension | 등록 필요 | 동일",
+            "| `entry_surface` | Required dimension | **2026-08-17 등록 완료** | 동일",
             "| `cancel_source` | Required dimension | 등록 필요 | 동일",
         ]
         for row in ledger_rows:

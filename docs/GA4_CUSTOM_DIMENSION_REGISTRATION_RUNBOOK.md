@@ -37,7 +37,74 @@
 
 ## 현재 상태 요약
 
-2026-05-29 live 점검 메모 기준:
+### 2026-08-17 웹사이트 차단 계측 등록 — 이 런북에서 처음으로 API 등록을 수행한 회차
+
+1.9.0(versionCode 38) 웹사이트 차단 출시분의 계측 축을 GA4 Admin API로 등록했다. 지금까지 이
+런북은 "GA4 Admin 수동 등록"을 전제했는데, 이 회차부터 `scripts/ga4_custom_dimension_registrar.py`
+로 스크립트 등록이 가능하다.
+
+등록 결과 — `properties/502544175` (`stopit-be785`, package `com.uiery.keep`), 22개 → 27개:
+
+| 파라미터 | 결과 |
+| --- | --- |
+| `website_blocking_status` | 신규 등록 |
+| `website_blocking_trigger` | 신규 등록 |
+| `is_granted` | 신규 등록 |
+| `displaced_other_vpn` | 신규 등록 |
+| `entry_surface` | 신규 등록 (웹 차단 이벤트가 싣는데 미등록 상태였다. `routine_saved`·긴급해제 쪽 미등록도 함께 풀렸다) |
+| `outcome` | 이미 등록돼 있었음 |
+
+EVENT 범위 26/50 사용, 여유 24.
+
+**아직 조회 가능 여부는 확인하지 못했다.** Data API(`analyticsdata.googleapis.com`)가
+`analytics.readonly` 스코프를 따로 요구하는데 등록에 쓴 토큰에는 `analytics.edit`만 있었다.
+이 런북이 요구하는 "등록했다 ≠ 조회된다" 분리에서 **뒤쪽이 남아 있다.** GA4 UI 탐색 보고서에서
+측정기준 목록을 확인하거나, readonly 스코프를 추가해 재로그인한 뒤 registrar 가 자동으로
+metadata 를 확인하게 하면 된다.
+
+**소급 적용은 없다.** 1.9.0 출시일부터 이 등록 시점까지의 구간은 영구 미관측이다. 그 구간의
+0건은 병목 부재가 아니라 관측 부재다.
+
+#### 아래 워크리스트의 상태 열은 이 시점에 낡아 있었다
+
+같은 회차에 Admin API 로 실제 등록 목록을 조회해 워크리스트와 대조했더니, **런북이 "미등록"
+또는 "등록 필요"로 적어둔 10개 축이 이미 등록돼 있었다.**
+
+`block_source`, `end_reason`, `entry_surface`, `is_onboarding`, `is_routine`, `outcome`,
+`permission_name`, `selected_app_count`, `source`, `step_name`
+
+즉 이 문서를 근거로 "아직 등록 안 됐으니 지표 해석을 미룬다"고 판단해 온 구간이 있었다면 그
+판단의 전제가 틀렸을 수 있다. 상태 열은 사람이 손으로 갱신해 온 값이라 실제 GA4 상태와 어긋난다.
+
+**앞으로는 표를 믿지 말고 조회해서 확인한다.**
+
+```bash
+python3 scripts/ga4_custom_dimension_registrar.py --set website-blocking
+```
+
+드라이런은 아무것도 만들지 않고 현재 등록 상태와 EVENT 상한 사용량을 보여주므로, 상태 확인
+용도로 안전하게 쓸 수 있다. 등록 여부와 별개로 **조회 가능 여부(metadata)는 여전히 따로**
+확인해야 한다는 이 런북의 원칙은 그대로다.
+
+아래 워크리스트의 개별 상태 열은 이번 회차에 전수 정정하지 않았다. 웹 차단·`entry_surface`
+행만 갱신했고, 나머지는 위 10개 목록을 우선한다.
+
+#### 속성 오지정이 실제 위험이라는 것
+
+같은 계정(`accounts/283038185`) 아래에 이름이 비슷한 속성이 셋 있다. 이름은 어느 쪽이
+프로덕션인지 말해주지 않는다. **Android 데이터 스트림 패키지가 말해준다.**
+
+| 속성 | 표시 이름 | 패키지 |
+| --- | --- | --- |
+| `properties/502544175` | `stopit-be785` | `com.uiery.keep` ← 프로덕션 |
+| `properties/540254106` | `stopit-dev` | `com.uiery.keep.dev` |
+| `properties/482780421` | `keep-dev-40446` | `com.uiel.keep` 외 (레거시/혼재) |
+
+커스텀 측정기준은 **삭제가 아니라 아카이브만** 되고 EVENT 범위는 속성당 50개가 상한이라,
+잘못 쓴 것을 치울 방법이 없다. 그래서 registrar 는 쓰기 전에 패키지로 신원을 검증하고,
+불일치하면 `--apply` 를 붙였더라도 거부한다.
+
+### 2026-05-29 live 점검 메모 기준:
 
 - `customUser:routines_count`만 metadata에서 확인됨. 단 #479의 `docs/ROUTINES_COUNT_COVERAGE_CONTRACT.md` 기준으로 metadata 조회 가능성과 active user coverage는 분리한다.
 - 활성화용 `customEvent:*`와 review failure `customEvent:error`는 별도 metadata/runReport 확인 전까지 registration gap으로 둔다. review skip `customEvent:reason`은 2026-06-02T18:06:45Z에 등록/조회 가능해졌으므로 #307 skip reason 분석에는 사용할 수 있다.
@@ -312,9 +379,55 @@ GA4 Admin 증적 후보:
 - `customEvent:link_surface`
 - `customEvent:lookup_latency_bucket`
 
+## 등록 방법 — `scripts/ga4_custom_dimension_registrar.py`
+
+2026-08-17 회차부터 스크립트로 등록한다. 수동 UI 등록도 여전히 유효하지만, 백로그를 묶어
+처리할 때는 스크립트가 신원 검증·멱등성·상한 확인을 대신한다.
+
+```bash
+# 드라이런 (기본). 무엇이 생성될지만 보여준다.
+python3 scripts/ga4_custom_dimension_registrar.py --set website-blocking
+
+# 실제 등록
+python3 scripts/ga4_custom_dimension_registrar.py --set website-blocking --apply
+```
+
+세 가지를 쓰기 전에 막는다.
+
+1. **속성 신원** — Android 데이터 스트림 패키지가 기대값과 다르면 거부한다. 이름이나 문서에서
+   복사한 숫자로는 프로덕션과 dev 를 구분할 수 없다.
+2. **멱등성** — 이미 등록된 파라미터는 건너뛴다. 중복 생성은 되돌릴 수 없고 상한 자리도 잃는다.
+3. **EVENT 상한** — 배치가 50을 넘기면 시작 전에 멈춘다. 도중에 걸리면 일부만 등록된 채 남고
+   그 일부도 되돌릴 수 없다.
+
+인증은 ADC + `analytics.edit` 스코프다. gcloud 내장 OAuth 클라이언트는 이 스코프를 요청할 수
+없으므로(Google 정책 차단) 자체 OAuth 클라이언트가 필요하다. 명령은 스크립트 docstring 에 있다.
+`analytics.readonly` 를 함께 받으면 등록 후 metadata 조회 확인까지 스크립트가 수행한다.
+
+새 축을 추가할 때는 `DIMENSION_SETS` 에 스펙을 넣고 `scripts/tests/test_ga4_custom_dimension_registrar.py`
+가 계속 통과하는지 확인한다. 그 테스트는 도메인 성격 축이 섞여 들어오는 것도 막는다.
+
 ## Required / Recommended 등록 워크리스트
 
 아래 표는 `docs/ANALYTICS_EVENT_DICTIONARY.md`의 등록 계약을 운영 실행용으로 재구성한 것이다.
+
+### 0) 웹사이트 차단 (1.9.0) — 등록 완료
+
+| 코드 파라미터 | 주 사용 이벤트 | 현재 상태 | 다음 액션 | 증적 |
+| --- | --- | --- | --- | --- |
+| `website_blocking_status` | `website_blocking_status_changed` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:website_blocking_status` |
+| `website_blocking_trigger` | `website_blocking_routine_session` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:website_blocking_trigger` |
+| `is_granted` | `website_blocking_consent_result` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:is_granted` |
+| `displaced_other_vpn` | `website_blocking_vpn_conflict_resolved` | **2026-08-17 등록 완료** | metadata 조회 확인만 남음 | `customEvent:displaced_other_vpn` |
+
+해석 시 주의할 점이 둘 있다.
+
+- **`outcome=consent_missing` 이 가장 중요한 신호다.** 루틴 창은 열렸는데 VPN 동의가 없어 웹이
+  뚫려 있는 상태이고, 수신자에서는 동의창을 띄울 수조차 없다. 사용자가 앱을 열지 않으면 아무도
+  모른다. `website_blocking_trigger` 분포와 함께 읽어, 알람이 거의 세우지 못하고 `boot`/
+  `routine_edit` 이 계속 구제하고 있다면 그건 이중화의 성공이 아니라 알람 경로의 고장이다.
+- **도메인 축은 없고 앞으로도 없다.** `docs/WEBSITE_BLOCKING_VPN_SPIKE.md` 의 Privacy Rules 상
+  차단 도메인은 개수조차 싣지 않는다. 무엇을 막았는지가 드러나면 그건 브라우징 성향 그 자체다.
 
 ### 1) Required 이벤트 차원
 
@@ -367,7 +480,7 @@ GA4 Admin 증적 후보:
 | `duration_days_bucket` | `goal_lock_completed` | #417 detail load에서 만료된 active 목표 잠금을 completed로 정규화하고 bucketed completion event emit / release·GA4 등록 전 | 동일 | `customEvent:duration_days_bucket` |
 | `elapsed_days_bucket` | `goal_lock_ended_early` | #417 detail 종료 path의 early-end runtime call 추가 / release·GA4 등록 전 | 동일 | `customEvent:elapsed_days_bucket` |
 | `surface` | `routine_creation_cta_shown`, `routine_creation_cta_clicked`, `routine_creation_cta_dismissed`, `repeat_block_routine_suggestion_shown`, `repeat_block_routine_suggestion_clicked`, `repeat_block_routine_suggestion_dismissed`, `repeat_block_routine_suggestion_applied` | #455 PR #533 Home CTA UI/navigation/analytics 구현 완료(`home_secondary`) + #531 PR #537 policy/analytics, PR #552 prefill, PR #555 dismiss store, PR #561 Home/LockHistory CTA, PR #835 active Goal Lock suppression, PR #843 active emergency unlock suppression, PR #887 performance_report surface 구현, PR #923 post_block_success shown/dismiss foothold, PR #931 post_block_success card/clicked/prefill launch 구현, PR #983/#994 full-coverage suppression + partial-coverage uncovered-app prefill 완료 / 공통 release·GA4 등록 전 | 루틴 CTA/추천 포함 버전 배포 전후로 GA4 Admin 등록 후 metadata 확인. #531 구현 완료 surface는 `home`/`lock_history`/`performance_report`/`post_block_success`다. | `customEvent:surface` |
-| `entry_surface` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | 수동 루틴 생성, post-first-block CTA(`home_secondary`), 반복 차단 prefill 저장 완료 표면을 분리. raw route/path 금지 | `customEvent:entry_surface` |
+| `entry_surface` | `routine_saved` | **2026-08-17 GA4 등록 완료** (웹 차단 계측 등록 회차에 함께 해소) | 수동 루틴 생성, post-first-block CTA(`home_secondary`), 반복 차단 prefill 저장 완료 표면을 분리. raw route/path 금지 | `customEvent:entry_surface` |
 | `creation_source` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | `manual`, `post_first_block_cta`, `repeat_block_prefill` 저장 완료 전환 비교 | `customEvent:creation_source` |
 | `selected_app_count_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | 루틴 저장 시 선택 앱 수 bucket. 앱 package/name/list 금지 | `customEvent:selected_app_count_bucket` |
 | `repeat_days_bucket` | `routine_saved` | #810 docs 계약 + PR #813 Android wiring + PR #828 Home CTA attribution + PR #846 runtime bucket alignment 완료 / GA4 등록·release 전 | raw weekday list 대신 반복 요일 수 bucket만 사용 | `customEvent:repeat_days_bucket` |
@@ -393,7 +506,7 @@ GA4 Admin 증적 후보:
 | `remaining_unlocks_bucket` | `emergency_unlock_manual_reset_requested` | #694 Android analytics wiring 완료 / GA4 Admin·release 전 | manual reset 직전 남은 횟수 bucket. raw count/일시 금지 | `customEvent:remaining_unlocks_bucket` |
 | `validation_reason` | `emergency_unlock_validation_blocked` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | missing_reason/custom_reason/app_selection/duration/options 실패 종류. custom reason/app 원문 금지 | `customEvent:validation_reason` |
 | `reason_required_enabled` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | reason-required ON/OFF 분모와 reason distribution confidence 분리 | `customEvent:reason_required_enabled` |
-| `entry_surface` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | Lock/Block 진입 표면별 friction 비교. raw route/path 금지 | `customEvent:entry_surface` |
+| `entry_surface` | `emergency_unlock_step_viewed`, `emergency_unlock_validation_blocked`, `emergency_unlock_cancelled` | **2026-08-17 GA4 등록 완료** (웹 차단 계측 등록 회차에 함께 해소) | Lock/Block 진입 표면별 friction 비교. raw route/path 금지 | `customEvent:entry_surface` |
 | `cancel_source` | `emergency_unlock_cancelled` | #779 Android analytics wiring 완료(PR #783) / GA4 Admin·release 전 | sheet dismiss/back/cancel/outside/system 중단을 bucket으로 비교 | `customEvent:cancel_source` |
 
 ### 2) Recommended 이벤트 차원
@@ -528,7 +641,7 @@ GA4 Admin 증적 후보:
 | `reset_result` | Recommended dimension | 필요 시 등록 | manual reset 결과 구분 필요 시 | GA4 Admin 수동 | `customEvent:reset_result` 확인 필요 | requested/completed/unavailable enum만 허용 |
 | `validation_reason` | Required dimension | 등록 필요 | #779 Android analytics wiring 포함 버전 배포 전후 | GA4 Admin 수동 | `customEvent:validation_reason` 확인 필요 | 긴급해제 validation 실패 종류. custom reason/app 원문 금지 |
 | `reason_required_enabled` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:reason_required_enabled` 확인 필요 | reason-required ON/OFF 분모와 reason distribution confidence 분리 |
-| `entry_surface` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:entry_surface` 확인 필요 | 긴급해제 Lock/Block 진입 표면 bucket. raw route/path 금지 |
+| `entry_surface` | Required dimension | **2026-08-17 등록 완료** | 동일 | registrar 스크립트 | `customEvent:entry_surface` 확인 필요 | 긴급해제 Lock/Block 진입 표면 bucket. raw route/path 금지 |
 | `cancel_source` | Required dimension | 등록 필요 | 동일 | GA4 Admin 수동 | `customEvent:cancel_source` 확인 필요 | 긴급해제 sheet dismiss/back/cancel/outside/system 중단 bucket |
 
 ### metadata 확인 로그 템플릿
