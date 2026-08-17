@@ -6,6 +6,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.uiery.keep.analytics.AnalyticsBackend
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
+import com.uiery.keep.analytics.FirebaseKeepAnalytics
 import com.uiery.keep.datastore.BlockingStateStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.datastore.dataStore
@@ -53,6 +56,93 @@ class EmergencyUnlockExpiryIntegrationTest {
             helper.showCountdown(remainingSeconds = 60, totalSeconds = 60),
         )
         assertFalse(activeNotificationIds().contains(EmergencyUnlockNotificationHelper.NOTIFICATION_ID))
+    }
+
+    /**
+     * 실제 teardown 배선을 그대로 지나가는 경로를 검증한다.
+     *
+     * 기존 만료 테스트는 자기 lambda 를 넘겨서 서비스가 실제로 실행하는 코드와 다른 길을
+     * 지나갔다. 그래서 completion 배달 여부는 증명되지 않았다. 여기서는 서비스가 쓰는
+     * finishEmergencyUnlockWindow 를 직접 호출한다. (#1167)
+     */
+    @Test
+    fun finishEmergencyUnlockWindow_clearsRuntimeStateAndDeliversCompletionOnce() = runBlocking {
+        val store = BlockingStateStore(context.dataStore)
+        val backend = RecordingAnalyticsBackend()
+        val coordinator = EmergencyUnlockCompletionCoordinator(
+            blockingStateStore = store,
+            analytics = FirebaseKeepAnalytics(backend),
+        )
+
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKey.EMERGENCY_UNLOCK_APPS] = setOf("com.example.blocked")
+            preferences[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME] = 1_000L
+        }
+        store.reserveEmergencyUnlockCompletion(
+            reason = "work",
+            durationMinutes = 5,
+            remainingUnlocks = 2,
+        )
+
+        finishEmergencyUnlockWindow(blockingStateStore = store, completionCoordinator = coordinator)
+
+        assertEquals(emptySet<String>(), storedUnlockedApps())
+        assertNull(storedExpireTimeMillis())
+        assertEquals(listOf("emergency_unlock_completed"), backend.loggedEventNames)
+        assertEquals(5, backend.loggedParams.single()["duration_minutes"])
+        assertEquals(2, backend.loggedParams.single()["remaining_unlocks"])
+        assertEquals("work", backend.loggedParams.single()["reason"])
+        assertNull(store.readPendingEmergencyUnlockCompletion())
+
+        // 두 만료 경로가 겹쳐 돌아도 완료는 한 번만 기록되어야 한다.
+        finishEmergencyUnlockWindow(blockingStateStore = store, completionCoordinator = coordinator)
+        assertEquals(1, backend.loggedEventNames.size)
+    }
+
+    /**
+     * 창이 열린 채 프로세스가 죽었다가 되살아난 경우. 예약은 DataStore 에 남아 있으므로
+     * 다음 teardown 에서 배달되어야 한다.
+     */
+    @Test
+    fun finishEmergencyUnlockWindow_deliversReservationThatSurvivedProcessRestart() = runBlocking {
+        val store = BlockingStateStore(context.dataStore)
+        store.reserveEmergencyUnlockCompletion(
+            reason = "rest",
+            durationMinutes = 15,
+            remainingUnlocks = 0,
+        )
+
+        // 재시작 후처럼 새 인스턴스로만 접근한다.
+        val restartedStore = BlockingStateStore(context.dataStore)
+        val backend = RecordingAnalyticsBackend()
+        finishEmergencyUnlockWindow(
+            blockingStateStore = restartedStore,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = restartedStore,
+                analytics = FirebaseKeepAnalytics(backend),
+            ),
+        )
+
+        assertEquals(listOf("emergency_unlock_completed"), backend.loggedEventNames)
+        assertEquals("rest", backend.loggedParams.single()["reason"])
+        assertNull(restartedStore.readPendingEmergencyUnlockCompletion())
+    }
+
+    /** 예약이 없으면 아무것도 보내지 않는다. 두 경로가 서로를 몰라도 안전한 근거다. */
+    @Test
+    fun finishEmergencyUnlockWindow_withoutReservationSendsNothing() = runBlocking {
+        val store = BlockingStateStore(context.dataStore)
+        val backend = RecordingAnalyticsBackend()
+
+        finishEmergencyUnlockWindow(
+            blockingStateStore = store,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = store,
+                analytics = FirebaseKeepAnalytics(backend),
+            ),
+        )
+
+        assertEquals(emptyList<String>(), backend.loggedEventNames)
     }
 
     @Test
@@ -146,4 +236,18 @@ class EmergencyUnlockExpiryIntegrationTest {
         }
         throw AssertionError(message)
     }
+}
+
+private class RecordingAnalyticsBackend : AnalyticsBackend {
+    val loggedEventNames = mutableListOf<String>()
+    val loggedParams = mutableListOf<Map<String, Any?>>()
+
+    override fun logEvent(name: String, params: Map<String, Any?>) {
+        loggedEventNames += name
+        loggedParams += params
+    }
+
+    override fun logScreenView(screenName: String) = Unit
+
+    override fun setUserProperty(name: String, value: String) = Unit
 }

@@ -75,22 +75,44 @@ class EmergencyUnlockCompletedContractTest(unittest.TestCase):
             "EmergencyUnlockCompletionCoordinator must hold the single completion call site.",
         )
 
-    def test_teardown_paths_deliver_pending_completion(self) -> None:
+    def test_teardown_paths_share_one_named_finish_function(self) -> None:
         """Both expiry paths converge on clearing state; both must report completion.
 
         One is the polling cleanup, the other the scheduled expiry callback. A window that
         ends through the path that forgets to deliver is a window that never completes.
+        Routing both through one named function (rather than a lambda per call site) is
+        also what lets an instrumented test execute the real wiring: a test that passes its
+        own teardown lambda proves nothing about what the service actually runs.
         """
+        self.assertIn(
+            "internal suspend fun finishEmergencyUnlockWindow(",
+            self.service,
+            "Teardown order must live in a named, testable function.",
+        )
         self.assertEqual(
-            self.service.count("emergencyUnlockCompletionCoordinator().deliverPending()"),
-            2,
-            "Both emergency-unlock teardown paths must deliver the pending completion; "
-            "found a different number of delivery sites.",
+            self.service.count("finishEmergencyUnlockWindow("),
+            3,
+            "Expected one declaration plus both teardown call sites to use "
+            "finishEmergencyUnlockWindow.",
         )
         self.assertIn(
             "fun emergencyUnlockCompletionCoordinator(): EmergencyUnlockCompletionCoordinator",
             self.service,
             "The service entry point must expose the completion coordinator.",
+        )
+
+    def test_finish_function_clears_state_before_delivering(self) -> None:
+        """Delivery must follow the state clear, so a crash between them cannot re-report."""
+        start = self.service.index("internal suspend fun finishEmergencyUnlockWindow(")
+        body = self.service[start : self.service.index("\n}", start)]
+        clear_index = body.find("clearEmergencyUnlockRuntimeState()")
+        deliver_index = body.find("deliverPending()")
+        self.assertNotEqual(clear_index, -1, "finishEmergencyUnlockWindow must clear runtime state.")
+        self.assertNotEqual(deliver_index, -1, "finishEmergencyUnlockWindow must deliver completion.")
+        self.assertLess(
+            clear_index,
+            deliver_index,
+            "Runtime state must be cleared before the completion is delivered.",
         )
 
     def test_pending_keys_are_reset_on_restore(self) -> None:
