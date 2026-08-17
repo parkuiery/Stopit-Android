@@ -2,8 +2,12 @@
 
 ## 데이터 소스
 
+실데이터 조회는 `scripts/metrics_read.py`로 하고, 두 도구 교차 판독 규칙은
+`docs/analytics/GA4_AMPLITUDE_JOINT_ANALYSIS.md`를 source of truth로 본다.
+
 주요 지표 소스:
 - GA4 Analytics Data API: property `properties/502544175`
+- Amplitude: allowlist 23종 / prod flavor / v1.7.9+ / 기기당 월 180건 캡. Amplitude MCP(OAuth)로 조회한다. GA4와 모집단이 다르므로 수치를 더하거나 직접 diff하지 않는다.
 - Firebase Analytics / Crashlytics
 - Play Console: 평점, 리뷰, Store listing performance, release health
 - AdMob/GA4 광고 지표: ad revenue, impressions, clicks

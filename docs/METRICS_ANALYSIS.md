@@ -71,6 +71,7 @@
 
 ## 관련 문서
 
+- `docs/analytics/GA4_AMPLITUDE_JOINT_ANALYSIS.md`: GA4 + Amplitude 실데이터 교차 판독 런북. `scripts/metrics_read.py` 실행법, Amplitude MCP 접근, capture rate 해석, 두 도구를 합치면 안 되는 이유를 source of truth로 고정한다. 실데이터 조회는 아래 "빠른 분석 명령"의 수동 스니펫보다 이 스크립트를 먼저 쓴다.
 - `docs/PRODUCT_METRICS_DASHBOARD.md`: North Star, 입력/건강/비즈니스 지표, ICE 우선순위, 성장/수익화 실험 정의.
 - `docs/ANALYTICS_EVENT_DICTIONARY.md`: 이벤트명, 파라미터, screen_view 계약, GA4 커스텀 차원/지표 등록 계약, 검증 명령.
 - `docs/BLOCKED_APP_ANALYTICS_PRIVACY_CONTRACT.md`: #611용 차단 앱 analytics privacy 계약. PR #617(`f8eb0ebe`) 이후 `blocked_app_package` 원문은 GA4 payload/custom dimension 등록 대상에서 퇴역했고 `blocked_app_category_bucket` 같은 privacy-safe bucket으로 activation/runtime breakdown을 해석한다. 남은 경계는 release/tag/Play deploy 포함 여부, GA4 Admin 등록, 14일/30일 readback이다.
