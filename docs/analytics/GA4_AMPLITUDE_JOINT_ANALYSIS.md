@@ -204,24 +204,28 @@ capture가 이벤트 빈도와 **역상관**인지 먼저 본다. 저빈도 이�
 기존 사용자의 반복 차단이 섞이기 때문이다. **순서 있는 활성화 전환은 Amplitude 퍼널로만
 확인한다.** GA4 단독 판독의 가장 큰 공백이 이 지점이다.
 
-### Home 상태/CTA 카드는 production에서 렌더되지 않는다 (2026-08-17 확인)
+### Home 상태/CTA 카드는 production에서 렌더되지 않는다 (#1166)
 
-`HomeStatusCtaCard`(`HomeScreen.kt:691`)와 `buildHomeStatusCtaModel`
-(`HomeStatusCtaReadModel.kt:29`)은 **production 호출부가 없다.** 참조는
+`HomeStatusCtaCard`(`HomeScreen.kt`)와 `buildHomeStatusCtaModel`
+(`HomeStatusCtaReadModel.kt`)은 **production 호출부가 없다.** 참조는
 `HomeStatusCtaCardIntegrationTest` / `HomeStatusCtaReadModelTest` 등 테스트뿐이다.
-같은 이유로 `HomeViewModel.onRoutineCreationCtaClick()`(`HomeViewModel.kt:566`)도
-production에서 호출되지 않는다.
+같은 이유로 `HomeViewModel.onRoutineCreationCtaClick()`도 production에서 호출되지 않는다.
 
-반면 `trackRoutineCreationCtaShownIfNeeded`는 상태 계산 경로에서 실행되므로
-`routine_creation_cta_shown`은 계속 기록된다. 결과적으로 **보이지 않는 카드의 노출이
-집계되고, clicked/dismissed는 구조적으로 0이다.** Compose integration test는 컴포저블을
-직접 렌더해서 통과하므로 이 공백을 잡지 못한다.
+PR #500이 정의와 호출부를 함께 넣었고, **PR #1099 `fix(home): restore v1.7.7 home UI`가
+홈 UI를 되돌리며 호출부만 제거**했다. 컴포저블을 "테스트용 계약"으로 남긴 것은 의도된
+선택이었지만, 노출 계측은 함께 정리되지 않았다.
 
-파급:
-- `docs/HOME_STATUS_CTA_STRUCTURE.md`와 `docs/ops/stopit/metrics-context.md`가 #463을
-  "PR #500/#606/#948 이후 landed"로 기술하지만, 렌더링 경로 기준으로는 미배선이다.
-- #455 루틴 생성 CTA 실험의 `clicked / shown` 전환율은 계산해도 의미가 없다.
-- 확인/수정은 별도 이슈. 실기기에서 Home 화면에 카드가 보이는지 먼저 확인한다.
+**계측은 수정됐다.** `routine_creation_cta_shown`은 이제 상태 계산이 아니라 렌더 시점
+(`HomeStatusCtaCard`의 `showRoutineCreationSecondary` 분기)에서 보고된다. 카드가 그려지지
+않는 동안에는 이벤트도 발생하지 않으므로 **0이 정확한 값이다.** 카드를 다시 배선하면
+자동으로 정상 집계된다. `scripts/tests/test_routine_creation_cta_shown_contract.py`가
+상태 계산 경로로 되돌아가는 회귀를 막는다.
+
+남은 경계:
+- **카드 자체는 여전히 렌더되지 않는다.** #463 복원 여부는 별도 제품 결정이다.
+- 그때까지 #455 루틴 생성 CTA 실험과 #810 전환 측정의 분자는 0이며, 이것을 수요 부재로
+  해석하지 않는다.
+- 수정 포함 버전의 release/tag/Play deploy 전까지 live `shown` 잔여분은 구버전 잔상이다.
 
 ### 화면 품질과 custom dimension 등록
 

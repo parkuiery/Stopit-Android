@@ -593,11 +593,7 @@ class HomeViewModel
                     routineCount = state.routineCount,
                     isKeep = state.isKeep,
                 )
-                trackRoutineCreationCtaShownIfNeeded(
-                    shouldShow = showRoutineCreationCta,
-                    wasShowing = state.showRoutineCreationCta,
-                    hasRoutine = state.routineCount > 0,
-                )
+                resetRoutineCreationCtaShownLog(showRoutineCreationCta)
                 reduce {
                     state.copy(
                         selectedAppPackage = selectionState.selectedAppPackages,
@@ -626,11 +622,7 @@ class HomeViewModel
                         routineCount = routines.size,
                         isKeep = state.isKeep,
                     )
-                    trackRoutineCreationCtaShownIfNeeded(
-                        shouldShow = showRoutineCreationCta,
-                        wasShowing = state.showRoutineCreationCta,
-                        hasRoutine = routines.isNotEmpty(),
-                    )
+                    resetRoutineCreationCtaShownLog(showRoutineCreationCta)
                     reduce {
                         state.copy(
                             routineCount = routines.size,
@@ -781,11 +773,7 @@ class HomeViewModel
                     routineCount = state.routineCount,
                     isKeep = state.isKeep,
                 )
-                trackRoutineCreationCtaShownIfNeeded(
-                    shouldShow = showRoutineCreationCta,
-                    wasShowing = state.showRoutineCreationCta,
-                    hasRoutine = state.routineCount > 0,
-                )
+                resetRoutineCreationCtaShownLog(showRoutineCreationCta)
                 reduce {
                     state.copy(
                         selectedAppPackage = selectedAppPackages,
@@ -1006,20 +994,42 @@ class HomeViewModel
             isKeep: Boolean,
         ): Boolean = selectedAppPackage.isNotEmpty() && hasTrackedFirstCoreAction && routineCount == 0 && !isKeep
 
-        private fun trackRoutineCreationCtaShownIfNeeded(
-            shouldShow: Boolean,
-            wasShowing: Boolean,
-            hasRoutine: Boolean,
-        ) {
-            if (!shouldShow || wasShowing) return
+        /**
+         * 노출을 상태 계산이 아니라 실제 렌더 시점에 기록하기 위한 1회성 플래그.
+         *
+         * 이전에는 `showRoutineCreationCta`가 false -> true로 바뀔 때 바로 기록했다. 그러면
+         * 카드를 그리는 호출부가 없어도 노출이 계속 잡힌다. 실제로 PR #1099가 홈 UI를
+         * v1.7.7로 되돌리며 `HomeStatusCtaCard` 호출부를 지운 뒤에도 `routine_creation_cta_shown`
+         * 만 계속 기록됐고, 짝이 되는 clicked/dismissed는 구조적으로 0이었다 (#1166).
+         */
+        private var routineCreationCtaShownLogged = false
 
-            analytics.trackRoutineCreationCtaShown(
-                surface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
-                activationStage = AnalyticsRoutineCreationCtaActivationStage.POST_FIRST_CORE_ACTION,
-                hasRoutine = hasRoutine,
-                ctaVariant = AnalyticsRoutineCreationCtaVariant.SOFT_DEFAULT,
-            )
+        /**
+         * 카드가 숨겨지면 다음 노출을 다시 기록할 수 있도록 플래그를 되돌린다.
+         * 기존의 "false -> true 전환마다 1회" 의미를 렌더 기준으로 옮긴 것이다.
+         */
+        private fun resetRoutineCreationCtaShownLog(shouldShow: Boolean) {
+            if (!shouldShow) routineCreationCtaShownLogged = false
         }
+
+        /**
+         * 루틴 생성 CTA가 화면에 실제로 표시됐을 때 호출한다.
+         *
+         * 호출부가 없으면 이벤트도 발생하지 않는다. 그것이 의도다 — 보이지 않는 카드의
+         * 노출은 집계되지 않아야 한다.
+         */
+        internal fun onRoutineCreationCtaShown() =
+            intent {
+                if (!state.showRoutineCreationCta || routineCreationCtaShownLogged) return@intent
+
+                routineCreationCtaShownLogged = true
+                analytics.trackRoutineCreationCtaShown(
+                    surface = AnalyticsRoutineCreationCtaSurface.HOME_SECONDARY,
+                    activationStage = AnalyticsRoutineCreationCtaActivationStage.POST_FIRST_CORE_ACTION,
+                    hasRoutine = state.routineCount > 0,
+                    ctaVariant = AnalyticsRoutineCreationCtaVariant.SOFT_DEFAULT,
+                )
+            }
 
         private fun calculateTargetLockDateTime(blockTime: LocalTime): LocalDateTime {
             val nowDateTime = LocalDateTime.now()

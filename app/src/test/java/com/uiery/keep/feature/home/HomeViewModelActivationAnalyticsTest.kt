@@ -546,8 +546,15 @@ class HomeViewModelActivationAnalyticsTest {
         assertEquals(false, viewModel.container.stateFlow.value.showFirstLockActivationCta)
     }
 
+    /**
+     * 상태가 "보여야 함"으로 바뀌는 것만으로는 노출을 기록하지 않는다.
+     *
+     * PR #1099가 홈 UI를 되돌리며 `HomeStatusCtaCard` 호출부를 지운 뒤에도 상태 계산만으로
+     * `routine_creation_cta_shown`이 계속 기록됐고, 보이지 않는 카드의 노출이 집계됐다(#1166).
+     * 노출 기록의 주체는 이제 상태가 아니라 렌더다.
+     */
     @Test
-    fun routineCreationCtaAppearsAfterFirstCoreActionWhenNoRoutineExistsAndTracksShownOnce() = runBlocking {
+    fun routineCreationCtaStateChangeAloneDoesNotTrackShown() = runBlocking {
         val analytics = HomeRecordingKeepAnalytics()
         val dataStore = FakeDataStore(
             mutablePreferencesOf(
@@ -567,10 +574,57 @@ class HomeViewModelActivationAnalyticsTest {
         delay(50)
 
         assertEquals(true, viewModel.container.stateFlow.value.showRoutineCreationCta)
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
+    }
+
+    @Test
+    fun routineCreationCtaTracksShownOnceWhenActuallyRendered() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                    PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                    PreferencesKey.HAS_TRACKED_FIRST_CORE_ACTION to true,
+                ),
+            ),
+            analytics = analytics,
+            routines = emptyList(),
+        )
+
+        waitFor { viewModel.container.stateFlow.value.showRoutineCreationCta }
+        viewModel.onRoutineCreationCtaShown()
+        delay(50)
+        // 리컴포지션으로 같은 노출이 다시 보고돼도 1회만 기록한다.
+        viewModel.onRoutineCreationCtaShown()
+        delay(50)
+
         assertEquals(
             listOf(HomeAnalyticsCall.RoutineCreationCtaShown),
             analytics.calls,
         )
+    }
+
+    @Test
+    fun routineCreationCtaDoesNotTrackShownWhenNotVisible() = runBlocking {
+        val analytics = HomeRecordingKeepAnalytics()
+        val viewModel = createViewModel(
+            dataStore = FakeDataStore(
+                mutablePreferencesOf(
+                    PreferencesKey.SELECTED_APP_PACKAGES to setOf("com.example.one"),
+                    PreferencesKey.HAS_TRACKED_FIRST_LOCK_CONFIGURED to true,
+                ),
+            ),
+            analytics = analytics,
+            routines = emptyList(),
+        )
+
+        delay(50)
+        assertEquals(false, viewModel.container.stateFlow.value.showRoutineCreationCta)
+        viewModel.onRoutineCreationCtaShown()
+        delay(50)
+
+        assertEquals(emptyList<HomeAnalyticsCall>(), analytics.calls)
     }
 
     @Test
@@ -625,11 +679,9 @@ class HomeViewModelActivationAnalyticsTest {
         viewModel.onRoutineCreationCtaClick()
         delay(50)
 
+        // 렌더 보고 없이 클릭만 발생한 경우이므로 shown 은 기록되지 않는다.
         assertEquals(
-            listOf(
-                HomeAnalyticsCall.RoutineCreationCtaShown,
-                HomeAnalyticsCall.RoutineCreationCtaClicked,
-            ),
+            listOf(HomeAnalyticsCall.RoutineCreationCtaClicked),
             analytics.calls,
         )
         assertEquals(
