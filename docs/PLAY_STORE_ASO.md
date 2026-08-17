@@ -399,6 +399,8 @@ Play Console 접근은 저장소에서 자동 확정할 수 없는 외부 경계
 
 스탑잇은 사용자가 직접 선택한 앱이 실행될 때 이를 감지하고, 수동 잠금·타이머 잠금·루틴 잠금이 활성화된 동안 즉시 차단 화면을 표시하기 위해 접근성 권한을 사용합니다. 또한 잠금 상태 우회를 줄이기 위해 잠금 중 앱 삭제 시도를 감지할 수 있습니다. 이 권한은 앱 차단 및 잠금 유지라는 핵심 기능에만 사용되며, 광고, 프로파일링, 판매 또는 제3자 공유 목적으로 사용되지 않습니다.
 
+스탑잇은 웹사이트 차단 기능을 위해 Android의 VpnService를 사용합니다. 이는 기기 안에서만 동작하는 로컬 VPN으로, 사용자가 직접 고른 사이트의 주소(DNS) 조회만 차단하고 나머지 조회는 그대로 통과시킵니다. 잠금이 활성화된 동안에만 동작하며, 원격 VPN 서버에 연결하지 않습니다. 방문 기록, DNS 조회 내용, 차단 목록을 포함한 어떤 데이터도 기기 밖으로 전송하거나 저장하지 않고, 다른 앱의 트래픽을 가로채거나 수익화 목적으로 사용하지 않습니다.
+
 원하는 앱을 선택한 뒤 직접 켜서 잠글 수도 있고, 타이머나 반복 루틴으로 자동 잠금을 설정할 수도 있습니다. 실제로 앱을 열었을 때 차단 화면이 동작해 "설정만 해두고 안 막히는" 앱이 아니라, 집중이 깨지는 순간을 바로 끊어주는 데 초점을 맞췄습니다.
 
 ### 이런 분에게 맞아요
@@ -409,6 +411,7 @@ Play Console 접근은 저장소에서 자동 확정할 수 없는 외부 경계
 
 ### 핵심 기능
 - **유혹 앱 선택 차단**: 방해되는 앱만 골라서 잠글 수 있어요.
+- **웹사이트 차단**: 앱뿐 아니라 직접 고른 사이트도 잠금 동안 막을 수 있어요.
 - **타이머 잠금**: 지금부터 몇 분/몇 시간 동안 앱 사용을 막을 수 있어요.
 - **루틴 잠금**: 요일과 시간대를 정해 자동으로 차단할 수 있어요.
 - **긴급 해제**: 정말 필요할 때만 제한된 횟수와 시간으로 임시 해제가 가능해요.
@@ -434,6 +437,8 @@ StopIt helps you block distracting apps when you need to focus.
 
 StopIt uses the Accessibility API to detect when user-selected distracting apps are opened and to immediately show a blocking screen while a manual lock, timer lock, or routine lock is active. It may also detect uninstall attempts during an active lock to reduce lock bypass. This access is used only for core app-blocking and lock-maintenance features, and is not used for advertising, profiling, selling data, or sharing data with third parties.
 
+StopIt uses Android's VpnService for its website blocking feature. It is a local, device-only VPN that filters DNS lookups: requests for the websites you selected are blocked, and every other lookup passes through unchanged. It runs only while a lock is active and never connects to a remote VPN server. No data — including browsing history, DNS queries, or your blocked-site list — is transmitted off the device or stored, and traffic from other apps is never intercepted or monetized.
+
 Select the apps that break your concentration, then lock them instantly, by timer, or on recurring routines. Instead of only reminding you, StopIt is built to block access when you actually open the app.
 
 ### Best for
@@ -443,6 +448,7 @@ Select the apps that break your concentration, then lock them instantly, by time
 
 ### Key features
 - block selected distracting apps
+- block websites you choose, not just apps
 - start a focus timer lock instantly
 - automate blocking with recurring routines
 - allow emergency unlock only when truly needed
@@ -472,6 +478,69 @@ The data is used only to trigger the blocking flow, enforce active locks, and re
 ### 심사 메모 권장 문안
 
 This update does not introduce a new Accessibility permission scope. StopIt continues to use Accessibility only for its core app-blocking feature described in the store listing: detecting user-selected distracting apps, showing a blocking screen during active lock sessions, and reducing bypass through uninstall attempts during an active lock.
+
+## VpnService 정책 대응 제출 문안
+
+1.9.0(versionCode 38)이 두 번 반려됐다. 둘 다 코드 문제가 아니라 선언·등록정보 문제였다.
+
+1. `VpnService 정책: 선언이 누락되었거나 불완전합니다.` — 앱 콘텐츠의 VpnService 선언 폼이 비어 있었다.
+   포그라운드 서비스 권한 선언과 **별개 폼**이라는 점을 놓치기 쉽다.
+2. `VpnService 사용이 앱 설명에 명시되지 않았습니다.` — 정책이 요구하는 "listing 문서화"를 긴 설명이
+   충족하지 못했다. 위 KR/EN long description의 VpnService 단락이 그 대응이다.
+
+### Play Console VpnService declaration
+
+#### 일반 VPN 서비스를 직접 제공하나요?
+
+**아니요.** 사용자가 얻는 것은 VPN 연결이 아니라 자신이 고른 사이트의 차단이다. 프라이버시·보안 목적의
+VPN 제품이 아니고, 트래픽을 외부로 내보내지 않으며, 종단점이 기기 자신이라 나가는 터널이 없다.
+
+여기서 "예"를 고르면 일반 VPN 앱으로 분류되어 *"기기에서 VPN 터널 종단점까지 데이터를 암호화할 것"*을
+요구받는데, 나가는 터널이 없는 구조라 충족할 방법이 없다. 만족시킬 수 없는 기준으로 심사받게 된다.
+
+#### 허용된 사용 사례
+
+앱 사용량 추적 / 자녀 보호(parental control) 계열. 스탑잇은 스크린타임 관리 앱이므로 여기에 해당한다.
+핵심 목적과 맞지 않는 카테고리(네트워크 도구, 기기 보안 등)를 고르면 반려된다.
+
+#### What data does the VPN collect or share?
+
+The app does not collect or share any personal or sensitive user data through the VPN. All DNS filtering
+happens locally on the device. No DNS query, browsing history, domain list, or traffic content is
+transmitted, logged, or shared. The VPN routes DNS only, and it exists solely to answer lookups for the
+user's own selected domains with NXDOMAIN while forwarding all other lookups unchanged to the network's
+normal DNS servers. There is no remote tunnel endpoint — the endpoint is the device itself.
+
+#### Does the app redirect or manipulate traffic from other apps for monetization?
+
+**No.**
+
+### 시연 영상
+
+최대 90초. 앱을 열고 VPN이 동작하는 흐름을 담는다. 포그라운드 서비스 선언에 제출한 영상과 같은 것을
+써도 되지만 90초를 넘으면 잘라서 다시 올린다.
+
+담을 순서: 잠금 대상 선택 → 웹사이트 탭 → 도메인 추가 → 잠금 시작 → 시스템 VPN 동의 승인 →
+상태바 VPN 키 아이콘과 포그라운드 알림 → 브라우저에서 차단 사이트 막힘 → **이어서 다른 사이트 정상 로딩**
+→ 잠금 해제 후 재접속 정상.
+
+차단과 허용을 **연달아** 보여주는 것이 핵심이다. "인터넷 전체가 아니라 사용자가 고른 것만 막는다"가
+특수 사용과 허용 예외를 정당화하는 논점이다.
+
+### 현저한 공개(prominent disclosure)
+
+앱 안에서 이미 두 군데가 이를 수행한다. 별도 화면을 만들 필요는 없고, 영상에 이 둘이 보이면 된다.
+
+- 웹사이트 선택 시트 고지: "Websites are managed separately from apps and blocked in supported browsers during a lock."
+- 시스템 VPN 동의창 (Android가 직접 표시)
+
+### 매니페스트와의 일치
+
+설명문과 선언의 문장은 `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` 값과 어긋나면 안 된다. Play가 둘을 대조한다.
+
+```
+Local DNS filtering blocks user-selected websites while a StopIt lock is active.
+```
 
 ## 스크린샷 구성안
 
