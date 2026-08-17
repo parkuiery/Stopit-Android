@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.data.goallock.GoalLockRepository
@@ -58,6 +59,8 @@ class KeepAccessibilityService :
         fun blockExemptPackageProvider(): BlockExemptPackageProvider
 
         fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
+
+        fun emergencyUnlockCompletionCoordinator(): EmergencyUnlockCompletionCoordinator
     }
 
     /**
@@ -459,6 +462,8 @@ class KeepAccessibilityService :
                         RoutineRuntimeEntryPoint::class.java,
                     )
                     entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
+                    // 창이 여기서 끝났다. 예약된 completion payload 가 있으면 지금 보낸다 (#1167).
+                    entryPoint.emergencyUnlockCompletionCoordinator().deliverPending()
                 }
             }
         }
@@ -558,7 +563,13 @@ class KeepAccessibilityService :
                 foregroundPackage = foregroundPackage,
                 applicationId = BuildConfig.APPLICATION_ID,
                 isForegroundStillEmergencyUnlocked = isForegroundStillEmergencyUnlocked,
-                clearExpiredEmergencyUnlockState = entryPoint.blockingStateStore()::clearEmergencyUnlockRuntimeState,
+                // 예약 만료 경로도 폴링 정리 경로와 같은 순서를 지킨다: 상태를 비운 뒤
+                // 예약된 completion payload 를 보낸다 (#1167). 순수 helper 는 그대로 두고
+                // DI 가 있는 호출부에서 감싼다.
+                clearExpiredEmergencyUnlockState = {
+                    entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
+                    entryPoint.emergencyUnlockCompletionCoordinator().deliverPending()
+                },
             )
 
             resolution.packageToReblock?.let { packageName ->

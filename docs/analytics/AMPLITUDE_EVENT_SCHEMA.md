@@ -83,7 +83,7 @@ receives exactly what Firebase receives for these events.
 | `lock_session_end` | Lock session ends | `source`, `end_reason`, `is_routine?` |
 | `lock_scheduled` | Timer/countdown/routine lock scheduled | `schedule_type`, `scheduled_duration_minutes` |
 | `emergency_unlock_used` | Emergency unlock consumed | `source`, `unlock_count_remaining?` |
-| `emergency_unlock_completed` | ⚠️ **승인 시점**에 발생 (아래 주석 참조) | `reason`, `duration_minutes`, `remaining_unlocks` |
+| `emergency_unlock_completed` | 해제 창이 실제로 끝났을 때 (아래 주석 참조) | `reason`, `duration_minutes`, `remaining_unlocks` |
 | `goal_lock_created` | Goal lock created | `duration_selection_type`, `lock_mode`, `selected_app_count_bucket`, `goal_name_type` |
 | `goal_lock_completed` | Goal lock finished | `lock_mode`, `duration_days_bucket` |
 | `goal_lock_ended_early` | Goal lock ended early | `lock_mode`, `elapsed_days_bucket`, `reason` |
@@ -96,11 +96,17 @@ receives exactly what Firebase receives for these events.
 | `review_prompt_shown` | In-app review prompt shown | — |
 | `monetization_interest_clicked` | Monetization interest clicked | `interest_surface`, `interest_context`, `interest_variant?`, `purchase_available?` |
 
-> ⚠️ `emergency_unlock_completed`는 이름과 달리 해제 창 종료가 아니라 **해제 승인 시점**에
-> 발생한다. `EmergencyUnlockCoordinator.kt:119-127`이 `emergency_unlock_used`와 조건 없이
-> 연달아 호출하므로 두 이벤트는 항상 동일한 수치가 된다. 완료율 지표로 쓰면 승인율을 재게
-> 되고, 고빈도 이벤트라 기기당 월 캡도 이중 소모한다. 상세와 처리 방향은
-> `docs/analytics/GA4_AMPLITUDE_JOINT_ANALYSIS.md` §6 참조.
+> `emergency_unlock_completed`는 #1167 이전까지 해제 창 종료가 아니라 **승인 시점**에
+> 발생해 `emergency_unlock_used`와 항상 동일한 수치였다. 완료율 지표가 승인율을 재고
+> 있었고, 고빈도 이벤트라 기기당 월 캡도 이중 소모했다.
+>
+> 현재는 승인 시점에 payload만 예약하고(`EmergencyUnlockCompletionCoordinator.reserve`),
+> `KeepAccessibilityService`의 해제 창 teardown 경로에서 1회 배달한다. 따라서 이제
+> `used`(승인)와 `completed`(완료)는 서로 다른 수치이며, **`completed / used`가 완료율**이다.
+>
+> 판독 경계: 이 변경 포함 버전의 release/tag/Play deploy **이전 데이터는 승인율**이므로
+> 전후 기간을 분리해서 해석한다. 프로세스가 죽은 채 창이 만료되면 서비스가 되살아난
+> 시점에 배달되므로, 이벤트 시각과 실제 종료 시각이 벌어질 수 있다(지연 기록 허용).
 
 `first_core_action_completed` is allowlisted by event name, so both path-specific payload
 shapes above reach Amplitude exactly as Firebase receives them. The ordinary direct path may

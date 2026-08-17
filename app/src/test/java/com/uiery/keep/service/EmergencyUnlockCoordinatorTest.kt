@@ -5,12 +5,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.analytics.AnalyticsSource
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.database.dao.EmergencyUnlockDao
 import com.uiery.keep.database.entity.EmergencyUnlockEntity
 import com.uiery.keep.datastore.BlockingStateStore
+import com.uiery.keep.datastore.PendingEmergencyUnlockCompletion
 import com.uiery.keep.datastore.EmergencyUnlockSettingsStore
 import com.uiery.keep.datastore.PreferencesKey
 import com.uiery.keep.feature.review.FakeDataStore
@@ -41,6 +43,10 @@ class EmergencyUnlockCoordinatorTest {
             blockingStateStore = BlockingStateStore(dataStore),
             repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
         )
 
         val availability = coordinator.readAvailability()
@@ -127,13 +133,43 @@ class EmergencyUnlockCoordinatorTest {
         assertEquals(lockRun.completed.expireTimeMillis, lockRun.completed.stateSnapshot.expireTimeMillis)
         assertEquals(setOf("com.example.app"), lockRun.persistedApps)
         assertEquals(lockRun.completed.expireTimeMillis, lockRun.persistedExpireTime)
+        // 승인 시점에는 used 만 기록한다. completed 는 해제 창이 실제로 끝날 때
+        // EmergencyUnlockCompletionCoordinator 가 예약분을 꺼내 보낸다 (#1167).
+        // 둘을 같은 자리에서 보내면 두 이벤트가 항상 같은 수치가 된다.
         assertEquals(
-            listOf(
-                AnalyticsRecord.Used(AnalyticsSource.LOCK_SCREEN, 2),
-                AnalyticsRecord.Completed(reason = "work", durationMinutes = 5, remainingUnlocks = 2),
-            ),
+            listOf(AnalyticsRecord.Used(AnalyticsSource.LOCK_SCREEN, 2)),
             lockRun.analytics.records,
         )
+    }
+
+    @Test
+    fun completeUnlockReservesCompletionPayloadForLaterDelivery() = runBlocking {
+        val run = completeUnlock(source = AnalyticsSource.BLOCK_SCREEN)
+        val store = BlockingStateStore(run.dataStore)
+
+        assertEquals(
+            PendingEmergencyUnlockCompletion(reason = "work", durationMinutes = 5, remainingUnlocks = 2),
+            store.readPendingEmergencyUnlockCompletion(),
+        )
+
+        val coordinator = EmergencyUnlockCompletionCoordinator(
+            blockingStateStore = store,
+            analytics = run.analytics,
+        )
+
+        assertTrue(coordinator.deliverPending())
+        assertEquals(
+            listOf(
+                AnalyticsRecord.Used(AnalyticsSource.BLOCK_SCREEN, 2),
+                AnalyticsRecord.Completed(reason = "work", durationMinutes = 5, remainingUnlocks = 2),
+            ),
+            run.analytics.records,
+        )
+
+        // 같은 창을 두 번 정리해도 완료는 한 번만 기록한다.
+        assertEquals(false, coordinator.deliverPending())
+        assertEquals(2, run.analytics.records.size)
+        assertEquals(null, store.readPendingEmergencyUnlockCompletion())
     }
 
     @Test
@@ -265,6 +301,10 @@ class EmergencyUnlockCoordinatorTest {
             blockingStateStore = BlockingStateStore(dataStore),
             repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
         )
 
         val result =
@@ -310,6 +350,10 @@ class EmergencyUnlockCoordinatorTest {
             blockingStateStore = BlockingStateStore(dataStore),
             repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
         )
 
     private suspend fun completeUnlock(source: String): CompletedUnlockFixture {
@@ -327,6 +371,10 @@ class EmergencyUnlockCoordinatorTest {
             blockingStateStore = BlockingStateStore(dataStore),
             repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
         )
         EmergencyUnlockState.current = EmergencyUnlockData.EMPTY
 
@@ -345,6 +393,7 @@ class EmergencyUnlockCoordinatorTest {
         return CompletedUnlockFixture(
             completed = result,
             analytics = analytics,
+            dataStore = dataStore,
             stateSnapshot = EmergencyUnlockState.current,
             persistedApps = snapshot[PreferencesKey.EMERGENCY_UNLOCK_APPS].orEmpty(),
             persistedExpireTime = snapshot[PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME],
@@ -355,6 +404,7 @@ class EmergencyUnlockCoordinatorTest {
 private data class CompletedUnlockFixture(
     val completed: EmergencyUnlockRequestResult.Completed,
     val analytics: RecordingEmergencyUnlockAnalytics,
+    val dataStore: FakeDataStore,
     val stateSnapshot: EmergencyUnlockData,
     val persistedApps: Set<String>,
     val persistedExpireTime: Long?,

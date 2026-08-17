@@ -3,6 +3,7 @@ package com.uiery.keep
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.uiery.keep.analytics.AnalyticsBlockSource
 import com.uiery.keep.analytics.AnalyticsParentModeBlockContext
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.analytics.BlockAnalyticsCoordinator
@@ -514,6 +515,10 @@ class BlockViewModelTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 repository = EmergencyUnlockRepository(FakeEmergencyUnlockDao()),
                 analytics = analytics,
+                completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                    blockingStateStore = BlockingStateStore(dataStore),
+                    analytics = analytics,
+                ),
             ),
             lockHistoryRepository = lockHistoryRepository,
             routineRepository = routineRepository,

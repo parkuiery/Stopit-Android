@@ -36,7 +36,9 @@
 
 - crash-free users rate
 - `app_exception`
-- 긴급해제 사용률 = `emergency_unlock_completed` users / active blocked users
+- 긴급해제 사용률 = `emergency_unlock_used` users / active blocked users
+- 긴급해제 완료율 = `emergency_unlock_completed` users / `emergency_unlock_used` users
+  - #1167 이전에는 `completed`가 승인 시점에 발생해 `used`와 항상 동일했다. 즉 과거 "사용률"은 `completed`로 재도 승인율이었고 완료율은 존재하지 않았다. 수정 포함 버전 배포 전후를 분리해서 본다.
 - 화면명 미설정 비율 = `(not set)` screen views / total screen views
 - 리뷰 평점과 리뷰 수
 - 권한 거절/이탈률

@@ -1,5 +1,6 @@
 package com.uiery.keep.feature.emergencyunlocksettings
 
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.analytics.AnalyticsEmergencyUnlockDurationCountBucket
 import com.uiery.keep.analytics.AnalyticsEmergencyUnlockManualResetResult
 import com.uiery.keep.analytics.AnalyticsEmergencyUnlockRefillMode
@@ -221,6 +222,10 @@ private fun createViewModel(
             blockingStateStore = BlockingStateStore(dataStore),
             repository = EmergencyUnlockRepository(dao),
             analytics = analytics,
+        completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
         ),
         analytics = analytics,
     )

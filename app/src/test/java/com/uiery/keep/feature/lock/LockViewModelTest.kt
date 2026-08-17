@@ -2,6 +2,7 @@ package com.uiery.keep.feature.lock
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.lifecycle.SavedStateHandle
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.analytics.KeepAnalyticsScreen
 import com.uiery.keep.database.dao.LockHistoryDao
@@ -148,7 +149,11 @@ class LockViewModelTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 repository = EmergencyUnlockRepository(emergencyUnlockDao),
                 analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
             ),
+        ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
             reviewEligibility = reviewEligibility,
@@ -212,7 +217,11 @@ class LockViewModelTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 repository = EmergencyUnlockRepository(emergencyUnlockDao),
                 analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
             ),
+        ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
             reviewEligibility = reviewEligibility,
@@ -270,7 +279,11 @@ class LockViewModelTest {
                 blockingStateStore = BlockingStateStore(dataStore),
                 repository = EmergencyUnlockRepository(emergencyUnlockDao),
                 analytics = analytics,
+            completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
             ),
+        ),
             notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
             analytics = analytics,
             reviewEligibility = reviewEligibility,
@@ -327,7 +340,11 @@ class LockViewModelTest {
                     blockingStateStore = BlockingStateStore(dataStore),
                     repository = EmergencyUnlockRepository(emergencyUnlockDao),
                     analytics = analytics,
-                ),
+                completionCoordinator = EmergencyUnlockCompletionCoordinator(
+                blockingStateStore = BlockingStateStore(dataStore),
+                analytics = analytics,
+            ),
+        ),
                 notificationHelper = Mockito.mock(EmergencyUnlockNotificationHelper::class.java),
                 analytics = analytics,
                 reviewEligibility = reviewEligibility,

@@ -1,5 +1,6 @@
 package com.uiery.keep.service
 
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.analytics.KeepAnalytics
 import com.uiery.keep.data.emergencyunlock.EmergencyUnlockRepository
 import com.uiery.keep.datastore.BlockingStateStore
@@ -55,6 +56,7 @@ class EmergencyUnlockCoordinator
         private val blockingStateStore: BlockingStateStore,
         private val repository: EmergencyUnlockRepository,
         private val analytics: KeepAnalytics,
+        private val completionCoordinator: EmergencyUnlockCompletionCoordinator,
     ) {
         internal suspend fun readAvailability(): EmergencyUnlockAvailability {
             val settings = readSettings()
@@ -120,7 +122,10 @@ class EmergencyUnlockCoordinator
                 source = source,
                 unlockCountRemaining = unlockCountRemaining,
             )
-            analytics.trackEmergencyUnlockCompleted(
+            // 완료는 여기서 기록하지 않는다. 승인과 완료를 같은 자리에서 보내면 두 이벤트가
+            // 항상 같은 수치가 되고, 완료율을 재려던 지표가 승인율을 재게 된다 (#1167).
+            // payload 만 예약해두고 실제 기록은 창이 끝날 때 한다.
+            completionCoordinator.reserve(
                 reason = reason,
                 durationMinutes = durationMinutes,
                 remainingUnlocks = unlockCountRemaining,
