@@ -106,6 +106,7 @@ Home status/CTA 구조 개선은 새 analytics 이벤트를 반드시 요구하�
 
 - #14의 홈 첫 잠금 CTA(PR #256 `bce1cda`), 첫 차단 성공 피드백(PR #279 `5c6331d`), 홈 Keep/타이머 시작 안내(PR #283 `35c13eb`)는 `origin/develop`에는 있으나 2026-06-02 기준 `origin/main`/production tag `v1.7.7`에는 없다. 따라서 production 데이터는 post-fix 성과가 아니라 pre-#256/#279/#283 baseline으로 본다.
 - #463 repo-internal 구현은 PR #500/PR #606/PR #948 기준으로 Home 상태 read model, KDS 상태 카드, shipped locale, focused JVM/Compose baseline까지 `develop`에 반영됐다. 그러나 release/tag/Play deploy와 14일 관측 전에는 activation 개선을 단정하지 않는다.
+- **⚠️ 2026-08-17 확인: 상태 카드는 현재 production에서 렌더되지 않는다 (#1166).** PR #1099 `fix(home): restore v1.7.7 home UI`가 홈 UI를 `v1.7.7` 형태로 되돌리면서 `HomeScreen`의 `HomeStatusCtaCard` 호출부를 제거했고, 컴포저블·read model·`onRoutineCreationCtaClick`은 "테스트용 계약"으로만 남았다. 따라서 위 landed 기술은 **코드 존재 기준이며 화면 노출 기준이 아니다.** `HomeStatusCtaCardIntegrationTest`는 컴포저블을 직접 렌더하므로 이 공백을 검증하지 못한다. #463 closure를 판단하기 전에 카드 복원 여부를 먼저 결정한다. 관련 계측은 렌더 시점 보고로 이미 교정됐다(`docs/analytics/GA4_AMPLITUDE_JOINT_ANALYSIS.md` §6).
 - GA4 Admin에서 `customEvent:source`, `customEvent:block_source`, `customEvent:selected_app_count`류 축이 queryable인지 확인하기 전에는 경로별 결론을 낮은 confidence로 둔다.
 - 새 이벤트를 추가한다면 privacy-safe enum/bucket만 허용한다. 금지 payload/query 축: 앱 이름, package name, raw selected app list, raw session history, raw timestamp.
 
