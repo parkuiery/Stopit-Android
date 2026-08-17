@@ -71,6 +71,20 @@ python3 scripts/metrics_read.py --days 30 --amplitude-json amp.json
 python3 scripts/metrics_read.py --days 30 --json-out .omc/artifacts/metrics-$(date +%F).json
 ```
 
+### ⚠️ MCP 조회 시 `interval`은 반드시 `1`로 둔다
+
+`eventsSegmentation`에 `interval: 30`을 주면 Amplitude가 **월 경계로 스냅**해서 요청한
+`start`/`end`보다 넓은 구간을 반환한다. 그대로 capture rate를 내면 분자가 부풀어 1.0을
+넘는다. 항상 `interval: 1`로 일 단위 시계열을 받아 **직접 합산**하고, 반환된 날짜 점의
+개수와 첫/끝 날짜가 요청한 창과 일치하는지 확인한다.
+
+### ⚠️ 두 도구의 날짜 경계가 9시간 다르다
+
+GA4 property는 `Etc/GMT-9`(KST), Amplitude 프로젝트는 timezone 미설정(UTC)이다. 같은 날짜
+문자열로 조회해도 실제로 담기는 구간이 9시간 어긋나므로, 창 양끝의 이벤트가 서로 다른 날에
+배정된다. **capture rate가 1.0에서 몇 % 벗어나는 것은 이 경계 차이로 설명되는 정상 범위다.**
+일 단위 시계열을 직접 겹쳐 보는 비교는 하지 않는다.
+
 `--amplitude-json`은 MCP 조회 결과를 그대로 옮긴 평면 맵이다. **조회한 이벤트만** 넣으면 된다.
 넣지 않은 이벤트는 `0`이 아니라 `n/a`로 렌더링된다.
 
@@ -109,10 +123,19 @@ GA4 쪽을 **같은 모집단으로 잘라서** 비교한다. 해석:
 
 | capture | 해석 |
 |---|---|
-| ~1.0 | 정상 |
-| 0.6~0.9 | 대체로 기기당 월 180건 캡. 고빈도 이벤트(`lock_session_*`, `emergency_unlock_*`)에서 정상적으로 발생 |
+| 0.95~1.05 | 정상. 1.0을 살짝 넘는 것도 정상이다 — 위의 9시간 경계 차이와 GA4의 `appVersion` 미파싱 행 제외 때문이다 |
+| 0.6~0.9 | 대체로 기기당 월 180건 캡. **고빈도 이벤트일수록 낮아지는 것이 설계대로 동작하는 증거다** |
 | < 0.5 | 캡만으로 설명 안 됨. allowlist 누락 / prod 미배포 / SDK 초기화 실패 순으로 확인 |
 | `n/a` | 조회하지 않음. **0이 아니다** |
+
+capture가 이벤트 빈도와 **역상관**인지 먼저 본다. 저빈도 이벤트는 ~1.0, 고빈도 이벤트만
+낮게 나오면 캡이 의도대로 작동하는 것이다. 저빈도 이벤트가 낮으면 그때가 진짜 문제다.
+
+### 3-5. 양쪽 모두 0이면 파이프라인이 아니라 이벤트를 의심한다
+
+한쪽만 비면 수집 경로 문제지만, **GA4와 Amplitude가 동시에 0이면 이벤트가 아예 발생하지
+않는 것**이다. 이때는 계측 배선(호출부 존재 여부)과 기능 노출 조건을 코드에서 확인한다.
+교차 판독의 가장 값싼 소득이 이 구분이다.
 
 > `eventCount`만 버전 합산이 가능하다. `totalUsers`는 GA4가 행 단위로 중복 제거하므로
 > 버전별로 더하면 과대 집계된다. 그래서 사용자 수는 전체값만 표기한다.
@@ -164,11 +187,41 @@ GA4 쪽을 **같은 모집단으로 잘라서** 비교한다. 해석:
 - 처리 방향: (a) `completed`를 실제 만료/조기 종료 시점으로 이동, 또는 (b) 중복으로 판단해
   allowlist에서 제거. 어느 쪽이든 과거 데이터의 의미가 바뀌므로 전후 기간을 분리해 해석한다.
 
+### `*_shown` 이벤트는 "화면에 보였다"를 뜻하지 않을 수 있다
+
+`shown` 계열이 **렌더링 시점이 아니라 ViewModel 상태 계산 시점**에 발생하도록 배선돼
+있으면, UI가 실제로 그려지지 않아도 노출이 계속 기록된다. 실측으로 확인된 사례가
+`routine_creation_cta_shown`이다(§ 아래).
+
+판별법: `shown`은 많은데 짝이 되는 `clicked` / `dismissed`가 **둘 다 0**이면 사용자가
+무시한 것이 아니라 배선을 의심한다. 실제 노출이 있으면 dismiss는 반드시 얼마간 발생한다.
+그 다음 호출부를 코드에서 확인한다 — 컴포저블과 핸들러에 **production 호출부가 있는지**,
+테스트에서만 호출되는지 본다.
+
 ### GA4의 이벤트별 users는 순서 퍼널이 아니다
 
 `app_block_intercepted` users가 `first_core_action_completed`보다 큰 경우가 정상적으로 발생한다.
 기존 사용자의 반복 차단이 섞이기 때문이다. **순서 있는 활성화 전환은 Amplitude 퍼널로만
 확인한다.** GA4 단독 판독의 가장 큰 공백이 이 지점이다.
+
+### Home 상태/CTA 카드는 production에서 렌더되지 않는다 (2026-08-17 확인)
+
+`HomeStatusCtaCard`(`HomeScreen.kt:691`)와 `buildHomeStatusCtaModel`
+(`HomeStatusCtaReadModel.kt:29`)은 **production 호출부가 없다.** 참조는
+`HomeStatusCtaCardIntegrationTest` / `HomeStatusCtaReadModelTest` 등 테스트뿐이다.
+같은 이유로 `HomeViewModel.onRoutineCreationCtaClick()`(`HomeViewModel.kt:566`)도
+production에서 호출되지 않는다.
+
+반면 `trackRoutineCreationCtaShownIfNeeded`는 상태 계산 경로에서 실행되므로
+`routine_creation_cta_shown`은 계속 기록된다. 결과적으로 **보이지 않는 카드의 노출이
+집계되고, clicked/dismissed는 구조적으로 0이다.** Compose integration test는 컴포저블을
+직접 렌더해서 통과하므로 이 공백을 잡지 못한다.
+
+파급:
+- `docs/HOME_STATUS_CTA_STRUCTURE.md`와 `docs/ops/stopit/metrics-context.md`가 #463을
+  "PR #500/#606/#948 이후 landed"로 기술하지만, 렌더링 경로 기준으로는 미배선이다.
+- #455 루틴 생성 CTA 실험의 `clicked / shown` 전환율은 계산해도 의미가 없다.
+- 확인/수정은 별도 이슈. 실기기에서 Home 화면에 카드가 보이는지 먼저 확인한다.
 
 ### 화면 품질과 custom dimension 등록
 
