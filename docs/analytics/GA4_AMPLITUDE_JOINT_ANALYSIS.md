@@ -208,28 +208,23 @@ teardown 경로에서 1회 배달한다. **`completed / used`가 완료율**이 
 기존 사용자의 반복 차단이 섞이기 때문이다. **순서 있는 활성화 전환은 Amplitude 퍼널로만
 확인한다.** GA4 단독 판독의 가장 큰 공백이 이 지점이다.
 
-### Home 상태/CTA 카드는 production에서 렌더되지 않는다 (#1166)
+### `routine_creation_cta_shown`은 현재 아무것도 발생시키지 않는다 (#1166 / #463)
 
-`HomeStatusCtaCard`(`HomeScreen.kt`)와 `buildHomeStatusCtaModel`
-(`HomeStatusCtaReadModel.kt`)은 **production 호출부가 없다.** 참조는
-`HomeStatusCtaCardIntegrationTest` / `HomeStatusCtaReadModelTest` 등 테스트뿐이다.
-같은 이유로 `HomeViewModel.onRoutineCreationCtaClick()`도 production에서 호출되지 않는다.
+`HomeStatusCtaCard`는 PR #500이 넣고 PR #1099 `fix(home): restore v1.7.7 home UI`가
+호출부만 지운 뒤 테스트에서만 렌더되고 있었다. 그동안 노출 계측은 상태 계산 경로에 남아
+**보이지 않는 카드의 노출을 집계했다.**
 
-PR #500이 정의와 호출부를 함께 넣었고, **PR #1099 `fix(home): restore v1.7.7 home UI`가
-홈 UI를 되돌리며 호출부만 제거**했다. 컴포저블을 "테스트용 계약"으로 남긴 것은 의도된
-선택이었지만, 노출 계측은 함께 정리되지 않았다.
+두 단계로 정리됐다.
 
-**계측은 수정됐다.** `routine_creation_cta_shown`은 이제 상태 계산이 아니라 렌더 시점
-(`HomeStatusCtaCard`의 `showRoutineCreationSecondary` 분기)에서 보고된다. 카드가 그려지지
-않는 동안에는 이벤트도 발생하지 않으므로 **0이 정확한 값이다.** 카드를 다시 배선하면
-자동으로 정상 집계된다. `scripts/tests/test_routine_creation_cta_shown_contract.py`가
-상태 계산 경로로 되돌아가는 회귀를 막는다.
+1. 노출 보고를 렌더 시점으로 옮겼다(#1166). 카드가 그려지지 않으면 이벤트도 없다.
+2. 죽은 카드와 read model을 삭제했다(#463 superseded). 지금은 emission 자체가 없다.
 
-남은 경계:
-- **카드 자체는 여전히 렌더되지 않는다.** #463 복원 여부는 별도 제품 결정이다.
-- 그때까지 #455 루틴 생성 CTA 실험과 #810 전환 측정의 분자는 0이며, 이것을 수요 부재로
-  해석하지 않는다.
-- 수정 포함 버전의 release/tag/Play deploy 전까지 live `shown` 잔여분은 구버전 잔상이다.
+**따라서 이 이벤트가 0인 것이 정확한 값이다.** 수요 부재로 읽지 않는다. 홈은 이제
+`HomeCardArbiter`가 카드 한 장만 고르는 구조이고, 루틴 생성 넛지는 #455에서
+`HomeCard` variant로 다시 만든다.
+
+`scripts/tests/test_routine_creation_cta_shown_contract.py`는 emission이 없어도 통과하고,
+누군가 상태 계산 경로에서 다시 로깅하면 실패한다. #455 재구현 시에도 같은 규칙이 걸린다.
 
 ### 화면 품질과 custom dimension 등록
 

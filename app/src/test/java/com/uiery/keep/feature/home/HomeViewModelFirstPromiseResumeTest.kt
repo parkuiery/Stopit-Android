@@ -128,24 +128,6 @@ class HomeViewModelFirstPromiseResumeTest {
         assertEquals(FirstPromiseScheduleState.Enabled, retry.store.readState().scheduleState)
     }
 
-    @Test
-    fun resumeCardDoesNotChangeExistingPrimaryCtaPriority() = runBlocking {
-        val fixture = fixture(canSchedule = false)
-        fixture.viewModel.awaitCard()
-
-        val model = buildHomeStatusCtaModel(
-            isKeep = false,
-            selectedAppCount = 1,
-            showFirstLockActivationCta = true,
-            showRoutineCreationCta = false,
-            hasGoalLockCard = true,
-            hasFirstPromiseResumeCard = true,
-        )
-
-        assertEquals(HomeStatusKind.FIRST_LOCK_READY, model.statusKind)
-        assertTrue(model.shouldToggleKeep)
-        assertTrue(model.showGoalLockStatus)
-    }
 
     @Test
     fun rapidDoubleTapOpensSettingsOnceAndKeepsCardBusyUntilResume() = runBlocking {
