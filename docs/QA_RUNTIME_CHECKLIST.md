@@ -224,19 +224,11 @@ cd <repo-root>
 
 수동 QA가 필요하면 홈 → 시간 설정 → 타이머 탭에서 위 경계 시각을 맞춘 뒤 CTA 문구와 실제 잠금 종료 시각이 같은 duration을 가리키는지 기록한다.
 
-### Home status / CTA hierarchy QA evidence
+### Home status / CTA hierarchy QA evidence — 은퇴 (2026-08-18)
 
-issue #463 계열 PR은 `docs/HOME_STATUS_CTA_STRUCTURE.md`를 source of truth로 보고, 홈 화면이 텍스트만으로도 현재 상태와 다음 행동을 구분하는지 확인한다. PR #500/PR #606/PR #948 이후 Home code/resource/locale/JVM+Compose baseline은 `develop`에 반영됐으므로 구현 전 handoff로 되돌리지 않는다. 남은 QA 경계는 실제 기기 screenshot/visual/TalkBack spot-check와 release/tag/Play deploy 이후 readback이다.
+**이 QA 레인은 더 이상 쓰지 않는다.** #463이 superseded로 종료되면서 `HomeStatusCtaCard`, read model, 그 테스트와 정적 계약이 모두 삭제됐다. `docs/HOME_STATUS_CTA_STRUCTURE.md`는 당시 설계 기록으로만 남는다.
 
-자동 baseline:
-
-```bash
-cd <repo-root>
-python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v
-./gradlew --console=plain :app:testDevDebugUnitTest --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest'
-./gradlew --console=plain :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.uiery.keep.feature.home.HomeStatusCtaCardIntegrationTest
-./gradlew --console=plain :app:lintProdRelease
-```
+홈 카드 QA는 `HomeCardArbiter`가 고르는 실제 카드(`FirstPromiseResume` / `FirstLockActivation` / `UsageInsight`)를 대상으로 한다. 상단에 카드를 더 붙이는 변경은 #1151(큰 글꼴에서 잠금 스위치가 스크롤 밖으로 밀림)을 먼저 확인한다.
 
 수동 QA matrix:
 - 꺼짐 + 선택 앱 없음: `차단 앱 선택`이 primary action이고 Keep/타이머 성공처럼 보이지 않는다.
@@ -274,9 +266,9 @@ issue #455 계열 PR은 `docs/ROUTINE_CREATION_CTA_EXPERIMENT.md`를 source of t
 ```bash
 cd <repo-root>
 ./gradlew --console=plain :app:testDevDebugUnitTest \
-  --tests 'com.uiery.keep.feature.home.HomeStatusCtaReadModelTest' \
   --tests 'com.uiery.keep.feature.home.HomeViewModelActivationAnalyticsTest' \
   --tests 'com.uiery.keep.analytics.RoutineCreationCtaAnalyticsTest'
+python3 -m unittest scripts.tests.test_routine_creation_cta_shown_contract -v
 ./gradlew --console=plain :app:lintProdRelease
 ```
 
@@ -287,29 +279,6 @@ cd <repo-root>
 - CTA 클릭: Routine 화면/생성 흐름으로 이동한다.
 - analytics debug/log evidence가 가능하면 `routine_creation_cta_shown` / `routine_creation_cta_clicked` payload에 `surface=home_secondary`, `activation_stage=post_first_core_action`, `has_routine=false`, `cta_variant=soft_default`만 포함되는지 확인한다.
 
-```md
-## Home status/CTA QA evidence
-- Issue: #463
-- Build / variant:
-- Device / Android version:
-- Theme: light / dark
-- User state:
-  - selected app count: 0 / 1 / many
-  - first lock recorded: yes / no
-  - keep mode: on / off
-  - timer: none / scheduled / running
-  - goal lock: none / active / completed
-- Text-only state clarity: pass / fail
-- Primary CTA is visually strongest: pass / fail
-- App selection/change entry visible: pass / fail
-- Timer vs immediate lock copy separated: pass / fail
-- Primary color not overused: pass / fail
-- Commands:
-  - `python3 -m unittest scripts.tests.test_home_status_cta_structure_contract -v`
-  - `<focused Home test or :app:testDevDebugUnitTest>`
-- Screenshot/video evidence:
-- Notes:
-```
 
 ### KDS modal bottom sheet edge-to-edge visual QA
 
