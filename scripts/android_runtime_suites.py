@@ -65,6 +65,11 @@ SUITES: dict[str, list[str]] = {
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#packageReplacedDisablesEmptyRepeatDaysRoutineAndCancelsStaleAlarms",
         "com.uiery.keep.receiver.ReceiverRuntimeIntegrationTest#routineAlarmReceiverShowsNotificationRehydratesDataStoreAndReschedulesEnabledRoutine",
         "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#handleExpiredEmergencyUnlockForContext_clearsStoredStateAndReturnsReblockPackage",
+        # 위 selector 는 자기 teardown lambda 를 넘기므로 서비스가 실제로 실행하는 배선을
+        # 지나가지 않는다. 아래 세 개가 finishEmergencyUnlockWindow 실물을 돌린다. (#1167)
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#finishEmergencyUnlockWindow_clearsRuntimeStateAndDeliversCompletionOnce",
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#finishEmergencyUnlockWindow_deliversReservationThatSurvivedProcessRestart",
+        "com.uiery.keep.service.EmergencyUnlockExpiryIntegrationTest#finishEmergencyUnlockWindow_withoutReservationSendsNothing",
         "com.uiery.keep.service.KeepMessagingServiceIntegrationTest",
         "com.uiery.keep.service.KeepAccessibilityServiceIntegrationTest",
     ],

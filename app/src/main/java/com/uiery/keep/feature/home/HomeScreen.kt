@@ -696,6 +696,7 @@ internal fun HomeStatusCtaCard(
     onTimerClick: () -> Unit,
     onLockHistoryClick: () -> Unit,
     onRoutineCreationClick: () -> Unit,
+    onRoutineCreationShown: () -> Unit = {},
 ) {
     KeepCard(
         modifier = modifier.testTag("home_status_cta_card"),
@@ -755,6 +756,9 @@ internal fun HomeStatusCtaCard(
                     )
                 }
                 if (model.showRoutineCreationSecondary) {
+                    // 노출 로깅은 여기서만 일어난다. 이 분기가 실제로 컴포즈되지 않으면
+                    // routine_creation_cta_shown 도 발생하지 않아야 한다 (#1166).
+                    LaunchedEffect(Unit) { onRoutineCreationShown() }
                     HomeQuickAction(
                         modifier = Modifier.weight(1f),
                         iconResId = R.drawable.ic_routine,

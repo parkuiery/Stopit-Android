@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import com.uiery.kds.theme.KeepTheme
 import com.uiery.keep.R
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -135,5 +136,63 @@ class HomeStatusCtaCardIntegrationTest {
         composeRule.onNodeWithText(context.getString(R.string.home_secondary_timer)).assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.home_secondary_lock_history)).assertIsDisplayed()
         composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_create_routine)).assertCountEquals(0)
+    }
+
+    /**
+     * 노출 보고는 루틴 생성 액션이 실제로 컴포즈될 때만 일어난다 (#1166).
+     * 상태만 true 라도 이 분기가 그려지지 않으면 보고되지 않아야 한다.
+     */
+    @Test
+    fun routineCreationSecondaryReportsShownOnlyWhenRendered() {
+        var shownReports = 0
+        composeRule.setContent {
+            KeepTheme {
+                HomeStatusCtaCard(
+                    model = buildHomeStatusCtaModel(
+                        isKeep = false,
+                        selectedAppCount = 2,
+                        showFirstLockActivationCta = false,
+                        showRoutineCreationCta = true,
+                        hasGoalLockCard = false,
+                    ),
+                    onPrimaryClick = {},
+                    onChangeAppsClick = {},
+                    onTimerClick = {},
+                    onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
+                    onRoutineCreationShown = { shownReports++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.home_secondary_create_routine)).assertIsDisplayed()
+        composeRule.runOnIdle { assertEquals(1, shownReports) }
+    }
+
+    @Test
+    fun hiddenRoutineCreationSecondaryDoesNotReportShown() {
+        var shownReports = 0
+        composeRule.setContent {
+            KeepTheme {
+                HomeStatusCtaCard(
+                    model = buildHomeStatusCtaModel(
+                        isKeep = false,
+                        selectedAppCount = 2,
+                        showFirstLockActivationCta = false,
+                        showRoutineCreationCta = false,
+                        hasGoalLockCard = false,
+                    ),
+                    onPrimaryClick = {},
+                    onChangeAppsClick = {},
+                    onTimerClick = {},
+                    onLockHistoryClick = {},
+                    onRoutineCreationClick = {},
+                    onRoutineCreationShown = { shownReports++ },
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithText(context.getString(R.string.home_secondary_create_routine)).assertCountEquals(0)
+        composeRule.runOnIdle { assertEquals(0, shownReports) }
     }
 }

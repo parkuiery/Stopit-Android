@@ -54,6 +54,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
+| `analytics/` | Amplitude event schema/예산 계약과 GA4+Amplitude 실데이터 교차 판독 런북(`scripts/metrics_read.py`). |
 | `ops/stopit/` | Stopit 운영 cron과 전문 subagent가 공유하는 제품/지표/엔지니어링/릴리즈 컨텍스트 팩. |
 | `superpowers/` | Superpowers-generated implementation planning and specification artifacts. |
 

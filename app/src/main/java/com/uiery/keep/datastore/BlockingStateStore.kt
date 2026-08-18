@@ -291,7 +291,62 @@ class BlockingStateStore @Inject constructor(
             preferences.remove(PreferencesKey.EMERGENCY_UNLOCK_EXPIRE_TIME)
         }
     }
+
+    /**
+     * 해제 승인 시점의 completion payload 를 예약한다. 실제 기록은 창이 끝날 때 한다 (#1167).
+     *
+     * 앞선 창의 예약이 배달되지 않은 채 남아 있으면 덮어쓴다. `first_lock_configured` 와 달리
+     * 이 이벤트는 설치당 1회가 아니라 해제 창당 1회이므로 영구 "배달 완료" 플래그를 두지 않는다.
+     */
+    suspend fun reserveEmergencyUnlockCompletion(
+        reason: String,
+        durationMinutes: Int,
+        remainingUnlocks: Int,
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REASON] = reason
+            preferences[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_DURATION_MINUTES] = durationMinutes
+            preferences[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REMAINING] = remainingUnlocks
+        }
+    }
+
+    suspend fun readPendingEmergencyUnlockCompletion(): PendingEmergencyUnlockCompletion? {
+        val preferences = dataStore.data.first()
+        return preferences.readPendingEmergencyUnlockCompletion()
+    }
+
+    /**
+     * 배달된 예약을 제거한다. 읽은 뒤 값이 바뀌었으면(새 창이 시작됐으면) 제거하지 않아,
+     * 새 창의 예약을 잘못 소비하지 않는다.
+     */
+    suspend fun markEmergencyUnlockCompletionDelivered(pending: PendingEmergencyUnlockCompletion): Boolean {
+        var didComplete = false
+        dataStore.edit { preferences ->
+            if (preferences.readPendingEmergencyUnlockCompletion() == pending) {
+                preferences.remove(PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REASON)
+                preferences.remove(PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_DURATION_MINUTES)
+                preferences.remove(PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REMAINING)
+                didComplete = true
+            }
+        }
+        return didComplete
+    }
+
+    private fun Preferences.readPendingEmergencyUnlockCompletion(): PendingEmergencyUnlockCompletion? {
+        val reason = this[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REASON] ?: return null
+        return PendingEmergencyUnlockCompletion(
+            reason = reason,
+            durationMinutes = this[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_DURATION_MINUTES] ?: 0,
+            remainingUnlocks = this[PreferencesKey.PENDING_EMERGENCY_UNLOCK_COMPLETION_REMAINING] ?: 0,
+        )
+    }
 }
+
+data class PendingEmergencyUnlockCompletion(
+    val reason: String,
+    val durationMinutes: Int,
+    val remainingUnlocks: Int,
+)
 
 data class TimedLockSessionSnapshot(
     val selectedAppPackages: Set<String>?,

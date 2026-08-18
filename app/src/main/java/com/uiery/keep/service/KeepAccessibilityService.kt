@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent
 import com.uiery.keep.BlockActivity
 import com.uiery.keep.BuildConfig
 import com.uiery.keep.R
+import com.uiery.keep.analytics.EmergencyUnlockCompletionCoordinator
 import com.uiery.keep.appselection.BlockExemptPackageProvider
 import com.uiery.keep.data.routine.RoutineRepository
 import com.uiery.keep.data.goallock.GoalLockRepository
@@ -58,6 +59,8 @@ class KeepAccessibilityService :
         fun blockExemptPackageProvider(): BlockExemptPackageProvider
 
         fun emergencyUnlockNotificationHelper(): EmergencyUnlockNotificationHelper
+
+        fun emergencyUnlockCompletionCoordinator(): EmergencyUnlockCompletionCoordinator
     }
 
     /**
@@ -458,7 +461,11 @@ class KeepAccessibilityService :
                         applicationContext,
                         RoutineRuntimeEntryPoint::class.java,
                     )
-                    entryPoint.blockingStateStore().clearEmergencyUnlockRuntimeState()
+                    // 창이 여기서 끝났다. 상태를 비우고 예약된 completion 을 배달한다 (#1167).
+                    finishEmergencyUnlockWindow(
+                        blockingStateStore = entryPoint.blockingStateStore(),
+                        completionCoordinator = entryPoint.emergencyUnlockCompletionCoordinator(),
+                    )
                 }
             }
         }
@@ -558,7 +565,15 @@ class KeepAccessibilityService :
                 foregroundPackage = foregroundPackage,
                 applicationId = BuildConfig.APPLICATION_ID,
                 isForegroundStillEmergencyUnlocked = isForegroundStillEmergencyUnlocked,
-                clearExpiredEmergencyUnlockState = entryPoint.blockingStateStore()::clearEmergencyUnlockRuntimeState,
+                // 예약 만료 경로도 폴링 정리 경로와 같은 순서를 지킨다: 상태를 비운 뒤
+                // 예약된 completion payload 를 보낸다 (#1167). 순수 helper 는 그대로 두고
+                // DI 가 있는 호출부에서 감싼다.
+                clearExpiredEmergencyUnlockState = {
+                    finishEmergencyUnlockWindow(
+                        blockingStateStore = entryPoint.blockingStateStore(),
+                        completionCoordinator = entryPoint.emergencyUnlockCompletionCoordinator(),
+                    )
+                },
             )
 
             resolution.packageToReblock?.let { packageName ->
@@ -692,6 +707,22 @@ internal fun nextRoutineStartReevaluationDelayMillis(
         }
     }
     .minOrNull()
+
+/**
+ * 해제 창 teardown 의 단일 순서: 런타임 상태를 비우고 예약된 completion 을 배달한다.
+ *
+ * 만료 경로가 둘(폴링 정리, 예약 만료 콜백)인데 둘 다 이 순서를 지켜야 한다. 각 호출부에
+ * 람다로 흩어 두면 한쪽만 배달을 빠뜨려도 드러나지 않고, 실제로 그 배선을 실행하는
+ * 테스트를 쓸 수도 없다. 이름 있는 함수로 두어 두 경로와 계측 테스트가 같은 코드를
+ * 지나가게 한다. (#1167)
+ */
+internal suspend fun finishEmergencyUnlockWindow(
+    blockingStateStore: BlockingStateStore,
+    completionCoordinator: EmergencyUnlockCompletionCoordinator,
+) {
+    blockingStateStore.clearEmergencyUnlockRuntimeState()
+    completionCoordinator.deliverPending()
+}
 
 internal suspend fun clearExpiredEmergencyUnlockRuntimeStateAndReleaseLatch(
     isCleaningUp: AtomicBoolean,
