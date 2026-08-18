@@ -50,6 +50,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Keep"
         tools:targetApi="31">
+
+        <!--
+            targetSdk 36(Android 16)부터 sw>=600dp 화면에서는 activity의
+            screenOrientation / resizableActivity / aspect ratio 제한이 무시된다.
+            Stopit의 화면들은 아직 세로 기준으로만 설계·검증돼 있어, 태블릿·폴더블에서
+            가로로 펼쳐졌을 때의 레이아웃 근거가 없다. 그래서 MainActivity의
+            screenOrientation="portrait"를 API 36 동안 유지하는 한시적 opt-out을 건다.
+
+            이 opt-out은 API 37에서 제거된다. 그전에 대형 화면 적응형 레이아웃을 실제로
+            대응하고 이 property를 지워야 한다. 지우기 전 조건: 대형 화면 레이아웃 대응 +
+            sw>=600dp 에뮬레이터/실기기 가로 검증.
+        -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

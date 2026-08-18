@@ -105,3 +105,4 @@ Flavor dimension: `server`
 
 - [Git Workflow](docs/GIT_WORKFLOW.md) - 브랜치 전략, 커밋 컨벤션, 릴리즈 플로우
 - [KDS Design System](core/kds/README.md) - 디자인 시스템 컴포넌트 및 테마
+- [targetSdk 36 Migration](docs/TARGET_SDK_36_MIGRATION.md) - Android 16 이관 기록, 대형 화면 opt-out 제거 조건, 남은 실기기 검증
