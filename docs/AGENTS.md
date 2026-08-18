@@ -50,6 +50,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `FCM_DEVICE_REGISTRATION_CONTRACT.md` | #194/#1090용 FCM token 로컬 저장, legacy backend registration 제거, 초기 token fetch와 `onNewToken()` 공통 retry/observability 계약. |
 | `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
 | `TEST_SOURCE_LINT_POLICY.md` | #1091용 `app/src/test` / `app/src/androidTest` lint 제외 정책, 대체 guard, 재검토/활성화 조건, static contract 기준. |
+| `TARGET_SDK_36_MIGRATION.md` | 2026-08-31 Play 요구사항 대응 `targetSdk 35 -> 36` 이관 기록. Android 16 동작 변경 대조표, `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` 한시 opt-out의 API 37 제거 조건, 검증 증적과 남은 실기기 항목. |
 
 ## Subdirectories
 | Directory | Purpose |
