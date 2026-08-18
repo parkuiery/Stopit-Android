@@ -107,7 +107,7 @@ Privacy guardrail:
 
 ## 구현 handoff checklist
 
-- [x] 루틴 0개 + 첫 핵심 행동 완료 이후 사용자에게만 CTA가 노출된다. (`HomeStatusCtaReadModelTest`, `HomeViewModelActivationAnalyticsTest`)
+- [ ] 루틴 0개 + 첫 핵심 행동 완료 이후 사용자에게만 CTA가 노출된다. **2026-08-18 재설계**: 기존 `HomeStatusCtaCard` secondary action 경로는 #463 superseded와 함께 삭제됐다. `HomeCard.RoutineCreation` variant로 다시 만들고, 노출 보고는 렌더 시점에서만 한다(#1166). 자세한 방향은 이슈 #455 코멘트 참조.
 - [x] onboarding / pre-first-lock 사용자에게는 CTA가 노출되지 않는다. (`hasTrackedFirstCoreAction=false` state/read-model 경계)
 - [x] CTA 클릭 시 Routine 생성 흐름으로 이동한다. (`HomeSideEffect.MoveToRoutine` → `navigateToRoutine`)
 - [x] CTA 이벤트가 privacy-safe enum 파라미터만 전송한다. (`RoutineCreationCtaAnalyticsTest`)

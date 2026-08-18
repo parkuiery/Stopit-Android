@@ -256,7 +256,7 @@ Audit date: `2026-06-26 12:12 KST` / `2026-06-26T03:12:45Z`
 | 후보 | 현재 기준 | 감사 분류 | 근거 |
 | --- | --- | --- | --- |
 | AGP / Gradle wrapper / Kotlin / KSP / Hilt / Compose | AGP `8.10.1`, Gradle `8.11.1`, Kotlin `2.1.10`, KSP `2.1.10-1.0.31`, Hilt `2.56.1` | `hold` | #925/#984/#1008/#1051 guard와 동일하다. Hilt `2.59+`는 AGP 9, Kotlin `2.3+`/KSP `2.2+`는 별도 Kotlin/toolchain lane 검증이 필요하다. |
-| AndroidX compileSdk-bound batch | app/KDS `compileSdk 35` | `hold` | `core-ktx 1.17+`, Navigation `2.9+`, Lifecycle `2.10+`, Activity `1.11+`, Compose BOM `2025.11+`는 compileSdk 36/37 또는 AGP 9.1+ 경계다. |
+| AndroidX compileSdk-bound batch | app/KDS `compileSdk 36` (targetSdk 36 bump 전에는 `compileSdk 35`) | `hold` | `core-ktx 1.17+`, Navigation `2.9+`, Lifecycle `2.10+`, Activity `1.11+`, Compose BOM `2025.11+`의 compileSdk 36 경계는 풀렸지만 Dependabot ignore는 아직 유지한다. 실제 승격은 compileSdk 36/37 재분류를 포함한 AndroidX 재승격 lane(#1173)에서 한다. |
 | Play Services Ads | `23.0.0` | `hold` | #16 광고/수익화 runtime-sensitive 후보. event-source split/release/readback 경계와 같이 판단한다. |
 | Orbit MVI | `9.0.0` | `backlog` | 실제 semver-major 후보지만 앱 state flow 영향이 커서 별도 MVI migration issue/PR로 분리한다. |
 | Room `2.7.1 -> 2.8.x`, Material/Lottie patch-minor, Firebase/Google patch-minor, Mockito patch-minor | 현재 Gradle split PR queue에 일부 존재 | `ready` 또는 `backlog` | semver-major 감사 대상이 아니라 기존 Dependabot patch/minor risk lane에서 처리한다. |
@@ -290,7 +290,7 @@ Audit date: `2026-06-26 12:12 KST` / `2026-06-26T03:12:45Z`
 - #1065 `android-gradle-runtime-libraries-patch-minor`: runtime library patch/minor lane이다. Kotlin metadata/datetime hold guard를 먼저 확인하고, Orbit/Ads major와 섞지 않는다.
 - #1064 `android-gradle-toolchain-held-patch-minor`: toolchain-held lane이므로 Hilt/AGP/Kotlin known-incompatible가 보이면 merge하지 말고 hold/close 또는 별도 toolchain lane으로 전환한다.
 - #1061 `android-gradle-room-ksp-patch-minor`: Room/KSP 전용 verification이 필요하다. KSP `2.2+`가 포함되면 Kotlin/toolchain boundary로 hold한다.
-- #1060 `android-gradle-androidx-ui-runtime-patch-minor`: compileSdk/AGP boundary guard를 먼저 확인한다. `requires compileSdk 36+` 또는 AGP 9.1+ metadata가 보이면 app-code regression이 아니라 known-incompatible hold다.
+- #1060 `android-gradle-androidx-ui-runtime-patch-minor`: compileSdk/AGP boundary guard를 먼저 확인한다. `requires compileSdk 37+` 또는 AGP 9.1+ metadata가 보이면 app-code regression이 아니라 known-incompatible hold다. `requires compileSdk 36+`는 targetSdk 36 bump로 해소됐으므로 더 이상 hold 사유가 아니고, AndroidX 재승격 lane(#1173)에서 실제 빌드/런타임 검증과 함께 처리한다.
 - #1046 ASO Bun, #1044 test tooling, #1041 Firebase/Google, #918 Functions npm은 각 ecosystem의 patch/minor lane으로 유지한다. major 후보는 이 PR들에 억지로 섞지 않는다.
 
 ### #1069 다음 재검토 조건
@@ -478,16 +478,23 @@ Stopit은 `.github/dependabot.yml`을 dependency update automation의 기본 설
 
 ### AndroidX compileSdk / AGP boundary guard (#1008, #1051)
 
-PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX metadata boundary를 드러냈다. 이후 PR #1042와 PR #1056은 같은 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 더 낮은 버전군도 현재 Stopit toolchain과 충돌한다는 점을 확인했다. 현재 Stopit은 `app`과 `core:kds` 모두 `compileSdk 35`, AGP `8.10.1` 기준이며, 아래 artifacts는 broad weekly UI/runtime lane에서 자동 병합하지 않는다.
+PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX metadata boundary를 드러냈다. 이후 PR #1042와 PR #1056은 같은 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 더 낮은 버전군도 당시 Stopit toolchain과 충돌한다는 점을 확인했다.
 
-- `androidx.core:core-ktx 1.17.0` / `androidx.core:core 1.17.0` → 현재 `compileSdk 35` baseline에서 AndroidX metadata check가 `requires compileSdk 36+`로 실패한다. `androidx.core:core-ktx 1.18.0` 이상도 같은 AndroidX metadata 경계에 있고, `androidx.core:core:1.19.0` / `androidx.core:core-ktx 1.19.0`는 더 강하게 `compileSdk 37+` 및 `AGP 9.1.0 or higher`를 요구한다.
-- `androidx.navigationevent:*:1.0.0` → `compileSdk 36+` 요구. `androidx.navigation:navigation-compose 2.9.x`가 이 축을 끌고 들어온다.
-- `androidx.activity:activity-compose 1.11.0` / `androidx.activity:activity 1.11.0` / `androidx.activity:activity-ktx 1.11.0` → 현재 `compileSdk 35` baseline에서 `requires compileSdk 36+`로 실패한다.
-- `androidx.lifecycle:* 2.10.x`, `androidx.activity:activity-compose 1.12.4`, `androidx.compose:compose-bom 2025.11.x`는 PR #1042에서 같은 compileSdk/AGP-bound AndroidX batch로 확인됐으므로 같이 hold한다.
+**baseline 변경(targetSdk 36 bump).** Stopit은 이제 `app`과 `core:kds` 모두 `compileSdk 36`, `app`은 `targetSdk 36`이며 AGP는 `8.10.1` 그대로다. Play가 2026-08-31부터 targetSdk 36을 요구해서 올린 것이고, AndroidX 승격을 목적으로 한 변경이 아니다. 그래서 아래 목록의 hold 사유는 두 갈래로 갈린다.
+
+- `compileSdk 36+`만이 사유였던 artifacts → **경계는 해소됐지만 ignore는 유지**한다. 실제 승격은 빌드/런타임 검증을 하는 AndroidX 재승격 lane(#1173)에서 한다.
+- `compileSdk 37+` 또는 `AGP 9.1.0 or higher`가 사유인 artifacts → **계속 hold**다. AGP 8.10.1에서는 아직 못 넘는다.
+
+아래 artifacts는 여전히 broad weekly UI/runtime lane에서 자동 병합하지 않는다.
+
+- `androidx.core:core-ktx 1.17.0` / `androidx.core:core 1.17.0` → 이전 `compileSdk 35` baseline에서 AndroidX metadata check가 `requires compileSdk 36+`로 실패했다. `androidx.core:core-ktx 1.18.0` 이상도 같은 경계였다. 이 축은 compileSdk 36에서 해소됐다. 반면 `androidx.core:core:1.19.0` / `androidx.core:core-ktx 1.19.0`는 더 강하게 `compileSdk 37+` 및 `AGP 9.1.0 or higher`를 요구하므로 계속 hold다.
+- `androidx.navigationevent:*:1.0.0` → `compileSdk 36+` 요구. `androidx.navigation:navigation-compose 2.9.x`가 이 축을 끌고 들어온다. compileSdk 36에서 해소됐다.
+- `androidx.activity:activity-compose 1.11.0` / `androidx.activity:activity 1.11.0` / `androidx.activity:activity-ktx 1.11.0` → 이전 `compileSdk 35` baseline에서 `requires compileSdk 36+`로 실패했다. compileSdk 36에서 해소됐다.
+- `androidx.lifecycle:* 2.10.x`, `androidx.activity:activity-compose 1.12.4`, `androidx.compose:compose-bom 2025.11.x`는 PR #1042에서 같은 compileSdk/AGP-bound AndroidX batch로 확인됐다. compileSdk 경계는 풀렸지만 Compose/Lifecycle/Activity를 한꺼번에 올리는 런타임 회귀 범위가 남아 있어 재승격 lane 전까지 hold를 유지한다.
 
 현재 정책:
 
-- Stopit이 `compileSdk 35` / AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 hold한다.
+- Stopit이 AGP 8.x에 머무는 동안 `.github/dependabot.yml`은 아래 범위를 `android-gradle-androidx-ui-runtime-patch-minor` lane 안에서 계속 hold한다. targetSdk 36 bump는 compileSdk 경계만 옮겼을 뿐 이 ignore를 걷어내지 않는다.
   - `androidx.core:core-ktx [1.17,)`
   - `androidx.navigation:navigation-compose [2.9,)`
   - `androidx.lifecycle:lifecycle-runtime-ktx [2.10,)`
@@ -496,7 +503,7 @@ PR #989는 앱/KDS 코드 변경 전 단계에서 known-incompatible AndroidX me
   - `androidx.activity:activity-compose [1.11,)`
   - `androidx.compose:compose-bom [2025.11,)`
 - 이 hold는 AndroidX 업데이트를 영구 보류한다는 뜻이 아니다. `compileSdk 36/37`, AGP 9.1+, Gradle wrapper, Kotlin/KSP/Compose 호환성, Android CI/Release Build 검증을 포함한 **별도 Android toolchain lane**에서 한 번에 승격해야 한다.
-- PR #989, PR #1042, PR #1056처럼 실패 로그가 `requires compileSdk ...` / `:app is currently compiled against android-35` / `AGP ... or higher` metadata 오류를 보이면 app-code regression으로 디버깅하지 않는다. 해당 PR은 close/hold하고, `known-incompatible: AndroidX compileSdk / AGP boundary while Stopit is compileSdk 35 / AGP 8.x`로 분류한다.
+- PR #989, PR #1042, PR #1056처럼 실패 로그가 `requires compileSdk ...` / `:app is currently compiled against android-35` / `AGP ... or higher` metadata 오류를 보이면 app-code regression으로 디버깅하지 않는다. 해당 PR은 close/hold하고, `known-incompatible: AndroidX compileSdk / AGP boundary while Stopit is compileSdk 35 / AGP 8.x`로 분류했다. compileSdk 36 이후의 같은 계열 실패는 `known-incompatible: AndroidX compileSdk 37 / AGP 9.1 boundary while Stopit is compileSdk 36 / AGP 8.10.1`로 분류한다. `android-36`을 쓰는데도 `requires compileSdk 36+`가 다시 보이면 그때는 toolchain 경계가 아니라 빌드 설정 회귀를 의심한다.
 - `scripts.tests.test_dependabot_policy_contract`가 이 guard를 고정한다. `.github/dependabot.yml`에서 위 AndroidX hold가 빠지거나 이 문서/Git workflow가 #989/#1042/#1056 처리 기준을 잃으면 Ops CI docs-contract가 실패해야 한다.
 
 ### KSP / kotlinx metadata Kotlin toolchain guard (#1051)

@@ -37,7 +37,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `LOCK_HISTORY_PERFORMANCE_REPORT_MVP.md` | #465용 잠금 기록 성과 리포트 UX 계약, empty/low-data 성취 카피, top apps positive framing, analytics/QA 계획. |
 | `GOAL_LOCK_MVP.md` | #417용 목표 잠금 MVP 계약, 기간 기반 all-day/scheduled lock, Home card, analytics/QA 계획. PR #760 이후 생성/상세 summary TalkBack contentDescription 자동 baseline과 남은 실기기/release/readback 경계를 함께 추적한다. |
 | `PARENT_MODE_MVP.md` | #471용 부모 모드 / 아이에게 폰 주기 same-device MVP 계약, 보호자 PIN, 허용 앱, analytics/QA 계획. |
-| `HOME_STATUS_CTA_STRUCTURE.md` | #463용 홈 화면 상태/CTA 구조 계약(`docs/HOME_STATUS_CTA_STRUCTURE.md`), 상태 텍스트/primary CTA 위계, #14/#455/#417 충돌 방지, PR #500/PR #606/PR #948 이후 landed Home status baseline과 남은 visual/release/readback 경계. |
+| `HOME_STATUS_CTA_STRUCTURE.md` | **superseded (2026-08-18).** #463 당시 홈 상태/CTA 설계 기록. 현재 홈은 `HomeCardArbiter`가 카드 한 장만 고르는 구조이며 `HomeStatusCtaCard`는 삭제됐다. 상단 예산 제약은 #1151 참조. |
 | `DESIGN_PRIMARY_COLOR_HIERARCHY.md` | #468용 primary color 사용 위계 source of truth. PR #546 이후 TopAppBar/navigation icon 구현 상태, 남은 visual QA/release 경계를 함께 고정한다. |
 | `BLOCK_SCREEN_COPY_HIERARCHY.md` | #464용 차단 화면 copy/action hierarchy source of truth. PR #487 이후 BlockScreen copy/helper 구현 상태와 PR #588 이후 Compose runtime baseline, 남은 screenshot/TalkBack/release 경계를 함께 고정한다. |
 | `EMERGENCY_UNLOCK_FLOW_COPY.md` | #467용 긴급해제 reason/app/duration/countdown copy·step 계약, enum compatibility, disabled/helper copy, PR #575 이후 reason-required ON/OFF Compose UI QA baseline, PR #593 이후 countdown TalkBack baseline, PR #604 이후 selected reason reflection helper baseline, PR #675 이후 step purpose copy baseline, 남은 device/release/readback 경계. |
@@ -50,6 +50,7 @@ Project documentation for workflow, plans, and historical design/spec artifacts.
 | `FCM_DEVICE_REGISTRATION_CONTRACT.md` | #194/#1090용 FCM token 로컬 저장, legacy backend registration 제거, 초기 token fetch와 `onNewToken()` 공통 retry/observability 계약. |
 | `LOCALE_STRING_QUALITY.md` | #729용 shipped locale 문자열 품질 계약. StopIt/스탑잇 브랜드 기준, Home high-traffic fallback 금지, 한국어 오타 guard, QA evidence template. |
 | `TEST_SOURCE_LINT_POLICY.md` | #1091용 `app/src/test` / `app/src/androidTest` lint 제외 정책, 대체 guard, 재검토/활성화 조건, static contract 기준. |
+| `TARGET_SDK_36_MIGRATION.md` | 2026-08-31 Play 요구사항 대응 `targetSdk 35 -> 36` 이관 기록. Android 16 동작 변경 대조표, `PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` 한시 opt-out의 API 37 제거 조건, 검증 증적과 남은 실기기 항목. |
 
 ## Subdirectories
 | Directory | Purpose |

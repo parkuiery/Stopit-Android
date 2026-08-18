@@ -82,14 +82,14 @@ fun com.android.build.api.dsl.ProductFlavor.setAdMobConfig(
 
 android {
     namespace = "com.uiery.keep"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.uiery.keep"
         minSdk = 33 // 28
-        targetSdk = 35
-        versionCode = 39
-        versionName = "1.9.1"
+        targetSdk = 36
+        versionCode = 40
+        versionName = "1.9.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
